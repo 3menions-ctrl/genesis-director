@@ -5,13 +5,16 @@ import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
-  Loader2, X, Cpu, ShieldCheck,
+  Loader2, X, Cpu, ShieldCheck, Star, Quote,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
+import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
+import heroBusiness from '@/assets/onboarding/hero-business.jpg';
+import heroEnterprise from '@/assets/onboarding/hero-enterprise.jpg';
 
 type AccountType = 'personal' | 'business' | 'enterprise';
 type PlanKind = 'credits' | 'subscription' | 'contact';
@@ -325,94 +328,104 @@ export default function StartOnboarding() {
   /* ── Render ─────────────────────────────────────────────────────── */
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[hsl(220,14%,2%)] text-white">
-      {/* Background */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      {/* Ambient global background */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0" style={{
           background:
-            'radial-gradient(ellipse at 20% 0%, hsla(212,100%,40%,0.18), transparent 55%), radial-gradient(ellipse at 80% 100%, hsla(195,100%,55%,0.12), transparent 55%), #000',
+            'radial-gradient(ellipse at 15% 0%, hsla(212,100%,40%,0.16), transparent 55%), radial-gradient(ellipse at 85% 100%, hsla(195,100%,55%,0.10), transparent 55%), #000',
         }} />
-        <motion.div aria-hidden
-          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full"
-          style={{ background: 'radial-gradient(circle, hsla(212,100%,55%,0.15), transparent 60%)' }}
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        />
       </div>
 
       {/* Close */}
       <button
         onClick={() => navigate('/')}
         aria-label="Close"
-        className="absolute top-6 right-6 z-20 w-10 h-10 inline-flex items-center justify-center rounded-full text-white/55 hover:text-white hover:bg-white/[0.06] transition-all"
+        className="fixed top-6 right-6 z-30 w-10 h-10 inline-flex items-center justify-center rounded-full text-white/55 hover:text-white hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] transition-all"
       >
         <X className="w-5 h-5" />
       </button>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 pt-12 pb-24">
-        {/* Brand row */}
-        <div className="flex items-center justify-center mb-8">
-          <Logo size="lg" showText textClassName="text-lg font-display font-bold" />
-        </div>
+      <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] min-h-screen">
+        {/* ─────────── LEFT — Cinematic poster pane ─────────── */}
+        <CinematicPane
+          accountType={accountType}
+          stepIdx={stepIdx}
+          currentStep={currentStep}
+        />
 
-        {/* Audience switcher */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur">
-            {(['personal','business','enterprise'] as AccountType[]).map(t => {
-              const active = accountType === t;
-              const Icon = t === 'personal' ? User : t === 'business' ? Briefcase : Building2;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setAccountType(t)}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs uppercase tracking-[0.18em] font-medium transition-all',
-                    active
-                      ? 'bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.5)]'
-                      : 'text-white/55 hover:text-white'
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {t}
-                </button>
-              );
-            })}
+        {/* ─────────── RIGHT — Wizard ─────────── */}
+        <div className="relative flex flex-col px-6 md:px-12 lg:px-14 pt-10 lg:pt-14 pb-20">
+          {/* Brand */}
+          <div className="flex items-center justify-between mb-8">
+            <Logo size="md" showText textClassName="text-base font-display font-bold" />
+            <p className="hidden md:block text-[10px] tracking-[0.32em] uppercase text-white/40">
+              Step {stepIdx + 1} / {steps.length}
+            </p>
           </div>
-        </div>
 
-        {/* Headline */}
-        <div className="text-center mb-10">
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
-            Step {stepIdx + 1} of {steps.length} · {STEP_META[currentStep].label}
-          </p>
-          <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight leading-tight">
-            {STEP_META[currentStep].copy}
-          </h1>
-        </div>
+          {/* Audience switcher */}
+          <div className="flex justify-start mb-8">
+            <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur">
+              {(['personal','business','enterprise'] as AccountType[]).map(t => {
+                const active = accountType === t;
+                const Icon = t === 'personal' ? User : t === 'business' ? Briefcase : Building2;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setAccountType(t)}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] uppercase tracking-[0.18em] font-medium transition-all',
+                      active
+                        ? 'bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.5)]'
+                        : 'text-white/55 hover:text-white'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Progress */}
-        <div className="relative h-px bg-white/[0.06] mb-10 max-w-xl mx-auto rounded-full overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0"
-            style={{ background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </div>
+          {/* Stepper rail */}
+          <div className="flex items-center gap-1.5 mb-8">
+            {steps.map((s, i) => (
+              <div key={s} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
+                <motion.div
+                  className="h-full origin-left"
+                  style={{ background: i <= stepIdx ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
+                  initial={false}
+                  animate={{ scaleX: i <= stepIdx ? 1 : 0 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+            ))}
+          </div>
 
-        {/* Card */}
-        <div
-          className="relative rounded-3xl p-8 md:p-12 overflow-hidden"
-          style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-            border: '1px solid hsla(0,0%,100%,0.08)',
-            backdropFilter: 'blur(22px)',
-            WebkitBackdropFilter: 'blur(22px)',
-            boxShadow: '0 30px 80px -20px rgba(0,0,0,0.55)',
-          }}
-        >
-          <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+          {/* Step header */}
+          <div className="mb-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`header-${accountType}-${currentStep}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
+                  {STEP_META[currentStep].label}
+                </p>
+                <h1 className="font-display text-[32px] md:text-[44px] leading-[1.05] font-bold tracking-tight">
+                  {STEP_META[currentStep].copy}
+                </h1>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-          <AnimatePresence mode="wait" custom={direction}>
+          {/* Card */}
+          <div className="relative flex-1">
+            <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={`${accountType}-${currentStep}`}
               custom={direction}
@@ -590,7 +603,7 @@ export default function StartOnboarding() {
           </AnimatePresence>
 
           {/* Footer nav */}
-          <div className="flex items-center justify-between gap-3 mt-10 pt-8 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between gap-3 mt-12 pt-8 border-t border-white/[0.06]">
             <button
               onClick={back}
               disabled={submitting}
@@ -601,7 +614,7 @@ export default function StartOnboarding() {
             <button
               onClick={next}
               disabled={submitting}
-              className="inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60"
+              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)',
                 boxShadow: '0 0 32px hsla(212,100%,55%,0.45)',
@@ -614,12 +627,13 @@ export default function StartOnboarding() {
                   : <>Continue <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
-        </div>
 
-        {/* Trust microcopy */}
-        <p className="text-center text-[11px] text-white/30 mt-8">
-          You're not creating an account yet. We'll only ask for credentials at the end.
-        </p>
+          {/* Trust microcopy */}
+          <p className="text-[11px] text-white/30 mt-6">
+            You're not creating an account yet — we'll only ask for credentials at the very end.
+          </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -817,4 +831,230 @@ function BillingSummary({ audience, plan }: { audience: AccountType; plan?: Plan
 /* Lucide doesn't export FileCheck; alias for clarity. */
 function FileCheckIcon({ className }: { className?: string }) {
   return <ShieldCheck className={className} />;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Cinematic Pane — left-side poster with parallax, ambient motion,
+ * step-aware tagline, social proof and audience hero.
+ * ──────────────────────────────────────────────────────────────────── */
+
+const AUDIENCE_HERO: Record<AccountType, { img: string; eyebrow: string; title: string; body: string; stats: { k: string; v: string }[] }> = {
+  personal: {
+    img: heroPersonal,
+    eyebrow: 'For Creators',
+    title: 'Direct your\nown universe.',
+    body: 'A private film studio in your pocket. Cinematic engines, synthetic actors and a render queue that ships at 4K.',
+    stats: [
+      { k: '4K', v: 'Ultra HD output' },
+      { k: '60s', v: 'First clip in' },
+      { k: '12+', v: 'Cinematic engines' },
+    ],
+  },
+  business: {
+    img: heroBusiness,
+    eyebrow: 'For Teams',
+    title: 'Your content\nengine, scaled.',
+    body: 'Brand kits, multi-seat collaboration and an API that ships campaigns while your team sleeps.',
+    stats: [
+      { k: '15', v: 'Seats included' },
+      { k: '99.9%', v: 'Render uptime' },
+      { k: 'API', v: 'Webhooks & SDK' },
+    ],
+  },
+  enterprise: {
+    img: heroEnterprise,
+    eyebrow: 'For Enterprise',
+    title: 'Infinite scale.\nWhite-glove.',
+    body: 'SAML SSO, dedicated render lanes, custom DPAs and a production team on standby for your largest moments.',
+    stats: [
+      { k: 'SSO', v: 'SAML & SCIM' },
+      { k: 'SLA', v: '24/7 support' },
+      { k: '∞', v: 'Render capacity' },
+    ],
+  },
+};
+
+const STEP_TAGLINE: Partial<Record<StepKey, string>> = {
+  goals:   'Tell us what you want to build — we calibrate the engines.',
+  usecase: 'Every choice tunes lighting, lensing and edit pace.',
+  plan:    'Pick a tier — change anytime, no contracts.',
+  profile: 'A name on the credits — yours.',
+  company: 'Your team gets its own workspace and brand kit.',
+  team:    'We size collaboration tools to your crew.',
+  role:    'Tailored shortcuts based on how you work.',
+  billing: 'Final review before you take the wheel.',
+  scale:   'We pre-allocate render lanes for your volume.',
+  needs:   'Compliance, security and integrations on tap.',
+  contact: 'A senior partner reaches out within one business day.',
+};
+
+function CinematicPane({
+  accountType, stepIdx, currentStep,
+}: { accountType: AccountType; stepIdx: number; currentStep: StepKey }) {
+  const data = AUDIENCE_HERO[accountType];
+  const tagline = STEP_TAGLINE[currentStep] ?? '';
+
+  return (
+    <div className="relative hidden lg:block overflow-hidden border-r border-white/[0.06]">
+      {/* Image stack with crossfade between audiences */}
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={`bg-${accountType}`}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.04 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <img
+            src={data.img}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'saturate(0.95) contrast(1.05)' }}
+          />
+          {/* Cinematic vignette + gradient mask */}
+          <div className="absolute inset-0" style={{
+            background:
+              'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.65) 100%), radial-gradient(ellipse at 30% 20%, hsla(212,100%,55%,0.18), transparent 55%)',
+          }} />
+          <div className="absolute inset-0" style={{
+            background:
+              'linear-gradient(90deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.55) 100%)',
+          }} />
+          {/* Subtle film grain */}
+          <div className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>\")",
+            }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Floating ambient orb */}
+      <motion.div
+        aria-hidden
+        className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsla(212,100%,55%,0.25), transparent 60%)' }}
+        animate={{ x: [0, 40, 0], y: [0, 24, 0], scale: [1, 1.08, 1] }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Anamorphic flare line */}
+      <motion.div
+        aria-hidden
+        className="absolute left-0 right-0 top-1/3 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, hsla(195,100%,75%,0.55), transparent)' }}
+        animate={{ opacity: [0, 0.7, 0], scaleX: [0.6, 1, 0.6] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Foreground content */}
+      <div className="relative z-10 h-full min-h-screen flex flex-col justify-between p-12 xl:p-16">
+        {/* Top eyebrow + meta */}
+        <div className="flex items-center justify-between">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={`eb-${accountType}`}
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-black/30 backdrop-blur text-[10px] tracking-[0.32em] uppercase text-white/80"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5AC8FA] shadow-[0_0_10px_#5AC8FA]" />
+              {data.eyebrow}
+            </motion.span>
+          </AnimatePresence>
+          <p className="text-[10px] tracking-[0.32em] uppercase text-white/45">Apex Studio</p>
+        </div>
+
+        {/* Headline + tagline */}
+        <div className="max-w-[480px]">
+          <AnimatePresence mode="wait">
+            <motion.h2
+              key={`title-${accountType}`}
+              initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, filter: 'blur(8px)' }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[44px] xl:text-[60px] leading-[0.98] font-bold tracking-tight text-white whitespace-pre-line"
+            >
+              {data.title}
+            </motion.h2>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`body-${accountType}`}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+              className="mt-5 text-[15px] leading-relaxed text-white/70"
+            >
+              {data.body}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* Step-aware whisper */}
+          <div className="h-6 mt-6">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`tag-${currentStep}-${accountType}`}
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.45 }}
+                className="text-[12px] tracking-[0.18em] uppercase text-[#9DCBFF]"
+              >
+                — {tagline}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Bottom block: stats + social proof */}
+        <div className="space-y-8">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-6 max-w-[460px]">
+            {data.stats.map((s, i) => (
+              <motion.div
+                key={`${accountType}-${s.k}`}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 + i * 0.08 }}
+              >
+                <p className="font-display text-2xl font-bold text-white">{s.k}</p>
+                <p className="text-[11px] tracking-[0.18em] uppercase text-white/45 mt-1">{s.v}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Testimonial card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`quote-${accountType}`}
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="relative max-w-[460px] rounded-2xl border border-white/10 bg-black/35 backdrop-blur-xl p-5"
+            >
+              <Quote className="absolute -top-2.5 left-5 w-5 h-5 text-[#5AC8FA] bg-black rounded-sm p-0.5" />
+              <p className="text-[13px] leading-relaxed text-white/85">
+                {accountType === 'personal' && '"Made my first cinematic short on a Tuesday night. Friday it was on Netflix\'s creator showcase."'}
+                {accountType === 'business' && '"We replaced a six-person video team with two operators and Apex. Output 4×, cost down 70%."'}
+                {accountType === 'enterprise' && '"The dedicated render lane shipped our launch in 11 days. Their team felt like an extension of ours."'}
+              </p>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="w-3 h-3 fill-[#9DCBFF] text-[#9DCBFF]" />
+                  ))}
+                </div>
+                <p className="text-[11px] tracking-[0.18em] uppercase text-white/45">
+                  {accountType === 'personal' && 'Maya R. · Filmmaker'}
+                  {accountType === 'business' && 'Eli K. · Head of Brand'}
+                  {accountType === 'enterprise' && 'Director · Fortune 100'}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
 }

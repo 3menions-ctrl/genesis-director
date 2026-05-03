@@ -4,7 +4,6 @@ import {
   User,
   Building2,
   ShieldCheck,
-  Check,
   ArrowRight,
   Type,
   ImageIcon,

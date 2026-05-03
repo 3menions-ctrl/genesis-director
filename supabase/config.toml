@@ -260,3 +260,6 @@ verify_jwt = false
 
 [functions.api-keys-manage]
 verify_jwt = false
+
+[functions.create-plan-checkout]
+verify_jwt = false

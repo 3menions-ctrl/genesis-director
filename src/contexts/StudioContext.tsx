@@ -316,17 +316,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       let orgId: string | null = null;
       try { orgId = localStorage.getItem('apex.currentOrgId'); } catch {}
 
-      const insertPayload: Record<string, unknown> = {
-        title: draftTitle,
-        status: 'draft',
-        target_duration_minutes: 1,
-        user_id: currentSession.user.id,
-      };
-      if (orgId) insertPayload.organization_id = orgId;
-
       const { data, error } = await supabase
         .from('movie_projects')
-        .insert(insertPayload)
+        .insert({
+          title: draftTitle,
+          status: 'draft',
+          target_duration_minutes: 1,
+          user_id: currentSession.user.id,
+          ...(orgId ? { organization_id: orgId } : {}),
+        })
         .select()
         .single();
 

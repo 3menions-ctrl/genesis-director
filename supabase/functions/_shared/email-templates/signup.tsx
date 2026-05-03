@@ -19,6 +19,7 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
@@ -26,13 +27,14 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Your {siteName} verification code{token ? ` is ${token}` : ''}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>Your verification code</Heading>
         <Text style={text}>
           Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
@@ -45,10 +47,12 @@ export const SignupEmail = ({
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) with this code:
         </Text>
+        {token ? <Text style={code}>{token}</Text> : null}
+        <Text style={text}>Enter this 6-digit code in Apex Studio to finish creating your account.</Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Open Apex Studio
         </Button>
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.
@@ -82,5 +86,19 @@ const button = {
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',
+}
+const code = {
+  backgroundColor: '#f4f7fb',
+  border: '1px solid #d9e3f0',
+  borderRadius: '10px',
+  color: '#0f172a',
+  fontFamily: 'Arial, sans-serif',
+  fontSize: '32px',
+  fontWeight: 'bold' as const,
+  letterSpacing: '8px',
+  lineHeight: '1',
+  margin: '0 0 24px',
+  padding: '18px 20px',
+  textAlign: 'center' as const,
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

@@ -328,6 +328,45 @@ export default function WorkspaceBilling() {
           )}
         </section>
       </div>
+
+      {/* Embedded checkout dialog */}
+      <Dialog open={!!checkoutPriceId} onOpenChange={(o) => { if (!o) { setCheckoutPriceId(null); setClientSecret(null); } }}>
+        <DialogContent className="max-w-2xl bg-[hsl(220,14%,3%)] border-white/[0.08] p-0 overflow-hidden">
+          <DialogTitle className="sr-only">Checkout</DialogTitle>
+          {loadingCheckout || !clientSecret ? (
+            <div className="h-[480px] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-[#9DCBFF] animate-spin" />
+            </div>
+          ) : (
+            <div className="bg-white">
+              <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret: async () => clientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan picker fallback (link-based) — opens the inline plans section */}
+      {planOpen && (
+        <Dialog open={planOpen} onOpenChange={setPlanOpen}>
+          <DialogContent className="max-w-md bg-[hsl(220,14%,3%)] border-white/[0.08]">
+            <DialogTitle className="text-white text-base">Change plan</DialogTitle>
+            <p className="text-[13px] text-white/55 mt-2">
+              Pick a Business plan from the section below — Starter, Growth, or Scale.
+              Need a personal credit pack? Visit pricing.
+            </p>
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" onClick={() => { setPlanOpen(false); navigate('/pricing'); }} className="flex-1">
+                See all pricing
+              </Button>
+              <Button onClick={() => setPlanOpen(false)} className="flex-1 bg-[#0A84FF] hover:bg-[#0A84FF]/90">
+                Got it
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </WorkspaceLayout>
   );
 }

@@ -244,6 +244,20 @@ export default function StartOnboarding() {
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }
+    if (currentStep === 'account') {
+      // If already authenticated (e.g. via OAuth), skip validation
+      if (user) return true;
+      const r = accountSchema.safeParse({ email: form.email, password: form.password });
+      if (!r.success) {
+        const fe: Record<string, string> = {};
+        r.error.errors.forEach(e => { if (e.path[0]) fe[e.path[0] as string] = e.message; });
+        setErrors(fe); return false;
+      }
+    }
+    if (currentStep === 'verify') {
+      if (user) return true;
+      if (otpCode.length !== 6) { setErrors({ otp: 'Enter the 6-digit code' }); return false; }
+    }
     if (currentStep === 'scale' && !form.expected_volume) {
       setErrors({ expected_volume: 'Pick an expected volume' }); return false;
     }

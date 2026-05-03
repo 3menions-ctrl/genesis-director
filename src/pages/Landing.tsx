@@ -139,7 +139,7 @@ export default function Landing() {
         localStorage.setItem('apex.audience', category);
       } catch {}
       setChooserOpen(false);
-      navigate(`/auth?mode=signup&audience=${category}`);
+      navigate(`/start?type=${category}`);
     },
     [navigate],
   );

@@ -2784,6 +2784,78 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_intents: {
+        Row: {
+          account_type: string
+          company_name: string | null
+          consumed_at: string | null
+          consumed_by_user_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          display_name: string | null
+          expected_volume: string | null
+          experience_level: string | null
+          goals: string[] | null
+          id: string
+          industry: string | null
+          intent_token: string
+          job_role: string | null
+          needs_api: boolean | null
+          needs_sla: boolean | null
+          needs_sso: boolean | null
+          selected_plan_id: string | null
+          selected_plan_kind: string | null
+          team_size: string | null
+        }
+        Insert: {
+          account_type: string
+          company_name?: string | null
+          consumed_at?: string | null
+          consumed_by_user_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          display_name?: string | null
+          expected_volume?: string | null
+          experience_level?: string | null
+          goals?: string[] | null
+          id?: string
+          industry?: string | null
+          intent_token: string
+          job_role?: string | null
+          needs_api?: boolean | null
+          needs_sla?: boolean | null
+          needs_sso?: boolean | null
+          selected_plan_id?: string | null
+          selected_plan_kind?: string | null
+          team_size?: string | null
+        }
+        Update: {
+          account_type?: string
+          company_name?: string | null
+          consumed_at?: string | null
+          consumed_by_user_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          display_name?: string | null
+          expected_volume?: string | null
+          experience_level?: string | null
+          goals?: string[] | null
+          id?: string
+          industry?: string | null
+          intent_token?: string
+          job_role?: string | null
+          needs_api?: boolean | null
+          needs_sla?: boolean | null
+          needs_sso?: boolean | null
+          selected_plan_id?: string | null
+          selected_plan_kind?: string | null
+          team_size?: string | null
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -5314,6 +5386,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_signup_analytics: { Args: never; Returns: Json }
+      consume_onboarding_intent: { Args: { _token: string }; Returns: Json }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
         Returns: string

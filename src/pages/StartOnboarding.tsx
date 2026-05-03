@@ -832,3 +832,229 @@ function BillingSummary({ audience, plan }: { audience: AccountType; plan?: Plan
 function FileCheckIcon({ className }: { className?: string }) {
   return <ShieldCheck className={className} />;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Cinematic Pane — left-side poster with parallax, ambient motion,
+ * step-aware tagline, social proof and audience hero.
+ * ──────────────────────────────────────────────────────────────────── */
+
+const AUDIENCE_HERO: Record<AccountType, { img: string; eyebrow: string; title: string; body: string; stats: { k: string; v: string }[] }> = {
+  personal: {
+    img: heroPersonal,
+    eyebrow: 'For Creators',
+    title: 'Direct your\nown universe.',
+    body: 'A private film studio in your pocket. Cinematic engines, synthetic actors and a render queue that ships at 4K.',
+    stats: [
+      { k: '4K', v: 'Ultra HD output' },
+      { k: '60s', v: 'First clip in' },
+      { k: '12+', v: 'Cinematic engines' },
+    ],
+  },
+  business: {
+    img: heroBusiness,
+    eyebrow: 'For Teams',
+    title: 'Your content\nengine, scaled.',
+    body: 'Brand kits, multi-seat collaboration and an API that ships campaigns while your team sleeps.',
+    stats: [
+      { k: '15', v: 'Seats included' },
+      { k: '99.9%', v: 'Render uptime' },
+      { k: 'API', v: 'Webhooks & SDK' },
+    ],
+  },
+  enterprise: {
+    img: heroEnterprise,
+    eyebrow: 'For Enterprise',
+    title: 'Infinite scale.\nWhite-glove.',
+    body: 'SAML SSO, dedicated render lanes, custom DPAs and a production team on standby for your largest moments.',
+    stats: [
+      { k: 'SSO', v: 'SAML & SCIM' },
+      { k: 'SLA', v: '24/7 support' },
+      { k: '∞', v: 'Render capacity' },
+    ],
+  },
+};
+
+const STEP_TAGLINE: Partial<Record<StepKey, string>> = {
+  goals:   'Tell us what you want to build — we calibrate the engines.',
+  usecase: 'Every choice tunes lighting, lensing and edit pace.',
+  plan:    'Pick a tier — change anytime, no contracts.',
+  profile: 'A name on the credits — yours.',
+  company: 'Your team gets its own workspace and brand kit.',
+  team:    'We size collaboration tools to your crew.',
+  role:    'Tailored shortcuts based on how you work.',
+  billing: 'Final review before you take the wheel.',
+  scale:   'We pre-allocate render lanes for your volume.',
+  needs:   'Compliance, security and integrations on tap.',
+  contact: 'A senior partner reaches out within one business day.',
+};
+
+function CinematicPane({
+  accountType, stepIdx, currentStep,
+}: { accountType: AccountType; stepIdx: number; currentStep: StepKey }) {
+  const data = AUDIENCE_HERO[accountType];
+  const tagline = STEP_TAGLINE[currentStep] ?? '';
+
+  return (
+    <div className="relative hidden lg:block overflow-hidden border-r border-white/[0.06]">
+      {/* Image stack with crossfade between audiences */}
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={`bg-${accountType}`}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.04 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <img
+            src={data.img}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'saturate(0.95) contrast(1.05)' }}
+          />
+          {/* Cinematic vignette + gradient mask */}
+          <div className="absolute inset-0" style={{
+            background:
+              'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.65) 100%), radial-gradient(ellipse at 30% 20%, hsla(212,100%,55%,0.18), transparent 55%)',
+          }} />
+          <div className="absolute inset-0" style={{
+            background:
+              'linear-gradient(90deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.55) 100%)',
+          }} />
+          {/* Subtle film grain */}
+          <div className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>\")",
+            }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Floating ambient orb */}
+      <motion.div
+        aria-hidden
+        className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsla(212,100%,55%,0.25), transparent 60%)' }}
+        animate={{ x: [0, 40, 0], y: [0, 24, 0], scale: [1, 1.08, 1] }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Anamorphic flare line */}
+      <motion.div
+        aria-hidden
+        className="absolute left-0 right-0 top-1/3 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, hsla(195,100%,75%,0.55), transparent)' }}
+        animate={{ opacity: [0, 0.7, 0], scaleX: [0.6, 1, 0.6] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Foreground content */}
+      <div className="relative z-10 h-full min-h-screen flex flex-col justify-between p-12 xl:p-16">
+        {/* Top eyebrow + meta */}
+        <div className="flex items-center justify-between">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={`eb-${accountType}`}
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-black/30 backdrop-blur text-[10px] tracking-[0.32em] uppercase text-white/80"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5AC8FA] shadow-[0_0_10px_#5AC8FA]" />
+              {data.eyebrow}
+            </motion.span>
+          </AnimatePresence>
+          <p className="text-[10px] tracking-[0.32em] uppercase text-white/45">Apex Studio</p>
+        </div>
+
+        {/* Headline + tagline */}
+        <div className="max-w-[480px]">
+          <AnimatePresence mode="wait">
+            <motion.h2
+              key={`title-${accountType}`}
+              initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, filter: 'blur(8px)' }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[44px] xl:text-[60px] leading-[0.98] font-bold tracking-tight text-white whitespace-pre-line"
+            >
+              {data.title}
+            </motion.h2>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`body-${accountType}`}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+              className="mt-5 text-[15px] leading-relaxed text-white/70"
+            >
+              {data.body}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* Step-aware whisper */}
+          <div className="h-6 mt-6">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`tag-${currentStep}-${accountType}`}
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.45 }}
+                className="text-[12px] tracking-[0.18em] uppercase text-[#9DCBFF]"
+              >
+                — {tagline}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Bottom block: stats + social proof */}
+        <div className="space-y-8">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-6 max-w-[460px]">
+            {data.stats.map((s, i) => (
+              <motion.div
+                key={`${accountType}-${s.k}`}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 + i * 0.08 }}
+              >
+                <p className="font-display text-2xl font-bold text-white">{s.k}</p>
+                <p className="text-[11px] tracking-[0.18em] uppercase text-white/45 mt-1">{s.v}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Testimonial card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`quote-${accountType}`}
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="relative max-w-[460px] rounded-2xl border border-white/10 bg-black/35 backdrop-blur-xl p-5"
+            >
+              <Quote className="absolute -top-2.5 left-5 w-5 h-5 text-[#5AC8FA] bg-black rounded-sm p-0.5" />
+              <p className="text-[13px] leading-relaxed text-white/85">
+                {accountType === 'personal' && '"Made my first cinematic short on a Tuesday night. Friday it was on Netflix\'s creator showcase."'}
+                {accountType === 'business' && '"We replaced a six-person video team with two operators and Apex. Output 4×, cost down 70%."'}
+                {accountType === 'enterprise' && '"The dedicated render lane shipped our launch in 11 days. Their team felt like an extension of ours."'}
+              </p>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="w-3 h-3 fill-[#9DCBFF] text-[#9DCBFF]" />
+                  ))}
+                </div>
+                <p className="text-[11px] tracking-[0.18em] uppercase text-white/45">
+                  {accountType === 'personal' && 'Maya R. · Filmmaker'}
+                  {accountType === 'business' && 'Eli K. · Head of Brand'}
+                  {accountType === 'enterprise' && 'Director · Fortune 100'}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}

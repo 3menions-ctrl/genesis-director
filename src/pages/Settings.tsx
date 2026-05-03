@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, CreditCard, Shield, Settings as SettingsIcon, Bell,
-  ChevronRight, ArrowLeft
+  ChevronRight, ArrowLeft, Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AccountSettings } from '@/components/settings/AccountSettings';
@@ -15,6 +15,7 @@ import { BillingSettings } from '@/components/settings/BillingSettings';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
 import { PreferencesSettings } from '@/components/settings/PreferencesSettings';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { ReferralsSettings } from '@/components/settings/ReferralsSettings';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const SECTIONS = [
@@ -23,6 +24,7 @@ const SECTIONS = [
   { id: 'security', label: 'Security', icon: Shield, description: 'Password & safety', code: '03' },
   { id: 'preferences', label: 'Preferences', icon: SettingsIcon, description: 'Display & defaults', code: '04' },
   { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Alerts & emails', code: '05' },
+  { id: 'referrals', label: 'Referrals', icon: Gift, description: 'Invite friends, earn credits', code: '06' },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
@@ -62,6 +64,8 @@ const SettingsContent = memo(function SettingsContent() {
         return <PreferencesSettings />;
       case 'notifications':
         return <NotificationSettings />;
+      case 'referrals':
+        return <ReferralsSettings />;
       default:
         return <AccountSettings />;
     }

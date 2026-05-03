@@ -281,9 +281,10 @@ export default function StartOnboarding() {
     // Step: account → persist intent + create account, then advance to verify
     if (currentStep === 'account') {
       if (user) {
-        // Already authenticated (e.g. via OAuth in this same step). Skip verify.
+        // Already authenticated (e.g. via OAuth). Skip verify and go to plan selection.
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => Math.min(i + 2, steps.length - 1));
         return;
       }
       setSubmitting(true);
@@ -299,8 +300,10 @@ export default function StartOnboarding() {
               toast.error('That email is already registered — wrong password?');
               return;
             }
+            // Existing account signed in — skip OTP and proceed to plan selection.
             await persistIntentAndConsume();
-            await routeAfterAuth();
+            setDirection(1);
+            setStepIdx(i => Math.min(i + 2, steps.length - 1));
             return;
           }
           toast.error(error.message || 'Could not create your account.');
@@ -315,11 +318,12 @@ export default function StartOnboarding() {
       return;
     }
 
-    // Step: verify → confirm OTP, consume intent, route
+    // Step: verify → confirm OTP, consume intent, advance to plan selection
     if (currentStep === 'verify') {
       if (user) {
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => i + 1);
         return;
       }
       setSubmitting(true);
@@ -335,7 +339,8 @@ export default function StartOnboarding() {
         }
         toast.success('Email verified.');
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => i + 1);
       } finally {
         setSubmitting(false);
       }

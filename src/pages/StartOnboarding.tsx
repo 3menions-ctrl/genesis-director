@@ -83,7 +83,9 @@ const ENTERPRISE_PLAN: Plan = {
 // happens AFTER the user has completed all questionnaire + plan selection — this
 // preserves the full onboarding flow and lands users on billing as the last action.
 const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'account', 'verify', 'billing'] as const;
+// Business onboarding is intentionally deeper than personal — it captures workspace,
+// brand, volume, integrations and an optional teammate invite list before billing.
+const BUSINESS_STEPS = ['company', 'biz_usecase', 'team', 'role', 'brand', 'volume', 'integrations', 'plan', 'account', 'verify', 'invite', 'billing'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -105,6 +107,11 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   contact: { label: 'Contact',       copy: 'How should we reach you?' },
   account: { label: 'Account',       copy: 'Create your account.' },
   verify:  { label: 'Verify',        copy: 'Confirm your email.' },
+  biz_usecase:  { label: 'Use case',     copy: 'What will your team produce?' },
+  brand:        { label: 'Brand kit',    copy: 'Bring your brand into Apex.' },
+  volume:       { label: 'Volume',       copy: 'How much content per month?' },
+  integrations: { label: 'Integrations', copy: 'Where does video need to go?' },
+  invite:       { label: 'Invite team',  copy: 'Bring your crew on board.' },
 };
 
 const PERSONAL_GOALS = [
@@ -131,6 +138,46 @@ const ROLES = [
   'Designer', 'Developer', 'Operations', 'Other',
 ];
 const VOLUME_OPTIONS = ['< 1,000 / mo', '1,000–5,000 / mo', '5,000–25,000 / mo', '25,000–100,000 / mo', '100,000+ / mo'];
+
+const BUSINESS_USE_CASES = [
+  { id: 'ads',         label: 'Performance ads',       desc: 'Hooks, UGC, paid social creative', Icon: Target },
+  { id: 'social',      label: 'Organic social',        desc: 'TikTok, Reels, Shorts at scale',  Icon: Megaphone },
+  { id: 'product',     label: 'Product marketing',     desc: 'Launches, demos, explainers',     Icon: Sparkles },
+  { id: 'sales',       label: 'Sales enablement',      desc: 'Outbound, decks, personalized',   Icon: Briefcase },
+  { id: 'training',    label: 'Internal & training',   desc: 'Onboarding, comms, L&D',          Icon: ShieldCheck },
+  { id: 'agency',      label: 'Client deliverables',   desc: 'Agency work for multiple brands', Icon: Crown },
+];
+
+const BUSINESS_VOLUME = [
+  { id: '< 10 / mo',     label: 'Under 10 / mo',     desc: 'Just getting started' },
+  { id: '10–50 / mo',    label: '10–50 / mo',        desc: 'A steady weekly cadence' },
+  { id: '50–250 / mo',   label: '50–250 / mo',       desc: 'High-output content engine' },
+  { id: '250+ / mo',     label: '250+ / mo',         desc: 'Industrial scale' },
+];
+
+const BUSINESS_INTEGRATIONS = [
+  { id: 'meta',     label: 'Meta Ads' },
+  { id: 'tiktok',   label: 'TikTok' },
+  { id: 'youtube',  label: 'YouTube' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'shopify',  label: 'Shopify' },
+  { id: 'hubspot',  label: 'HubSpot' },
+  { id: 'slack',    label: 'Slack' },
+  { id: 'zapier',   label: 'Zapier / API' },
+];
+
+const BRAND_VOICES = [
+  { id: 'bold',         label: 'Bold & confident',     desc: 'Big claims, strong stance' },
+  { id: 'playful',      label: 'Playful',              desc: 'Light, witty, irreverent' },
+  { id: 'premium',      label: 'Premium & refined',    desc: 'Editorial, cinematic, calm' },
+  { id: 'authoritative',label: 'Authoritative',        desc: 'Expert, informative, trusted' },
+  { id: 'warm',         label: 'Warm & human',         desc: 'Empathetic, friendly, real' },
+];
+
+const PRESET_BRAND_COLORS = [
+  '#0A84FF', '#5AC8FA', '#FF453A', '#FF9F0A', '#FFD60A',
+  '#30D158', '#BF5AF2', '#FF375F', '#64D2FF', '#FFFFFF',
+];
 
 /* ─────────────────────────────────────────────────────────────────────
  * Schemas

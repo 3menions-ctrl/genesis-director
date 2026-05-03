@@ -151,18 +151,32 @@ export default function Onboarding() {
           setIntentResolving(false);
           return;
         }
-        const result = data as { ok: boolean; plan_id?: string; plan_kind?: string } | null;
-        if (!result?.ok) {
+        // RPC returns { success, account_type, organization_id, already_consumed? }
+        const result = data as {
+          success?: boolean;
+          ok?: boolean;
+          account_type?: 'personal' | 'business' | 'enterprise';
+          organization_id?: string | null;
+          plan_id?: string;
+          plan_kind?: string;
+          error?: string;
+        } | null;
+        const consumed = !!(result?.success || result?.ok);
+        if (!consumed) {
+          console.warn('[Onboarding] intent not consumed:', result?.error);
           try { sessionStorage.removeItem('apex.intent_token'); } catch {}
           setIntentResolving(false);
           return;
         }
         try { sessionStorage.removeItem('apex.intent_token'); } catch {}
         await refreshProfile();
+        try { await refreshWorkspaces(); } catch {}
         const next = new URLSearchParams(window.location.search).get('next');
         if (next) { navigate(next, { replace: true }); return; }
-        if (result.plan_id && result.plan_kind && result.plan_kind !== 'contact') {
+        if (result?.plan_id && result?.plan_kind && result.plan_kind !== 'contact') {
           navigate(`/welcome/checkout?plan=${result.plan_id}`, { replace: true });
+        } else if (result?.account_type === 'business' || result?.account_type === 'enterprise') {
+          navigate('/workspace/overview', { replace: true });
         } else {
           navigate('/create', { replace: true });
         }
@@ -171,7 +185,7 @@ export default function Onboarding() {
         setIntentResolving(false);
       }
     })();
-  }, [sessionChecked, user, navigate, refreshProfile]);
+  }, [sessionChecked, user, navigate, refreshProfile, refreshWorkspaces]);
 
   // ─── Step navigation ───────────────────────────────────────────────
   const validateStep = useCallback((): boolean => {

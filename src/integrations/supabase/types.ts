@@ -6245,6 +6245,15 @@ export type Database = {
         Args: { p_intent_token: string }
         Returns: Json
       }
+      consume_org_credits: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_org_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
         Returns: string
@@ -6493,6 +6502,15 @@ export type Database = {
       }
       set_org_plan: {
         Args: { p_org_id: string; p_plan: string }
+        Returns: Json
+      }
+      topup_org_credits: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_org_id: string
+          p_source?: string
+        }
         Returns: Json
       }
       update_generation_checkpoint: {

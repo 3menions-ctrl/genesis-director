@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Palette, BarChart3, CreditCard, ArrowUpRight, Building2,
-  Film, Image as ImageIcon, Plus, Sparkles, Zap, Layers,
+  Users, Palette, BarChart3, CreditCard, Building2,
+  Film, Image as ImageIcon, Plus, Zap, Layers, Activity,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
-import { Button } from '@/components/ui/button';
+import {
+  Surface, Section, MetricCard, CmdButton, Pill,
+} from '@/components/workspace/command-ui';
 import { cn } from '@/lib/utils';
 
 interface Snapshot {
@@ -20,10 +22,10 @@ interface Snapshot {
 }
 
 const PLAN_HEADLINE: Record<string, { label: string; cta: string }> = {
-  starter:          { label: 'Free workspace',    cta: 'Upgrade for seats & analytics' },
-  business_starter: { label: 'Business Starter',  cta: 'Upgrade for more seats & credits' },
-  business_growth:  { label: 'Business Growth',   cta: 'Scale to 50 seats with Scale tier' },
-  business_scale:   { label: 'Business Scale',    cta: 'Talk to sales for Enterprise' },
+  starter:          { label: 'FREE WORKSPACE',    cta: 'Activate Business plan' },
+  business_starter: { label: 'BUSINESS · STARTER', cta: 'Upgrade to Growth' },
+  business_growth:  { label: 'BUSINESS · GROWTH',  cta: 'Scale to 50 seats' },
+  business_scale:   { label: 'BUSINESS · SCALE',   cta: 'Talk to Enterprise' },
 };
 
 export default function WorkspaceOverview() {
@@ -72,119 +74,107 @@ export default function WorkspaceOverview() {
 
   return (
     <WorkspaceLayout>
-      <div className="space-y-7">
-        {/* Hero band */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#0A84FF]/[0.07] via-white/[0.02] to-transparent p-7">
-          <div className="flex items-start justify-between gap-6 flex-wrap">
-            <div className="space-y-2 min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.32em] text-[#9DCBFF] font-medium inline-flex items-center gap-2">
-                <Building2 className="w-3 h-3" /> {headline.label}
+      <div className="space-y-6">
+        {/* ── Briefing band ───────────────────────────────────── */}
+        <Surface className="relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
+               style={{
+                 backgroundImage: 'repeating-linear-gradient(90deg, hsl(28,90%,60%) 0 1px, transparent 1px 80px)',
+               }}
+          />
+          <div className="relative flex items-start justify-between gap-6 flex-wrap">
+            <div className="space-y-3 min-w-0 max-w-xl">
+              <div className="flex items-center gap-2">
+                <Pill tone="amber"><Building2 className="w-3 h-3" />{headline.label}</Pill>
+                <Pill tone="good"><Activity className="w-3 h-3" />OPERATIONAL</Pill>
               </div>
-              <h2 className="font-display text-[26px] sm:text-[30px] font-light tracking-tight text-white">
-                Welcome to {currentOrg?.name ?? 'your workspace'}
+              <h2 className="font-display text-[26px] sm:text-[30px] font-light tracking-tight text-[hsl(35,12%,98%)]">
+                Operations briefing<span className="text-[hsl(28,90%,60%)]">.</span>
               </h2>
-              <p className="text-[13px] text-white/55 max-w-xl">
-                Everything your team needs to ship cinematic content together — members, brand kit, shared assets and billing in one place.
+              <p className="text-[13px] text-[hsl(35,8%,55%)] font-light">
+                Snapshot of <span className="text-[hsl(35,12%,82%)]">{currentOrg?.name ?? 'this workspace'}</span> — roster, output, brand integrity and burn over the last 30 days.
               </p>
             </div>
             {hasPermission('admin') && (
-              <Button
-                onClick={() => navigate('/workspace/billing')}
-                className="bg-white text-black hover:bg-white/90 rounded-full"
-              >
-                {headline.cta} <ArrowUpRight className="w-3.5 h-3.5 ml-1.5" />
-              </Button>
+              <CmdButton onClick={() => navigate('/workspace/billing')}>
+                {headline.cta} →
+              </CmdButton>
             )}
           </div>
-        </section>
+        </Surface>
 
-        {/* KPIs */}
+        {/* ── KPI grid ───────────────────────────────────────── */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi icon={Users}      label="Members"         value={snap.members}        sub={snap.invitesPending ? `${snap.invitesPending} pending` : 'All accepted'} loading={loading} />
-          <Kpi icon={Film}       label="Projects"        value={snap.projects}       sub="Org-wide" loading={loading} />
-          <Kpi icon={ImageIcon}  label="Brand assets"    value={snap.assets}         sub="Shared library" loading={loading} />
-          <Kpi icon={Zap}        label="Credits (30d)"   value={snap.creditsUsed30d} sub="Burn last month" loading={loading} accent />
+          <MetricCard icon={Users}     label="Roster"        value={snap.members}        sub={snap.invitesPending ? `${snap.invitesPending} INVITES PENDING` : 'ALL ACCEPTED'} loading={loading} />
+          <MetricCard icon={Film}      label="Projects"      value={snap.projects}       sub="ORG-WIDE" loading={loading} />
+          <MetricCard icon={ImageIcon} label="Brand assets"  value={snap.assets}         sub="SHARED LIBRARY" loading={loading} />
+          <MetricCard icon={Zap}       label="Burn · 30d"    value={snap.creditsUsed30d} sub="CREDITS CONSUMED" loading={loading} accent />
         </section>
 
-        {/* Brand snapshot + Quick actions */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] font-medium text-white/95 inline-flex items-center gap-2">
-                <Palette className="w-3.5 h-3.5 text-[#9DCBFF]" /> Brand snapshot
-              </h3>
-              <button onClick={() => navigate('/workspace/brand')} className="text-[11px] text-[#9DCBFF] hover:text-white transition inline-flex items-center gap-1">
-                Edit brand kit <ArrowUpRight className="w-3 h-3" />
+        {/* ── Brand snapshot + Quick actions ─────────────────── */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Section
+            icon={Palette}
+            label="Brand integrity"
+            sublabel="Palette enforced on every generation."
+            className="lg:col-span-2"
+            action={
+              <button
+                onClick={() => navigate('/workspace/brand')}
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] transition"
+              >
+                EDIT BRAND →
               </button>
-            </div>
+            }
+          >
             {snap.brandColors.length === 0 ? (
-              <p className="text-[12px] text-white/45">
-                No brand colors set. Define your palette so generated content stays on-brand.
+              <p className="text-[12px] text-[hsl(35,8%,55%)] font-light">
+                No brand palette defined. Outputs will use neutral defaults.
               </p>
             ) : (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 {snap.brandColors.slice(0, 8).map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-white/[0.06] bg-white/[0.02]">
-                    <span className="w-3 h-3 rounded-full border border-white/15" style={{ background: c }} />
-                    <span className="text-[11px] font-mono text-white/65 uppercase">{c}</span>
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)]">
+                    <span className="w-3 h-3 border border-[hsl(35,12%,22%)]" style={{ background: c }} />
+                    <span className="font-mono text-[10px] text-[hsl(35,12%,72%)] uppercase">{c}</span>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 flex flex-col">
-            <h3 className="text-[14px] font-medium text-white/95 mb-4 inline-flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#9DCBFF]" /> Quick actions
-            </h3>
+          <Section icon={Plus} label="Dispatch" sublabel="Common operations.">
             <div className="space-y-2">
-              <QuickLink onClick={() => navigate('/workspace/team')}      icon={Users}     label="Invite teammates" />
-              <QuickLink onClick={() => navigate('/workspace/assets')}    icon={Layers}    label="Upload brand assets" />
-              <QuickLink onClick={() => navigate('/workspace/analytics')} icon={BarChart3} label="View team analytics" />
-              <QuickLink onClick={() => navigate('/create')}              icon={Plus}      label="Start new project" primary />
+              <CmdAction onClick={() => navigate('/workspace/team')}      icon={Users}     label="Invite member" />
+              <CmdAction onClick={() => navigate('/workspace/assets')}    icon={Layers}    label="Upload asset" />
+              <CmdAction onClick={() => navigate('/workspace/analytics')} icon={BarChart3} label="Open telemetry" />
+              <CmdAction onClick={() => navigate('/create')}              icon={Plus}      label="New project" primary />
             </div>
-          </div>
+          </Section>
         </section>
       </div>
     </WorkspaceLayout>
   );
 }
 
-function Kpi({ icon: Icon, label, value, sub, loading, accent }: {
-  icon: typeof Users; label: string; value: number; sub: string; loading: boolean; accent?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
-      <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">{label}</div>
-        <Icon className={cn('w-3.5 h-3.5', accent ? 'text-[#5AC8FA]' : 'text-[#9DCBFF]')} strokeWidth={1.5} />
-      </div>
-      <div className={cn('mt-2 text-2xl font-display font-light', accent ? 'text-[#5AC8FA]' : 'text-white')}>
-        {loading ? '—' : value.toLocaleString()}
-      </div>
-      <div className="text-[11px] text-white/40 mt-0.5">{sub}</div>
-    </div>
-  );
-}
-
-function QuickLink({ onClick, icon: Icon, label, primary }: {
+function CmdAction({ onClick, icon: Icon, label, primary }: {
   onClick: () => void; icon: typeof Users; label: string; primary?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] transition',
+        'w-full flex items-center justify-between px-3 py-2.5 transition-colors border',
         primary
-          ? 'bg-[#0A84FF] text-white hover:bg-[#0A84FF]/90'
-          : 'bg-white/[0.02] text-white/85 hover:bg-white/[0.05] border border-white/[0.04]'
+          ? 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] hover:bg-[hsl(28,90%,62%)] border-[hsl(28,90%,55%)]'
+          : 'bg-[hsl(35,12%,7%)] border-[hsl(35,12%,16%)] text-[hsl(35,12%,82%)] hover:bg-[hsl(35,12%,10%)] hover:border-[hsl(35,12%,22%)]'
       )}
     >
       <span className="inline-flex items-center gap-2.5">
         <Icon className="w-3.5 h-3.5" strokeWidth={1.6} />
-        {label}
+        <span className="font-mono text-[11px] uppercase tracking-[0.20em]">{label}</span>
       </span>
-      <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
+      <span className="text-[10px] opacity-70">→</span>
     </button>
   );
 }

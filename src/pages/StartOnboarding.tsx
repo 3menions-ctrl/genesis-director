@@ -328,94 +328,104 @@ export default function StartOnboarding() {
   /* ── Render ─────────────────────────────────────────────────────── */
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[hsl(220,14%,2%)] text-white">
-      {/* Background */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      {/* Ambient global background */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0" style={{
           background:
-            'radial-gradient(ellipse at 20% 0%, hsla(212,100%,40%,0.18), transparent 55%), radial-gradient(ellipse at 80% 100%, hsla(195,100%,55%,0.12), transparent 55%), #000',
+            'radial-gradient(ellipse at 15% 0%, hsla(212,100%,40%,0.16), transparent 55%), radial-gradient(ellipse at 85% 100%, hsla(195,100%,55%,0.10), transparent 55%), #000',
         }} />
-        <motion.div aria-hidden
-          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full"
-          style={{ background: 'radial-gradient(circle, hsla(212,100%,55%,0.15), transparent 60%)' }}
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        />
       </div>
 
       {/* Close */}
       <button
         onClick={() => navigate('/')}
         aria-label="Close"
-        className="absolute top-6 right-6 z-20 w-10 h-10 inline-flex items-center justify-center rounded-full text-white/55 hover:text-white hover:bg-white/[0.06] transition-all"
+        className="fixed top-6 right-6 z-30 w-10 h-10 inline-flex items-center justify-center rounded-full text-white/55 hover:text-white hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] transition-all"
       >
         <X className="w-5 h-5" />
       </button>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 pt-12 pb-24">
-        {/* Brand row */}
-        <div className="flex items-center justify-center mb-8">
-          <Logo size="lg" showText textClassName="text-lg font-display font-bold" />
-        </div>
+      <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] min-h-screen">
+        {/* ─────────── LEFT — Cinematic poster pane ─────────── */}
+        <CinematicPane
+          accountType={accountType}
+          stepIdx={stepIdx}
+          currentStep={currentStep}
+        />
 
-        {/* Audience switcher */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur">
-            {(['personal','business','enterprise'] as AccountType[]).map(t => {
-              const active = accountType === t;
-              const Icon = t === 'personal' ? User : t === 'business' ? Briefcase : Building2;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setAccountType(t)}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs uppercase tracking-[0.18em] font-medium transition-all',
-                    active
-                      ? 'bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.5)]'
-                      : 'text-white/55 hover:text-white'
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {t}
-                </button>
-              );
-            })}
+        {/* ─────────── RIGHT — Wizard ─────────── */}
+        <div className="relative flex flex-col px-6 md:px-12 lg:px-14 pt-10 lg:pt-14 pb-20">
+          {/* Brand */}
+          <div className="flex items-center justify-between mb-8">
+            <Logo size="md" showText textClassName="text-base font-display font-bold" />
+            <p className="hidden md:block text-[10px] tracking-[0.32em] uppercase text-white/40">
+              Step {stepIdx + 1} / {steps.length}
+            </p>
           </div>
-        </div>
 
-        {/* Headline */}
-        <div className="text-center mb-10">
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
-            Step {stepIdx + 1} of {steps.length} · {STEP_META[currentStep].label}
-          </p>
-          <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight leading-tight">
-            {STEP_META[currentStep].copy}
-          </h1>
-        </div>
+          {/* Audience switcher */}
+          <div className="flex justify-start mb-8">
+            <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur">
+              {(['personal','business','enterprise'] as AccountType[]).map(t => {
+                const active = accountType === t;
+                const Icon = t === 'personal' ? User : t === 'business' ? Briefcase : Building2;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setAccountType(t)}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] uppercase tracking-[0.18em] font-medium transition-all',
+                      active
+                        ? 'bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.5)]'
+                        : 'text-white/55 hover:text-white'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Progress */}
-        <div className="relative h-px bg-white/[0.06] mb-10 max-w-xl mx-auto rounded-full overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0"
-            style={{ background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </div>
+          {/* Stepper rail */}
+          <div className="flex items-center gap-1.5 mb-8">
+            {steps.map((s, i) => (
+              <div key={s} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
+                <motion.div
+                  className="h-full origin-left"
+                  style={{ background: i <= stepIdx ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
+                  initial={false}
+                  animate={{ scaleX: i <= stepIdx ? 1 : 0 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+            ))}
+          </div>
 
-        {/* Card */}
-        <div
-          className="relative rounded-3xl p-8 md:p-12 overflow-hidden"
-          style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-            border: '1px solid hsla(0,0%,100%,0.08)',
-            backdropFilter: 'blur(22px)',
-            WebkitBackdropFilter: 'blur(22px)',
-            boxShadow: '0 30px 80px -20px rgba(0,0,0,0.55)',
-          }}
-        >
-          <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+          {/* Step header */}
+          <div className="mb-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`header-${accountType}-${currentStep}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
+                  {STEP_META[currentStep].label}
+                </p>
+                <h1 className="font-display text-[32px] md:text-[44px] leading-[1.05] font-bold tracking-tight">
+                  {STEP_META[currentStep].copy}
+                </h1>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-          <AnimatePresence mode="wait" custom={direction}>
+          {/* Card */}
+          <div className="relative flex-1">
+            <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={`${accountType}-${currentStep}`}
               custom={direction}

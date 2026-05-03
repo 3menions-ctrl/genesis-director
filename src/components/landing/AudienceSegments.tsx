@@ -74,17 +74,103 @@ function CircularCard({ f, focused }: { f: Feature; focused: boolean }) {
 
       {/* Transparent ring system — no opaque surface */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Hairline rings */}
+        {/* Outer luminous boundary — gradient masked ring */}
         <div
-          className="absolute inset-0 rounded-full border"
-          style={{ borderColor: `hsla(${f.hue},100%,70%,${focused ? 0.35 : 0.14})` }}
+          className="absolute -inset-[2px] rounded-full"
+          style={{
+            padding: '1.5px',
+            background: `conic-gradient(from 140deg, hsla(${f.hue},100%,72%,0) 0deg, hsla(${f.hue},100%,72%,0.95) 90deg, hsla(212,100%,70%,0.6) 180deg, hsla(${f.hue},100%,72%,0) 280deg, hsla(${f.hue},100%,72%,0.6) 360deg)`,
+            WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+            opacity: focused ? 0.9 : 0.4,
+          }}
         />
-        <div
-          className="absolute inset-6 rounded-full border border-white/[0.07]"
+
+        {/* Counter-rotating sweep highlight on the boundary */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `conic-gradient(from 0deg, transparent 0deg, hsla(${f.hue},100%,82%,0.95) 10deg, transparent 38deg, transparent 360deg)`,
+            WebkitMask: 'radial-gradient(circle, transparent calc(50% - 2px), #000 calc(50% - 1.5px), #000 50%, transparent calc(50% + 0.5px))',
+            mask: 'radial-gradient(circle, transparent calc(50% - 2px), #000 calc(50% - 1.5px), #000 50%, transparent calc(50% + 0.5px))',
+            opacity: focused ? 0.9 : 0,
+          }}
+          animate={{ rotate: -360 }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
         />
-        <div
-          className="absolute inset-12 rounded-full border border-white/[0.05]"
-        />
+
+        {/* SVG epic boundary: tick marks, dashed orbital, sweeping arc, brackets */}
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <g style={{ opacity: focused ? 0.6 : 0.22 }}>
+            {Array.from({ length: 60 }).map((_, i) => {
+              const major = i % 5 === 0;
+              const angle = (i / 60) * Math.PI * 2;
+              const r1 = 49.4;
+              const r2 = major ? 47 : 48.4;
+              const x1 = 50 + Math.cos(angle) * r1;
+              const y1 = 50 + Math.sin(angle) * r1;
+              const x2 = 50 + Math.cos(angle) * r2;
+              const y2 = 50 + Math.sin(angle) * r2;
+              return (
+                <line
+                  key={i}
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke={major ? `hsl(${f.hue},100%,75%)` : 'rgba(255,255,255,0.55)'}
+                  strokeWidth={major ? 0.35 : 0.18}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+          </g>
+
+          <motion.circle
+            cx="50" cy="50" r="42"
+            fill="none"
+            stroke={`hsla(${f.hue},100%,75%,${focused ? 0.35 : 0.12})`}
+            strokeWidth="0.2"
+            strokeDasharray="0.6 1.6"
+            vectorEffect="non-scaling-stroke"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+            style={{ transformOrigin: '50% 50%' }}
+          />
+
+          <motion.circle
+            cx="50" cy="50" r="46"
+            fill="none"
+            stroke={`hsl(${f.hue},100%,72%)`}
+            strokeWidth="0.35"
+            strokeDasharray="20 220"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+            style={{
+              transformOrigin: '50% 50%',
+              opacity: focused ? 0.95 : 0.25,
+              filter: `drop-shadow(0 0 3px hsla(${f.hue},100%,65%,0.9))`,
+            }}
+          />
+
+          {focused && [0, 90, 180, 270].map((deg) => (
+            <g key={deg} transform={`rotate(${deg} 50 50)`} style={{ opacity: 0.9 }}>
+              <path
+                d="M 47.5 3 L 52.5 3 M 50 3 L 50 6.5"
+                stroke="#0A84FF"
+                strokeWidth="0.5"
+                strokeLinecap="round"
+                fill="none"
+                vectorEffect="non-scaling-stroke"
+                style={{ filter: 'drop-shadow(0 0 3px #0A84FF)' }}
+              />
+            </g>
+          ))}
+        </svg>
+
+        {/* Inner faint hairlines for depth */}
+        <div className="absolute inset-10 rounded-full border border-white/[0.05]" />
+        <div className="absolute inset-20 rounded-full border border-white/[0.04]" />
 
         {/* Orbiting particles */}
         {focused &&

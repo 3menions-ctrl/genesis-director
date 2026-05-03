@@ -373,36 +373,67 @@ export default function StartOnboarding() {
             </div>
           </div>
 
-          {/* Stepper rail */}
+          {/* Stepper rail with traveling shimmer on the active segment */}
           <div className="flex items-center gap-1.5 mb-8">
-            {steps.map((s, i) => (
-              <div key={s} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
-                <motion.div
-                  className="h-full origin-left"
-                  style={{ background: i <= stepIdx ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
-                  initial={false}
-                  animate={{ scaleX: i <= stepIdx ? 1 : 0 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </div>
-            ))}
+            {steps.map((s, i) => {
+              const filled = i <= stepIdx;
+              const active = i === stepIdx;
+              return (
+                <div key={s} className="relative flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
+                  <motion.div
+                    className="h-full origin-left"
+                    style={{ background: filled ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
+                    initial={false}
+                    animate={{ scaleX: filled ? 1 : 0 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                  {active && (
+                    <motion.div
+                      aria-hidden
+                      className="absolute inset-y-0 w-10 -translate-x-full"
+                      style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)', filter: 'blur(2px)' }}
+                      animate={{ x: ['-40px', '180px'] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Step header */}
-          <div className="mb-8">
+          <div className="mb-8 min-h-[120px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`header-${accountType}-${currentStep}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0, y: 18, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               >
-                <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
+                <motion.p
+                  className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3 inline-flex items-center gap-2"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+                >
+                  <motion.span
+                    className="w-1 h-1 rounded-full bg-[#5AC8FA]"
+                    animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.4, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
                   {STEP_META[currentStep].label}
-                </p>
+                </motion.p>
                 <h1 className="font-display text-[32px] md:text-[44px] leading-[1.05] font-bold tracking-tight">
-                  {STEP_META[currentStep].copy}
+                  {STEP_META[currentStep].copy.split(' ').map((word, i) => (
+                    <motion.span
+                      key={`${currentStep}-${i}`}
+                      className="inline-block mr-[0.25em]"
+                      initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.6, delay: 0.08 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
                 </h1>
               </motion.div>
             </AnimatePresence>
@@ -414,10 +445,10 @@ export default function StartOnboarding() {
             <motion.div
               key={`${accountType}-${currentStep}`}
               custom={direction}
-              initial={{ opacity: 0, x: direction > 0 ? 30 : -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, x: direction > 0 ? 40 : -40, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: direction > 0 ? -40 : 40, filter: 'blur(8px)' }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
               {/* Goals (Personal) */}
               {currentStep === 'goals' && (

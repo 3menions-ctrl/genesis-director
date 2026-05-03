@@ -5,10 +5,11 @@ import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
-  Loader2, X, Cpu, ShieldCheck, Star, Quote,
+  Loader2, X, Cpu, ShieldCheck, Star, Quote, Mail, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
@@ -77,8 +78,8 @@ const ENTERPRISE_PLAN: Plan = {
  * Step definitions per audience
  * ──────────────────────────────────────────────────────────────────── */
 
-const PERSONAL_STEPS = ['goals', 'usecase', 'plan', 'profile'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing'] as const;
+const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
+const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing', 'account', 'verify'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -98,6 +99,8 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   scale:   { label: 'Scale',         copy: 'Help us size your contract.' },
   needs:   { label: 'Requirements',  copy: 'Pick what you need.' },
   contact: { label: 'Contact',       copy: 'How should we reach you?' },
+  account: { label: 'Account',       copy: 'Create your account.' },
+  verify:  { label: 'Verify',        copy: 'Confirm your email.' },
 };
 
 const PERSONAL_GOALS = [
@@ -132,6 +135,10 @@ const VOLUME_OPTIONS = ['< 1,000 / mo', '1,000–5,000 / mo', '5,000–25,000 / 
 const profileSchema = z.object({
   display_name: z.string().trim().min(2, 'Tell us your name').max(100),
 });
+const accountSchema = z.object({
+  email: z.string().trim().email('Enter a valid email').max(255),
+  password: z.string().min(8, 'At least 8 characters').max(128),
+});
 const companySchema = z.object({
   company_name: z.string().trim().min(2, 'Company name required').max(160),
   industry: z.string().min(1, 'Select an industry'),
@@ -148,12 +155,16 @@ const contactSchema = z.object({
 export default function StartOnboarding() {
   const { navigate } = useSafeNavigation();
   const [params] = useSearchParams();
+  const { user, signUp, signIn, signInWithGoogle, signInWithApple } = useAuth();
   const initialType = (params.get('type') as AccountType) || 'personal';
   const [accountType, setAccountType] = useState<AccountType>(initialType);
   const [stepIdx, setStepIdx] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [resending, setResending] = useState(false);
 
   // Form state (single bag — not all fields used per audience)
   const [form, setForm] = useState({
@@ -172,6 +183,8 @@ export default function StartOnboarding() {
     needs_api: false,
     contact_email: '',
     contact_phone: '',
+    email: '',
+    password: '',
   });
 
   const steps = useMemo<readonly StepKey[]>(() => {
@@ -231,6 +244,20 @@ export default function StartOnboarding() {
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }
+    if (currentStep === 'account') {
+      // If already authenticated (e.g. via OAuth), skip validation
+      if (user) return true;
+      const r = accountSchema.safeParse({ email: form.email, password: form.password });
+      if (!r.success) {
+        const fe: Record<string, string> = {};
+        r.error.errors.forEach(e => { if (e.path[0]) fe[e.path[0] as string] = e.message; });
+        setErrors(fe); return false;
+      }
+    }
+    if (currentStep === 'verify') {
+      if (user) return true;
+      if (otpCode.length !== 6) { setErrors({ otp: 'Enter the 6-digit code' }); return false; }
+    }
     if (currentStep === 'scale' && !form.expected_volume) {
       setErrors({ expected_volume: 'Pick an expected volume' }); return false;
     }
@@ -243,10 +270,78 @@ export default function StartOnboarding() {
       }
     }
     return true;
-  }, [currentStep, form]);
+  }, [currentStep, form, user, otpCode]);
 
-  const next = () => {
+  // Holds the persisted intent token after we save the wizard data
+  const [intentToken, setIntentToken] = useState<string | null>(null);
+
+  const next = async () => {
     if (!validate()) return;
+
+    // Step: account → persist intent + create account, then advance to verify
+    if (currentStep === 'account') {
+      if (user) {
+        // Already authenticated (e.g. via OAuth in this same step). Skip verify.
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const token = await ensureIntentPersisted();
+        if (!token) return;
+        const { error } = await signUp(form.email.trim(), form.password);
+        if (error) {
+          if (/already.*registered/i.test(error.message)) {
+            // Try sign-in instead
+            const { error: siErr } = await signIn(form.email.trim(), form.password);
+            if (siErr) {
+              toast.error('That email is already registered — wrong password?');
+              return;
+            }
+            await persistIntentAndConsume();
+            await routeAfterAuth();
+            return;
+          }
+          toast.error(error.message || 'Could not create your account.');
+          return;
+        }
+        toast.success('Check your email — we sent a 6-digit code.');
+        setDirection(1);
+        setStepIdx(i => i + 1);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Step: verify → confirm OTP, consume intent, route
+    if (currentStep === 'verify') {
+      if (user) {
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          email: form.email.trim(),
+          token: otpCode,
+          type: 'signup',
+        });
+        if (error) {
+          toast.error(error.message || 'Invalid code.');
+          return;
+        }
+        toast.success('Email verified.');
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (isLast) { void finish(); return; }
     setDirection(1);
     setStepIdx(i => i + 1);
@@ -260,7 +355,61 @@ export default function StartOnboarding() {
     setStepIdx(i => i - 1);
   };
 
-  /* ── Finish: persist intent and route to signup ────────────────── */
+  /* ── Persist wizard intent (idempotent — only inserts once) ───── */
+  const ensureIntentPersisted = async (): Promise<string | null> => {
+    if (intentToken) return intentToken;
+    const token = `int_${crypto.randomUUID()}`;
+    const payload = {
+      intent_token: token,
+      account_type: accountType,
+      selected_plan_id: form.selected_plan_id || null,
+      selected_plan_kind: (form.selected_plan_kind || null) as PlanKind | null,
+      goals: form.goals.length ? form.goals : null,
+      experience_level: form.style || null,
+      company_name: form.company_name || null,
+      team_size: form.team_size || null,
+      industry: form.industry || null,
+      job_role: form.job_role || null,
+      expected_volume: form.expected_volume || null,
+      needs_sso: form.needs_sso,
+      needs_sla: form.needs_sla,
+      needs_api: form.needs_api,
+      contact_email: form.contact_email || null,
+      contact_phone: form.contact_phone || null,
+      display_name: form.display_name || null,
+    };
+    const { error } = await supabase.from('onboarding_intents').insert(payload);
+    if (error) {
+      console.error('[start] intent persist', error);
+      toast.error('Could not save your choices. Please try again.');
+      return null;
+    }
+    try { sessionStorage.setItem('apex.intent_token', token); } catch {}
+    try { localStorage.setItem('apex.audience', accountType); } catch {}
+    setIntentToken(token);
+    return token;
+  };
+
+  const persistIntentAndConsume = async () => {
+    const token = await ensureIntentPersisted();
+    if (!token) return;
+    try {
+      await supabase.rpc('consume_onboarding_intent', { _token: token });
+    } catch (e) {
+      console.warn('[start] consume_onboarding_intent', e);
+    }
+  };
+
+  const routeAfterAuth = async () => {
+    const target = form.selected_plan_kind === 'contact'
+      ? '/projects'
+      : form.selected_plan_id
+        ? `/welcome/checkout?plan=${form.selected_plan_id}`
+        : '/create';
+    navigate(target, { replace: true });
+  };
+
+  /* ── Finish: enterprise lead-capture path (no account creation) ── */
   const finish = async () => {
     setSubmitting(true);
     try {
@@ -615,6 +764,179 @@ export default function StartOnboarding() {
                   </Field>
                 </div>
               )}
+
+              {/* Account creation (Personal / Business) */}
+              {currentStep === 'account' && (
+                <div className="space-y-5">
+                  {user ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
+                      <Check className="w-5 h-5 text-[#9DCBFF]" />
+                      <div className="text-sm">
+                        <p className="font-medium">You're already signed in as {user.email}</p>
+                        <p className="text-white/45 text-xs mt-0.5">Click continue to finalize your setup.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* OAuth buttons */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={async () => {
+                            await ensureIntentPersisted();
+                            const { error } = await signInWithGoogle();
+                            if (error) toast.error(error.message || 'Google sign-in failed.');
+                          }}
+                          className="h-12 rounded-xl bg-white text-black text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.99] transition disabled:opacity-60"
+                        >
+                          <GoogleGlyph className="w-4 h-4" />
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={async () => {
+                            await ensureIntentPersisted();
+                            const { error } = await signInWithApple();
+                            if (error) toast.error(error.message || 'Apple sign-in failed.');
+                          }}
+                          className="h-12 rounded-xl bg-black text-white text-sm font-semibold inline-flex items-center justify-center gap-2 border border-white/15 hover:bg-white/[0.04] active:scale-[0.99] transition disabled:opacity-60"
+                        >
+                          <AppleGlyph className="w-4 h-4" />
+                          Continue with Apple
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/[0.07]" />
+                        <span className="text-[10px] tracking-[0.28em] uppercase text-white/35">or with email</span>
+                        <div className="h-px flex-1 bg-white/[0.07]" />
+                      </div>
+
+                      <Field label="Email" error={errors.email}>
+                        <div className="relative">
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            autoFocus
+                            type="email"
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            value={form.email}
+                            onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                            className={cn(inputCls, 'pl-10')}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Password" error={errors.password}>
+                        <div className="relative">
+                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            placeholder="At least 8 characters"
+                            value={form.password}
+                            onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
+                            className={cn(inputCls, 'pl-10 pr-11')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(s => !s)}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-md text-white/45 hover:text-white hover:bg-white/[0.06] transition"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </Field>
+
+                      <p className="text-[11px] text-white/30 leading-relaxed">
+                        By continuing you agree to our Terms and Privacy Policy. We'll send a 6-digit code to verify your email.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* OTP verification (Personal / Business) */}
+              {currentStep === 'verify' && (
+                <div className="space-y-6">
+                  {user ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
+                      <Check className="w-5 h-5 text-[#9DCBFF]" />
+                      <div className="text-sm">
+                        <p className="font-medium">Verified.</p>
+                        <p className="text-white/45 text-xs mt-0.5">Click continue to wrap up.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-white/55">
+                        Enter the 6-digit code we sent to <span className="text-white">{form.email}</span>.
+                      </p>
+                      <div className="flex gap-2 justify-start">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <input
+                            key={i}
+                            id={`apex-otp-${i}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={otpCode[i] || ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, '').slice(0, 1);
+                              const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 6);
+                              setOtpCode(next);
+                              if (v && i < 5) document.getElementById(`apex-otp-${i + 1}`)?.focus();
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
+                                document.getElementById(`apex-otp-${i - 1}`)?.focus();
+                              }
+                            }}
+                            onPaste={(e) => {
+                              const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                              if (pasted.length >= 1) {
+                                e.preventDefault();
+                                setOtpCode(pasted);
+                                const focusIdx = Math.min(pasted.length, 5);
+                                document.getElementById(`apex-otp-${focusIdx}`)?.focus();
+                              }
+                            }}
+                            className={cn(
+                              'w-12 h-14 text-center text-xl font-semibold rounded-xl tabular-nums',
+                              'bg-white/[0.035] border border-white/10 text-white outline-none',
+                              'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-white/[0.05] transition-all',
+                              otpCode[i] && 'border-[hsla(212,100%,55%,0.45)] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
+                            )}
+                            autoFocus={i === 0}
+                          />
+                        ))}
+                      </div>
+                      {errors.otp && <p className="text-[11px] text-rose-400">{errors.otp}</p>}
+                      <button
+                        type="button"
+                        disabled={resending}
+                        onClick={async () => {
+                          setResending(true);
+                          try {
+                            const { error } = await supabase.auth.resend({
+                              type: 'signup',
+                              email: form.email.trim(),
+                            });
+                            if (error) toast.error(error.message);
+                            else toast.success('Code re-sent.');
+                          } finally { setResending(false); }
+                        }}
+                        className="text-xs text-white/55 hover:text-white underline-offset-4 hover:underline disabled:opacity-50"
+                      >
+                        {resending ? 'Sending…' : 'Didn\u2019t get it? Resend code'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -656,16 +978,22 @@ export default function StartOnboarding() {
               <span className="relative inline-flex items-center gap-2">
                 {submitting
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : isLast
-                    ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue to signup <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
-                    : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
+                  : currentStep === 'account'
+                    ? <>{user ? 'Continue' : 'Create account'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                    : currentStep === 'verify'
+                      ? <>{user ? 'Continue' : 'Verify & continue'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                      : isLast
+                        ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                        : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
               </span>
             </motion.button>
           </div>
 
           {/* Trust microcopy */}
           <p className="text-[11px] text-white/30 mt-6">
-            You're not creating an account yet — we'll only ask for credentials at the very end.
+            {currentStep === 'account' || currentStep === 'verify'
+              ? 'Your details are encrypted in transit. We never share your email.'
+              : 'You\u2019ll create your account in a moment — your choices are saved automatically.'}
           </p>
           </div>
         </div>
@@ -1190,5 +1518,27 @@ function CinematicPane({
         </div>
       </div>
     </div>
+  );
+}
+/* ─────────────────────────────────────────────────────────────────────
+ * OAuth provider glyphs
+ * ──────────────────────────────────────────────────────────────────── */
+
+function GoogleGlyph({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.1A6.99 6.99 0 0 1 5.46 12c0-.73.13-1.44.36-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.46 1.18 4.94l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.1 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
+    </svg>
+  );
+}
+
+function AppleGlyph({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.05 12.04c-.03-2.7 2.2-4 2.3-4.06-1.26-1.84-3.21-2.09-3.91-2.12-1.66-.17-3.24.98-4.09.98-.85 0-2.15-.95-3.54-.93-1.82.03-3.5 1.06-4.43 2.69-1.89 3.27-.48 8.11 1.36 10.78.9 1.31 1.97 2.78 3.36 2.73 1.36-.06 1.87-.88 3.51-.88 1.64 0 2.1.88 3.54.85 1.46-.03 2.39-1.34 3.28-2.66.62-.91 1.27-2.15 1.55-3.21-.04-.02-2.97-1.14-3-4.51zM14.42 4.04c.74-.9 1.24-2.15 1.1-3.39-1.06.04-2.35.71-3.12 1.6-.69.79-1.29 2.06-1.13 3.27 1.18.09 2.39-.6 3.15-1.48z" />
+    </svg>
   );
 }

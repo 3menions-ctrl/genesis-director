@@ -28,22 +28,22 @@ export function WorkspacePage({
   return (
     <WorkspaceLayout>
       <div className={cn('space-y-8', className)}>
-        <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-6 border-b border-[hsl(220,14%,12%)]">
+        <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-6 border-b border-white/[0.06]">
           <div className="flex items-start gap-4 min-w-0">
             {Icon && (
-              <div className="w-11 h-11 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,6%)] flex items-center justify-center shrink-0">
-                <Icon className="w-4 h-4 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
+              <div className="relative w-12 h-12 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06),0_8px_20px_-10px_rgba(0,0,0,0.5)]">
+                <Icon className="w-4 h-4 text-[hsl(215,100%,72%)] drop-shadow-[0_0_10px_hsl(215,100%,55%,0.55)]" strokeWidth={1.5} />
               </div>
             )}
             <div className="min-w-0">
-              <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(220,8%,45%)]">
+              <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(215,100%,72%)]/70">
                 {eyebrow}
               </div>
-              <h1 className="font-display text-[28px] sm:text-[34px] leading-tight font-light text-[hsl(220,14%,96%)] mt-1 tracking-tight">
+              <h1 className="font-display text-[30px] sm:text-[38px] leading-[1.05] font-light text-white/95 mt-1.5 tracking-[-0.02em]">
                 {title}
               </h1>
               {description && (
-                <p className="text-[13px] text-[hsl(220,8%,55%)] mt-1.5 font-light max-w-2xl">
+                <p className="text-[13.5px] text-white/50 mt-2 font-light max-w-2xl leading-[1.55]">
                   {description}
                 </p>
               )}
@@ -70,17 +70,17 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="border border-dashed border-[hsl(220,14%,14%)] bg-[hsl(220,14%,4%)] p-12 text-center">
+    <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] p-14 text-center backdrop-blur-sm">
       {Icon && (
-        <div className="w-12 h-12 mx-auto mb-4 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,6%)] flex items-center justify-center">
-          <Icon className="w-4 h-4 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
+        <div className="w-12 h-12 mx-auto mb-4 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06)]">
+          <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
         </div>
       )}
-      <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,90%)]">
+      <div className="font-display text-[16px] tracking-[-0.01em] text-white/90 font-light">
         {title}
       </div>
       {body && (
-        <p className="text-[13px] text-[hsl(220,8%,55%)] mt-2 max-w-md mx-auto font-light">
+        <p className="text-[13px] text-white/45 mt-2 max-w-md mx-auto font-light leading-[1.55]">
           {body}
         </p>
       )}

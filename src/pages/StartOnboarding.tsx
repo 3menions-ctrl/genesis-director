@@ -6,6 +6,7 @@ import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
   Loader2, X, Cpu, ShieldCheck, Star, Quote, Mail, Lock, Eye, EyeOff,
+  Palette, Users, Plug, Receipt, Target, BarChart3,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,7 +83,9 @@ const ENTERPRISE_PLAN: Plan = {
 // happens AFTER the user has completed all questionnaire + plan selection — this
 // preserves the full onboarding flow and lands users on billing as the last action.
 const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'account', 'verify', 'billing'] as const;
+// Business onboarding is intentionally deeper than personal — it captures workspace,
+// brand, volume, integrations and an optional teammate invite list before billing.
+const BUSINESS_STEPS = ['company', 'biz_usecase', 'team', 'role', 'brand', 'volume', 'integrations', 'plan', 'account', 'verify', 'invite', 'billing'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -104,6 +107,11 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   contact: { label: 'Contact',       copy: 'How should we reach you?' },
   account: { label: 'Account',       copy: 'Create your account.' },
   verify:  { label: 'Verify',        copy: 'Confirm your email.' },
+  biz_usecase:  { label: 'Use case',     copy: 'What will your team produce?' },
+  brand:        { label: 'Brand kit',    copy: 'Bring your brand into Apex.' },
+  volume:       { label: 'Volume',       copy: 'How much content per month?' },
+  integrations: { label: 'Integrations', copy: 'Where does video need to go?' },
+  invite:       { label: 'Invite team',  copy: 'Bring your crew on board.' },
 };
 
 const PERSONAL_GOALS = [
@@ -130,6 +138,46 @@ const ROLES = [
   'Designer', 'Developer', 'Operations', 'Other',
 ];
 const VOLUME_OPTIONS = ['< 1,000 / mo', '1,000–5,000 / mo', '5,000–25,000 / mo', '25,000–100,000 / mo', '100,000+ / mo'];
+
+const BUSINESS_USE_CASES = [
+  { id: 'ads',         label: 'Performance ads',       desc: 'Hooks, UGC, paid social creative', Icon: Target },
+  { id: 'social',      label: 'Organic social',        desc: 'TikTok, Reels, Shorts at scale',  Icon: Megaphone },
+  { id: 'product',     label: 'Product marketing',     desc: 'Launches, demos, explainers',     Icon: Sparkles },
+  { id: 'sales',       label: 'Sales enablement',      desc: 'Outbound, decks, personalized',   Icon: Briefcase },
+  { id: 'training',    label: 'Internal & training',   desc: 'Onboarding, comms, L&D',          Icon: ShieldCheck },
+  { id: 'agency',      label: 'Client deliverables',   desc: 'Agency work for multiple brands', Icon: Crown },
+];
+
+const BUSINESS_VOLUME = [
+  { id: '< 10 / mo',     label: 'Under 10 / mo',     desc: 'Just getting started' },
+  { id: '10–50 / mo',    label: '10–50 / mo',        desc: 'A steady weekly cadence' },
+  { id: '50–250 / mo',   label: '50–250 / mo',       desc: 'High-output content engine' },
+  { id: '250+ / mo',     label: '250+ / mo',         desc: 'Industrial scale' },
+];
+
+const BUSINESS_INTEGRATIONS = [
+  { id: 'meta',     label: 'Meta Ads' },
+  { id: 'tiktok',   label: 'TikTok' },
+  { id: 'youtube',  label: 'YouTube' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'shopify',  label: 'Shopify' },
+  { id: 'hubspot',  label: 'HubSpot' },
+  { id: 'slack',    label: 'Slack' },
+  { id: 'zapier',   label: 'Zapier / API' },
+];
+
+const BRAND_VOICES = [
+  { id: 'bold',         label: 'Bold & confident',     desc: 'Big claims, strong stance' },
+  { id: 'playful',      label: 'Playful',              desc: 'Light, witty, irreverent' },
+  { id: 'premium',      label: 'Premium & refined',    desc: 'Editorial, cinematic, calm' },
+  { id: 'authoritative',label: 'Authoritative',        desc: 'Expert, informative, trusted' },
+  { id: 'warm',         label: 'Warm & human',         desc: 'Empathetic, friendly, real' },
+];
+
+const PRESET_BRAND_COLORS = [
+  '#0A84FF', '#5AC8FA', '#FF453A', '#FF9F0A', '#FFD60A',
+  '#30D158', '#BF5AF2', '#FF375F', '#64D2FF', '#FFFFFF',
+];
 
 /* ─────────────────────────────────────────────────────────────────────
  * Schemas
@@ -188,6 +236,16 @@ export default function StartOnboarding() {
     contact_phone: '',
     email: '',
     password: '',
+    // Business-only
+    primary_use_case: '',
+    monthly_volume: '',
+    brand_colors: [] as string[],
+    brand_voice: '',
+    integrations_needed: [] as string[],
+    billing_email: '',
+    vat_id: '',
+    invited_emails: [] as string[],
+    invite_input: '',
   });
 
   const steps = useMemo<readonly StepKey[]>(() => {
@@ -244,6 +302,16 @@ export default function StartOnboarding() {
     if (currentStep === 'role' && !form.job_role) {
       setErrors({ job_role: 'Pick a role' }); return false;
     }
+    if (currentStep === 'biz_usecase' && !form.primary_use_case) {
+      setErrors({ primary_use_case: 'Pick what your team will produce' }); return false;
+    }
+    if (currentStep === 'volume' && !form.monthly_volume) {
+      setErrors({ monthly_volume: 'Pick a monthly volume' }); return false;
+    }
+    if (currentStep === 'brand' && !form.brand_voice) {
+      setErrors({ brand_voice: 'Pick a brand voice' }); return false;
+    }
+    // 'integrations' and 'invite' are optional — no validation
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }
@@ -392,6 +460,14 @@ export default function StartOnboarding() {
       contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null,
       display_name: form.display_name || null,
+      primary_use_case: form.primary_use_case || null,
+      monthly_volume: form.monthly_volume || null,
+      brand_colors: form.brand_colors.length ? form.brand_colors : null,
+      brand_voice: form.brand_voice || null,
+      integrations_needed: form.integrations_needed.length ? form.integrations_needed : null,
+      billing_email: form.billing_email || null,
+      vat_id: form.vat_id || null,
+      invited_emails: form.invited_emails.length ? form.invited_emails : null,
     };
     const { error } = await supabase.from('onboarding_intents').insert(payload);
     if (error) {
@@ -453,6 +529,31 @@ export default function StartOnboarding() {
       // Personal / Business — user is already authenticated at this point.
       // Consume intent then go straight to checkout.
       await persistIntentAndConsume();
+
+      // Business: send teammate invites entered on the 'invite' step (best-effort).
+      if (accountType === 'business' && form.invited_emails.length > 0 && user) {
+        try {
+          // Find user's primary org
+          const { data: orgs } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('created_by', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+          const orgId = orgs?.[0]?.id;
+          if (orgId) {
+            const inviteRows = form.invited_emails.map(email => ({
+              organization_id: orgId,
+              email,
+              role: 'producer' as const,
+              invited_by: user.id,
+              token: `inv_${crypto.randomUUID()}`,
+              expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            }));
+            await supabase.from('organization_invites').insert(inviteRows);
+          }
+        } catch (e) { console.warn('[start] team invites', e); }
+      }
 
       const target = form.selected_plan_kind === 'contact'
         ? '/projects'
@@ -692,12 +793,192 @@ export default function StartOnboarding() {
                 />
               )}
 
+              {/* Use case (Business) */}
+              {currentStep === 'biz_usecase' && (
+                <ChipGrid
+                  options={BUSINESS_USE_CASES.map(u => ({ id: u.id, label: u.label, desc: u.desc, Icon: u.Icon }))}
+                  selected={form.primary_use_case ? [form.primary_use_case] : []}
+                  onToggle={(id) => setForm(f => ({ ...f, primary_use_case: f.primary_use_case === id ? '' : id }))}
+                  error={errors.primary_use_case}
+                />
+              )}
+
+              {/* Volume (Business) */}
+              {currentStep === 'volume' && (
+                <RadioGrid
+                  options={BUSINESS_VOLUME}
+                  selected={form.monthly_volume}
+                  onSelect={(id) => setForm(f => ({ ...f, monthly_volume: id }))}
+                  error={errors.monthly_volume}
+                />
+              )}
+
+              {/* Brand kit (Business) */}
+              {currentStep === 'brand' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Palette className="w-3.5 h-3.5 text-[#9DCBFF]" /> Brand colors (optional)
+                    </p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {PRESET_BRAND_COLORS.map(c => {
+                        const active = form.brand_colors.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              brand_colors: active ? f.brand_colors.filter(x => x !== c) : [...f.brand_colors, c].slice(0, 5),
+                            }))}
+                            className={cn(
+                              'w-10 h-10 rounded-full transition-all border-2',
+                              active ? 'border-white scale-110 shadow-[0_0_20px_-4px_hsla(212,100%,55%,0.6)]' : 'border-white/20 hover:border-white/40',
+                            )}
+                            style={{ background: c }}
+                            aria-label={`Brand color ${c}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-white/35 mt-2">Pick up to 5 — we'll bias generated content toward your palette.</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Brand voice</p>
+                    <RadioGrid
+                      options={BRAND_VOICES}
+                      selected={form.brand_voice}
+                      onSelect={(id) => setForm(f => ({ ...f, brand_voice: id }))}
+                      error={errors.brand_voice}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Integrations (Business) */}
+              {currentStep === 'integrations' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {BUSINESS_INTEGRATIONS.map(i => {
+                      const active = form.integrations_needed.includes(i.id);
+                      return (
+                        <button
+                          key={i.id}
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            integrations_needed: active
+                              ? f.integrations_needed.filter(x => x !== i.id)
+                              : [...f.integrations_needed, i.id],
+                          }))}
+                          className={cn(
+                            'h-14 px-4 rounded-xl text-sm font-medium transition-all border inline-flex items-center justify-center gap-2',
+                            active
+                              ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] text-white shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                              : 'border-white/[0.08] bg-white/[0.02] text-white/75 hover:border-white/15 hover:text-white',
+                          )}
+                        >
+                          {active && <Check className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+                          {i.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5"><Plug className="w-3 h-3" /> Optional — helps us prioritize your roadmap.</p>
+                </div>
+              )}
+
+              {/* Invite team (Business — after account creation) */}
+              {currentStep === 'invite' && (
+                <div className="space-y-4">
+                  <Field label="Add teammates by email">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                        <input
+                          type="email"
+                          placeholder="teammate@company.com"
+                          value={form.invite_input}
+                          onChange={(e) => setForm(f => ({ ...f, invite_input: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const v = form.invite_input.trim().toLowerCase();
+                              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !form.invited_emails.includes(v)) {
+                                setForm(f => ({ ...f, invited_emails: [...f.invited_emails, v], invite_input: '' }));
+                              }
+                            }
+                          }}
+                          className={cn(inputCls, 'pl-10')}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = form.invite_input.trim().toLowerCase();
+                          if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !form.invited_emails.includes(v)) {
+                            setForm(f => ({ ...f, invited_emails: [...f.invited_emails, v], invite_input: '' }));
+                          }
+                        }}
+                        className="h-12 px-5 rounded-xl bg-white/[0.06] border border-white/10 text-sm font-medium hover:bg-white/[0.10] transition"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </Field>
+                  {form.invited_emails.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.invited_emails.map(em => (
+                        <span key={em} className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs">
+                          {em}
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, invited_emails: f.invited_emails.filter(x => x !== em) }))}
+                            className="w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-white/[0.10]"
+                            aria-label={`Remove ${em}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5">
+                    <Users className="w-3 h-3" /> Invites are sent after billing. Skip to do this later.
+                  </p>
+                </div>
+              )}
+
               {/* Billing summary (Business) */}
               {currentStep === 'billing' && (
-                <BillingSummary
-                  audience={accountType}
-                  plan={plans.find(p => p.id === form.selected_plan_id)}
-                />
+                <div className="space-y-5">
+                  <BillingSummary
+                    audience={accountType}
+                    plan={plans.find(p => p.id === form.selected_plan_id)}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Billing email (optional)">
+                      <div className="relative">
+                        <Receipt className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                        <input
+                          type="email"
+                          placeholder="ap@company.com"
+                          value={form.billing_email}
+                          onChange={(e) => setForm(f => ({ ...f, billing_email: e.target.value }))}
+                          className={cn(inputCls, 'pl-10')}
+                        />
+                      </div>
+                    </Field>
+                    <Field label="VAT / Tax ID (optional)">
+                      <input
+                        placeholder="EU123456789"
+                        value={form.vat_id}
+                        onChange={(e) => setForm(f => ({ ...f, vat_id: e.target.value }))}
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
+                </div>
               )}
 
               {/* Scale (Enterprise) */}

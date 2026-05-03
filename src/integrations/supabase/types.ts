@@ -2874,72 +2874,102 @@ export type Database = {
       onboarding_intents: {
         Row: {
           account_type: string
+          billing_email: string | null
+          brand_colors: string[] | null
+          brand_voice: string | null
           company_name: string | null
           consumed_at: string | null
           consumed_by_user_id: string | null
           contact_email: string | null
           contact_phone: string | null
+          content_goals: string[] | null
           created_at: string
+          current_tools: string[] | null
           display_name: string | null
           expected_volume: string | null
           experience_level: string | null
           goals: string[] | null
           id: string
           industry: string | null
+          integrations_needed: string[] | null
           intent_token: string
+          invited_emails: string[] | null
           job_role: string | null
+          monthly_volume: string | null
           needs_api: boolean | null
           needs_sla: boolean | null
           needs_sso: boolean | null
+          primary_use_case: string | null
           selected_plan_id: string | null
           selected_plan_kind: string | null
           team_size: string | null
+          vat_id: string | null
         }
         Insert: {
           account_type: string
+          billing_email?: string | null
+          brand_colors?: string[] | null
+          brand_voice?: string | null
           company_name?: string | null
           consumed_at?: string | null
           consumed_by_user_id?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          content_goals?: string[] | null
           created_at?: string
+          current_tools?: string[] | null
           display_name?: string | null
           expected_volume?: string | null
           experience_level?: string | null
           goals?: string[] | null
           id?: string
           industry?: string | null
+          integrations_needed?: string[] | null
           intent_token: string
+          invited_emails?: string[] | null
           job_role?: string | null
+          monthly_volume?: string | null
           needs_api?: boolean | null
           needs_sla?: boolean | null
           needs_sso?: boolean | null
+          primary_use_case?: string | null
           selected_plan_id?: string | null
           selected_plan_kind?: string | null
           team_size?: string | null
+          vat_id?: string | null
         }
         Update: {
           account_type?: string
+          billing_email?: string | null
+          brand_colors?: string[] | null
+          brand_voice?: string | null
           company_name?: string | null
           consumed_at?: string | null
           consumed_by_user_id?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          content_goals?: string[] | null
           created_at?: string
+          current_tools?: string[] | null
           display_name?: string | null
           expected_volume?: string | null
           experience_level?: string | null
           goals?: string[] | null
           id?: string
           industry?: string | null
+          integrations_needed?: string[] | null
           intent_token?: string
+          invited_emails?: string[] | null
           job_role?: string | null
+          monthly_volume?: string | null
           needs_api?: boolean | null
           needs_sla?: boolean | null
           needs_sso?: boolean | null
+          primary_use_case?: string | null
           selected_plan_id?: string | null
           selected_plan_kind?: string | null
           team_size?: string | null
+          vat_id?: string | null
         }
         Relationships: []
       }
@@ -3030,60 +3060,81 @@ export type Database = {
       }
       organizations: {
         Row: {
+          billing_address: Json | null
+          billing_email: string | null
           brand_accent_color: string | null
+          brand_colors: string[] | null
           brand_primary_color: string | null
+          brand_voice: string | null
           created_at: string
           created_by: string
           credits_balance: number
           id: string
           industry: string | null
           logo_url: string | null
+          monthly_volume: string | null
           name: string
           onboarding_completed: boolean
           plan: string
+          primary_use_case: string | null
           slug: string
           team_size: string | null
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
+          vat_id: string | null
           website: string | null
         }
         Insert: {
+          billing_address?: Json | null
+          billing_email?: string | null
           brand_accent_color?: string | null
+          brand_colors?: string[] | null
           brand_primary_color?: string | null
+          brand_voice?: string | null
           created_at?: string
           created_by: string
           credits_balance?: number
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monthly_volume?: string | null
           name: string
           onboarding_completed?: boolean
           plan?: string
+          primary_use_case?: string | null
           slug: string
           team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
+          vat_id?: string | null
           website?: string | null
         }
         Update: {
+          billing_address?: Json | null
+          billing_email?: string | null
           brand_accent_color?: string | null
+          brand_colors?: string[] | null
           brand_primary_color?: string | null
+          brand_voice?: string | null
           created_at?: string
           created_by?: string
           credits_balance?: number
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monthly_volume?: string | null
           name?: string
           onboarding_completed?: boolean
           plan?: string
+          primary_use_case?: string | null
           slug?: string
           team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
+          vat_id?: string | null
           website?: string | null
         }
         Relationships: []

@@ -326,15 +326,39 @@ export function AudienceSegments({ onStart }: AudienceSegmentsProps) {
                   </div>
                 </div>
 
-                <p className="text-white/65 text-sm leading-relaxed mb-6">{s.pitch}</p>
+                <p className="text-white/65 text-sm leading-relaxed mb-5">{s.pitch}</p>
 
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {s.points.map(p => (
-                    <li key={p} className="flex items-start gap-2.5 text-sm text-white/75">
-                      <Check className={`w-4 h-4 mt-0.5 shrink-0 ${featured ? 'text-[#0A84FF]' : 'text-white/40'}`} />
-                      <span>{p}</span>
-                    </li>
-                  ))}
+                {/* Animated feature canvas — sells the unique tech */}
+                <FeatureCanvas id={s.id} featured={featured} />
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {s.features.map((f, i) => {
+                    const FIcon = f.icon;
+                    return (
+                      <motion.li
+                        key={f.key + i}
+                        initial={{ opacity: 0, x: -8 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, margin: '-10%' }}
+                        transition={{ delay: 0.1 + i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="group/feat flex items-start gap-3 text-sm"
+                      >
+                        <div
+                          className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ${
+                            featured
+                              ? 'bg-[#0A84FF]/15 text-[#0A84FF] group-hover/feat:bg-[#0A84FF]/25'
+                              : 'bg-white/[0.04] text-white/70 group-hover/feat:bg-white/[0.08] group-hover/feat:text-white'
+                          }`}
+                        >
+                          <FIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white/90 font-medium leading-tight">{f.label}</p>
+                          <p className="text-[12px] text-white/45 mt-0.5 leading-snug">{f.detail}</p>
+                        </div>
+                      </motion.li>
+                    );
+                  })}
                 </ul>
 
                 <button

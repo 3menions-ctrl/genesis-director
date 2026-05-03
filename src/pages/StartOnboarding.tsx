@@ -135,6 +135,10 @@ const VOLUME_OPTIONS = ['< 1,000 / mo', '1,000–5,000 / mo', '5,000–25,000 / 
 const profileSchema = z.object({
   display_name: z.string().trim().min(2, 'Tell us your name').max(100),
 });
+const accountSchema = z.object({
+  email: z.string().trim().email('Enter a valid email').max(255),
+  password: z.string().min(8, 'At least 8 characters').max(128),
+});
 const companySchema = z.object({
   company_name: z.string().trim().min(2, 'Company name required').max(160),
   industry: z.string().min(1, 'Select an industry'),

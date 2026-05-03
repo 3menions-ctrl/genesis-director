@@ -103,6 +103,7 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
 const EnterpriseOnboarding = lazy(() => import("./pages/EnterpriseOnboarding"));
+const EnterpriseComingSoon = lazy(() => import("./pages/EnterpriseComingSoon"));
 
 // Route change tracker component
 function RouteChangeTracker() {

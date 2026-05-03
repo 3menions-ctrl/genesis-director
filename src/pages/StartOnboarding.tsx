@@ -6,6 +6,7 @@ import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
   Loader2, X, Cpu, ShieldCheck, Star, Quote, Mail, Lock, Eye, EyeOff,
+  Palette, Users, Plug, Receipt, Target, BarChart3,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';

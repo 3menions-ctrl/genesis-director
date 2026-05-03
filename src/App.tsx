@@ -330,42 +330,42 @@ const App = () => {
                 <Route path="/workspace" element={
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceOverview />
+                      <EnterpriseGate><WorkspaceOverview /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/team" element={
                   <RouteContainer fallbackMessage="Loading team...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceTeam />
+                      <EnterpriseGate><WorkspaceTeam /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/brand" element={
                   <RouteContainer fallbackMessage="Loading brand kit...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceBrand />
+                      <EnterpriseGate><WorkspaceBrand /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/assets" element={
                   <RouteContainer fallbackMessage="Loading assets...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceAssets />
+                      <EnterpriseGate><WorkspaceAssets /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/billing" element={
                   <RouteContainer fallbackMessage="Loading billing...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceBilling />
+                      <EnterpriseGate><WorkspaceBilling /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/analytics" element={
                   <RouteContainer fallbackMessage="Loading analytics...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <WorkspaceAnalytics />
+                      <EnterpriseGate><WorkspaceAnalytics /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
@@ -389,7 +389,7 @@ const App = () => {
                   <Route key={slug} path={`/workspace/${slug}`} element={
                     <RouteContainer fallbackMessage="Loading workspace…">
                       <RequireAccountType allow={["business","enterprise","admin"]}>
-                        <Comp />
+                        <EnterpriseGate><Comp /></EnterpriseGate>
                       </RequireAccountType>
                     </RouteContainer>
                   } />

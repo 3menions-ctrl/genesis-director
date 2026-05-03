@@ -833,55 +833,100 @@ function PlanGrid({
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
           const active = selectedId === p.id;
           return (
-            <button
+            <motion.button
               key={p.id}
               onClick={() => onSelect(p)}
+              initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.55, delay: 0.06 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -6, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               className={cn(
-                'relative text-left rounded-2xl p-6 border transition-all overflow-hidden',
+                'group relative text-left rounded-2xl p-6 border overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_36px_-10px_hsla(212,100%,55%,0.5)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/65 bg-[#0A84FF]/[0.10] shadow-[0_20px_60px_-12px_hsla(212,100%,55%,0.55)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              {p.popular && (
-                <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.18em] bg-white text-black font-semibold">
-                  Popular
-                </div>
+              {/* Active radiant aura */}
+              {active && (
+                <motion.div
+                  aria-hidden
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="absolute -inset-px rounded-2xl pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse at top left, hsla(212,100%,60%,0.22), transparent 60%)' }}
+                />
               )}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] border border-white/[0.08]">
-                  <p.Icon className="w-4 h-4 text-[#9DCBFF]" />
-                </div>
+              {/* Hover sheen */}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1300ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.07) 50%, transparent 70%)' }} />
+              {p.popular && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                  className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] uppercase tracking-[0.18em] bg-white text-black font-semibold shadow-[0_0_18px_rgba(255,255,255,0.4)]"
+                >
+                  ★ Popular
+                </motion.div>
+              )}
+              <div className="relative flex items-center gap-3 mb-4">
+                <motion.div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] border border-white/[0.08]"
+                  animate={active ? { scale: [1, 1.08, 1], rotate: [0, 4, 0] } : {}}
+                  transition={{ duration: 0.6 }}
+                >
+                  <p.Icon className={cn('w-4 h-4 transition-colors', active ? 'text-[#9DCBFF]' : 'text-white/55 group-hover:text-white/80')} />
+                </motion.div>
                 <div>
                   <p className="text-sm font-semibold">{p.name}</p>
                   <p className="text-[11px] text-white/45">{p.tagline}</p>
                 </div>
               </div>
-              <div className="flex items-baseline gap-1.5 mb-4">
+              <div className="relative flex items-baseline gap-1.5 mb-4">
                 {p.kind === 'contact' ? (
                   <span className="text-2xl font-display font-bold">Talk to sales</span>
                 ) : (
                   <>
-                    <span className="text-3xl font-display font-bold">${p.price}</span>
+                    <span className="text-3xl font-display font-bold tracking-tight">${p.price}</span>
                     {p.interval && <span className="text-xs text-white/45">/ {p.interval}</span>}
                     {p.credits && <span className="text-xs text-white/35 ml-2">· {p.credits.toLocaleString()} credits</span>}
                   </>
                 )}
               </div>
-              <ul className="space-y-1.5">
-                {p.features.slice(0, 4).map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[12px] text-white/65">
+              <ul className="relative space-y-1.5">
+                {p.features.slice(0, 4).map((f, fi) => (
+                  <motion.li
+                    key={f}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.07 + fi * 0.04 }}
+                    className="flex items-start gap-2 text-[12px] text-white/65"
+                  >
                     <Check className="w-3 h-3 mt-1 text-[#9DCBFF] shrink-0" /> {f}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
               {active && (
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-[#0A84FF] to-[#5AC8FA]" />
+                <motion.div
+                  layoutId="plan-bar"
+                  className="absolute inset-x-0 bottom-0 h-[3px]"
+                  style={{ background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
               )}
-            </button>
+              {active && (
+                <motion.span
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                  className="absolute top-4 left-4 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)', boxShadow: '0 0 16px hsla(212,100%,60%,0.6)' }}
+                >
+                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                </motion.span>
+              )}
+            </motion.button>
           );
         })}
       </div>

@@ -63,7 +63,7 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
   }, [open]);
 
   const goBusiness = () => { dismiss(); navigate('/auth?mode=signup&track=business'); };
-  const goEnterprise = () => { dismiss(); navigate('/enterprise/onboarding'); };
+  const goEnterprise = () => { dismiss(); navigate('/start?audience=enterprise'); };
 
   return (
     <AnimatePresence>

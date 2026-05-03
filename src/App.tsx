@@ -220,11 +220,8 @@ const App = () => {
                     <AdaptiveShell><Contact /></AdaptiveShell>
                   </RouteContainer>
                 } />
-                <Route path="/enterprise/onboarding" element={
-                  <RouteContainer fallbackMessage="Preparing your enterprise studio...">
-                    <EnterpriseOnboarding />
-                  </RouteContainer>
-                } />
+                {/* Unified onboarding — Enterprise routes through the single /start wizard */}
+                <Route path="/enterprise/onboarding" element={<Navigate to="/start?audience=enterprise" replace />} />
                 <Route path="/enterprise/coming-soon" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <EnterpriseComingSoon />

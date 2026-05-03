@@ -978,16 +978,22 @@ export default function StartOnboarding() {
               <span className="relative inline-flex items-center gap-2">
                 {submitting
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : isLast
-                    ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue to signup <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
-                    : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
+                  : currentStep === 'account'
+                    ? <>{user ? 'Continue' : 'Create account'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                    : currentStep === 'verify'
+                      ? <>{user ? 'Continue' : 'Verify & continue'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                      : isLast
+                        ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                        : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
               </span>
             </motion.button>
           </div>
 
           {/* Trust microcopy */}
           <p className="text-[11px] text-white/30 mt-6">
-            You're not creating an account yet — we'll only ask for credentials at the very end.
+            {currentStep === 'account' || currentStep === 'verify'
+              ? 'Your details are encrypted in transit. We never share your email.'
+              : 'You\u2019ll create your account in a moment — your choices are saved automatically.'}
           </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { Surface, Pill } from '@/components/workspace/command-ui';
 interface CreditEvent {
   id: string;
   amount: number;
-  type: string;
+  transaction_type: string;
   description: string | null;
   created_at: string;
 }
@@ -22,10 +22,20 @@ export default function WorkspaceAuditLog() {
     if (!currentOrg) return;
     let cancelled = false;
     (async () => {
+      // Resolve project ids for this org, then load related credit events.
+      const { data: projects } = await supabase
+        .from('movie_projects')
+        .select('id')
+        .eq('organization_id', currentOrg.id);
+      const projectIds = (projects ?? []).map((p: { id: string }) => p.id);
+      if (projectIds.length === 0) {
+        if (!cancelled) { setEvents([]); setLoading(false); }
+        return;
+      }
       const { data } = await supabase
         .from('credit_transactions')
-        .select('id,amount,type,description,created_at')
-        .eq('organization_id', currentOrg.id)
+        .select('id,amount,transaction_type,description,created_at')
+        .in('project_id', projectIds)
         .order('created_at', { ascending: false })
         .limit(100);
       if (!cancelled) {
@@ -64,7 +74,7 @@ export default function WorkspaceAuditLog() {
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] w-32 shrink-0">
                   {new Date(e.created_at).toLocaleString()}
                 </div>
-                <Pill tone={e.amount < 0 ? 'amber' : 'good'}>{e.type}</Pill>
+                <Pill tone={e.amount < 0 ? 'amber' : 'good'}>{e.transaction_type}</Pill>
                 <div className="flex-1 text-[12px] text-[hsl(35,12%,90%)] truncate">
                   {e.description || '—'}
                 </div>

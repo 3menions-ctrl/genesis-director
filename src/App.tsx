@@ -54,6 +54,7 @@ const AdminFinancePage = lazy(() => import("./refine/pages/AdminFinancePage"));
 const AdminProductionPage = lazy(() => import("./refine/pages/AdminProductionPage"));
 const AdminModerationPage = lazy(() => import("./refine/pages/AdminModerationPage"));
 const AdminConfigPage = lazy(() => import("./refine/pages/AdminConfigPage"));
+const AdminEmailsPage = lazy(() => import("./refine/pages/AdminEmailsPage"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -436,6 +437,7 @@ const App = () => {
                   <Route path="production" element={<AdminProductionPage />} />
                   <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
+                  <Route path="emails" element={<AdminEmailsPage />} />
                   {/* Legacy admin redirects */}
                   <Route path="financials" element={<Navigate to="/admin/finance" replace />} />
                   <Route path="costs" element={<Navigate to="/admin/finance" replace />} />

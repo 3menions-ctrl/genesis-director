@@ -8,7 +8,7 @@ import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderKanban, DollarSign,
   MessageSquare, Shield, ChevronLeft, Settings, Coins, Loader2,
-  Activity,
+  Activity, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
   ]},
   { label: "System", code: "SYS", items: [
     { key: "moderation", label: "Moderation", icon: Shield, path: "/admin/moderation" },
+    { key: "emails", label: "Emails", icon: Mail, path: "/admin/emails" },
     { key: "config", label: "Config", icon: Settings, path: "/admin/config" },
   ]},
 ];

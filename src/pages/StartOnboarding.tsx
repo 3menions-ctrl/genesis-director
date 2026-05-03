@@ -764,6 +764,179 @@ export default function StartOnboarding() {
                   </Field>
                 </div>
               )}
+
+              {/* Account creation (Personal / Business) */}
+              {currentStep === 'account' && (
+                <div className="space-y-5">
+                  {user ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
+                      <Check className="w-5 h-5 text-[#9DCBFF]" />
+                      <div className="text-sm">
+                        <p className="font-medium">You're already signed in as {user.email}</p>
+                        <p className="text-white/45 text-xs mt-0.5">Click continue to finalize your setup.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* OAuth buttons */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={async () => {
+                            await ensureIntentPersisted();
+                            const { error } = await signInWithGoogle();
+                            if (error) toast.error(error.message || 'Google sign-in failed.');
+                          }}
+                          className="h-12 rounded-xl bg-white text-black text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.99] transition disabled:opacity-60"
+                        >
+                          <GoogleGlyph className="w-4 h-4" />
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={async () => {
+                            await ensureIntentPersisted();
+                            const { error } = await signInWithApple();
+                            if (error) toast.error(error.message || 'Apple sign-in failed.');
+                          }}
+                          className="h-12 rounded-xl bg-black text-white text-sm font-semibold inline-flex items-center justify-center gap-2 border border-white/15 hover:bg-white/[0.04] active:scale-[0.99] transition disabled:opacity-60"
+                        >
+                          <AppleGlyph className="w-4 h-4" />
+                          Continue with Apple
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/[0.07]" />
+                        <span className="text-[10px] tracking-[0.28em] uppercase text-white/35">or with email</span>
+                        <div className="h-px flex-1 bg-white/[0.07]" />
+                      </div>
+
+                      <Field label="Email" error={errors.email}>
+                        <div className="relative">
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            autoFocus
+                            type="email"
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            value={form.email}
+                            onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                            className={cn(inputCls, 'pl-10')}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Password" error={errors.password}>
+                        <div className="relative">
+                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            placeholder="At least 8 characters"
+                            value={form.password}
+                            onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
+                            className={cn(inputCls, 'pl-10 pr-11')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(s => !s)}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-md text-white/45 hover:text-white hover:bg-white/[0.06] transition"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </Field>
+
+                      <p className="text-[11px] text-white/30 leading-relaxed">
+                        By continuing you agree to our Terms and Privacy Policy. We'll send a 6-digit code to verify your email.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* OTP verification (Personal / Business) */}
+              {currentStep === 'verify' && (
+                <div className="space-y-6">
+                  {user ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
+                      <Check className="w-5 h-5 text-[#9DCBFF]" />
+                      <div className="text-sm">
+                        <p className="font-medium">Verified.</p>
+                        <p className="text-white/45 text-xs mt-0.5">Click continue to wrap up.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-white/55">
+                        Enter the 6-digit code we sent to <span className="text-white">{form.email}</span>.
+                      </p>
+                      <div className="flex gap-2 justify-start">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <input
+                            key={i}
+                            id={`apex-otp-${i}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={otpCode[i] || ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, '').slice(0, 1);
+                              const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 6);
+                              setOtpCode(next);
+                              if (v && i < 5) document.getElementById(`apex-otp-${i + 1}`)?.focus();
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
+                                document.getElementById(`apex-otp-${i - 1}`)?.focus();
+                              }
+                            }}
+                            onPaste={(e) => {
+                              const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                              if (pasted.length >= 1) {
+                                e.preventDefault();
+                                setOtpCode(pasted);
+                                const focusIdx = Math.min(pasted.length, 5);
+                                document.getElementById(`apex-otp-${focusIdx}`)?.focus();
+                              }
+                            }}
+                            className={cn(
+                              'w-12 h-14 text-center text-xl font-semibold rounded-xl tabular-nums',
+                              'bg-white/[0.035] border border-white/10 text-white outline-none',
+                              'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-white/[0.05] transition-all',
+                              otpCode[i] && 'border-[hsla(212,100%,55%,0.45)] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
+                            )}
+                            autoFocus={i === 0}
+                          />
+                        ))}
+                      </div>
+                      {errors.otp && <p className="text-[11px] text-rose-400">{errors.otp}</p>}
+                      <button
+                        type="button"
+                        disabled={resending}
+                        onClick={async () => {
+                          setResending(true);
+                          try {
+                            const { error } = await supabase.auth.resend({
+                              type: 'signup',
+                              email: form.email.trim(),
+                            });
+                            if (error) toast.error(error.message);
+                            else toast.success('Code re-sent.');
+                          } finally { setResending(false); }
+                        }}
+                        className="text-xs text-white/55 hover:text-white underline-offset-4 hover:underline disabled:opacity-50"
+                      >
+                        {resending ? 'Sending…' : 'Didn\u2019t get it? Resend code'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 

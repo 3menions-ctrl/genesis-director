@@ -976,26 +976,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           </button>
                         </div>
 
-                        {/* Demo Business Account quick-login */}
-                        {isLogin && (
-                          <button
-                            type="button"
-                            disabled={demoLoading || loading || !!oauthLoading}
-                            onClick={handleDemoBusinessLogin}
-                            className={cn(
-                              'mt-3 w-full h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-medium text-white',
-                              'bg-[hsl(212,100%,55%)]/10 border border-[hsl(212,100%,55%)]/30 hover:bg-[hsl(212,100%,55%)]/15 hover:border-[hsl(212,100%,55%)]/50',
-                              'transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
-                            )}
-                          >
-                            {demoLoading ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Building2 className="w-4 h-4 text-[hsl(212,100%,65%)]" />
-                            )}
-                            Try the demo business account
-                          </button>
-                        )}
+                        {/* Demo Business Account quick-login — hidden in production */}
 
                         {/* Toggle Mode */}
                         <p className="text-center text-[13px] text-white/40 mt-7">

@@ -652,7 +652,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setProfileError(null);
     setIsAdmin(false);
-    
+
+    // Clear workspace-scoped local state so next sign-in does not inherit
+    // the previous user's selected org.
+    try { localStorage.removeItem('apex.currentOrgId'); } catch {}
+
     // Use global scope to clear session across all tabs
     await supabase.auth.signOut({ scope: 'global' });
   };

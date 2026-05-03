@@ -428,6 +428,60 @@ export type Database = {
           },
         ]
       }
+      approval_requests: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          organization_id: string
+          project_id: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_note: string | null
+          status: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          project_id: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          project_id?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "approval_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatar_templates: {
         Row: {
           age_range: string | null
@@ -3185,6 +3239,60 @@ export type Database = {
         }
         Relationships: []
       }
+      org_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          key_hash: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+          prefix: string
+          revoked_at: string | null
+          scopes: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          key_hash: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+          prefix: string
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          key_hash?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+          prefix?: string
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_credit_refills: {
         Row: {
           created_at: string
@@ -3237,6 +3345,42 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_notification_prefs: {
+        Row: {
+          organization_id: string
+          prefs: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          organization_id: string
+          prefs?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          organization_id?: string
+          prefs?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notification_prefs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_notification_prefs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3384,6 +3528,66 @@ export type Database = {
           },
           {
             foreignKeyName: "org_shared_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_templates: {
+        Row: {
+          category: string | null
+          config: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_published: boolean
+          name: string
+          organization_id: string
+          preview_url: string | null
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          category?: string | null
+          config?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          name: string
+          organization_id: string
+          preview_url?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          category?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          name?: string
+          organization_id?: string
+          preview_url?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_templates_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3555,6 +3759,7 @@ export type Database = {
           created_at: string
           created_by: string
           credits_balance: number
+          deleted_at: string | null
           id: string
           industry: string | null
           logo_url: string | null
@@ -3581,6 +3786,7 @@ export type Database = {
           created_at?: string
           created_by: string
           credits_balance?: number
+          deleted_at?: string | null
           id?: string
           industry?: string | null
           logo_url?: string | null
@@ -3607,6 +3813,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           credits_balance?: number
+          deleted_at?: string | null
           id?: string
           industry?: string | null
           logo_url?: string | null
@@ -5679,6 +5886,60 @@ export type Database = {
           },
         ]
       }
+      workspace_audit_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          category: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          target_id: string | null
+          target_kind: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          target_id?: string | null
+          target_kind?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          target_id?: string | null
+          target_kind?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "workspace_audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       world_chat_messages: {
         Row: {
           content: string
@@ -5926,6 +6187,57 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      org_api_keys_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          last_used_at: string | null
+          name: string | null
+          organization_id: string | null
+          prefix: string | null
+          revoked_at: string | null
+          scopes: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          organization_id?: string | null
+          prefix?: string | null
+          revoked_at?: string | null
+          scopes?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          organization_id?: string | null
+          prefix?: string | null
+          revoked_at?: string | null
+          scopes?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       org_billing_summary: {
         Row: {
@@ -6299,6 +6611,33 @@ export type Database = {
           organization_id: string
           saml_provider_id: string
         }[]
+      }
+      fn_log_workspace_event: {
+        Args: {
+          _action: string
+          _category: string
+          _metadata?: Json
+          _org_id: string
+          _target_id?: string
+          _target_kind?: string
+        }
+        Returns: string
+      }
+      fn_org_has_min_role: {
+        Args: { _min: string; _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      fn_org_member_role: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: string
+      }
+      fn_soft_delete_org: {
+        Args: { _confirm_name: string; _org_id: string }
+        Returns: undefined
+      }
+      fn_transfer_ownership: {
+        Args: { _new_owner: string; _org_id: string }
+        Returns: undefined
       }
       get_admin_profit_dashboard: {
         Args: never

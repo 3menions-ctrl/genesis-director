@@ -308,7 +308,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const draftTitle = `Draft ${dateStr} ${timeStr}`;
-      
+
+      // Stamp organization_id when the active session is acting inside a
+      // workspace, so org admins can see + report on the project. We read the
+      // currently selected org from localStorage (the same key used by
+      // WorkspaceContext) and validate the membership server-side via RLS.
+      let orgId: string | null = null;
+      try { orgId = localStorage.getItem('apex.currentOrgId'); } catch {}
+
       const { data, error } = await supabase
         .from('movie_projects')
         .insert({
@@ -316,6 +323,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           status: 'draft',
           target_duration_minutes: 1,
           user_id: currentSession.user.id,
+          ...(orgId ? { organization_id: orgId } : {}),
         })
         .select()
         .single();

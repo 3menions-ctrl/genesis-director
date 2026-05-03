@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Users, Palette, CreditCard, BarChart3, Building2, Lock,
-  LayoutDashboard, Layers, ArrowLeft, Command, Check,
+  LayoutDashboard, Layers, ArrowLeft, Check,
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
   Film, UserSquare2, LayoutTemplate, CheckCircle2, ShieldCheck,
   ScrollText, FileSpreadsheet, Plug, KeyRound, Bell, Settings,
@@ -77,6 +77,9 @@ const NAV_GROUPS: NavGroup[] = [
 
 const COLLAPSE_KEY = 'apex.workspaceRailCollapsed';
 const ACCENT_HUE = 215; // canonical blue accent — matches AppShell
+// Locked to canonical regular-user shell spec: 236 / 72 px
+const RAIL_EXPANDED = 'lg:w-[236px]';
+const RAIL_COLLAPSED = 'lg:w-[72px]';
 
 /**
  * Workspace shell — Premium Operations console.
@@ -130,7 +133,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const railWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[256px]';
+  const railWidth = collapsed ? RAIL_COLLAPSED : RAIL_EXPANDED;
   const orgInitials = currentOrg.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
   const tint = (a: number) => `hsla(${ACCENT_HUE}, 90%, 62%, ${a})`;
 
@@ -144,7 +147,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <button
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -152,13 +155,12 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
       {/* ── Premium glass rail ───────────────────────────────── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col w-[280px]',
+          'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
           '-translate-x-full transition-transform duration-300 ease-out',
           mobileOpen && 'translate-x-0',
-          'lg:static lg:translate-x-0 lg:shrink-0 lg:sticky lg:top-0',
-          'lg:h-screen lg:p-0',
+          'md:static md:translate-x-0 md:shrink-0 md:sticky md:top-0',
+          'md:h-screen md:p-0 md:border-r md:border-white/[0.06]',
           'lg:transition-[width] lg:duration-300 lg:ease-out',
-          'lg:border-r lg:border-white/[0.06]',
           railWidth,
         )}
         style={{
@@ -204,13 +206,13 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                   Apex<span className="text-white/85 mx-[1px]">-</span>Studio
                 </span>
                 <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
-                  Workspace · Ops
+                  Workspace
                 </span>
               </div>
             )}
           </Link>
           <button
-            className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
+            className="ml-auto md:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
             onClick={() => setMobileOpen(false)}
             aria-label="Close sidebar"
           >
@@ -296,7 +298,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={() => setOrgSwitcherOpen(false)}
                 className="flex items-center gap-2 px-3 py-2.5 border-t border-white/[0.06] hover:bg-white/[0.04] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 hover:text-white/85"
               >
-                <Plus className="w-3 h-3" strokeWidth={1.5} /> Manage workspaces
+                <Plus className="w-3 h-3" strokeWidth={1.5} /> Workspace settings
               </NavLink>
             </PopoverContent>
           </Popover>
@@ -426,44 +428,31 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             <button
               onClick={() => setCollapsed(c => !c)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/95 transition-colors"
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/95 transition-colors"
             >
               {collapsed
                 ? <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
                 : <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />}
             </button>
           </div>
-          {!collapsed && (
-            <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/20 pt-1 px-1 text-center">
-              v2.4 · BUSINESS TIER
-            </div>
-          )}
+          {/* No per-tier chrome — canonical shell is identical across tiers. */}
         </div>
         </div>
       </aside>
 
       {/* ── Main column ────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top utility strip */}
-        <div className="sticky top-0 z-20 h-12 flex items-center justify-between px-6 lg:px-10 border-b border-white/[0.04] backdrop-blur-xl"
+        {/* Lightweight mobile-only menu trigger; no chrome strip on desktop —
+            the personal AppShell has none and the canonical rule is parity. */}
+        <div className="md:hidden sticky top-0 z-20 h-12 flex items-center px-4 border-b border-white/[0.04] backdrop-blur-xl"
              style={{ background: 'linear-gradient(180deg, hsla(220,16%,4%,0.78), hsla(220,16%,4%,0.55))' }}>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-8 h-8 -ml-2 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-white/60 hover:text-white transition-colors"
-              aria-label="Open menu"
-            >
-              <Menu className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(215,100%,72%)]">
-              <Command className="w-3 h-3" strokeWidth={1.5} />
-              Workspace · Ops
-            </div>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-[hsl(140,70%,50%)] animate-pulse" />
-            All systems nominal
-          </div>
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="w-8 h-8 -ml-1 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-white/60 hover:text-white transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-4 h-4" strokeWidth={1.5} />
+          </button>
         </div>
 
         {/* Page content */}

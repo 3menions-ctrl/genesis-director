@@ -67,6 +67,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const isZeroCredits = (profile?.credits_balance ?? 0) === 0;
   const credits = profile?.credits_balance?.toLocaleString() || '0';
+  const isBusiness = profile?.account_type === 'business' || profile?.account_type === 'enterprise';
 
   const isItemActive = (item: NavItem) => {
     if (item.match) return item.match(location.pathname);
@@ -556,11 +557,17 @@ export function AppShell({ children }: AppShellProps) {
                   </p>
                 </div>
                 <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
-                {[
-                  { icon: UserIcon, label: 'Profile', path: '/profile' },
-                  { icon: SettingsIcon, label: 'Settings', path: '/settings' },
-                  { icon: HelpCircle, label: 'Help & FAQ', path: '/help' },
-                ].map(({ icon: Icon, label, path }) => (
+                {(isBusiness
+                  ? [
+                      { icon: SettingsIcon, label: 'Workspace', path: '/workspace/general' },
+                      { icon: HelpCircle, label: 'Help & FAQ', path: '/help' },
+                    ]
+                  : [
+                      { icon: UserIcon, label: 'Profile', path: '/profile' },
+                      { icon: SettingsIcon, label: 'Settings', path: '/settings' },
+                      { icon: HelpCircle, label: 'Help & FAQ', path: '/help' },
+                    ]
+                ).map(({ icon: Icon, label, path }) => (
                   <DropdownMenuItem
                     key={path}
                     onClick={() => navigateTo(path)}

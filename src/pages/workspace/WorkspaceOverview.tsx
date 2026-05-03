@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Palette, BarChart3, CreditCard, Building2,
@@ -157,11 +157,18 @@ export default function WorkspaceOverview() {
   );
 }
 
-function CmdAction({ onClick, icon: Icon, label, primary }: {
-  onClick: () => void; icon: typeof Users; label: string; primary?: boolean;
-}) {
-  return (
+interface CmdActionProps {
+  onClick: () => void;
+  icon: typeof Users;
+  label: string;
+  primary?: boolean;
+}
+
+const CmdAction = forwardRef<HTMLButtonElement, CmdActionProps>(
+  ({ onClick, icon: Icon, label, primary }, ref) => (
     <button
+      ref={ref}
+      type="button"
       onClick={onClick}
       className={cn(
         'w-full flex items-center justify-between px-3 py-2.5 transition-colors border',
@@ -176,5 +183,6 @@ function CmdAction({ onClick, icon: Icon, label, primary }: {
       </span>
       <span className="text-[10px] opacity-70">→</span>
     </button>
-  );
-}
+  )
+);
+CmdAction.displayName = 'CmdAction';

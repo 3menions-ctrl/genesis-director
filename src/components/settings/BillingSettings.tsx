@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { PersonalSubscriptionCard } from '@/components/settings/PersonalSubscriptionCard';
 import { 
   Coins, Plus, TrendingUp, TrendingDown, History,
   Zap, Gift, ShoppingCart, Download, CreditCard,
@@ -213,6 +214,9 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           Buy Credits
         </Button>
       </div>
+
+      {/* Subscription / Plan */}
+      <PersonalSubscriptionCard />
 
       {/* Credit Balance Card */}
       <motion.div 

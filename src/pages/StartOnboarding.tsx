@@ -207,7 +207,16 @@ export default function StartOnboarding() {
   const { navigate } = useSafeNavigation();
   const [params] = useSearchParams();
   const { user, signUp, signIn, signInWithGoogle, signInWithApple } = useAuth();
-  const initialType = (params.get('type') as AccountType) || 'personal';
+  const rawType = (params.get('type') || params.get('audience')) as AccountType | null;
+
+  // Enterprise tier is not yet open — funnel everyone to the coming-soon + contact form.
+  useEffect(() => {
+    if (rawType === 'enterprise') {
+      navigate('/enterprise/coming-soon', { replace: true });
+    }
+  }, [rawType, navigate]);
+
+  const initialType: AccountType = rawType === 'business' ? 'business' : 'personal';
   const [accountType, setAccountType] = useState<AccountType>(initialType);
   const [stepIdx, setStepIdx] = useState(0);
   const [direction, setDirection] = useState(1);

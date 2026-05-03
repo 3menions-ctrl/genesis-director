@@ -300,16 +300,16 @@ const App = () => {
                 } />
                 <Route path="/profile" element={
                   <RouteContainer fallbackMessage="Loading profile...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
                       <AppShell><Profile /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/settings" element={
                   <RouteContainer fallbackMessage="Loading settings...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
                       <AppShell><Settings /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/settings/deactivate" element={

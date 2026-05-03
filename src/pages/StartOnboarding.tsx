@@ -974,7 +974,9 @@ export default function StartOnboarding() {
                     : currentStep === 'verify'
                       ? <>{user ? 'Continue' : 'Verify & continue'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
                       : isLast
-                        ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                        ? (accountType === 'enterprise'
+                            ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                            : <>Continue to checkout <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
                         : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
               </span>
             </motion.button>
@@ -984,7 +986,9 @@ export default function StartOnboarding() {
           <p className="text-[11px] text-white/30 mt-6">
             {currentStep === 'account' || currentStep === 'verify'
               ? 'Your details are encrypted in transit. We never share your email.'
-              : 'You\u2019ll create your account in a moment — your choices are saved automatically.'}
+              : currentStep === 'plan' || currentStep === 'billing'
+                ? 'You won\u2019t be charged until you confirm payment in the next step.'
+                : 'Your choices are saved as you go — you\u2019ll create your account before any payment.'}
           </p>
           </div>
         </div>

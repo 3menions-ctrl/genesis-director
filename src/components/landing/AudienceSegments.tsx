@@ -226,11 +226,11 @@ function CircularCard({ f, focused }: { f: Feature; focused: boolean }) {
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
             />
           </div>
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/85 mb-3">{f.eyebrow}</p>
-          <h3 className="font-display text-[26px] sm:text-[32px] md:text-[38px] font-semibold text-white tracking-[-0.02em] leading-[1.02] mb-3">
+          <p className="text-[13px] sm:text-[14px] tracking-[0.32em] uppercase text-[#0A84FF]/90 mb-4">{f.eyebrow}</p>
+          <h3 className="font-display text-[34px] sm:text-[42px] md:text-[50px] font-semibold text-white tracking-[-0.025em] leading-[1.02] mb-4">
             {f.title}
           </h3>
-          <p className="text-[13px] sm:text-[14.5px] text-white/60 leading-relaxed max-w-[80%]">
+          <p className="text-[16px] sm:text-[18px] md:text-[19px] text-white/70 leading-relaxed max-w-[82%]">
             {f.blurb}
           </p>
         </div>

@@ -294,7 +294,7 @@ const App = () => {
                 <Route path="/workspace" element={
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <ProtectedRoute>
-                      <AppShell><Navigate to="/workspace/team" replace /></AppShell>
+                      <AppShell><WorkspaceOverview /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -309,6 +309,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading brand kit...">
                     <ProtectedRoute>
                       <AppShell><WorkspaceBrand /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/assets" element={
+                  <RouteContainer fallbackMessage="Loading assets...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceAssets /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

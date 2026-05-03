@@ -96,7 +96,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(35,10%,4%)] text-[hsl(35,12%,72%)]">
+      <div className="min-h-screen flex items-center justify-center bg-[hsl(220,14%,4%)] text-[hsl(220,14%,72%)]">
         <div className="font-mono text-[11px] uppercase tracking-[0.32em] animate-pulse">
           Initializing workspace…
         </div>
@@ -106,15 +106,15 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   if (!currentOrg) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-[hsl(35,10%,4%)]">
+      <div className="min-h-screen flex items-center justify-center px-6 bg-[hsl(220,14%,4%)]">
         <div className="max-w-md text-center">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-sm bg-[hsl(35,12%,8%)] border border-[hsl(35,12%,16%)] flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-[hsl(28,80%,60%)]" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-sm bg-[hsl(220,14%,8%)] border border-[hsl(220,14%,16%)] flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-[hsl(215,90%,60%)]" />
           </div>
-          <h2 className="text-xl font-display font-light text-[hsl(35,12%,92%)]">
+          <h2 className="text-xl font-display font-light text-[hsl(220,14%,92%)]">
             No workspace selected
           </h2>
-          <p className="text-[13px] text-[hsl(35,8%,55%)] mt-2 font-mono">
+          <p className="text-[13px] text-[hsl(220,8%,55%)] mt-2 font-mono">
             Switch to a workspace from the sidebar to manage it.
           </p>
         </div>
@@ -127,39 +127,39 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
   const credits = currentOrg.credits_balance ?? 0;
 
   return (
-    <div className="min-h-screen flex bg-[hsl(35,10%,4%)] text-[hsl(35,12%,92%)]">
+    <div className="min-h-screen flex bg-[hsl(220,14%,4%)] text-[hsl(220,14%,92%)]">
       {/* ── Persistent left rail ───────────────────────────────── */}
       <aside
         className={cn(
-          'sticky top-0 h-screen shrink-0 border-r border-[hsl(35,12%,12%)] bg-[hsl(35,10%,3%)] flex flex-col z-30 transition-[width] duration-200',
+          'sticky top-0 h-screen shrink-0 border-r border-[hsl(220,14%,12%)] bg-[hsl(220,14%,3%)] flex flex-col z-30 transition-[width] duration-200',
           railWidth,
         )}
       >
         {/* Org switcher */}
-        <div className="border-b border-[hsl(35,12%,12%)] p-3">
+        <div className="border-b border-[hsl(220,14%,12%)] p-3">
           <Popover open={orgSwitcherOpen} onOpenChange={setOrgSwitcherOpen}>
             <PopoverTrigger asChild>
               <button
                 className={cn(
-                  'w-full flex items-center gap-2.5 px-2 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] hover:bg-[hsl(35,12%,8%)] transition-colors text-left',
+                  'w-full flex items-center gap-2.5 px-2 py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:border-[hsl(215,80%,30%)] hover:bg-[hsl(220,14%,8%)] transition-colors text-left',
                   collapsed && 'justify-center px-0',
                 )}
                 title={currentOrg.name}
               >
-                <div className="w-7 h-7 shrink-0 bg-[hsl(28,90%,60%)] text-[hsl(35,10%,4%)] font-mono text-[10px] font-bold uppercase flex items-center justify-center">
+                <div className="w-7 h-7 shrink-0 bg-[hsl(215,100%,60%)] text-[hsl(220,14%,4%)] font-mono text-[10px] font-bold uppercase flex items-center justify-center">
                   {orgInitials || 'OP'}
                 </div>
                 {!collapsed && (
                   <>
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-[13px] leading-tight text-[hsl(35,12%,96%)] truncate">
+                      <div className="font-display text-[13px] leading-tight text-[hsl(220,14%,96%)] truncate">
                         {currentOrg.name}
                       </div>
-                      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] mt-0.5">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(220,8%,50%)] mt-0.5">
                         {currentOrg.plan.replace('_', ' ')} · {currentOrg.role}
                       </div>
                     </div>
-                    <ChevronsUpDown className="w-3.5 h-3.5 text-[hsl(35,8%,50%)] shrink-0" strokeWidth={1.5} />
+                    <ChevronsUpDown className="w-3.5 h-3.5 text-[hsl(220,8%,50%)] shrink-0" strokeWidth={1.5} />
                   </>
                 )}
               </button>
@@ -168,9 +168,9 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
               align="start"
               side="right"
               sideOffset={8}
-              className="w-[280px] p-0 bg-[hsl(35,10%,5%)] border border-[hsl(35,12%,16%)] rounded-none"
+              className="w-[280px] p-0 bg-[hsl(220,14%,5%)] border border-[hsl(220,14%,16%)] rounded-none"
             >
-              <div className="px-3 py-2 border-b border-[hsl(35,12%,12%)] font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(35,8%,50%)]">
+              <div className="px-3 py-2 border-b border-[hsl(220,14%,12%)] font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(220,8%,50%)]">
                 Workspaces
               </div>
               <div className="max-h-[320px] overflow-y-auto">
@@ -181,20 +181,20 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                       key={o.id}
                       onClick={() => { switchOrg(o.id); setOrgSwitcherOpen(false); }}
                       className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[hsl(35,12%,8%)] transition-colors',
-                        isCurrent && 'bg-[hsl(28,40%,8%)]',
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[hsl(220,14%,8%)] transition-colors',
+                        isCurrent && 'bg-[hsl(215,40%,8%)]',
                       )}
                     >
-                      <div className="w-6 h-6 shrink-0 bg-[hsl(35,12%,12%)] text-[hsl(35,12%,82%)] font-mono text-[9px] font-bold flex items-center justify-center">
+                      <div className="w-6 h-6 shrink-0 bg-[hsl(220,14%,12%)] text-[hsl(220,14%,82%)] font-mono text-[9px] font-bold flex items-center justify-center">
                         {o.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'OP'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[12px] text-[hsl(35,12%,92%)] truncate">{o.name}</div>
-                        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] mt-0.5">
+                        <div className="text-[12px] text-[hsl(220,14%,92%)] truncate">{o.name}</div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(220,8%,50%)] mt-0.5">
                           {o.plan.replace('_', ' ')} · {o.role}
                         </div>
                       </div>
-                      {isCurrent && <Check className="w-3.5 h-3.5 text-[hsl(28,90%,62%)] shrink-0" strokeWidth={2} />}
+                      {isCurrent && <Check className="w-3.5 h-3.5 text-[hsl(215,100%,62%)] shrink-0" strokeWidth={2} />}
                     </button>
                   );
                 })}
@@ -202,7 +202,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
               <NavLink
                 to="/workspace/billing"
                 onClick={() => setOrgSwitcherOpen(false)}
-                className="flex items-center gap-2 px-3 py-2.5 border-t border-[hsl(35,12%,12%)] hover:bg-[hsl(35,12%,8%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]"
+                className="flex items-center gap-2 px-3 py-2.5 border-t border-[hsl(220,14%,12%)] hover:bg-[hsl(220,14%,8%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]"
               >
                 <Plus className="w-3 h-3" strokeWidth={1.5} /> Manage workspaces
               </NavLink>
@@ -215,12 +215,12 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
           {NAV_GROUPS.map((group, gIdx) => (
             <div key={group.label} className={cn(gIdx > 0 && 'mt-4')}>
               {!collapsed && (
-                <div className="px-5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(35,8%,38%)]">
+                <div className="px-5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(220,8%,38%)]">
                   {group.label}
                 </div>
               )}
               {collapsed && gIdx > 0 && (
-                <div className="mx-3 my-2 h-px bg-[hsl(35,12%,12%)]" />
+                <div className="mx-3 my-2 h-px bg-[hsl(220,14%,12%)]" />
               )}
               <div>
                 {group.items.map(({ to, label, Icon, minRole, description }) => {
@@ -237,14 +237,14 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                         'group relative flex items-center gap-3 px-3 mx-2 my-0.5 py-2 transition-colors border-l-2',
                         collapsed && 'justify-center px-0 mx-3',
                         active
-                          ? 'border-l-[hsl(28,90%,60%)] bg-[hsl(28,40%,9%)] text-[hsl(35,12%,98%)]'
-                          : 'border-l-transparent text-[hsl(35,12%,75%)] hover:bg-[hsl(35,12%,7%)] hover:text-[hsl(35,12%,95%)]',
+                          ? 'border-l-[hsl(215,100%,60%)] bg-[hsl(215,40%,9%)] text-[hsl(220,14%,98%)]'
+                          : 'border-l-transparent text-[hsl(220,14%,75%)] hover:bg-[hsl(220,14%,7%)] hover:text-[hsl(220,14%,95%)]',
                         !allowed && 'opacity-35 cursor-not-allowed hover:bg-transparent',
                       )}
                     >
                       <div className={cn(
                         'w-5 h-5 flex items-center justify-center shrink-0',
-                        active ? 'text-[hsl(28,90%,62%)]' : 'text-[hsl(35,8%,55%)] group-hover:text-[hsl(35,12%,90%)]',
+                        active ? 'text-[hsl(215,100%,62%)]' : 'text-[hsl(220,8%,55%)] group-hover:text-[hsl(220,14%,90%)]',
                       )}>
                         {allowed
                           ? <Icon className="w-4 h-4" strokeWidth={1.5} />
@@ -254,14 +254,14 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                         <div className="min-w-0 flex-1">
                           <div className={cn(
                             'font-mono text-[11px] uppercase tracking-[0.18em]',
-                            active ? 'text-[hsl(35,12%,98%)]' : '',
+                            active ? 'text-[hsl(220,14%,98%)]' : '',
                           )}>
                             {label}
                           </div>
                         </div>
                       )}
                       {!collapsed && active && (
-                        <span className="w-1 h-1 rounded-full bg-[hsl(28,90%,62%)] shrink-0" />
+                        <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,62%)] shrink-0" />
                       )}
                     </NavLink>
                   );
@@ -272,20 +272,20 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Footer: credits + studio + collapse */}
-        <div className="border-t border-[hsl(35,12%,12%)] p-3 space-y-2">
+        <div className="border-t border-[hsl(220,14%,12%)] p-3 space-y-2">
           {!collapsed ? (
             <NavLink
               to="/workspace/billing"
-              className="flex items-center justify-between gap-2 px-2.5 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] transition-colors"
+              className="flex items-center justify-between gap-2 px-2.5 py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:border-[hsl(215,80%,30%)] transition-colors"
               title="Workspace credits"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Coins className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+                <Coins className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
                   Credits
                 </div>
               </div>
-              <div className="font-mono text-[12px] text-[hsl(35,12%,96%)] tabular-nums">
+              <div className="font-mono text-[12px] text-[hsl(220,14%,96%)] tabular-nums">
                 {credits.toLocaleString()}
               </div>
             </NavLink>
@@ -293,9 +293,9 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             <NavLink
               to="/workspace/billing"
               title={`Credits: ${credits.toLocaleString()}`}
-              className="flex items-center justify-center py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] transition-colors"
+              className="flex items-center justify-center py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:border-[hsl(215,80%,30%)] transition-colors"
             >
-              <Coins className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
+              <Coins className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
             </NavLink>
           )}
           <div className="flex items-center gap-1">
@@ -303,7 +303,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
               to="/projects"
               title="Back to Studio"
               className={cn(
-                'flex items-center gap-2 px-2.5 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:bg-[hsl(35,12%,9%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,60%)] hover:text-[hsl(35,12%,92%)]',
+                'flex items-center gap-2 px-2.5 py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:bg-[hsl(220,14%,9%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,60%)] hover:text-[hsl(220,14%,92%)]',
                 collapsed ? 'justify-center flex-1' : 'flex-1',
               )}
             >
@@ -313,7 +313,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             <button
               onClick={() => setCollapsed(c => !c)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="w-9 h-9 flex items-center justify-center border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:bg-[hsl(35,12%,9%)] text-[hsl(35,8%,60%)] hover:text-[hsl(35,12%,92%)] transition-colors"
+              className="w-9 h-9 flex items-center justify-center border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:bg-[hsl(220,14%,9%)] text-[hsl(220,8%,60%)] hover:text-[hsl(220,14%,92%)] transition-colors"
             >
               {collapsed
                 ? <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -321,7 +321,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
           {!collapsed && (
-            <div className="font-mono text-[9px] uppercase tracking-[0.20em] text-[hsl(35,8%,32%)] pt-1 px-1">
+            <div className="font-mono text-[9px] uppercase tracking-[0.20em] text-[hsl(220,8%,32%)] pt-1 px-1">
               v2.4 · BUSINESS TIER
             </div>
           )}
@@ -331,28 +331,28 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
       {/* ── Main column ────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top utility strip */}
-        <div className="sticky top-0 z-20 border-b border-[hsl(35,12%,12%)] bg-[hsl(35,10%,4%)]/95 backdrop-blur-xl h-12 flex items-center justify-between px-6 lg:px-10">
-          <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(28,90%,62%)]">
+        <div className="sticky top-0 z-20 border-b border-[hsl(220,14%,12%)] bg-[hsl(220,14%,4%)]/95 backdrop-blur-xl h-12 flex items-center justify-between px-6 lg:px-10">
+          <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(215,100%,62%)]">
             <Command className="w-3 h-3" strokeWidth={1.5} />
             Workspace · OPS
           </div>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[hsl(140,70%,50%)] animate-pulse" />
             All systems nominal
           </div>
         </div>
 
         {/* Masthead */}
-        <div className="border-b border-[hsl(35,12%,12%)]">
+        <div className="border-b border-[hsl(220,14%,12%)]">
           <div className="px-6 lg:px-10 py-8">
-            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(35,8%,45%)] mb-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(220,8%,45%)] mb-2">
               ORG · {currentOrg.id.slice(0, 8).toUpperCase()}
             </div>
             <h1 className="font-display text-[32px] sm:text-[42px] leading-[1.04] font-light tracking-tight">
               {currentOrg.name}
-              <span className="text-[hsl(28,90%,60%)]">.</span>
+              <span className="text-[hsl(215,100%,60%)]">.</span>
             </h1>
-            <p className="text-[13px] text-[hsl(35,8%,55%)] mt-2 font-light max-w-xl">
+            <p className="text-[13px] text-[hsl(220,8%,55%)] mt-2 font-light max-w-xl">
               Operations console for {currentOrg.name}. Provision seats, govern brand, audit spend.
             </p>
           </div>

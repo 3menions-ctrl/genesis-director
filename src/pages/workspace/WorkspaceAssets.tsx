@@ -114,10 +114,10 @@ export default function WorkspaceAssets() {
         <Surface>
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(35,12%,92%)]">
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,92%)]">
                 Asset library · Ingest
               </h3>
-              <p className="text-[12px] text-[hsl(35,8%,55%)] mt-1.5 max-w-md font-light">
+              <p className="text-[12px] text-[hsl(220,8%,55%)] mt-1.5 max-w-md font-light">
                 Logos, reference images, fonts, brand guidelines — distributed to every member of the workspace.
               </p>
               <div className="flex items-center gap-2 mt-3">
@@ -129,8 +129,8 @@ export default function WorkspaceAssets() {
               <label className={cn(
                 'inline-flex items-center gap-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.20em] cursor-pointer transition-colors',
                 uploading
-                  ? 'bg-[hsl(35,12%,10%)] text-[hsl(35,8%,45%)] cursor-not-allowed'
-                  : 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] hover:bg-[hsl(28,90%,62%)]'
+                  ? 'bg-[hsl(220,14%,10%)] text-[hsl(220,8%,45%)] cursor-not-allowed'
+                  : 'bg-[hsl(215,100%,55%)] text-[hsl(220,14%,4%)] hover:bg-[hsl(215,100%,62%)]'
               )}>
                 {uploading
                   ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> INGESTING…</>
@@ -152,16 +152,16 @@ export default function WorkspaceAssets() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-square border border-[hsl(35,12%,12%)] bg-[hsl(35,12%,5%)] animate-pulse" />
+                <div key={i} className="aspect-square border border-[hsl(220,14%,12%)] bg-[hsl(220,14%,5%)] animate-pulse" />
               ))}
             </div>
           ) : assets.length === 0 ? (
-            <div className="border border-dashed border-[hsl(35,12%,16%)] bg-[hsl(35,12%,5%)] p-14 text-center">
-              <ImageIcon className="w-8 h-8 mx-auto text-[hsl(35,8%,40%)] mb-3" strokeWidth={1.2} />
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,12%,82%)]">
+            <div className="border border-dashed border-[hsl(220,14%,16%)] bg-[hsl(220,14%,5%)] p-14 text-center">
+              <ImageIcon className="w-8 h-8 mx-auto text-[hsl(220,8%,40%)] mb-3" strokeWidth={1.2} />
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,14%,82%)]">
                 Library empty
               </p>
-              <p className="text-[12px] text-[hsl(35,8%,55%)] mt-2 font-light">
+              <p className="text-[12px] text-[hsl(220,8%,55%)] mt-2 font-light">
                 {canUpload
                   ? 'Ingest logos, fonts, or reference images to share with your team.'
                   : 'Ask an admin or producer to ingest assets.'}
@@ -173,27 +173,27 @@ export default function WorkspaceAssets() {
                 const meta = KIND_META[a.kind] ?? KIND_META.other;
                 const isImage = (a.mime_type ?? '').startsWith('image/');
                 return (
-                  <div key={a.id} className="group border border-[hsl(35,12%,12%)] bg-[hsl(35,12%,5%)] overflow-hidden hover:border-[hsl(35,12%,20%)] transition-colors">
-                    <div className="aspect-square bg-[hsl(35,12%,3%)] relative flex items-center justify-center">
+                  <div key={a.id} className="group border border-[hsl(220,14%,12%)] bg-[hsl(220,14%,5%)] overflow-hidden hover:border-[hsl(220,14%,20%)] transition-colors">
+                    <div className="aspect-square bg-[hsl(220,14%,3%)] relative flex items-center justify-center">
                       {isImage ? (
                         <img src={a.public_url} alt={a.name} loading="lazy" className="w-full h-full object-contain" />
                       ) : (
-                        <meta.Icon className="w-10 h-10 text-[hsl(28,90%,62%)]" strokeWidth={1.2} />
+                        <meta.Icon className="w-10 h-10 text-[hsl(215,100%,62%)]" strokeWidth={1.2} />
                       )}
-                      <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-[hsl(35,12%,4%)]/85 backdrop-blur border border-[hsl(35,12%,16%)] font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(28,90%,72%)]">
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-[hsl(220,14%,4%)]/85 backdrop-blur border border-[hsl(220,14%,16%)] font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(215,100%,72%)]">
                         {meta.label}
                       </div>
                     </div>
-                    <div className="p-2.5 flex items-center justify-between gap-2 border-t border-[hsl(35,12%,12%)]">
+                    <div className="p-2.5 flex items-center justify-between gap-2 border-t border-[hsl(220,14%,12%)]">
                       <div className="min-w-0">
-                        <div className="font-mono text-[11px] text-[hsl(35,12%,82%)] truncate">{a.name}</div>
-                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-[hsl(35,8%,45%)]">
+                        <div className="font-mono text-[11px] text-[hsl(220,14%,82%)] truncate">{a.name}</div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-[hsl(220,8%,45%)]">
                           {a.size_bytes ? `${(a.size_bytes / 1024).toFixed(0)} KB` : ''}
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                         <a href={a.public_url} target="_blank" rel="noopener noreferrer"
-                           className="p-1.5 hover:bg-[hsl(35,12%,10%)] text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,92%)]"
+                           className="p-1.5 hover:bg-[hsl(220,14%,10%)] text-[hsl(220,8%,55%)] hover:text-[hsl(220,14%,92%)]"
                            title="Open">
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>

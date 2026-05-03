@@ -88,7 +88,7 @@ export default function WorkspaceBrand() {
           sublabel="Up to 5 colors. Biases generated scenes, lower-thirds and titles."
         >
           {loading ? (
-            <div className="h-12 w-full bg-[hsl(35,12%,7%)] animate-pulse" />
+            <div className="h-12 w-full bg-[hsl(220,14%,7%)] animate-pulse" />
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
@@ -104,8 +104,8 @@ export default function WorkspaceBrand() {
                       className={cn(
                         'w-9 h-9 border-2 transition-all',
                         active
-                          ? 'border-[hsl(28,90%,60%)] scale-105'
-                          : 'border-[hsl(35,12%,16%)] hover:border-[hsl(35,12%,28%)]',
+                          ? 'border-[hsl(215,100%,60%)] scale-105'
+                          : 'border-[hsl(220,14%,16%)] hover:border-[hsl(220,14%,28%)]',
                         !canEdit && 'opacity-50 cursor-not-allowed',
                       )}
                       aria-label={`Brand color ${c}`}
@@ -127,15 +127,15 @@ export default function WorkspaceBrand() {
               )}
 
               {colors.length > 0 && (
-                <div className="mt-5 pt-4 border-t border-[hsl(35,12%,12%)]">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] mb-2">
+                <div className="mt-5 pt-4 border-t border-[hsl(220,14%,12%)]">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] mb-2">
                     Selected · {colors.length}/5
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {colors.map(c => (
                       <span
                         key={`sel-${c}`}
-                        className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(35,12%,82%)]"
+                        className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(220,14%,82%)]"
                       >
                         <span className="w-4 h-4" style={{ background: c }} />
                         {c}
@@ -165,18 +165,18 @@ export default function WorkspaceBrand() {
                   className={cn(
                     'text-left p-4 border transition-colors',
                     active
-                      ? 'border-[hsl(28,90%,60%)] bg-[hsl(28,40%,8%)]'
-                      : 'border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] hover:border-[hsl(35,12%,22%)]',
+                      ? 'border-[hsl(215,100%,60%)] bg-[hsl(215,40%,8%)]'
+                      : 'border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] hover:border-[hsl(220,14%,22%)]',
                     !canEdit && 'opacity-60 cursor-not-allowed',
                   )}
                 >
                   <div className={cn(
                     'font-mono text-[11px] uppercase tracking-[0.20em]',
-                    active ? 'text-[hsl(28,90%,72%)]' : 'text-[hsl(35,12%,92%)]',
+                    active ? 'text-[hsl(215,100%,72%)]' : 'text-[hsl(220,14%,92%)]',
                   )}>
                     {v.label}
                   </div>
-                  <div className="text-[11px] text-[hsl(35,8%,55%)] mt-1.5 font-light">{v.desc}</div>
+                  <div className="text-[11px] text-[hsl(220,8%,55%)] mt-1.5 font-light">{v.desc}</div>
                 </button>
               );
             })}
@@ -197,7 +197,7 @@ export default function WorkspaceBrand() {
             />
           </Field>
           {logoUrl && (
-            <div className="mt-4 inline-flex items-center justify-center p-4 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,4%)]">
+            <div className="mt-4 inline-flex items-center justify-center p-4 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,4%)]">
               <img src={logoUrl} alt="Brand logo preview" className="h-12 w-auto max-w-[200px] object-contain" />
             </div>
           )}
@@ -205,7 +205,7 @@ export default function WorkspaceBrand() {
 
         {canEdit && (
           <div className="flex items-center justify-between gap-3 pt-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.20em] text-[hsl(35,8%,55%)] inline-flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.20em] text-[hsl(220,8%,55%)] inline-flex items-center gap-2">
               <Wand2 className="w-3 h-3" /> Applied to all new generations.
             </span>
             <CmdButton onClick={save} disabled={saving}>

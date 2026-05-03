@@ -23,19 +23,19 @@ export default function WorkspaceNotifications() {
         <div className="overflow-x-auto -m-6 mt-2">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-[hsl(35,12%,12%)]">
-                <th className="px-6 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)]">Event</th>
-                <th className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)]">Recipients</th>
-                <th className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)]">Channel</th>
-                <th className="px-6 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)] text-right">Status</th>
+              <tr className="border-b border-[hsl(220,14%,12%)]">
+                <th className="px-6 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,55%)]">Event</th>
+                <th className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,55%)]">Recipients</th>
+                <th className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,55%)]">Channel</th>
+                <th className="px-6 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,55%)] text-right">Status</th>
               </tr>
             </thead>
             <tbody>
               {ROUTES.map((r) => (
-                <tr key={r.event} className="border-b border-[hsl(35,12%,10%)]">
-                  <td className="px-6 py-3 text-[12px] text-[hsl(35,12%,92%)]">{r.event}</td>
-                  <td className="px-3 py-3 text-[12px] text-[hsl(35,8%,72%)]">{r.to}</td>
-                  <td className="px-3 py-3 font-mono text-[11px] text-[hsl(35,8%,72%)]">{r.channel}</td>
+                <tr key={r.event} className="border-b border-[hsl(220,14%,10%)]">
+                  <td className="px-6 py-3 text-[12px] text-[hsl(220,14%,92%)]">{r.event}</td>
+                  <td className="px-3 py-3 text-[12px] text-[hsl(220,8%,72%)]">{r.to}</td>
+                  <td className="px-3 py-3 font-mono text-[11px] text-[hsl(220,8%,72%)]">{r.channel}</td>
                   <td className="px-6 py-3 text-right"><Pill tone="good">ACTIVE</Pill></td>
                 </tr>
               ))}

@@ -29,10 +29,10 @@ export default function WorkspaceCredits() {
       <Surface>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(35,12%,90%)]">
+            <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,90%)]">
               Auto-recharge
             </div>
-            <p className="text-[12px] text-[hsl(35,8%,55%)] mt-2 max-w-xl font-light">
+            <p className="text-[12px] text-[hsl(220,8%,55%)] mt-2 max-w-xl font-light">
               When the pool drops below the threshold, automatically purchase a top-up so productions never stall mid-pipeline.
             </p>
           </div>

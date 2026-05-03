@@ -18,12 +18,12 @@ export default function WorkspaceReports() {
       description="Exportable summaries for finance, operations and leadership review."
     >
       <Surface padded={false}>
-        <ul className="divide-y divide-[hsl(35,12%,12%)]">
+        <ul className="divide-y divide-[hsl(220,14%,12%)]">
           {REPORTS.map((r) => (
             <li key={r.label} className="px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] text-[hsl(35,12%,92%)]">{r.label}</div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] mt-1">{r.sub}</div>
+                <div className="text-[13px] text-[hsl(220,14%,92%)]">{r.label}</div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,50%)] mt-1">{r.sub}</div>
               </div>
               <Pill tone="neutral">{r.format}</Pill>
               <CmdButton variant="ghost" disabled><Download className="w-3 h-3" /> Export</CmdButton>

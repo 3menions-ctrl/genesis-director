@@ -53,14 +53,14 @@ export default function WorkspaceAuditLog() {
       title="Audit log"
       description="Immutable record of every workspace action — credit movement, member changes and content events."
       actions={
-        <button className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,90%)]">
+        <button className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)] hover:text-[hsl(220,14%,90%)]">
           <Filter className="w-3 h-3" /> Filter
         </button>
       }
     >
       <Surface padded={false}>
         {loading ? (
-          <div className="px-5 py-12 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,45%)]">Reading ledger…</div>
+          <div className="px-5 py-12 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,45%)]">Reading ledger…</div>
         ) : events.length === 0 ? (
           <EmptyState
             icon={ScrollText}
@@ -68,17 +68,17 @@ export default function WorkspaceAuditLog() {
             body="Audit events will appear here as members create projects, spend credits and manage the team."
           />
         ) : (
-          <ul className="divide-y divide-[hsl(35,12%,12%)]">
+          <ul className="divide-y divide-[hsl(220,14%,12%)]">
             {events.map((e) => (
               <li key={e.id} className="px-5 py-3 flex items-center gap-4">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] w-32 shrink-0">
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,50%)] w-32 shrink-0">
                   {new Date(e.created_at).toLocaleString()}
                 </div>
                 <Pill tone={e.amount < 0 ? 'amber' : 'good'}>{e.transaction_type}</Pill>
-                <div className="flex-1 text-[12px] text-[hsl(35,12%,90%)] truncate">
+                <div className="flex-1 text-[12px] text-[hsl(220,14%,90%)] truncate">
                   {e.description || '—'}
                 </div>
-                <div className="font-mono text-[12px] tabular-nums text-[hsl(35,12%,96%)]">
+                <div className="font-mono text-[12px] tabular-nums text-[hsl(220,14%,96%)]">
                   {e.amount > 0 ? '+' : ''}{e.amount}
                 </div>
               </li>

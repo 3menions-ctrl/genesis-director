@@ -92,11 +92,11 @@ export default function WorkspaceAnalytics() {
     return (
       <WorkspaceLayout>
         <Surface className="text-center py-14">
-          <Lock className="w-6 h-6 mx-auto text-[hsl(35,8%,40%)] mb-3" strokeWidth={1.4} />
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,12%,82%)]">
+          <Lock className="w-6 h-6 mx-auto text-[hsl(220,8%,40%)] mb-3" strokeWidth={1.4} />
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,14%,82%)]">
             Access denied
           </p>
-          <p className="text-[12px] text-[hsl(35,8%,55%)] mt-2 font-light">
+          <p className="text-[12px] text-[hsl(220,8%,55%)] mt-2 font-light">
             Telemetry is restricted to admins and owners.
           </p>
         </Surface>
@@ -118,53 +118,53 @@ export default function WorkspaceAnalytics() {
           label="Member telemetry"
           sublabel="Credit burn and project output by member."
           action={
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
               WINDOW · 30D
             </span>
           }
         >
           {loading ? (
             <div className="space-y-2">
-              {[0, 1, 2, 3].map(i => <div key={i} className="h-14 bg-[hsl(35,12%,7%)] animate-pulse" />)}
+              {[0, 1, 2, 3].map(i => <div key={i} className="h-14 bg-[hsl(220,14%,7%)] animate-pulse" />)}
             </div>
           ) : rows.length === 0 ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] py-6 text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">
               No members on roster.
             </p>
           ) : (
-            <ul className="divide-y divide-[hsl(35,12%,12%)]">
+            <ul className="divide-y divide-[hsl(220,14%,12%)]">
               {rows.map((r, idx) => {
                 const pct = (r.credits_used_30d / maxUse) * 100;
                 return (
-                  <li key={r.user_id} className="flex items-center gap-4 px-2 py-3 hover:bg-[hsl(35,12%,7%)] transition-colors">
-                    <span className="font-mono text-[10px] text-[hsl(35,8%,40%)] tabular-nums w-6">
+                  <li key={r.user_id} className="flex items-center gap-4 px-2 py-3 hover:bg-[hsl(220,14%,7%)] transition-colors">
+                    <span className="font-mono text-[10px] text-[hsl(220,8%,40%)] tabular-nums w-6">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
-                    <div className="w-8 h-8 bg-[hsl(35,12%,8%)] border border-[hsl(35,12%,16%)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 bg-[hsl(220,14%,8%)] border border-[hsl(220,14%,16%)] flex items-center justify-center overflow-hidden flex-shrink-0">
                       {r.avatar_url ? (
                         <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="font-mono text-[11px] text-[hsl(28,90%,62%)]">{r.display_name[0]?.toUpperCase()}</span>
+                        <span className="font-mono text-[11px] text-[hsl(215,100%,62%)]">{r.display_name[0]?.toUpperCase()}</span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-[13px] text-[hsl(35,12%,92%)] truncate">{r.display_name}</div>
-                          <div className="font-mono text-[10px] text-[hsl(35,8%,45%)] truncate">{r.email}</div>
+                          <div className="text-[13px] text-[hsl(220,14%,92%)] truncate">{r.display_name}</div>
+                          <div className="font-mono text-[10px] text-[hsl(220,8%,45%)] truncate">{r.email}</div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="font-mono text-[13px] text-[hsl(35,12%,98%)] tabular-nums">
+                          <div className="font-mono text-[13px] text-[hsl(220,14%,98%)] tabular-nums">
                             {r.credits_used_30d.toLocaleString()}
                           </div>
-                          <div className="font-mono text-[9px] text-[hsl(35,8%,55%)] uppercase tracking-[0.18em]">
+                          <div className="font-mono text-[9px] text-[hsl(220,8%,55%)] uppercase tracking-[0.18em]">
                             {r.projects_30d} PROJECTS
                           </div>
                         </div>
                       </div>
-                      <div className="mt-2 h-[3px] bg-[hsl(35,12%,10%)] overflow-hidden">
+                      <div className="mt-2 h-[3px] bg-[hsl(220,14%,10%)] overflow-hidden">
                         <div
-                          className="h-full bg-[hsl(28,90%,55%)] transition-all duration-700"
+                          className="h-full bg-[hsl(215,100%,55%)] transition-all duration-700"
                           style={{ width: `${pct}%` }}
                         />
                       </div>

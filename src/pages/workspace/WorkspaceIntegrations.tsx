@@ -25,15 +25,15 @@ export default function WorkspaceIntegrations() {
         {INTEGRATIONS.map((i) => (
           <Surface key={i.name}>
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] flex items-center justify-center shrink-0">
-                <i.icon className="w-4 h-4 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
+              <div className="w-10 h-10 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] flex items-center justify-center shrink-0">
+                <i.icon className="w-4 h-4 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="text-[14px] text-[hsl(35,12%,96%)] font-display">{i.name}</div>
+                  <div className="text-[14px] text-[hsl(220,14%,96%)] font-display">{i.name}</div>
                   {i.status === 'coming' && <Pill tone="neutral">SOON</Pill>}
                 </div>
-                <p className="text-[12px] text-[hsl(35,8%,55%)] mt-1 font-light">{i.sub}</p>
+                <p className="text-[12px] text-[hsl(220,8%,55%)] mt-1 font-light">{i.sub}</p>
                 <div className="mt-3">
                   <CmdButton variant="ghost" disabled={i.status === 'coming'}>
                     {i.status === 'coming' ? 'Notify me' : 'Connect'}

@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2,
+  Check, ArrowRight, Sparkles, Shield, Zap, Crown, Building2,
   Star, Infinity as InfinityIcon, Film, Wand2, Gem, User, Briefcase,
-  Repeat, HeadphonesIcon, Lock, Users, Globe, Cpu, FileCheck2, Phone,
+  Repeat, Headphones, Lock, Users, Globe, Cpu, FileCheck2, Phone,
   ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -956,7 +956,7 @@ export default function Pricing() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
-              <HeadphonesIcon className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
+              <Headphones className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
               <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">FAQ</span>
             </div>
             <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[44px] leading-tight text-white">

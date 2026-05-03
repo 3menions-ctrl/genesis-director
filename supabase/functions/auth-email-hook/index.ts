@@ -39,8 +39,8 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 const SITE_NAME = "Apex Studio"
 const SENDER_DOMAIN = "notify.apex-studio.ai"
 const ROOT_DOMAIN = "apex-studio.ai"
-const FROM_DOMAIN = "apex-studio.ai" // Domain shown in From address
-const FROM_LOCAL = "apex-studio.ai" // Local part of From address
+const FROM_DOMAIN = SENDER_DOMAIN // Must align with the verified sender domain for deliverability
+const FROM_LOCAL = "no-reply" // Local part of From address
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

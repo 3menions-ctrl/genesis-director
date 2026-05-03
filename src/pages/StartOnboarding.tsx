@@ -5,10 +5,11 @@ import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
-  Loader2, X, Cpu, ShieldCheck, Star, Quote,
+  Loader2, X, Cpu, ShieldCheck, Star, Quote, Mail, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
@@ -77,8 +78,8 @@ const ENTERPRISE_PLAN: Plan = {
  * Step definitions per audience
  * ──────────────────────────────────────────────────────────────────── */
 
-const PERSONAL_STEPS = ['goals', 'usecase', 'plan', 'profile'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing'] as const;
+const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
+const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing', 'account', 'verify'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -98,6 +99,8 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   scale:   { label: 'Scale',         copy: 'Help us size your contract.' },
   needs:   { label: 'Requirements',  copy: 'Pick what you need.' },
   contact: { label: 'Contact',       copy: 'How should we reach you?' },
+  account: { label: 'Account',       copy: 'Create your account.' },
+  verify:  { label: 'Verify',        copy: 'Confirm your email.' },
 };
 
 const PERSONAL_GOALS = [

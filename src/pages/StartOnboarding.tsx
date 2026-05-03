@@ -414,38 +414,14 @@ export default function StartOnboarding() {
     navigate(target, { replace: true });
   };
 
-  /* ── Finish: enterprise lead-capture path (no account creation) ── */
+  /* ── Finish: final plan/billing step → checkout (or enterprise lead capture) ── */
   const finish = async () => {
     setSubmitting(true);
     try {
-      const token = `int_${crypto.randomUUID()}`;
-      const payload = {
-        intent_token: token,
-        account_type: accountType,
-        selected_plan_id: form.selected_plan_id || null,
-        selected_plan_kind: (form.selected_plan_kind || null) as PlanKind | null,
-        goals: form.goals.length ? form.goals : null,
-        experience_level: form.style || null,
-        company_name: form.company_name || null,
-        team_size: form.team_size || null,
-        industry: form.industry || null,
-        job_role: form.job_role || null,
-        expected_volume: form.expected_volume || null,
-        needs_sso: form.needs_sso,
-        needs_sla: form.needs_sla,
-        needs_api: form.needs_api,
-        contact_email: form.contact_email || null,
-        contact_phone: form.contact_phone || null,
-        display_name: form.display_name || null,
-      };
+      const token = await ensureIntentPersisted();
+      if (!token) return;
 
-      const { error } = await supabase.from('onboarding_intents').insert(payload);
-      if (error) throw error;
-
-      try { sessionStorage.setItem('apex.intent_token', token); } catch {}
-      try { localStorage.setItem('apex.audience', accountType); } catch {}
-
-      // Route differently per audience
+      // Enterprise: lead-capture path, no account, no checkout
       if (accountType === 'enterprise') {
         // Lead-capture: insert basic enterprise lead (best-effort)
         try {
@@ -464,13 +440,23 @@ export default function StartOnboarding() {
         return;
       }
 
-      const next = form.selected_plan_kind === 'contact'
+      // Personal / Business — user is already authenticated at this point.
+      // Consume intent then go straight to checkout.
+      await persistIntentAndConsume();
+
+      const target = form.selected_plan_kind === 'contact'
         ? '/projects'
         : form.selected_plan_id
           ? `/welcome/checkout?plan=${form.selected_plan_id}`
           : '/create';
 
-      navigate(`/auth?mode=signup&intent=${token}&audience=${accountType}&next=${encodeURIComponent(next)}`);
+      // Safety net: if for any reason the user isn't authenticated, fall back to /auth.
+      if (!user) {
+        navigate(`/auth?mode=signup&intent=${token}&audience=${accountType}&next=${encodeURIComponent(target)}`);
+        return;
+      }
+
+      navigate(target, { replace: true });
     } catch (e: any) {
       console.error('[start] finish', e);
       toast.error(e?.message ?? 'Could not save your choices.');

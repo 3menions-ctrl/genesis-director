@@ -263,3 +263,6 @@ verify_jwt = false
 
 [functions.create-plan-checkout]
 verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = true

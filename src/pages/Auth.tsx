@@ -959,10 +959,16 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           <button
                             type="button"
                             onClick={() => {
-                              setIsLogin(!isLogin);
-                              setErrors({});
-                              setPassword('');
-                              setConfirmPassword('');
+                              if (isLogin) {
+                                // Route signup through the full guided onboarding wizard
+                                const target = nextParam ? `/start?next=${encodeURIComponent(nextParam)}` : '/start';
+                                navigate(target);
+                              } else {
+                                setIsLogin(true);
+                                setErrors({});
+                                setPassword('');
+                                setConfirmPassword('');
+                              }
                             }}
                             className="text-white font-medium hover:text-[hsl(212,100%,65%)] transition-colors duration-300 underline-offset-4 hover:underline"
                           >

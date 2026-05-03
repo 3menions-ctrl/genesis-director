@@ -284,10 +284,13 @@ export default function StartOnboarding() {
     // Step: account → persist intent + create account, then advance to verify
     if (currentStep === 'account') {
       if (user) {
-        // Already authenticated (e.g. via OAuth). Skip verify and go to plan selection.
+        // Already authenticated (e.g. via OAuth). Skip verify; advance to billing
+        // (business) or finish (personal — billing is handled by checkout redirect).
         await persistIntentAndConsume();
+        const skipTo = stepIdx + 2;
+        if (skipTo >= steps.length) { void finish(); return; }
         setDirection(1);
-        setStepIdx(i => Math.min(i + 2, steps.length - 1));
+        setStepIdx(skipTo);
         return;
       }
       setSubmitting(true);
@@ -303,10 +306,12 @@ export default function StartOnboarding() {
               toast.error('That email is already registered — wrong password?');
               return;
             }
-            // Existing account signed in — skip OTP and proceed to plan selection.
+            // Existing account signed in — skip OTP and proceed to billing/finish.
             await persistIntentAndConsume();
+            const skipTo = stepIdx + 2;
+            if (skipTo >= steps.length) { void finish(); return; }
             setDirection(1);
-            setStepIdx(i => Math.min(i + 2, steps.length - 1));
+            setStepIdx(skipTo);
             return;
           }
           toast.error(error.message || 'Could not create your account.');
@@ -321,10 +326,11 @@ export default function StartOnboarding() {
       return;
     }
 
-    // Step: verify → confirm OTP, consume intent, advance to plan selection
+    // Step: verify → confirm OTP, consume intent, advance to billing or finish
     if (currentStep === 'verify') {
       if (user) {
         await persistIntentAndConsume();
+        if (stepIdx + 1 >= steps.length) { void finish(); return; }
         setDirection(1);
         setStepIdx(i => i + 1);
         return;
@@ -342,6 +348,7 @@ export default function StartOnboarding() {
         }
         toast.success('Email verified.');
         await persistIntentAndConsume();
+        if (stepIdx + 1 >= steps.length) { void finish(); return; }
         setDirection(1);
         setStepIdx(i => i + 1);
       } finally {

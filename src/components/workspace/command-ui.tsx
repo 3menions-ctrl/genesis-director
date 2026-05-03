@@ -18,11 +18,24 @@ export function Surface({
 }: { children: ReactNode; className?: string; padded?: boolean }) {
   return (
     <div className={cn(
-      'border border-[hsl(220,14%,12%)] bg-[hsl(220,14%,5%)]',
+      'rounded-2xl border border-white/[0.06] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),0_8px_24px_-12px_rgba(0,0,0,0.45)]',
       padded && 'p-6',
       className,
     )}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.85]"
+        style={{
+          background:
+            'linear-gradient(180deg, hsla(220,18%,7%,0.62) 0%, hsla(220,16%,4%,0.62) 100%)',
+          backdropFilter: 'blur(18px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+          zIndex: -1,
+        }}
+      />
+      <div className="relative">{/* content layer */}
       {children}
+      </div>
     </div>
   );
 }

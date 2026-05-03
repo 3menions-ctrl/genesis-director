@@ -115,6 +115,16 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const nextParam = searchParams.get('next');
   
   const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
+
+  // Signup must always go through the full guided onboarding wizard at /start.
+  // If anyone lands on /auth?mode=signup, immediately redirect them there
+  // (preserving any `next` redirect target).
+  useEffect(() => {
+    if (modeParam === 'signup') {
+      const target = nextParam ? `/start?next=${encodeURIComponent(nextParam)}` : '/start';
+      navigate(target, { replace: true });
+    }
+  }, [modeParam, nextParam, navigate]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -949,10 +959,16 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           <button
                             type="button"
                             onClick={() => {
-                              setIsLogin(!isLogin);
-                              setErrors({});
-                              setPassword('');
-                              setConfirmPassword('');
+                              if (isLogin) {
+                                // Route signup through the full guided onboarding wizard
+                                const target = nextParam ? `/start?next=${encodeURIComponent(nextParam)}` : '/start';
+                                navigate(target);
+                              } else {
+                                setIsLogin(true);
+                                setErrors({});
+                                setPassword('');
+                                setConfirmPassword('');
+                              }
                             }}
                             className="text-white font-medium hover:text-[hsl(212,100%,65%)] transition-colors duration-300 underline-offset-4 hover:underline"
                           >

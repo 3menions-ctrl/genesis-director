@@ -231,7 +231,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
         navigate(target, { replace: true });
       } else {
-        navigate(nextParam || '/create', { replace: true });
+        // Business / enterprise accounts land in the Operations Command Center;
+        // personal accounts land in the Studio. Admins handled by their own guard.
+        const isBusinessAccount =
+          profile.account_type === 'business' || profile.account_type === 'enterprise';
+        const defaultLanding = isBusinessAccount ? '/workspace' : '/create';
+        navigate(nextParam || defaultLanding, { replace: true });
       }
     }
   }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog]);

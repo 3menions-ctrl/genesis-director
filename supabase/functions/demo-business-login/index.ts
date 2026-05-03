@@ -56,19 +56,26 @@ Deno.serve(async (req) => {
       userId = created.user.id
     }
 
-    // 2. Ensure profile is fully onboarded as a business account
-    await admin.from('profiles').upsert({
-      id: userId,
+    // 2. Ensure profile is fully onboarded as a business account.
+    // We use update-then-insert (instead of upsert) because the handle_new_user
+    // trigger always seeds account_type='personal' on row creation, and an
+    // upsert with default merge behavior was silently dropping our overrides.
+    const profilePayload = {
       email: DEMO_EMAIL,
       display_name: 'Demo Business Owner',
       full_name: 'Demo Business Owner',
-      account_type: 'business',
+      account_type: 'business' as const,
       account_tier: 'agency',
       company: DEMO_ORG_NAME,
       job_title: 'Creative Director',
       onboarding_completed: true,
       credits_balance: 500,
-    }, { onConflict: 'id' })
+    }
+    const { error: updErr } = await admin.from('profiles').update(profilePayload).eq('id', userId)
+    if (updErr) {
+      // Row didn't exist yet — insert it.
+      await admin.from('profiles').insert({ id: userId, ...profilePayload })
+    }
 
     // 3. Ensure organization exists
     let orgId: string | null = null

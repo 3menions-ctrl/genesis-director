@@ -53,106 +53,98 @@ function CircularCard({ f, focused }: { f: Feature; focused: boolean }) {
   const Icon = f.icon;
   return (
     <motion.div
-      className="relative shrink-0 w-[300px] sm:w-[340px] md:w-[380px] aspect-square"
+      className="relative shrink-0 w-[360px] sm:w-[440px] md:w-[520px] lg:w-[560px] aspect-square"
       animate={{
-        scale: focused ? 1 : 0.86,
-        opacity: focused ? 1 : 0.55,
+        scale: focused ? 1 : 0.78,
+        opacity: focused ? 1 : 0.35,
       }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Outer glow ring */}
+      {/* Outer rotating conic glow — no card surface */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `conic-gradient(from 0deg, hsla(${f.hue},100%,60%,0.0), hsla(${f.hue},100%,62%,0.55), hsla(${f.hue},100%,55%,0.0) 60%, hsla(${f.hue},100%,62%,0.45))`,
-          filter: 'blur(22px)',
-          opacity: focused ? 0.8 : 0.25,
+          background: `conic-gradient(from 0deg, hsla(${f.hue},100%,62%,0.0), hsla(${f.hue},100%,65%,0.7), hsla(${f.hue},100%,55%,0.0) 55%, hsla(${f.hue},100%,65%,0.55))`,
+          filter: 'blur(34px)',
+          opacity: focused ? 0.95 : 0.3,
         }}
         animate={{ rotate: 360 }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
       />
 
-      {/* Card body */}
-      <div
-        className="absolute inset-2 rounded-full overflow-hidden"
-        style={{
-          background:
-            'radial-gradient(120% 120% at 30% 20%, hsla(220,18%,12%,1) 0%, hsla(220,16%,5%,1) 60%, hsla(220,20%,2%,1) 100%)',
-          boxShadow:
-            '0 60px 120px -40px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px hsla(212,100%,60%,0.18)',
-        }}
-      >
-        {/* Hairline ring */}
-        <div className="absolute inset-3 rounded-full border border-white/[0.06]" />
-        <div className="absolute inset-6 rounded-full border border-white/[0.04]" />
-
-        {/* Animated film-grain noise */}
+      {/* Transparent ring system — no opaque surface */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Hairline rings */}
         <div
-          className="absolute inset-0 opacity-[0.06] mix-blend-overlay pointer-events-none"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>\")",
-          }}
+          className="absolute inset-0 rounded-full border"
+          style={{ borderColor: `hsla(${f.hue},100%,70%,${focused ? 0.35 : 0.14})` }}
+        />
+        <div
+          className="absolute inset-6 rounded-full border border-white/[0.07]"
+        />
+        <div
+          className="absolute inset-12 rounded-full border border-white/[0.05]"
         />
 
         {/* Orbiting particles */}
         {focused &&
-          Array.from({ length: 14 }).map((_, i) => {
-            const delay = (i / 14) * 6;
+          Array.from({ length: 18 }).map((_, i) => {
+            const delay = (i / 18) * 7;
+            const radius = 200;
             return (
               <motion.span
                 key={i}
                 className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full"
                 style={{
                   background: '#0A84FF',
-                  boxShadow: '0 0 10px #0A84FF, 0 0 20px rgba(10,132,255,0.5)',
+                  boxShadow: '0 0 12px #0A84FF, 0 0 24px rgba(10,132,255,0.55)',
                 }}
                 initial={{ x: 0, y: 0, opacity: 0 }}
                 animate={{
-                  x: [Math.cos((i / 14) * Math.PI * 2) * 140, Math.cos((i / 14) * Math.PI * 2 + Math.PI * 2) * 140],
-                  y: [Math.sin((i / 14) * Math.PI * 2) * 140, Math.sin((i / 14) * Math.PI * 2 + Math.PI * 2) * 140],
-                  opacity: [0, 0.9, 0],
+                  x: [Math.cos((i / 18) * Math.PI * 2) * radius, Math.cos((i / 18) * Math.PI * 2 + Math.PI * 2) * radius],
+                  y: [Math.sin((i / 18) * Math.PI * 2) * radius, Math.sin((i / 18) * Math.PI * 2 + Math.PI * 2) * radius],
+                  opacity: [0, 0.95, 0],
                 }}
-                transition={{ duration: 6, repeat: Infinity, delay, ease: 'linear' }}
+                transition={{ duration: 7, repeat: Infinity, delay, ease: 'linear' }}
               />
             );
           })}
 
         {/* Inner spinning hairline ring */}
         <motion.div
-          className="absolute inset-10 rounded-full border border-dashed border-white/10"
+          className="absolute inset-16 rounded-full border border-dashed border-white/10"
           animate={{ rotate: 360 }}
-          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 38, repeat: Infinity, ease: 'linear' }}
         />
 
         {/* Pulsing core glow behind icon */}
         <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full"
           style={{
-            background: `radial-gradient(circle, hsla(${f.hue},100%,60%,0.35), transparent 70%)`,
-            filter: 'blur(8px)',
+            background: `radial-gradient(circle, hsla(${f.hue},100%,62%,0.45), transparent 70%)`,
+            filter: 'blur(14px)',
           }}
-          animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         />
 
         {/* Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-12">
-          <div className="relative mb-5">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/[0.04] border border-white/[0.10] backdrop-blur-md">
-              <Icon className="w-7 h-7 text-[#0A84FF]" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-16">
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+              <Icon className="w-9 h-9 text-[#0A84FF]" />
             </div>
             <motion.div
-              className="absolute -inset-2 rounded-3xl border border-[#0A84FF]/30"
+              className="absolute -inset-2 rounded-[28px] border border-[#0A84FF]/35"
               animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0, 0.6] }}
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
             />
           </div>
-          <p className="text-[10px] tracking-[0.28em] uppercase text-[#0A84FF]/80 mb-2">{f.eyebrow}</p>
-          <h3 className="font-display text-[22px] sm:text-[26px] md:text-[28px] font-semibold text-white tracking-[-0.01em] leading-[1.05] mb-3">
+          <p className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/85 mb-3">{f.eyebrow}</p>
+          <h3 className="font-display text-[26px] sm:text-[32px] md:text-[38px] font-semibold text-white tracking-[-0.02em] leading-[1.02] mb-3">
             {f.title}
           </h3>
-          <p className="text-[12.5px] sm:text-[13.5px] text-white/55 leading-relaxed max-w-[78%]">
+          <p className="text-[13px] sm:text-[14.5px] text-white/60 leading-relaxed max-w-[80%]">
             {f.blurb}
           </p>
         </div>
@@ -238,7 +230,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
           <div className="pointer-events-none absolute inset-y-0 right-0 w-32 md:w-48 z-20"
             style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, transparent 100%)' }} />
 
-          <div className="flex items-center justify-center gap-6 md:gap-10 min-h-[420px] md:min-h-[480px]">
+          <div className="flex items-center justify-center gap-2 md:gap-6 min-h-[480px] md:min-h-[620px]">
             <AnimatePresence mode="popLayout" initial={false}>
               {visible.map((f, i) => (
                 <motion.div

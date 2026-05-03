@@ -75,7 +75,7 @@ export function useNotifications() {
         },
         (payload) => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
-          const n = (payload as { new?: Notification }).new;
+          const n = (payload as unknown as { new?: Partial<Notification> }).new;
           if (n?.title) {
             toast(n.title, { description: n.body ?? undefined, duration: 4500 });
           }

@@ -190,3 +190,6 @@ project_id = "ahlikyhgcqvrdvbtkghh"
 
   [functions.monthly-credit-refill]
     verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = true

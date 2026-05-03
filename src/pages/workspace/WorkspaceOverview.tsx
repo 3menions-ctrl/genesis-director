@@ -79,7 +79,7 @@ export default function WorkspaceOverview() {
         <Surface className="relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
                style={{
-                 backgroundImage: 'repeating-linear-gradient(90deg, hsl(28,90%,60%) 0 1px, transparent 1px 80px)',
+                 backgroundImage: 'repeating-linear-gradient(90deg, hsl(215,100%,60%) 0 1px, transparent 1px 80px)',
                }}
           />
           <div className="relative flex items-start justify-between gap-6 flex-wrap">
@@ -88,11 +88,11 @@ export default function WorkspaceOverview() {
                 <Pill tone="amber"><Building2 className="w-3 h-3" />{headline.label}</Pill>
                 <Pill tone="good"><Activity className="w-3 h-3" />OPERATIONAL</Pill>
               </div>
-              <h2 className="font-display text-[26px] sm:text-[30px] font-light tracking-tight text-[hsl(35,12%,98%)]">
-                Operations briefing<span className="text-[hsl(28,90%,60%)]">.</span>
+              <h2 className="font-display text-[26px] sm:text-[30px] font-light tracking-tight text-[hsl(220,14%,98%)]">
+                Operations briefing<span className="text-[hsl(215,100%,60%)]">.</span>
               </h2>
-              <p className="text-[13px] text-[hsl(35,8%,55%)] font-light">
-                Snapshot of <span className="text-[hsl(35,12%,82%)]">{currentOrg?.name ?? 'this workspace'}</span> — roster, output, brand integrity and burn over the last 30 days.
+              <p className="text-[13px] text-[hsl(220,8%,55%)] font-light">
+                Snapshot of <span className="text-[hsl(220,14%,82%)]">{currentOrg?.name ?? 'this workspace'}</span> — roster, output, brand integrity and burn over the last 30 days.
               </p>
             </div>
             {hasPermission('admin') && (
@@ -121,22 +121,22 @@ export default function WorkspaceOverview() {
             action={
               <button
                 onClick={() => navigate('/workspace/brand')}
-                className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] transition"
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(215,100%,62%)] hover:text-[hsl(215,100%,72%)] transition"
               >
                 EDIT BRAND →
               </button>
             }
           >
             {snap.brandColors.length === 0 ? (
-              <p className="text-[12px] text-[hsl(35,8%,55%)] font-light">
+              <p className="text-[12px] text-[hsl(220,8%,55%)] font-light">
                 No brand palette defined. Outputs will use neutral defaults.
               </p>
             ) : (
               <div className="flex items-center gap-3 flex-wrap">
                 {snap.brandColors.slice(0, 8).map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)]">
-                    <span className="w-3 h-3 border border-[hsl(35,12%,22%)]" style={{ background: c }} />
-                    <span className="font-mono text-[10px] text-[hsl(35,12%,72%)] uppercase">{c}</span>
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)]">
+                    <span className="w-3 h-3 border border-[hsl(220,14%,22%)]" style={{ background: c }} />
+                    <span className="font-mono text-[10px] text-[hsl(220,14%,72%)] uppercase">{c}</span>
                   </div>
                 ))}
               </div>
@@ -173,8 +173,8 @@ const CmdAction = forwardRef<HTMLButtonElement, CmdActionProps>(
       className={cn(
         'w-full flex items-center justify-between px-3 py-2.5 transition-colors border',
         primary
-          ? 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] hover:bg-[hsl(28,90%,62%)] border-[hsl(28,90%,55%)]'
-          : 'bg-[hsl(35,12%,7%)] border-[hsl(35,12%,16%)] text-[hsl(35,12%,82%)] hover:bg-[hsl(35,12%,10%)] hover:border-[hsl(35,12%,22%)]'
+          ? 'bg-[hsl(215,100%,55%)] text-[hsl(220,14%,4%)] hover:bg-[hsl(215,100%,62%)] border-[hsl(215,100%,55%)]'
+          : 'bg-[hsl(220,14%,7%)] border-[hsl(220,14%,16%)] text-[hsl(220,14%,82%)] hover:bg-[hsl(220,14%,10%)] hover:border-[hsl(220,14%,22%)]'
       )}
     >
       <span className="inline-flex items-center gap-2.5">

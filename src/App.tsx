@@ -323,42 +323,42 @@ const App = () => {
                 <Route path="/workspace" element={
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceOverview /></AppShell>
+                      <WorkspaceOverview />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/team" element={
                   <RouteContainer fallbackMessage="Loading team...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceTeam /></AppShell>
+                      <WorkspaceTeam />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/brand" element={
                   <RouteContainer fallbackMessage="Loading brand kit...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceBrand /></AppShell>
+                      <WorkspaceBrand />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/assets" element={
                   <RouteContainer fallbackMessage="Loading assets...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceAssets /></AppShell>
+                      <WorkspaceAssets />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/billing" element={
                   <RouteContainer fallbackMessage="Loading billing...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceBilling /></AppShell>
+                      <WorkspaceBilling />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/analytics" element={
                   <RouteContainer fallbackMessage="Loading analytics...">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <AppShell><WorkspaceAnalytics /></AppShell>
+                      <WorkspaceAnalytics />
                     </RequireAccountType>
                   </RouteContainer>
                 } />
@@ -382,7 +382,7 @@ const App = () => {
                   <Route key={slug} path={`/workspace/${slug}`} element={
                     <RouteContainer fallbackMessage="Loading workspace…">
                       <RequireAccountType allow={["business","enterprise","admin"]}>
-                        <AppShell><Comp /></AppShell>
+                        <Comp />
                       </RequireAccountType>
                     </RouteContainer>
                   } />

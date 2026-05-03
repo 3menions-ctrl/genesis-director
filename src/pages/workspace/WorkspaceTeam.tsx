@@ -114,10 +114,10 @@ export default function WorkspaceTeam() {
               </Field>
               <Field label="Role">
                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as OrgRole)}>
-                  <SelectTrigger className="bg-[hsl(35,12%,4%)] border-[hsl(35,12%,16%)] text-[hsl(35,12%,92%)] font-mono text-[12px] rounded-none h-[38px]">
+                  <SelectTrigger className="bg-[hsl(220,14%,4%)] border-[hsl(220,14%,16%)] text-[hsl(220,14%,92%)] font-mono text-[12px] rounded-none h-[38px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[hsl(35,12%,5%)] border-[hsl(35,12%,16%)] rounded-none">
+                  <SelectContent className="bg-[hsl(220,14%,5%)] border-[hsl(220,14%,16%)] rounded-none">
                     {(['admin', 'producer', 'reviewer', 'viewer'] as OrgRole[]).map(r => (
                       <SelectItem key={r} value={r} className="font-mono text-[11px] uppercase tracking-[0.18em]">
                         {ROLE_META[r].label}
@@ -144,39 +144,39 @@ export default function WorkspaceTeam() {
           action={<Pill tone="neutral">{members.length} ACTIVE</Pill>}
         >
           {loading ? (
-            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-12 bg-[hsl(35,12%,7%)] animate-pulse" />)}</div>
+            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-12 bg-[hsl(220,14%,7%)] animate-pulse" />)}</div>
           ) : members.length === 0 ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] py-6 text-center">No members on roster.</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">No members on roster.</p>
           ) : (
-            <ul className="divide-y divide-[hsl(35,12%,12%)]">
+            <ul className="divide-y divide-[hsl(220,14%,12%)]">
               {members.map((m, idx) => {
                 const RoleIcon = ROLE_META[m.role].icon;
                 const isSelf = m.user_id === user?.id;
                 const canEdit = canManage && !isSelf;
                 return (
-                  <li key={m.id} className="flex items-center gap-4 px-2 py-3 hover:bg-[hsl(35,12%,7%)] transition-colors">
-                    <span className="font-mono text-[10px] text-[hsl(35,8%,40%)] tabular-nums w-6">{String(idx + 1).padStart(2, '0')}</span>
-                    <div className="w-8 h-8 bg-[hsl(35,12%,8%)] border border-[hsl(35,12%,16%)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <li key={m.id} className="flex items-center gap-4 px-2 py-3 hover:bg-[hsl(220,14%,7%)] transition-colors">
+                    <span className="font-mono text-[10px] text-[hsl(220,8%,40%)] tabular-nums w-6">{String(idx + 1).padStart(2, '0')}</span>
+                    <div className="w-8 h-8 bg-[hsl(220,14%,8%)] border border-[hsl(220,14%,16%)] flex items-center justify-center overflow-hidden flex-shrink-0">
                       {m.profile?.avatar_url
                         ? <img src={m.profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                        : <span className="font-mono text-[11px] text-[hsl(28,90%,62%)]">{(m.profile?.display_name?.[0] ?? m.profile?.email?.[0] ?? '?').toUpperCase()}</span>}
+                        : <span className="font-mono text-[11px] text-[hsl(215,100%,62%)]">{(m.profile?.display_name?.[0] ?? m.profile?.email?.[0] ?? '?').toUpperCase()}</span>}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] text-[hsl(35,12%,92%)] truncate">
+                        <span className="text-[13px] text-[hsl(220,14%,92%)] truncate">
                           {m.profile?.display_name || m.profile?.full_name || 'Unknown'}
                         </span>
                         {isSelf && <Pill tone="amber">YOU</Pill>}
                       </div>
-                      <div className="font-mono text-[10px] text-[hsl(35,8%,45%)] truncate uppercase tracking-[0.12em]">{m.profile?.email}</div>
+                      <div className="font-mono text-[10px] text-[hsl(220,8%,45%)] truncate uppercase tracking-[0.12em]">{m.profile?.email}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {canEdit ? (
                         <Select value={m.role} onValueChange={(v) => updateRole(m.id, v as OrgRole)}>
-                          <SelectTrigger className="w-[140px] h-8 bg-[hsl(35,12%,4%)] border-[hsl(35,12%,16%)] text-[hsl(35,12%,82%)] font-mono text-[11px] uppercase tracking-[0.18em] rounded-none">
+                          <SelectTrigger className="w-[140px] h-8 bg-[hsl(220,14%,4%)] border-[hsl(220,14%,16%)] text-[hsl(220,14%,82%)] font-mono text-[11px] uppercase tracking-[0.18em] rounded-none">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-[hsl(35,12%,5%)] border-[hsl(35,12%,16%)] rounded-none">
+                          <SelectContent className="bg-[hsl(220,14%,5%)] border-[hsl(220,14%,16%)] rounded-none">
                             {(Object.keys(ROLE_META) as OrgRole[]).map(r => (
                               <SelectItem key={r} value={r} className="font-mono text-[11px] uppercase tracking-[0.18em]">{ROLE_META[r].label}</SelectItem>
                             ))}
@@ -187,7 +187,7 @@ export default function WorkspaceTeam() {
                           <RoleIcon className="w-3 h-3" />{ROLE_META[m.role].label}
                         </Pill>
                       )}
-                      <span className="font-mono text-[10px] text-[hsl(35,8%,45%)] uppercase tracking-[0.12em] hidden md:inline w-20 text-right">
+                      <span className="font-mono text-[10px] text-[hsl(220,8%,45%)] uppercase tracking-[0.12em] hidden md:inline w-20 text-right">
                         {new Date(m.joined_at).toLocaleDateString()}
                       </span>
                       {canEdit && (
@@ -212,21 +212,21 @@ export default function WorkspaceTeam() {
           action={<Pill tone={invites.length > 0 ? 'warn' : 'neutral'}>{invites.length} PENDING</Pill>}
         >
           {invites.length === 0 ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] py-6 text-center">No pending invites.</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">No pending invites.</p>
           ) : (
-            <ul className="divide-y divide-[hsl(35,12%,12%)]">
+            <ul className="divide-y divide-[hsl(220,14%,12%)]">
               {invites.map(inv => (
                 <li key={inv.id} className="flex items-center gap-4 px-2 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-[hsl(35,12%,92%)] truncate">{inv.email}</div>
-                    <div className="font-mono text-[10px] text-[hsl(35,8%,45%)] uppercase tracking-[0.16em]">
+                    <div className="text-[13px] text-[hsl(220,14%,92%)] truncate">{inv.email}</div>
+                    <div className="font-mono text-[10px] text-[hsl(220,8%,45%)] uppercase tracking-[0.16em]">
                       EXPIRES · {new Date(inv.expires_at).toLocaleDateString()}
                     </div>
                   </div>
                   <Pill tone="neutral">{ROLE_META[inv.role].label}</Pill>
                   <button
                     onClick={() => copyInviteLink(inv.token, inv.id)}
-                    className="p-1.5 hover:bg-[hsl(35,12%,10%)] text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,92%)]"
+                    className="p-1.5 hover:bg-[hsl(220,14%,10%)] text-[hsl(220,8%,55%)] hover:text-[hsl(220,14%,92%)]"
                     title="Copy invite link"
                   >
                     {copiedId === inv.id ? <Check className="w-3.5 h-3.5 text-[hsl(140,70%,65%)]" /> : <Copy className="w-3.5 h-3.5" />}
@@ -251,14 +251,14 @@ export default function WorkspaceTeam() {
               const Icon = meta.icon;
               return (
                 <div key={r} className={cn(
-                  'p-4 border bg-[hsl(35,12%,5%)]',
-                  r === 'owner' ? 'border-[hsl(28,90%,40%)]/40' : 'border-[hsl(35,12%,16%)]',
+                  'p-4 border bg-[hsl(220,14%,5%)]',
+                  r === 'owner' ? 'border-[hsl(215,100%,40%)]/40' : 'border-[hsl(220,14%,16%)]',
                 )}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.20em] text-[hsl(35,12%,92%)]">{meta.label}</span>
+                    <Icon className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
+                    <span className="font-mono text-[11px] uppercase tracking-[0.20em] text-[hsl(220,14%,92%)]">{meta.label}</span>
                   </div>
-                  <p className="text-[12px] text-[hsl(35,8%,55%)] font-light leading-snug">{meta.description}</p>
+                  <p className="text-[12px] text-[hsl(220,8%,55%)] font-light leading-snug">{meta.description}</p>
                 </div>
               );
             })}

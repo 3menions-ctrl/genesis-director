@@ -194,7 +194,7 @@ export default function WorkspaceBilling() {
             label="Subscription tier"
             sublabel="Provision seats and monthly credit allotment. Upgrade or downgrade any time."
             action={
-              <div className="inline-flex border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)]">
+              <div className="inline-flex border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)]">
                 {(['monthly', 'yearly'] as const).map(c => (
                   <button
                     key={c}
@@ -202,11 +202,11 @@ export default function WorkspaceBilling() {
                     className={cn(
                       'px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.20em] transition-colors',
                       cycle === c
-                        ? 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)]'
-                        : 'text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,92%)]'
+                        ? 'bg-[hsl(215,100%,55%)] text-[hsl(220,14%,4%)]'
+                        : 'text-[hsl(220,8%,55%)] hover:text-[hsl(220,14%,92%)]'
                     )}
                   >
-                    {c}{c === 'yearly' && <span className="ml-1.5 text-[hsl(28,90%,72%)]">−16%</span>}
+                    {c}{c === 'yearly' && <span className="ml-1.5 text-[hsl(215,100%,72%)]">−16%</span>}
                   </button>
                 ))}
               </div>
@@ -218,30 +218,30 @@ export default function WorkspaceBilling() {
                 const isCurrent = currentOrg?.plan === p.id;
                 return (
                   <div key={p.id} className={cn(
-                    'relative border p-5 flex flex-col bg-[hsl(35,12%,5%)]',
-                    p.popular ? 'border-[hsl(28,90%,55%)]' : 'border-[hsl(35,12%,16%)]',
+                    'relative border p-5 flex flex-col bg-[hsl(220,14%,5%)]',
+                    p.popular ? 'border-[hsl(215,100%,55%)]' : 'border-[hsl(220,14%,16%)]',
                   )}>
                     {p.popular && (
-                      <span className="absolute top-0 right-0 px-2 py-0.5 bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] font-mono text-[9px] uppercase tracking-[0.22em]">
+                      <span className="absolute top-0 right-0 px-2 py-0.5 bg-[hsl(215,100%,55%)] text-[hsl(220,14%,4%)] font-mono text-[9px] uppercase tracking-[0.22em]">
                         RECOMMENDED
                       </span>
                     )}
-                    <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(35,12%,98%)]">
+                    <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,98%)]">
                       {p.name}
                     </div>
-                    <div className="text-[12px] text-[hsl(35,8%,55%)] mt-1 mb-5 font-light">{p.blurb}</div>
-                    <div className="flex items-baseline gap-1.5 mb-5 pb-4 border-b border-[hsl(35,12%,12%)]">
-                      <span className="font-display text-[34px] font-light text-[hsl(35,12%,98%)] tabular-nums">
+                    <div className="text-[12px] text-[hsl(220,8%,55%)] mt-1 mb-5 font-light">{p.blurb}</div>
+                    <div className="flex items-baseline gap-1.5 mb-5 pb-4 border-b border-[hsl(220,14%,12%)]">
+                      <span className="font-display text-[34px] font-light text-[hsl(220,14%,98%)] tabular-nums">
                         ${tier.price}
                       </span>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
                         /{cycle === 'monthly' ? 'MO' : 'YR'}
                       </span>
                     </div>
                     <ul className="space-y-2 mb-5 flex-1">
                       {p.features.map(f => (
-                        <li key={f} className="text-[12px] text-[hsl(35,12%,82%)] inline-flex items-start gap-2">
-                          <Check className="w-3 h-3 text-[hsl(28,90%,62%)] mt-1 flex-shrink-0" strokeWidth={2.5} /> {f}
+                        <li key={f} className="text-[12px] text-[hsl(220,14%,82%)] inline-flex items-start gap-2">
+                          <Check className="w-3 h-3 text-[hsl(215,100%,62%)] mt-1 flex-shrink-0" strokeWidth={2.5} /> {f}
                         </li>
                       ))}
                     </ul>
@@ -257,11 +257,11 @@ export default function WorkspaceBilling() {
                 );
               })}
             </div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)] mt-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)] mt-5">
               Need more seats or custom contracts?{' '}
               <button
                 onClick={() => navigate('/pricing#enterprise')}
-                className="text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] underline-offset-4 hover:underline"
+                className="text-[hsl(215,100%,62%)] hover:text-[hsl(215,100%,72%)] underline-offset-4 hover:underline"
               >
                 CONTACT ENTERPRISE →
               </button>
@@ -295,7 +295,7 @@ export default function WorkspaceBilling() {
             </Field>
           </div>
           {canEdit && (
-            <div className="mt-5 pt-4 border-t border-[hsl(35,12%,12%)]">
+            <div className="mt-5 pt-4 border-t border-[hsl(220,14%,12%)]">
               <CmdButton onClick={save} disabled={saving}>
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 Commit details
@@ -312,7 +312,7 @@ export default function WorkspaceBilling() {
           action={
             <button
               onClick={() => navigate('/settings?tab=billing')}
-              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] inline-flex items-center gap-1.5"
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(215,100%,62%)] hover:text-[hsl(215,100%,72%)] inline-flex items-center gap-1.5"
             >
               FULL HISTORY <ExternalLink className="w-3 h-3" />
             </button>
@@ -320,14 +320,14 @@ export default function WorkspaceBilling() {
         >
           {loading ? (
             <div className="space-y-2">
-              {[0, 1, 2].map(i => <div key={i} className="h-10 bg-[hsl(35,12%,7%)] animate-pulse" />)}
+              {[0, 1, 2].map(i => <div key={i} className="h-10 bg-[hsl(220,14%,7%)] animate-pulse" />)}
             </div>
           ) : recentTxns.length === 0 ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] py-6 text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">
               No activity recorded.
             </p>
           ) : (
-            <ul className="divide-y divide-[hsl(35,12%,12%)]">
+            <ul className="divide-y divide-[hsl(220,14%,12%)]">
               {recentTxns.map(t => (
                 <li key={t.id} className="flex items-center justify-between py-3 px-2">
                   <div className="min-w-0 flex items-center gap-3">
@@ -335,17 +335,17 @@ export default function WorkspaceBilling() {
                       {t.transaction_type.toUpperCase()}
                     </Pill>
                     <div className="min-w-0">
-                      <div className="text-[13px] text-[hsl(35,12%,82%)] truncate">
+                      <div className="text-[13px] text-[hsl(220,14%,82%)] truncate">
                         {t.description ?? t.transaction_type}
                       </div>
-                      <div className="font-mono text-[10px] text-[hsl(35,8%,45%)] uppercase tracking-[0.16em]">
+                      <div className="font-mono text-[10px] text-[hsl(220,8%,45%)] uppercase tracking-[0.16em]">
                         {new Date(t.created_at).toLocaleString()}
                       </div>
                     </div>
                   </div>
                   <div className={cn(
                     'font-mono text-[13px] tabular-nums',
-                    t.amount > 0 ? 'text-[hsl(140,70%,65%)]' : 'text-[hsl(35,12%,72%)]',
+                    t.amount > 0 ? 'text-[hsl(140,70%,65%)]' : 'text-[hsl(220,14%,72%)]',
                   )}>
                     {t.amount > 0 ? `+${t.amount}` : t.amount}
                   </div>
@@ -358,11 +358,11 @@ export default function WorkspaceBilling() {
 
       {/* ── Embedded checkout ─────────────────────────────── */}
       <Dialog open={!!checkoutPriceId} onOpenChange={(o) => { if (!o) { setCheckoutPriceId(null); setClientSecret(null); } }}>
-        <DialogContent className="max-w-2xl bg-[hsl(35,10%,4%)] border border-[hsl(35,12%,16%)] p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl bg-[hsl(220,14%,4%)] border border-[hsl(220,14%,16%)] p-0 overflow-hidden">
           <DialogTitle className="sr-only">Provision plan</DialogTitle>
           {loadingCheckout || !clientSecret ? (
             <div className="h-[480px] flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-[hsl(28,90%,62%)] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[hsl(215,100%,62%)] animate-spin" />
             </div>
           ) : (
             <div className="bg-white">

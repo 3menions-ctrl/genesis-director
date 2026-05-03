@@ -4,8 +4,8 @@
  * dense, telemetry-driven aesthetic distinct from the personal Pro-Dark shell.
  *
  * Design tokens (inline; do NOT promote to global CSS):
- *   ground hsl(35,10%,4%) · surface hsl(35,12%,5-7%) · border hsl(35,12%,12-16%)
- *   text 92/72/55/40% · accent hsl(28,90%,60%) amber/copper · nominal hsl(140,70%,50%)
+ *   ground hsl(220,14%,4%) · surface hsl(35,12%,5-7%) · border hsl(35,12%,12-16%)
+ *   text 92/72/55/40% · accent hsl(215,100%,60%) amber/copper · nominal hsl(140,70%,50%)
  *   square edges (rounded-sm max), JetBrains Mono uppercase labels.
  */
 import { ReactNode } from 'react';
@@ -18,7 +18,7 @@ export function Surface({
 }: { children: ReactNode; className?: string; padded?: boolean }) {
   return (
     <div className={cn(
-      'border border-[hsl(35,12%,12%)] bg-[hsl(35,12%,5%)]',
+      'border border-[hsl(220,14%,12%)] bg-[hsl(220,14%,5%)]',
       padded && 'p-6',
       className,
     )}>
@@ -40,19 +40,19 @@ export function Section({
 }) {
   return (
     <Surface className={className}>
-      <header className="flex items-start justify-between gap-4 mb-5 pb-4 border-b border-[hsl(35,12%,12%)]">
+      <header className="flex items-start justify-between gap-4 mb-5 pb-4 border-b border-[hsl(220,14%,12%)]">
         <div className="flex items-start gap-3 min-w-0">
           {Icon && (
-            <div className="w-7 h-7 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] flex items-center justify-center mt-0.5">
-              <Icon className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
+            <div className="w-7 h-7 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] flex items-center justify-center mt-0.5">
+              <Icon className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(35,12%,92%)]">
+            <h3 className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,92%)]">
               {label}
             </h3>
             {sublabel && (
-              <p className="text-[12px] text-[hsl(35,8%,55%)] mt-1 font-light">
+              <p className="text-[12px] text-[hsl(220,8%,55%)] mt-1 font-light">
                 {sublabel}
               </p>
             )}
@@ -80,11 +80,11 @@ export function MetricCard({
   loading?: boolean;
 }) {
   return (
-    <div className="border border-[hsl(35,12%,12%)] bg-[hsl(35,12%,5%)] p-5 relative group hover:border-[hsl(35,12%,18%)] transition-colors">
+    <div className="border border-[hsl(220,14%,12%)] bg-[hsl(220,14%,5%)] p-5 relative group hover:border-[hsl(220,14%,18%)] transition-colors">
       {/* corner registration mark */}
-      <span className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[hsl(28,90%,60%)] opacity-60" />
+      <span className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[hsl(215,100%,60%)] opacity-60" />
       <div className="flex items-center justify-between">
-        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)]">
+        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[hsl(220,8%,55%)]">
           {label}
         </div>
         {Icon && (
@@ -92,7 +92,7 @@ export function MetricCard({
             className={cn(
               'w-3.5 h-3.5',
               warn ? 'text-[hsl(35,90%,60%)]' :
-              accent ? 'text-[hsl(28,90%,62%)]' : 'text-[hsl(35,8%,45%)]',
+              accent ? 'text-[hsl(215,100%,62%)]' : 'text-[hsl(220,8%,45%)]',
             )}
             strokeWidth={1.5}
           />
@@ -101,19 +101,19 @@ export function MetricCard({
       <div className={cn(
         'mt-3 font-display font-light text-[28px] leading-none tabular-nums',
         warn ? 'text-[hsl(35,90%,60%)]' :
-        accent ? 'text-[hsl(28,90%,62%)]' : 'text-[hsl(35,12%,98%)]',
+        accent ? 'text-[hsl(215,100%,62%)]' : 'text-[hsl(220,14%,98%)]',
       )}>
-        {loading ? <span className="text-[hsl(35,8%,40%)]">—</span> : (typeof value === 'number' ? value.toLocaleString() : value)}
+        {loading ? <span className="text-[hsl(220,8%,40%)]">—</span> : (typeof value === 'number' ? value.toLocaleString() : value)}
       </div>
       {sub && (
-        <div className="text-[11px] text-[hsl(35,8%,55%)] mt-2 font-mono">
+        <div className="text-[11px] text-[hsl(220,8%,55%)] mt-2 font-mono">
           {sub}
         </div>
       )}
       {cta && (
         <button
           onClick={cta.onClick}
-          className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] transition"
+          className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(215,100%,62%)] hover:text-[hsl(215,100%,72%)] transition"
         >
           {cta.label} <span className="text-[8px]">→</span>
         </button>
@@ -128,12 +128,12 @@ export function Field({
 }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)]">
+      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)]">
         {label}
       </span>
       <div className="mt-2">{children}</div>
       {hint && (
-        <span className="block text-[11px] text-[hsl(35,8%,45%)] mt-1.5 font-light">
+        <span className="block text-[11px] text-[hsl(220,8%,45%)] mt-1.5 font-light">
           {hint}
         </span>
       )}
@@ -153,8 +153,8 @@ export function CmdButton({
   className?: string;
 }) {
   const styles = {
-    primary: 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] hover:bg-[hsl(28,90%,62%)] disabled:bg-[hsl(35,12%,10%)] disabled:text-[hsl(35,8%,45%)]',
-    ghost:   'border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] text-[hsl(35,12%,82%)] hover:bg-[hsl(35,12%,10%)] hover:border-[hsl(35,12%,22%)]',
+    primary: 'bg-[hsl(215,100%,55%)] text-[hsl(220,14%,4%)] hover:bg-[hsl(215,100%,62%)] disabled:bg-[hsl(220,14%,10%)] disabled:text-[hsl(220,8%,45%)]',
+    ghost:   'border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] text-[hsl(220,14%,82%)] hover:bg-[hsl(220,14%,10%)] hover:border-[hsl(220,14%,22%)]',
     danger:  'border border-[hsl(0,70%,40%)]/40 bg-[hsl(0,70%,40%)]/10 text-[hsl(0,80%,70%)] hover:bg-[hsl(0,70%,40%)]/20',
   }[variant];
   return (
@@ -181,9 +181,9 @@ export function DataInput({
     <input
       {...props}
       className={cn(
-        'w-full px-3 py-2 bg-[hsl(35,12%,4%)] border border-[hsl(35,12%,16%)] text-[13px] text-[hsl(35,12%,92%)] font-mono',
-        'placeholder:text-[hsl(35,8%,40%)]',
-        'focus:outline-none focus:border-[hsl(28,90%,55%)] focus:ring-1 focus:ring-[hsl(28,90%,55%)]/30',
+        'w-full px-3 py-2 bg-[hsl(220,14%,4%)] border border-[hsl(220,14%,16%)] text-[13px] text-[hsl(220,14%,92%)] font-mono',
+        'placeholder:text-[hsl(220,8%,40%)]',
+        'focus:outline-none focus:border-[hsl(215,100%,55%)] focus:ring-1 focus:ring-[hsl(215,100%,55%)]/30',
         'disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
         className,
       )}
@@ -199,9 +199,9 @@ export function DataTextarea({
     <textarea
       {...props}
       className={cn(
-        'w-full px-3 py-2 bg-[hsl(35,12%,4%)] border border-[hsl(35,12%,16%)] text-[13px] text-[hsl(35,12%,92%)] font-mono',
-        'placeholder:text-[hsl(35,8%,40%)]',
-        'focus:outline-none focus:border-[hsl(28,90%,55%)] focus:ring-1 focus:ring-[hsl(28,90%,55%)]/30',
+        'w-full px-3 py-2 bg-[hsl(220,14%,4%)] border border-[hsl(220,14%,16%)] text-[13px] text-[hsl(220,14%,92%)] font-mono',
+        'placeholder:text-[hsl(220,8%,40%)]',
+        'focus:outline-none focus:border-[hsl(215,100%,55%)] focus:ring-1 focus:ring-[hsl(215,100%,55%)]/30',
         'disabled:opacity-50 disabled:cursor-not-allowed transition-colors resize-y',
         className,
       )}
@@ -218,8 +218,8 @@ export function Pill({
   className?: string;
 }) {
   const tones = {
-    neutral: 'border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] text-[hsl(35,12%,72%)]',
-    amber:   'border-[hsl(28,90%,40%)]/40 bg-[hsl(28,90%,40%)]/10 text-[hsl(28,90%,72%)]',
+    neutral: 'border-[hsl(220,14%,16%)] bg-[hsl(220,14%,7%)] text-[hsl(220,14%,72%)]',
+    amber:   'border-[hsl(215,100%,40%)]/40 bg-[hsl(215,100%,40%)]/10 text-[hsl(215,100%,72%)]',
     good:    'border-[hsl(140,70%,40%)]/40 bg-[hsl(140,70%,40%)]/10 text-[hsl(140,70%,70%)]',
     warn:    'border-[hsl(45,90%,40%)]/40 bg-[hsl(45,90%,40%)]/10 text-[hsl(45,90%,72%)]',
     bad:     'border-[hsl(0,70%,40%)]/40 bg-[hsl(0,70%,40%)]/10 text-[hsl(0,80%,70%)]',

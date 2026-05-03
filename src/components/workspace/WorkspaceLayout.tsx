@@ -1,11 +1,15 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Users, Palette, CreditCard, BarChart3, Building2, Lock,
-  LayoutDashboard, Layers, ArrowLeft, Command,
+  LayoutDashboard, Layers, ArrowLeft, Command, Check,
+  ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
 } from 'lucide-react';
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface NavItem {
   to: string;
@@ -15,14 +19,33 @@ interface NavItem {
   description: string;
 }
 
-const NAV: NavItem[] = [
-  { to: '/workspace',           label: 'Overview',  Icon: LayoutDashboard, minRole: 'viewer',   description: 'Operational snapshot' },
-  { to: '/workspace/team',      label: 'Team',      Icon: Users,           minRole: 'viewer',   description: 'Roster, invites, access' },
-  { to: '/workspace/brand',     label: 'Brand',     Icon: Palette,         minRole: 'producer', description: 'Identity & voice' },
-  { to: '/workspace/assets',    label: 'Assets',    Icon: Layers,          minRole: 'viewer',   description: 'Shared library' },
-  { to: '/workspace/billing',   label: 'Billing',   Icon: CreditCard,      minRole: 'admin',    description: 'Plan, seats, invoices' },
-  { to: '/workspace/analytics', label: 'Telemetry', Icon: BarChart3,       minRole: 'admin',    description: 'Usage by member' },
+interface NavGroup { label: string; items: NavItem[] }
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Operate',
+    items: [
+      { to: '/workspace',        label: 'Overview', Icon: LayoutDashboard, minRole: 'viewer',   description: 'Operational snapshot' },
+      { to: '/workspace/assets', label: 'Assets',   Icon: Layers,          minRole: 'viewer',   description: 'Shared library' },
+    ],
+  },
+  {
+    label: 'Govern',
+    items: [
+      { to: '/workspace/team',  label: 'Team',  Icon: Users,   minRole: 'viewer',   description: 'Roster & access' },
+      { to: '/workspace/brand', label: 'Brand', Icon: Palette, minRole: 'producer', description: 'Identity & voice' },
+    ],
+  },
+  {
+    label: 'Optimize',
+    items: [
+      { to: '/workspace/billing',   label: 'Billing',   Icon: CreditCard, minRole: 'admin', description: 'Plan & invoices' },
+      { to: '/workspace/analytics', label: 'Telemetry', Icon: BarChart3,  minRole: 'admin', description: 'Usage by member' },
+    ],
+  },
 ];
+
+const COLLAPSE_KEY = 'apex.workspaceRailCollapsed';
 
 /**
  * Workspace shell — Operations Command Center.
@@ -33,8 +56,16 @@ const NAV: NavItem[] = [
  *   • editorial "ops console" voice (modules, telemetry, ORG ID)
  */
 export function WorkspaceLayout({ children }: { children: ReactNode }) {
-  const { currentOrg, hasPermission, loading } = useWorkspace();
+  const { currentOrg, hasPermission, loading, organizations, switchOrg } = useWorkspace();
   const { pathname } = useLocation();
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+  });
+  const [orgSwitcherOpen, setOrgSwitcherOpen] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch {}
+  }, [collapsed]);
 
   if (loading) {
     return (
@@ -64,117 +95,246 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  const railWidth = collapsed ? 'w-[72px]' : 'w-[256px]';
+  const orgInitials = currentOrg.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const credits = currentOrg.credits_balance ?? 0;
+
   return (
-    <div className="min-h-screen bg-[hsl(35,10%,4%)] text-[hsl(35,12%,92%)]">
-      {/* ── Top utility bar ─────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 border-b border-[hsl(35,12%,12%)] bg-[hsl(35,10%,4%)]/95 backdrop-blur-xl">
-        <div className="max-w-[1320px] mx-auto px-6 lg:px-10 h-14 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4 min-w-0">
+    <div className="min-h-screen flex bg-[hsl(35,10%,4%)] text-[hsl(35,12%,92%)]">
+      {/* ── Persistent left rail ───────────────────────────────── */}
+      <aside
+        className={cn(
+          'sticky top-0 h-screen shrink-0 border-r border-[hsl(35,12%,12%)] bg-[hsl(35,10%,3%)] flex flex-col z-30 transition-[width] duration-200',
+          railWidth,
+        )}
+      >
+        {/* Org switcher */}
+        <div className="border-b border-[hsl(35,12%,12%)] p-3">
+          <Popover open={orgSwitcherOpen} onOpenChange={setOrgSwitcherOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-2 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] hover:bg-[hsl(35,12%,8%)] transition-colors text-left',
+                  collapsed && 'justify-center px-0',
+                )}
+                title={currentOrg.name}
+              >
+                <div className="w-7 h-7 shrink-0 bg-[hsl(28,90%,60%)] text-[hsl(35,10%,4%)] font-mono text-[10px] font-bold uppercase flex items-center justify-center">
+                  {orgInitials || 'OP'}
+                </div>
+                {!collapsed && (
+                  <>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-[13px] leading-tight text-[hsl(35,12%,96%)] truncate">
+                        {currentOrg.name}
+                      </div>
+                      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] mt-0.5">
+                        {currentOrg.plan.replace('_', ' ')} · {currentOrg.role}
+                      </div>
+                    </div>
+                    <ChevronsUpDown className="w-3.5 h-3.5 text-[hsl(35,8%,50%)] shrink-0" strokeWidth={1.5} />
+                  </>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="right"
+              sideOffset={8}
+              className="w-[280px] p-0 bg-[hsl(35,10%,5%)] border border-[hsl(35,12%,16%)] rounded-none"
+            >
+              <div className="px-3 py-2 border-b border-[hsl(35,12%,12%)] font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(35,8%,50%)]">
+                Workspaces
+              </div>
+              <div className="max-h-[320px] overflow-y-auto">
+                {organizations.map((o) => {
+                  const isCurrent = o.id === currentOrg.id;
+                  return (
+                    <button
+                      key={o.id}
+                      onClick={() => { switchOrg(o.id); setOrgSwitcherOpen(false); }}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[hsl(35,12%,8%)] transition-colors',
+                        isCurrent && 'bg-[hsl(28,40%,8%)]',
+                      )}
+                    >
+                      <div className="w-6 h-6 shrink-0 bg-[hsl(35,12%,12%)] text-[hsl(35,12%,82%)] font-mono text-[9px] font-bold flex items-center justify-center">
+                        {o.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'OP'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12px] text-[hsl(35,12%,92%)] truncate">{o.name}</div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[hsl(35,8%,50%)] mt-0.5">
+                          {o.plan.replace('_', ' ')} · {o.role}
+                        </div>
+                      </div>
+                      {isCurrent && <Check className="w-3.5 h-3.5 text-[hsl(28,90%,62%)] shrink-0" strokeWidth={2} />}
+                    </button>
+                  );
+                })}
+              </div>
+              <NavLink
+                to="/workspace/billing"
+                onClick={() => setOrgSwitcherOpen(false)}
+                className="flex items-center gap-2 px-3 py-2.5 border-t border-[hsl(35,12%,12%)] hover:bg-[hsl(35,12%,8%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]"
+              >
+                <Plus className="w-3 h-3" strokeWidth={1.5} /> Manage workspaces
+              </NavLink>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Nav groups */}
+        <nav className="flex-1 overflow-y-auto py-3">
+          {NAV_GROUPS.map((group, gIdx) => (
+            <div key={group.label} className={cn(gIdx > 0 && 'mt-4')}>
+              {!collapsed && (
+                <div className="px-5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.32em] text-[hsl(35,8%,38%)]">
+                  {group.label}
+                </div>
+              )}
+              {collapsed && gIdx > 0 && (
+                <div className="mx-3 my-2 h-px bg-[hsl(35,12%,12%)]" />
+              )}
+              <div>
+                {group.items.map(({ to, label, Icon, minRole, description }) => {
+                  const allowed = hasPermission(minRole);
+                  const active = to === '/workspace' ? pathname === '/workspace' : pathname.startsWith(to);
+                  return (
+                    <NavLink
+                      key={to}
+                      to={allowed ? to : pathname}
+                      aria-disabled={!allowed}
+                      onClick={(e) => { if (!allowed) e.preventDefault(); }}
+                      title={collapsed ? `${label} — ${description}` : undefined}
+                      className={cn(
+                        'group relative flex items-center gap-3 px-3 mx-2 my-0.5 py-2 transition-colors border-l-2',
+                        collapsed && 'justify-center px-0 mx-3',
+                        active
+                          ? 'border-l-[hsl(28,90%,60%)] bg-[hsl(28,40%,9%)] text-[hsl(35,12%,98%)]'
+                          : 'border-l-transparent text-[hsl(35,12%,75%)] hover:bg-[hsl(35,12%,7%)] hover:text-[hsl(35,12%,95%)]',
+                        !allowed && 'opacity-35 cursor-not-allowed hover:bg-transparent',
+                      )}
+                    >
+                      <div className={cn(
+                        'w-5 h-5 flex items-center justify-center shrink-0',
+                        active ? 'text-[hsl(28,90%,62%)]' : 'text-[hsl(35,8%,55%)] group-hover:text-[hsl(35,12%,90%)]',
+                      )}>
+                        {allowed
+                          ? <Icon className="w-4 h-4" strokeWidth={1.5} />
+                          : <Lock className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                      </div>
+                      {!collapsed && (
+                        <div className="min-w-0 flex-1">
+                          <div className={cn(
+                            'font-mono text-[11px] uppercase tracking-[0.18em]',
+                            active ? 'text-[hsl(35,12%,98%)]' : '',
+                          )}>
+                            {label}
+                          </div>
+                        </div>
+                      )}
+                      {!collapsed && active && (
+                        <span className="w-1 h-1 rounded-full bg-[hsl(28,90%,62%)] shrink-0" />
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer: credits + studio + collapse */}
+        <div className="border-t border-[hsl(35,12%,12%)] p-3 space-y-2">
+          {!collapsed ? (
+            <NavLink
+              to="/workspace/billing"
+              className="flex items-center justify-between gap-2 px-2.5 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] transition-colors"
+              title="Workspace credits"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Coins className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+                  Credits
+                </div>
+              </div>
+              <div className="font-mono text-[12px] text-[hsl(35,12%,96%)] tabular-nums">
+                {credits.toLocaleString()}
+              </div>
+            </NavLink>
+          ) : (
+            <NavLink
+              to="/workspace/billing"
+              title={`Credits: ${credits.toLocaleString()}`}
+              className="flex items-center justify-center py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:border-[hsl(28,60%,30%)] transition-colors"
+            >
+              <Coins className="w-3.5 h-3.5 text-[hsl(28,90%,62%)]" strokeWidth={1.5} />
+            </NavLink>
+          )}
+          <div className="flex items-center gap-1">
             <NavLink
               to="/projects"
-              className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.24em] text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,92%)] transition-colors font-mono"
+              title="Back to Studio"
+              className={cn(
+                'flex items-center gap-2 px-2.5 py-2 border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:bg-[hsl(35,12%,9%)] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,60%)] hover:text-[hsl(35,12%,92%)]',
+                collapsed ? 'justify-center flex-1' : 'flex-1',
+              )}
             >
-              <ArrowLeft className="w-3 h-3" /> Studio
+              <ArrowLeft className="w-3 h-3" strokeWidth={1.5} />
+              {!collapsed && 'Studio'}
             </NavLink>
-            <div className="h-4 w-px bg-[hsl(35,12%,16%)]" />
-            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(28,90%,62%)]">
-              <Command className="w-3 h-3" />
-              Workspace · OPS
-            </div>
+            <button
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="w-9 h-9 flex items-center justify-center border border-[hsl(35,12%,14%)] bg-[hsl(35,12%,6%)] hover:bg-[hsl(35,12%,9%)] text-[hsl(35,8%,60%)] hover:text-[hsl(35,12%,92%)] transition-colors"
+            >
+              {collapsed
+                ? <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
+                : <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />}
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,12%,72%)]">
-              <span className="w-1.5 h-1.5 bg-[hsl(28,90%,60%)]" />
-              {currentOrg.plan.replace('_', ' ')}
+          {!collapsed && (
+            <div className="font-mono text-[9px] uppercase tracking-[0.20em] text-[hsl(35,8%,32%)] pt-1 px-1">
+              v2.4 · BUSINESS TIER
             </div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)] font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,12%,72%)]">
-              ROLE · {currentOrg.role}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      </aside>
 
-      {/* ── Masthead ───────────────────────────────────────────── */}
-      <div className="border-b border-[hsl(35,12%,12%)]">
-        <div className="max-w-[1320px] mx-auto px-6 lg:px-10 py-10 grid grid-cols-1 lg:grid-cols-[1fr_auto] items-end gap-6">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(35,8%,45%)] mb-3">
-              ORG · {currentOrg.id.slice(0, 8).toUpperCase()}
-            </div>
-            <h1 className="font-display text-[36px] sm:text-[48px] leading-[1.02] font-light tracking-tight">
-              {currentOrg.name}
-              <span className="text-[hsl(28,90%,60%)]">.</span>
-            </h1>
-            <p className="text-[13px] text-[hsl(35,8%,55%)] mt-3 font-light max-w-xl">
-              Operations console for {currentOrg.name}. Provision seats, govern brand, audit spend.
-            </p>
+      {/* ── Main column ────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top utility strip */}
+        <div className="sticky top-0 z-20 border-b border-[hsl(35,12%,12%)] bg-[hsl(35,10%,4%)]/95 backdrop-blur-xl h-12 flex items-center justify-between px-6 lg:px-10">
+          <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(28,90%,62%)]">
+            <Command className="w-3 h-3" strokeWidth={1.5} />
+            Workspace · OPS
           </div>
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[hsl(140,70%,50%)] animate-pulse" />
             All systems nominal
           </div>
         </div>
-      </div>
 
-      {/* ── Body: command rail + content ───────────────────────── */}
-      <div className="max-w-[1320px] mx-auto px-6 lg:px-10 py-8 grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-10">
-        <nav className="lg:sticky lg:top-20 self-start">
-          <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(35,8%,40%)] mb-3 px-3">
-            Modules
+        {/* Masthead */}
+        <div className="border-b border-[hsl(35,12%,12%)]">
+          <div className="px-6 lg:px-10 py-8">
+            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(35,8%,45%)] mb-2">
+              ORG · {currentOrg.id.slice(0, 8).toUpperCase()}
+            </div>
+            <h1 className="font-display text-[32px] sm:text-[42px] leading-[1.04] font-light tracking-tight">
+              {currentOrg.name}
+              <span className="text-[hsl(28,90%,60%)]">.</span>
+            </h1>
+            <p className="text-[13px] text-[hsl(35,8%,55%)] mt-2 font-light max-w-xl">
+              Operations console for {currentOrg.name}. Provision seats, govern brand, audit spend.
+            </p>
           </div>
-          <div className="border border-[hsl(35,12%,12%)] bg-[hsl(35,12%,5%)]">
-            {NAV.map(({ to, label, Icon, minRole, description }, idx) => {
-              const allowed = hasPermission(minRole);
-              const active = to === '/workspace' ? pathname === '/workspace' : pathname.startsWith(to);
-              return (
-                <NavLink
-                  key={to}
-                  to={allowed ? to : pathname}
-                  aria-disabled={!allowed}
-                  onClick={(e) => { if (!allowed) e.preventDefault(); }}
-                  className={cn(
-                    'group relative flex items-start gap-3 px-4 py-3.5 transition-colors border-l-2',
-                    idx > 0 && 'border-t border-t-[hsl(35,12%,12%)]',
-                    active
-                      ? 'border-l-[hsl(28,90%,60%)] bg-[hsl(28,40%,8%)]'
-                      : 'border-l-transparent hover:bg-[hsl(35,12%,7%)]',
-                    !allowed && 'opacity-40 cursor-not-allowed hover:bg-transparent',
-                  )}
-                >
-                  <div className={cn(
-                    'w-6 h-6 flex items-center justify-center mt-0.5',
-                    active ? 'text-[hsl(28,90%,62%)]' : 'text-[hsl(35,8%,55%)]',
-                  )}>
-                    {allowed
-                      ? <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      : <Lock className="w-3 h-3" strokeWidth={1.5} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className={cn(
-                      'font-mono text-[11px] uppercase tracking-[0.20em]',
-                      active ? 'text-[hsl(35,12%,98%)]' : 'text-[hsl(35,12%,82%)]',
-                    )}>
-                      {label}
-                    </div>
-                    <div className="text-[11px] text-[hsl(35,8%,45%)] leading-snug mt-0.5 truncate">
-                      {description}
-                    </div>
-                  </div>
-                  {active && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[9px] text-[hsl(28,90%,62%)]">
-                      ●
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-          <div className="mt-4 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,40%)]">
-            v2.4 · BUSINESS TIER
-          </div>
-        </nav>
+        </div>
 
-        <div className="min-w-0">{children}</div>
+        {/* Page content */}
+        <div className="flex-1 px-6 lg:px-10 py-8 min-w-0">
+          {children}
+        </div>
       </div>
     </div>
   );

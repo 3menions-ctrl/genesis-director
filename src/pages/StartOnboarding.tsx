@@ -302,6 +302,16 @@ export default function StartOnboarding() {
     if (currentStep === 'role' && !form.job_role) {
       setErrors({ job_role: 'Pick a role' }); return false;
     }
+    if (currentStep === 'biz_usecase' && !form.primary_use_case) {
+      setErrors({ primary_use_case: 'Pick what your team will produce' }); return false;
+    }
+    if (currentStep === 'volume' && !form.monthly_volume) {
+      setErrors({ monthly_volume: 'Pick a monthly volume' }); return false;
+    }
+    if (currentStep === 'brand' && !form.brand_voice) {
+      setErrors({ brand_voice: 'Pick a brand voice' }); return false;
+    }
+    // 'integrations' and 'invite' are optional — no validation
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }

@@ -124,7 +124,6 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   const railWidth = collapsed ? 'w-[72px]' : 'w-[256px]';
   const orgInitials = currentOrg.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-  const credits = currentOrg.credits_balance ?? 0;
 
   return (
     <div className="min-h-screen flex bg-[hsl(220,14%,4%)] text-[hsl(220,14%,92%)]">

@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
-  Film, Megaphone, ShoppingBag, Users2, Globe, Wand2, Palette, Crown, Gem,
-  Loader2, X, Repeat, Phone, Cpu, ShieldCheck, Star,
+  Film, Megaphone, Wand2, Crown, Gem,
+  Loader2, X, Cpu, ShieldCheck,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';

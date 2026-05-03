@@ -8,6 +8,7 @@ import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { RequireAccountType } from "@/components/auth/RequireAccountType";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 // WorldChatButton removed - now a dedicated page
@@ -293,44 +294,44 @@ const App = () => {
                 {/* Business workspace admin hub — separate from app /admin */}
                 <Route path="/workspace" element={
                   <RouteContainer fallbackMessage="Loading workspace...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceOverview /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/team" element={
                   <RouteContainer fallbackMessage="Loading team...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceTeam /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/brand" element={
                   <RouteContainer fallbackMessage="Loading brand kit...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceBrand /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/assets" element={
                   <RouteContainer fallbackMessage="Loading assets...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceAssets /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/billing" element={
                   <RouteContainer fallbackMessage="Loading billing...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceBilling /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/analytics" element={
                   <RouteContainer fallbackMessage="Loading analytics...">
-                    <ProtectedRoute>
+                    <RequireAccountType allow={["business","enterprise","admin"]}>
                       <AppShell><WorkspaceAnalytics /></AppShell>
-                    </ProtectedRoute>
+                    </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/developers" element={

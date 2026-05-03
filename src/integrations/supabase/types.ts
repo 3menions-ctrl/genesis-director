@@ -518,6 +518,27 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_email_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          reason?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       character_loans: {
         Row: {
           borrower_id: string
@@ -3411,7 +3432,7 @@ export type Database = {
       profiles: {
         Row: {
           account_tier: string
-          account_type: string | null
+          account_type: string
           auto_recharge_enabled: boolean | null
           avatar_url: string | null
           company: string | null
@@ -3439,7 +3460,7 @@ export type Database = {
         }
         Insert: {
           account_tier?: string
-          account_type?: string | null
+          account_type?: string
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -3467,7 +3488,7 @@ export type Database = {
         }
         Update: {
           account_tier?: string
-          account_type?: string | null
+          account_type?: string
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -5608,9 +5629,16 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_signup_analytics: { Args: never; Returns: Json }
-      consume_onboarding_intent: { Args: { _token: string }; Returns: Json }
+      consume_onboarding_intent: {
+        Args: { p_intent_token: string }
+        Returns: Json
+      }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
+        Returns: string
+      }
+      create_org_for_user: {
+        Args: { p_name: string; p_plan?: string; p_user_id: string }
         Returns: string
       }
       deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
@@ -5702,6 +5730,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["org_role"]
       }
       get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
+      has_account_type: {
+        Args: { p_account_type: string; p_user_id: string }
+        Returns: boolean
+      }
       has_org_permission: {
         Args: {
           p_min_role: Database["public"]["Enums"]["org_role"]
@@ -5726,6 +5758,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_blocked_business_email: { Args: { p_email: string }; Returns: boolean }
       is_conversation_member: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: boolean
@@ -5901,7 +5934,13 @@ export type Database = {
         | "video_started"
         | "video_failed"
         | "low_credits"
-      org_role: "owner" | "admin" | "producer" | "reviewer" | "viewer"
+      org_role:
+        | "owner"
+        | "admin"
+        | "producer"
+        | "editor"
+        | "reviewer"
+        | "viewer"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -6067,7 +6106,7 @@ export const Constants = {
         "video_failed",
         "low_credits",
       ],
-      org_role: ["owner", "admin", "producer", "reviewer", "viewer"],
+      org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [
         "three_act",
         "hero_journey",

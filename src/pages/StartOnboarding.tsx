@@ -485,7 +485,7 @@ export default function StartOnboarding() {
     const token = await ensureIntentPersisted();
     if (!token) return;
     try {
-      await supabase.rpc('consume_onboarding_intent', { _token: token });
+      await supabase.rpc('consume_onboarding_intent', { p_intent_token: token });
     } catch (e) {
       console.warn('[start] consume_onboarding_intent', e);
     }

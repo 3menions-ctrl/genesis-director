@@ -122,6 +122,82 @@ serve(async (req) => {
       logStep("Credits added successfully", { userId, credits, result: data });
     }
 
+    // ── Subscription lifecycle: sync account tier/type on the profile ──────
+    // Triggered by checkout.session.completed for `mode: subscription`,
+    // and customer.subscription.{created,updated,deleted}.
+    const isSubscriptionLifecycle =
+      event.type === "customer.subscription.created" ||
+      event.type === "customer.subscription.updated" ||
+      event.type === "customer.subscription.deleted" ||
+      (event.type === "checkout.session.completed" &&
+        (event.data.object as Stripe.Checkout.Session).mode === "subscription");
+
+    if (isSubscriptionLifecycle) {
+      try {
+        let userId: string | null = null;
+        let plan: string | null = null;
+        let active = false;
+
+        if (event.type === "checkout.session.completed") {
+          const s = event.data.object as Stripe.Checkout.Session;
+          userId = s.metadata?.user_id ?? null;
+          plan = (s.metadata?.plan_id ?? s.metadata?.plan ?? null)?.toLowerCase() ?? null;
+          active = true;
+        } else {
+          const sub = event.data.object as Stripe.Subscription;
+          userId = (sub.metadata?.user_id as string | undefined) ?? null;
+          plan = ((sub.metadata?.plan_id as string | undefined) ??
+                  (sub.metadata?.plan as string | undefined) ??
+                  null)?.toLowerCase() ?? null;
+          active = ["active", "trialing", "past_due"].includes(sub.status);
+        }
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (userId && uuidRegex.test(userId) && plan) {
+          // Map plan_id → account_type + account_tier per the Bible
+          const TIER_MAP: Record<string, { type: string; tier: string }> = {
+            starter:    { type: "personal",   tier: "free"     },
+            pro:        { type: "personal",   tier: "pro"      },
+            growth:     { type: "business",   tier: "growth"   },
+            scale:      { type: "business",   tier: "scale"    },
+            enterprise: { type: "enterprise", tier: "enterprise" },
+          };
+          const mapping = TIER_MAP[plan];
+
+          if (mapping) {
+            const supabaseAdmin = createClient(
+              Deno.env.get("SUPABASE_URL") ?? "",
+              Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+              { auth: { persistSession: false } }
+            );
+
+            // On cancellation, downgrade to personal/free at period end.
+            const update = active
+              ? { account_type: mapping.type, account_tier: mapping.tier, updated_at: new Date().toISOString() }
+              : { account_tier: "free", updated_at: new Date().toISOString() };
+
+            const { error: profErr } = await supabaseAdmin
+              .from("profiles")
+              .update(update)
+              .eq("id", userId);
+
+            if (profErr) {
+              logStep("Subscription tier sync failed", { userId, plan, error: profErr.message });
+            } else {
+              logStep("Subscription tier synced", { userId, plan, active });
+            }
+          } else {
+            logStep("Unknown plan in subscription metadata — skipping tier sync", { plan });
+          }
+        }
+      } catch (subErr) {
+        // Non-fatal; never block the webhook
+        logStep("Subscription lifecycle handler error", {
+          error: subErr instanceof Error ? subErr.message : String(subErr),
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ received: true }), { 
       status: 200,
       headers: { "Content-Type": "application/json" },

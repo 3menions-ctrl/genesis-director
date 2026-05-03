@@ -144,7 +144,7 @@ export default function Onboarding() {
 
     (async () => {
       try {
-        const { data, error } = await supabase.rpc('consume_onboarding_intent', { _token: token });
+        const { data, error } = await supabase.rpc('consume_onboarding_intent', { p_intent_token: token });
         if (error) {
           console.warn('[Onboarding] intent consume failed', error);
           try { sessionStorage.removeItem('apex.intent_token'); } catch {}

@@ -26,6 +26,8 @@ interface UserProfile {
   has_seen_welcome_video: boolean | null;
   has_seen_welcome_offer: boolean | null;
   security_version: number | null;
+  account_type: 'personal' | 'business' | 'enterprise' | 'admin' | null;
+  account_tier: string | null;
 }
 
 // Storage key for the security version stamp
@@ -100,6 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       has_seen_welcome_video: false,
       has_seen_welcome_offer: false,
       security_version: null,
+      account_type: 'personal',
+      account_tier: 'free',
     });
 
     try {
@@ -300,6 +304,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             has_seen_welcome_video: false,
             has_seen_welcome_offer: false,
             security_version: null,
+            account_type: 'personal',
+            account_tier: 'free',
           });
           setIsAdmin(false);
         }

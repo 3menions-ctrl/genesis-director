@@ -34,16 +34,19 @@ export default function WelcomeCheckout() {
     setLoading(true);
     try {
       const returnUrl = `${window.location.origin}/profile?payment=success&plan=${encodeURIComponent(planId)}&session_id={CHECKOUT_SESSION_ID}`;
-      const { data, error } = await supabase.functions.invoke('create-plan-checkout', {
+      const { data, error: fnError } = await supabase.functions.invoke('create-plan-checkout', {
         body: { priceId: planId, environment: getStripeEnvironment(), returnUrl },
       });
-      if (error || !data?.clientSecret) {
-        const msg = error?.message || 'Failed to start checkout';
+      // Edge function may return a non-2xx with JSON { error } in `data`.
+      const serverError = (data && typeof data === 'object' && 'error' in data) ? String((data as any).error) : null;
+      if (fnError || serverError || !data?.clientSecret) {
+        const msg = serverError || fnError?.message || 'We could not start checkout. Please try again.';
+        console.error('[WelcomeCheckout] create-plan-checkout failed', { fnError, serverError, data });
         setError(msg);
         toast.error(msg);
         throw new Error(msg);
       }
-      return data.clientSecret;
+      return data.clientSecret as string;
     } finally {
       setLoading(false);
     }

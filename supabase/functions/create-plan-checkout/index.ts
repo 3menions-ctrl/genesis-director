@@ -45,10 +45,11 @@ Deno.serve(async (req) => {
     const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : null;
     const rawEnv = body?.environment;
 
-    let env: StripeEnv = "live";
-    const originHeader = req.headers.get("origin") || req.headers.get("referer") || "";
-    const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeader);
-    if (isLocalOrigin && rawEnv === "sandbox") env = "sandbox";
+    // Trust the environment the client is running in. The client derives
+    // env from the publishable token prefix (pk_test_ vs pk_live_), so the
+    // server must match — otherwise checkout sessions are created in the
+    // wrong account and the embedded form fails to mount.
+    const env: StripeEnv = rawEnv === "sandbox" ? "sandbox" : "live";
 
     if (!priceId || !PLAN_CATALOG[priceId]) {
       return new Response(JSON.stringify({ error: "Invalid plan" }), {

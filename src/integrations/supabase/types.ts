@@ -89,6 +89,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_impersonation_sessions: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          reason: string
+          target_user_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          reason: string
+          target_user_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          reason?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       agent_conversations: {
         Row: {
           created_at: string
@@ -538,6 +568,74 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      brand_kits: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          created_at: string
+          created_by: string
+          font_body: string | null
+          font_heading: string | null
+          guidelines_url: string | null
+          id: string
+          is_default: boolean
+          logo_url: string | null
+          name: string
+          organization_id: string
+          primary_color: string | null
+          text_color: string | null
+          updated_at: string
+          voice_style: string | null
+          voice_tone: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          created_at?: string
+          created_by: string
+          font_body?: string | null
+          font_heading?: string | null
+          guidelines_url?: string | null
+          id?: string
+          is_default?: boolean
+          logo_url?: string | null
+          name: string
+          organization_id: string
+          primary_color?: string | null
+          text_color?: string | null
+          updated_at?: string
+          voice_style?: string | null
+          voice_tone?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          created_at?: string
+          created_by?: string
+          font_body?: string | null
+          font_heading?: string | null
+          guidelines_url?: string | null
+          id?: string
+          is_default?: boolean
+          logo_url?: string | null
+          name?: string
+          organization_id?: string
+          primary_color?: string | null
+          text_color?: string | null
+          updated_at?: string
+          voice_style?: string | null
+          voice_tone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       character_loans: {
         Row: {
@@ -1335,6 +1433,78 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      enterprise_provisioning: {
+        Row: {
+          assigned_admin: string | null
+          company_name: string
+          contract_end_at: string | null
+          contract_start_at: string | null
+          contract_value_cents: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          included_credits_monthly: number
+          included_seats: number
+          notes: string | null
+          organization_id: string | null
+          primary_contact_email: string
+          sales_inquiry_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_admin?: string | null
+          company_name: string
+          contract_end_at?: string | null
+          contract_start_at?: string | null
+          contract_value_cents?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_credits_monthly?: number
+          included_seats?: number
+          notes?: string | null
+          organization_id?: string | null
+          primary_contact_email: string
+          sales_inquiry_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_admin?: string | null
+          company_name?: string
+          contract_end_at?: string | null
+          contract_start_at?: string | null
+          contract_value_cents?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_credits_monthly?: number
+          included_seats?: number
+          notes?: string | null
+          organization_id?: string | null
+          primary_contact_email?: string
+          sales_inquiry_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_provisioning_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enterprise_provisioning_sales_inquiry_id_fkey"
+            columns: ["sales_inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "sales_inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gallery_showcase: {
         Row: {
@@ -2994,6 +3164,142 @@ export type Database = {
         }
         Relationships: []
       }
+      org_plan_features: {
+        Row: {
+          api_access: boolean
+          brand_kits_enabled: boolean
+          created_at: string
+          dedicated_lane: boolean
+          included_credits_monthly: number
+          max_concurrent_renders: number
+          max_seats: number
+          plan: string
+          shared_assets_enabled: boolean
+          sla_response_hours: number | null
+          sso_enabled: boolean
+        }
+        Insert: {
+          api_access?: boolean
+          brand_kits_enabled?: boolean
+          created_at?: string
+          dedicated_lane?: boolean
+          included_credits_monthly?: number
+          max_concurrent_renders: number
+          max_seats: number
+          plan: string
+          shared_assets_enabled?: boolean
+          sla_response_hours?: number | null
+          sso_enabled?: boolean
+        }
+        Update: {
+          api_access?: boolean
+          brand_kits_enabled?: boolean
+          created_at?: string
+          dedicated_lane?: boolean
+          included_credits_monthly?: number
+          max_concurrent_renders?: number
+          max_seats?: number
+          plan?: string
+          shared_assets_enabled?: boolean
+          sla_response_hours?: number | null
+          sso_enabled?: boolean
+        }
+        Relationships: []
+      }
+      org_seats: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_seats_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_shared_assets: {
+        Row: {
+          asset_type: string
+          asset_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json
+          organization_id: string
+          shared_by: string
+          source_id: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          asset_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          organization_id: string
+          shared_by: string
+          source_id?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          asset_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          shared_by?: string
+          source_id?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_shared_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_brand_assets: {
         Row: {
           created_at: string
@@ -3453,6 +3759,8 @@ export type Database = {
           preferences: Json | null
           role: string | null
           security_version: number
+          suspended_at: string | null
+          suspension_reason: string | null
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
@@ -3481,6 +3789,8 @@ export type Database = {
           preferences?: Json | null
           role?: string | null
           security_version?: number
+          suspended_at?: string | null
+          suspension_reason?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
@@ -3509,6 +3819,8 @@ export type Database = {
           preferences?: Json | null
           role?: string | null
           security_version?: number
+          suspended_at?: string | null
+          suspension_reason?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
@@ -3967,6 +4279,47 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_domain_mappings: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_verified: boolean
+          organization_id: string
+          saml_provider_id: string | null
+          verification_token: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_verified?: boolean
+          organization_id: string
+          saml_provider_id?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_verified?: boolean
+          organization_id?: string
+          saml_provider_id?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_domain_mappings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stitch_jobs: {
         Row: {
           attempt_number: number
@@ -4067,6 +4420,74 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          metadata: Json
+          organization_id: string | null
+          price_id: string
+          product_id: string | null
+          seat_price_id: string | null
+          seats: number
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string | null
+          price_id: string
+          product_id?: string | null
+          seat_price_id?: string | null
+          seats?: number
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string | null
+          price_id?: string
+          product_id?: string | null
+          seat_price_id?: string | null
+          seats?: number
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -5459,13 +5880,41 @@ export type Database = {
           new_xp: number
         }[]
       }
+      admin_activate_enterprise_org: {
+        Args: {
+          p_org_name: string
+          p_owner_email: string
+          p_provisioning_id: string
+        }
+        Returns: Json
+      }
       admin_adjust_credits: {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
+        Returns: Json
+      }
+      admin_change_account_type: {
+        Args: { p_new_type: string; p_reason: string; p_target_user: string }
+        Returns: Json
+      }
+      admin_create_impersonation_token: {
+        Args: {
+          p_reason: string
+          p_target_user: string
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      admin_delete_org: {
+        Args: { p_org_id: string; p_reason: string }
         Returns: Json
       }
       admin_force_logout_all: { Args: never; Returns: Json }
       admin_force_logout_user: {
         Args: { p_target_user_id: string }
+        Returns: Json
+      }
+      admin_force_tier: {
+        Args: { p_new_tier: string; p_reason: string; p_target_user: string }
         Returns: Json
       }
       admin_get_aggregated_stats: { Args: never; Returns: Json }
@@ -5573,8 +6022,28 @@ export type Database = {
         Args: { p_action: string; p_project_id: string; p_reason?: string }
         Returns: Json
       }
+      admin_suspend_account: {
+        Args: { p_reason: string; p_target_user: string }
+        Returns: Json
+      }
+      admin_transfer_org_owner: {
+        Args: { p_new_owner: string; p_org_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_unsuspend_account: {
+        Args: { p_target_user: string }
+        Returns: Json
+      }
       admin_view_user_profile: {
         Args: { p_target_user_id: string }
+        Returns: Json
+      }
+      assign_org_seat: {
+        Args: {
+          p_org_id: string
+          p_role?: Database["public"]["Enums"]["org_role"]
+          p_user_id: string
+        }
         Returns: Json
       }
       atomic_claim_clip: {
@@ -5672,6 +6141,13 @@ export type Database = {
           owner_user_id: string
         }[]
       }
+      find_org_by_email_domain: {
+        Args: { p_email: string }
+        Returns: {
+          organization_id: string
+          saml_provider_id: string
+        }[]
+      }
       get_admin_profit_dashboard: {
         Args: never
         Returns: {
@@ -5712,6 +6188,7 @@ export type Database = {
         Args: { p_other_user_id: string }
         Returns: string
       }
+      get_org_seat_count: { Args: { p_org_id: string }; Returns: number }
       get_pipeline_context: { Args: { p_project_id: string }; Returns: Json }
       get_project_voice_map: {
         Args: { p_project_id: string }
@@ -5732,6 +6209,10 @@ export type Database = {
       get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
       has_account_type: {
         Args: { p_account_type: string; p_user_id: string }
+        Returns: boolean
+      }
+      has_active_subscription: {
+        Args: { p_env?: string; p_user_id: string }
         Returns: boolean
       }
       has_org_permission: {
@@ -5856,6 +6337,10 @@ export type Database = {
       release_generation_lock: {
         Args: { p_lock_id: string; p_project_id: string }
         Returns: boolean
+      }
+      revoke_org_seat: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: Json
       }
       update_generation_checkpoint: {
         Args: {

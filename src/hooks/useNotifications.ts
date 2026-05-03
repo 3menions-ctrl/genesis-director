@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export type NotificationType = 
   | 'like' 
@@ -72,8 +73,12 @@ export function useNotifications() {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+          const n = (payload as unknown as { new?: Partial<Notification> }).new;
+          if (n?.title) {
+            toast(n.title, { description: n.body ?? undefined, duration: 4500 });
+          }
         }
       )
       .subscribe();
@@ -116,6 +121,29 @@ export function useNotifications() {
     },
   });
 
+  // Delete one
+  const deleteNotification = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    },
+  });
+
+  // Clear all
+  const clearAll = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.from('notifications').delete().eq('user_id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    },
+  });
+
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
 
   return {
@@ -124,5 +152,7 @@ export function useNotifications() {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    clearAll,
   };
 }

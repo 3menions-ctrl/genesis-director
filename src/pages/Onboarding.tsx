@@ -124,6 +124,38 @@ export default function Onboarding() {
     setSessionChecked(true);
   }, [user, authLoading, isSessionVerified, navigate]);
 
+  // ─── Pre-signup intent auto-consumption ───────────────────────────
+  // If the user came through the new /start wizard, an intent token was
+  // saved in sessionStorage. Consume it server-side (which marks the
+  // profile as onboarded) and forward to the next destination, skipping
+  // the legacy 5-step wizard entirely.
+  useEffect(() => {
+    if (!sessionChecked || !user) return;
+    let token: string | null = null;
+    try { token = sessionStorage.getItem('apex.intent_token'); } catch {}
+    if (!token) return;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('consume_onboarding_intent', { _token: token });
+        if (error) { console.warn('[Onboarding] intent consume failed', error); return; }
+        const result = data as { ok: boolean; plan_id?: string; plan_kind?: string } | null;
+        if (!result?.ok) return;
+        try { sessionStorage.removeItem('apex.intent_token'); } catch {}
+        await refreshProfile();
+        const next = new URLSearchParams(window.location.search).get('next');
+        if (next) { navigate(next, { replace: true }); return; }
+        if (result.plan_id && result.plan_kind && result.plan_kind !== 'contact') {
+          navigate(`/welcome/checkout?plan=${result.plan_id}`, { replace: true });
+        } else {
+          navigate('/create', { replace: true });
+        }
+      } catch (e) {
+        console.warn('[Onboarding] intent consume threw', e);
+      }
+    })();
+  }, [sessionChecked, user, navigate, refreshProfile]);
+
   // ─── Step navigation ───────────────────────────────────────────────
   const validateStep = useCallback((): boolean => {
     if (step === 1) {

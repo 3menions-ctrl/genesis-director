@@ -6572,6 +6572,10 @@ export type Database = {
         | "video_started"
         | "video_failed"
         | "low_credits"
+        | "org_member_joined"
+        | "org_welcome"
+        | "org_role_changed"
+        | "org_credits_low"
       org_role:
         | "owner"
         | "admin"
@@ -6743,6 +6747,10 @@ export const Constants = {
         "video_started",
         "video_failed",
         "low_credits",
+        "org_member_joined",
+        "org_welcome",
+        "org_role_changed",
+        "org_credits_low",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

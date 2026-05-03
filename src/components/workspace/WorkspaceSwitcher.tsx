@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
@@ -124,6 +124,38 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
             >
               <SettingsIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
               Workspace settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
+            <DropdownMenuLabel className="text-[9px] uppercase tracking-[0.22em] text-white/30 px-3 pt-2 pb-1 font-medium">
+              Workspace admin
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigate('/workspace/team')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Team
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/workspace/brand')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <Palette className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Brand kit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/workspace/billing')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Billing
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/workspace/analytics')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <BarChart3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Analytics
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

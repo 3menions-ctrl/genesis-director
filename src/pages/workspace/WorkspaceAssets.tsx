@@ -51,7 +51,7 @@ export default function WorkspaceAssets() {
   const load = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('organization_brand_assets')
       .select('*')
       .eq('organization_id', currentOrg.id)
@@ -78,7 +78,7 @@ export default function WorkspaceAssets() {
         });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from('brand-assets').getPublicUrl(path);
-        const { error: rowErr } = await supabase.from('organization_brand_assets').insert({
+        const { error: rowErr } = await (supabase as any).from('organization_brand_assets').insert({
           organization_id: currentOrg.id,
           uploaded_by: user.id,
           kind, name: file.name, storage_path: path,
@@ -101,7 +101,7 @@ export default function WorkspaceAssets() {
     if (!confirm(`Delete "${asset.name}"? This cannot be undone.`)) return;
     const { error: stErr } = await supabase.storage.from('brand-assets').remove([asset.storage_path]);
     if (stErr) console.warn('[assets] storage remove warning:', stErr.message);
-    const { error } = await supabase.from('organization_brand_assets').delete().eq('id', asset.id);
+    const { error } = await (supabase as any).from('organization_brand_assets').delete().eq('id', asset.id);
     if (error) { toast.error(error.message); return; }
     toast.success('Asset deleted');
     void load();

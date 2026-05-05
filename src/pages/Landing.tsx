@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
-import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '@/hooks/useGatekeeperLoading';
+import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
 
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
@@ -118,40 +118,96 @@ export default function Landing() {
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
 
-  // Premium presentation gate: hold the cinematic loader until fonts are
-  // ready, the first frame has actually painted, and a minimum cinematic
-  // beat has elapsed. This eliminates the "flash of unstyled / shifting
-  // content" the user reports on fresh load and after logout.
+  /**
+   * Premium presentation gate.
+   *
+   * The landing must NEVER pop in. On a fresh load (or after logout) we
+   * hold a cinematic loader on screen until ALL of these are true:
+   *   1. Auth has resolved (so we don't briefly render the public landing
+   *      for a returning user we're about to redirect away).
+   *   2. The hero background image has fully decoded.
+   *   3. Web fonts (Fraunces / Instrument Sans) have loaded — otherwise
+   *      the headline reflows from a fallback face.
+   *   4. The browser has actually committed a paint (double-rAF).
+   *   5. A minimum cinematic beat has elapsed so the loader feels
+   *      intentional, not like a flicker.
+   *
+   * A 4.5s hard ceiling guarantees the user is never stranded.
+   */
+  const [phaseProgress, setPhaseProgress] = useState(8);
+  const [phaseLabel, setPhaseLabel] = useState('Preparing the stage');
   const [presentationReady, setPresentationReady] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
   const [deferredMount, setDeferredMount] = useState(false);
   const startTimeRef = useRef<number>(performance.now());
 
   useEffect(() => {
     let cancelled = false;
-    const MIN_DISPLAY_MS = 1400;
+    const MIN_DISPLAY_MS = 1500;
+    const HARD_CEILING_MS = 4500;
 
-    const fontsPromise: Promise<unknown> =
-      typeof document !== 'undefined' && (document as any).fonts?.ready
-        ? (document as any).fonts.ready.catch(() => undefined)
-        : Promise.resolve();
+    const setPhase = (label: string, p: number) => {
+      if (cancelled) return;
+      setPhaseLabel(label);
+      setPhaseProgress((prev) => Math.max(prev, p));
+    };
 
-    const paintPromise = new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    setPhase('Preparing the stage', 12);
+
+    // 1. Hero background image — must be decoded before we lift the loader
+    const imagePromise = new Promise<void>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        setPhase('Loading the scene', 45);
+        if (typeof img.decode === 'function') {
+          img.decode().then(() => resolve()).catch(() => resolve());
+        } else {
+          resolve();
+        }
+      };
+      img.onerror = () => resolve();
+      img.src = landingAbstractBg;
+      // Safety — if decode hangs, don't block the page
+      setTimeout(() => resolve(), 3500);
     });
 
-    Promise.all([fontsPromise, paintPromise]).then(() => {
+    // 2. Web fonts
+    const fontsPromise: Promise<unknown> =
+      typeof document !== 'undefined' && (document as any).fonts?.ready
+        ? (document as any).fonts.ready
+            .then(() => setPhase('Setting the typography', 65))
+            .catch(() => undefined)
+        : Promise.resolve();
+
+    // 3. Paint commit
+    const paintPromise = new Promise<void>((resolve) => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setPhase('Rendering the frame', 80);
+          resolve();
+        }),
+      );
+    });
+
+    Promise.all([imagePromise, fontsPromise, paintPromise]).then(() => {
       if (cancelled) return;
+      setPhase('Finalizing', 95);
       const elapsed = performance.now() - startTimeRef.current;
       const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
       setTimeout(() => {
-        if (!cancelled) setPresentationReady(true);
+        if (cancelled) return;
+        setPhase('Ready', 100);
+        setPresentationReady(true);
       }, remaining);
     });
 
-    // Hard ceiling — never strand the user even if fonts hang
+    // Hard ceiling — never strand the user
     const ceiling = setTimeout(() => {
-      if (!cancelled) setPresentationReady(true);
-    }, 6000);
+      if (!cancelled) {
+        setPhase('Ready', 100);
+        setPresentationReady(true);
+      }
+    }, HARD_CEILING_MS);
 
     return () => {
       cancelled = true;
@@ -159,21 +215,20 @@ export default function Landing() {
     };
   }, []);
 
-  // Mount the heavy fixed-video layer + below-the-fold sections only after
-  // the hero is on screen — avoids competing with the first paint.
+  // Crossfade the landing in once the loader has dismissed
   useEffect(() => {
-    if (!presentationReady) return;
-    const id = window.setTimeout(() => setDeferredMount(true), 250);
-    return () => window.clearTimeout(id);
-  }, [presentationReady]);
+    if (!presentationReady || authLoading) return;
+    // Wait one frame so the DOM commits at opacity-0 first, then transition
+    const raf = requestAnimationFrame(() => setContentVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [presentationReady, authLoading]);
 
-  const { isLoading, progress, phase } = useGatekeeperLoading({
-    ...GATEKEEPER_PRESETS.landing,
-    timeout: 7000,
-    authLoading,
-    dataLoading: !presentationReady,
-    dataSuccess: presentationReady,
-  });
+  // Mount the heavy fixed-video layer and lazy chunks after the hero is up
+  useEffect(() => {
+    if (!contentVisible) return;
+    const id = window.setTimeout(() => setDeferredMount(true), 600);
+    return () => window.clearTimeout(id);
+  }, [contentVisible]);
 
   useEffect(() => {
     if (user) navigate('/projects');
@@ -198,20 +253,31 @@ export default function Landing() {
   );
   const handleSales = useCallback(() => navigate('/contact?topic=sales'), [navigate]);
 
-  if (isLoading) {
-    return (
+  // The cinema loader is a sibling of the page content. We render the page
+  // markup eagerly (hidden at opacity-0) so the browser can lay it out and
+  // decode imagery while the loader is still on screen — this guarantees
+  // the crossfade reveals an already-painted hero, never a blank flash.
+  const showLoader = authLoading || !presentationReady;
+
+  return (
+    <>
       <CinemaLoader
-        isVisible={true}
-        message={getGatekeeperMessage(phase, GATEKEEPER_PRESETS.landing.messages)}
-        progress={progress}
+        isVisible={showLoader}
+        message={phaseLabel}
+        progress={phaseProgress}
         showProgress={true}
         variant="fullscreen"
       />
-    );
-  }
-
-  return (
-    <div className="landing-glass-scope min-h-screen overflow-hidden relative">
+      <div
+        className="landing-glass-scope min-h-screen overflow-hidden relative"
+        style={{
+          opacity: contentVisible ? 1 : 0,
+          transition: 'opacity 700ms cubic-bezier(0.16, 1, 0.3, 1)',
+          // While hidden, prevent any interaction or layout-shifting work
+          pointerEvents: contentVisible ? 'auto' : 'none',
+        }}
+        aria-hidden={!contentVisible}
+      >
       {/* Idle-triggered immersive intro */}
       <HoppyImmersiveIntro />
 
@@ -376,6 +442,7 @@ export default function Landing() {
         onClose={() => setChooserOpen(false)}
         onSelect={handleSelectCategory}
       />
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense, useState } from 'react';
+import { useEffect, useCallback, lazy, Suspense, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
@@ -7,17 +7,20 @@ import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '
 
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
-import { AudienceSegments } from '@/components/landing/AudienceSegments';
-import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
-import { B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
-import { CinematicMosaic } from '@/components/landing/CinematicMosaic';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
-import { HoppyImmersiveScrollSection } from '@/components/landing/HoppyImmersiveScrollSection';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
-import { SeedanceSection } from '@/components/landing/SeedanceSection';
 import { CategoryChooserOverlay, type AudienceCategory } from '@/components/landing/CategoryChooserOverlay';
 import { motion } from 'framer-motion';
 
+// Heavy below-the-fold sections — lazy split to keep first paint snappy
+const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegments').then(m => ({ default: m.AudienceSegments })));
+const CinematicMosaic = lazy(() => import('@/components/landing/CinematicMosaic').then(m => ({ default: m.CinematicMosaic })));
+const SeedanceSection = lazy(() => import('@/components/landing/SeedanceSection').then(m => ({ default: m.SeedanceSection })));
+const B2BWorkflow = lazy(() => import('@/components/landing/B2BGlassFeatures').then(m => ({ default: m.B2BWorkflow })));
+const B2BFinalCTA = lazy(() => import('@/components/landing/B2BFinalCTA').then(m => ({ default: m.B2BFinalCTA })));
+const HoppyImmersiveScrollSection = lazy(() =>
+  import('@/components/landing/HoppyImmersiveScrollSection').then(m => ({ default: m.HoppyImmersiveScrollSection })),
+);
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
@@ -115,11 +118,61 @@ export default function Landing() {
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
 
+  // Premium presentation gate: hold the cinematic loader until fonts are
+  // ready, the first frame has actually painted, and a minimum cinematic
+  // beat has elapsed. This eliminates the "flash of unstyled / shifting
+  // content" the user reports on fresh load and after logout.
+  const [presentationReady, setPresentationReady] = useState(false);
+  const [deferredMount, setDeferredMount] = useState(false);
+  const startTimeRef = useRef<number>(performance.now());
+
+  useEffect(() => {
+    let cancelled = false;
+    const MIN_DISPLAY_MS = 1400;
+
+    const fontsPromise: Promise<unknown> =
+      typeof document !== 'undefined' && (document as any).fonts?.ready
+        ? (document as any).fonts.ready.catch(() => undefined)
+        : Promise.resolve();
+
+    const paintPromise = new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
+    Promise.all([fontsPromise, paintPromise]).then(() => {
+      if (cancelled) return;
+      const elapsed = performance.now() - startTimeRef.current;
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+      setTimeout(() => {
+        if (!cancelled) setPresentationReady(true);
+      }, remaining);
+    });
+
+    // Hard ceiling — never strand the user even if fonts hang
+    const ceiling = setTimeout(() => {
+      if (!cancelled) setPresentationReady(true);
+    }, 6000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(ceiling);
+    };
+  }, []);
+
+  // Mount the heavy fixed-video layer + below-the-fold sections only after
+  // the hero is on screen — avoids competing with the first paint.
+  useEffect(() => {
+    if (!presentationReady) return;
+    const id = window.setTimeout(() => setDeferredMount(true), 250);
+    return () => window.clearTimeout(id);
+  }, [presentationReady]);
+
   const { isLoading, progress, phase } = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.landing,
+    timeout: 7000,
     authLoading,
-    dataLoading: false,
-    dataSuccess: true,
+    dataLoading: !presentationReady,
+    dataSuccess: presentationReady,
   });
 
   useEffect(() => {
@@ -188,11 +241,15 @@ export default function Landing() {
 
       <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} onGetStarted={handleStart} />
 
-      {/* Immersive scroll-locked full-video moment — single fixed video that
-          activates once the user scrolls past the hero. Mounted OUTSIDE the
-          foreground column so its `position: fixed` layer escapes the z-10
-          stacking context and sits beneath all landing content. */}
-      <HoppyImmersiveScrollSection onGetStarted={handleStart} />
+      {/* Immersive scroll-locked full-video moment — deferred until after
+          first paint so it never competes with the hero render. */}
+      {deferredMount && (
+        <ErrorBoundaryWrapper fallback={null}>
+          <Suspense fallback={null}>
+            <HoppyImmersiveScrollSection onGetStarted={handleStart} />
+          </Suspense>
+        </ErrorBoundaryWrapper>
+      )}
 
       {/* Foreground content column — stacks above the fixed video layer */}
       <div className="relative z-10">
@@ -203,22 +260,30 @@ export default function Landing() {
 
       {/* For everyone — Personal · Business · Enterprise tracks */}
       <Chapter n="01" kicker="For Everyone" size="md">
-        <AudienceSegments onStart={handleStart} />
+        <Suspense fallback={<SectionLoader />}>
+          <AudienceSegments onStart={handleStart} />
+        </Suspense>
       </Chapter>
       <Divider size="lg" />
 
       {/* In Motion — multi-format cinematic mosaic (proof) */}
-      <Chapter n="02" kicker="In Motion"><CinematicMosaic /></Chapter>
+      <Chapter n="02" kicker="In Motion">
+        <Suspense fallback={<SectionLoader />}><CinematicMosaic /></Suspense>
+      </Chapter>
       <Divider size="lg" />
 
       {/* The Engine — generation engine reveal (the "wow") */}
       <Chapter n="03" kicker="The Engine" size="lg">
-        <SeedanceSection onCta={handleStart} />
+        <Suspense fallback={<SectionLoader />}>
+          <SeedanceSection onCta={handleStart} />
+        </Suspense>
       </Chapter>
       <Divider size="lg" />
 
       {/* The Workflow — prompt → film, in plain language */}
-      <Chapter n="04" kicker="The Workflow"><B2BWorkflow /></Chapter>
+      <Chapter n="04" kicker="The Workflow">
+        <Suspense fallback={<SectionLoader />}><B2BWorkflow /></Suspense>
+      </Chapter>
       <Divider size="lg" />
 
       {/* Pricing anchor — keep simple, link to /pricing */}
@@ -289,7 +354,11 @@ export default function Landing() {
       <Divider size="lg" />
 
       {/* Final CTA */}
-      <Spaced size="lg"><B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} /></Spaced>
+      <Spaced size="lg">
+        <Suspense fallback={<SectionLoader />}>
+          <B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} />
+        </Suspense>
+      </Spaced>
 
       <Divider size="md" />
 

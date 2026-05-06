@@ -8,7 +8,6 @@ import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
-import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 import { CategoryChooserOverlay, type AudienceCategory } from '@/components/landing/CategoryChooserOverlay';
 import { motion } from 'framer-motion';
 
@@ -278,11 +277,7 @@ export default function Landing() {
         }}
         aria-hidden={!contentVisible}
       >
-      {/* Idle-triggered immersive intro */}
       <HoppyImmersiveIntro />
-
-      {/* 30s-idle Enter chooser (Business vs Enterprise) */}
-      <IdleEnterOverlay />
 
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>

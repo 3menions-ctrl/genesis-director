@@ -62,20 +62,15 @@ export default function Onboarding() {
         try { sessionStorage.removeItem('apex.intent_token'); } catch {}
       }
 
-      // Belt-and-suspenders: if profile exists but isn't flagged onboarded,
-      // mark it now so we never bounce the user back into a duplicate wizard.
-      if (profile && !profile.onboarding_completed) {
-        try {
-          await supabase
-            .from('profiles')
-            .update({ onboarding_completed: true })
-            .eq('id', user.id);
-        } catch (e) {
-          console.warn('[Onboarding] mark onboarded failed', e);
-        }
-      }
-
+      // If the intent was consumed, the RPC already flagged onboarded.
+      // Otherwise, if the user has no prior wizard data at all, send them
+      // to /start so they answer the questionnaire exactly once.
+      const consumedIntent = !!accountType;
       try { await refreshProfile(); } catch {}
+      if (!consumedIntent && profile && !profile.onboarding_completed) {
+        navigate('/start', { replace: true });
+        return;
+      }
 
       if (cancelled) return;
 

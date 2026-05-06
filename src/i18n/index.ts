@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { aiBackend, translateOnDemand } from "./aiBackend";
 import { LANGUAGE_CODES, isRtl, type LanguageCode } from "./languages";
+import { initDomTranslator, setDomLanguage } from "./domTranslator";
 
 const STORAGE_KEY = "apex.lang";
 
@@ -48,6 +49,14 @@ const applyHtmlAttrs = (lng: string) => {
 };
 applyHtmlAttrs(i18n.language || "en");
 i18n.on("languageChanged", applyHtmlAttrs);
+
+// DOM-level live translator: handles all rendered text without
+// requiring every component to use t(). Runs after first paint.
+const initialLang = (i18n.language?.split("-")[0] || "en") as LanguageCode;
+initDomTranslator(initialLang);
+i18n.on("languageChanged", (lng) => {
+  setDomLanguage((lng?.split("-")[0] || "en") as LanguageCode);
+});
 
 export default i18n;
 export { LANGUAGE_CODES, isRtl };

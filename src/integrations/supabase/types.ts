@@ -6347,6 +6347,10 @@ export type Database = {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
         Returns: Json
       }
+      admin_bump_security_versions_except: {
+        Args: { p_except: string }
+        Returns: Json
+      }
       admin_change_account_type: {
         Args: { p_new_type: string; p_reason: string; p_target_user: string }
         Returns: Json

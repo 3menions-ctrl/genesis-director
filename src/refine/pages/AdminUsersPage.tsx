@@ -154,7 +154,9 @@ export default function AdminUsersPage() {
                         onClick={async () => {
                           if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
                           try {
-                            const { error } = await supabase.rpc("admin_force_logout_user", { p_target_user_id: u.id });
+                            const { error } = await supabase.functions.invoke('admin-force-logout', {
+                              body: { scope: 'user', target_user_id: u.id },
+                            });
                             if (error) throw error;
                             toast.success(`${u.display_name || u.email} logged out`);
                           } catch { toast.error("Failed to force logout"); }

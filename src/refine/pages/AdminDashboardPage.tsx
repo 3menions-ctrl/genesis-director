@@ -216,9 +216,11 @@ export default function AdminDashboardPage() {
   const handleForceLogout = async () => {
     if (!confirm("Force-logout ALL users?")) return;
     try {
-      const { error } = await supabase.rpc("admin_force_logout_all");
+      const { data, error } = await supabase.functions.invoke('admin-force-logout', {
+        body: { scope: 'all' },
+      });
       if (error) throw error;
-      toast.success("All users have been logged out");
+      toast.success(`Logged out ${data?.affected ?? 0} user(s)`);
     } catch { toast.error("Failed to force logout users"); }
   };
 

@@ -777,14 +777,14 @@ export default function AdminDashboard() {
                               className="h-7 w-7 p-0 text-warning hover:text-warning hover:bg-warning/10"
                               title="Force Logout User"
                               onClick={async () => {
-                                if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
-                                try {
-                                  const { error } = await supabase.rpc('admin_force_logout_user', {
-                                    p_target_user_id: u.id,
-                                  });
-                                  if (error) throw error;
-                                  toast.success(`${u.display_name || u.email} has been logged out`);
-                                } catch (err) {
+                                 if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
+                                 try {
+                                   const { error } = await supabase.functions.invoke('admin-force-logout', {
+                                     body: { scope: 'user', target_user_id: u.id },
+                                   });
+                                   if (error) throw error;
+                                   toast.success(`${u.display_name || u.email} has been logged out`);
+                                 } catch (err) {
                                   console.error(err);
                                   toast.error('Failed to force logout user');
                                 }

@@ -390,7 +390,397 @@ The era of AI avatar video is here, transforming how we create and consume visua
 ];
 
 // Combine all articles
-const ALL_BLOG_ARTICLES = [...BLOG_ARTICLES, ...ADDITIONAL_ARTICLES];
+const NEW_ARTICLES: BlogArticle[] = [
+  {
+    id: '6',
+    slug: 'apex-studio-vs-heygen-comparison',
+    title: 'Apex-Studio vs HeyGen: Which AI Video Platform Wins in 2026?',
+    excerpt: 'A side-by-side breakdown of pricing, output quality, avatar realism, languages, and workflow speed between Apex-Studio and HeyGen.',
+    image: aiAvatarGeneration,
+    author: 'Apex-Studio Team',
+    date: 'March 4, 2026',
+    readTime: '9 min read',
+    category: 'Comparison',
+    tags: ['HeyGen', 'Comparison', 'AI Avatars', 'Pricing'],
+    content: `
+## The Short Answer
+
+If you need rapid, cinematic AI video with native dialogue, multi-character scenes, and pay-as-you-go pricing, Apex-Studio is the better fit. HeyGen still leads for traditional "talking head" corporate explainers with its mature avatar library.
+
+## Pricing Compared
+
+- **Apex-Studio**: $0.10 per credit, no subscription required, credits never expire. A 5-second cinematic clip costs roughly $5.
+- **HeyGen**: Tiered subscriptions starting near $29/month with monthly credit caps and watermarks on the free tier.
+
+For creators who don't generate video every single day, the no-subscription model removes a lot of friction.
+
+## Output Style
+
+HeyGen excels at static-frame avatar narration: a single presenter speaking to camera. Apex-Studio is built around **scene-first cinematic output** — characters move, the camera moves, and dialogue is rendered with native lip-sync inside the same generation pass using Kling V3.
+
+## Multi-Character Dialogue
+
+Apex-Studio supports **two-character cinematic dialogue scenes** out of the box, with automatic shot/reverse-shot switching. HeyGen requires manually stitching individual avatar segments.
+
+## Languages and Voices
+
+Both platforms cover the major commercial languages. HeyGen has more stock voices; Apex-Studio focuses on cinematic voice acting with emotional control.
+
+## When to Pick Which
+
+- **Pick HeyGen if**: you're producing weekly internal training videos with a single presenter.
+- **Pick Apex-Studio if**: you're producing ads, narrative content, product demos, or any scene with motion and storytelling.
+    `,
+  },
+  {
+    id: '7',
+    slug: 'apex-studio-vs-synthesia',
+    title: 'Apex-Studio vs Synthesia: Cinematic AI Video vs Corporate Avatars',
+    excerpt: 'Synthesia owns the corporate training market. Apex-Studio targets cinematic storytelling. Here is exactly how they differ and how to choose.',
+    image: futureVideoCreation,
+    author: 'Apex-Studio Team',
+    date: 'March 6, 2026',
+    readTime: '8 min read',
+    category: 'Comparison',
+    tags: ['Synthesia', 'Comparison', 'Corporate Video', 'AI Video'],
+    content: `
+## Two Different Philosophies
+
+Synthesia is optimised for an enterprise L&D workflow: pick an avatar, paste a script, export an MP4. Apex-Studio is optimised for **cinematic generation**: a director-style brief turned into a moving, scored, voiced scene.
+
+## Pricing
+
+Synthesia's Personal plan starts at $29/month with strict minute caps; enterprise plans are quote-based. Apex-Studio uses pure pay-as-you-go credits at $0.10 each, with **60 free credits** for new users — no card required.
+
+## Realism and Motion
+
+Synthesia avatars sit, stand, or gesture mildly. Apex-Studio scenes include camera motion, lighting changes, environment interaction, and multi-shot pacing — closer to short-film output than slide narration.
+
+## Speed
+
+Both platforms render in minutes. Apex-Studio's watchdog architecture also auto-recovers failed generations and refunds credits — a meaningful advantage at production scale.
+
+## Verdict
+
+Choose Synthesia for repeatable corporate training. Choose Apex-Studio when the video itself needs to **tell a story** worth watching.
+    `,
+  },
+  {
+    id: '8',
+    slug: 'apex-studio-vs-runway',
+    title: 'Apex-Studio vs Runway Gen-3: Picking the Right AI Video Generator',
+    excerpt: 'Runway pioneered consumer AI video. Apex-Studio focuses on production-ready cinematic clips with dialogue. Here is the honest comparison.',
+    image: aiVideoEvolution,
+    author: 'Apex-Studio Research',
+    date: 'March 8, 2026',
+    readTime: '8 min read',
+    category: 'Comparison',
+    tags: ['Runway', 'Gen-3', 'Comparison', 'AI Video'],
+    content: `
+## Where Runway Wins
+
+Runway's Gen-3 model is a fantastic creative sandbox. The interface is friendly to motion designers, and its image-to-video controls are best-in-class for abstract or experimental work.
+
+## Where Apex-Studio Wins
+
+Apex-Studio is purpose-built for **finished, dialogue-driven scenes**. Native voice generation, lip-sync, character continuity across clips, and automated stitching mean you leave the platform with something publishable — not raw footage that still needs editing.
+
+## Pricing
+
+Runway uses tiered subscriptions with credit allocations. Apex-Studio is pay-as-you-go at $0.10/credit with no monthly commitment.
+
+## Continuity
+
+Apex-Studio's Face Lock identity system keeps characters visually consistent across multiple shots. Runway lacks a comparable persistent-character primitive at the time of writing.
+
+## Recommendation
+
+- **Runway**: experimental motion graphics, art direction R&D.
+- **Apex-Studio**: ads, narrative shorts, product launches, anything that needs a character to talk and the scene to make sense.
+    `,
+  },
+  {
+    id: '9',
+    slug: 'how-to-create-ugc-ads-without-filming',
+    title: 'How to Create UGC-Style Ads Without Ever Filming Yourself',
+    excerpt: 'A step-by-step playbook for using AI avatars to produce authentic-feeling user-generated content ads that convert on TikTok, Reels, and YouTube Shorts.',
+    image: smallBusinessVideo,
+    author: 'Marketing Team',
+    date: 'March 10, 2026',
+    readTime: '10 min read',
+    category: 'Tutorials',
+    tags: ['UGC', 'Ads', 'TikTok', 'Marketing', 'Tutorial'],
+    content: `
+## Why UGC Outperforms Polished Ads
+
+Audiences scroll past anything that looks like an ad. Vertical, hand-held, person-talking-to-camera content consistently wins because it feels native to the feed. The catch: producing genuine UGC at the volume modern testing requires is brutal.
+
+## The AI UGC Workflow
+
+1. **Pick a hook**: open with a contrarian statement or a problem the viewer recognises in two seconds.
+2. **Pick an avatar**: choose a presenter who matches your target customer demographic.
+3. **Write three variations**: same product, different hooks. AI generation makes A/B/C/D testing trivial.
+4. **Generate vertical (9:16)**: Apex-Studio outpaints your reference image into the right aspect ratio automatically.
+5. **Add captions**: most UGC is watched muted — bake captions into the export.
+
+## Hooks That Convert
+
+- "I almost didn't buy this and I'm so glad I did."
+- "Stop wasting money on [category]. Here's what actually works."
+- "Three things nobody tells you about [problem]."
+
+## Length and Pacing
+
+Keep clips between 15 and 30 seconds. Cut every 2 to 3 seconds. Apex-Studio's multi-character switching makes shot variety effortless.
+
+## Iteration
+
+Generate ten variations, run them as a test campaign for $100, kill the losers, scale the winners. This is the loop that traditional production simply cannot match on cost or speed.
+    `,
+  },
+  {
+    id: '10',
+    slug: 'ai-video-for-real-estate-listings',
+    title: 'AI Video for Real Estate: Turn Listing Photos Into Cinematic Tours',
+    excerpt: 'How agents are using AI video to give every listing a $5,000 production look without hiring a videographer.',
+    image: videoAiPossibilities,
+    author: 'Apex-Studio Team',
+    date: 'March 12, 2026',
+    readTime: '7 min read',
+    category: 'Use Cases',
+    tags: ['Real Estate', 'Video Marketing', 'Listings', 'Use Cases'],
+    content: `
+## The Listing Video Problem
+
+Most agents skip video because the production cost ($500–$5,000 per listing) only makes sense above a certain price point. AI video changes the math: the same cinematic walkthrough costs a few dollars in credits.
+
+## The Workflow
+
+1. **Upload your best listing photos** (kitchen, master bedroom, exterior, view).
+2. **Generate image-to-video clips** with slow camera moves — dolly forward through the kitchen, orbit the living room, push toward the view.
+3. **Add a narration script** highlighting the three things buyers actually care about: layout, light, location.
+4. **Stitch into a 30-second teaser** for Instagram and a 90-second tour for the listing page.
+
+## Conversion Tips
+
+- Lead with the strongest exterior shot in the first 1.5 seconds.
+- Use natural-language voiceover, not "stunning" / "luxurious" cliches.
+- End with a clear CTA: "Tour this Sunday at 2pm."
+
+## Cost Comparison
+
+- Traditional drone + interior shoot + edit: **$1,500–$5,000**.
+- AI-generated cinematic tour: **$5–$20** in credits.
+
+At this price, every listing gets video, not just the trophies.
+    `,
+  },
+  {
+    id: '11',
+    slug: 'kling-v3-vs-veo-3-quality-comparison',
+    title: 'Kling V3 vs Veo 3: Honest Quality Comparison for AI Video Creators',
+    excerpt: 'Two of the most powerful AI video models available today. We break down where each one wins and why Apex-Studio standardised on Kling V3.',
+    image: aiVideoEvolution,
+    author: 'Apex-Studio Research',
+    date: 'March 14, 2026',
+    readTime: '9 min read',
+    category: 'Technology',
+    tags: ['Kling', 'Veo', 'Comparison', 'Models'],
+    content: `
+## The Two Frontrunners
+
+Google's Veo 3 and Kuaishou's Kling V3 represent the current state of the art in text-to-video. Both produce cinema-grade clips. The differences matter once you start producing at scale.
+
+## Motion Coherence
+
+Both handle camera motion well. Kling V3 has a slight edge on **complex character motion** — multi-limb action, dynamic dialogue staging — which is why Apex-Studio's pipeline standardised on it.
+
+## Native Audio
+
+Kling V3 generates lip-synced dialogue inside the same pass as the visuals. Veo 3 introduced native audio recently as well; quality is comparable but workflows differ.
+
+## Clip Length
+
+Kling V3 supports extended clip durations natively, reducing the number of stitches needed for a given scene length.
+
+## Cost
+
+Both are priced as premium models. Apex-Studio passes the cost through transparently at $0.10/credit so creators can see exactly what each clip cost.
+
+## Verdict
+
+For dialogue-driven cinematic work, Kling V3 wins on motion + audio integration today. For abstract/creative experimentation, both are excellent.
+    `,
+  },
+  {
+    id: '12',
+    slug: 'product-demo-videos-with-ai',
+    title: 'How to Make Product Demo Videos With AI in Under 10 Minutes',
+    excerpt: 'A repeatable framework for turning a product page into a high-converting demo video using AI generation.',
+    image: smallBusinessVideo,
+    author: 'Marketing Team',
+    date: 'March 16, 2026',
+    readTime: '7 min read',
+    category: 'Tutorials',
+    tags: ['Product Demo', 'Conversion', 'Tutorial', 'E-commerce'],
+    content: `
+## The Three-Beat Demo Structure
+
+Every high-converting demo video follows the same three beats:
+
+1. **Problem** (0–5 seconds): show the pain point the viewer recognises.
+2. **Solution** (5–20 seconds): show the product solving it.
+3. **Proof** (20–30 seconds): a result, a testimonial, or a stat.
+
+## Producing It in Apex-Studio
+
+- Beat 1: generate a relatable scene of someone struggling with the problem.
+- Beat 2: cut to a clean product shot with a presenter explaining the fix.
+- Beat 3: end on a stat overlay or quick testimonial avatar.
+
+## Distribution
+
+Export 9:16 for Reels and TikTok, 1:1 for feed posts, 16:9 for the product page hero. Apex-Studio's outpainting handles the aspect ratios automatically — no re-shooting.
+
+## What to Avoid
+
+- Long intros. Get to the product within three seconds.
+- Background music that overpowers narration.
+- Generic stock-style scenes that don't match your brand.
+
+## Iteration
+
+Generate four variations of beat 1 (the hook). Run paid traffic to all four. Whichever wins becomes the locked opener for the next batch of tests.
+    `,
+  },
+  {
+    id: '13',
+    slug: 'ai-video-for-language-learning',
+    title: 'Using AI Video to Teach Languages: Native Lip-Sync in Any Language',
+    excerpt: 'How educators and course creators are building immersive language-learning content with AI-generated native speakers.',
+    image: videoAiPossibilities,
+    author: 'Education Team',
+    date: 'March 18, 2026',
+    readTime: '8 min read',
+    category: 'Use Cases',
+    tags: ['Education', 'Language Learning', 'EdTech', 'Use Cases'],
+    content: `
+## Why Video Beats Audio Alone
+
+Language acquisition research is consistent: **seeing** mouth shapes during speech meaningfully accelerates learning, especially for sounds that don't exist in the learner's native tongue.
+
+## The AI Advantage
+
+Hiring native speakers in a dozen languages is expensive and slow. AI generation produces native-quality lip-synced dialogue in any supported language at the cost of a few credits per clip.
+
+## Course Building Workflow
+
+1. Write the dialogue in English.
+2. Translate or localise to the target language.
+3. Generate the scene with Apex-Studio in the target language with appropriate avatar.
+4. Embed in your LMS.
+
+## Use Cases
+
+- **Vocabulary in context**: short scenes where the new word is used naturally.
+- **Pronunciation drills**: close-ups on mouth movements.
+- **Cultural context**: scenes that illustrate situational language.
+
+## Localisation at Scale
+
+The same English course can be regenerated in twenty languages in a weekend — a project that used to require a small studio.
+    `,
+  },
+  {
+    id: '14',
+    slug: 'best-ai-video-prompts-cinematic',
+    title: 'The Best AI Video Prompts for Cinematic Results (With Examples)',
+    excerpt: 'A practical prompting guide. Copy these structures and adapt them to get film-grade output from any AI video generator.',
+    image: futureVideoCreation,
+    author: 'Creative Team',
+    date: 'March 20, 2026',
+    readTime: '10 min read',
+    category: 'Tutorials',
+    tags: ['Prompting', 'Cinematic', 'Tutorial', 'Tips'],
+    content: `
+## The Anatomy of a Great Prompt
+
+Cinematic output comes from prompts that include five elements:
+
+1. **Subject** — who or what is in the frame.
+2. **Action** — what they are doing.
+3. **Camera** — lens, framing, movement.
+4. **Lighting** — quality, direction, colour temperature.
+5. **Mood** — the emotion you want the viewer to feel.
+
+## Template
+
+> [Subject], [action], shot on [lens] with [camera move], [lighting], [mood].
+
+## Examples
+
+**Cinematic close-up**:
+> A weathered fisherman pulls a rope tight, shot on 85mm with slow push-in, golden-hour rim light, contemplative.
+
+**Action wide**:
+> A cyclist accelerates through a rain-slick alley, shot on 24mm tracking sideways, neon practicals, urgent.
+
+**Dialogue scene**:
+> Two friends argue across a diner booth, shot on 50mm shot/reverse-shot, soft tungsten overhead, tense.
+
+## What to Avoid
+
+- Vague adjectives ("amazing", "beautiful") — they do nothing.
+- Conflicting instructions ("static camera, fast tracking shot").
+- Overstuffing — three good details beat ten generic ones.
+
+## Iterate Like a Director
+
+Treat the first generation as a casting call, not a final take. Adjust one variable per iteration: change the lens, then the lighting, then the action. This is how professional output emerges.
+    `,
+  },
+  {
+    id: '15',
+    slug: 'ai-video-pricing-explained',
+    title: 'AI Video Pricing in 2026: Subscriptions vs Pay-As-You-Go Explained',
+    excerpt: 'A clear breakdown of how AI video pricing actually works, what hidden costs to watch for, and which model is right for your usage pattern.',
+    image: smallBusinessVideo,
+    author: 'Apex-Studio Team',
+    date: 'March 22, 2026',
+    readTime: '7 min read',
+    category: 'Business',
+    tags: ['Pricing', 'Business', 'Comparison', 'Costs'],
+    content: `
+## The Two Pricing Models
+
+- **Subscription**: pay a fixed monthly fee for a credit allowance. Unused credits often expire.
+- **Pay-as-you-go**: buy credits when you need them, no expiration, no monthly commitment.
+
+## Hidden Costs to Watch For
+
+- **Watermarks** on free or low-tier plans.
+- **Render queue priority** — cheaper tiers sit behind paying customers.
+- **Failed-generation policy** — many platforms charge you for failed renders. Apex-Studio refunds them automatically.
+- **Resolution caps** — some plans lock 4K behind enterprise tiers.
+
+## Which Model Suits You
+
+- **Daily creators** (10+ videos/week): subscriptions usually win on per-credit cost.
+- **Project-based users** (campaign bursts): pay-as-you-go avoids paying during quiet months.
+- **Agencies**: pay-as-you-go is easier to bill back to clients.
+
+## Apex-Studio's Approach
+
+Flat $0.10/credit, no expiration, automatic refund on failed generation, transparent per-clip cost shown before you generate. No tier locks on resolution.
+
+## The Real Question
+
+Before picking a platform, calculate your **cost per finished, publishable video** — not just the headline subscription price. The cheapest platform on paper is often the most expensive once retries, watermarks, and failed renders are counted.
+    `,
+  },
+];
+
+const ALL_BLOG_ARTICLES = [...BLOG_ARTICLES, ...ADDITIONAL_ARTICLES, ...NEW_ARTICLES];
 
 export default function Blog() {
   usePageMeta({ title: 'Blog — Genesis Director', description: 'Insights on AI video creation, avatar generation, and the future of filmmaking with Genesis Director.' });

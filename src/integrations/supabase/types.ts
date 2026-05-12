@@ -3291,6 +3291,7 @@ export type Database = {
           created_at: string
           id: string
           org_id: string
+          reason: string | null
           step: string
         }
         Insert: {
@@ -3299,6 +3300,7 @@ export type Database = {
           created_at?: string
           id?: string
           org_id: string
+          reason?: string | null
           step: string
         }
         Update: {
@@ -3307,6 +3309,7 @@ export type Database = {
           created_at?: string
           id?: string
           org_id?: string
+          reason?: string | null
           step?: string
         }
         Relationships: [
@@ -7092,10 +7095,20 @@ export type Database = {
         Args: { p_kind: string; p_org: string; p_url: string }
         Returns: undefined
       }
-      set_org_onboarding_override: {
-        Args: { p_done: boolean; p_org: string; p_step: string }
-        Returns: Json
-      }
+      set_org_onboarding_override:
+        | {
+            Args: { p_done: boolean; p_org: string; p_step: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_done: boolean
+              p_org: string
+              p_reason?: string
+              p_step: string
+            }
+            Returns: Json
+          }
       set_org_plan: {
         Args: { p_org_id: string; p_plan: string }
         Returns: Json

@@ -147,7 +147,13 @@ const flush = async () => {
         body: { texts: chunk, targetLanguage: lang, languageName: langName },
       });
       if (error) throw error;
+      if (data?.error === "CREDITS_EXHAUSTED") {
+        tripBreaker("credits");
+        break;
+      }
       const translations: string[] = data?.translations ?? [];
+      const isFallback = data?.fallback === true;
+      if (isFallback) continue; // don't cache source text as translation
       chunk.forEach((src, idx) => {
         const translated = translations[idx];
         if (!translated || typeof translated !== "string") return;

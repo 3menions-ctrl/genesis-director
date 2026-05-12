@@ -106,18 +106,18 @@ Deno.serve(async (req) => {
       console.error("AI gateway error", status, text);
       if (status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit reached, please retry shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({ error: "RATE_LIMIT", fallback: true, translations: texts }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       if (status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({ error: "CREDITS_EXHAUSTED", fallback: true, translations: texts }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       return new Response(
-        JSON.stringify({ error: "Translation failed", translations: texts }),
+        JSON.stringify({ error: "TRANSLATION_FAILED", fallback: true, translations: texts }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

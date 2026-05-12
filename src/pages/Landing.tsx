@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 
 // Heavy below-the-fold sections — lazy split to keep first paint snappy
 const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegments').then(m => ({ default: m.AudienceSegments })));
-const CinematicMosaic = lazy(() => import('@/components/landing/CinematicMosaic').then(m => ({ default: m.CinematicMosaic })));
+const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
 const SeedanceSection = lazy(() => import('@/components/landing/SeedanceSection').then(m => ({ default: m.SeedanceSection })));
 const B2BWorkflow = lazy(() => import('@/components/landing/B2BGlassFeatures').then(m => ({ default: m.B2BWorkflow })));
 const B2BFinalCTA = lazy(() => import('@/components/landing/B2BFinalCTA').then(m => ({ default: m.B2BFinalCTA })));
@@ -327,9 +327,9 @@ export default function Landing() {
       </Chapter>
       <Divider size="lg" />
 
-      {/* In Motion — multi-format cinematic mosaic (proof) */}
-      <Chapter n="02" kicker="In Motion">
-        <Suspense fallback={<SectionLoader />}><CinematicMosaic /></Suspense>
+      {/* Before / After — drag-to-compare brief vs. final film */}
+      <Chapter n="02" kicker="Before / After">
+        <Suspense fallback={<SectionLoader />}><BeforeAfterGallery /></Suspense>
       </Chapter>
       <Divider size="lg" />
 

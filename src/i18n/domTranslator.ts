@@ -12,6 +12,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { LANGUAGES, isRtl, type LanguageCode } from "./languages";
+import { isTranslationDisabled, tripBreaker, looksLikeCreditsError } from "./circuitBreaker";
 
 const CACHE_PREFIX = "apex.i18n.dom.v1.";
 const ORIG_ATTR = "data-i18n-orig";
@@ -111,6 +112,10 @@ const flush = async () => {
     pendingNodes.clear();
     return;
   }
+  if (isTranslationDisabled()) {
+    pendingNodes.clear();
+    return;
+  }
   const langName = LANGUAGES.find((l) => l.code === lang)?.english ?? lang;
 
   // Group nodes by trimmed source text for de-duplication
@@ -135,6 +140,7 @@ const flush = async () => {
   const allTexts = Array.from(groups.keys());
   // Process in chunks of MAX_BATCH
   for (let i = 0; i < allTexts.length; i += MAX_BATCH) {
+    if (isTranslationDisabled()) break;
     const chunk = allTexts.slice(i, i + MAX_BATCH);
     try {
       const { data, error } = await supabase.functions.invoke("translate-text", {
@@ -156,6 +162,10 @@ const flush = async () => {
         }
       });
     } catch (e) {
+      if (looksLikeCreditsError(e)) {
+        tripBreaker("credits");
+        break;
+      }
       // Soft fail — keep original text
       // eslint-disable-next-line no-console
       console.warn("[i18n] translation batch failed", e);

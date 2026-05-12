@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Globe, Check } from "lucide-react";
+import { Globe, Check, AlertTriangle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { LANGUAGES, getLanguage } from "@/i18n/languages";
+import { isTranslationDisabled, resetBreaker } from "@/i18n/circuitBreaker";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -27,8 +29,24 @@ export function LanguageSwitcher({
 }: Props) {
   const { i18n } = useTranslation();
   const current = getLanguage(i18n.language?.split("-")[0] ?? "en") ?? LANGUAGES[0];
+  const [disabled, setDisabled] = useState(() => isTranslationDisabled());
+
+  useEffect(() => {
+    const onDisabled = () => setDisabled(true);
+    window.addEventListener("apex:i18n-disabled", onDisabled);
+    const t = setInterval(() => setDisabled(isTranslationDisabled()), 5000);
+    return () => {
+      window.removeEventListener("apex:i18n-disabled", onDisabled);
+      clearInterval(t);
+    };
+  }, []);
 
   const handleSelect = (code: string) => {
+    if (code !== "en" && isTranslationDisabled()) {
+      // user explicitly retrying — clear breaker and try again
+      resetBreaker();
+      setDisabled(false);
+    }
     void i18n.changeLanguage(code);
     try { localStorage.setItem("apex.lang", code); } catch { /* noop */ }
   };
@@ -61,6 +79,15 @@ export function LanguageSwitcher({
           Language
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {disabled && current.code !== "en" && (
+          <div className="px-2 py-2 mb-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 flex items-start gap-2 leading-snug">
+            <AlertTriangle className="h-3.5 w-3.5 mt-px shrink-0" />
+            <span>
+              Auto-translation paused (AI credits exhausted). Cached strings
+              still display. Add credits in Lovable Cloud to resume.
+            </span>
+          </div>
+        )}
         {LANGUAGES.map((lang) => {
           const active = lang.code === current.code;
           return (

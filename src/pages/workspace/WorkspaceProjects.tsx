@@ -45,7 +45,7 @@ export default function WorkspaceProjects() {
       title="Projects"
       description="Every production created inside this workspace, by every member."
       actions={
-        <Link to="/create">
+        <Link to="/workspace/create">
           <CmdButton variant="primary"><Plus className="w-3 h-3" /> New project</CmdButton>
         </Link>
       }
@@ -64,7 +64,7 @@ export default function WorkspaceProjects() {
             icon={Film}
             title="No productions yet"
             body="Workspace members haven't shipped a project yet. Launch the Studio to start the first one."
-            action={<Link to="/create"><CmdButton><Plus className="w-3 h-3" /> Open Studio</CmdButton></Link>}
+            action={<Link to="/workspace/create"><CmdButton><Plus className="w-3 h-3" /> Start a project</CmdButton></Link>}
           />
         ) : (
           <ul className="divide-y divide-[hsl(220,14%,12%)]">

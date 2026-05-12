@@ -265,12 +265,29 @@ export function OnboardingWizard() {
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
-          <button
-            onClick={() => handleClose(false)}
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45 hover:text-white/80 transition-colors"
-          >
-            Remind me later
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleClose(false)}
+              className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45 hover:text-white/80 transition-colors"
+            >
+              Remind me later
+            </button>
+            <button
+              onClick={recheck}
+              disabled={refreshing}
+              className={cn(
+                'group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/55 hover:text-white transition-colors',
+                refreshing && 'opacity-70 cursor-wait',
+              )}
+              title={lastChecked ? `Last checked ${new Date(lastChecked).toLocaleTimeString()}` : 'Re-check progress'}
+            >
+              <RefreshCw
+                className={cn('w-3 h-3', refreshing && 'animate-spin')}
+                strokeWidth={1.8}
+              />
+              Re-check progress
+            </button>
+          </div>
           <button
             onClick={finish}
             disabled={busy}

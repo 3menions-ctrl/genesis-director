@@ -6,7 +6,7 @@ import {
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
   Film, UserSquare2, LayoutTemplate, CheckCircle2, ShieldCheck,
   ScrollText, FileSpreadsheet, Plug, KeyRound, Bell, Settings,
-  Shield, AlertOctagon, Sparkles, Menu, X,
+  Shield, AlertOctagon, Sparkles, Menu, X, Scissors,
 } from 'lucide-react';
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Operate',
     items: [
       { to: '/workspace',        label: 'Overview', Icon: LayoutDashboard, minRole: 'viewer',   description: 'Operational snapshot' },
+      { to: '/workspace/create',    label: 'Create',    Icon: Sparkles,       minRole: 'producer', description: 'Generate new productions' },
+      { to: '/workspace/editor',    label: 'Editor',    Icon: Scissors,       minRole: 'producer', description: 'Cut, score, finish' },
       { to: '/workspace/projects',  label: 'Projects',  Icon: Film,           minRole: 'viewer',   description: 'All productions' },
       { to: '/workspace/assets', label: 'Assets',   Icon: Layers,          minRole: 'viewer',   description: 'Shared library' },
       { to: '/workspace/avatars',   label: 'Avatars',   Icon: UserSquare2,    minRole: 'viewer',   description: 'Brand cast' },
@@ -89,7 +91,7 @@ const RAIL_COLLAPSED = 'lg:w-[72px]';
  * Used as the SOLE shell for every /workspace/* route — do NOT wrap
  * workspace pages in <AppShell> as well.
  */
-export function WorkspaceLayout({ children }: { children: ReactNode }) {
+export function WorkspaceLayout({ children, fullBleed = false }: { children: ReactNode; fullBleed?: boolean }) {
   const { currentOrg, hasPermission, loading, organizations, switchOrg } = useWorkspace();
   const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -456,7 +458,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Page content */}
-        <div className="flex-1 px-6 lg:px-10 py-8 min-w-0">
+        <div className={cn('flex-1 min-w-0', fullBleed ? '' : 'px-6 lg:px-10 py-8')}>
           {children}
         </div>
       </div>

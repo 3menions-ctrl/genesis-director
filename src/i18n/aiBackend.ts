@@ -9,6 +9,7 @@
 import type { BackendModule, ReadCallback } from "i18next";
 import { LANGUAGES, type LanguageCode } from "./languages";
 import { supabase } from "@/integrations/supabase/client";
+import { isTranslationDisabled, tripBreaker, looksLikeCreditsError } from "./circuitBreaker";
 
 const CACHE_PREFIX = "apex.i18n.cache.v1.";
 const PENDING: Map<string, Promise<string>> = new Map();
@@ -39,6 +40,14 @@ const flushQueue = async () => {
   for (const [lang, items] of snapshot) {
     const texts = Array.from(items.keys()).slice(0, MAX_BATCH);
     if (texts.length === 0) continue;
+    if (isTranslationDisabled()) {
+      texts.forEach((text) => {
+        const resolvers = items.get(text) || [];
+        resolvers.forEach((r) => r(text));
+        items.delete(text);
+      });
+      continue;
+    }
 
     const langName = LANGUAGES.find((l) => l.code === lang)?.english ?? lang;
     try {
@@ -54,7 +63,8 @@ const flushQueue = async () => {
         resolvers.forEach((r) => r(out));
         items.delete(text);
       });
-    } catch {
+    } catch (e) {
+      if (looksLikeCreditsError(e)) tripBreaker("credits");
       // Fallback: return source text on failure (don't cache)
       texts.forEach((text) => {
         const resolvers = items.get(text) || [];

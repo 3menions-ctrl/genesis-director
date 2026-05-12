@@ -3284,6 +3284,48 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_override_audit: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          org_id: string
+          step: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          org_id: string
+          step: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_override_audit_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "onboarding_override_audit_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_api_keys: {
         Row: {
           created_at: string

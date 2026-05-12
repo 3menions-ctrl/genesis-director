@@ -55,10 +55,13 @@ const flushQueue = async () => {
         body: { texts, targetLanguage: lang, languageName: langName },
       });
       if (error) throw error;
+      if (data?.error === "CREDITS_EXHAUSTED") tripBreaker("credits");
       const translations: string[] = data?.translations ?? [];
+      const isFallback = data?.fallback === true;
       texts.forEach((text, i) => {
         const out = translations[i] || text;
-        writeCache(lang, text, out);
+        // Don't cache fallback (source) text — try again once credits return
+        if (!isFallback) writeCache(lang, text, out);
         const resolvers = items.get(text) || [];
         resolvers.forEach((r) => r(out));
         items.delete(text);

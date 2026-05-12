@@ -350,6 +350,54 @@ export function OnboardingWizard() {
               );
             })}
           </ul>
+
+          {isAdmin && audit.length > 0 && (
+            <div className="mt-5 mx-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55">
+                  Override audit
+                </div>
+                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
+                  Last {audit.length}
+                </div>
+              </div>
+              <ul className="space-y-1.5">
+                {audit.map(entry => {
+                  const stepLabel = STEPS.find(s => s.key === entry.step)?.label ?? entry.step;
+                  const when = (() => {
+                    try {
+                      const d = new Date(entry.created_at);
+                      const diffMs = Date.now() - d.getTime();
+                      const mins = Math.round(diffMs / 60000);
+                      if (mins < 1) return 'just now';
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.round(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      const days = Math.round(hrs / 24);
+                      if (days < 7) return `${days}d ago`;
+                      return d.toLocaleDateString();
+                    } catch { return ''; }
+                  })();
+                  const verb = entry.action === 'mark_done' ? 'marked done' : 'undid';
+                  const tone = entry.action === 'mark_done'
+                    ? 'text-[hsl(215,100%,78%)]'
+                    : 'text-[hsl(35,90%,72%)]';
+                  return (
+                    <li key={entry.id} className="flex items-center gap-2 text-[12px] text-white/65 font-light">
+                      <span className="truncate text-white/85">{entry.actor_name}</span>
+                      <span className={cn('font-mono text-[9px] uppercase tracking-[0.22em] shrink-0', tone)}>
+                        {verb}
+                      </span>
+                      <span className="truncate text-white/55">{stepLabel}</span>
+                      <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 shrink-0">
+                        {when}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

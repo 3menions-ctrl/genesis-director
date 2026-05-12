@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X } from 'lucide-react';
+import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -48,6 +48,8 @@ export function OnboardingWizard() {
   const [signals, setSignals] = useState<Signals>({ team: false, brand: false, credits: false, project: false });
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -77,6 +79,7 @@ export function OnboardingWizard() {
       };
       setSignals(sig);
       setLoadError(null);
+      setLastChecked(Date.now());
 
       if (!onboarded && !dismissed) setOpen(true);
     } catch (err: any) {
@@ -88,6 +91,21 @@ export function OnboardingWizard() {
       if (open) toast.error('Onboarding checklist unavailable', { description: msg });
     }
   }, [currentOrg, hasPermission, open]);
+
+  const recheck = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    const before = completedCountRef.current;
+    await load();
+    const after = Object.values(signalsRef.current).filter(Boolean).length;
+    if (after > before) {
+      toast.success(`${after - before} step${after - before > 1 ? 's' : ''} completed`);
+    } else if (!loadError) {
+      toast('Checklist up to date', { description: 'No new progress detected yet.' });
+    }
+    // small minimum spin so the user feels the refresh
+    setTimeout(() => setRefreshing(false), 350);
+  }, [load, refreshing, loadError]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -105,6 +123,11 @@ export function OnboardingWizard() {
   const completed = Object.values(signals).filter(Boolean).length;
   const total = STEPS.length;
   const allDone = completed === total;
+
+  // Refs so `recheck` can compare before/after without re-binding on every render.
+  const completedCountRef = useRef(completed);
+  const signalsRef = useRef(signals);
+  useEffect(() => { completedCountRef.current = completed; signalsRef.current = signals; }, [completed, signals]);
 
   const handleClose = (markFinished: boolean) => {
     if (!currentOrg) return;

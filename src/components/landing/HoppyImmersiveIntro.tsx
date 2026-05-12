@@ -1,7 +1,6 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Volume2, VolumeX, X } from 'lucide-react';
-import Hls from 'hls.js';
 
 export const HOPPY_INTRO_EVENT = 'hoppy:open-intro';
 
@@ -11,13 +10,30 @@ export const HOPPY_HLS_URL =
 export const HOPPY_MP4_URL =
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
+// Hoppy intro is a 6-clip lipsync playlist. The published .m3u8 references
+// raw (un-fragmented) MP4 segments — both hls.js and native Safari HLS
+// regularly DROP THE AUDIO TRACK on this kind of source. We therefore
+// bypass HLS entirely and play the 6 MP4 segments back-to-back via the
+// <video> element. Each MP4 is a complete file with embedded AAC audio,
+// so sound is guaranteed.
+const HOPPY_CLIP_BASE =
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c';
+const HOPPY_CLIPS: string[] = [
+  `${HOPPY_CLIP_BASE}_clip1_lipsync_1771086006879.mp4`,
+  `${HOPPY_CLIP_BASE}_clip2_lipsync_1771086184096.mp4`,
+  `${HOPPY_CLIP_BASE}_clip3_lipsync_1771086363289.mp4`,
+  `${HOPPY_CLIP_BASE}_clip4_lipsync_1771086544128.mp4`,
+  `${HOPPY_CLIP_BASE}_clip5_lipsync_1771086724461.mp4`,
+  `${HOPPY_CLIP_BASE}_clip6_lipsync_1771086905770.mp4`,
+];
+
 export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
   const [open, setOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const clipIdxRef = useRef(0);
 
   const dismiss = useCallback(() => {
     setOpen(false);
@@ -27,10 +43,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
       videoRef.current.removeAttribute('src');
       videoRef.current.load();
     }
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    clipIdxRef.current = 0;
   }, []);
 
   // Manual trigger via custom event from the hero button
@@ -57,77 +70,53 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
         video.volume = 1;
         await video.play();
       } catch {
-        // Browser may still block — fall back to muted, user can unmute via control
+        // Browser blocked unmuted playback — fall back to muted.
         try {
           video.muted = true;
           setMuted(true);
           await video.play();
-        } catch (err) {
+        } catch {
           if (!cancelled) setError('Playback blocked. Tap the video to play.');
         }
       }
     };
 
-    const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
-
-    const attachMp4 = () => {
-      video.src = HOPPY_MP4_URL;
+    const playClip = (idx: number, withSound: boolean) => {
+      if (cancelled) return;
+      clipIdxRef.current = idx;
+      video.src = HOPPY_CLIPS[idx];
       video.load();
-      video.addEventListener(
-        'loadedmetadata',
-        () => {
-          setReady(true);
-          playWithSound();
-        },
-        { once: true },
-      );
+      const onMeta = () => {
+        setReady(true);
+        if (withSound) playWithSound();
+        else video.play().catch(() => undefined);
+      };
+      video.addEventListener('loadedmetadata', onMeta, { once: true });
       video.addEventListener(
         'error',
         () => {
-          if (!cancelled) setError('Video failed to load.');
+          // If a mid-playlist clip fails, advance instead of aborting.
+          if (idx < HOPPY_CLIPS.length - 1) playClip(idx + 1, false);
+          else if (!cancelled) setError('Video failed to load.');
         },
         { once: true },
       );
     };
 
-    if (useNativeHls) {
-      // Safari / iOS — native HLS
-      video.src = HOPPY_HLS_URL;
-      video.addEventListener(
-        'loadedmetadata',
-        () => {
-          setReady(true);
-          playWithSound();
-        },
-        { once: true },
-      );
-      video.addEventListener(
-        'error',
-        () => {
-          // Fallback to MP4
-          attachMp4();
-        },
-        { once: true },
-      );
-    } else if (Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
-      hlsRef.current = hls;
-      hls.loadSource(HOPPY_HLS_URL);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setReady(true);
-        playWithSound();
-      });
-      hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (data.fatal) {
-          hls.destroy();
-          hlsRef.current = null;
-          attachMp4();
-        }
-      });
-    } else {
-      attachMp4();
-    }
+    const onEnded = () => {
+      const next = clipIdxRef.current + 1;
+      if (next < HOPPY_CLIPS.length) {
+        // Subsequent clips inherit the user's current mute state, but we
+        // reuse the same audio-allowed gesture so sound keeps flowing.
+        playClip(next, !video.muted);
+      } else {
+        dismiss();
+      }
+    };
+    video.addEventListener('ended', onEnded);
+
+    // First clip — uses the original "open" gesture, so unmuted autoplay works.
+    playClip(0, true);
 
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
@@ -145,11 +134,8 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
     return () => {
       cancelled = true;
       window.removeEventListener('keydown', onKey);
+      video.removeEventListener('ended', onEnded);
       document.body.style.overflow = '';
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
     };
   }, [open, dismiss]);
 
@@ -188,7 +174,6 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
               const v = videoRef.current;
               if (v && v.paused) v.play().catch(() => undefined);
             }}
-            onEnded={dismiss}
           />
 
           {/* Cinematic vignette — keeps controls readable */}

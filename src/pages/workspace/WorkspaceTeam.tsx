@@ -206,6 +206,16 @@ export default function WorkspaceTeam() {
                       <span className="font-mono text-[10px] text-[hsl(220,8%,45%)] uppercase tracking-[0.12em] hidden md:inline w-20 text-right">
                         {new Date(m.joined_at).toLocaleDateString()}
                       </span>
+                      <button
+                        onClick={() => canEdit && setLimit(m)}
+                        disabled={!canEdit}
+                        title={canEdit ? 'Set monthly credit cap' : 'Admin only'}
+                        className="font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(220,8%,55%)] hover:text-[hsl(215,100%,72%)] disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 border border-[hsl(220,14%,16%)] rounded hidden lg:inline"
+                      >
+                        {m.monthly_credit_limit == null
+                          ? '∞ credits'
+                          : `${(m.credits_used_this_month ?? 0).toLocaleString()} / ${m.monthly_credit_limit.toLocaleString()}`}
+                      </button>
                       {canEdit && (
                         <button onClick={() => removeMember(m.id)}
                                 className="p-1.5 hover:bg-[hsl(0,70%,40%)]/15 text-[hsl(0,80%,70%)]" title="Revoke seat">

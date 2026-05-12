@@ -271,6 +271,7 @@ export function OnboardingWizard() {
   const pct = Math.round((completed / total) * 100);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(false); }}>
       <DialogContent
         className="max-w-[560px] p-0 overflow-hidden border border-white/[0.08] bg-[hsl(220,16%,4%)]/95 backdrop-blur-2xl rounded-3xl shadow-[0_40px_120px_-20px_rgba(0,0,0,0.7)]"

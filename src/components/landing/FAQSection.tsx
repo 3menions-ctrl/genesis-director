@@ -10,27 +10,35 @@ import { motion } from 'framer-motion';
 const FAQS = [
   {
     question: 'How does it work?',
-    answer: 'Describe your video concept in text. Our AI generates video clips based on your description. You can regenerate clips until satisfied, then export your final video. Note: AI results vary and regeneration is normal—budget extra credits accordingly.',
+    answer: 'Describe your scene in plain language. Apex-Studio generates cinematic clips with native audio, lip-sync and character continuity, then lets you regenerate, edit and export the final film. AI output varies between runs — regenerating clips is part of the creative process, so plan a small credit buffer for iteration.',
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power everything on APEX — video generation, photo editing, avatars, and more. Each credit costs just $0.10 and never expires. No subscriptions required.',
+    answer: 'Credits power everything on Apex-Studio — video generation, photo editing, avatars, voice and exports. Each credit is $0.10 USD, billed in pay-as-you-go packs. There are no subscriptions, no seats and no monthly minimums. Purchased credits never expire while your account remains active.',
   },
   {
     question: 'Can I get a refund on credits?',
-    answer: 'No. ALL credit purchases are final and non-refundable. This includes unused credits, dissatisfaction with AI results, or account closure. We recommend starting with a small credit pack to try out the platform before making larger purchases.',
+    answer: 'No. All credit purchases are final and non-refundable — including unused credits, dissatisfaction with AI output, account closure or deactivation. If a generation fails for a technical reason on our side, the credits used for that specific job are automatically refunded to your balance. We recommend starting with the smallest credit pack to evaluate the platform before larger purchases.',
   },
   {
     question: 'What are the AI limitations I should know about?',
-    answer: 'AI video generation has inherent limitations: visual artifacts, character inconsistencies between scenes, unrealistic physics, and unexpected interpretations of prompts. Regenerating clips multiple times is normal and expected—not a bug. We cannot guarantee specific results.',
+    answer: 'Generative AI has real limitations. Expect occasional visual artifacts, minor character drift between scenes, imperfect physics, hands or text rendering, and prompts that are interpreted differently than you imagined. Regenerating a clip several times to land the right take is normal — not a defect. We do not guarantee any specific creative result, likeness match, brand fidelity or factual accuracy.',
   },
   {
     question: 'Can I use videos commercially?',
-    answer: 'Yes. Videos you create are yours for any legal purpose, including commercial projects. However, you are responsible for reviewing content for accuracy and ensuring it meets legal requirements before publishing.',
+    answer: 'Yes. You own the videos you generate and may use them for any lawful purpose, including paid advertising and commercial projects, subject to our Terms of Service. You are solely responsible for reviewing every output before publishing — including accuracy, rights clearance for any uploaded reference material, likeness/voice consent, disclosure of AI-generated content where required by law, and compliance with the platforms you distribute on.',
+  },
+  {
+    question: 'What content is not allowed?',
+    answer: 'Apex-Studio prohibits non-consensual intimate imagery, sexual content involving minors, deceptive deepfakes of real people without consent, content that incites violence or hatred, election or medical disinformation, and any use that violates applicable law. We use multi-layer moderation; violating accounts can be suspended without refund.',
+  },
+  {
+    question: 'How is my data handled?',
+    answer: 'Your projects, prompts and generated assets are stored in your private workspace and protected by row-level security. We do not train foundation models on your private content. Account deletion permanently purges your projects and uploads; anonymized billing records are retained as required by tax and accounting law. Full details are in our Privacy Policy.',
   },
   {
     question: 'Do credits expire?',
-    answer: 'No. Purchased credits never expire and remain in your account indefinitely while your account is active.',
+    answer: 'No. Purchased credits never expire and remain in your account indefinitely while your account is active and in good standing.',
   },
 ];
 

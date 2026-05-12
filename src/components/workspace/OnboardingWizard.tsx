@@ -5,6 +5,8 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * First-run org onboarding wizard.
@@ -45,6 +47,7 @@ export function OnboardingWizard() {
   const [open, setOpen] = useState(false);
   const [signals, setSignals] = useState<Signals>({ team: false, brand: false, credits: false, project: false });
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -52,26 +55,39 @@ export function OnboardingWizard() {
     if (!hasPermission('admin')) return;
 
     // Fetch onboarded_at + dependent signals in parallel.
-    const [orgRes, members, brandKits, projects] = await Promise.all([
-      supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color').eq('id', currentOrg.id).maybeSingle(),
-      supabase.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
-      supabase.from('brand_kits').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
-      supabase.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
-    ]);
+    try {
+      const [orgRes, members, brandKits, projects] = await Promise.all([
+        supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color').eq('id', currentOrg.id).maybeSingle(),
+        supabase.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+        supabase.from('brand_kits').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+        supabase.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+      ]);
 
-    const onboarded = !!orgRes.data?.onboarded_at;
-    const dismissed = (() => { try { return localStorage.getItem(DISMISS_KEY(currentOrg.id)) === '1'; } catch { return false; } })();
+      const firstError = orgRes.error || members.error || brandKits.error || projects.error;
+      if (firstError) throw firstError;
 
-    const sig: Signals = {
-      team:    (members.count ?? 0) > 1,
-      brand:   (brandKits.count ?? 0) > 0 || !!orgRes.data?.brand_primary_color,
-      credits: (orgRes.data?.credits_balance ?? 0) > 0 || (orgRes.data?.total_credits_purchased ?? 0) > 0,
-      project: (projects.count ?? 0) > 0,
-    };
-    setSignals(sig);
+      const onboarded = !!orgRes.data?.onboarded_at;
+      const dismissed = (() => { try { return localStorage.getItem(DISMISS_KEY(currentOrg.id)) === '1'; } catch { return false; } })();
 
-    if (!onboarded && !dismissed) setOpen(true);
-  }, [currentOrg, hasPermission]);
+      const sig: Signals = {
+        team:    (members.count ?? 0) > 1,
+        brand:   (brandKits.count ?? 0) > 0 || !!orgRes.data?.brand_primary_color,
+        credits: (orgRes.data?.credits_balance ?? 0) > 0 || (orgRes.data?.total_credits_purchased ?? 0) > 0,
+        project: (projects.count ?? 0) > 0,
+      };
+      setSignals(sig);
+      setLoadError(null);
+
+      if (!onboarded && !dismissed) setOpen(true);
+    } catch (err: any) {
+      const msg = err?.message || 'Could not load onboarding status.';
+      console.error('[OnboardingWizard] load failed:', err);
+      setLoadError(msg);
+      // Only toast when the modal is actually visible — silent on background polls
+      // before the wizard ever opened.
+      if (open) toast.error('Onboarding checklist unavailable', { description: msg });
+    }
+  }, [currentOrg, hasPermission, open]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -96,7 +112,9 @@ export function OnboardingWizard() {
     setOpen(false);
     if (markFinished) {
       // Fire-and-forget — wizard never blocks the UI on this.
-      supabase.rpc('mark_org_onboarded', { p_org: currentOrg.id }).then(() => {});
+      supabase.rpc('mark_org_onboarded', { p_org: currentOrg.id }).then(({ error }) => {
+        if (error) toast.error('Could not mark workspace ready', { description: error.message });
+      });
     }
   };
 
@@ -104,9 +122,15 @@ export function OnboardingWizard() {
     if (!currentOrg) return;
     setBusy(true);
     try {
-      await supabase.rpc('mark_org_onboarded', { p_org: currentOrg.id });
+      const { error } = await supabase.rpc('mark_org_onboarded', { p_org: currentOrg.id });
+      if (error) throw error;
       try { localStorage.removeItem(DISMISS_KEY(currentOrg.id)); } catch {}
+      toast.success('Workspace marked as ready');
       setOpen(false);
+    } catch (err: any) {
+      const msg = err?.message || 'Please try again in a moment.';
+      console.error('[OnboardingWizard] mark_org_onboarded failed:', err);
+      toast.error('Could not finish setup', { description: msg });
     } finally { setBusy(false); }
   };
 

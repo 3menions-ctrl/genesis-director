@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 
 interface Member {
   id: string; user_id: string; role: OrgRole; joined_at: string;
+  monthly_credit_limit: number | null;
+  credits_used_this_month: number;
   profile?: { display_name: string | null; full_name: string | null; email: string | null; avatar_url: string | null };
 }
 interface Invite {
@@ -43,7 +45,7 @@ export default function WorkspaceTeam() {
     setLoading(true);
     try {
       const [mRes, iRes] = await Promise.all([
-        supabase.from('organization_members').select('id, user_id, role, joined_at').eq('organization_id', currentOrg.id),
+        supabase.from('organization_members').select('id, user_id, role, joined_at, monthly_credit_limit, credits_used_this_month').eq('organization_id', currentOrg.id),
         supabase.from('organization_invites').select('*').eq('organization_id', currentOrg.id).is('accepted_at', null).order('created_at', { ascending: false }),
       ]);
       if (mRes.data) {
@@ -82,6 +84,20 @@ export default function WorkspaceTeam() {
     if (!confirm('Remove this member from the workspace?')) return;
     const { error } = await supabase.from('organization_members').delete().eq('id', memberId);
     if (error) toast.error(error.message); else { toast.success('Member removed'); load(); refresh(); }
+  };
+
+  const setLimit = async (m: Member) => {
+    const raw = prompt(
+      `Monthly credit cap for ${m.profile?.email || 'this member'} (leave blank for unlimited):`,
+      m.monthly_credit_limit?.toString() ?? '',
+    );
+    if (raw === null) return;
+    const limit = raw.trim() === '' ? null : Math.max(0, parseInt(raw, 10));
+    if (raw.trim() !== '' && Number.isNaN(limit as number)) return toast.error('Enter a number or leave blank');
+    const { error } = await supabase.rpc('set_member_credit_limit', {
+      p_org: currentOrg!.id, p_user: m.user_id, p_limit: limit,
+    } as any);
+    if (error) toast.error(error.message); else { toast.success(limit === null ? 'Cap removed' : `Cap set to ${limit}`); load(); }
   };
 
   const revokeInvite = async (inviteId: string) => {

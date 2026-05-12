@@ -441,16 +441,41 @@ export function OnboardingWizard() {
             })}
           </ul>
 
-          {isAdmin && audit.length > 0 && (
+          {isAdmin && (
             <div className="mt-5 mx-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55">
+              <div className="flex items-center justify-between mb-3 gap-3">
+                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55 shrink-0">
                   Override audit
                 </div>
-                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
-                  Last {audit.length}
-                </div>
+                <button
+                  onClick={() => persistAutoClear(!autoClear)}
+                  title="When the underlying signal is detected, auto-clear the manual override and log it."
+                  className="group inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.22em] text-white/55 hover:text-white transition-colors"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'relative inline-flex w-7 h-3.5 rounded-full transition-colors',
+                      autoClear
+                        ? 'bg-[hsl(215,100%,55%)]/70 border border-[hsl(215,100%,55%/0.4)]'
+                        : 'bg-white/[0.06] border border-white/[0.08]',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-[1px] w-2.5 h-2.5 rounded-full bg-white shadow transition-all',
+                        autoClear ? 'left-[14px]' : 'left-[1px]',
+                      )}
+                    />
+                  </span>
+                  Auto-clear when detected
+                </button>
               </div>
+              {audit.length === 0 && (
+                <div className="text-[12px] text-white/40 font-light italic">
+                  No manual overrides yet.
+                </div>
+              )}
               <ul className="space-y-1.5">
                 {audit.map(entry => {
                   const stepLabel = STEPS.find(s => s.key === entry.step)?.label ?? entry.step;

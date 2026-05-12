@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
+import { OnboardingWizard } from '@/components/workspace/OnboardingWizard';
 import logoImage from '@/assets/apex-studio-logo.png';
 
 interface NavItem {
@@ -462,6 +463,8 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
           {children}
         </div>
       </div>
+      {/* First-run org onboarding — auto-opens once per org for owners/admins */}
+      <OnboardingWizard />
     </div>
     </TooltipProvider>
   );

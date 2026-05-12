@@ -254,34 +254,62 @@ export function OnboardingWizard() {
           )}
           <ul className="space-y-1">
             {STEPS.map(({ key, label, description, Icon, to }) => {
-              const done = signals[key];
+              const auto = signals[key];
+              const overridden = !!overrides[key];
+              const done = auto || overridden;
               return (
                 <li key={key}>
-                  <button
-                    onClick={() => go(to)}
+                  <div
                     className={cn(
-                      'group w-full flex items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-300',
+                      'group flex items-center gap-4 rounded-2xl px-4 py-3 transition-all duration-300',
                       'border border-transparent hover:border-white/[0.08] hover:bg-white/[0.03]',
                     )}
                   >
-                    <div
-                      className={cn(
-                        'w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300',
-                        done
-                          ? 'bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,38%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)]'
-                          : 'bg-white/[0.04] text-white/55 border border-white/[0.06]',
-                      )}
+                    <button
+                      onClick={() => go(to)}
+                      className="flex items-center gap-4 flex-1 min-w-0 text-left"
                     >
-                      {done ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={cn('font-display text-[14px] tracking-[-0.01em] leading-tight', done ? 'text-white/55 line-through decoration-white/30' : 'text-white/95')}>
-                        {label}
+                      <div
+                        className={cn(
+                          'w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300',
+                          done
+                            ? 'bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,38%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)]'
+                            : 'bg-white/[0.04] text-white/55 border border-white/[0.06]',
+                        )}
+                      >
+                        {done ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
                       </div>
-                      <div className="text-[12px] text-white/45 font-light mt-0.5">{description}</div>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all" strokeWidth={1.5} />
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className={cn('font-display text-[14px] tracking-[-0.01em] leading-tight', done ? 'text-white/55 line-through decoration-white/30' : 'text-white/95')}>
+                            {label}
+                          </div>
+                          {overridden && !auto && (
+                            <span className="font-mono text-[8.5px] uppercase tracking-[0.22em] px-1.5 py-[2px] rounded-full text-[hsl(215,100%,78%)] border border-[hsl(215,100%,55%/0.3)] bg-[hsl(215,100%,40%/0.12)]">
+                              Manual
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[12px] text-white/45 font-light mt-0.5">{description}</div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all shrink-0" strokeWidth={1.5} />
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleOverride(key, !overridden); }}
+                        title={overridden ? 'Undo manual override' : (auto ? 'Step already auto-detected' : 'Mark this step done manually')}
+                        disabled={auto && !overridden}
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-full font-mono text-[9px] uppercase tracking-[0.22em] transition-colors',
+                          'border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/[0.06]',
+                          (auto && !overridden) && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-white/55',
+                          overridden && 'text-[hsl(215,100%,78%)] border-[hsl(215,100%,55%/0.3)]',
+                        )}
+                      >
+                        {overridden ? <><RotateCcw className="w-2.5 h-2.5" strokeWidth={1.8} />Undo</> : <><Check className="w-2.5 h-2.5" strokeWidth={2} />Mark done</>}
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}

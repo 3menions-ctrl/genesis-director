@@ -3911,6 +3911,7 @@ export type Database = {
           name: string
           onboarded_at: string | null
           onboarding_completed: boolean
+          onboarding_overrides: Json
           plan: string
           primary_use_case: string | null
           require_2fa: boolean
@@ -3947,6 +3948,7 @@ export type Database = {
           name: string
           onboarded_at?: string | null
           onboarding_completed?: boolean
+          onboarding_overrides?: Json
           plan?: string
           primary_use_case?: string | null
           require_2fa?: boolean
@@ -3983,6 +3985,7 @@ export type Database = {
           name?: string
           onboarded_at?: string | null
           onboarding_completed?: boolean
+          onboarding_overrides?: Json
           plan?: string
           primary_use_case?: string | null
           require_2fa?: boolean
@@ -7046,6 +7049,10 @@ export type Database = {
       set_org_integration_webhook: {
         Args: { p_kind: string; p_org: string; p_url: string }
         Returns: undefined
+      }
+      set_org_onboarding_override: {
+        Args: { p_done: boolean; p_org: string; p_step: string }
+        Returns: Json
       }
       set_org_plan: {
         Args: { p_org_id: string; p_plan: string }

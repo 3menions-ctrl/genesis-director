@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeftRight, Play, Sparkles } from 'lucide-react';
 import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
-import seedanceVideo from '@/assets/seedance-avatar-test.mp4.asset.json';
 import avatarWave from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import poster1 from '@/assets/hero/hero-poster-1.jpg';
 import poster2 from '@/assets/hero/hero-poster-2.jpg';

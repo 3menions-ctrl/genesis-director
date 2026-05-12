@@ -47,6 +47,7 @@ interface AuditEntry {
   created_at: string;
   actor_id: string;
   actor_name?: string | null;
+  reason?: string | null;
 }
 
 const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
@@ -62,6 +63,9 @@ export function OnboardingWizard() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState<number | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [reasonFor, setReasonFor] = useState<StepKey | null>(null);
+  const [reasonText, setReasonText] = useState('');
+  const [reasonBusy, setReasonBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -103,7 +107,7 @@ export function OnboardingWizard() {
       try {
         const { data: auditRows } = await (supabase
           .from('onboarding_override_audit') as any)
-          .select('id, step, action, created_at, actor_id')
+          .select('id, step, action, created_at, actor_id, reason')
           .eq('org_id', currentOrg.id)
           .order('created_at', { ascending: false })
           .limit(8);
@@ -171,19 +175,56 @@ export function OnboardingWizard() {
 
   const toggleOverride = useCallback(async (key: StepKey, next: boolean) => {
     if (!currentOrg || !isAdmin) return;
-    const prev = overrides;
-    // Optimistic
-    setOverrides(o => ({ ...o, [key]: next || undefined }) as Overrides);
-    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
-      p_org: currentOrg.id, p_step: key, p_done: next,
-    });
-    if (error) {
-      setOverrides(prev); // revert
-      toast.error(next ? 'Could not mark step done' : 'Could not undo override', { description: error.message });
+    // Marking done now requires a reason — open the reason dialog instead of
+    // immediately calling the RPC. Undo proceeds without prompting.
+    if (next) {
+      setReasonFor(key);
+      setReasonText('');
       return;
     }
-    toast.success(next ? 'Step marked done' : 'Override removed');
-  }, [currentOrg, isAdmin, overrides]);
+    const prev = overrides;
+    setOverrides(o => ({ ...o, [key]: undefined }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: false,
+    });
+    if (error) {
+      setOverrides(prev);
+      toast.error('Could not undo override', { description: error.message });
+      return;
+    }
+    toast.success('Override removed');
+    load();
+  }, [currentOrg, isAdmin, overrides, load]);
+
+  const submitReason = useCallback(async () => {
+    if (!currentOrg || !reasonFor) return;
+    const trimmed = reasonText.trim();
+    if (trimmed.length < 3) {
+      toast.error('Reason required', { description: 'Please enter at least 3 characters.' });
+      return;
+    }
+    if (trimmed.length > 280) {
+      toast.error('Reason too long', { description: 'Keep it under 280 characters.' });
+      return;
+    }
+    setReasonBusy(true);
+    const key = reasonFor;
+    const prev = overrides;
+    setOverrides(o => ({ ...o, [key]: true }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: true, p_reason: trimmed,
+    });
+    setReasonBusy(false);
+    if (error) {
+      setOverrides(prev);
+      toast.error('Could not mark step done', { description: error.message });
+      return;
+    }
+    toast.success('Step marked done');
+    setReasonFor(null);
+    setReasonText('');
+    load();
+  }, [currentOrg, reasonFor, reasonText, overrides, load]);
 
   // Refs so `recheck` can compare before/after without re-binding on every render.
   const completedCountRef = useRef(completed);

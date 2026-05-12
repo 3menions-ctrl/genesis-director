@@ -325,6 +325,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     if (profile && !profile.onboarding_completed) {
       const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
       navigate(target, { replace: true });
+    } else if (profile?.account_type === 'admin') {
+      navigate('/admin', { replace: true });
     } else {
       navigate(nextParam || (choice === 'create' ? '/create' : '/creators'), { replace: true });
     }

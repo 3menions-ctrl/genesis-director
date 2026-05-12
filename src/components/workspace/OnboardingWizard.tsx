@@ -67,6 +67,8 @@ export function OnboardingWizard() {
   const [reasonFor, setReasonFor] = useState<StepKey | null>(null);
   const [reasonText, setReasonText] = useState('');
   const [reasonBusy, setReasonBusy] = useState(false);
+  const [undoFor, setUndoFor] = useState<StepKey | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
   const [autoClear, setAutoClear] = useState<boolean>(true);
   const autoClearRef = useRef(true);
   useEffect(() => { autoClearRef.current = autoClear; }, [autoClear]);
@@ -230,19 +232,30 @@ export function OnboardingWizard() {
       setReasonText('');
       return;
     }
+    // Undo also requires explicit confirmation to prevent accidental
+    // reversal of a manual decision.
+    setUndoFor(key);
+  }, [currentOrg, isAdmin]);
+
+  const confirmUndo = useCallback(async () => {
+    if (!currentOrg || !undoFor) return;
+    const key = undoFor;
     const prev = overrides;
+    setUndoBusy(true);
     setOverrides(o => ({ ...o, [key]: undefined }) as Overrides);
     const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
       p_org: currentOrg.id, p_step: key, p_done: false,
     });
+    setUndoBusy(false);
     if (error) {
       setOverrides(prev);
       toast.error('Could not undo override', { description: error.message });
       return;
     }
     toast.success('Override removed');
+    setUndoFor(null);
     load();
-  }, [currentOrg, isAdmin, overrides, load]);
+  }, [currentOrg, undoFor, overrides, load]);
 
   const submitReason = useCallback(async () => {
     if (!currentOrg || !reasonFor) return;
@@ -616,6 +629,45 @@ export function OnboardingWizard() {
           >
             <Check className="w-3 h-3" strokeWidth={2} />
             {reasonBusy ? 'Saving…' : 'Mark done'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={undoFor !== null} onOpenChange={(o) => { if (!o && !undoBusy) setUndoFor(null); }}>
+      <DialogContent className="max-w-md p-0 gap-0 border border-white/[0.08] bg-[hsl(220,14%,4%)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/[0.05]">
+          <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[hsl(35,90%,72%)] mb-1.5">
+            Undo manual override
+          </div>
+          <div className="font-display text-[18px] tracking-[-0.01em] text-white/95">
+            Undo “{STEPS.find(s => s.key === undoFor)?.label ?? 'this step'}”?
+          </div>
+          <div className="mt-1.5 text-[12px] text-white/55 font-light leading-relaxed">
+            This removes the manual completion. If the underlying signal is not yet
+            detected, the step will revert to <span className="text-white/85">incomplete</span>.
+            The change is recorded in the audit log.
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
+          <button
+            onClick={() => setUndoFor(null)}
+            disabled={undoBusy}
+            className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-3 h-9 rounded-full transition-colors"
+          >
+            Keep override
+          </button>
+          <button
+            onClick={confirmUndo}
+            disabled={undoBusy}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition-all',
+              'bg-[hsl(35,90%,55%)]/15 text-[hsl(35,90%,82%)] border border-[hsl(35,90%,55%/0.4)] hover:bg-[hsl(35,90%,55%)]/25',
+              undoBusy && 'opacity-60 cursor-wait',
+            )}
+          >
+            <RotateCcw className="w-3 h-3" strokeWidth={1.8} />
+            {undoBusy ? 'Undoing…' : 'Undo override'}
           </button>
         </div>
       </DialogContent>

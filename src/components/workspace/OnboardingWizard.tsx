@@ -51,6 +51,7 @@ interface AuditEntry {
 }
 
 const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
+const AUTOCLEAR_KEY = (orgId: string) => `apex.workspace.onboarding.autoclear.${orgId}`;
 
 export function OnboardingWizard() {
   const { currentOrg, hasPermission } = useWorkspace();
@@ -66,6 +67,24 @@ export function OnboardingWizard() {
   const [reasonFor, setReasonFor] = useState<StepKey | null>(null);
   const [reasonText, setReasonText] = useState('');
   const [reasonBusy, setReasonBusy] = useState(false);
+  const [autoClear, setAutoClear] = useState<boolean>(true);
+  const autoClearRef = useRef(true);
+  useEffect(() => { autoClearRef.current = autoClear; }, [autoClear]);
+
+  // Hydrate per-org auto-clear preference (default ON).
+  useEffect(() => {
+    if (!currentOrg) return;
+    try {
+      const v = localStorage.getItem(AUTOCLEAR_KEY(currentOrg.id));
+      setAutoClear(v === null ? true : v === '1');
+    } catch { setAutoClear(true); }
+  }, [currentOrg?.id]);
+
+  const persistAutoClear = useCallback((next: boolean) => {
+    setAutoClear(next);
+    if (!currentOrg) return;
+    try { localStorage.setItem(AUTOCLEAR_KEY(currentOrg.id), next ? '1' : '0'); } catch {}
+  }, [currentOrg?.id]);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -100,6 +119,35 @@ export function OnboardingWizard() {
       setOverrides(ov);
       setLoadError(null);
       setLastChecked(Date.now());
+
+      // Auto-clear: when an auto signal becomes true and a manual override
+      // also exists for that step, the override is now redundant — silently
+      // undo it so the audit log stays clean and accurate.
+      if (autoClearRef.current) {
+        const stale = (Object.keys(ov) as StepKey[]).filter(k => ov[k] && sig[k]);
+        if (stale.length) {
+          // Optimistic local clear
+          setOverrides(o => {
+            const copy: Overrides = { ...o };
+            for (const k of stale) copy[k] = undefined;
+            return copy;
+          });
+          // Fire-and-forget RPCs (each writes its own audit entry).
+          Promise.all(stale.map(k =>
+            (supabase.rpc as any)('set_org_onboarding_override', {
+              p_org: currentOrg.id, p_step: k, p_done: false,
+            })
+          )).then((results: any[]) => {
+            const failed = results.filter(r => r?.error).length;
+            if (failed === 0 && stale.length > 0) {
+              const labels = stale.map(k => STEPS.find(s => s.key === k)?.label ?? k).join(', ');
+              toast.success('Manual override cleared', {
+                description: `Auto-detected: ${labels}`,
+              });
+            }
+          }).catch(() => { /* silent */ });
+        }
+      }
 
       if (!onboarded && !dismissed) setOpen(true);
 

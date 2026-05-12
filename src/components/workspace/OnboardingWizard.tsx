@@ -425,12 +425,21 @@ export function OnboardingWizard() {
                     : 'text-[hsl(35,90%,72%)]';
                   return (
                     <li key={entry.id} className="flex items-center gap-2 text-[12px] text-white/65 font-light">
-                      <span className="truncate text-white/85">{entry.actor_name}</span>
-                      <span className={cn('font-mono text-[9px] uppercase tracking-[0.22em] shrink-0', tone)}>
-                        {verb}
-                      </span>
-                      <span className="truncate text-white/55">{stepLabel}</span>
-                      <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 shrink-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-white/85">{entry.actor_name}</span>
+                          <span className={cn('font-mono text-[9px] uppercase tracking-[0.22em] shrink-0', tone)}>
+                            {verb}
+                          </span>
+                          <span className="truncate text-white/55">{stepLabel}</span>
+                        </div>
+                        {entry.reason && (
+                          <div className="mt-0.5 text-[11px] text-white/45 font-light italic truncate" title={entry.reason}>
+                            “{entry.reason}”
+                          </div>
+                        )}
+                      </div>
+                      <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 shrink-0">
                         {when}
                       </span>
                     </li>

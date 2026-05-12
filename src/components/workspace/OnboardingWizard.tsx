@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw } from 'lucide-react';
+import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw, RotateCcw } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -38,6 +38,7 @@ const STEPS: StepDef[] = [
 ];
 
 interface Signals { team: boolean; brand: boolean; credits: boolean; project: boolean }
+type Overrides = Partial<Record<StepKey, boolean>>;
 
 const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
 
@@ -46,6 +47,7 @@ export function OnboardingWizard() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [signals, setSignals] = useState<Signals>({ team: false, brand: false, credits: false, project: false });
+  const [overrides, setOverrides] = useState<Overrides>({});
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,7 +61,7 @@ export function OnboardingWizard() {
     // Fetch onboarded_at + dependent signals in parallel.
     try {
       const [orgRes, members, brandKits, projects] = await Promise.all([
-        supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color').eq('id', currentOrg.id).maybeSingle(),
+        supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color, onboarding_overrides' as any).eq('id', currentOrg.id).maybeSingle(),
         supabase.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('brand_kits').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
@@ -69,6 +71,8 @@ export function OnboardingWizard() {
       if (firstError) throw firstError;
 
       const onboarded = !!orgRes.data?.onboarded_at;
+      const ovRaw = (orgRes.data as any)?.onboarding_overrides;
+      const ov: Overrides = (ovRaw && typeof ovRaw === 'object' && !Array.isArray(ovRaw)) ? ovRaw : {};
       const dismissed = (() => { try { return localStorage.getItem(DISMISS_KEY(currentOrg.id)) === '1'; } catch { return false; } })();
 
       const sig: Signals = {
@@ -78,6 +82,7 @@ export function OnboardingWizard() {
         project: (projects.count ?? 0) > 0,
       };
       setSignals(sig);
+      setOverrides(ov);
       setLoadError(null);
       setLastChecked(Date.now());
 
@@ -120,9 +125,28 @@ export function OnboardingWizard() {
     return () => { window.clearInterval(id); window.removeEventListener('focus', onFocus); };
   }, [open, currentOrg, load]);
 
-  const completed = Object.values(signals).filter(Boolean).length;
+  const isDone = (k: StepKey) => signals[k] || !!overrides[k];
+  const completed = STEPS.filter(s => isDone(s.key)).length;
   const total = STEPS.length;
   const allDone = completed === total;
+
+  const isAdmin = hasPermission('admin');
+
+  const toggleOverride = useCallback(async (key: StepKey, next: boolean) => {
+    if (!currentOrg || !isAdmin) return;
+    const prev = overrides;
+    // Optimistic
+    setOverrides(o => ({ ...o, [key]: next || undefined }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: next,
+    });
+    if (error) {
+      setOverrides(prev); // revert
+      toast.error(next ? 'Could not mark step done' : 'Could not undo override', { description: error.message });
+      return;
+    }
+    toast.success(next ? 'Step marked done' : 'Override removed');
+  }, [currentOrg, isAdmin, overrides]);
 
   // Refs so `recheck` can compare before/after without re-binding on every render.
   const completedCountRef = useRef(completed);

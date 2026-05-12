@@ -20,6 +20,10 @@ export default function WorkspaceCredits() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [alertDaily, setAlertDaily] = useState<string>('');
+  const [alertWeekly, setAlertWeekly] = useState<string>('');
+  const [savingAlerts, setSavingAlerts] = useState(false);
+
   useEffect(() => {
     if (!currentOrg) return;
     (async () => {
@@ -31,8 +35,28 @@ export default function WorkspaceCredits() {
         if ((data as any).auto_recharge_threshold) setThreshold((data as any).auto_recharge_threshold);
         if ((data as any).auto_recharge_amount) setAmount((data as any).auto_recharge_amount);
       }
+      const { data: alerts } = await supabase.from('organizations')
+        .select('spend_alert_daily, spend_alert_weekly')
+        .eq('id', currentOrg.id).maybeSingle();
+      if (alerts) {
+        setAlertDaily((alerts as any).spend_alert_daily?.toString() ?? '');
+        setAlertWeekly((alerts as any).spend_alert_weekly?.toString() ?? '');
+      }
     })();
   }, [currentOrg?.id]);
+
+  const saveAlerts = async () => {
+    if (!currentOrg) return;
+    const d = alertDaily.trim() === '' ? null : Math.max(0, parseInt(alertDaily, 10));
+    const w = alertWeekly.trim() === '' ? null : Math.max(0, parseInt(alertWeekly, 10));
+    setSavingAlerts(true);
+    const { error } = await supabase.rpc('set_org_spend_alerts', {
+      p_org: currentOrg.id, p_daily: d, p_weekly: w,
+    } as any);
+    setSavingAlerts(false);
+    if (error) return toast.error(error.message);
+    toast.success('Spend alerts saved');
+  };
 
   const save = async (turnOn: boolean) => {
     if (!currentOrg) return;

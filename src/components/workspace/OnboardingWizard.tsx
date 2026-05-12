@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X } from 'lucide-react';
+import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -48,6 +48,8 @@ export function OnboardingWizard() {
   const [signals, setSignals] = useState<Signals>({ team: false, brand: false, credits: false, project: false });
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -77,6 +79,7 @@ export function OnboardingWizard() {
       };
       setSignals(sig);
       setLoadError(null);
+      setLastChecked(Date.now());
 
       if (!onboarded && !dismissed) setOpen(true);
     } catch (err: any) {
@@ -88,6 +91,21 @@ export function OnboardingWizard() {
       if (open) toast.error('Onboarding checklist unavailable', { description: msg });
     }
   }, [currentOrg, hasPermission, open]);
+
+  const recheck = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    const before = completedCountRef.current;
+    await load();
+    const after = Object.values(signalsRef.current).filter(Boolean).length;
+    if (after > before) {
+      toast.success(`${after - before} step${after - before > 1 ? 's' : ''} completed`);
+    } else if (!loadError) {
+      toast('Checklist up to date', { description: 'No new progress detected yet.' });
+    }
+    // small minimum spin so the user feels the refresh
+    setTimeout(() => setRefreshing(false), 350);
+  }, [load, refreshing, loadError]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -105,6 +123,11 @@ export function OnboardingWizard() {
   const completed = Object.values(signals).filter(Boolean).length;
   const total = STEPS.length;
   const allDone = completed === total;
+
+  // Refs so `recheck` can compare before/after without re-binding on every render.
+  const completedCountRef = useRef(completed);
+  const signalsRef = useRef(signals);
+  useEffect(() => { completedCountRef.current = completed; signalsRef.current = signals; }, [completed, signals]);
 
   const handleClose = (markFinished: boolean) => {
     if (!currentOrg) return;
@@ -242,12 +265,29 @@ export function OnboardingWizard() {
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
-          <button
-            onClick={() => handleClose(false)}
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45 hover:text-white/80 transition-colors"
-          >
-            Remind me later
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleClose(false)}
+              className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45 hover:text-white/80 transition-colors"
+            >
+              Remind me later
+            </button>
+            <button
+              onClick={recheck}
+              disabled={refreshing}
+              className={cn(
+                'group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/55 hover:text-white transition-colors',
+                refreshing && 'opacity-70 cursor-wait',
+              )}
+              title={lastChecked ? `Last checked ${new Date(lastChecked).toLocaleTimeString()}` : 'Re-check progress'}
+            >
+              <RefreshCw
+                className={cn('w-3 h-3', refreshing && 'animate-spin')}
+                strokeWidth={1.8}
+              />
+              Re-check progress
+            </button>
+          </div>
           <button
             onClick={finish}
             disabled={busy}

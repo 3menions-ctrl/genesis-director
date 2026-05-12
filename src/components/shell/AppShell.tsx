@@ -239,6 +239,7 @@ export function AppShell({ children }: AppShellProps) {
                 const link = (
                   <NavLink
                     to={item.to}
+                    onClick={handleNavClick(item.to)}
                     className={cn(
                       'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                       active

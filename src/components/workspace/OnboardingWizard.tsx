@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw } from 'lucide-react';
+import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw, RotateCcw } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -38,6 +38,7 @@ const STEPS: StepDef[] = [
 ];
 
 interface Signals { team: boolean; brand: boolean; credits: boolean; project: boolean }
+type Overrides = Partial<Record<StepKey, boolean>>;
 
 const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
 
@@ -46,6 +47,7 @@ export function OnboardingWizard() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [signals, setSignals] = useState<Signals>({ team: false, brand: false, credits: false, project: false });
+  const [overrides, setOverrides] = useState<Overrides>({});
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,17 +60,20 @@ export function OnboardingWizard() {
 
     // Fetch onboarded_at + dependent signals in parallel.
     try {
-      const [orgRes, members, brandKits, projects] = await Promise.all([
-        supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color').eq('id', currentOrg.id).maybeSingle(),
+      const [orgResRaw, members, brandKits, projects] = await Promise.all([
+        (supabase.from('organizations') as any).select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color, onboarding_overrides').eq('id', currentOrg.id).maybeSingle(),
         supabase.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('brand_kits').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
       ]);
+      const orgRes = orgResRaw as { data: any; error: any };
 
       const firstError = orgRes.error || members.error || brandKits.error || projects.error;
       if (firstError) throw firstError;
 
       const onboarded = !!orgRes.data?.onboarded_at;
+      const ovRaw = (orgRes.data as any)?.onboarding_overrides;
+      const ov: Overrides = (ovRaw && typeof ovRaw === 'object' && !Array.isArray(ovRaw)) ? ovRaw : {};
       const dismissed = (() => { try { return localStorage.getItem(DISMISS_KEY(currentOrg.id)) === '1'; } catch { return false; } })();
 
       const sig: Signals = {
@@ -78,6 +83,7 @@ export function OnboardingWizard() {
         project: (projects.count ?? 0) > 0,
       };
       setSignals(sig);
+      setOverrides(ov);
       setLoadError(null);
       setLastChecked(Date.now());
 
@@ -120,9 +126,28 @@ export function OnboardingWizard() {
     return () => { window.clearInterval(id); window.removeEventListener('focus', onFocus); };
   }, [open, currentOrg, load]);
 
-  const completed = Object.values(signals).filter(Boolean).length;
+  const isDone = (k: StepKey) => signals[k] || !!overrides[k];
+  const completed = STEPS.filter(s => isDone(s.key)).length;
   const total = STEPS.length;
   const allDone = completed === total;
+
+  const isAdmin = hasPermission('admin');
+
+  const toggleOverride = useCallback(async (key: StepKey, next: boolean) => {
+    if (!currentOrg || !isAdmin) return;
+    const prev = overrides;
+    // Optimistic
+    setOverrides(o => ({ ...o, [key]: next || undefined }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: next,
+    });
+    if (error) {
+      setOverrides(prev); // revert
+      toast.error(next ? 'Could not mark step done' : 'Could not undo override', { description: error.message });
+      return;
+    }
+    toast.success(next ? 'Step marked done' : 'Override removed');
+  }, [currentOrg, isAdmin, overrides]);
 
   // Refs so `recheck` can compare before/after without re-binding on every render.
   const completedCountRef = useRef(completed);
@@ -229,34 +254,62 @@ export function OnboardingWizard() {
           )}
           <ul className="space-y-1">
             {STEPS.map(({ key, label, description, Icon, to }) => {
-              const done = signals[key];
+              const auto = signals[key];
+              const overridden = !!overrides[key];
+              const done = auto || overridden;
               return (
                 <li key={key}>
-                  <button
-                    onClick={() => go(to)}
+                  <div
                     className={cn(
-                      'group w-full flex items-center gap-4 rounded-2xl px-4 py-3 text-left transition-all duration-300',
+                      'group flex items-center gap-4 rounded-2xl px-4 py-3 transition-all duration-300',
                       'border border-transparent hover:border-white/[0.08] hover:bg-white/[0.03]',
                     )}
                   >
-                    <div
-                      className={cn(
-                        'w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300',
-                        done
-                          ? 'bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,38%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)]'
-                          : 'bg-white/[0.04] text-white/55 border border-white/[0.06]',
-                      )}
+                    <button
+                      onClick={() => go(to)}
+                      className="flex items-center gap-4 flex-1 min-w-0 text-left"
                     >
-                      {done ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={cn('font-display text-[14px] tracking-[-0.01em] leading-tight', done ? 'text-white/55 line-through decoration-white/30' : 'text-white/95')}>
-                        {label}
+                      <div
+                        className={cn(
+                          'w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300',
+                          done
+                            ? 'bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,38%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)]'
+                            : 'bg-white/[0.04] text-white/55 border border-white/[0.06]',
+                        )}
+                      >
+                        {done ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
                       </div>
-                      <div className="text-[12px] text-white/45 font-light mt-0.5">{description}</div>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all" strokeWidth={1.5} />
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className={cn('font-display text-[14px] tracking-[-0.01em] leading-tight', done ? 'text-white/55 line-through decoration-white/30' : 'text-white/95')}>
+                            {label}
+                          </div>
+                          {overridden && !auto && (
+                            <span className="font-mono text-[8.5px] uppercase tracking-[0.22em] px-1.5 py-[2px] rounded-full text-[hsl(215,100%,78%)] border border-[hsl(215,100%,55%/0.3)] bg-[hsl(215,100%,40%/0.12)]">
+                              Manual
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[12px] text-white/45 font-light mt-0.5">{description}</div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all shrink-0" strokeWidth={1.5} />
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleOverride(key, !overridden); }}
+                        title={overridden ? 'Undo manual override' : (auto ? 'Step already auto-detected' : 'Mark this step done manually')}
+                        disabled={auto && !overridden}
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-full font-mono text-[9px] uppercase tracking-[0.22em] transition-colors',
+                          'border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/[0.06]',
+                          (auto && !overridden) && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-white/55',
+                          overridden && 'text-[hsl(215,100%,78%)] border-[hsl(215,100%,55%/0.3)]',
+                        )}
+                      >
+                        {overridden ? <><RotateCcw className="w-2.5 h-2.5" strokeWidth={1.8} />Undo</> : <><Check className="w-2.5 h-2.5" strokeWidth={2} />Mark done</>}
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}

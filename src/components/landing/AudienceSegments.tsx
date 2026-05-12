@@ -26,7 +26,7 @@ type FeatureId =
 
 interface Feature {
   id: FeatureId;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   eyebrow: string;
   title: string;
   blurb: string;
@@ -555,7 +555,5 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
     </section>
   );
 }
-
-export default AudienceSegments;
 
 export default AudienceSegments;

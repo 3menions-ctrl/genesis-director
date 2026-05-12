@@ -60,12 +60,13 @@ export function OnboardingWizard() {
 
     // Fetch onboarded_at + dependent signals in parallel.
     try {
-      const [orgRes, members, brandKits, projects] = await Promise.all([
-        supabase.from('organizations').select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color, onboarding_overrides' as any).eq('id', currentOrg.id).maybeSingle(),
+      const [orgResRaw, members, brandKits, projects] = await Promise.all([
+        (supabase.from('organizations') as any).select('onboarded_at, credits_balance, total_credits_purchased, brand_primary_color, onboarding_overrides').eq('id', currentOrg.id).maybeSingle(),
         supabase.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('brand_kits').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
         supabase.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
       ]);
+      const orgRes = orgResRaw as { data: any; error: any };
 
       const firstError = orgRes.error || members.error || brandKits.error || projects.error;
       if (firstError) throw firstError;

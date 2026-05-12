@@ -1574,6 +1574,51 @@ export type Database = {
           },
         ]
       }
+      feature_requests: {
+        Row: {
+          created_at: string
+          email: string | null
+          feature: string
+          id: string
+          note: string | null
+          organization_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          feature: string
+          id?: string
+          note?: string | null
+          organization_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          feature?: string
+          id?: string
+          note?: string | null
+          organization_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "feature_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gallery_showcase: {
         Row: {
           category: string
@@ -3349,6 +3394,51 @@ export type Database = {
           },
         ]
       }
+      org_domains: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          domain: string
+          id: string
+          organization_id: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          id?: string
+          organization_id: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          id?: string
+          organization_id?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_notification_prefs: {
         Row: {
           organization_id: string
@@ -3535,6 +3625,48 @@ export type Database = {
           },
         ]
       }
+      org_spend_events: {
+        Row: {
+          credits: number
+          id: string
+          occurred_at: string
+          organization_id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          credits: number
+          id?: string
+          occurred_at?: string
+          organization_id: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          credits?: number
+          id?: string
+          occurred_at?: string
+          organization_id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_spend_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_spend_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_templates: {
         Row: {
           category: string | null
@@ -3706,27 +3838,36 @@ export type Database = {
       organization_members: {
         Row: {
           created_at: string
+          credit_period_start: string
+          credits_used_this_month: number
           id: string
           invited_by: string | null
           joined_at: string
+          monthly_credit_limit: number | null
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
+          credit_period_start?: string
+          credits_used_this_month?: number
           id?: string
           invited_by?: string | null
           joined_at?: string
+          monthly_credit_limit?: number | null
           organization_id: string
           role?: Database["public"]["Enums"]["org_role"]
           user_id: string
         }
         Update: {
           created_at?: string
+          credit_period_start?: string
+          credits_used_this_month?: number
           id?: string
           invited_by?: string | null
           joined_at?: string
+          monthly_credit_limit?: number | null
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
           user_id?: string
@@ -3750,6 +3891,9 @@ export type Database = {
       }
       organizations: {
         Row: {
+          auto_recharge_amount: number | null
+          auto_recharge_enabled: boolean
+          auto_recharge_threshold: number | null
           billing_address: Json | null
           billing_email: string | null
           brand_accent_color: string | null
@@ -3765,18 +3909,27 @@ export type Database = {
           logo_url: string | null
           monthly_volume: string | null
           name: string
+          onboarded_at: string | null
           onboarding_completed: boolean
           plan: string
           primary_use_case: string | null
+          require_2fa: boolean
+          slack_webhook_url: string | null
           slug: string
+          spend_alert_daily: number | null
+          spend_alert_weekly: number | null
           team_size: string | null
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
           vat_id: string | null
           website: string | null
+          zapier_webhook_url: string | null
         }
         Insert: {
+          auto_recharge_amount?: number | null
+          auto_recharge_enabled?: boolean
+          auto_recharge_threshold?: number | null
           billing_address?: Json | null
           billing_email?: string | null
           brand_accent_color?: string | null
@@ -3792,18 +3945,27 @@ export type Database = {
           logo_url?: string | null
           monthly_volume?: string | null
           name: string
+          onboarded_at?: string | null
           onboarding_completed?: boolean
           plan?: string
           primary_use_case?: string | null
+          require_2fa?: boolean
+          slack_webhook_url?: string | null
           slug: string
+          spend_alert_daily?: number | null
+          spend_alert_weekly?: number | null
           team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
           vat_id?: string | null
           website?: string | null
+          zapier_webhook_url?: string | null
         }
         Update: {
+          auto_recharge_amount?: number | null
+          auto_recharge_enabled?: boolean
+          auto_recharge_threshold?: number | null
           billing_address?: Json | null
           billing_email?: string | null
           brand_accent_color?: string | null
@@ -3819,16 +3981,22 @@ export type Database = {
           logo_url?: string | null
           monthly_volume?: string | null
           name?: string
+          onboarded_at?: string | null
           onboarding_completed?: boolean
           plan?: string
           primary_use_case?: string | null
+          require_2fa?: boolean
+          slack_webhook_url?: string | null
           slug?: string
+          spend_alert_daily?: number | null
+          spend_alert_weekly?: number | null
           team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
           vat_id?: string | null
           website?: string | null
+          zapier_webhook_url?: string | null
         }
         Relationships: []
       }
@@ -6327,6 +6495,24 @@ export type Database = {
         }
         Returns: Json
       }
+      add_org_domain: {
+        Args: { p_domain: string; p_org: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          domain: string
+          id: string
+          organization_id: string
+          verification_token: string
+          verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "org_domains"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_user_xp: {
         Args: { p_reason?: string; p_user_id: string; p_xp_amount: number }
         Returns: {
@@ -6782,6 +6968,7 @@ export type Database = {
         Args: { p_email: string; p_ip?: string; p_success: boolean }
         Returns: undefined
       }
+      mark_org_onboarded: { Args: { p_org: string }; Returns: undefined }
       monthly_org_credit_refill: { Args: never; Returns: Json }
       move_to_dlq: {
         Args: {
@@ -6843,9 +7030,34 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: Json
       }
+      set_member_credit_limit: {
+        Args: { p_limit: number; p_org: string; p_user: string }
+        Returns: undefined
+      }
+      set_org_auto_recharge: {
+        Args: {
+          p_amount: number
+          p_enabled: boolean
+          p_org: string
+          p_threshold: number
+        }
+        Returns: undefined
+      }
+      set_org_integration_webhook: {
+        Args: { p_kind: string; p_org: string; p_url: string }
+        Returns: undefined
+      }
       set_org_plan: {
         Args: { p_org_id: string; p_plan: string }
         Returns: Json
+      }
+      set_org_security_policy: {
+        Args: { p_org: string; p_require_2fa: boolean }
+        Returns: undefined
+      }
+      set_org_spend_alerts: {
+        Args: { p_daily: number; p_org: string; p_weekly: number }
+        Returns: undefined
       }
       topup_org_credits: {
         Args: {

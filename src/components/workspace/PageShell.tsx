@@ -16,6 +16,7 @@ export function WorkspacePage({
   actions,
   children,
   className,
+  fullBleed = false,
 }: {
   icon?: LucideIcon;
   eyebrow: string;
@@ -24,9 +25,10 @@ export function WorkspacePage({
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  fullBleed?: boolean;
 }) {
   return (
-    <WorkspaceLayout>
+    <WorkspaceLayout fullBleed={fullBleed}>
       <div className={cn('space-y-8', className)}>
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-6 border-b border-white/[0.06]">
           <div className="flex items-start gap-4 min-w-0">

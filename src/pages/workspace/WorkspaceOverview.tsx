@@ -171,7 +171,7 @@ export default function WorkspaceOverview() {
               <CmdAction onClick={() => navigate('/workspace/team')}      icon={Users}     label="Invite member" />
               <CmdAction onClick={() => navigate('/workspace/assets')}    icon={Layers}    label="Upload asset" />
               <CmdAction onClick={() => navigate('/workspace/analytics')} icon={BarChart3} label="Open telemetry" />
-              <CmdAction onClick={() => navigate('/create')}              icon={Plus}      label="New project" primary />
+              <CmdAction onClick={() => navigate('/workspace/create')}     icon={Plus}      label="New project" primary />
             </div>
           </Section>
         </section>

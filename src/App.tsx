@@ -50,6 +50,8 @@ const WorkspaceOverview = lazy(() => import("./pages/workspace/WorkspaceOverview
 const WorkspaceAssets = lazy(() => import("./pages/workspace/WorkspaceAssets"));
 const WorkspaceProjects = lazy(() => import("./pages/workspace/WorkspaceProjects"));
 const WorkspaceAvatars = lazy(() => import("./pages/workspace/WorkspaceAvatars"));
+const WorkspaceCreate = lazy(() => import("./pages/workspace/WorkspaceCreate"));
+const WorkspaceEditor = lazy(() => import("./pages/workspace/WorkspaceEditor"));
 const WorkspaceTemplates = lazy(() => import("./pages/workspace/WorkspaceTemplates"));
 const WorkspaceApprovals = lazy(() => import("./pages/workspace/WorkspaceApprovals"));
 const WorkspacePermissions = lazy(() => import("./pages/workspace/WorkspacePermissions"));
@@ -370,6 +372,8 @@ const App = () => {
                 {([
                   ['projects',      WorkspaceProjects],
                   ['avatars',       WorkspaceAvatars],
+                  ['create',        WorkspaceCreate],
+                  ['editor',        WorkspaceEditor],
                   ['templates',     WorkspaceTemplates],
                   ['approvals',     WorkspaceApprovals],
                   ['permissions',   WorkspacePermissions],

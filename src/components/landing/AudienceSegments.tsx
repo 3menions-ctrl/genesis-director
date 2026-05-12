@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import {
   Type,
   ImageIcon,
@@ -26,7 +26,7 @@ type FeatureId =
 
 interface Feature {
   id: FeatureId;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   eyebrow: string;
   title: string;
   blurb: string;
@@ -47,312 +47,508 @@ const FEATURES: Feature[] = [
 ];
 
 /* ─────────────────────────────────────────────────────────────────────
- * Single circular feature card
+ * KineticTitle — character-by-character reveal
  * ──────────────────────────────────────────────────────────────────── */
-function CircularCard({ f, focused }: { f: Feature; focused: boolean }) {
-  const Icon = f.icon;
+function KineticTitle({ text }: { text: string }) {
+  const chars = useMemo(() => Array.from(text), [text]);
+  return (
+    <h3
+      className="font-display font-semibold text-white tracking-[-0.03em] leading-[0.95] text-[44px] sm:text-[60px] md:text-[78px] lg:text-[92px]"
+      aria-label={text}
+    >
+      {chars.map((c, i) => (
+        <motion.span
+          key={`${text}-${i}`}
+          initial={{ y: '110%', opacity: 0, rotateX: -55, filter: 'blur(8px)' }}
+          animate={{ y: '0%', opacity: 1, rotateX: 0, filter: 'blur(0px)' }}
+          transition={{ delay: 0.18 + i * 0.028, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          className="inline-block whitespace-pre"
+          style={{ transformOrigin: '50% 100%' }}
+        >
+          {c}
+        </motion.span>
+      ))}
+    </h3>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * HoloCore — central animated holographic engine
+ * ──────────────────────────────────────────────────────────────────── */
+function HoloCore({ feature, parallaxX, parallaxY }: { feature: Feature; parallaxX: any; parallaxY: any }) {
+  const Icon = feature.icon;
+  const pxScale = useTransform(parallaxX, [-1, 1], [-22, 22]);
+  const pyScale = useTransform(parallaxY, [-1, 1], [-22, 22]);
   return (
     <motion.div
-      className="relative shrink-0 w-[360px] sm:w-[440px] md:w-[520px] lg:w-[560px] aspect-square"
-      animate={{
-        scale: focused ? 1 : 0.78,
-        opacity: focused ? 1 : 0.35,
-      }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      style={{ x: pxScale, y: pyScale, perspective: 1400 }}
     >
-      {/* Outer rotating conic glow — no card surface */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `conic-gradient(from 0deg, hsla(${f.hue},100%,62%,0.0), hsla(${f.hue},100%,65%,0.7), hsla(${f.hue},100%,55%,0.0) 55%, hsla(${f.hue},100%,65%,0.55))`,
-          filter: 'blur(34px)',
-          opacity: focused ? 0.95 : 0.3,
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-      />
-
-      {/* Transparent ring system — no opaque surface */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Outer luminous boundary — gradient masked ring */}
-        <div
-          className="absolute -inset-[2px] rounded-full"
+      <div className="relative w-[78%] aspect-square max-w-[640px]">
+        {/* deep volumetric glow */}
+        <motion.div
+          className="absolute inset-[-25%] rounded-full"
           style={{
-            padding: '1.5px',
-            background: `conic-gradient(from 140deg, hsla(${f.hue},100%,72%,0) 0deg, hsla(${f.hue},100%,72%,0.95) 90deg, hsla(212,100%,70%,0.6) 180deg, hsla(${f.hue},100%,72%,0) 280deg, hsla(${f.hue},100%,72%,0.6) 360deg)`,
-            WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-            WebkitMaskComposite: 'xor',
-            maskComposite: 'exclude',
-            opacity: focused ? 0.9 : 0.4,
+            background: `radial-gradient(circle, hsla(${feature.hue},100%,60%,0.35), hsla(${feature.hue},100%,55%,0.10) 35%, transparent 65%)`,
+            filter: 'blur(60px)',
           }}
+          animate={{ scale: [1, 1.08, 1], opacity: [0.85, 1, 0.85] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        {/* Counter-rotating sweep highlight on the boundary */}
+        {/* rotating conic aurora */}
         <motion.div
           className="absolute inset-0 rounded-full"
           style={{
-            background: `conic-gradient(from 0deg, transparent 0deg, hsla(${f.hue},100%,82%,0.95) 10deg, transparent 38deg, transparent 360deg)`,
-            WebkitMask: 'radial-gradient(circle, transparent calc(50% - 2px), #000 calc(50% - 1.5px), #000 50%, transparent calc(50% + 0.5px))',
-            mask: 'radial-gradient(circle, transparent calc(50% - 2px), #000 calc(50% - 1.5px), #000 50%, transparent calc(50% + 0.5px))',
-            opacity: focused ? 0.9 : 0,
+            background: `conic-gradient(from 0deg, transparent, hsla(${feature.hue},100%,68%,0.55), transparent 30%, hsla(212,100%,70%,0.4) 55%, transparent 70%, hsla(${feature.hue},100%,72%,0.5))`,
+            filter: 'blur(28px)',
+            opacity: 0.9,
           }}
-          animate={{ rotate: -360 }}
-          transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
         />
 
-        {/* SVG epic boundary: tick marks, dashed orbital, sweeping arc, brackets */}
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <g style={{ opacity: focused ? 0.6 : 0.22 }}>
-            {Array.from({ length: 60 }).map((_, i) => {
-              const major = i % 5 === 0;
-              const angle = (i / 60) * Math.PI * 2;
-              const r1 = 49.4;
-              const r2 = major ? 47 : 48.4;
-              const x1 = 50 + Math.cos(angle) * r1;
-              const y1 = 50 + Math.sin(angle) * r1;
-              const x2 = 50 + Math.cos(angle) * r2;
-              const y2 = 50 + Math.sin(angle) * r2;
-              return (
-                <line
-                  key={i}
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={major ? `hsl(${f.hue},100%,75%)` : 'rgba(255,255,255,0.55)'}
-                  strokeWidth={major ? 0.35 : 0.18}
-                  vectorEffect="non-scaling-stroke"
-                />
-              );
-            })}
-          </g>
-
-          <motion.circle
-            cx="50" cy="50" r="42"
-            fill="none"
-            stroke={`hsla(${f.hue},100%,75%,${focused ? 0.35 : 0.12})`}
-            strokeWidth="0.2"
-            strokeDasharray="0.6 1.6"
-            vectorEffect="non-scaling-stroke"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-            style={{ transformOrigin: '50% 50%' }}
-          />
-
-          <motion.circle
-            cx="50" cy="50" r="46"
-            fill="none"
-            stroke={`hsl(${f.hue},100%,72%)`}
-            strokeWidth="0.35"
-            strokeDasharray="20 220"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+        {/* tilted disc rings (3D feel) */}
+        {[
+          { size: 100, dur: 40, tilt: 62, hue: feature.hue },
+          { size: 84,  dur: 30, tilt: 70, hue: 212 },
+          { size: 68,  dur: 22, tilt: 55, hue: feature.hue },
+        ].map((r, i) => (
+          <motion.div
+            key={i}
+            className="absolute left-1/2 top-1/2"
             style={{
-              transformOrigin: '50% 50%',
-              opacity: focused ? 0.95 : 0.25,
-              filter: `drop-shadow(0 0 3px hsla(${f.hue},100%,65%,0.9))`,
+              width: `${r.size}%`,
+              height: `${r.size}%`,
+              marginLeft: `-${r.size / 2}%`,
+              marginTop: `-${r.size / 2}%`,
+              transformStyle: 'preserve-3d',
+              transform: `rotateX(${r.tilt}deg)`,
             }}
-          />
+          >
+            <motion.div
+              className="absolute inset-0 rounded-full border"
+              style={{
+                borderColor: `hsla(${r.hue},100%,72%,0.55)`,
+                boxShadow: `0 0 24px hsla(${r.hue},100%,60%,0.55), inset 0 0 30px hsla(${r.hue},100%,65%,0.25)`,
+              }}
+              animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+              transition={{ duration: r.dur, repeat: Infinity, ease: 'linear' }}
+            />
+            {/* light node traveling on the ring */}
+            <motion.div
+              className="absolute left-1/2 top-0 -translate-x-1/2 w-2 h-2 rounded-full"
+              style={{
+                background: '#fff',
+                boxShadow: `0 0 14px #fff, 0 0 28px hsl(${r.hue},100%,68%)`,
+              }}
+              animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+              transition={{ duration: r.dur * 0.9, repeat: Infinity, ease: 'linear' }}
+            />
+          </motion.div>
+        ))}
 
-          {focused && [0, 90, 180, 270].map((deg) => (
-            <g key={deg} transform={`rotate(${deg} 50 50)`} style={{ opacity: 0.9 }}>
+        {/* dense star field */}
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+          <defs>
+            <radialGradient id={`coreGrad-${feature.id}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={`hsla(${feature.hue},100%,80%,1)`} />
+              <stop offset="40%" stopColor={`hsla(${feature.hue},100%,60%,0.55)`} />
+              <stop offset="100%" stopColor={`hsla(${feature.hue},100%,50%,0)`} />
+            </radialGradient>
+          </defs>
+          <circle cx="50" cy="50" r="22" fill={`url(#coreGrad-${feature.id})`} />
+
+          {/* tick marks */}
+          {Array.from({ length: 72 }).map((_, i) => {
+            const ang = (i / 72) * Math.PI * 2;
+            const major = i % 6 === 0;
+            const r1 = 49.4;
+            const r2 = major ? 46.5 : 48.2;
+            return (
+              <line
+                key={i}
+                x1={50 + Math.cos(ang) * r1}
+                y1={50 + Math.sin(ang) * r1}
+                x2={50 + Math.cos(ang) * r2}
+                y2={50 + Math.sin(ang) * r2}
+                stroke={major ? `hsla(${feature.hue},100%,80%,0.95)` : 'rgba(255,255,255,0.45)'}
+                strokeWidth={major ? 0.35 : 0.15}
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+
+          {/* sweeping radar arc */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 6.5, repeat: Infinity, ease: 'linear' }}
+            style={{ transformOrigin: '50% 50%' }}
+          >
+            <defs>
+              <linearGradient id={`sweep-${feature.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={`hsla(${feature.hue},100%,75%,0)`} />
+                <stop offset="100%" stopColor={`hsla(${feature.hue},100%,80%,0.75)`} />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 50 50 L 50 4 A 46 46 0 0 1 86.5 24 Z"
+              fill={`url(#sweep-${feature.id})`}
+              opacity="0.55"
+            />
+          </motion.g>
+
+          {/* corner brackets */}
+          {[0, 90, 180, 270].map((deg) => (
+            <g key={deg} transform={`rotate(${deg} 50 50)`}>
               <path
-                d="M 47.5 3 L 52.5 3 M 50 3 L 50 6.5"
-                stroke="#0A84FF"
+                d="M 8 4 L 4 4 L 4 8"
+                stroke={`hsl(${feature.hue},100%,75%)`}
                 strokeWidth="0.5"
-                strokeLinecap="round"
                 fill="none"
                 vectorEffect="non-scaling-stroke"
-                style={{ filter: 'drop-shadow(0 0 3px #0A84FF)' }}
+                style={{ filter: `drop-shadow(0 0 2px hsl(${feature.hue},100%,65%))` }}
               />
             </g>
           ))}
         </svg>
 
-        {/* Inner faint hairlines for depth */}
-        <div className="absolute inset-10 rounded-full border border-white/[0.05]" />
-        <div className="absolute inset-20 rounded-full border border-white/[0.04]" />
+        {/* center icon disc */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={feature.id}
+            initial={{ scale: 0.4, opacity: 0, rotateY: 90 }}
+            animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+            exit={{ scale: 0.4, opacity: 0, rotateY: -90 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-28 md:h-28 rounded-3xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(145deg, hsla(0,0%,100%,0.08), hsla(0,0%,100%,0.02))',
+              border: `1px solid hsla(${feature.hue},100%,72%,0.45)`,
+              boxShadow: `0 0 40px hsla(${feature.hue},100%,55%,0.7), inset 0 0 24px hsla(${feature.hue},100%,70%,0.25)`,
+            }}
+          >
+            <Icon className="w-10 h-10 md:w-12 md:h-12 text-white" style={{ filter: 'drop-shadow(0 0 10px #0A84FF)' }} />
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Orbiting particles */}
-        {focused &&
-          Array.from({ length: 18 }).map((_, i) => {
-            const delay = (i / 18) * 7;
-            const radius = 200;
-            return (
-              <motion.span
-                key={i}
-                className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full"
-                style={{
-                  background: '#0A84FF',
-                  boxShadow: '0 0 12px #0A84FF, 0 0 24px rgba(10,132,255,0.55)',
-                }}
-                initial={{ x: 0, y: 0, opacity: 0 }}
-                animate={{
-                  x: [Math.cos((i / 18) * Math.PI * 2) * radius, Math.cos((i / 18) * Math.PI * 2 + Math.PI * 2) * radius],
-                  y: [Math.sin((i / 18) * Math.PI * 2) * radius, Math.sin((i / 18) * Math.PI * 2 + Math.PI * 2) * radius],
-                  opacity: [0, 0.95, 0],
-                }}
-                transition={{ duration: 7, repeat: Infinity, delay, ease: 'linear' }}
-              />
-            );
-          })}
-
-        {/* Inner spinning hairline ring */}
-        <motion.div
-          className="absolute inset-16 rounded-full border border-dashed border-white/10"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 38, repeat: Infinity, ease: 'linear' }}
-        />
-
-        {/* Pulsing core glow behind icon */}
-        <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full"
-          style={{
-            background: `radial-gradient(circle, hsla(${f.hue},100%,62%,0.45), transparent 70%)`,
-            filter: 'blur(14px)',
-          }}
-          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-
-        {/* Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-16">
-          <div className="relative mb-6">
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
-              <Icon className="w-9 h-9 text-[#0A84FF]" />
-            </div>
-            <motion.div
-              className="absolute -inset-2 rounded-[28px] border border-[#0A84FF]/35"
-              animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0, 0.6] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+        {/* orbiting micro-particles */}
+        {Array.from({ length: 14 }).map((_, i) => {
+          const radius = 44 + (i % 3) * 4;
+          const dur = 14 + (i % 5);
+          return (
+            <motion.span
+              key={i}
+              className="absolute left-1/2 top-1/2 rounded-full"
+              style={{
+                width: 3,
+                height: 3,
+                marginLeft: -1.5,
+                marginTop: -1.5,
+                background: '#fff',
+                boxShadow: `0 0 8px hsl(${feature.hue},100%,72%), 0 0 16px hsla(${feature.hue},100%,60%,0.6)`,
+              }}
+              animate={{
+                x: Array.from({ length: 60 }).map((_, k) => Math.cos((k / 60) * Math.PI * 2 + i) * radius * 3),
+                y: Array.from({ length: 60 }).map((_, k) => Math.sin((k / 60) * Math.PI * 2 + i) * radius * 1.4),
+              }}
+              transition={{ duration: dur, repeat: Infinity, ease: 'linear', delay: i * 0.2 }}
             />
-          </div>
-          <p className="text-[13px] sm:text-[14px] tracking-[0.32em] uppercase text-[#0A84FF]/90 mb-4">{f.eyebrow}</p>
-          <h3 className="font-display text-[34px] sm:text-[42px] md:text-[50px] font-semibold text-white tracking-[-0.025em] leading-[1.02] mb-4">
-            {f.title}
-          </h3>
-          <p className="text-[16px] sm:text-[18px] md:text-[19px] text-white/70 leading-relaxed max-w-[82%]">
-            {f.blurb}
-          </p>
-        </div>
+          );
+        })}
       </div>
     </motion.div>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- * Feature carousel — 3 visible, slides right→left continuously
+ * Advanced cinematic feature stage
  * ──────────────────────────────────────────────────────────────────── */
 export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
-  void _onStart; // CTA preserved on landing elsewhere
-  const [centerIdx, setCenterIdx] = useState(0);
+  void _onStart;
+  const [activeIdx, setActiveIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
 
-  // Auto-advance every 3.5s
+  // mouse parallax
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 50, damping: 20 });
+  const sy = useSpring(my, { stiffness: 50, damping: 20 });
+
+  const handleMove = useCallback((e: React.MouseEvent) => {
+    const r = stageRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    const y = ((e.clientY - r.top) / r.height) * 2 - 1;
+    mx.set(x);
+    my.set(y);
+  }, [mx, my]);
+
+  // auto-advance
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => {
-      setCenterIdx((i) => (i + 1) % FEATURES.length);
-    }, 3500);
+    const t = setInterval(() => setActiveIdx((i) => (i + 1) % FEATURES.length), 4200);
     return () => clearInterval(t);
   }, [paused]);
 
-  // We render a windowed list of [prev, center, next] to keep the DOM tight.
-  const wrap = useCallback((i: number) => (i + FEATURES.length) % FEATURES.length, []);
-  const visible = [
-    FEATURES[wrap(centerIdx - 1)],
-    FEATURES[wrap(centerIdx)],
-    FEATURES[wrap(centerIdx + 1)],
-  ];
+  const active = FEATURES[activeIdx];
 
   return (
     <section
       id="audiences"
-      className="relative py-28 md:py-36 overflow-hidden"
+      className="relative py-28 md:py-40 overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Atmospheric background */}
-      <div
+      {/* aurora wash */}
+      <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(900px 600px at 50% 0%, hsla(212,100%,50%,0.10), transparent 60%), radial-gradient(700px 500px at 50% 100%, hsla(212,100%,45%,0.06), transparent 60%)',
+            'radial-gradient(900px 700px at 50% 0%, hsla(212,100%,50%,0.16), transparent 60%), radial-gradient(800px 600px at 20% 100%, hsla(218,100%,45%,0.10), transparent 60%), radial-gradient(700px 500px at 85% 80%, hsla(205,100%,55%,0.10), transparent 60%)',
         }}
+        animate={{ opacity: [0.85, 1, 0.85] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Grid */}
+      {/* fine grid */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        className="absolute inset-0 pointer-events-none opacity-[0.035]"
         style={{
           backgroundImage:
             'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
+          backgroundSize: '64px 64px',
+          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+        }}
+      />
+      {/* film grain */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
       />
 
       <div className="relative max-w-7xl mx-auto px-6">
+        {/* HEADER */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-16 md:mb-24"
         >
-          <p className="text-[11px] font-medium tracking-[0.32em] uppercase text-[#0A84FF] mb-4">
-            The Studio Engine
-          </p>
-          <h2 className="font-display text-4xl md:text-6xl font-semibold tracking-[-0.025em] text-white leading-[1.02]">
-            Every feature.<br className="md:hidden" /> One cinematic loop.
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#0A84FF]/30 bg-[#0A84FF]/[0.06] mb-6 backdrop-blur-xl">
+            <motion.span
+              className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <span className="text-[10px] font-mono tracking-[0.32em] uppercase text-white/70">
+              The Studio Engine · Live
+            </span>
+          </div>
+          <h2 className="font-display text-5xl md:text-7xl lg:text-[88px] font-semibold tracking-[-0.03em] text-white leading-[0.98]">
+            Every feature.<br className="md:hidden" />{' '}
+            <span
+              className="inline-block bg-clip-text text-transparent"
+              style={{
+                backgroundImage:
+                  'linear-gradient(120deg, #ffffff 0%, #5BB0FF 40%, #0A84FF 60%, #ffffff 100%)',
+                backgroundSize: '200% 100%',
+              }}
+            >
+              <motion.span
+                className="inline-block"
+                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                style={{
+                  backgroundImage: 'inherit',
+                  backgroundSize: 'inherit',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                One cinematic loop.
+              </motion.span>
+            </span>
           </h2>
-          <p className="mt-5 text-white/55 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-6 text-white/55 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
             From a single typed line to a stitched, scored, multi-character cut — Apex-Studio handles the entire pipeline.
           </p>
         </motion.div>
 
-        {/* Carousel viewport */}
-        <div className="relative">
-          {/* Edge fade masks */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-32 md:w-48 z-20"
-            style={{ background: 'linear-gradient(to right, hsl(220,14%,2%) 0%, transparent 100%)' }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-32 md:w-48 z-20"
-            style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, transparent 100%)' }} />
-
-          <div className="flex items-center justify-center gap-2 md:gap-6 min-h-[480px] md:min-h-[620px]">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {visible.map((f, i) => (
-                <motion.div
+        {/* MAIN STAGE */}
+        <div
+          ref={stageRef}
+          onMouseMove={handleMove}
+          className="relative grid grid-cols-12 gap-6 lg:gap-10 min-h-[640px] md:min-h-[720px]"
+        >
+          {/* LEFT — feature index rail */}
+          <div className="hidden lg:flex col-span-3 flex-col justify-center gap-1 relative z-10">
+            <div className="text-[10px] font-mono tracking-[0.3em] uppercase text-white/40 mb-4 pl-3">
+              ◉ Feature Index
+            </div>
+            {FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              const isActive = i === activeIdx;
+              return (
+                <button
                   key={f.id}
-                  layout
-                  initial={{ x: 280, opacity: 0, scale: 0.7 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -280, opacity: 0, scale: 0.7 }}
-                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                  type="button"
+                  onClick={() => setActiveIdx(i)}
+                  className="group relative text-left py-2.5 pl-4 pr-3 rounded-xl transition-colors duration-300 hover:bg-white/[0.03]"
                 >
-                  <CircularCard f={f} focused={i === 1} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  {isActive && (
+                    <motion.span
+                      layoutId="rail-active"
+                      className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full"
+                      style={{ background: '#0A84FF', boxShadow: '0 0 12px #0A84FF' }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  <div className="flex items-center gap-3">
+                    <Icon
+                      className="w-4 h-4 transition-colors"
+                      style={{ color: isActive ? '#0A84FF' : 'rgba(255,255,255,0.35)' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-[13px] font-medium truncate transition-colors"
+                        style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.45)' }}
+                      >
+                        {f.title}
+                      </div>
+                      <div className="text-[9px] font-mono tracking-[0.22em] uppercase text-white/25">
+                        {String(i + 1).padStart(2, '0')} / {f.eyebrow}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Progress dots */}
-          <div className="mt-12 flex items-center justify-center gap-2">
-            {FEATURES.map((f, i) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setCenterIdx(i)}
-                className="group/dot relative h-1.5 transition-all duration-500"
-                style={{ width: i === centerIdx ? 32 : 8 }}
-                aria-label={`Go to ${f.title}`}
-              >
-                <span
-                  className="absolute inset-0 rounded-full transition-all duration-500"
-                  style={{
-                    background: i === centerIdx ? '#0A84FF' : 'rgba(255,255,255,0.18)',
-                    boxShadow: i === centerIdx ? '0 0 16px rgba(10,132,255,0.65)' : undefined,
-                  }}
+          {/* CENTER — holo core stage */}
+          <div className="relative col-span-12 lg:col-span-6 min-h-[420px] md:min-h-[560px]">
+            <HoloCore feature={active} parallaxX={sx} parallaxY={sy} />
+
+            {/* corner HUD readouts */}
+            <div className="absolute top-3 left-3 text-[9px] font-mono tracking-[0.28em] uppercase text-white/45 z-20">
+              <div>CH 0{activeIdx + 1} / {FEATURES.length.toString().padStart(2, '0')}</div>
+              <div className="text-[#0A84FF]/80 mt-1">{active.eyebrow.toUpperCase()}</div>
+            </div>
+            <div className="absolute top-3 right-3 text-[9px] font-mono tracking-[0.28em] uppercase text-white/45 text-right z-20">
+              <div className="flex items-center gap-1.5 justify-end">
+                <motion.span
+                  className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.4, repeat: Infinity }}
                 />
-              </button>
-            ))}
+                <span>STREAM · LIVE</span>
+              </div>
+              <div className="mt-1">24.000 FPS</div>
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] font-mono tracking-[0.28em] uppercase text-white/40 z-20">
+              <span>HUE {String(active.hue).padStart(3, '0')}°</span>
+              <span className="text-white/30">APEX-STUDIO · ENGINE LOOP</span>
+              <span>SIG · {active.id.toUpperCase()}</span>
+            </div>
+          </div>
+
+          {/* RIGHT — kinetic copy panel */}
+          <div className="col-span-12 lg:col-span-3 flex flex-col justify-center relative z-10">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex items-center gap-2 mb-5"
+                >
+                  <span className="w-8 h-px bg-[#0A84FF]" />
+                  <span className="text-[10px] font-mono tracking-[0.34em] uppercase text-[#0A84FF]">
+                    {active.eyebrow}
+                  </span>
+                </motion.div>
+
+                <div className="overflow-hidden mb-5" style={{ perspective: 1200 }}>
+                  <KineticTitle text={active.title} />
+                </div>
+
+                <motion.p
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.45, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-[15px] md:text-base text-white/65 leading-relaxed max-w-md"
+                >
+                  {active.blurb}
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7, duration: 0.6 }}
+                  className="mt-8 flex items-center gap-3 text-[10px] font-mono tracking-[0.3em] uppercase text-white/35"
+                >
+                  <span className="text-[#0A84FF]">●</span>
+                  <span>Sig {String(activeIdx + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}</span>
+                  <span className="flex-1 h-px bg-gradient-to-r from-white/20 to-transparent" />
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* TIMELINE — bottom progress reel */}
+        <div className="mt-16 md:mt-20 relative">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            {FEATURES.map((f, i) => {
+              const isActive = i === activeIdx;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setActiveIdx(i)}
+                  className="group relative flex-1 h-8 flex items-end overflow-hidden"
+                  aria-label={`Jump to ${f.title}`}
+                >
+                  <span
+                    className="block w-full transition-all duration-500 rounded-sm"
+                    style={{
+                      height: isActive ? 28 : 6,
+                      background: isActive
+                        ? 'linear-gradient(180deg, #5BB0FF 0%, #0A84FF 100%)'
+                        : 'rgba(255,255,255,0.10)',
+                      boxShadow: isActive ? '0 0 18px rgba(10,132,255,0.7)' : undefined,
+                    }}
+                  />
+                  {isActive && !paused && (
+                    <motion.span
+                      key={`fill-${i}-${activeIdx}`}
+                      className="absolute left-0 bottom-0 h-[2px] bg-white"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 4.2, ease: 'linear' }}
+                      style={{ boxShadow: '0 0 10px #fff' }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[10px] font-mono tracking-[0.3em] uppercase text-white/35">
+            <span>00 · Studio Engine</span>
+            <span className="text-[#0A84FF]/80">{paused ? '❚❚ HOLD' : '▶ AUTOPLAY'}</span>
+            <span>{String(FEATURES.length).padStart(2, '0')} · Loop</span>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Sparkles, Users, Palette, Coins, Film, ArrowRight, X, RefreshCw } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';

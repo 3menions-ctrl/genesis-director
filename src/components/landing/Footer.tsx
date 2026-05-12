@@ -32,9 +32,12 @@ const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
             </div>
           </div>
 
-          <div className="mt-16 pt-8 border-t border-white/[0.05] text-center">
-            <p className="text-xs text-white/20">
+          <div className="mt-16 pt-8 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+            <p className="text-xs text-white/30">
               © {new Date().getFullYear()} Apex-Studio. All rights reserved.
+            </p>
+            <p className="text-[11px] text-white/20 leading-relaxed max-w-xl">
+              Apex-Studio is an AI video generation platform. Output is created by generative models and may contain inaccuracies or artifacts. You are responsible for reviewing and clearing any content before publication. Credits are non-refundable.
             </p>
           </div>
         </div>

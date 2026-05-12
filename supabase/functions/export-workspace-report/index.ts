@@ -55,19 +55,19 @@ Deno.serve(async (req) => {
         [...totals.entries()].map(([id, c]) => [id, map.get(id)?.email || '', map.get(id)?.full_name || '', c]));
     } else if (report === 'project_ledger') {
       const { data } = await admin
-        .from('projects')
-        .select('id, title, status, credits_used, created_at, user_id')
+        .from('movie_projects')
+        .select('id, title, status, created_at, user_id')
         .eq('organization_id', organization_id)
         .gte('created_at', startISO).lte('created_at', endISO).limit(10000);
-      csv = toCSV(['id', 'title', 'status', 'credits_used', 'created_at', 'user_id'],
-        (data || []).map((r: any) => [r.id, r.title || '', r.status || '', r.credits_used ?? 0, r.created_at, r.user_id || '']));
+      csv = toCSV(['id', 'title', 'status', 'created_at', 'user_id'],
+        (data || []).map((r: any) => [r.id, r.title || '', r.status || '', r.created_at, r.user_id || '']));
     } else if (report === 'usage_summary') {
       const { data: spend } = await admin
         .from('org_spend_events').select('credits')
         .eq('organization_id', organization_id)
         .gte('occurred_at', startISO).lte('occurred_at', endISO).limit(50000);
       const { count: projectCount } = await admin
-        .from('projects').select('*', { count: 'exact', head: true })
+        .from('movie_projects').select('*', { count: 'exact', head: true })
         .eq('organization_id', organization_id)
         .gte('created_at', startISO).lte('created_at', endISO);
       const { count: memberCount } = await admin

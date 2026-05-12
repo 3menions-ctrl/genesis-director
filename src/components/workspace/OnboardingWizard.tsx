@@ -47,6 +47,7 @@ interface AuditEntry {
   created_at: string;
   actor_id: string;
   actor_name?: string | null;
+  reason?: string | null;
 }
 
 const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
@@ -62,6 +63,9 @@ export function OnboardingWizard() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState<number | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [reasonFor, setReasonFor] = useState<StepKey | null>(null);
+  const [reasonText, setReasonText] = useState('');
+  const [reasonBusy, setReasonBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -103,7 +107,7 @@ export function OnboardingWizard() {
       try {
         const { data: auditRows } = await (supabase
           .from('onboarding_override_audit') as any)
-          .select('id, step, action, created_at, actor_id')
+          .select('id, step, action, created_at, actor_id, reason')
           .eq('org_id', currentOrg.id)
           .order('created_at', { ascending: false })
           .limit(8);
@@ -171,19 +175,56 @@ export function OnboardingWizard() {
 
   const toggleOverride = useCallback(async (key: StepKey, next: boolean) => {
     if (!currentOrg || !isAdmin) return;
-    const prev = overrides;
-    // Optimistic
-    setOverrides(o => ({ ...o, [key]: next || undefined }) as Overrides);
-    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
-      p_org: currentOrg.id, p_step: key, p_done: next,
-    });
-    if (error) {
-      setOverrides(prev); // revert
-      toast.error(next ? 'Could not mark step done' : 'Could not undo override', { description: error.message });
+    // Marking done now requires a reason — open the reason dialog instead of
+    // immediately calling the RPC. Undo proceeds without prompting.
+    if (next) {
+      setReasonFor(key);
+      setReasonText('');
       return;
     }
-    toast.success(next ? 'Step marked done' : 'Override removed');
-  }, [currentOrg, isAdmin, overrides]);
+    const prev = overrides;
+    setOverrides(o => ({ ...o, [key]: undefined }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: false,
+    });
+    if (error) {
+      setOverrides(prev);
+      toast.error('Could not undo override', { description: error.message });
+      return;
+    }
+    toast.success('Override removed');
+    load();
+  }, [currentOrg, isAdmin, overrides, load]);
+
+  const submitReason = useCallback(async () => {
+    if (!currentOrg || !reasonFor) return;
+    const trimmed = reasonText.trim();
+    if (trimmed.length < 3) {
+      toast.error('Reason required', { description: 'Please enter at least 3 characters.' });
+      return;
+    }
+    if (trimmed.length > 280) {
+      toast.error('Reason too long', { description: 'Keep it under 280 characters.' });
+      return;
+    }
+    setReasonBusy(true);
+    const key = reasonFor;
+    const prev = overrides;
+    setOverrides(o => ({ ...o, [key]: true }) as Overrides);
+    const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
+      p_org: currentOrg.id, p_step: key, p_done: true, p_reason: trimmed,
+    });
+    setReasonBusy(false);
+    if (error) {
+      setOverrides(prev);
+      toast.error('Could not mark step done', { description: error.message });
+      return;
+    }
+    toast.success('Step marked done');
+    setReasonFor(null);
+    setReasonText('');
+    load();
+  }, [currentOrg, reasonFor, reasonText, overrides, load]);
 
   // Refs so `recheck` can compare before/after without re-binding on every render.
   const completedCountRef = useRef(completed);
@@ -230,6 +271,7 @@ export function OnboardingWizard() {
   const pct = Math.round((completed / total) * 100);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(false); }}>
       <DialogContent
         className="max-w-[560px] p-0 overflow-hidden border border-white/[0.08] bg-[hsl(220,16%,4%)]/95 backdrop-blur-2xl rounded-3xl shadow-[0_40px_120px_-20px_rgba(0,0,0,0.7)]"
@@ -384,12 +426,21 @@ export function OnboardingWizard() {
                     : 'text-[hsl(35,90%,72%)]';
                   return (
                     <li key={entry.id} className="flex items-center gap-2 text-[12px] text-white/65 font-light">
-                      <span className="truncate text-white/85">{entry.actor_name}</span>
-                      <span className={cn('font-mono text-[9px] uppercase tracking-[0.22em] shrink-0', tone)}>
-                        {verb}
-                      </span>
-                      <span className="truncate text-white/55">{stepLabel}</span>
-                      <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 shrink-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-white/85">{entry.actor_name}</span>
+                          <span className={cn('font-mono text-[9px] uppercase tracking-[0.22em] shrink-0', tone)}>
+                            {verb}
+                          </span>
+                          <span className="truncate text-white/55">{stepLabel}</span>
+                        </div>
+                        {entry.reason && (
+                          <div className="mt-0.5 text-[11px] text-white/45 font-light italic truncate" title={entry.reason}>
+                            “{entry.reason}”
+                          </div>
+                        )}
+                      </div>
+                      <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 shrink-0">
                         {when}
                       </span>
                     </li>
@@ -442,6 +493,61 @@ export function OnboardingWizard() {
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={reasonFor !== null} onOpenChange={(o) => { if (!o) { setReasonFor(null); setReasonText(''); } }}>
+      <DialogContent className="max-w-md p-0 gap-0 border border-white/[0.08] bg-[hsl(220,14%,4%)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/[0.05]">
+          <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[hsl(215,100%,72%)] mb-1.5">
+            Manual override
+          </div>
+          <div className="font-display text-[18px] tracking-[-0.01em] text-white/95">
+            Why mark “{STEPS.find(s => s.key === reasonFor)?.label ?? 'this step'}” done?
+          </div>
+          <div className="mt-1 text-[12px] text-white/45 font-light">
+            A short reason is required so this override stays traceable in the audit log.
+          </div>
+        </div>
+        <div className="px-6 py-4">
+          <textarea
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value.slice(0, 280))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitReason(); }
+            }}
+            autoFocus
+            rows={3}
+            placeholder="e.g. Team invites sent via SSO, signal not detected"
+            className="w-full resize-none rounded-xl bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-[hsl(215,100%,55%/0.5)] focus:bg-white/[0.05] transition-colors font-light"
+          />
+          <div className="mt-1.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.22em] text-white/35">
+            <span>Min 3 · Max 280</span>
+            <span>{reasonText.trim().length}/280</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
+          <button
+            onClick={() => { setReasonFor(null); setReasonText(''); }}
+            disabled={reasonBusy}
+            className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-3 h-9 rounded-full transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={submitReason}
+            disabled={reasonBusy || reasonText.trim().length < 3}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition-all',
+              'bg-gradient-to-r from-[hsl(215,100%,55%)] to-[hsl(215,100%,42%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)] hover:brightness-110',
+              (reasonBusy || reasonText.trim().length < 3) && 'opacity-50 cursor-not-allowed hover:brightness-100',
+            )}
+          >
+            <Check className="w-3 h-3" strokeWidth={2} />
+            {reasonBusy ? 'Saving…' : 'Mark done'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

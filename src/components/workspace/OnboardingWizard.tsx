@@ -189,6 +189,21 @@ export function OnboardingWizard() {
 
         {/* Checklist */}
         <div className="px-3 pb-3">
+          {loadError && (
+            <div className="mx-3 mb-2 flex items-start gap-2.5 rounded-2xl border border-[hsl(0,70%,55%/0.25)] bg-[hsl(0,60%,30%/0.12)] px-3 py-2.5">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 text-[hsl(0,90%,72%)] shrink-0" strokeWidth={1.8} />
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[hsl(0,90%,78%)]">Checklist offline</div>
+                <div className="text-[12px] text-white/70 font-light mt-0.5 break-words">{loadError}</div>
+              </div>
+              <button
+                onClick={() => load()}
+                className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/70 hover:text-white px-2 py-1 rounded-full border border-white/[0.1] hover:bg-white/[0.05] transition-colors shrink-0"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <ul className="space-y-1">
             {STEPS.map(({ key, label, description, Icon, to }) => {
               const done = signals[key];

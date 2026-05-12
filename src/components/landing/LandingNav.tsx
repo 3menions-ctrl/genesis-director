@@ -36,12 +36,6 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
           </div>
 
           <div className="flex items-center gap-2">
-            <LanguageSwitcher
-              size="sm"
-              variant="ghost"
-              showLabel={false}
-              className="h-8 px-2 text-white/55 hover:text-white hover:bg-white/[0.06]"
-            />
             <Button
               variant="ghost"
               onClick={() => onNavigate('/auth')}

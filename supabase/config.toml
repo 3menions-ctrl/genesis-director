@@ -208,6 +208,3 @@ verify_jwt = false
 
 [functions.translate-text]
 verify_jwt = false
-
-[functions.demo-login]
-verify_jwt = false

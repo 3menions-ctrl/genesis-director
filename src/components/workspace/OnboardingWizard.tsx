@@ -492,6 +492,61 @@ export function OnboardingWizard() {
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={reasonFor !== null} onOpenChange={(o) => { if (!o) { setReasonFor(null); setReasonText(''); } }}>
+      <DialogContent className="max-w-md p-0 gap-0 border border-white/[0.08] bg-[hsl(220,14%,4%)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/[0.05]">
+          <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[hsl(215,100%,72%)] mb-1.5">
+            Manual override
+          </div>
+          <div className="font-display text-[18px] tracking-[-0.01em] text-white/95">
+            Why mark “{STEPS.find(s => s.key === reasonFor)?.label ?? 'this step'}” done?
+          </div>
+          <div className="mt-1 text-[12px] text-white/45 font-light">
+            A short reason is required so this override stays traceable in the audit log.
+          </div>
+        </div>
+        <div className="px-6 py-4">
+          <textarea
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value.slice(0, 280))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitReason(); }
+            }}
+            autoFocus
+            rows={3}
+            placeholder="e.g. Team invites sent via SSO, signal not detected"
+            className="w-full resize-none rounded-xl bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-[hsl(215,100%,55%/0.5)] focus:bg-white/[0.05] transition-colors font-light"
+          />
+          <div className="mt-1.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.22em] text-white/35">
+            <span>Min 3 · Max 280</span>
+            <span>{reasonText.trim().length}/280</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
+          <button
+            onClick={() => { setReasonFor(null); setReasonText(''); }}
+            disabled={reasonBusy}
+            className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-3 h-9 rounded-full transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={submitReason}
+            disabled={reasonBusy || reasonText.trim().length < 3}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition-all',
+              'bg-gradient-to-r from-[hsl(215,100%,55%)] to-[hsl(215,100%,42%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)] hover:brightness-110',
+              (reasonBusy || reasonText.trim().length < 3) && 'opacity-50 cursor-not-allowed hover:brightness-100',
+            )}
+          >
+            <Check className="w-3 h-3" strokeWidth={2} />
+            {reasonBusy ? 'Saving…' : 'Mark done'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

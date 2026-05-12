@@ -117,6 +117,37 @@ export default function WorkspaceCredits() {
         </div>
       </Surface>
 
+    <Surface>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(220,14%,90%)]">
+            Spend alerts
+          </div>
+          <p className="text-[12px] text-white/50 mt-2 max-w-xl font-light">
+            Email the workspace owner when daily or weekly spend exceeds a threshold. Leave a field blank to disable that alert.
+          </p>
+        </div>
+        <Pill tone={(alertDaily || alertWeekly) ? 'good' : 'neutral'}>
+          {(alertDaily || alertWeekly) ? 'ARMED' : 'OFF'}
+        </Pill>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 max-w-xl">
+        <Field label="Daily ceiling (credits)">
+          <DataInput type="number" value={alertDaily} placeholder="e.g. 500" disabled={!canEdit}
+                     onChange={(e) => setAlertDaily(e.target.value)} />
+        </Field>
+        <Field label="Weekly ceiling (credits)">
+          <DataInput type="number" value={alertWeekly} placeholder="e.g. 2500" disabled={!canEdit}
+                     onChange={(e) => setAlertWeekly(e.target.value)} />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <CmdButton variant="ghost" disabled={!canEdit || savingAlerts} onClick={saveAlerts}>
+          {savingAlerts ? 'Saving…' : 'Save alerts'}
+        </CmdButton>
+      </div>
+    </Surface>
+
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="bg-[hsl(220,14%,4%)] border-white/[0.08] text-white">
         <DialogHeader>

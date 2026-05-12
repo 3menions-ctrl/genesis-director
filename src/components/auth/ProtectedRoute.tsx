@@ -163,6 +163,26 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     }
   }, [user?.id, profile, loading, isSessionVerified, navigate, location.pathname]);
 
+  // Admin lockdown: admin accounts are restricted to the /admin console.
+  // Bounce them out of any studio/workspace route back to /admin.
+  useEffect(() => {
+    if (loading || !isSessionVerified || !user?.id || !profile?.id) return;
+    if (profile.account_type !== 'admin') return;
+    if (!profile.onboarding_completed) return;
+    const path = location.pathname;
+    const allowed =
+      path === '/admin' ||
+      path.startsWith('/admin/') ||
+      path === '/auth' ||
+      path === '/onboarding' ||
+      path === '/settings/deactivate' ||
+      path === '/notifications' ||
+      path === '/unsubscribe';
+    if (!allowed) {
+      navigate('/admin', { replace: true });
+    }
+  }, [profile?.account_type, profile?.onboarding_completed, profile?.id, loading, isSessionVerified, user?.id, location.pathname, navigate]);
+
   // Memoize loading message to prevent unnecessary re-renders
   const loadingMessage = useMemo(() => {
     if (authPhase === 'initializing') return 'Authenticating...';

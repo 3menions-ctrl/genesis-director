@@ -67,6 +67,8 @@ export function OnboardingWizard() {
   const [reasonFor, setReasonFor] = useState<StepKey | null>(null);
   const [reasonText, setReasonText] = useState('');
   const [reasonBusy, setReasonBusy] = useState(false);
+  const [undoFor, setUndoFor] = useState<StepKey | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
   const [autoClear, setAutoClear] = useState<boolean>(true);
   const autoClearRef = useRef(true);
   useEffect(() => { autoClearRef.current = autoClear; }, [autoClear]);
@@ -230,19 +232,30 @@ export function OnboardingWizard() {
       setReasonText('');
       return;
     }
+    // Undo also requires explicit confirmation to prevent accidental
+    // reversal of a manual decision.
+    setUndoFor(key);
+  }, [currentOrg, isAdmin]);
+
+  const confirmUndo = useCallback(async () => {
+    if (!currentOrg || !undoFor) return;
+    const key = undoFor;
     const prev = overrides;
+    setUndoBusy(true);
     setOverrides(o => ({ ...o, [key]: undefined }) as Overrides);
     const { error } = await (supabase.rpc as any)('set_org_onboarding_override', {
       p_org: currentOrg.id, p_step: key, p_done: false,
     });
+    setUndoBusy(false);
     if (error) {
       setOverrides(prev);
       toast.error('Could not undo override', { description: error.message });
       return;
     }
     toast.success('Override removed');
+    setUndoFor(null);
     load();
-  }, [currentOrg, isAdmin, overrides, load]);
+  }, [currentOrg, undoFor, overrides, load]);
 
   const submitReason = useCallback(async () => {
     if (!currentOrg || !reasonFor) return;

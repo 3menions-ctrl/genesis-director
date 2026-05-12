@@ -93,7 +93,7 @@ export default function WorkspaceSecurity() {
 
       <Section icon={Lock} label="Two-factor authentication"
         sublabel="When required, every member must enroll a TOTP authenticator before they can access the workspace."
-        action={<Pill tone={require2fa ? 'green' : 'neutral'}>{require2fa ? 'REQUIRED' : 'OPTIONAL'}</Pill>}>
+        action={<Pill tone={require2fa ? 'good' : 'neutral'}>{require2fa ? 'REQUIRED' : 'OPTIONAL'}</Pill>}>
         <div className="flex items-center gap-2">
           {require2fa ? (
             <CmdButton variant="ghost" disabled={!canEdit || busy === '2fa'} onClick={() => toggle2fa(false)}>
@@ -110,7 +110,7 @@ export default function WorkspaceSecurity() {
 
       <Section icon={Globe} label="Verified domains"
         sublabel="Claim your email domain so new signups land in this workspace automatically."
-        action={<Pill tone={verifiedCount ? 'green' : 'neutral'}>{verifiedCount}/{domains.length} VERIFIED</Pill>}>
+        action={<Pill tone={verifiedCount ? 'good' : 'neutral'}>{verifiedCount}/{domains.length} VERIFIED</Pill>}>
         {domains.length === 0 && (
           <p className="text-[12px] text-white/40 mb-4 font-light">No domains yet. Add one below.</p>
         )}
@@ -124,7 +124,7 @@ export default function WorkspaceSecurity() {
                     TXT  apex-verify={d.verification_token}
                   </div>
                 </div>
-                {d.verified_at ? <Pill tone="green">VERIFIED</Pill> : <Pill tone="amber">PENDING</Pill>}
+                {d.verified_at ? <Pill tone="good">VERIFIED</Pill> : <Pill tone="amber">PENDING</Pill>}
                 <button onClick={() => copy(`apex-verify=${d.verification_token}`)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Copy TXT value">
                   <Copy className="w-3.5 h-3.5 text-white/50" />
                 </button>
@@ -156,7 +156,7 @@ export default function WorkspaceSecurity() {
 
       <Section icon={Shield} label="SAML single sign-on"
         sublabel="Connect Okta, Entra ID, OneLogin or any SAML 2.0 identity provider. Members from your verified domains can sign in via SSO."
-        action={<Pill tone={currentOrg?.plan === 'business' || currentOrg?.plan === 'enterprise' ? 'blue' : 'amber'}>
+        action={<Pill tone={currentOrg?.plan === 'business' || currentOrg?.plan === 'enterprise' ? 'good' : 'amber'}>
           {currentOrg?.plan === 'business' || currentOrg?.plan === 'enterprise' ? 'AVAILABLE' : 'BUSINESS PLAN'}
         </Pill>}>
         <p className="text-[12px] text-white/50 mb-4 max-w-xl font-light">

@@ -18,6 +18,7 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useNavigationWithLoading } from '@/components/navigation';
+import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import logoImage from '@/assets/apex-studio-logo.png';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
@@ -51,6 +52,7 @@ const SIDEBAR_KEY = 'apex.sidebar.collapsed';
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
   const { navigateTo } = useNavigationWithLoading();
+  const { startNavigation, isHeavyRoute } = useNavigationLoading();
   const location = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -73,6 +75,22 @@ export function AppShell({ children }: AppShellProps) {
   const isItemActive = (item: NavItem) => {
     if (item.match) return item.match(location.pathname);
     return location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+  };
+
+  // Wire NavLink clicks into the global loading overlay so heavy routes
+  // (Editor, Avatars, Templates, etc.) feel instantly responsive instead
+  // of staring at a blank screen during chunk load.
+  const handleNavClick = (to: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Respect modifier clicks / new-tab opens
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    if (location.pathname === to) {
+      e.preventDefault();
+      return;
+    }
+    if (isHeavyRoute(to)) {
+      startNavigation(to);
+    }
+    setMobileOpen(false);
   };
 
   // Stationary anchored rail — no surrounding gutter. Solid, edge-to-edge.

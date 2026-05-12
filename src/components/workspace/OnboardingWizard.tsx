@@ -75,6 +75,17 @@ export function OnboardingWizard() {
 
   useEffect(() => { load(); }, [load]);
 
+  // While the wizard is open, re-check completion signals every 4s so
+  // freshly invited members, brand kits, top-ups or new projects tick
+  // automatically without requiring a manual refresh.
+  useEffect(() => {
+    if (!open || !currentOrg) return;
+    const id = window.setInterval(() => { load(); }, 4000);
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    return () => { window.clearInterval(id); window.removeEventListener('focus', onFocus); };
+  }, [open, currentOrg, load]);
+
   const completed = Object.values(signals).filter(Boolean).length;
   const total = STEPS.length;
   const allDone = completed === total;

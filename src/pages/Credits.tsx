@@ -121,7 +121,7 @@ export default function Credits() {
             Unlock cinematic generation with monthly fair-use seconds. Cancel anytime.
           </p>
 
-          {entitlement?.is_active && (
+          {entitlement?.isActive && (
             <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
@@ -162,7 +162,7 @@ export default function Credits() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {TIERS.map((tier, i) => {
                   const price = tier[cadence];
-                  const isCurrent = entitlement?.is_active && entitlement.tier === tier.id;
+                  const isCurrent = entitlement?.isActive && entitlement.tier === tier.id;
                   return (
                     <motion.div
                       key={tier.id}

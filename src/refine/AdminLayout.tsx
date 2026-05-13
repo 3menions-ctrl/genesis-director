@@ -8,8 +8,7 @@ import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderKanban, DollarSign,
   MessageSquare, Shield, ChevronLeft, Settings, Coins, Loader2,
-  Activity, Mail, Film, Sparkles, Scissors, User as UserIcon,
-  Layers, GraduationCap, Code2, ExternalLink,
+  Activity, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -40,19 +39,6 @@ const NAV_SECTIONS: NavSection[] = [
     { key: "moderation", label: "Moderation", icon: Shield, path: "/admin/moderation" },
     { key: "emails", label: "Emails", icon: Mail, path: "/admin/emails" },
     { key: "config", label: "Config", icon: Settings, path: "/admin/config" },
-  ]},
-  // Studio access — admins can jump into the production app from the
-  // admin shell. These routes mount under AppShell, so following one of
-  // them leaves the admin chrome (which is intended). The Admin link in
-  // the AppShell sidebar brings them back.
-  { label: "Studio", code: "STD", items: [
-    { key: "library",    label: "Library",    icon: Film,          path: "/projects" },
-    { key: "create",     label: "Create",     icon: Sparkles,      path: "/create" },
-    { key: "editor",     label: "Editor",     icon: Scissors,      path: "/editor" },
-    { key: "avatars",    label: "Avatars",    icon: UserIcon,      path: "/avatars" },
-    { key: "templates",  label: "Templates",  icon: Layers,        path: "/templates" },
-    { key: "training",   label: "Training",   icon: GraduationCap, path: "/training-video" },
-    { key: "developers", label: "Developers", icon: Code2,         path: "/developers" },
   ]},
 ];
 
@@ -254,7 +240,6 @@ export function RefineAdminLayout() {
               )}
 
               {NAV_SECTIONS.map((section) => {
-                const isStudio = section.code === "STD";
                 return (
                 <div key={section.label} className="relative">
                   {!collapsed ? (
@@ -267,11 +252,6 @@ export function RefineAdminLayout() {
                       </span>
                       <div className="flex-1 h-px"
                         style={{ background: 'linear-gradient(90deg, hsla(215,100%,60%,0.18), transparent)' }} />
-                      {isStudio && (
-                        <span className="text-[8px] font-mono uppercase tracking-[0.28em] text-white/30">
-                          Exit ↗
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <div className="mx-auto mb-2 w-6 h-px" style={{ background: 'hsla(215,100%,60%,0.25)' }} />
@@ -279,10 +259,6 @@ export function RefineAdminLayout() {
 
                   <div className="space-y-0.5">
                     {section.items.map(({ key, label, icon: Icon, path }) => {
-                      // Admin routes use exact match; Studio routes never
-                      // match here because we leave this layout when visiting
-                      // them, but we still highlight nothing instead of
-                      // accidentally matching a sibling /admin path.
                       const active = location.pathname === path;
                       return (
                         <Link
@@ -308,11 +284,8 @@ export function RefineAdminLayout() {
                           {!collapsed && (
                             <>
                               <span className="flex-1 truncate uppercase tracking-[0.12em] text-[11px]">{label}</span>
-                              {active && !isStudio && (
+                              {active && (
                                 <span className="w-1.5 h-1.5 rounded-full bg-[hsl(215,100%,68%)] shadow-[0_0_8px_hsla(215,100%,60%,0.9)]" />
-                              )}
-                              {isStudio && !active && (
-                                <ExternalLink className="w-3 h-3 text-white/25 group-hover:text-[hsl(215,100%,68%)] transition-colors" />
                               )}
                             </>
                           )}

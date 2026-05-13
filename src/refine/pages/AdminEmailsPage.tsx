@@ -225,6 +225,7 @@ export default function AdminEmailsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminPageShell>
   );
 }

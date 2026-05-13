@@ -1,6 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle } from "lucide-react";
+import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2 } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -8,6 +8,8 @@ import {
 import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../../components/AdminPageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type Series = { date: string; value: number }[];
@@ -42,11 +44,33 @@ const fmtMins = (m: number | null) => {
 };
 const fmtDay = (s: string) => new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+type Dataset = "signups" | "projects" | "clips" | "creditsSpent" | "creditsPurchased";
+const DATASET_TONE: Record<Dataset, string> = {
+  signups: "#0A84FF",
+  projects: "#34D399",
+  clips: "#A78BFA", // tier-only fallback (not on chart) — kept for tier list clicks
+  creditsSpent: "#FBBF24",
+  creditsPurchased: "#6FB6FF",
+};
+interface DetailPayload {
+  dataset: Dataset; date: string; title: string;
+  columns: { key: string; label: string }[];
+  rows: Record<string, unknown>[];
+  truncated: boolean;
+}
+
 export default function AdminAnalyticsPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drill, setDrill] = useState<{ dataset: Dataset; date: string } | null>(null);
+  const [drillData, setDrillData] = useState<DetailPayload | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillError, setDrillError] = useState<string | null>(null);
+
+  const openDrill = (dataset: Dataset, date: string) => setDrill({ dataset, date });
+  const closeDrill = () => { setDrill(null); setDrillData(null); setDrillError(null); };
 
   const load = async (days: number) => {
     setLoading(true); setError(null);
@@ -59,6 +83,29 @@ export default function AdminAnalyticsPage() {
   };
 
   useEffect(() => { load(windowDays); /* eslint-disable-next-line */ }, [windowDays]);
+
+  // Fetch drill rows whenever drill target changes.
+  useEffect(() => {
+    if (!drill) return;
+    let cancelled = false;
+    (async () => {
+      setDrillLoading(true); setDrillError(null); setDrillData(null);
+      const params = new URLSearchParams({
+        mode: "detail",
+        dataset: drill.dataset,
+        date: drill.date,
+        limit: "200",
+      });
+      const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
+        `admin-analytics?${params.toString()}`, { method: "GET" },
+      );
+      if (cancelled) return;
+      if (err) setDrillError(err.message);
+      else setDrillData(res);
+      setDrillLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [drill]);
 
   const merged = useMemo(() => {
     if (!data) return [];
@@ -75,6 +122,16 @@ export default function AdminAnalyticsPage() {
     () => (data?.tierBreakdown ?? []).reduce((s, t) => s + t.count, 0) || 1,
     [data],
   );
+
+  // Recharts click handlers operate on payload row objects.
+  const handleAreaClick = (dataset: Dataset) => (evt: { payload?: { date?: string } } | undefined) => {
+    const date = evt?.payload?.date;
+    if (date) openDrill(dataset, date);
+  };
+  const handleChartClick = (state: { activeLabel?: string } | null) => {
+    // Click anywhere on the chart canvas → drill into signups for that day.
+    if (state?.activeLabel) openDrill("signups", state.activeLabel);
+  };
 
   return (
     <AdminPageShell
@@ -130,19 +187,33 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <KpiTile icon={Users} label="Active 7D" value={data ? fmtN(data.kpis.active7d) : null} loading={loading} accent="blue" />
         <KpiTile icon={Activity} label="Active 30D" value={data ? fmtN(data.kpis.active30d) : null} loading={loading} accent="blue" />
-        <KpiTile icon={Sparkles} label={`Projects ${windowDays}D`} value={data ? fmtN(data.kpis.projects) : null} loading={loading} accent="emerald" />
-        <KpiTile icon={Zap} label={`Credits Spent ${windowDays}D`} value={data ? fmtN(data.kpis.creditsSpent) : null} loading={loading} accent="amber" />
+        <KpiTile
+          icon={Sparkles}
+          label={`Projects ${windowDays}D`}
+          value={data ? fmtN(data.kpis.projects) : null}
+          loading={loading}
+          accent="emerald"
+          onClick={data ? () => openDrill("projects", todayKey()) : undefined}
+        />
+        <KpiTile
+          icon={Zap}
+          label={`Credits Spent ${windowDays}D`}
+          value={data ? fmtN(data.kpis.creditsSpent) : null}
+          loading={loading}
+          accent="amber"
+          onClick={data ? () => openDrill("creditsSpent", todayKey()) : undefined}
+        />
       </div>
 
       {/* Activity chart */}
-      <AdminSectionLabel label="Activity" meta={`${windowDays}-day window`} />
+      <AdminSectionLabel label="Activity" meta={`${windowDays}-day window · click any day to inspect`} />
       <AdminSurface className="mb-10">
         {loading ? (
           <Skeleton className="h-[320px] w-full bg-white/[0.04]" />
         ) : (
-          <div className="h-[320px]">
+          <div className="h-[320px] cursor-pointer">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={merged} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+              <AreaChart data={merged} margin={{ top: 16, right: 12, left: -10, bottom: 0 }} onClick={handleChartClick as any}>
                 <defs>
                   <linearGradient id="gSignups" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0A84FF" stopOpacity={0.55} />
@@ -165,18 +236,24 @@ export default function AdminAnalyticsPage() {
                   labelFormatter={(l) => fmtDay(l as string)}
                   cursor={{ stroke: "rgba(10,132,255,0.35)", strokeWidth: 1 }}
                 />
-                <Area type="monotone" dataKey="creditsSpent" name="Credits spent" stroke="#FBBF24" strokeWidth={1.4} fill="url(#gCredits)" />
-                <Area type="monotone" dataKey="projects" name="Projects" stroke="#34D399" strokeWidth={1.4} fill="url(#gProjects)" />
-                <Area type="monotone" dataKey="signups" name="Signups" stroke="#0A84FF" strokeWidth={1.8} fill="url(#gSignups)" />
+                <Area type="monotone" dataKey="creditsSpent" name="Credits spent" stroke="#FBBF24" strokeWidth={1.4} fill="url(#gCredits)"
+                  activeDot={{ r: 4, onClick: handleAreaClick("creditsSpent") as any, style: { cursor: "pointer" } }} />
+                <Area type="monotone" dataKey="projects" name="Projects" stroke="#34D399" strokeWidth={1.4} fill="url(#gProjects)"
+                  activeDot={{ r: 4, onClick: handleAreaClick("projects") as any, style: { cursor: "pointer" } }} />
+                <Area type="monotone" dataKey="signups" name="Signups" stroke="#0A84FF" strokeWidth={1.8} fill="url(#gSignups)"
+                  activeDot={{ r: 5, onClick: handleAreaClick("signups") as any, style: { cursor: "pointer" } }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
-        <ChartLegend items={[
-          { color: "#0A84FF", label: "Signups" },
-          { color: "#34D399", label: "Projects" },
-          { color: "#FBBF24", label: "Credits spent" },
-        ]} />
+        <ChartLegend
+          items={[
+            { color: "#0A84FF", label: "Signups", dataset: "signups" as const },
+            { color: "#34D399", label: "Projects", dataset: "projects" as const },
+            { color: "#FBBF24", label: "Credits spent", dataset: "creditsSpent" as const },
+          ]}
+          onSelect={(ds) => openDrill(ds, todayKey())}
+        />
       </AdminSurface>
 
       {/* Two-column row: tier mix + activation */}
@@ -288,21 +365,47 @@ export default function AdminAnalyticsPage() {
           Last refreshed {new Date(data.generatedAt).toLocaleString()}
         </p>
       )}
+
+      <DrillSheet
+        open={!!drill}
+        onClose={closeDrill}
+        target={drill}
+        loading={drillLoading}
+        error={drillError}
+        payload={drillData}
+      />
     </AdminPageShell>
   );
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function KpiTile({ icon: Icon, label, value, loading, accent }: {
   icon: React.ElementType; label: string; value: string | null; loading: boolean;
   accent: "blue" | "emerald" | "amber";
+  onClick?: () => void;
 }) {
   const tone = { blue: "text-[#6FB6FF]", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
+  const interactive = !!arguments[0]?.onClick;
+  const onClick = arguments[0]?.onClick as (() => void) | undefined;
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 relative overflow-hidden group">
+    <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter") onClick(); } : undefined}
+      className={cn(
+        "rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 relative overflow-hidden group",
+        onClick && "cursor-pointer transition-colors hover:border-[#0A84FF]/30",
+      )}
+    >
       <div aria-hidden className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(20px)" }} />
       <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
         <Icon className={cn("h-3 w-3", tone)} /> {label}
+        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-[#6FB6FF] transition-colors" />}
       </div>
       {loading || value == null ? (
         <Skeleton className="h-8 w-20 bg-white/[0.04]" />
@@ -346,14 +449,27 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
   );
 }
 
-function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
+function ChartLegend({ items, onSelect }: {
+  items: { color: string; label: string; dataset?: Dataset }[];
+  onSelect?: (ds: Dataset) => void;
+}) {
   return (
     <div className="flex items-center gap-5 mt-4 pt-4 border-t border-white/[0.04]">
       {items.map((i) => (
-        <div key={i.label} className="flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-[0.22em]">
+        <button
+          key={i.label}
+          type="button"
+          disabled={!onSelect || !i.dataset}
+          onClick={() => i.dataset && onSelect?.(i.dataset)}
+          className={cn(
+            "flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-[0.22em]",
+            onSelect && i.dataset && "hover:text-white transition-colors cursor-pointer",
+          )}
+        >
           <span className="h-1.5 w-3 rounded-sm" style={{ background: i.color }} />
           {i.label}
-        </div>
+          {onSelect && i.dataset && <ArrowUpRight className="h-2.5 w-2.5 opacity-50" />}
+        </button>
       ))}
     </div>
   );

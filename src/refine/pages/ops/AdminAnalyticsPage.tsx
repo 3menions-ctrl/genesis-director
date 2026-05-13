@@ -834,11 +834,18 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
             <div className="ml-auto flex items-center gap-2">
               {exportPayload && exportPayload.rows.length > 0 && (
                 <button
-                  onClick={() => downloadCsv(exportPayload)}
-                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
-                  aria-label="Export CSV"
+                  onClick={() => downloadCsv(exportPayload, { filtered: activeFilterCount > 0 })}
+                  className="h-8 px-3.5 inline-flex items-center gap-2 rounded-full border border-[#0A84FF]/40 bg-[#0A84FF]/10 text-[10px] font-mono uppercase tracking-[0.22em] text-[#6FB6FF] hover:bg-[#0A84FF]/20 hover:border-[#0A84FF]/70 transition-colors"
+                  aria-label={`Export ${exportPayload.rows.length} rows as CSV`}
+                  title={activeFilterCount > 0
+                    ? `Download ${exportPayload.rows.length} filtered rows`
+                    : `Download all ${exportPayload.rows.length} loaded rows`}
                 >
-                  <Download className="h-3 w-3" /> CSV
+                  <Download className="h-3 w-3" />
+                  Export CSV
+                  <span className="text-[9px] text-[#6FB6FF]/60">
+                    · {exportPayload.rows.length}{activeFilterCount > 0 ? " filtered" : ""}
+                  </span>
                 </button>
               )}
               <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
@@ -1182,7 +1189,7 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
   );
 }
 
-function downloadCsv(payload: DetailPayload) {
+function downloadCsv(payload: DetailPayload, opts: { filtered?: boolean } = {}) {
   const esc = (v: unknown) => {
     if (v == null) return "";
     const s = String(v);
@@ -1195,7 +1202,8 @@ function downloadCsv(payload: DetailPayload) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${payload.dataset}-${payload.date}.csv`;
+  const suffix = opts.filtered ? "-filtered" : "";
+  a.download = `${payload.dataset}-${payload.date}${suffix}.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -10,7 +10,7 @@ import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
 import {
   Activity, AlertOctagon, Users, MessageSquare, DollarSign, Coins,
   FolderKanban, Shield, Mail, Settings, Loader2, ChevronLeft, Power,
-  ChevronDown,
+  ChevronDown, Lock,
   ScrollText, Terminal, Cloud, ListOrdered, Heart, DatabaseBackup,
   KeyRound, UserCog, MonitorSmartphone, FileLock2, Flag,
   Repeat, Undo2, TicketPercent, Share2, Receipt, Scale,
@@ -117,11 +117,12 @@ const Clock = memo(function Clock() {
   );
 });
 
-export function RefineAdminLayout() {
+function RefineAdminLayoutInner() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const { hasScope } = useOpsAccess();
 
   // Per-section collapse state, persisted across reloads.
   const STORAGE_KEY = "admin.sidebar.openSections.v1";
@@ -256,19 +257,26 @@ export function RefineAdminLayout() {
               )}
               <div className={cn("space-y-1 overflow-hidden", !isOpen && "hidden")}>
                 {section.items.map(({ label, icon: Icon, path, n }) => (
+                  (() => {
+                    const allowed = hasScope(scopeForPath(path));
+                    return (
                   <NavLink
                     key={path}
                     to={path}
                     end={path === "/admin"}
+                    onClick={(e) => { if (!allowed) e.preventDefault(); }}
+                    aria-disabled={!allowed}
+                    tabIndex={allowed ? undefined : -1}
                     className={({ isActive }) =>
                       cn(
                         "admin-nav-item group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                        !allowed && "opacity-40 cursor-not-allowed hover:bg-transparent",
                         isActive
                           ? "is-active bg-[#0A84FF]/12 text-white shadow-[inset_0_0_0_1px_rgba(10,132,255,0.18)]"
                           : "text-white/45 hover:bg-white/[0.03] hover:text-white"
                       )
                     }
-                    title={collapsed ? label : undefined}
+                    title={!allowed ? `Locked · ${scopeForPath(path)} scope required` : (collapsed ? label : undefined)}
                   >
                     {/* Active rail (locked-standard 2px glow) */}
                     <span
@@ -284,7 +292,11 @@ export function RefineAdminLayout() {
                         >
                           {label}
                         </span>
-                        <span className="text-[9px] opacity-25 group-[.is-active]:opacity-70 group-[.is-active]:text-[#0A84FF] font-mono tracking-wider">{n}</span>
+                        {allowed ? (
+                          <span className="text-[9px] opacity-25 group-[.is-active]:opacity-70 group-[.is-active]:text-[#0A84FF] font-mono tracking-wider">{n}</span>
+                        ) : (
+                          <Lock className="w-3 h-3 opacity-50" />
+                        )}
                         {/* 6px right dot */}
                         <span
                           aria-hidden
@@ -293,6 +305,8 @@ export function RefineAdminLayout() {
                       </>
                     )}
                   </NavLink>
+                    );
+                  })()
                 ))}
               </div>
             </div>
@@ -356,9 +370,19 @@ export function RefineAdminLayout() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <Outlet />
+          <OpsRouteGuard>
+            <Outlet />
+          </OpsRouteGuard>
         </div>
       </main>
     </div>
+  );
+}
+
+export function RefineAdminLayout() {
+  return (
+    <OpsAccessProvider>
+      <RefineAdminLayoutInner />
+    </OpsAccessProvider>
   );
 }

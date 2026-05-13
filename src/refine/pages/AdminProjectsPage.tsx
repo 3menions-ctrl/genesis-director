@@ -8,7 +8,7 @@ export default function AdminProjectsPage() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.from("projects").select("status").limit(5000);
+      const { data } = await supabase.from("movie_projects" as any).select("status").limit(5000);
       if (!alive || !data) return;
       let active = 0, completed = 0, failed = 0;
       data.forEach((r: any) => {

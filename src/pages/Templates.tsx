@@ -701,6 +701,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  // Educational-tab-only: filter by target length bucket.
+  const [durationFilter, setDurationFilter] = useState<'any' | '1' | '2' | '3' | '3plus'>('any');
 
   // Cleanup on navigation away
   useRouteCleanup(() => {
@@ -752,8 +754,18 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     if (activeCategory === 'trending') {
       matchesCategory = template.is_trending === true;
     }
-    
-    return matchesSearch && matchesCategory;
+
+    // Duration filter applies only on the Educational tab.
+    let matchesDuration = true;
+    if (activeCategory === 'educational' && durationFilter !== 'any') {
+      const d = template.target_duration_minutes ?? 0;
+      if (durationFilter === '1') matchesDuration = d <= 1;
+      else if (durationFilter === '2') matchesDuration = d === 2;
+      else if (durationFilter === '3') matchesDuration = d === 3;
+      else if (durationFilter === '3plus') matchesDuration = d > 3;
+    }
+
+    return matchesSearch && matchesCategory && matchesDuration;
   });
 
   // Sort: trending first, then featured, then by use count

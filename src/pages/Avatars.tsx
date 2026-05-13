@@ -311,7 +311,17 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       setShowBuyCredits(true);
       return;
     }
-    
+
+    // Block creation when an active Cinema entitlement lacks remaining seconds.
+    // No-op for users without a Cinema subscription (credit gating above
+    // handles them). Surfaces a toast with remaining seconds + upgrade CTA.
+    const guard = cinemaGuard.check(estimatedDuration, {
+      onUpgrade: () => navigate('/credits'),
+    });
+    if (!guard.allowed) {
+      return;
+    }
+
     if (!selectedAvatar) {
       toast.error('Please select an avatar first');
       return;

@@ -8,6 +8,7 @@ import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';

@@ -6953,6 +6953,23 @@ export type Database = {
         }[]
       }
       get_admin_stats: { Args: never; Returns: Json }
+      get_cinema_entitlement: {
+        Args: { _user_id?: string }
+        Returns: {
+          cancel_at_period_end: boolean
+          fair_use_seconds: number
+          has_entitlement: boolean
+          is_active: boolean
+          period_end: string
+          period_start: string
+          price_id: string
+          remaining_seconds: number
+          status: string
+          subscription_id: string
+          tier: string
+          used_seconds: number
+        }[]
+      }
       get_generation_checkpoint: {
         Args: { p_project_id: string }
         Returns: {

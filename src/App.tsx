@@ -81,7 +81,45 @@ const AdminProductionPage = lazy(() => import("./refine/pages/AdminProductionPag
 const AdminModerationPage = lazy(() => import("./refine/pages/AdminModerationPage"));
 const AdminConfigPage = lazy(() => import("./refine/pages/AdminConfigPage"));
 const AdminEmailsPage = lazy(() => import("./refine/pages/AdminEmailsPage"));
-const Terms = lazy(() => import("./pages/Terms"));
+
+// ── Ops / missing admin pages (37) ──────────────────────────
+const AdminAuditLogPage = lazy(() => import("./refine/pages/ops/AdminAuditLogPage"));
+const AdminEdgeLogsPage = lazy(() => import("./refine/pages/ops/AdminEdgeLogsPage"));
+const AdminProvidersPage = lazy(() => import("./refine/pages/ops/AdminProvidersPage"));
+const AdminQueuePage = lazy(() => import("./refine/pages/ops/AdminQueuePage"));
+const AdminStatusPage = lazy(() => import("./refine/pages/ops/AdminStatusPage"));
+const AdminBackupsPage = lazy(() => import("./refine/pages/ops/AdminBackupsPage"));
+const AdminRolesPage = lazy(() => import("./refine/pages/ops/AdminRolesPage"));
+const AdminTeamPage = lazy(() => import("./refine/pages/ops/AdminTeamPage"));
+const AdminSessionsPage = lazy(() => import("./refine/pages/ops/AdminSessionsPage"));
+const AdminGdprPage = lazy(() => import("./refine/pages/ops/AdminGdprPage"));
+const AdminAbusePage = lazy(() => import("./refine/pages/ops/AdminAbusePage"));
+const AdminSubscriptionsPage = lazy(() => import("./refine/pages/ops/AdminSubscriptionsPage"));
+const AdminRefundsPage = lazy(() => import("./refine/pages/ops/AdminRefundsPage"));
+const AdminCouponsPage = lazy(() => import("./refine/pages/ops/AdminCouponsPage"));
+const AdminReferralsPage = lazy(() => import("./refine/pages/ops/AdminReferralsPage"));
+const AdminInvoicesPage = lazy(() => import("./refine/pages/ops/AdminInvoicesPage"));
+const AdminReconcilePage = lazy(() => import("./refine/pages/ops/AdminReconcilePage"));
+const AdminAvatarCatalogPage = lazy(() => import("./refine/pages/ops/AdminAvatarCatalogPage"));
+const AdminGalleryCurationPage = lazy(() => import("./refine/pages/ops/AdminGalleryCurationPage"));
+const AdminTemplatesAdminPage = lazy(() => import("./refine/pages/ops/AdminTemplatesAdminPage"));
+const AdminStoragePage = lazy(() => import("./refine/pages/ops/AdminStoragePage"));
+const AdminContentSafetyPage = lazy(() => import("./refine/pages/ops/AdminContentSafetyPage"));
+const AdminAnalyticsPage = lazy(() => import("./refine/pages/ops/AdminAnalyticsPage"));
+const AdminOnboardingAnalyticsPage = lazy(() => import("./refine/pages/ops/AdminOnboardingAnalyticsPage"));
+const AdminExperimentsPage = lazy(() => import("./refine/pages/ops/AdminExperimentsPage"));
+const AdminCohortsPage = lazy(() => import("./refine/pages/ops/AdminCohortsPage"));
+const AdminFeatureFlagsPage = lazy(() => import("./refine/pages/ops/AdminFeatureFlagsPage"));
+const AdminAnnouncementsPage = lazy(() => import("./refine/pages/ops/AdminAnnouncementsPage"));
+const AdminEmailTemplatesPage = lazy(() => import("./refine/pages/ops/AdminEmailTemplatesPage"));
+const AdminNotificationsPage = lazy(() => import("./refine/pages/ops/AdminNotificationsPage"));
+const AdminMacrosPage = lazy(() => import("./refine/pages/ops/AdminMacrosPage"));
+const AdminChangelogPage = lazy(() => import("./refine/pages/ops/AdminChangelogPage"));
+const AdminApiKeysPage = lazy(() => import("./refine/pages/ops/AdminApiKeysPage"));
+const AdminWebhooksPage = lazy(() => import("./refine/pages/ops/AdminWebhooksPage"));
+const AdminSecretsPage = lazy(() => import("./refine/pages/ops/AdminSecretsPage"));
+const AdminDbHealthPage = lazy(() => import("./refine/pages/ops/AdminDbHealthPage"));
+const AdminCrashForensicsPage = lazy(() => import("./refine/pages/ops/AdminCrashForensicsPage"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
 

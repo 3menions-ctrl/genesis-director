@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, forwardRef, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, forwardRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
@@ -738,6 +738,29 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     } catch {}
   }, [searchQuery, activeCategory, durationFilter]);
 
+  // "Jump to results" — auto-scroll to the first matching educational template
+  // whenever the duration filter changes (skips initial mount and the "any" reset).
+  const firstMatchRef = useRef<HTMLDivElement>(null);
+  const didMountDurationRef = useRef(false);
+  useEffect(() => {
+    if (!didMountDurationRef.current) {
+      didMountDurationRef.current = true;
+      return;
+    }
+    if (activeCategory !== 'educational' || durationFilter === 'any') return;
+    // Wait one frame so the filtered grid has re-rendered.
+    const id = window.requestAnimationFrame(() => {
+      const el = firstMatchRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-[hsla(215,100%,65%,0.55)]', 'rounded-xl');
+      window.setTimeout(() => {
+        el.classList.remove('ring-2', 'ring-[hsla(215,100%,65%,0.55)]', 'rounded-xl');
+      }, 1400);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [durationFilter, activeCategory]);
+
   // Cleanup on navigation away
   useRouteCleanup(() => {
     // No-op: lightweight page, no async to cancel
@@ -923,17 +946,22 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
         {/* Templates Grid - Compact 5-column */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {sortedTemplates.map((template, index) => (
-            <TemplateCard
+            <div
               key={template.id}
-              template={template}
-              onUse={() => handleUseTemplate(template)}
-              onPreview={
-                template.category === 'educational'
-                  ? () => setPreviewTemplate(template)
-                  : undefined
-              }
-              index={index}
-            />
+              ref={index === 0 ? firstMatchRef : undefined}
+              className="scroll-mt-24"
+            >
+              <TemplateCard
+                template={template}
+                onUse={() => handleUseTemplate(template)}
+                onPreview={
+                  template.category === 'educational'
+                    ? () => setPreviewTemplate(template)
+                    : undefined
+                }
+                index={index}
+              />
+            </div>
           ))}
         </div>
 

@@ -370,7 +370,13 @@ export default function Credits() {
                     <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Used this period</div>
                     <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#0A84FF] to-[#9DCBFF] rounded-full"
+                        className={`h-full rounded-full ${
+                          entitlement.remainingSeconds <= 0
+                            ? 'bg-gradient-to-r from-rose-500 to-rose-300'
+                            : usedPct >= 80
+                              ? 'bg-gradient-to-r from-amber-500 to-amber-300'
+                              : 'bg-gradient-to-r from-[#0A84FF] to-[#9DCBFF]'
+                        }`}
                         style={{ width: `${usedPct}%` }}
                       />
                     </div>
@@ -549,7 +555,7 @@ export default function Credits() {
               </div>
 
               {/* Tier cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div id="cinema-tier-grid" className="grid grid-cols-1 md:grid-cols-3 gap-5 scroll-mt-24">
                 {TIERS.map((tier, i) => {
                   const price = tier[cadence];
                   const isCurrent = entitlement?.isActive && entitlement.tier === tier.id;

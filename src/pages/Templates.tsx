@@ -949,7 +949,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
             <div
               key={template.id}
               ref={index === 0 ? firstMatchRef : undefined}
-              className="contents"
+              className="scroll-mt-24"
             >
               <TemplateCard
                 template={template}

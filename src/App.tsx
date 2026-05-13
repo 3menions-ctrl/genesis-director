@@ -120,6 +120,7 @@ const AdminWebhooksPage = lazy(() => import("./refine/pages/ops/AdminWebhooksPag
 const AdminSecretsPage = lazy(() => import("./refine/pages/ops/AdminSecretsPage"));
 const AdminDbHealthPage = lazy(() => import("./refine/pages/ops/AdminDbHealthPage"));
 const AdminCrashForensicsPage = lazy(() => import("./refine/pages/ops/AdminCrashForensicsPage"));
+const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
 

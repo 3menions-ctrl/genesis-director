@@ -30,6 +30,22 @@ function pickWebhookSecret(env: StripeEnv): string {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Cinema tier detection — keep in sync with create-cinema-checkout CINEMA_CATALOG
+// and get_cinema_entitlement RPC mappings.
+const CINEMA_TIER_BY_PRICE: Record<string, "cinema_lite" | "cinema_pro" | "cinema_studio"> = {
+  cinema_lite_monthly:   "cinema_lite",
+  cinema_lite_yearly:    "cinema_lite",
+  cinema_pro_monthly:    "cinema_pro",
+  cinema_pro_yearly:     "cinema_pro",
+  cinema_studio_monthly: "cinema_studio",
+  cinema_studio_yearly:  "cinema_studio",
+};
+
+function resolveCinemaTier(priceId?: string | null) {
+  if (!priceId) return null;
+  return CINEMA_TIER_BY_PRICE[priceId] ?? null;
+}
+
 async function handleCreditPurchase(session: any) {
   const md = session.metadata || {};
   const userId = md.user_id;
@@ -104,6 +120,8 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
     return;
   }
 
+  const cinemaTier = resolveCinemaTier(basePriceId);
+
   const item = items[0];
   const periodStart = item?.current_period_start ?? sub.current_period_start;
   const periodEnd = item?.current_period_end ?? sub.current_period_end;
@@ -126,7 +144,7 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: !!sub.cancel_at_period_end,
       environment: env,
-      metadata: md,
+      metadata: cinemaTier ? { ...md, cinema_tier: cinemaTier } : md,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "stripe_subscription_id,environment" },
@@ -135,7 +153,10 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
     log("subscription upsert error", { error: error.message, subId: sub.id });
     throw new Error(error.message);
   }
-  log("subscription upserted", { subId: sub.id, userId, seats, status: sub.status, env });
+  log("subscription upserted", {
+    subId: sub.id, userId, seats, status: sub.status, env,
+    ...(cinemaTier && { cinema_tier: cinemaTier, cinema_period_end: periodEnd }),
+  });
 }
 
 async function handleSubscriptionDeleted(sub: any, env: StripeEnv) {
@@ -145,6 +166,56 @@ async function handleSubscriptionDeleted(sub: any, env: StripeEnv) {
     .eq("stripe_subscription_id", sub.id)
     .eq("environment", env);
   log("subscription canceled", { subId: sub.id });
+}
+
+/**
+ * Invoice events. For Cinema subscriptions, `invoice.paid` is a strong renewal
+ * signal — the period_start / period_end on the subscription object will have
+ * advanced. We mirror the period forward into our `subscriptions` row so the
+ * `get_cinema_entitlement` RPC's per-period usage window slides correctly.
+ * `customer.subscription.updated` usually fires too and is idempotent thanks
+ * to the upsert key, so processing both is safe.
+ */
+async function handleInvoicePaid(invoice: any, env: StripeEnv) {
+  const subscriptionId: string | null = invoice?.subscription || invoice?.parent?.subscription_details?.subscription || null;
+  if (!subscriptionId) {
+    log("skip invoice.paid: no subscription id", { invoiceId: invoice?.id });
+    return;
+  }
+  // Slide period forward and refresh status from the invoice line.
+  const line = invoice?.lines?.data?.[0];
+  const periodStart = line?.period?.start ?? null;
+  const periodEnd = line?.period?.end ?? null;
+  if (!periodStart || !periodEnd) {
+    log("invoice.paid missing period — relying on subscription.updated", { subscriptionId });
+    return;
+  }
+  const sb = getSupabase();
+  const { error } = await sb.from("subscriptions")
+    .update({
+      status: "active",
+      current_period_start: new Date(periodStart * 1000).toISOString(),
+      current_period_end: new Date(periodEnd * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("environment", env);
+  if (error) {
+    log("invoice.paid update error", { error: error.message, subscriptionId });
+    throw new Error(error.message);
+  }
+  log("invoice.paid period rolled", { subscriptionId, periodStart, periodEnd, env });
+}
+
+async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
+  const subscriptionId: string | null = invoice?.subscription || invoice?.parent?.subscription_details?.subscription || null;
+  if (!subscriptionId) return;
+  const sb = getSupabase();
+  await sb.from("subscriptions")
+    .update({ status: "past_due", updated_at: new Date().toISOString() })
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("environment", env);
+  log("invoice.payment_failed → past_due", { subscriptionId, env });
 }
 
 serve(async (req) => {
@@ -178,6 +249,14 @@ serve(async (req) => {
           if (session.mode === "payment") {
             await handleCreditPurchase(session);
           }
+          if (session.mode === "subscription") {
+            const md = session.metadata || {};
+            if (md.kind === "cinema_subscription") {
+              log("cinema checkout completed", {
+                userId: md.userId, priceId: md.priceId, tier: md.tier, sessionId: session.id,
+              });
+            }
+          }
           // Subscription mode: customer.subscription.created will fire and handle the upsert.
           break;
         }
@@ -187,6 +266,13 @@ serve(async (req) => {
           break;
         case "customer.subscription.deleted":
           await handleSubscriptionDeleted(event.data.object, env);
+          break;
+        case "invoice.paid":
+        case "invoice.payment_succeeded":
+          await handleInvoicePaid(event.data.object, env);
+          break;
+        case "invoice.payment_failed":
+          await handleInvoicePaymentFailed(event.data.object, env);
           break;
         default:
           log("unhandled event", { type: event.type });

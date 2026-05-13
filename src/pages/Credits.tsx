@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
+import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings, FileText, Download, ExternalLink, Receipt } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Coins, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdminPageShell } from "../components/AdminPageShell";
 
 interface Transaction {
   id: string; user_id: string; amount: number; transaction_type: string;
@@ -31,17 +32,19 @@ export default function AdminCreditsPage() {
   useEffect(() => { fetch(); }, []);
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Coins className="w-4 h-4 text-white/40" /> Credit Transactions
-        </h2>
+    <AdminPageShell
+      eyebrow="03 // MONEY"
+      code="LDG"
+      title="Ledger"
+      italic="Transactions."
+      description="Every credit movement across the platform — purchases, consumption, refunds, and adjustments."
+      actions={
         <Button onClick={fetch} variant="ghost" size="sm" className="text-xs text-white/30 hover:text-white/60">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
         </Button>
-      </div>
-
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+      }
+    >
+      <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

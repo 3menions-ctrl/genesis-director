@@ -47,6 +47,8 @@ project_id = "ahlikyhgcqvrdvbtkghh"
     verify_jwt = false
   [functions.create-cinema-checkout]
     verify_jwt = false
+  [functions.verify-cinema-checkout]
+    verify_jwt = false
   [functions.delete-user-account]
     verify_jwt = false
   [functions.editor-generate-from-audio]

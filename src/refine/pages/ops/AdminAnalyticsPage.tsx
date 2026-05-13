@@ -595,9 +595,20 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
             <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
               {target?.date}
             </span>
-            <button onClick={onClose} className="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+            <div className="ml-auto flex items-center gap-2">
+              {payload && payload.rows.length > 0 && (
+                <button
+                  onClick={() => downloadCsv(payload)}
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                  aria-label="Export CSV"
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </button>
+              )}
+              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
               <X className="h-3.5 w-3.5" />
-            </button>
+              </button>
+            </div>
           </div>
           <SheetTitle className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
             {heading}

@@ -109,6 +109,32 @@ export default function Credits() {
     },
   });
 
+  type PendingChange = {
+    kind: 'upgrade' | 'downgrade' | 'change';
+    source: 'schedule' | 'pending_update';
+    currentTier: string | null;
+    currentPlanName: string | null;
+    nextTier: string | null;
+    nextPlanName: string | null;
+    nextPriceId: string | null;
+    cadence: 'monthly' | 'yearly' | null;
+    effectiveAt: string | null;
+  };
+
+  const pendingChangeQuery = useQuery({
+    queryKey: ['cinema-pending-change', user?.id],
+    enabled: !!user && !!entitlement?.hasEntitlement,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<PendingChange | null> => {
+      const { data, error } = await supabase.functions.invoke('get-cinema-pending-change', {
+        body: { environment: getStripeEnvironment() },
+      });
+      if (error) throw error;
+      return (data as { pending?: PendingChange | null } | null)?.pending ?? null;
+    },
+  });
+
   const openCustomerPortal = async () => {
     if (openingPortal) return;
     setOpeningPortal(true);
@@ -384,6 +410,46 @@ export default function Credits() {
                   </div>
                 </div>
 
+                {(() => {
+                  const pending = pendingChangeQuery.data;
+                  if (!pending) return null;
+                  const effective = pending.effectiveAt
+                    ? new Date(pending.effectiveAt).toLocaleDateString(undefined, {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                      })
+                    : null;
+                  const Icon = pending.kind === 'upgrade' ? Sparkles : pending.kind === 'downgrade' ? RefreshCw : Clock;
+                  const verb = pending.kind === 'upgrade' ? 'Upgrade' : pending.kind === 'downgrade' ? 'Downgrade' : 'Plan change';
+                  const palette = pending.kind === 'downgrade'
+                    ? { border: 'border-amber-400/25', bg: 'bg-amber-400/[0.06]', text: 'text-amber-200', icon: 'text-amber-300' }
+                    : { border: 'border-[#0A84FF]/30', bg: 'bg-[#0A84FF]/[0.06]', text: 'text-[#9DCBFF]', icon: 'text-[#9DCBFF]' };
+                  const target = pending.nextPlanName ?? 'a new plan';
+                  return (
+                    <div className={`mt-4 rounded-lg border ${palette.border} ${palette.bg} px-3.5 py-3 flex items-start gap-3`}>
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${palette.icon}`} />
+                      <div className={`flex-1 min-w-0 text-xs ${palette.text}`}>
+                        <div className="font-medium text-sm">
+                          {verb} scheduled to {target}
+                          {pending.cadence ? ` (${pending.cadence})` : ''}
+                        </div>
+                        <div className="opacity-85 mt-0.5">
+                          {effective
+                            ? `Takes effect on ${effective}. You can change or cancel this from the billing portal.`
+                            : 'Pending confirmation. Manage from the billing portal.'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openCustomerPortal}
+                        disabled={openingPortal}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 disabled:opacity-60"
+                      >
+                        {openingPortal ? <Loader2 className="w-3 h-3 animate-spin" /> : <Settings className="w-3 h-3" />}
+                        Manage
+                      </button>
+                    </div>
+                  );
+                })()}
                 {cancelling && renewalDate && (
                   <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-xs text-amber-200/90">
                     <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />

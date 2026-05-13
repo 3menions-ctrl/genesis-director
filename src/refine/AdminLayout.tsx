@@ -17,7 +17,7 @@ import {
   UserSquare2, Images, LayoutTemplate, HardDrive, ShieldAlert,
   BarChart3, Footprints, FlaskConical, GitBranch, ToggleLeft, Megaphone,
   MailPlus, Bell, MessagesSquare, Newspaper,
-  Code2, Webhook, Lock, Database, Bug,
+  Code2, Webhook, Database, Bug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";

@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };
 type NavSection = { code: string; label: string; live?: boolean; items: NavItem[] };
@@ -103,7 +104,7 @@ export function RefineAdminLayout() {
 
   return (
     <div
-      className="min-h-screen w-full bg-[#040506] text-white/80 flex selection:bg-[#0A84FF]/30 relative overflow-hidden"
+      className="admin-skin min-h-screen w-full bg-[#040506] text-white/80 flex selection:bg-[#0A84FF]/30 relative overflow-hidden"
       style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}
     >
       {/* Ambient grain */}

@@ -80,6 +80,7 @@ export default function Credits() {
   const { data: entitlement } = useCinemaEntitlement();
   const refreshEntitlement = useRefreshCinemaEntitlement();
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [recheckingEntitlement, setRecheckingEntitlement] = useState(false);
 
   type InvoiceRow = {
     id: string;

@@ -874,3 +874,23 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
     </Table>
   );
 }
+
+function downloadCsv(payload: DetailPayload) {
+  const esc = (v: unknown) => {
+    if (v == null) return "";
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = payload.columns.map((c) => esc(c.label)).join(",");
+  const lines = payload.rows.map((r) => payload.columns.map((c) => esc(r[c.key])).join(","));
+  const csv = [header, ...lines].join("\n") + "\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${payload.dataset}-${payload.date}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

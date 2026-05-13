@@ -250,7 +250,74 @@ export default function Credits() {
               Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
             </div>
           )}
+
+          {refreshing && !returnStatus && (
+            <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] text-white/70 text-xs">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Verifying your payment…
+            </div>
+          )}
         </motion.header>
+
+        {/* Post-checkout return banner — failed / cancelled / processing */}
+        <AnimatePresence>
+          {returnStatus && returnStatus.kind !== 'paid' && !selectedPriceId && (
+            <motion.div
+              key={`status-${returnStatus.kind}`}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className={`mb-8 rounded-2xl border px-5 py-4 flex items-start gap-4 ${
+                returnStatus.kind === 'failed'
+                  ? 'border-rose-400/25 bg-rose-500/[0.06]'
+                  : returnStatus.kind === 'processing'
+                    ? 'border-[#0A84FF]/30 bg-[#0A84FF]/[0.06]'
+                    : 'border-white/[0.10] bg-white/[0.03]'
+              }`}
+            >
+              <div className="shrink-0 mt-0.5">
+                {returnStatus.kind === 'failed' && <XCircle className="w-5 h-5 text-rose-300" />}
+                {returnStatus.kind === 'processing' && <Clock className="w-5 h-5 text-[#9DCBFF]" />}
+                {returnStatus.kind === 'cancelled' && <AlertTriangle className="w-5 h-5 text-amber-300/80" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white">
+                  {returnStatus.kind === 'failed' && 'Payment could not be completed'}
+                  {returnStatus.kind === 'processing' && 'Payment is processing'}
+                  {returnStatus.kind === 'cancelled' && 'Checkout cancelled'}
+                </p>
+                <p className="text-xs text-white/55 mt-0.5">{returnStatus.reason}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {returnStatus.kind !== 'processing' && returnStatus.priceId && (
+                  <button
+                    onClick={() => {
+                      const tier = TIERS.find(
+                        t => t.monthly.priceId === returnStatus.priceId || t.yearly.priceId === returnStatus.priceId,
+                      );
+                      if (tier) {
+                        setCadence(tier.yearly.priceId === returnStatus.priceId ? 'yearly' : 'monthly');
+                      }
+                      setReturnStatus(null);
+                      setSelectedPriceId(returnStatus.priceId);
+                    }}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white text-xs font-medium"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Try again
+                  </button>
+                )}
+                <button
+                  onClick={() => setReturnStatus(null)}
+                  className="text-xs text-white/40 hover:text-white/70 px-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {!selectedPriceId ? (
@@ -356,11 +423,18 @@ export default function Credits() {
               className="max-w-3xl mx-auto"
             >
               <button
-                onClick={() => setSelectedPriceId(null)}
+                onClick={() => {
+                  setSelectedPriceId(null);
+                  setReturnStatus({
+                    kind: 'cancelled',
+                    reason: 'Checkout cancelled. Your card was not charged.',
+                    priceId: selectedPriceId,
+                  });
+                }}
                 className="inline-flex items-center gap-1.5 text-xs text-white/55 hover:text-white mb-5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Back to plans
+                Cancel and choose another plan
               </button>
 
               {selectedTier && (

@@ -1,7 +1,7 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download } from "lucide-react";
+import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download, CalendarIcon } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 type Series = { date: string; value: number }[];
@@ -468,6 +470,7 @@ export default function AdminAnalyticsPage() {
         loading={drillLoading}
         error={drillError}
         payload={drillData}
+        onChangeDate={(date) => drill && setDrill({ dataset: drill.dataset, date })}
       />
     </AdminPageShell>
   );
@@ -626,17 +629,27 @@ const FILTERABLE_KEYS = new Set([
   "kind",
 ]);
 
-function DrillSheet({ open, onClose, target, loading, error, payload }: {
+function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDate }: {
   open: boolean;
   onClose: () => void;
   target: { dataset: Dataset; date: string } | null;
   loading: boolean;
   error: string | null;
   payload: DetailPayload | null;
+  onChangeDate?: (date: string) => void;
 }) {
   const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
   const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const selectedDate = target ? new Date(`${target.date}T00:00:00`) : undefined;
+  const shiftDay = (delta: number) => {
+    if (!target || !onChangeDate) return;
+    const d = new Date(`${target.date}T00:00:00`);
+    d.setDate(d.getDate() + delta);
+    if (d > new Date()) return;
+    onChangeDate(d.toISOString().slice(0, 10));
+  };
   // Reset filters whenever a new payload loads.
   useEffect(() => { setFilters({}); }, [payload?.dataset, payload?.date]);
 
@@ -691,9 +704,62 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
               {target?.dataset}
             </span>
             <span className="h-px w-8 bg-white/15" />
-            <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
-              {target?.date}
-            </span>
+            {onChangeDate && target ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => shiftDay(-1)}
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors"
+                  aria-label="Previous day"
+                >
+                  <ArrowDown className="h-3 w-3 -rotate-90" />
+                </button>
+                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                      aria-label="Pick date"
+                    >
+                      <CalendarIcon className="h-3 w-3" />
+                      {target.date}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-[hsl(220,14%,4%)] border-white/10" align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(d) => {
+                        if (!d) return;
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                          .toISOString()
+                          .slice(0, 10);
+                        onChangeDate(iso);
+                        setPickerOpen(false);
+                      }}
+                      disabled={(d) => d > new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <button
+                  onClick={() => shiftDay(1)}
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors disabled:opacity-30"
+                  aria-label="Next day"
+                  disabled={(() => {
+                    if (!target) return true;
+                    const d = new Date(`${target.date}T00:00:00`);
+                    d.setDate(d.getDate() + 1);
+                    return d > new Date();
+                  })()}
+                >
+                  <ArrowUp className="h-3 w-3 rotate-90" />
+                </button>
+              </div>
+            ) : (
+              <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
+                {target?.date}
+              </span>
+            )}
             <div className="ml-auto flex items-center gap-2">
               {exportPayload && exportPayload.rows.length > 0 && (
                 <button

@@ -1,6 +1,16 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  Project,
+  SyntaxKind,
+  type ArrowFunction,
+  type CallExpression,
+  type JsxElement,
+  type JsxSelfClosingElement,
+  type Node,
+  type ObjectLiteralExpression,
+} from "ts-morph";
 import {
   OPS_PAGES,
   type OpsRegistry,
@@ -8,57 +18,159 @@ import {
   type RegisteredOpsPath,
 } from "@/refine/pages/ops/_registry";
 
-const layout = readFileSync(resolve(__dirname, "../../refine/AdminLayout.tsx"), "utf8");
-const app = readFileSync(resolve(__dirname, "../../App.tsx"), "utf8");
+// ── AST setup (ts-morph) ─────────────────────────────────────────────────
+// Resilient to whitespace, line wrapping, attribute ordering, and other
+// purely cosmetic source changes. Only semantic structure is compared.
+const SRC_DIR = resolve(__dirname, "../../");
+const project = new Project({
+  useInMemoryFileSystem: false,
+  skipAddingFilesFromTsConfig: true,
+  compilerOptions: { allowJs: false, jsx: 4 /* Preserve */ },
+});
+const layoutSf = project.addSourceFileAtPath(resolve(SRC_DIR, "refine/AdminLayout.tsx"));
+const appSf = project.addSourceFileAtPath(resolve(SRC_DIR, "App.tsx"));
 
-const navStart = layout.indexOf("const NAV");
-const navBlock = layout.slice(navStart, layout.indexOf("\n];", navStart));
-const navPaths = Array.from(navBlock.matchAll(/path:\s*"(\/admin[^"]*)"/g), (m) => m[1]);
-
-const adminIdx = app.indexOf('path="/admin"');
-const adminBlock = app.slice(adminIdx, adminIdx + 30000);
-const routePaths = Array.from(
-  adminBlock.matchAll(/<Route\s+path="([^"]+)"/g),
-  (m) => m[1],
-);
-const adminRoutes = new Set<string>(["/admin"]);
-for (const p of routePaths) {
-  if (p === "/admin") continue;
-  adminRoutes.add(p.startsWith("/admin") ? p : "/admin/" + p.replace(/^\//, ""));
+/** Read a string-literal property from an object literal (any quote style). */
+function readStringProp(obj: ObjectLiteralExpression, name: string): string | undefined {
+  const prop = obj.getProperty(name);
+  if (!prop || prop.getKind() !== SyntaxKind.PropertyAssignment) return undefined;
+  const init = (prop as import("ts-morph").PropertyAssignment).getInitializer();
+  return init && init.getKind() === SyntaxKind.StringLiteral
+    ? (init as import("ts-morph").StringLiteral).getLiteralText()
+    : undefined;
 }
 
-const lazyImports = new Map(
-  Array.from(
-    app.matchAll(/const\s+(\w+)\s*=\s*lazy\(\(\)\s*=>\s*import\(["']([^"']+)["']\)/g),
-    (m) => [m[1], m[2]] as const,
-  ),
-);
-
-/**
- * Build a path → element-component map from the App.tsx /admin block.
- * The index route (no `path="…"`) is recorded under "/admin".
- * Routes whose element is a <Navigate /> are recorded as redirects.
- */
-type RouteKind = { kind: "component"; component: string } | { kind: "redirect"; to: string };
-const pathToRoute: Map<string, RouteKind> = (() => {
-  const out = new Map<string, RouteKind>();
-  // React Router uses the FIRST matching route — mirror that with
-  // first-write-wins so legacy redirects declared after the real component
-  // route don't shadow the real wiring.
-  const setOnce = (k: string, v: RouteKind) => { if (!out.has(k)) out.set(k, v); };
-  // Index route
-  const indexMatch = adminBlock.match(/<Route\s+index\s+element=\{<(\w+)\s*\/?>\}/);
-  if (indexMatch) setOnce("/admin", { kind: "component", component: indexMatch[1] });
-  // Walk every <Route path="…" element={…} /> in source order.
-  for (const m of adminBlock.matchAll(/<Route\s+path="([^"]+)"\s+element=\{([^}]+)\}\s*\/>/g)) {
-    const full = m[1].startsWith("/admin") ? m[1] : "/admin/" + m[1].replace(/^\//, "");
-    const el = m[2].trim();
-    const nav = el.match(/<Navigate\s+to="([^"]+)"/);
-    if (nav) { setOnce(full, { kind: "redirect", to: nav[1] }); continue; }
-    const comp = el.match(/<(\w+)\s*\/?>/);
-    if (comp) setOnce(full, { kind: "component", component: comp[1] });
+// — Sidebar NAV: walk the `const NAV = [...]` array literal in AdminLayout —
+const navPaths: string[] = (() => {
+  const decl = layoutSf.getVariableDeclarationOrThrow("NAV");
+  const arr = decl.getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+  const out: string[] = [];
+  for (const section of arr.getElements()) {
+    if (section.getKind() !== SyntaxKind.ObjectLiteralExpression) continue;
+    const items = (section as ObjectLiteralExpression).getProperty("items");
+    if (!items || items.getKind() !== SyntaxKind.PropertyAssignment) continue;
+    const itemsArr = (items as import("ts-morph").PropertyAssignment).getInitializer();
+    if (!itemsArr || itemsArr.getKind() !== SyntaxKind.ArrayLiteralExpression) continue;
+    for (const item of (itemsArr as import("ts-morph").ArrayLiteralExpression).getElements()) {
+      if (item.getKind() !== SyntaxKind.ObjectLiteralExpression) continue;
+      const path = readStringProp(item as ObjectLiteralExpression, "path");
+      if (path) out.push(path);
+    }
   }
   return out;
+})();
+
+// — App.tsx: collect every `const X = lazy(() => import("…"))` declaration —
+const lazyImports: Map<string, string> = (() => {
+  const out = new Map<string, string>();
+  for (const decl of appSf.getVariableDeclarations()) {
+    const init = decl.getInitializer();
+    if (!init || init.getKind() !== SyntaxKind.CallExpression) continue;
+    const call = init as CallExpression;
+    if (call.getExpression().getText() !== "lazy") continue;
+    const arg = call.getArguments()[0];
+    if (!arg || arg.getKind() !== SyntaxKind.ArrowFunction) continue;
+    const body = (arg as ArrowFunction).getBody();
+    // body may be `import("…")` directly, or a block with a `return import(…)`.
+    const importCall = body.asKind(SyntaxKind.CallExpression)
+      ?? body.getFirstDescendantByKind(SyntaxKind.CallExpression);
+    if (!importCall || importCall.getExpression().getKind() !== SyntaxKind.ImportKeyword) continue;
+    const spec = importCall.getArguments()[0];
+    if (!spec || spec.getKind() !== SyntaxKind.StringLiteral) continue;
+    out.set(decl.getName(), (spec as import("ts-morph").StringLiteral).getLiteralText());
+  }
+  return out;
+})();
+
+// — App.tsx: walk every <Route> JSX node nested under the /admin parent —
+type RouteKind = { kind: "component"; component: string } | { kind: "redirect"; to: string };
+
+function jsxAttr(el: JsxElement | JsxSelfClosingElement, name: string): Node | undefined {
+  const opening = el.getKind() === SyntaxKind.JsxElement
+    ? (el as JsxElement).getOpeningElement()
+    : (el as JsxSelfClosingElement);
+  return opening.getAttribute(name);
+}
+function jsxStringAttr(el: JsxElement | JsxSelfClosingElement, name: string): string | undefined {
+  const a = jsxAttr(el, name);
+  if (!a || a.getKind() !== SyntaxKind.JsxAttribute) return undefined;
+  const init = (a as import("ts-morph").JsxAttribute).getInitializer();
+  if (!init) return undefined;
+  if (init.getKind() === SyntaxKind.StringLiteral) {
+    return (init as import("ts-morph").StringLiteral).getLiteralText();
+  }
+  return undefined;
+}
+function jsxTagName(el: JsxElement | JsxSelfClosingElement): string {
+  return el.getKind() === SyntaxKind.JsxElement
+    ? (el as JsxElement).getOpeningElement().getTagNameNode().getText()
+    : (el as JsxSelfClosingElement).getTagNameNode().getText();
+}
+function elementOfRoute(
+  el: JsxElement | JsxSelfClosingElement,
+): { kind: "component" | "navigate"; name: string; to?: string } | undefined {
+  const attr = jsxAttr(el, "element");
+  if (!attr || attr.getKind() !== SyntaxKind.JsxAttribute) return undefined;
+  const init = (attr as import("ts-morph").JsxAttribute).getInitializer();
+  if (!init || init.getKind() !== SyntaxKind.JsxExpression) return undefined;
+  const expr = (init as import("ts-morph").JsxExpression).getExpression();
+  if (!expr) return undefined;
+  // <Route element={<Foo />}> or {<Foo>...</Foo>}
+  let inner: JsxElement | JsxSelfClosingElement | undefined;
+  if (expr.getKind() === SyntaxKind.JsxSelfClosingElement) inner = expr as JsxSelfClosingElement;
+  else if (expr.getKind() === SyntaxKind.JsxElement) inner = expr as JsxElement;
+  if (!inner) return undefined;
+  const name = jsxTagName(inner);
+  if (name === "Navigate") {
+    return { kind: "navigate", name, to: jsxStringAttr(inner, "to") };
+  }
+  return { kind: "component", name };
+}
+
+const { adminRoutes, pathToRoute } = (() => {
+  const routes = new Set<string>(["/admin"]);
+  const map = new Map<string, RouteKind>();
+  // React Router uses the first matching route — first-write-wins.
+  const setOnce = (k: string, v: RouteKind) => { if (!map.has(k)) map.set(k, v); };
+
+  // Locate the parent <Route path="/admin" …> JSX node.
+  const allRoutes = [
+    ...appSf.getDescendantsOfKind(SyntaxKind.JsxElement),
+    ...appSf.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement),
+  ].filter((el) => jsxTagName(el as JsxElement | JsxSelfClosingElement) === "Route") as Array<
+    JsxElement | JsxSelfClosingElement
+  >;
+  const adminParent = allRoutes.find(
+    (el) => jsxStringAttr(el, "path") === "/admin" && el.getKind() === SyntaxKind.JsxElement,
+  ) as JsxElement | undefined;
+  if (!adminParent) return { adminRoutes: routes, pathToRoute: map };
+
+  // Collect every <Route> nested directly inside the /admin parent (in source order).
+  const children = adminParent.getDescendants().filter((d) => {
+    if (d.getKind() !== SyntaxKind.JsxElement && d.getKind() !== SyntaxKind.JsxSelfClosingElement) return false;
+    return jsxTagName(d as JsxElement | JsxSelfClosingElement) === "Route";
+  }) as Array<JsxElement | JsxSelfClosingElement>;
+
+  for (const r of children) {
+    if (r === adminParent) continue;
+    const path = jsxStringAttr(r, "path");
+    const isIndex = !!jsxAttr(r, "index");
+    const full = isIndex
+      ? "/admin"
+      : path
+        ? path.startsWith("/admin") ? path : "/admin/" + path.replace(/^\//, "")
+        : undefined;
+    if (!full) continue;
+    routes.add(full);
+    const el = elementOfRoute(r);
+    if (!el) continue;
+    if (el.kind === "navigate") {
+      setOnce(full, { kind: "redirect", to: el.to ?? "" });
+    } else {
+      setOnce(full, { kind: "component", component: el.name });
+    }
+  }
+  return { adminRoutes: routes, pathToRoute: map };
 })();
 
 /**
@@ -156,12 +268,11 @@ describe("AdminLayout sidebar ↔ App routes", () => {
       }
       // App.tsx lives in src/, so relative imports resolve against src/.
       // "@/foo" also resolves to src/foo via the project's path alias.
-      const srcDir = resolve(__dirname, "../../");
       const rel = importPath.startsWith("@/")
         ? importPath.slice(2)
         : importPath.replace(/^\.\//, "");
       const candidates = [rel, `${rel}.tsx`, `${rel}.ts`, `${rel}/index.tsx`, `${rel}/index.ts`];
-      const found = candidates.some((c) => existsSync(resolve(srcDir, c)));
+      const found = candidates.some((c) => existsSync(resolve(SRC_DIR, c)));
       if (!found) {
         problems.push(`${expected} (${path}) — import "${importPath}" does not resolve to a file`);
       }

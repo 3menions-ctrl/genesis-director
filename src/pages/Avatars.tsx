@@ -39,6 +39,7 @@ import { AvatarsConfigPanel } from '@/components/avatars/AvatarsConfigPanel';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
+import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateCreditsRequired } from '@/lib/creditSystem';
 import { handleError } from '@/lib/errorHandler';

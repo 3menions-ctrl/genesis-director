@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +78,33 @@ export default function Credits() {
   const { user } = useAuth();
   const { data: entitlement } = useCinemaEntitlement();
   const refreshEntitlement = useRefreshCinemaEntitlement();
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  const openCustomerPortal = async () => {
+    if (openingPortal) return;
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-portal-session', {
+        body: {
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/credits`,
+        },
+      });
+      if (error) throw error;
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error('Portal URL missing');
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(
+        msg.includes('no_subscription')
+          ? 'No active subscription to manage yet.'
+          : 'Could not open the billing portal. Please try again.',
+      );
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
@@ -245,9 +272,24 @@ export default function Credits() {
           </p>
 
           {entitlement?.isActive && (
-            <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
+              </div>
+              <button
+                type="button"
+                onClick={openCustomerPortal}
+                disabled={openingPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-white/80 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {openingPortal ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Settings className="w-3 h-3" />
+                )}
+                Manage subscription
+              </button>
             </div>
           )}
 

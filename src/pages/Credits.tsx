@@ -161,6 +161,32 @@ export default function Credits() {
       setOpeningPortal(false);
     }
   };
+
+  const recheckEntitlement = async () => {
+    if (recheckingEntitlement) return;
+    setRecheckingEntitlement(true);
+    try {
+      // Force a fresh entitlement read (no predicate so it returns whatever the
+      // server reports, even if the user has no active sub).
+      await refreshEntitlement({
+        predicate: () => true,
+        maxMs: 8_000,
+        intervalMs: 1_000,
+      });
+      // Refetch dependent plan-status queries so the UI is fully reconciled.
+      await Promise.allSettled([
+        pendingChangeQuery.refetch(),
+        invoicesQuery.refetch(),
+      ]);
+      toast.success('Plan status refreshed.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || 'Could not refresh plan status. Please try again.');
+    } finally {
+      setRecheckingEntitlement(false);
+    }
+  };
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);

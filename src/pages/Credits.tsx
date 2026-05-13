@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,6 +68,12 @@ const TIERS: CinemaTier[] = [
   },
 ];
 
+type ReturnStatus =
+  | { kind: 'paid'; tier: string | null; remainingSeconds: number }
+  | { kind: 'processing'; reason: string; priceId: string | null }
+  | { kind: 'failed'; reason: string; priceId: string | null }
+  | { kind: 'cancelled'; reason: string; priceId: string | null };
+
 export default function Credits() {
   const { user } = useAuth();
   const { data: entitlement } = useCinemaEntitlement();
@@ -77,47 +83,118 @@ export default function Credits() {
   const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [returnStatus, setReturnStatus] = useState<ReturnStatus | null>(null);
   const handledSessionRef = useRef<string | null>(null);
 
-  // Detect post-checkout return (`?cinema=success&plan=…&session_id=…`) and
-  // poll the entitlement RPC until the webhook has updated the subscription
-  // row. Strip the params after we kick off the refresh so reloads don't
-  // re-trigger it.
+  // Detect post-checkout return (`?cinema=success&plan=…&session_id=…`).
+  // Stripe always hits the return_url when Embedded Checkout closes — even
+  // for declines — so we re-verify with Stripe via verify-cinema-checkout
+  // before assuming success. Branch on the normalized state into a banner
+  // (failed / cancelled / processing) or trigger the entitlement refresh
+  // (paid). Strip the params either way so reloads don't replay it.
   useEffect(() => {
-    if (searchParams.get('cinema') !== 'success') return;
-    const sessionId = searchParams.get('session_id') ?? 'unknown';
-    if (handledSessionRef.current === sessionId) return;
-    handledSessionRef.current = sessionId;
-
+    const cinemaParam = searchParams.get('cinema');
+    if (cinemaParam !== 'success' && cinemaParam !== 'cancelled') return;
+    const sessionId = searchParams.get('session_id');
     const plan = searchParams.get('plan');
+    const dedupKey = sessionId ?? `cancelled:${plan ?? 'none'}`;
+    if (handledSessionRef.current === dedupKey) return;
+    handledSessionRef.current = dedupKey;
+
+    const stripParams = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('cinema');
+      next.delete('plan');
+      next.delete('session_id');
+      setSearchParams(next, { replace: true });
+    };
+
+    // Explicit cancellation (user clicked our Cancel button before paying).
+    if (cinemaParam === 'cancelled' || !sessionId) {
+      setSelectedPriceId(null);
+      setReturnStatus({
+        kind: 'cancelled',
+        reason: 'Checkout was cancelled. Your card was not charged.',
+        priceId: plan,
+      });
+      stripParams();
+      return;
+    }
+
     setSelectedPriceId(null);
     setRefreshing(true);
 
-    refreshEntitlement({
-      // Resolve once the webhook-written tier matches the purchased plan
-      // (covers upgrades from one Cinema tier to another), or any active
-      // entitlement appears.
-      predicate: (e) =>
-        e.isActive && (!plan || (e.priceId === plan) || !!e.tier),
-    })
-      .then((e) => {
-        if (e.isActive) {
-          toast.success(
-            `Cinema ${(e.tier ?? '').replace('cinema_', '')} active — ${e.remainingSeconds.toLocaleString()}s available`,
-          );
-        } else {
-          toast('Payment received. Your plan will activate shortly.');
+    (async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke(
+          'verify-cinema-checkout',
+          { body: { sessionId, environment: getStripeEnvironment() } },
+        );
+        const serverError = (data && typeof data === 'object' && 'error' in data) ? String((data as any).error) : null;
+        if (fnError || serverError || !data?.state) {
+          throw new Error(serverError || fnError?.message || 'Could not verify your checkout.');
         }
-      })
-      .finally(() => {
+
+        const state = data.state as 'paid' | 'processing' | 'failed' | 'expired' | 'open' | 'unknown';
+        const reason = (data.reason as string | null) ?? null;
+        const verifiedPlan = (data.priceId as string | null) ?? plan;
+
+        if (state === 'paid' || state === 'processing') {
+          const ent = await refreshEntitlement({
+            predicate: (e) => e.isActive && (!verifiedPlan || e.priceId === verifiedPlan || !!e.tier),
+            maxMs: state === 'processing' ? 35_000 : 25_000,
+          });
+          if (ent.isActive) {
+            setReturnStatus({
+              kind: 'paid',
+              tier: ent.tier,
+              remainingSeconds: ent.remainingSeconds,
+            });
+            toast.success(
+              `Cinema ${(ent.tier ?? '').replace('cinema_', '')} active — ${ent.remainingSeconds.toLocaleString()}s available`,
+            );
+          } else {
+            setReturnStatus({
+              kind: 'processing',
+              reason: reason || 'Payment received. Your plan will activate shortly.',
+              priceId: verifiedPlan,
+            });
+          }
+        } else if (state === 'failed') {
+          setReturnStatus({
+            kind: 'failed',
+            reason: reason || 'Your payment could not be completed. Please try again.',
+            priceId: verifiedPlan,
+          });
+          toast.error(reason || 'Payment failed.');
+        } else if (state === 'expired' || state === 'open') {
+          setReturnStatus({
+            kind: 'cancelled',
+            reason: state === 'expired'
+              ? 'Your checkout session expired. Please choose a plan to try again.'
+              : 'Checkout was not completed. Your card was not charged.',
+            priceId: verifiedPlan,
+          });
+        } else {
+          setReturnStatus({
+            kind: 'failed',
+            reason: 'We could not confirm your payment. Please try again or contact support.',
+            priceId: verifiedPlan,
+          });
+        }
+      } catch (err) {
+        console.error('[Credits] verify-cinema-checkout failed', err);
+        setReturnStatus({
+          kind: 'failed',
+          reason: err instanceof Error ? err.message : 'Could not verify your checkout.',
+          priceId: plan,
+        });
+        toast.error('Could not verify your checkout.');
+      } finally {
         setRefreshing(false);
-        // Strip the success params so a refresh doesn't replay the toast.
-        const next = new URLSearchParams(searchParams);
-        next.delete('cinema');
-        next.delete('plan');
-        next.delete('session_id');
-        setSearchParams(next, { replace: true });
-      });
+        stripParams();
+      }
+    })();
   }, [searchParams, refreshEntitlement, setSearchParams]);
 
   const selectedTier = useMemo(

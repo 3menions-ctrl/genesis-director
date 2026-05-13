@@ -220,24 +220,34 @@ export function RefineAdminLayout() {
                     end={path === "/admin"}
                     className={({ isActive }) =>
                       cn(
-                        "group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                        "admin-nav-item group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
                         isActive
-                          ? "bg-[#0A84FF]/10 text-white"
+                          ? "is-active bg-[#0A84FF]/12 text-white shadow-[inset_0_0_0_1px_rgba(10,132,255,0.18)]"
                           : "text-white/45 hover:bg-white/[0.03] hover:text-white"
                       )
                     }
                     title={collapsed ? label : undefined}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100" />
+                    {/* Active rail (locked-standard 2px glow) */}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r bg-[#0A84FF] opacity-0 shadow-[0_0_10px_#0A84FF] transition-opacity group-[.is-active]:opacity-100"
+                    />
+                    <Icon className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100 group-[.is-active]:opacity-100 group-[.is-active]:text-[#0A84FF]" />
                     {!collapsed && (
                       <>
                         <span
-                          className="flex-1 truncate text-[14px]"
+                          className="flex-1 truncate text-[14px] group-[.is-active]:font-normal"
                           style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
                         >
                           {label}
                         </span>
-                        <span className="text-[9px] opacity-25 font-mono tracking-wider">{n}</span>
+                        <span className="text-[9px] opacity-25 group-[.is-active]:opacity-70 group-[.is-active]:text-[#0A84FF] font-mono tracking-wider">{n}</span>
+                        {/* 6px right dot */}
+                        <span
+                          aria-hidden
+                          className="pointer-events-none w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_6px_#0A84FF] opacity-0 group-[.is-active]:opacity-100 transition-opacity"
+                        />
                       </>
                     )}
                   </NavLink>

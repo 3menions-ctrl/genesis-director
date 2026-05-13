@@ -382,14 +382,12 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function KpiTile({ icon: Icon, label, value, loading, accent }: {
+function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
   icon: React.ElementType; label: string; value: string | null; loading: boolean;
   accent: "blue" | "emerald" | "amber";
   onClick?: () => void;
 }) {
   const tone = { blue: "text-[#6FB6FF]", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
-  const interactive = !!arguments[0]?.onClick;
-  const onClick = arguments[0]?.onClick as (() => void) | undefined;
   return (
     <div
       onClick={onClick}

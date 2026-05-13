@@ -289,6 +289,13 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                <Route path="/credits" element={
+                  <RouteContainer fallbackMessage="Loading Cinema plans…">
+                    <ProtectedRoute>
+                      <AppShell><Credits /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
                 {/* Protected routes - each with isolated error boundary */}
                 <Route path="/projects" element={

@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { OpsAccessProvider, useOpsAccess } from "./rbac/OpsAccessProvider";
+import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
+import { scopeForPath } from "./rbac/scopes";
 import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };

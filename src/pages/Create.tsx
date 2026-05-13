@@ -243,6 +243,16 @@ function CreateContentInner() {
       return;
     }
 
+    // Cinema entitlement guard — block when remaining seconds < required.
+    // No-op for users without an active Cinema subscription.
+    const requiredSeconds = (config.clipCount ?? 0) * (config.clipDuration ?? 0);
+    if (requiredSeconds > 0) {
+      const guard = cinemaGuard.check(requiredSeconds, {
+        onUpgrade: () => navigate('/credits'),
+      });
+      if (!guard.allowed) return;
+    }
+
     // Abort any previous request using navigation guard
     const controller = getAbortController();
 

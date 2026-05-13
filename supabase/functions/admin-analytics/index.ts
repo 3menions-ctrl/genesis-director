@@ -77,6 +77,9 @@ Deno.serve(async (req) => {
       const dataset = url.searchParams.get('dataset') || '';
       const dateStr = url.searchParams.get('date') || '';
       const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit') || 200)));
+      const offset = Math.max(0, Number(url.searchParams.get('offset') || 0));
+      const rangeFrom = offset;
+      const rangeTo = offset + limit - 1;
       if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         return new Response(JSON.stringify({ error: 'Invalid or missing date (YYYY-MM-DD)' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -94,7 +97,7 @@ Deno.serve(async (req) => {
           admin.from('profiles')
             .select('id, email, display_name, account_tier, country, created_at')
             .gte('created_at', dayStart).lte('created_at', dayEnd)
-            .order('created_at', { ascending: false }).limit(limit),
+            .order('created_at', { ascending: false }).range(rangeFrom, rangeTo),
           admin.from('signup_analytics')
             .select('user_id, country, utm_source, referrer')
             .gte('created_at', dayStart).lte('created_at', dayEnd),
@@ -123,7 +126,7 @@ Deno.serve(async (req) => {
         const r = await admin.from('movie_projects')
           .select('id, user_id, title, genre, target_duration_minutes, created_at')
           .gte('created_at', dayStart).lte('created_at', dayEnd)
-          .order('created_at', { ascending: false }).limit(limit);
+          .order('created_at', { ascending: false }).range(rangeFrom, rangeTo);
         rows = r.data ?? [];
         columns = [
           { key: 'created_at', label: 'Created' },
@@ -137,7 +140,7 @@ Deno.serve(async (req) => {
         const r = await admin.from('video_clips')
           .select('id, project_id, user_id, status, duration_seconds, error_message, created_at, completed_at')
           .gte('created_at', dayStart).lte('created_at', dayEnd)
-          .order('created_at', { ascending: false }).limit(limit);
+          .order('created_at', { ascending: false }).range(rangeFrom, rangeTo);
         rows = r.data ?? [];
         columns = [
           { key: 'created_at', label: 'Created' },
@@ -152,7 +155,7 @@ Deno.serve(async (req) => {
         let q = admin.from('credit_transactions')
           .select('id, user_id, amount, transaction_type, description, project_id, created_at')
           .gte('created_at', dayStart).lte('created_at', dayEnd)
-          .order('created_at', { ascending: false }).limit(limit);
+          .order('created_at', { ascending: false }).range(rangeFrom, rangeTo);
         if (dataset === 'creditsSpent') q = q.in('transaction_type', ['usage', 'refund_negative', 'spend']).neq('amount', 0);
         if (dataset === 'creditsPurchased') q = q.eq('transaction_type', 'purchase');
         const r = await q;
@@ -171,7 +174,14 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ dataset, date: dateStr, title, columns, rows, truncated: rows.length >= limit }),
+      const hasMore = rows.length >= limit;
+      return new Response(JSON.stringify({
+          dataset, date: dateStr, title, columns, rows,
+          offset, limit,
+          nextOffset: hasMore ? offset + rows.length : null,
+          hasMore,
+          truncated: hasMore && offset === 0,
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

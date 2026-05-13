@@ -81,6 +81,45 @@ const AdminProductionPage = lazy(() => import("./refine/pages/AdminProductionPag
 const AdminModerationPage = lazy(() => import("./refine/pages/AdminModerationPage"));
 const AdminConfigPage = lazy(() => import("./refine/pages/AdminConfigPage"));
 const AdminEmailsPage = lazy(() => import("./refine/pages/AdminEmailsPage"));
+
+// ── Ops / missing admin pages (37) ──────────────────────────
+const AdminAuditLogPage = lazy(() => import("./refine/pages/ops/AdminAuditLogPage"));
+const AdminEdgeLogsPage = lazy(() => import("./refine/pages/ops/AdminEdgeLogsPage"));
+const AdminProvidersPage = lazy(() => import("./refine/pages/ops/AdminProvidersPage"));
+const AdminQueuePage = lazy(() => import("./refine/pages/ops/AdminQueuePage"));
+const AdminStatusPage = lazy(() => import("./refine/pages/ops/AdminStatusPage"));
+const AdminBackupsPage = lazy(() => import("./refine/pages/ops/AdminBackupsPage"));
+const AdminRolesPage = lazy(() => import("./refine/pages/ops/AdminRolesPage"));
+const AdminTeamPage = lazy(() => import("./refine/pages/ops/AdminTeamPage"));
+const AdminSessionsPage = lazy(() => import("./refine/pages/ops/AdminSessionsPage"));
+const AdminGdprPage = lazy(() => import("./refine/pages/ops/AdminGdprPage"));
+const AdminAbusePage = lazy(() => import("./refine/pages/ops/AdminAbusePage"));
+const AdminSubscriptionsPage = lazy(() => import("./refine/pages/ops/AdminSubscriptionsPage"));
+const AdminRefundsPage = lazy(() => import("./refine/pages/ops/AdminRefundsPage"));
+const AdminCouponsPage = lazy(() => import("./refine/pages/ops/AdminCouponsPage"));
+const AdminReferralsPage = lazy(() => import("./refine/pages/ops/AdminReferralsPage"));
+const AdminInvoicesPage = lazy(() => import("./refine/pages/ops/AdminInvoicesPage"));
+const AdminReconcilePage = lazy(() => import("./refine/pages/ops/AdminReconcilePage"));
+const AdminAvatarCatalogPage = lazy(() => import("./refine/pages/ops/AdminAvatarCatalogPage"));
+const AdminGalleryCurationPage = lazy(() => import("./refine/pages/ops/AdminGalleryCurationPage"));
+const AdminTemplatesAdminPage = lazy(() => import("./refine/pages/ops/AdminTemplatesAdminPage"));
+const AdminStoragePage = lazy(() => import("./refine/pages/ops/AdminStoragePage"));
+const AdminContentSafetyPage = lazy(() => import("./refine/pages/ops/AdminContentSafetyPage"));
+const AdminAnalyticsPage = lazy(() => import("./refine/pages/ops/AdminAnalyticsPage"));
+const AdminOnboardingAnalyticsPage = lazy(() => import("./refine/pages/ops/AdminOnboardingAnalyticsPage"));
+const AdminExperimentsPage = lazy(() => import("./refine/pages/ops/AdminExperimentsPage"));
+const AdminCohortsPage = lazy(() => import("./refine/pages/ops/AdminCohortsPage"));
+const AdminFeatureFlagsPage = lazy(() => import("./refine/pages/ops/AdminFeatureFlagsPage"));
+const AdminAnnouncementsPage = lazy(() => import("./refine/pages/ops/AdminAnnouncementsPage"));
+const AdminEmailTemplatesPage = lazy(() => import("./refine/pages/ops/AdminEmailTemplatesPage"));
+const AdminNotificationsPage = lazy(() => import("./refine/pages/ops/AdminNotificationsPage"));
+const AdminMacrosPage = lazy(() => import("./refine/pages/ops/AdminMacrosPage"));
+const AdminChangelogPage = lazy(() => import("./refine/pages/ops/AdminChangelogPage"));
+const AdminApiKeysPage = lazy(() => import("./refine/pages/ops/AdminApiKeysPage"));
+const AdminWebhooksPage = lazy(() => import("./refine/pages/ops/AdminWebhooksPage"));
+const AdminSecretsPage = lazy(() => import("./refine/pages/ops/AdminSecretsPage"));
+const AdminDbHealthPage = lazy(() => import("./refine/pages/ops/AdminDbHealthPage"));
+const AdminCrashForensicsPage = lazy(() => import("./refine/pages/ops/AdminCrashForensicsPage"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -565,6 +604,44 @@ const App = () => {
                   <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
                   <Route path="emails" element={<AdminEmailsPage />} />
+                  {/* ── Ops pages (37) ─────────────────────────── */}
+                  <Route path="audit" element={<AdminAuditLogPage />} />
+                  <Route path="edge-logs" element={<AdminEdgeLogsPage />} />
+                  <Route path="providers" element={<AdminProvidersPage />} />
+                  <Route path="queue" element={<AdminQueuePage />} />
+                  <Route path="status" element={<AdminStatusPage />} />
+                  <Route path="backups" element={<AdminBackupsPage />} />
+                  <Route path="roles" element={<AdminRolesPage />} />
+                  <Route path="team" element={<AdminTeamPage />} />
+                  <Route path="sessions" element={<AdminSessionsPage />} />
+                  <Route path="gdpr" element={<AdminGdprPage />} />
+                  <Route path="abuse" element={<AdminAbusePage />} />
+                  <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                  <Route path="refunds" element={<AdminRefundsPage />} />
+                  <Route path="coupons" element={<AdminCouponsPage />} />
+                  <Route path="referrals" element={<AdminReferralsPage />} />
+                  <Route path="invoices" element={<AdminInvoicesPage />} />
+                  <Route path="reconcile" element={<AdminReconcilePage />} />
+                  <Route path="avatar-catalog" element={<AdminAvatarCatalogPage />} />
+                  <Route path="gallery" element={<AdminGalleryCurationPage />} />
+                  <Route path="template-library" element={<AdminTemplatesAdminPage />} />
+                  <Route path="storage" element={<AdminStoragePage />} />
+                  <Route path="content-safety" element={<AdminContentSafetyPage />} />
+                  <Route path="analytics" element={<AdminAnalyticsPage />} />
+                  <Route path="onboarding-analytics" element={<AdminOnboardingAnalyticsPage />} />
+                  <Route path="experiments" element={<AdminExperimentsPage />} />
+                  <Route path="cohorts" element={<AdminCohortsPage />} />
+                  <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
+                  <Route path="announcements" element={<AdminAnnouncementsPage />} />
+                  <Route path="email-templates" element={<AdminEmailTemplatesPage />} />
+                  <Route path="notifications-center" element={<AdminNotificationsPage />} />
+                  <Route path="macros" element={<AdminMacrosPage />} />
+                  <Route path="changelog" element={<AdminChangelogPage />} />
+                  <Route path="api-keys" element={<AdminApiKeysPage />} />
+                  <Route path="webhooks" element={<AdminWebhooksPage />} />
+                  <Route path="secrets" element={<AdminSecretsPage />} />
+                  <Route path="db-health" element={<AdminDbHealthPage />} />
+                  <Route path="crash-forensics" element={<AdminCrashForensicsPage />} />
                   {/* Legacy admin redirects */}
                   <Route path="financials" element={<Navigate to="/admin/finance" replace />} />
                   <Route path="costs" element={<Navigate to="/admin/finance" replace />} />

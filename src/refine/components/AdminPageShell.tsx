@@ -13,13 +13,15 @@ interface Props {
   italic?: string;          // optional italicized accent fragment after title
   description?: string;
   actions?: ReactNode;      // right-aligned hero actions
+  meta?: ReactNode;         // right rail KPI tiles inside hero
+  stats?: { label: string; value: ReactNode; tone?: "blue" | "amber" | "emerald" | "rose" | "neutral"; sub?: string }[];
   children: ReactNode;
   className?: string;
   contained?: boolean;      // wrap children in max-w container (default true)
 }
 
 export function AdminPageShell({
-  eyebrow, code, title, italic, description, actions, children, className, contained = true,
+  eyebrow, code, title, italic, description, actions, meta, stats, children, className, contained = true,
 }: Props) {
   return (
     <div className={cn("p-8 lg:p-12 space-y-10 animate-fade-in", contained && "max-w-[1480px] mx-auto", className)}>
@@ -76,8 +78,35 @@ export function AdminPageShell({
               </p>
             )}
           </div>
-          {actions && <div className="flex items-center gap-3 shrink-0">{actions}</div>}
+          {(actions || meta) && (
+            <div className="flex flex-col items-end gap-4 shrink-0">
+              {actions && <div className="flex items-center gap-3">{actions}</div>}
+              {meta && <div className="flex items-center gap-3">{meta}</div>}
+            </div>
+          )}
         </div>
+
+        {stats && stats.length > 0 && (
+          <div className="relative border-t border-white/[0.05] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.05]">
+            {stats.map((s, i) => {
+              const toneMap: Record<string, string> = {
+                blue: "text-[#6FB6FF]", amber: "text-amber-300", emerald: "text-emerald-300",
+                rose: "text-rose-300", neutral: "text-white",
+              };
+              return (
+                <div key={i} className="px-6 py-5 relative group">
+                  <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.32em] mb-2">{s.label}</div>
+                  <div className={cn("text-3xl font-light tabular-nums", toneMap[s.tone || "neutral"])}
+                       style={{ fontFamily: "'Fraunces', serif" }}>
+                    {s.value}
+                  </div>
+                  {s.sub && <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.18em]">{s.sub}</div>}
+                  <div aria-hidden className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Body */}
@@ -105,6 +134,45 @@ export function AdminSurface({ children, className }: { children: ReactNode; cla
       className,
     )}>
       {children}
+    </div>
+  );
+}
+
+/** Cinematic empty state — concentric rings, eyebrow code, suggested action */
+export function AdminEmptyState({
+  code, title, hint, icon: Icon, action,
+}: {
+  code: string;
+  title: string;
+  hint?: string;
+  icon?: React.ElementType;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="relative flex flex-col items-center justify-center py-20 px-6 text-center overflow-hidden">
+      {/* concentric rings */}
+      <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute w-[420px] h-[420px] rounded-full border border-white/[0.04]" />
+        <div className="absolute w-[300px] h-[300px] rounded-full border border-white/[0.05]" />
+        <div className="absolute w-[180px] h-[180px] rounded-full border border-[#0A84FF]/15" />
+        <div className="absolute w-[180px] h-[180px] rounded-full"
+             style={{ background: "radial-gradient(circle, rgba(10,132,255,0.10), transparent 65%)", filter: "blur(20px)" }} />
+      </div>
+      <div className="relative z-10 flex flex-col items-center">
+        {Icon && (
+          <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md flex items-center justify-center mb-5 shadow-[0_8px_24px_-12px_rgba(10,132,255,0.4)]">
+            <Icon className="w-5 h-5 text-[#6FB6FF]" />
+          </div>
+        )}
+        <span className="text-[9px] text-[#0A84FF]/70 font-mono uppercase tracking-[0.4em] mb-3">
+          {code} // STANDBY
+        </span>
+        <h3 className="text-2xl text-white font-light mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+          {title}
+        </h3>
+        {hint && <p className="text-[13px] text-white/40 max-w-md leading-relaxed">{hint}</p>}
+        {action && <div className="mt-6">{action}</div>}
+      </div>
     </div>
   );
 }

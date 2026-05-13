@@ -271,27 +271,99 @@ export default function Credits() {
             Unlock cinematic generation with monthly fair-use seconds. Cancel anytime.
           </p>
 
-          {entitlement?.isActive && (
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
-              </div>
-              <button
-                type="button"
-                onClick={openCustomerPortal}
-                disabled={openingPortal}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-white/80 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {openingPortal ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Settings className="w-3 h-3" />
+          {entitlement?.hasEntitlement && (() => {
+            const activeTier = TIERS.find(t => t.id === entitlement.tier);
+            const isYearly = entitlement.priceId?.endsWith('_yearly');
+            const cadenceLabel = isYearly ? 'Yearly' : 'Monthly';
+            const planName = activeTier?.name ?? entitlement.tier?.replace('cinema_', 'Cinema ') ?? 'Cinema';
+            const renewalDate = entitlement.periodEnd
+              ? new Date(entitlement.periodEnd).toLocaleDateString(undefined, {
+                  year: 'numeric', month: 'short', day: 'numeric',
+                })
+              : null;
+            const status = entitlement.status ?? 'inactive';
+            const cancelling = entitlement.cancelAtPeriodEnd;
+            const statusMeta: Record<string, { label: string; dot: string; text: string; border: string; bg: string }> = {
+              active:    { label: 'Active',    dot: 'bg-emerald-400', text: 'text-emerald-200', border: 'border-emerald-400/25', bg: 'bg-emerald-400/[0.06]' },
+              trialing:  { label: 'Trial',     dot: 'bg-[#0A84FF]',   text: 'text-[#9DCBFF]',   border: 'border-[#0A84FF]/30',   bg: 'bg-[#0A84FF]/[0.07]' },
+              past_due:  { label: 'Past due',  dot: 'bg-amber-400',   text: 'text-amber-200',   border: 'border-amber-400/25',   bg: 'bg-amber-400/[0.06]' },
+              canceled:  { label: 'Canceled',  dot: 'bg-rose-400',    text: 'text-rose-200',    border: 'border-rose-400/25',    bg: 'bg-rose-500/[0.06]' },
+              unpaid:    { label: 'Unpaid',    dot: 'bg-rose-400',    text: 'text-rose-200',    border: 'border-rose-400/25',    bg: 'bg-rose-500/[0.06]' },
+              incomplete:{ label: 'Incomplete',dot: 'bg-amber-400',   text: 'text-amber-200',   border: 'border-amber-400/25',   bg: 'bg-amber-400/[0.06]' },
+            };
+            const meta = statusMeta[status] ?? { label: status, dot: 'bg-white/40', text: 'text-white/70', border: 'border-white/[0.10]', bg: 'bg-white/[0.04]' };
+            const usedPct = entitlement.fairUseSeconds > 0
+              ? Math.min(100, Math.round((entitlement.usedSeconds / entitlement.fairUseSeconds) * 100))
+              : 0;
+
+            return (
+              <div className="mt-7 mx-auto max-w-2xl text-left rounded-2xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] backdrop-blur-sm p-5 md:p-6">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] uppercase tracking-[0.18em] ${meta.border} ${meta.bg} ${meta.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                        {meta.label}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-white/40">{cadenceLabel}</span>
+                    </div>
+                    <h3 className="font-display text-2xl font-semibold tracking-tight mt-2">{planName}</h3>
+                    {activeTier?.tagline && (
+                      <p className="text-white/45 text-xs mt-1">{activeTier.tagline}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openCustomerPortal}
+                    disabled={openingPortal}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {openingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5" />}
+                    Manage in billing portal
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/[0.06]">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">
+                      {cancelling ? 'Access ends' : status === 'canceled' ? 'Ended' : 'Renews'}
+                    </div>
+                    <div className="text-sm text-white/85 font-mono mt-1">{renewalDate ?? '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Cinema-seconds left</div>
+                    <div className="text-sm text-white/85 font-mono mt-1">
+                      {entitlement.remainingSeconds.toLocaleString()}
+                      <span className="text-white/35"> / {entitlement.fairUseSeconds.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Used this period</div>
+                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#0A84FF] to-[#9DCBFF] rounded-full"
+                        style={{ width: `${usedPct}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-1.5">{usedPct}%</div>
+                  </div>
+                </div>
+
+                {cancelling && renewalDate && (
+                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-xs text-amber-200/90">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>Subscription is set to cancel on {renewalDate}. Reactivate any time from the billing portal.</span>
+                  </div>
                 )}
-                Manage subscription
-              </button>
-            </div>
-          )}
+                {status === 'past_due' && (
+                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-xs text-amber-200/90">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>Latest payment failed. Update your payment method in the billing portal to keep cinematic access.</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {refreshing && !returnStatus && (
             <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] text-white/70 text-xs">

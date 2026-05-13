@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdminPageShell } from "../components/AdminPageShell";
+import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
+import { Users as UsersIcon } from "lucide-react";
 
 interface UserRecord {
   id: string;
@@ -86,6 +87,10 @@ export default function AdminUsersPage() {
     } catch { toast.error("Failed to manage role"); }
   };
 
+  const totalCredits = users.reduce((s, u) => s + (u.credits_balance || 0), 0);
+  const adminCount = users.filter(u => u.roles?.includes("admin")).length;
+  const proCount = users.filter(u => (u.account_tier || "").toLowerCase() !== "personal").length;
+
   return (
     <AdminPageShell
       eyebrow="02 // PEOPLE"
@@ -98,6 +103,12 @@ export default function AdminUsersPage() {
           {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
         </Button>
       }
+      stats={[
+        { label: "Operators", value: users.length.toLocaleString(), tone: "blue", sub: "indexed" },
+        { label: "Credits Held", value: totalCredits.toLocaleString(), tone: "neutral", sub: "balance Σ" },
+        { label: "Pro Tier", value: proCount.toLocaleString(), tone: "emerald", sub: "non-personal" },
+        { label: "Admins", value: adminCount.toLocaleString(), tone: "amber", sub: "elevated" },
+      ]}
     >
       <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -180,7 +191,12 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
           {users.length === 0 && !usersLoading && (
-            <div className="text-center py-16 text-white/30 text-sm">No users found</div>
+            <AdminEmptyState
+              code="IDN"
+              icon={UsersIcon}
+              title="No principals match this query"
+              hint="Adjust your search term or clear it to surface every authenticated operator across the membrane."
+            />
           )}
         </div>
       </div>

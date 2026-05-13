@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Coins, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdminPageShell } from "../components/AdminPageShell";
+import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
 
 interface Transaction {
   id: string; user_id: string; amount: number; transaction_type: string;
@@ -31,6 +31,11 @@ export default function AdminCreditsPage() {
 
   useEffect(() => { fetch(); }, []);
 
+  const inflow  = txns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const outflow = txns.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const purchases = txns.filter(t => t.transaction_type === "purchase").length;
+  const refunds   = txns.filter(t => t.transaction_type === "refund").length;
+
   return (
     <AdminPageShell
       eyebrow="03 // MONEY"
@@ -43,6 +48,12 @@ export default function AdminCreditsPage() {
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
         </Button>
       }
+      stats={[
+        { label: "Movements", value: txns.length.toLocaleString(), tone: "blue", sub: "last 200" },
+        { label: "Inflow",    value: `+${inflow.toLocaleString()}`,  tone: "emerald", sub: "credits in" },
+        { label: "Outflow",   value: outflow.toLocaleString(),       tone: "rose",    sub: "credits out" },
+        { label: "Purchases / Refunds", value: `${purchases} / ${refunds}`, tone: "amber", sub: "txn split" },
+      ]}
     >
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] backdrop-blur-md">
         <div className="overflow-x-auto">
@@ -74,7 +85,8 @@ export default function AdminCreditsPage() {
             </tbody>
           </table>
           {txns.length === 0 && !loading && (
-            <div className="text-center py-16 text-white/30 text-sm">No transactions found</div>
+            <AdminEmptyState code="LDG" icon={Coins} title="The ledger is dormant"
+              hint="No credit movements recorded in this window. New purchases, consumption, and refunds will stream in here in real time." />
           )}
         </div>
       </div>

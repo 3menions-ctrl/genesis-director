@@ -952,7 +952,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                   onClick={() => onLoadMore?.()}
                   className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
                 >
-                  Load next {DRILL_PAGE_SIZE_LABEL}
+                  Load next {DRILL_PAGE_SIZE}
                 </button>
               ) : (
                 <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/25">

@@ -272,9 +272,24 @@ export default function Credits() {
           </p>
 
           {entitlement?.isActive && (
-            <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200 text-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Active: {entitlement.tier?.replace('cinema_', 'Cinema ')} · {entitlement.remainingSeconds}s remaining
+              </div>
+              <button
+                type="button"
+                onClick={openCustomerPortal}
+                disabled={openingPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-white/80 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {openingPortal ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Settings className="w-3 h-3" />
+                )}
+                Manage subscription
+              </button>
             </div>
           )}
 

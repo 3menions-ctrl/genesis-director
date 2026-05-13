@@ -137,10 +137,14 @@ describe("AdminLayout sidebar ↔ App routes", () => {
         problems.push(`${expected} (${path}) — no lazy(() => import(...)) declaration`);
         continue;
       }
-      // Resolve "@/foo/bar" → src/foo/bar
-      const rel = importPath.replace(/^@\//, "src/");
+      // App.tsx lives in src/, so relative imports resolve against src/.
+      // "@/foo" also resolves to src/foo via the project's path alias.
+      const srcDir = resolve(__dirname, "../../");
+      const rel = importPath.startsWith("@/")
+        ? importPath.slice(2)
+        : importPath.replace(/^\.\//, "");
       const candidates = [rel, `${rel}.tsx`, `${rel}.ts`, `${rel}/index.tsx`, `${rel}/index.ts`];
-      const found = candidates.some((c) => existsSync(resolve(__dirname, "../../../", c)));
+      const found = candidates.some((c) => existsSync(resolve(srcDir, c)));
       if (!found) {
         problems.push(`${expected} (${path}) — import "${importPath}" does not resolve to a file`);
       }

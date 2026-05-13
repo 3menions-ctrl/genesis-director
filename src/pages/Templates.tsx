@@ -699,10 +699,44 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
+
+  // Persist search, category, and duration filter across reloads / revisits.
+  // Stored as a single JSON blob so one read covers all three.
+  const FILTERS_KEY = 'apex_templates_filters_v1';
+  type PersistedFilters = {
+    search: string;
+    category: string;
+    duration: 'any' | '1' | '2' | '3' | '3plus';
+  };
+  const loadPersistedFilters = (): PersistedFilters => {
+    try {
+      const raw = localStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          search: typeof p.search === 'string' ? p.search : '',
+          category: typeof p.category === 'string' ? p.category : 'all',
+          duration: ['any', '1', '2', '3', '3plus'].includes(p.duration) ? p.duration : 'any',
+        };
+      }
+    } catch {}
+    return { search: '', category: 'all', duration: 'any' };
+  };
+  const initialFilters = loadPersistedFilters();
+  const [searchQuery, setSearchQuery] = useState(initialFilters.search);
+  const [activeCategory, setActiveCategory] = useState(initialFilters.category);
   // Educational-tab-only: filter by target length bucket.
-  const [durationFilter, setDurationFilter] = useState<'any' | '1' | '2' | '3' | '3plus'>('any');
+  const [durationFilter, setDurationFilter] = useState<'any' | '1' | '2' | '3' | '3plus'>(initialFilters.duration);
+
+  // Save filters whenever any of the three change.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ search: searchQuery, category: activeCategory, duration: durationFilter }),
+      );
+    } catch {}
+  }, [searchQuery, activeCategory, durationFilter]);
 
   // Cleanup on navigation away
   useRouteCleanup(() => {

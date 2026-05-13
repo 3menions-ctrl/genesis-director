@@ -74,6 +74,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // No try-catch needed - that violated React's hook rules
   const authContext = useAuth();
   const tierLimits = useTierLimits();
+  const cinemaGuard = useCinemaGuard();
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {

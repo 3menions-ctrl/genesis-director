@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdminPageShell } from "../components/AdminPageShell";
 
 interface UserRecord {
   id: string;
@@ -86,7 +87,19 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <AdminPageShell
+      eyebrow="02 // PEOPLE"
+      code="IDN"
+      title="Identity"
+      italic="Roster."
+      description="Every authenticated principal across the platform — credits, tier, roles, and project footprint."
+      actions={
+        <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9 text-white/40">
+          {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+        </Button>
+      }
+    >
+      <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
@@ -98,9 +111,6 @@ export default function AdminUsersPage() {
             className="pl-9 h-9 text-sm bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
           />
         </div>
-        <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9 text-white/40">
-          {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-        </Button>
       </div>
 
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden">

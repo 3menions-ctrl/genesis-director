@@ -604,6 +604,44 @@ const App = () => {
                   <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
                   <Route path="emails" element={<AdminEmailsPage />} />
+                  {/* ── Ops pages (37) ─────────────────────────── */}
+                  <Route path="audit" element={<AdminAuditLogPage />} />
+                  <Route path="edge-logs" element={<AdminEdgeLogsPage />} />
+                  <Route path="providers" element={<AdminProvidersPage />} />
+                  <Route path="queue" element={<AdminQueuePage />} />
+                  <Route path="status" element={<AdminStatusPage />} />
+                  <Route path="backups" element={<AdminBackupsPage />} />
+                  <Route path="roles" element={<AdminRolesPage />} />
+                  <Route path="team" element={<AdminTeamPage />} />
+                  <Route path="sessions" element={<AdminSessionsPage />} />
+                  <Route path="gdpr" element={<AdminGdprPage />} />
+                  <Route path="abuse" element={<AdminAbusePage />} />
+                  <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                  <Route path="refunds" element={<AdminRefundsPage />} />
+                  <Route path="coupons" element={<AdminCouponsPage />} />
+                  <Route path="referrals" element={<AdminReferralsPage />} />
+                  <Route path="invoices" element={<AdminInvoicesPage />} />
+                  <Route path="reconcile" element={<AdminReconcilePage />} />
+                  <Route path="avatar-catalog" element={<AdminAvatarCatalogPage />} />
+                  <Route path="gallery" element={<AdminGalleryCurationPage />} />
+                  <Route path="template-library" element={<AdminTemplatesAdminPage />} />
+                  <Route path="storage" element={<AdminStoragePage />} />
+                  <Route path="content-safety" element={<AdminContentSafetyPage />} />
+                  <Route path="analytics" element={<AdminAnalyticsPage />} />
+                  <Route path="onboarding-analytics" element={<AdminOnboardingAnalyticsPage />} />
+                  <Route path="experiments" element={<AdminExperimentsPage />} />
+                  <Route path="cohorts" element={<AdminCohortsPage />} />
+                  <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
+                  <Route path="announcements" element={<AdminAnnouncementsPage />} />
+                  <Route path="email-templates" element={<AdminEmailTemplatesPage />} />
+                  <Route path="notifications-center" element={<AdminNotificationsPage />} />
+                  <Route path="macros" element={<AdminMacrosPage />} />
+                  <Route path="changelog" element={<AdminChangelogPage />} />
+                  <Route path="api-keys" element={<AdminApiKeysPage />} />
+                  <Route path="webhooks" element={<AdminWebhooksPage />} />
+                  <Route path="secrets" element={<AdminSecretsPage />} />
+                  <Route path="db-health" element={<AdminDbHealthPage />} />
+                  <Route path="crash-forensics" element={<AdminCrashForensicsPage />} />
                   {/* Legacy admin redirects */}
                   <Route path="financials" element={<Navigate to="/admin/finance" replace />} />
                   <Route path="costs" element={<Navigate to="/admin/finance" replace />} />

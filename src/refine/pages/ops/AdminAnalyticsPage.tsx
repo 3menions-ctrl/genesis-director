@@ -667,3 +667,199 @@ function formatCell(key: string, value: unknown): string {
   if (typeof value === "number") return value.toLocaleString();
   return String(value);
 }
+
+// ── Funnel ─────────────────────────────────────────────────────────────
+function FunnelView({ steps, loading }: { steps: { step: string; users: number }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-48 w-full bg-white/[0.04]" />;
+  if (!steps.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No funnel data</div>;
+  const top = steps[0]?.users || 1;
+  return (
+    <div className="space-y-2">
+      {steps.map((s, i) => {
+        const pct = (s.users / top) * 100;
+        const dropFromPrev = i > 0 && steps[i - 1].users > 0
+          ? +(((steps[i - 1].users - s.users) / steps[i - 1].users) * 100).toFixed(1)
+          : 0;
+        return (
+          <div key={s.step} className="relative">
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-white/30 font-mono text-[10px] w-4">{i + 1}</span>
+                <span className="text-white/75">{s.step}</span>
+              </div>
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="text-white tabular-nums font-mono">{s.users.toLocaleString()}</span>
+                {i > 0 && (
+                  <span className={cn("font-mono tabular-nums", dropFromPrev > 30 ? "text-rose-300" : "text-white/30")}>
+                    {dropFromPrev > 0 ? `−${dropFromPrev}%` : "—"}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="h-7 rounded-md bg-white/[0.03] overflow-hidden relative">
+              <div className="absolute inset-y-0 left-0 transition-all"
+                style={{
+                  width: `${pct}%`,
+                  background: `linear-gradient(90deg, rgba(10,132,255,${0.55 - i * 0.1}), rgba(10,132,255,${0.15 - i * 0.03}))`,
+                }} />
+              <div className="absolute inset-y-0 left-3 flex items-center text-[10px] text-white/60 font-mono">
+                {pct.toFixed(0)}%
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Cohort retention matrix ────────────────────────────────────────────
+function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: number; weeks: number[] }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (!cohorts.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No cohorts in window</div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[10px] font-mono">
+        <thead>
+          <tr className="text-white/30">
+            <th className="text-left pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Cohort</th>
+            <th className="text-right pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Size</th>
+            {Array.from({ length: 8 }).map((_, w) => (
+              <th key={w} className="text-center pb-2 px-1 font-normal uppercase tracking-[0.22em]">W{w}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {cohorts.map((c) => (
+            <tr key={c.cohort} className="border-t border-white/[0.04]">
+              <td className="py-1.5 pr-3 text-white/75 whitespace-nowrap">{c.cohort.slice(5)}</td>
+              <td className="py-1.5 pr-3 text-right text-white/45 tabular-nums">{c.size}</td>
+              {c.weeks.map((v, i) => (
+                <td key={i} className="py-1 px-0.5">
+                  {v < 0 ? (
+                    <div className="h-7 rounded-sm bg-white/[0.02]" />
+                  ) : (
+                    <div
+                      className="h-7 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
+                      style={{
+                        background: `rgba(10,132,255,${Math.min(0.85, 0.05 + v / 120)})`,
+                        color: v > 40 ? "white" : "rgba(255,255,255,0.6)",
+                      }}
+                      title={`${v}% week ${i}`}
+                    >
+                      {v}%
+                    </div>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Hour-of-day × DOW heatmap ──────────────────────────────────────────
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function Heatmap({ data, loading }: { data?: { matrix: number[][]; max: number }; loading: boolean }) {
+  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (!data || data.max === 0) return <div className="py-10 text-center text-[12px] text-white/30 italic">No clip activity in window</div>;
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex flex-col gap-1 min-w-[520px]">
+        <div className="flex items-center gap-1 pl-10 text-[8px] font-mono text-white/25 uppercase tracking-[0.2em]">
+          {Array.from({ length: 24 }).map((_, h) => (
+            <div key={h} className="flex-1 text-center">{h % 6 === 0 ? h : ""}</div>
+          ))}
+        </div>
+        {data.matrix.map((row, d) => (
+          <div key={d} className="flex items-center gap-1">
+            <div className="w-10 text-[9px] font-mono text-white/35 uppercase tracking-[0.2em]">{DOW[d]}</div>
+            {row.map((v, h) => (
+              <div
+                key={h}
+                className="flex-1 aspect-square rounded-sm"
+                title={`${DOW[d]} ${h}:00 — ${v} clips`}
+                style={{
+                  background: v === 0
+                    ? "rgba(255,255,255,0.02)"
+                    : `rgba(10,132,255,${0.1 + (v / data.max) * 0.85})`,
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Failure breakdown ──────────────────────────────────────────────────
+function FailureBars({ rows, loading }: { rows: { category: string; count: number }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-40 w-full bg-white/[0.04]" />;
+  if (!rows.length) return <div className="py-10 text-center text-[12px] text-emerald-300/60 italic">No failures in window</div>;
+  const max = Math.max(...rows.map((r) => r.count), 1);
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.category} className="relative">
+          <div className="flex items-center justify-between text-[12px] py-1.5 relative z-10 px-3">
+            <span className="text-white/75 truncate max-w-[60%]" title={r.category}>{r.category}</span>
+            <span className="text-rose-300 font-mono tabular-nums">{r.count}</span>
+          </div>
+          <div aria-hidden className="absolute inset-y-0 left-0 rounded-md bg-gradient-to-r from-rose-500/15 to-rose-500/0"
+            style={{ width: `${(r.count / max) * 100}%` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Top users leaderboard ──────────────────────────────────────────────
+function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["topUsers"]>; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full bg-white/[0.04]" />)}
+      </div>
+    );
+  }
+  if (!rows?.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No power users in window</div>;
+  const maxSpend = Math.max(...rows.map((r) => r.spend), 1);
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="border-white/[0.05] hover:bg-transparent">
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] w-10">#</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">User</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Tier</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Projects</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Credits spent</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Share</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((u, i) => (
+          <TableRow key={u.id} className="border-white/[0.04] hover:bg-white/[0.02]">
+            <TableCell className="text-[12px] text-white/40 font-mono tabular-nums">
+              {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : i + 1}
+            </TableCell>
+            <TableCell className="text-[12px]">
+              <div className="text-white/85 truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+              <div className="text-[10px] text-white/30 font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+            </TableCell>
+            <TableCell className="text-[11px] text-white/55 capitalize">{u.profile?.account_tier ?? "free"}</TableCell>
+            <TableCell className="text-[12px] text-white/75 font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
+            <TableCell className="text-[12px] text-amber-300 font-mono tabular-nums text-right">{u.spend.toLocaleString()}</TableCell>
+            <TableCell className="w-[160px]">
+              <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${(u.spend / maxSpend) * 100}%` }} />
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}

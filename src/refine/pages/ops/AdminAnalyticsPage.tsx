@@ -1,5 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
@@ -52,6 +53,9 @@ const fmtMins = (m: number | null) => {
 const fmtDay = (s: string) => new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 type Dataset = "signups" | "projects" | "clips" | "creditsSpent" | "creditsPurchased";
+const DATASETS: readonly Dataset[] = ["signups", "projects", "clips", "creditsSpent", "creditsPurchased"];
+const isDataset = (v: string | null): v is Dataset => !!v && (DATASETS as readonly string[]).includes(v);
+const isIsoDate = (v: string | null): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const DATASET_TONE: Record<Dataset, string> = {
   signups: "#0A84FF",
   projects: "#34D399",
@@ -67,17 +71,61 @@ interface DetailPayload {
 }
 
 export default function AdminAnalyticsPage() {
-  const [windowDays, setWindowDays] = useState<number>(30);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialWindow = (() => {
+    const w = Number(searchParams.get("window"));
+    return (WINDOWS as readonly number[]).includes(w) ? w : 30;
+  })();
+  const [windowDays, setWindowDays] = useState<number>(initialWindow);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [drill, setDrill] = useState<{ dataset: Dataset; date: string } | null>(null);
+  const [drill, setDrill] = useState<{ dataset: Dataset; date: string } | null>(() => {
+    const ds = searchParams.get("dataset");
+    const dt = searchParams.get("date");
+    return isDataset(ds) && isIsoDate(dt) ? { dataset: ds, date: dt } : null;
+  });
   const [drillData, setDrillData] = useState<DetailPayload | null>(null);
   const [drillLoading, setDrillLoading] = useState(false);
   const [drillError, setDrillError] = useState<string | null>(null);
 
   const openDrill = (dataset: Dataset, date: string) => setDrill({ dataset, date });
   const closeDrill = () => { setDrill(null); setDrillData(null); setDrillError(null); };
+
+  // Sync drill + window into URL so views are deep-linkable & shareable.
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (windowDays === 30) next.delete("window");
+        else next.set("window", String(windowDays));
+        if (drill) {
+          next.set("dataset", drill.dataset);
+          next.set("date", drill.date);
+        } else {
+          next.delete("dataset");
+          next.delete("date");
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [drill, windowDays, setSearchParams]);
+
+  // React to back/forward navigation: rehydrate drill from URL.
+  useEffect(() => {
+    const ds = searchParams.get("dataset");
+    const dt = searchParams.get("date");
+    const valid = isDataset(ds) && isIsoDate(dt);
+    if (valid) {
+      if (!drill || drill.dataset !== ds || drill.date !== dt) {
+        setDrill({ dataset: ds as Dataset, date: dt as string });
+      }
+    } else if (drill) {
+      setDrill(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const load = async (days: number) => {
     setLoading(true); setError(null);

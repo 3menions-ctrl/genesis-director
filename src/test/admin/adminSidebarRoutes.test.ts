@@ -307,6 +307,65 @@ describe("AdminLayout sidebar ↔ App routes", () => {
     expect(dupes, `Duplicate component wiring:\n  ${dupes.join("\n  ")}`).toEqual([]);
   });
 
+  it("declared sidebar redirects point to the correct target and resolve to the expected component", () => {
+    const problems: string[] = [];
+    for (const [from, expectedTo] of Object.entries(EXPECTED_SIDEBAR_REDIRECTS)) {
+      // 1) Sidebar must actually surface this path.
+      if (!navPaths.includes(from)) {
+        problems.push(`${from} is in EXPECTED_SIDEBAR_REDIRECTS but is not a sidebar path`);
+        continue;
+      }
+      // 2) The route must exist and be a <Navigate> (not a component swap).
+      const route = pathToRoute.get(from);
+      if (!route) {
+        problems.push(`${from} → no <Route> element found (expected redirect to ${expectedTo})`);
+        continue;
+      }
+      if (route.kind !== "redirect") {
+        problems.push(`${from} → renders <${route.component} />, expected <Navigate to="${expectedTo}" />`);
+        continue;
+      }
+      // 3) The redirect target must match exactly.
+      if (route.to !== expectedTo) {
+        problems.push(`${from} → redirects to "${route.to}", expected "${expectedTo}"`);
+        continue;
+      }
+      // 4) The target must itself be a known sidebar/ops path with a known component.
+      const targetExpected = expectedComponentForPath(expectedTo);
+      if (!targetExpected) {
+        problems.push(`${from} → ${expectedTo} has no expected component mapping`);
+        continue;
+      }
+      // 5) The target route must render that component (no chained redirects).
+      const targetRoute = pathToRoute.get(expectedTo);
+      if (!targetRoute) {
+        problems.push(`${from} → ${expectedTo} has no <Route> element`);
+        continue;
+      }
+      if (targetRoute.kind === "redirect") {
+        problems.push(`${from} → ${expectedTo} is itself a redirect to "${targetRoute.to}" (chained redirects forbidden)`);
+        continue;
+      }
+      if (targetRoute.component !== targetExpected) {
+        problems.push(
+          `${from} → ${expectedTo} renders <${targetRoute.component} />, expected <${targetExpected} />`,
+        );
+      }
+    }
+    expect(problems, `Sidebar redirect problems:\n  ${problems.join("\n  ")}`).toEqual([]);
+  });
+
+  it("no sidebar path is an undeclared redirect (intentional redirects must be listed in EXPECTED_SIDEBAR_REDIRECTS)", () => {
+    const undeclared: string[] = [];
+    for (const path of navPaths) {
+      const route = pathToRoute.get(path);
+      if (route?.kind === "redirect" && !(path in EXPECTED_SIDEBAR_REDIRECTS)) {
+        undeclared.push(`${path} → redirects to "${route.to}" but is not in EXPECTED_SIDEBAR_REDIRECTS`);
+      }
+    }
+    expect(undeclared, `Undeclared sidebar redirects:\n  ${undeclared.join("\n  ")}`).toEqual([]);
+  });
+
   it("emits a route↔sidebar wiring report (CSV + JSON)", () => {
     type Row = {
       sidebarPath: string;

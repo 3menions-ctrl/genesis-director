@@ -81,6 +81,34 @@ export default function Credits() {
   const refreshEntitlement = useRefreshCinemaEntitlement();
   const [openingPortal, setOpeningPortal] = useState(false);
 
+  type InvoiceRow = {
+    id: string;
+    number: string | null;
+    status: string | null;
+    amount_paid: number;
+    amount_due: number;
+    currency: string;
+    created: string | null;
+    period_end: string | null;
+    hosted_invoice_url: string | null;
+    pdf_url: string | null;
+    description: string | null;
+  };
+
+  const invoicesQuery = useQuery({
+    queryKey: ['cinema-invoices', user?.id],
+    enabled: !!user && !!entitlement?.hasEntitlement,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<InvoiceRow[]> => {
+      const { data, error } = await supabase.functions.invoke('list-cinema-invoices', {
+        body: { environment: getStripeEnvironment(), limit: 12 },
+      });
+      if (error) throw error;
+      return (data as { invoices?: InvoiceRow[] } | null)?.invoices ?? [];
+    },
+  });
+
   const openCustomerPortal = async () => {
     if (openingPortal) return;
     setOpeningPortal(true);

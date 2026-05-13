@@ -1,6 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2 } from "lucide-react";
+import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -23,7 +23,14 @@ interface AnalyticsPayload {
     projects: number; clipsTotal: number; completedClips: number; failedClips: number; completionRate: number;
     creditsPurchased: number; creditsSpent: number; grossRevenue: number;
     ttvMedianMinutes: number | null; activationRate: number;
+    onboardedTotal?: number;
   };
+  deltas?: { signups: number; projects: number; completionRate: number; creditsSpent: number; creditsPurchased: number; revenue: number };
+  funnel?: { step: string; users: number }[];
+  cohorts?: { cohort: string; size: number; weeks: number[] }[];
+  failureBreakdown?: { category: string; count: number }[];
+  topUsers?: { id: string; spend: number; projects: number; profile: { email: string; display_name: string | null; account_tier: string | null; country: string | null } | null }[];
+  heatmap?: { matrix: number[][]; max: number };
   series: { signups: Series; projects: Series; creditsSpent: Series; creditsPurchased: Series };
   tierBreakdown: { tier: string; count: number }[];
   topCountries: { key: string; count: number }[];

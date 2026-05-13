@@ -1,6 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2 } from "lucide-react";
+import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -23,7 +23,14 @@ interface AnalyticsPayload {
     projects: number; clipsTotal: number; completedClips: number; failedClips: number; completionRate: number;
     creditsPurchased: number; creditsSpent: number; grossRevenue: number;
     ttvMedianMinutes: number | null; activationRate: number;
+    onboardedTotal?: number;
   };
+  deltas?: { signups: number; projects: number; completionRate: number; creditsSpent: number; creditsPurchased: number; revenue: number };
+  funnel?: { step: string; users: number }[];
+  cohorts?: { cohort: string; size: number; weeks: number[] }[];
+  failureBreakdown?: { category: string; count: number }[];
+  topUsers?: { id: string; spend: number; projects: number; profile: { email: string; display_name: string | null; account_tier: string | null; country: string | null } | null }[];
+  heatmap?: { matrix: number[][]; max: number };
   series: { signups: Series; projects: Series; creditsSpent: Series; creditsPurchased: Series };
   tierBreakdown: { tier: string; count: number }[];
   topCountries: { key: string; count: number }[];
@@ -169,9 +176,9 @@ export default function AdminAnalyticsPage() {
       }
       stats={[
         { label: "Active 24H", value: data ? fmtN(data.kpis.active1d) : "—", tone: "blue", sub: data ? `Stick ${data.kpis.stickiness}%` : undefined },
-        { label: `Signups ${windowDays}D`, value: data ? fmtN(windowDays === 7 ? data.kpis.signups7d : windowDays === 30 ? data.kpis.signups30d : data.kpis.signups30d) : "—", tone: "emerald", sub: data ? `${fmtN(data.kpis.totalUsers)} total` : undefined },
-        { label: "Completion", value: data ? `${data.kpis.completionRate}%` : "—", tone: "amber", sub: data ? `${fmtN(data.kpis.completedClips)} clips` : undefined },
-        { label: `Revenue ${windowDays}D`, value: data ? fmtUsd(data.kpis.grossRevenue) : "—", tone: "neutral", sub: data ? `${fmtN(data.kpis.creditsPurchased)} cr sold` : undefined },
+        { label: `Signups ${windowDays}D`, value: data ? fmtN(windowDays === 7 ? data.kpis.signups7d : data.kpis.signups30d) : "—", tone: "emerald", sub: data?.deltas ? deltaSub(data.deltas.signups, "vs prev") : undefined },
+        { label: "Completion", value: data ? `${data.kpis.completionRate}%` : "—", tone: "amber", sub: data?.deltas ? deltaSub(data.deltas.completionRate, "pp Δ", true) : undefined },
+        { label: `Revenue ${windowDays}D`, value: data ? fmtUsd(data.kpis.grossRevenue) : "—", tone: "neutral", sub: data?.deltas ? deltaSub(data.deltas.revenue, "vs prev") : undefined },
       ]}
     >
       {error && (
@@ -360,6 +367,46 @@ export default function AdminAnalyticsPage() {
         />
       </div>
 
+      {/* ── Funnel + cohort retention ─────────────────────────────────── */}
+      <AdminSectionLabel label="Funnel & retention" meta={`${windowDays}-day cohort`} />
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
+        <AdminSurface className="lg:col-span-2">
+          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+            <Filter className="h-3 w-3" /> Activation funnel
+          </div>
+          <FunnelView steps={data?.funnel ?? []} loading={loading} />
+        </AdminSurface>
+        <AdminSurface className="lg:col-span-3">
+          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+            <Calendar className="h-3 w-3" /> Weekly cohort retention
+          </div>
+          <CohortMatrix cohorts={data?.cohorts ?? []} loading={loading} />
+        </AdminSurface>
+      </div>
+
+      {/* ── Heatmap + Failures ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
+        <AdminSurface className="lg:col-span-3">
+          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+            <Activity className="h-3 w-3" /> Generation heatmap
+            <span className="ml-auto text-white/25 normal-case tracking-normal">UTC · clips by hour</span>
+          </div>
+          <Heatmap data={data?.heatmap} loading={loading} />
+        </AdminSurface>
+        <AdminSurface className="lg:col-span-2">
+          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+            <AlertOctagon className="h-3 w-3" /> Failure categories
+          </div>
+          <FailureBars rows={data?.failureBreakdown ?? []} loading={loading} />
+        </AdminSurface>
+      </div>
+
+      {/* ── Top users leaderboard ─────────────────────────────────────── */}
+      <AdminSectionLabel label="Power users" meta={`Top 10 · ${windowDays}-day spend`} />
+      <AdminSurface className="mt-6">
+        <Leaderboard rows={data?.topUsers ?? []} loading={loading} />
+      </AdminSurface>
+
       {data && (
         <p className="mt-10 text-[10px] text-white/25 font-mono uppercase tracking-[0.28em] text-right">
           Last refreshed {new Date(data.generatedAt).toLocaleString()}
@@ -376,6 +423,13 @@ export default function AdminAnalyticsPage() {
       />
     </AdminPageShell>
   );
+}
+
+/** Render "+12.4% vs prev" or "-3.1% vs prev" — colored implicitly via tone passed by caller. */
+function deltaSub(delta: number, label: string, asPP = false): string {
+  const sign = delta > 0 ? "+" : "";
+  const unit = asPP ? "" : "%";
+  return `${sign}${delta}${unit} ${label}`;
 }
 
 function todayKey() {
@@ -541,9 +595,20 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
             <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
               {target?.date}
             </span>
-            <button onClick={onClose} className="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+            <div className="ml-auto flex items-center gap-2">
+              {payload && payload.rows.length > 0 && (
+                <button
+                  onClick={() => downloadCsv(payload)}
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                  aria-label="Export CSV"
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </button>
+              )}
+              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
               <X className="h-3.5 w-3.5" />
-            </button>
+              </button>
+            </div>
           </div>
           <SheetTitle className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
             {heading}
@@ -612,4 +677,220 @@ function formatCell(key: string, value: unknown): string {
   }
   if (typeof value === "number") return value.toLocaleString();
   return String(value);
+}
+
+// ── Funnel ─────────────────────────────────────────────────────────────
+function FunnelView({ steps, loading }: { steps: { step: string; users: number }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-48 w-full bg-white/[0.04]" />;
+  if (!steps.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No funnel data</div>;
+  const top = steps[0]?.users || 1;
+  return (
+    <div className="space-y-2">
+      {steps.map((s, i) => {
+        const pct = (s.users / top) * 100;
+        const dropFromPrev = i > 0 && steps[i - 1].users > 0
+          ? +(((steps[i - 1].users - s.users) / steps[i - 1].users) * 100).toFixed(1)
+          : 0;
+        return (
+          <div key={s.step} className="relative">
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-white/30 font-mono text-[10px] w-4">{i + 1}</span>
+                <span className="text-white/75">{s.step}</span>
+              </div>
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="text-white tabular-nums font-mono">{s.users.toLocaleString()}</span>
+                {i > 0 && (
+                  <span className={cn("font-mono tabular-nums", dropFromPrev > 30 ? "text-rose-300" : "text-white/30")}>
+                    {dropFromPrev > 0 ? `−${dropFromPrev}%` : "—"}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="h-7 rounded-md bg-white/[0.03] overflow-hidden relative">
+              <div className="absolute inset-y-0 left-0 transition-all"
+                style={{
+                  width: `${pct}%`,
+                  background: `linear-gradient(90deg, rgba(10,132,255,${0.55 - i * 0.1}), rgba(10,132,255,${0.15 - i * 0.03}))`,
+                }} />
+              <div className="absolute inset-y-0 left-3 flex items-center text-[10px] text-white/60 font-mono">
+                {pct.toFixed(0)}%
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Cohort retention matrix ────────────────────────────────────────────
+function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: number; weeks: number[] }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (!cohorts.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No cohorts in window</div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[10px] font-mono">
+        <thead>
+          <tr className="text-white/30">
+            <th className="text-left pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Cohort</th>
+            <th className="text-right pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Size</th>
+            {Array.from({ length: 8 }).map((_, w) => (
+              <th key={w} className="text-center pb-2 px-1 font-normal uppercase tracking-[0.22em]">W{w}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {cohorts.map((c) => (
+            <tr key={c.cohort} className="border-t border-white/[0.04]">
+              <td className="py-1.5 pr-3 text-white/75 whitespace-nowrap">{c.cohort.slice(5)}</td>
+              <td className="py-1.5 pr-3 text-right text-white/45 tabular-nums">{c.size}</td>
+              {c.weeks.map((v, i) => (
+                <td key={i} className="py-1 px-0.5">
+                  {v < 0 ? (
+                    <div className="h-7 rounded-sm bg-white/[0.02]" />
+                  ) : (
+                    <div
+                      className="h-7 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
+                      style={{
+                        background: `rgba(10,132,255,${Math.min(0.85, 0.05 + v / 120)})`,
+                        color: v > 40 ? "white" : "rgba(255,255,255,0.6)",
+                      }}
+                      title={`${v}% week ${i}`}
+                    >
+                      {v}%
+                    </div>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Hour-of-day × DOW heatmap ──────────────────────────────────────────
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function Heatmap({ data, loading }: { data?: { matrix: number[][]; max: number }; loading: boolean }) {
+  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (!data || data.max === 0) return <div className="py-10 text-center text-[12px] text-white/30 italic">No clip activity in window</div>;
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex flex-col gap-1 min-w-[520px]">
+        <div className="flex items-center gap-1 pl-10 text-[8px] font-mono text-white/25 uppercase tracking-[0.2em]">
+          {Array.from({ length: 24 }).map((_, h) => (
+            <div key={h} className="flex-1 text-center">{h % 6 === 0 ? h : ""}</div>
+          ))}
+        </div>
+        {data.matrix.map((row, d) => (
+          <div key={d} className="flex items-center gap-1">
+            <div className="w-10 text-[9px] font-mono text-white/35 uppercase tracking-[0.2em]">{DOW[d]}</div>
+            {row.map((v, h) => (
+              <div
+                key={h}
+                className="flex-1 aspect-square rounded-sm"
+                title={`${DOW[d]} ${h}:00 — ${v} clips`}
+                style={{
+                  background: v === 0
+                    ? "rgba(255,255,255,0.02)"
+                    : `rgba(10,132,255,${0.1 + (v / data.max) * 0.85})`,
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Failure breakdown ──────────────────────────────────────────────────
+function FailureBars({ rows, loading }: { rows: { category: string; count: number }[]; loading: boolean }) {
+  if (loading) return <Skeleton className="h-40 w-full bg-white/[0.04]" />;
+  if (!rows.length) return <div className="py-10 text-center text-[12px] text-emerald-300/60 italic">No failures in window</div>;
+  const max = Math.max(...rows.map((r) => r.count), 1);
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.category} className="relative">
+          <div className="flex items-center justify-between text-[12px] py-1.5 relative z-10 px-3">
+            <span className="text-white/75 truncate max-w-[60%]" title={r.category}>{r.category}</span>
+            <span className="text-rose-300 font-mono tabular-nums">{r.count}</span>
+          </div>
+          <div aria-hidden className="absolute inset-y-0 left-0 rounded-md bg-gradient-to-r from-rose-500/15 to-rose-500/0"
+            style={{ width: `${(r.count / max) * 100}%` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Top users leaderboard ──────────────────────────────────────────────
+function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["topUsers"]>; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full bg-white/[0.04]" />)}
+      </div>
+    );
+  }
+  if (!rows?.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No power users in window</div>;
+  const maxSpend = Math.max(...rows.map((r) => r.spend), 1);
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="border-white/[0.05] hover:bg-transparent">
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] w-10">#</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">User</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Tier</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Projects</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Credits spent</TableHead>
+          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Share</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((u, i) => (
+          <TableRow key={u.id} className="border-white/[0.04] hover:bg-white/[0.02]">
+            <TableCell className="text-[12px] text-white/40 font-mono tabular-nums">
+              {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : i + 1}
+            </TableCell>
+            <TableCell className="text-[12px]">
+              <div className="text-white/85 truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+              <div className="text-[10px] text-white/30 font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+            </TableCell>
+            <TableCell className="text-[11px] text-white/55 capitalize">{u.profile?.account_tier ?? "free"}</TableCell>
+            <TableCell className="text-[12px] text-white/75 font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
+            <TableCell className="text-[12px] text-amber-300 font-mono tabular-nums text-right">{u.spend.toLocaleString()}</TableCell>
+            <TableCell className="w-[160px]">
+              <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${(u.spend / maxSpend) * 100}%` }} />
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function downloadCsv(payload: DetailPayload) {
+  const esc = (v: unknown) => {
+    if (v == null) return "";
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = payload.columns.map((c) => esc(c.label)).join(",");
+  const lines = payload.rows.map((r) => payload.columns.map((c) => esc(r[c.key])).join(","));
+  const csv = [header, ...lines].join("\n") + "\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${payload.dataset}-${payload.date}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }

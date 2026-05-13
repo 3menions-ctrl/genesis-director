@@ -179,6 +179,8 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const since = (days: number) => new Date(now - days * DAY_MS).toISOString();
     const sinceWindow = since(windowDays);
+    const sincePrev = new Date(now - 2 * windowDays * DAY_MS).toISOString();
+    const startOfWindow = sinceWindow;
 
     // ── Parallel fetches ────────────────────────────────────────────────
     const [
@@ -191,6 +193,19 @@ Deno.serve(async (req) => {
       signupGeoWindow,
       tierMix,
       ttvSample,
+      // Previous-window comparisons (period-over-period)
+      profilesPrev,
+      projectsPrev,
+      clipsPrev,
+      creditsPrev,
+      // Cohort retention base (last 8 weekly cohorts)
+      cohortBase,
+      // Failure breakdown
+      failedClipsBreakdown,
+      // Top users (by credit spend in window)
+      topSpendersRaw,
+      // Onboarding-completed count for funnel
+      onboardedCount,
     ] = await Promise.all([
       admin.from('profiles').select('id', { count: 'exact', head: true }),
       admin.from('profiles').select('id, created_at, account_tier').gte('created_at', sinceWindow).order('created_at', { ascending: true }),
@@ -203,6 +218,15 @@ Deno.serve(async (req) => {
       admin.from('profiles').select('account_tier'),
       // Sample for TTV: most recent ~500 signups in window with at least one project
       admin.from('profiles').select('id, created_at').gte('created_at', sinceWindow).order('created_at', { ascending: false }).limit(500),
+      admin.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', sincePrev).lt('created_at', startOfWindow),
+      admin.from('movie_projects').select('id', { count: 'exact', head: true }).gte('created_at', sincePrev).lt('created_at', startOfWindow),
+      admin.from('video_clips').select('id, status', { count: 'exact' }).gte('created_at', sincePrev).lt('created_at', startOfWindow),
+      admin.from('credit_transactions').select('id, amount, transaction_type').gte('created_at', sincePrev).lt('created_at', startOfWindow),
+      // 8-week cohort retention base — signups in last 8 weeks
+      admin.from('profiles').select('id, created_at').gte('created_at', new Date(now - 8 * 7 * DAY_MS).toISOString()),
+      admin.from('video_clips').select('last_error_category').eq('status', 'failed').gte('created_at', sinceWindow),
+      admin.from('credit_transactions').select('user_id, amount, transaction_type').gte('created_at', sinceWindow).in('transaction_type', ['usage', 'spend', 'refund_negative']),
+      admin.from('profiles').select('id', { count: 'exact', head: true }).eq('onboarding_completed', true),
     ]);
 
     const totalUsers = profilesAll.count ?? 0;
@@ -306,6 +330,156 @@ Deno.serve(async (req) => {
     const activationRate = ttvSampleIds.length > 0
       ? +((ttvActivated / ttvSampleIds.length) * 100).toFixed(1) : 0;
 
+    // ── Period-over-period deltas ─────────────────────────────────────
+    const prevSignups = profilesPrev.count ?? 0;
+    const prevProjects = projectsPrev.count ?? 0;
+    const prevClips = (clipsPrev.data ?? []).length;
+    const prevCompleted = (clipsPrev.data ?? []).filter((c: any) => c.status === 'completed').length;
+    const prevCompletionRate = prevClips > 0 ? +((prevCompleted / prevClips) * 100).toFixed(1) : 0;
+    const prevCreditsSpent = (creditsPrev.data ?? [])
+      .filter((t: any) => t.transaction_type === 'usage' || t.amount < 0)
+      .reduce((s: number, t: any) => s + Math.abs(t.amount), 0);
+    const prevCreditsPurchased = (creditsPrev.data ?? [])
+      .filter((t: any) => t.transaction_type === 'purchase')
+      .reduce((s: number, t: any) => s + Math.max(0, t.amount), 0);
+    const pct = (cur: number, prev: number) =>
+      prev === 0 ? (cur === 0 ? 0 : 100) : +(((cur - prev) / prev) * 100).toFixed(1);
+    const deltas = {
+      signups: pct(signupsAll.length, prevSignups),
+      projects: pct(projects.length, prevProjects),
+      completionRate: +(completionRate - prevCompletionRate).toFixed(1),
+      creditsSpent: pct(creditsSpent, prevCreditsSpent),
+      creditsPurchased: pct(creditsPurchased, prevCreditsPurchased),
+      revenue: pct(creditsPurchased, prevCreditsPurchased),
+    };
+
+    // ── Funnel (in window) ────────────────────────────────────────────
+    const userIdsInWindow = new Set(signupsAll.map((p: any) => p.id));
+    const usersWithProject = new Set(projects.map((p: any) => p.user_id).filter(Boolean));
+    const usersWithProjectInCohort = [...usersWithProject].filter((u) => userIdsInWindow.has(u)).length;
+    // Users with completed clips & purchases in window — fetch user_ids
+    const [{ data: cohortClipUsers }, { data: cohortPurchaseUsers }] = await Promise.all([
+      admin.from('video_clips').select('user_id').eq('status', 'completed').gte('created_at', sinceWindow),
+      admin.from('credit_transactions').select('user_id').eq('transaction_type', 'purchase').gte('created_at', sinceWindow),
+    ]);
+    const usersWithCompletedClip = new Set(((cohortClipUsers ?? []) as { user_id: string }[]).map((r) => r.user_id));
+    const usersWithPurchase = new Set(((cohortPurchaseUsers ?? []) as { user_id: string }[]).map((r) => r.user_id));
+    const cohortIds = [...userIdsInWindow];
+    const onboardedInCohort = cohortIds.length; // proxy until we track step-completion in window
+    const funnel = [
+      { step: 'Signed up', users: cohortIds.length },
+      { step: 'Created project', users: usersWithProjectInCohort },
+      { step: 'Generated clip', users: cohortIds.filter((u) => usersWithCompletedClip.has(u)).length },
+      { step: 'Purchased credits', users: cohortIds.filter((u) => usersWithPurchase.has(u)).length },
+    ];
+
+    // ── Cohort retention (8 weekly cohorts × week 0..7) ───────────────
+    // Active proxy: any movie_projects or credit_transactions row in week N.
+    const cohortBaseRows = (cohortBase.data ?? []) as { id: string; created_at: string }[];
+    const weekStart = (d: Date) => {
+      const x = new Date(d);
+      const day = x.getUTCDay();
+      x.setUTCHours(0, 0, 0, 0);
+      x.setUTCDate(x.getUTCDate() - day);
+      return x;
+    };
+    const eightWeeksAgo = weekStart(new Date(now - 7 * 7 * DAY_MS));
+    const cohortMap = new Map<string, string[]>(); // weekStartISO → userIds
+    for (const p of cohortBaseRows) {
+      const ws = weekStart(new Date(p.created_at));
+      if (ws < eightWeeksAgo) continue;
+      const key = ws.toISOString().slice(0, 10);
+      if (!cohortMap.has(key)) cohortMap.set(key, []);
+      cohortMap.get(key)!.push(p.id);
+    }
+    // Activity events for cohort users (single fetch)
+    const cohortUserIds = [...new Set(cohortBaseRows.map((r) => r.id))];
+    let activityEvents: { user_id: string; created_at: string }[] = [];
+    if (cohortUserIds.length) {
+      const [aw, bw] = await Promise.all([
+        admin.from('movie_projects').select('user_id, created_at').in('user_id', cohortUserIds.slice(0, 1000)).gte('created_at', eightWeeksAgo.toISOString()),
+        admin.from('credit_transactions').select('user_id, created_at').in('user_id', cohortUserIds.slice(0, 1000)).gte('created_at', eightWeeksAgo.toISOString()),
+      ]);
+      activityEvents = [...((aw.data ?? []) as any[]), ...((bw.data ?? []) as any[])];
+    }
+    const eventsByUser = new Map<string, Date[]>();
+    for (const e of activityEvents) {
+      if (!eventsByUser.has(e.user_id)) eventsByUser.set(e.user_id, []);
+      eventsByUser.get(e.user_id)!.push(new Date(e.created_at));
+    }
+    const cohortKeys = [...cohortMap.keys()].sort();
+    const cohorts = cohortKeys.map((cKey) => {
+      const users = cohortMap.get(cKey)!;
+      const cohortStart = new Date(`${cKey}T00:00:00.000Z`);
+      const weeks: number[] = [];
+      const weekDelta = (n: number) =>
+        new Date(cohortStart.getTime() + n * 7 * DAY_MS);
+      for (let w = 0; w < 8; w++) {
+        const wStart = weekDelta(w);
+        const wEnd = weekDelta(w + 1);
+        if (wStart > new Date()) { weeks.push(-1); continue; }
+        let active = 0;
+        for (const u of users) {
+          const evs = eventsByUser.get(u);
+          if (!evs) continue;
+          if (evs.some((d) => d >= wStart && d < wEnd)) active++;
+        }
+        weeks.push(users.length > 0 ? +((active / users.length) * 100).toFixed(0) : 0);
+      }
+      return { cohort: cKey, size: users.length, weeks };
+    });
+
+    // ── Failure category breakdown ────────────────────────────────────
+    const failureCounts = new Map<string, number>();
+    for (const r of (failedClipsBreakdown.data ?? []) as { last_error_category: string | null }[]) {
+      const k = r.last_error_category || 'unknown';
+      failureCounts.set(k, (failureCounts.get(k) ?? 0) + 1);
+    }
+    const failureBreakdown = [...failureCounts.entries()]
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // ── Top spenders / power users ────────────────────────────────────
+    const spendByUser = new Map<string, number>();
+    for (const t of (topSpendersRaw.data ?? []) as { user_id: string; amount: number }[]) {
+      spendByUser.set(t.user_id, (spendByUser.get(t.user_id) ?? 0) + Math.abs(t.amount));
+    }
+    const projectsByUser = new Map<string, number>();
+    for (const p of projects as { user_id: string }[]) {
+      projectsByUser.set(p.user_id, (projectsByUser.get(p.user_id) ?? 0) + 1);
+    }
+    const topUserIds = [...new Set([...spendByUser.keys(), ...projectsByUser.keys()])]
+      .map((id) => ({
+        id,
+        spend: spendByUser.get(id) ?? 0,
+        projects: projectsByUser.get(id) ?? 0,
+        score: (spendByUser.get(id) ?? 0) + (projectsByUser.get(id) ?? 0) * 5,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+    let topUsers: any[] = [];
+    if (topUserIds.length) {
+      const { data: profileRows } = await admin
+        .from('profiles')
+        .select('id, email, display_name, account_tier, country')
+        .in('id', topUserIds.map((u) => u.id));
+      const byId = new Map((profileRows ?? []).map((p: any) => [p.id, p]));
+      topUsers = topUserIds.map((u) => ({
+        ...u,
+        profile: byId.get(u.id) ?? null,
+      }));
+    }
+
+    // ── Hourly heatmap (DOW × hour) — clip generations in window ──────
+    const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    for (const c of clips as { created_at: string }[]) {
+      const d = new Date(c.created_at);
+      heatmap[d.getUTCDay()][d.getUTCHours()] += 1;
+    }
+    let heatmapMax = 0;
+    for (const row of heatmap) for (const v of row) if (v > heatmapMax) heatmapMax = v;
+
     return new Response(JSON.stringify({
       generatedAt: new Date().toISOString(),
       windowDays,
@@ -317,7 +491,14 @@ Deno.serve(async (req) => {
         clipsTotal: clips.length, completedClips, failedClips, completionRate,
         creditsPurchased, creditsSpent, grossRevenue,
         ttvMedianMinutes, activationRate,
+        onboardedTotal: onboardedCount.count ?? 0,
       },
+      deltas,
+      funnel,
+      cohorts,
+      failureBreakdown,
+      topUsers,
+      heatmap: { matrix: heatmap, max: heatmapMax },
       series,
       tierBreakdown,
       topCountries,

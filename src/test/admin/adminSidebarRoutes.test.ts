@@ -74,7 +74,9 @@ const CORE_PATH_TO_COMPONENT: Record<string, string> = {
   "/admin/emails": "AdminEmailsPage",
   "/admin/config": "AdminConfigPage",
 };
-const opsPathToComponent = new Map(OPS_PAGES.map((p) => [p.path, p.file]));
+const opsPathToComponent = new Map<string, string>(
+  OPS_PAGES.map((p) => [p.path as string, p.file as string]),
+);
 const expectedComponentForPath = (path: string): string | undefined =>
   CORE_PATH_TO_COMPONENT[path] ?? opsPathToComponent.get(path);
 

@@ -394,15 +394,27 @@ export default function Credits() {
                       <p className="text-white/45 text-xs mt-1">{activeTier.tagline}</p>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={openCustomerPortal}
-                    disabled={openingPortal}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {openingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5" />}
-                    Manage in billing portal
-                  </button>
+                  <div className="shrink-0 flex items-center gap-2 flex-wrap justify-end">
+                    <button
+                      type="button"
+                      onClick={recheckEntitlement}
+                      disabled={recheckingEntitlement}
+                      title="Re-check entitlement and reload plan status"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.10] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-white/75 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${recheckingEntitlement ? 'animate-spin' : ''}`} />
+                      {recheckingEntitlement ? 'Re-checking…' : 'Re-check entitlement'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openCustomerPortal}
+                      disabled={openingPortal}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {openingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5" />}
+                      Manage in billing portal
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/[0.06]">

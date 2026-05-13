@@ -400,7 +400,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         showUserFriendlyError(error, { navigate });
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, estimatedDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible, cinemaGuard, hasInsufficientCredits]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');

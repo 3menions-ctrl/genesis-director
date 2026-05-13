@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
+import { AdminEmptyState } from '@/refine/components/AdminPageShell';
 
 interface SupportMessage {
   id: string;
@@ -222,20 +223,12 @@ export function AdminMessageCenter() {
 
   return (
     <div className="space-y-4 h-full">
-      {/* Header */}
+      {/* Toolbar (hero handled by AdminPageShell) */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            Message Center
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {statusCounts.new > 0 ? (
-              <span className="text-primary font-medium">{statusCounts.new} new messages awaiting response</span>
-            ) : (
-              'All messages have been addressed'
-            )}
-          </p>
+        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35">
+          {statusCounts.new > 0
+            ? <span className="text-[#6FB6FF]">{statusCounts.new} awaiting response</span>
+            : 'all clear'}
         </div>
         <Button onClick={fetchMessages} variant="outline" size="sm" disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -303,10 +296,12 @@ export function AdminMessageCenter() {
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : filteredMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                <Mail className="w-10 h-10 mb-2 opacity-40" />
-                <p className="text-sm">No messages found</p>
-              </div>
+              <AdminEmptyState
+                code="MSG"
+                icon={Mail}
+                title="The channel is silent"
+                hint="No inbound threads match this filter. New messages stream in here the moment they're submitted from any surface."
+              />
             ) : (
               <div className="divide-y divide-border">
                 {filteredMessages.map((msg) => (

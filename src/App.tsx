@@ -37,6 +37,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const StartOnboarding = lazy(() => import("./pages/StartOnboarding"));
 const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
+const Credits = lazy(() => import("./pages/Credits"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));

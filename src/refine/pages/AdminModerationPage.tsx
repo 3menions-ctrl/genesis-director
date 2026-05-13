@@ -8,8 +8,8 @@ export default function AdminModerationPage() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const { data } = await supabase
-        .from("public_videos")
+      const { data } = await (supabase as any)
+        .from("movie_projects")
         .select("is_public,status")
         .limit(2000);
       if (!alive || !data) return;

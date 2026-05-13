@@ -70,7 +70,13 @@ interface DetailPayload {
   columns: { key: string; label: string }[];
   rows: Record<string, unknown>[];
   truncated: boolean;
+  offset?: number;
+  limit?: number;
+  nextOffset?: number | null;
+  hasMore?: boolean;
 }
+
+const DRILL_PAGE_SIZE = 200;
 
 export default function AdminAnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,9 +96,12 @@ export default function AdminAnalyticsPage() {
   const [drillData, setDrillData] = useState<DetailPayload | null>(null);
   const [drillLoading, setDrillLoading] = useState(false);
   const [drillError, setDrillError] = useState<string | null>(null);
+  const [drillLoadingMore, setDrillLoadingMore] = useState(false);
 
   const openDrill = (dataset: Dataset, date: string) => setDrill({ dataset, date });
-  const closeDrill = () => { setDrill(null); setDrillData(null); setDrillError(null); };
+  const closeDrill = () => {
+    setDrill(null); setDrillData(null); setDrillError(null); setDrillLoadingMore(false);
+  };
 
   // Sync drill + window into URL so views are deep-linkable & shareable.
   useEffect(() => {
@@ -146,12 +155,13 @@ export default function AdminAnalyticsPage() {
     if (!drill) return;
     let cancelled = false;
     (async () => {
-      setDrillLoading(true); setDrillError(null); setDrillData(null);
+      setDrillLoading(true); setDrillError(null); setDrillData(null); setDrillLoadingMore(false);
       const params = new URLSearchParams({
         mode: "detail",
         dataset: drill.dataset,
         date: drill.date,
-        limit: "200",
+        limit: String(DRILL_PAGE_SIZE),
+        offset: "0",
       });
       const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
         `admin-analytics?${params.toString()}`, { method: "GET" },
@@ -163,6 +173,43 @@ export default function AdminAnalyticsPage() {
     })();
     return () => { cancelled = true; };
   }, [drill]);
+
+  const loadMoreDrill = async () => {
+    if (!drill || !drillData || drillLoadingMore || drillLoading) return;
+    if (!drillData.hasMore || drillData.nextOffset == null) return;
+    setDrillLoadingMore(true);
+    const target = drill;
+    const offset = drillData.nextOffset;
+    const params = new URLSearchParams({
+      mode: "detail",
+      dataset: target.dataset,
+      date: target.date,
+      limit: String(DRILL_PAGE_SIZE),
+      offset: String(offset),
+    });
+    const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
+      `admin-analytics?${params.toString()}`, { method: "GET" },
+    );
+    // If user navigated away to a different drill, drop the response.
+    if (!drill || drill.dataset !== target.dataset || drill.date !== target.date) {
+      setDrillLoadingMore(false);
+      return;
+    }
+    if (err || !res) {
+      setDrillError(err?.message ?? "Failed to load more rows");
+    } else {
+      setDrillData((prev) => prev ? {
+        ...prev,
+        rows: [...prev.rows, ...res.rows],
+        offset: res.offset,
+        limit: res.limit,
+        nextOffset: res.nextOffset,
+        hasMore: res.hasMore,
+        truncated: false,
+      } : res);
+    }
+    setDrillLoadingMore(false);
+  };
 
   const merged = useMemo(() => {
     if (!data) return [];
@@ -471,6 +518,8 @@ export default function AdminAnalyticsPage() {
         error={drillError}
         payload={drillData}
         onChangeDate={(date) => drill && setDrill({ dataset: drill.dataset, date })}
+        onLoadMore={loadMoreDrill}
+        loadingMore={drillLoadingMore}
       />
     </AdminPageShell>
   );

@@ -109,6 +109,32 @@ export default function Credits() {
     },
   });
 
+  type PendingChange = {
+    kind: 'upgrade' | 'downgrade' | 'change';
+    source: 'schedule' | 'pending_update';
+    currentTier: string | null;
+    currentPlanName: string | null;
+    nextTier: string | null;
+    nextPlanName: string | null;
+    nextPriceId: string | null;
+    cadence: 'monthly' | 'yearly' | null;
+    effectiveAt: string | null;
+  };
+
+  const pendingChangeQuery = useQuery({
+    queryKey: ['cinema-pending-change', user?.id],
+    enabled: !!user && !!entitlement?.hasEntitlement,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<PendingChange | null> => {
+      const { data, error } = await supabase.functions.invoke('get-cinema-pending-change', {
+        body: { environment: getStripeEnvironment() },
+      });
+      if (error) throw error;
+      return (data as { pending?: PendingChange | null } | null)?.pending ?? null;
+    },
+  });
+
   const openCustomerPortal = async () => {
     if (openingPortal) return;
     setOpeningPortal(true);

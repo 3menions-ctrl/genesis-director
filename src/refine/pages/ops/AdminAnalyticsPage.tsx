@@ -1,6 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle } from "lucide-react";
+import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2 } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -8,6 +8,8 @@ import {
 import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../../components/AdminPageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type Series = { date: string; value: number }[];
@@ -42,11 +44,33 @@ const fmtMins = (m: number | null) => {
 };
 const fmtDay = (s: string) => new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+type Dataset = "signups" | "projects" | "clips" | "creditsSpent" | "creditsPurchased";
+const DATASET_TONE: Record<Dataset, string> = {
+  signups: "#0A84FF",
+  projects: "#34D399",
+  clips: "#A78BFA", // tier-only fallback (not on chart) — kept for tier list clicks
+  creditsSpent: "#FBBF24",
+  creditsPurchased: "#6FB6FF",
+};
+interface DetailPayload {
+  dataset: Dataset; date: string; title: string;
+  columns: { key: string; label: string }[];
+  rows: Record<string, unknown>[];
+  truncated: boolean;
+}
+
 export default function AdminAnalyticsPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drill, setDrill] = useState<{ dataset: Dataset; date: string } | null>(null);
+  const [drillData, setDrillData] = useState<DetailPayload | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillError, setDrillError] = useState<string | null>(null);
+
+  const openDrill = (dataset: Dataset, date: string) => setDrill({ dataset, date });
+  const closeDrill = () => { setDrill(null); setDrillData(null); setDrillError(null); };
 
   const load = async (days: number) => {
     setLoading(true); setError(null);
@@ -59,6 +83,29 @@ export default function AdminAnalyticsPage() {
   };
 
   useEffect(() => { load(windowDays); /* eslint-disable-next-line */ }, [windowDays]);
+
+  // Fetch drill rows whenever drill target changes.
+  useEffect(() => {
+    if (!drill) return;
+    let cancelled = false;
+    (async () => {
+      setDrillLoading(true); setDrillError(null); setDrillData(null);
+      const params = new URLSearchParams({
+        mode: "detail",
+        dataset: drill.dataset,
+        date: drill.date,
+        limit: "200",
+      });
+      const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
+        `admin-analytics?${params.toString()}`, { method: "GET" },
+      );
+      if (cancelled) return;
+      if (err) setDrillError(err.message);
+      else setDrillData(res);
+      setDrillLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [drill]);
 
   const merged = useMemo(() => {
     if (!data) return [];
@@ -75,6 +122,16 @@ export default function AdminAnalyticsPage() {
     () => (data?.tierBreakdown ?? []).reduce((s, t) => s + t.count, 0) || 1,
     [data],
   );
+
+  // Recharts click handlers operate on payload row objects.
+  const handleAreaClick = (dataset: Dataset) => (evt: { payload?: { date?: string } } | undefined) => {
+    const date = evt?.payload?.date;
+    if (date) openDrill(dataset, date);
+  };
+  const handleChartClick = (state: { activeLabel?: string } | null) => {
+    // Click anywhere on the chart canvas → drill into signups for that day.
+    if (state?.activeLabel) openDrill("signups", state.activeLabel);
+  };
 
   return (
     <AdminPageShell
@@ -130,19 +187,33 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <KpiTile icon={Users} label="Active 7D" value={data ? fmtN(data.kpis.active7d) : null} loading={loading} accent="blue" />
         <KpiTile icon={Activity} label="Active 30D" value={data ? fmtN(data.kpis.active30d) : null} loading={loading} accent="blue" />
-        <KpiTile icon={Sparkles} label={`Projects ${windowDays}D`} value={data ? fmtN(data.kpis.projects) : null} loading={loading} accent="emerald" />
-        <KpiTile icon={Zap} label={`Credits Spent ${windowDays}D`} value={data ? fmtN(data.kpis.creditsSpent) : null} loading={loading} accent="amber" />
+        <KpiTile
+          icon={Sparkles}
+          label={`Projects ${windowDays}D`}
+          value={data ? fmtN(data.kpis.projects) : null}
+          loading={loading}
+          accent="emerald"
+          onClick={data ? () => openDrill("projects", todayKey()) : undefined}
+        />
+        <KpiTile
+          icon={Zap}
+          label={`Credits Spent ${windowDays}D`}
+          value={data ? fmtN(data.kpis.creditsSpent) : null}
+          loading={loading}
+          accent="amber"
+          onClick={data ? () => openDrill("creditsSpent", todayKey()) : undefined}
+        />
       </div>
 
       {/* Activity chart */}
-      <AdminSectionLabel label="Activity" meta={`${windowDays}-day window`} />
+      <AdminSectionLabel label="Activity" meta={`${windowDays}-day window · click any day to inspect`} />
       <AdminSurface className="mb-10">
         {loading ? (
           <Skeleton className="h-[320px] w-full bg-white/[0.04]" />
         ) : (
-          <div className="h-[320px]">
+          <div className="h-[320px] cursor-pointer">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={merged} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+              <AreaChart data={merged} margin={{ top: 16, right: 12, left: -10, bottom: 0 }} onClick={handleChartClick as any}>
                 <defs>
                   <linearGradient id="gSignups" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0A84FF" stopOpacity={0.55} />
@@ -165,18 +236,24 @@ export default function AdminAnalyticsPage() {
                   labelFormatter={(l) => fmtDay(l as string)}
                   cursor={{ stroke: "rgba(10,132,255,0.35)", strokeWidth: 1 }}
                 />
-                <Area type="monotone" dataKey="creditsSpent" name="Credits spent" stroke="#FBBF24" strokeWidth={1.4} fill="url(#gCredits)" />
-                <Area type="monotone" dataKey="projects" name="Projects" stroke="#34D399" strokeWidth={1.4} fill="url(#gProjects)" />
-                <Area type="monotone" dataKey="signups" name="Signups" stroke="#0A84FF" strokeWidth={1.8} fill="url(#gSignups)" />
+                <Area type="monotone" dataKey="creditsSpent" name="Credits spent" stroke="#FBBF24" strokeWidth={1.4} fill="url(#gCredits)"
+                  activeDot={{ r: 4, onClick: handleAreaClick("creditsSpent") as any, style: { cursor: "pointer" } }} />
+                <Area type="monotone" dataKey="projects" name="Projects" stroke="#34D399" strokeWidth={1.4} fill="url(#gProjects)"
+                  activeDot={{ r: 4, onClick: handleAreaClick("projects") as any, style: { cursor: "pointer" } }} />
+                <Area type="monotone" dataKey="signups" name="Signups" stroke="#0A84FF" strokeWidth={1.8} fill="url(#gSignups)"
+                  activeDot={{ r: 5, onClick: handleAreaClick("signups") as any, style: { cursor: "pointer" } }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
-        <ChartLegend items={[
-          { color: "#0A84FF", label: "Signups" },
-          { color: "#34D399", label: "Projects" },
-          { color: "#FBBF24", label: "Credits spent" },
-        ]} />
+        <ChartLegend
+          items={[
+            { color: "#0A84FF", label: "Signups", dataset: "signups" as const },
+            { color: "#34D399", label: "Projects", dataset: "projects" as const },
+            { color: "#FBBF24", label: "Credits spent", dataset: "creditsSpent" as const },
+          ]}
+          onSelect={(ds) => openDrill(ds, todayKey())}
+        />
       </AdminSurface>
 
       {/* Two-column row: tier mix + activation */}
@@ -288,21 +365,45 @@ export default function AdminAnalyticsPage() {
           Last refreshed {new Date(data.generatedAt).toLocaleString()}
         </p>
       )}
+
+      <DrillSheet
+        open={!!drill}
+        onClose={closeDrill}
+        target={drill}
+        loading={drillLoading}
+        error={drillError}
+        payload={drillData}
+      />
     </AdminPageShell>
   );
 }
 
-function KpiTile({ icon: Icon, label, value, loading, accent }: {
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
   icon: React.ElementType; label: string; value: string | null; loading: boolean;
   accent: "blue" | "emerald" | "amber";
+  onClick?: () => void;
 }) {
   const tone = { blue: "text-[#6FB6FF]", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 relative overflow-hidden group">
+    <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter") onClick(); } : undefined}
+      className={cn(
+        "rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 relative overflow-hidden group",
+        onClick && "cursor-pointer transition-colors hover:border-[#0A84FF]/30",
+      )}
+    >
       <div aria-hidden className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(20px)" }} />
       <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
         <Icon className={cn("h-3 w-3", tone)} /> {label}
+        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-[#6FB6FF] transition-colors" />}
       </div>
       {loading || value == null ? (
         <Skeleton className="h-8 w-20 bg-white/[0.04]" />
@@ -346,14 +447,27 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
   );
 }
 
-function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
+function ChartLegend({ items, onSelect }: {
+  items: { color: string; label: string; dataset?: Dataset }[];
+  onSelect?: (ds: Dataset) => void;
+}) {
   return (
     <div className="flex items-center gap-5 mt-4 pt-4 border-t border-white/[0.04]">
       {items.map((i) => (
-        <div key={i.label} className="flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-[0.22em]">
+        <button
+          key={i.label}
+          type="button"
+          disabled={!onSelect || !i.dataset}
+          onClick={() => i.dataset && onSelect?.(i.dataset)}
+          className={cn(
+            "flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-[0.22em]",
+            onSelect && i.dataset && "hover:text-white transition-colors cursor-pointer",
+          )}
+        >
           <span className="h-1.5 w-3 rounded-sm" style={{ background: i.color }} />
           {i.label}
-        </div>
+          {onSelect && i.dataset && <ArrowUpRight className="h-2.5 w-2.5 opacity-50" />}
+        </button>
       ))}
     </div>
   );
@@ -396,4 +510,106 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
       )}
     </AdminSurface>
   );
+}
+
+// ── Drill-down sheet ───────────────────────────────────────────────────
+function DrillSheet({ open, onClose, target, loading, error, payload }: {
+  open: boolean;
+  onClose: () => void;
+  target: { dataset: Dataset; date: string } | null;
+  loading: boolean;
+  error: string | null;
+  payload: DetailPayload | null;
+}) {
+  const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
+  const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-2xl lg:max-w-4xl bg-[hsl(220,14%,3%)] border-l border-white/[0.06] text-white p-0 flex flex-col"
+      >
+        <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${accent}33, transparent 65%)`, filter: "blur(60px)" }} />
+        <SheetHeader className="px-8 pt-8 pb-5 border-b border-white/[0.05] relative">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="px-2.5 py-1 rounded-full border text-[9px] font-mono font-bold uppercase tracking-[0.28em]"
+              style={{ borderColor: `${accent}66`, color: accent, background: `${accent}10` }}>
+              {target?.dataset}
+            </span>
+            <span className="h-px w-8 bg-white/15" />
+            <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
+              {target?.date}
+            </span>
+            <button onClick={onClose} className="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <SheetTitle className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            {heading}
+          </SheetTitle>
+          <SheetDescription className="text-[12px] text-white/40 mt-1">
+            {loading ? "Fetching rows…"
+              : payload ? `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+              : error ? "Error loading details"
+              : ""}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-auto px-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-5 w-5 animate-spin text-[#6FB6FF]" />
+            </div>
+          ) : error ? (
+            <div className="m-6 rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4 text-rose-300 text-sm flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          ) : !payload || payload.rows.length === 0 ? (
+            <div className="py-20 text-center text-[13px] text-white/30 italic">
+              No rows for this day.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/[0.05] hover:bg-transparent">
+                  {payload.columns.map((c) => (
+                    <TableHead key={c.key} className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">
+                      {c.label}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payload.rows.map((row, i) => (
+                  <TableRow key={i} className="border-white/[0.04] hover:bg-white/[0.02]">
+                    {payload.columns.map((c) => (
+                      <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
+                        {formatCell(c.key, row[c.key])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function formatCell(key: string, value: unknown): string {
+  if (value == null || value === "") return "—";
+  if (key.endsWith("_at") || key === "completed_at") {
+    const d = new Date(String(value));
+    if (!Number.isNaN(d.getTime())) return d.toLocaleString();
+  }
+  if (key === "user_id" || key === "project_id") {
+    const s = String(value);
+    return s.length > 8 ? `${s.slice(0, 8)}…` : s;
+  }
+  if (typeof value === "number") return value.toLocaleString();
+  return String(value);
 }

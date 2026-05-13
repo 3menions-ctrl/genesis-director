@@ -108,7 +108,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   }, [ref]);
 
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, profile, loading: authLoading, isAdmin, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
   
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const fromCreate = searchParams.get('from') === 'create';
@@ -232,15 +232,20 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
         navigate(target, { replace: true });
       } else {
+        if (isAdmin) {
+          navigate('/admin', { replace: true });
+          return;
+        }
+
         // Business / enterprise accounts land in the Operations Command Center;
-        // personal accounts land in the Studio. Admins handled by their own guard.
+        // personal accounts land in the Studio.
         const isBusinessAccount =
           profile.account_type === 'business' || profile.account_type === 'enterprise';
         const defaultLanding = isBusinessAccount ? '/workspace' : '/create';
         navigate(nextParam || defaultLanding, { replace: true });
       }
     }
-  }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog]);
+  }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog, nextParam, isAdmin]);
 
   const validateForm = (): boolean => {
     const schema = isLogin ? authFormSchema : signupFormSchema;
@@ -325,12 +330,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     if (profile && !profile.onboarding_completed) {
       const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
       navigate(target, { replace: true });
-    } else if (profile?.account_type === 'admin') {
+    } else if (isAdmin) {
       navigate('/admin', { replace: true });
     } else {
       navigate(nextParam || (choice === 'create' ? '/create' : '/creators'), { replace: true });
     }
-  }, [profile, navigate, nextParam]);
+  }, [profile, navigate, nextParam, isAdmin]);
 
   const formEnter = { opacity: 0, y: 20 };
   const formAnimate = { opacity: 1, y: 0, transition: { duration: 0.5 } };

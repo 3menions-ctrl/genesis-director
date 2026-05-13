@@ -548,6 +548,14 @@ const App = () => {
                   </RouteContainer>
                 }>
                   <Route index element={<AdminDashboardPage />} />
+                  <Route path="library" element={<Projects />} />
+                  <Route path="create" element={<Create />} />
+                  <Route path="editor" element={<VideoEditorPage />} />
+                  <Route path="avatars" element={<Avatars />} />
+                  <Route path="templates" element={<Templates />} />
+                  <Route path="training-video" element={<TrainingVideo />} />
+                  <Route path="environments" element={<Environments />} />
+                  <Route path="developers" element={<Developers />} />
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="projects" element={<AdminProjectsPage />} />
                   <Route path="credits" element={<AdminCreditsPage />} />
@@ -565,7 +573,7 @@ const App = () => {
                   <Route path="failed" element={<Navigate to="/admin/production" replace />} />
                   <Route path="audit" element={<Navigate to="/admin" replace />} />
                   <Route path="gallery" element={<Navigate to="/admin" replace />} />
-                  <Route path="avatars" element={<Navigate to="/admin" replace />} />
+                  <Route path="studio" element={<Navigate to="/admin/create" replace />} />
                   <Route path="inventory" element={<Navigate to="/admin" replace />} />
                 </Route>
                 

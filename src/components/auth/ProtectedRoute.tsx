@@ -24,7 +24,7 @@ type AuthLoadingState = 'initializing' | 'verifying' | 'ready' | 'redirecting';
  */
 export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProps>(
   function ProtectedRoute({ children }, ref) {
-  const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession } = useAuth();
+  const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { state: navLoadingState } = useNavigationLoading();
@@ -163,11 +163,11 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     }
   }, [user?.id, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // Admin lockdown: admin accounts are restricted to the /admin console.
-  // Bounce them out of any studio/workspace route back to /admin.
+  // Admin lockdown: Cole's admin role is restricted to the /admin console.
+  // Bounce it out of any studio/workspace route back to the single admin shell.
   useEffect(() => {
     if (loading || !isSessionVerified || !user?.id || !profile?.id) return;
-    if (profile.account_type !== 'admin') return;
+    if (!isAdmin) return;
     if (!profile.onboarding_completed) return;
     const path = location.pathname;
     const allowed =
@@ -181,7 +181,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     if (!allowed) {
       navigate('/admin', { replace: true });
     }
-  }, [profile?.account_type, profile?.onboarding_completed, profile?.id, loading, isSessionVerified, user?.id, location.pathname, navigate]);
+  }, [isAdmin, profile?.onboarding_completed, profile?.id, loading, isSessionVerified, user?.id, location.pathname, navigate]);
 
   // Memoize loading message to prevent unnecessary re-renders
   const loadingMessage = useMemo(() => {

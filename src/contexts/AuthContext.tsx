@@ -34,6 +34,7 @@ interface UserProfile {
 const SECURITY_VERSION_KEY = 'app_security_version';
 const MAX_LOGIN_ATTEMPTS = 10;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+const COLE_ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
 
 interface AuthContextType {
   user: User | null;
@@ -195,18 +196,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkAdminRole = async (userId: string): Promise<boolean> => {
+    if (userId !== COLE_ADMIN_USER_ID) return false;
+
     try {
       // Use Promise.race with timeout to prevent hanging on network issues
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
         setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
       });
       
-      const fetchPromise = supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
+      const fetchPromise = supabase.rpc('is_admin', { _user_id: userId });
       
       const result = await Promise.race([fetchPromise, timeoutPromise]);
       
@@ -218,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       
-      return !!result.data;
+      return result.data === true;
     } catch {
       // Silent catch - network failures shouldn't log errors
       return false;

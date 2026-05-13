@@ -8,7 +8,8 @@ import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderKanban, DollarSign,
   MessageSquare, Shield, ChevronLeft, Settings, Coins, Loader2,
-  Activity, Mail,
+  Activity, Mail, Film, Sparkles, Scissors, User, Layers,
+  GraduationCap, Code2, Globe2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -24,6 +25,16 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   { label: "Overview", code: "OVR", items: [
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+  ]},
+  { label: "Studio", code: "STD", items: [
+    { key: "library", label: "Library", icon: Film, path: "/admin/library" },
+    { key: "create", label: "Create", icon: Sparkles, path: "/admin/create" },
+    { key: "editor", label: "Editor", icon: Scissors, path: "/admin/editor" },
+    { key: "avatars", label: "Avatars", icon: User, path: "/admin/avatars" },
+    { key: "templates", label: "Templates", icon: Layers, path: "/admin/templates" },
+    { key: "training", label: "Training", icon: GraduationCap, path: "/admin/training-video" },
+    { key: "environments", label: "Environments", icon: Globe2, path: "/admin/environments" },
+    { key: "developers", label: "Developers", icon: Code2, path: "/admin/developers" },
   ]},
   { label: "Manage", code: "MNG", items: [
     { key: "users", label: "Users", icon: Users, path: "/admin/users" },
@@ -259,7 +270,9 @@ export function RefineAdminLayout() {
 
                   <div className="space-y-0.5">
                     {section.items.map(({ key, label, icon: Icon, path }) => {
-                      const active = location.pathname === path;
+                      const active = path === "/admin"
+                        ? location.pathname === "/admin"
+                        : location.pathname === path || location.pathname.startsWith(`${path}/`);
                       return (
                         <Link
                           key={key}

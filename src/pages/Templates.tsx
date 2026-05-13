@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, forwardRef, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, forwardRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';

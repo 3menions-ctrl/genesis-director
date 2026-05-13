@@ -390,6 +390,63 @@ export default function Credits() {
                     <span>Latest payment failed. Update your payment method in the billing portal to keep cinematic access.</span>
                   </div>
                 )}
+                {(() => {
+                  if (entitlement.fairUseSeconds <= 0) return null;
+                  const remaining = entitlement.remainingSeconds;
+                  const exhausted = remaining <= 0;
+                  // "Low" once <=20% of plan is left, with a sensible 60s floor
+                  // so high-tier plans don't alert at hundreds of seconds remaining.
+                  const lowThreshold = Math.min(
+                    Math.max(60, Math.round(entitlement.fairUseSeconds * 0.2)),
+                    Math.round(entitlement.fairUseSeconds * 0.25),
+                  );
+                  const low = !exhausted && remaining <= lowThreshold;
+                  if (!exhausted && !low) return null;
+
+                  const upgradeTier = TIERS.find(t =>
+                    activeTier ? t.fairUseSeconds > activeTier.fairUseSeconds : true,
+                  );
+                  const handleUpgrade = () => {
+                    document.getElementById('cinema-tier-grid')?.scrollIntoView({
+                      behavior: 'smooth', block: 'start',
+                    });
+                  };
+                  const palette = exhausted
+                    ? { border: 'border-rose-400/25', bg: 'bg-rose-500/[0.06]', text: 'text-rose-200', icon: 'text-rose-300' }
+                    : { border: 'border-amber-400/25', bg: 'bg-amber-400/[0.06]', text: 'text-amber-200', icon: 'text-amber-300' };
+                  const Icon = exhausted ? XCircle : AlertTriangle;
+                  return (
+                    <div className={`mt-4 rounded-lg border ${palette.border} ${palette.bg} px-3.5 py-3 flex items-start gap-3`}>
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${palette.icon}`} />
+                      <div className={`flex-1 min-w-0 text-xs ${palette.text}`}>
+                        <div className="font-medium text-sm">
+                          {exhausted
+                            ? 'You’re out of Cinema-seconds for this period.'
+                            : `Only ${remaining.toLocaleString()} Cinema-seconds left this period.`}
+                        </div>
+                        <div className="opacity-85 mt-0.5">
+                          {exhausted
+                            ? `New generations will resume on ${renewalDate ?? 'your next renewal'}. Upgrade for an instant top-up.`
+                            : `Your allowance refreshes on ${renewalDate ?? 'your next renewal date'}. Upgrade now to avoid running out mid-render.`}
+                        </div>
+                      </div>
+                      {upgradeTier && (
+                        <button
+                          type="button"
+                          onClick={handleUpgrade}
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium ${
+                            exhausted
+                              ? 'bg-rose-400/20 hover:bg-rose-400/30 text-rose-100 border border-rose-400/30'
+                              : 'bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 border border-amber-400/30'
+                          } transition-colors`}
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Upgrade to {upgradeTier.name}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}

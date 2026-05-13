@@ -1,5 +1,5 @@
 /** Admin Analytics — live, cinematic, instrumented. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download, CalendarIcon } from "lucide-react";
 import {
@@ -678,7 +678,7 @@ const FILTERABLE_KEYS = new Set([
   "kind",
 ]);
 
-function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDate }: {
+function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDate, onLoadMore, loadingMore }: {
   open: boolean;
   onClose: () => void;
   target: { dataset: Dataset; date: string } | null;
@@ -686,6 +686,8 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
   error: string | null;
   payload: DetailPayload | null;
   onChangeDate?: (date: string) => void;
+  onLoadMore?: () => void | Promise<void>;
+  loadingMore?: boolean;
 }) {
   const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
   const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");

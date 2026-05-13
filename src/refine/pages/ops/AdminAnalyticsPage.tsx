@@ -1,5 +1,5 @@
 /** Admin Analytics — live, cinematic, instrumented. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download, CalendarIcon } from "lucide-react";
 import {
@@ -70,7 +70,13 @@ interface DetailPayload {
   columns: { key: string; label: string }[];
   rows: Record<string, unknown>[];
   truncated: boolean;
+  offset?: number;
+  limit?: number;
+  nextOffset?: number | null;
+  hasMore?: boolean;
 }
+
+const DRILL_PAGE_SIZE = 200;
 
 export default function AdminAnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,9 +96,12 @@ export default function AdminAnalyticsPage() {
   const [drillData, setDrillData] = useState<DetailPayload | null>(null);
   const [drillLoading, setDrillLoading] = useState(false);
   const [drillError, setDrillError] = useState<string | null>(null);
+  const [drillLoadingMore, setDrillLoadingMore] = useState(false);
 
   const openDrill = (dataset: Dataset, date: string) => setDrill({ dataset, date });
-  const closeDrill = () => { setDrill(null); setDrillData(null); setDrillError(null); };
+  const closeDrill = () => {
+    setDrill(null); setDrillData(null); setDrillError(null); setDrillLoadingMore(false);
+  };
 
   // Sync drill + window into URL so views are deep-linkable & shareable.
   useEffect(() => {
@@ -146,12 +155,13 @@ export default function AdminAnalyticsPage() {
     if (!drill) return;
     let cancelled = false;
     (async () => {
-      setDrillLoading(true); setDrillError(null); setDrillData(null);
+      setDrillLoading(true); setDrillError(null); setDrillData(null); setDrillLoadingMore(false);
       const params = new URLSearchParams({
         mode: "detail",
         dataset: drill.dataset,
         date: drill.date,
-        limit: "200",
+        limit: String(DRILL_PAGE_SIZE),
+        offset: "0",
       });
       const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
         `admin-analytics?${params.toString()}`, { method: "GET" },
@@ -163,6 +173,43 @@ export default function AdminAnalyticsPage() {
     })();
     return () => { cancelled = true; };
   }, [drill]);
+
+  const loadMoreDrill = async () => {
+    if (!drill || !drillData || drillLoadingMore || drillLoading) return;
+    if (!drillData.hasMore || drillData.nextOffset == null) return;
+    setDrillLoadingMore(true);
+    const target = drill;
+    const offset = drillData.nextOffset;
+    const params = new URLSearchParams({
+      mode: "detail",
+      dataset: target.dataset,
+      date: target.date,
+      limit: String(DRILL_PAGE_SIZE),
+      offset: String(offset),
+    });
+    const { data: res, error: err } = await supabase.functions.invoke<DetailPayload>(
+      `admin-analytics?${params.toString()}`, { method: "GET" },
+    );
+    // If user navigated away to a different drill, drop the response.
+    if (!drill || drill.dataset !== target.dataset || drill.date !== target.date) {
+      setDrillLoadingMore(false);
+      return;
+    }
+    if (err || !res) {
+      setDrillError(err?.message ?? "Failed to load more rows");
+    } else {
+      setDrillData((prev) => prev ? {
+        ...prev,
+        rows: [...prev.rows, ...res.rows],
+        offset: res.offset,
+        limit: res.limit,
+        nextOffset: res.nextOffset,
+        hasMore: res.hasMore,
+        truncated: false,
+      } : res);
+    }
+    setDrillLoadingMore(false);
+  };
 
   const merged = useMemo(() => {
     if (!data) return [];
@@ -471,6 +518,8 @@ export default function AdminAnalyticsPage() {
         error={drillError}
         payload={drillData}
         onChangeDate={(date) => drill && setDrill({ dataset: drill.dataset, date })}
+        onLoadMore={loadMoreDrill}
+        loadingMore={drillLoadingMore}
       />
     </AdminPageShell>
   );
@@ -629,7 +678,7 @@ const FILTERABLE_KEYS = new Set([
   "kind",
 ]);
 
-function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDate }: {
+function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDate, onLoadMore, loadingMore }: {
   open: boolean;
   onClose: () => void;
   target: { dataset: Dataset; date: string } | null;
@@ -637,6 +686,8 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
   error: string | null;
   payload: DetailPayload | null;
   onChangeDate?: (date: string) => void;
+  onLoadMore?: () => void | Promise<void>;
+  loadingMore?: boolean;
 }) {
   const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
   const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");
@@ -688,6 +739,26 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
   const exportPayload: DetailPayload | null = payload
     ? { ...payload, rows: filteredRows }
     : null;
+
+  const hasMore = !!payload?.hasMore;
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Auto-load next page when sentinel scrolls into view (no active filters).
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return;
+    if (activeFilterCount > 0) return; // Pause auto-load while filtering subset.
+    const node = sentinelRef.current;
+    if (!node) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting && !loadingMore && !loading) {
+          onLoadMore();
+          break;
+        }
+      }
+    }, { rootMargin: "240px" });
+    io.observe(node);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore, loadingMore, loading, activeFilterCount, payload?.rows.length]);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -782,8 +853,8 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
             {loading ? "Fetching rows…"
               : payload ? (
                   activeFilterCount > 0
-                    ? `${filteredRows.length} of ${payload.rows.length} rows${payload.truncated ? " (source truncated to 200)" : ""}`
-                    : `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+                    ? `${filteredRows.length} of ${payload.rows.length} loaded${hasMore ? " · more available" : ""}`
+                    : `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${hasMore ? " · scroll for more" : " · all loaded"}`
                 )
               : error ? "Error loading details"
               : ""}
@@ -868,6 +939,32 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 ))}
               </TableBody>
             </Table>
+          )}
+          {/* Infinite scroll sentinel + load-more affordance */}
+          {payload && payload.rows.length > 0 && hasMore && (
+            <div ref={sentinelRef} className="py-6 flex items-center justify-center">
+              {loadingMore ? (
+                <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.24em] text-white/45">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more…
+                </div>
+              ) : activeFilterCount > 0 ? (
+                <button
+                  onClick={() => onLoadMore?.()}
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                >
+                  Load next {DRILL_PAGE_SIZE}
+                </button>
+              ) : (
+                <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/25">
+                  Scroll to load more
+                </span>
+              )}
+            </div>
+          )}
+          {payload && payload.rows.length > 0 && !hasMore && (
+            <div className="py-6 text-center text-[10px] font-mono uppercase tracking-[0.28em] text-white/20">
+              End of results
+            </div>
           )}
         </div>
       </SheetContent>

@@ -796,6 +796,134 @@ CLIP 6: CAMERA - GROUP hero shot. Full team together, unified energy. Profession
     startImageUrl: aspectEscapeImg,
     conceptPrompt: '', // User provides dialogue only
   },
+  // 🎓 LEARNING TEMPLATES — schematic Hook → Beats → Payoff pacing.
+  // These mirror the Templates page educational entries so navigating
+  // /create?template=<id> applies real settings instead of a "Template not found" toast.
+  {
+    id: 'lecture-recap',
+    name: 'Lecture Recap',
+    description: '2-minute recap of a long lecture: hook, four chapter beats, takeaway payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'uplifting',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'neutral',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK — PUSH-IN on lecture title card. "Here's the entire lecture in 2 minutes." Confident eye contact, bright key light.
+CLIP 2: CHAPTER BEAT 1 — DOLLY RIGHT across diagram. Core concept #1 explained with visual metaphor. Clean three-point lighting.
+CLIP 3: CHAPTER BEAT 2 — ORBIT around supporting example. Build on concept #1, show the cause/effect.
+CLIP 4: CHAPTER BEAT 3 — OVERHEAD on worked example. Step through the application visually.
+CLIP 5: CHAPTER BEAT 4 — CLOSE-UP on the surprising insight. "This is the part everyone misses." Spotlight emphasis.
+CLIP 6: PAYOFF — PULL-BACK to summary card. One-sentence takeaway, calm confident delivery, uplifting close.`,
+  },
+  {
+    id: 'micro-lesson',
+    name: 'Micro-Lesson',
+    description: '60-second single-concept lesson in 4 beats: hook, teach, example, payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'uplifting',
+    clipCount: 4,
+    targetDurationMinutes: 1,
+    colorGrading: 'neutral',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK — EXTREME CLOSE-UP question. "In 60 seconds, here's exactly how X works." Pattern-interrupt energy.
+CLIP 2: TEACH — OVERHEAD demonstration of the single concept. Clean visual metaphor, bright even lighting.
+CLIP 3: EXAMPLE — DOLLY across a real-world application. "Here's where you'd use this." Relatable context.
+CLIP 4: PAYOFF — PUSH-IN to confident recap. One-line takeaway, uplifting signature close.`,
+  },
+  {
+    id: 'whiteboard-explainer',
+    name: 'Whiteboard Explainer',
+    description: '2-minute hand-drawn breakdown: hook, four diagram beats, summary payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'uplifting',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'neutral',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK — PUSH-IN on blank whiteboard, marker uncapped. "Let me draw it for you."
+CLIP 2: DIAGRAM BEAT 1 — OVERHEAD on hand drawing the core shape. Time-lapse line work.
+CLIP 3: DIAGRAM BEAT 2 — TRACKING right as labels are added. Build the relationships.
+CLIP 4: DIAGRAM BEAT 3 — CLOSE-UP on arrows connecting parts. The flow becomes obvious.
+CLIP 5: DIAGRAM BEAT 4 — PULL-BACK revealing the completed diagram. The whole picture lands.
+CLIP 6: PAYOFF — DIRECT-TO-CAMERA recap with finished board behind. Calm uplifting close.`,
+  },
+  {
+    id: 'language-drill',
+    name: 'Language Drill',
+    description: '60-second vocab drill in 5 beats: hook word, three reps, recall payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'uplifting',
+    clipCount: 5,
+    targetDurationMinutes: 1,
+    colorGrading: 'neutral',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK WORD — CLOSE-UP on the new word card. Clear pronunciation, friendly energy.
+CLIP 2: REP 1 — MEDIUM SHOT, word used in a simple sentence. Slow deliberate delivery.
+CLIP 3: REP 2 — Same word, new context. Slight angle change to keep attention.
+CLIP 4: REP 3 — Speed-up rep, native-pace delivery. Confidence building.
+CLIP 5: RECALL PAYOFF — Direct-to-camera quiz prompt. "Now you say it." Warm encouraging close.`,
+  },
+  {
+    id: 'science-demo',
+    name: 'Science Demo',
+    description: '3-minute cinematic experiment in 8 beats: setup, six macro reactions, slow-mo payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'epic',
+    clipCount: 8,
+    targetDurationMinutes: 3,
+    colorGrading: 'cinematic',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: SETUP — WIDE establishing of the lab bench. Equipment in frame, anticipation.
+CLIP 2: MACRO REACTION 1 — EXTREME CLOSE-UP on first ingredient meeting. Dramatic key light.
+CLIP 3: MACRO REACTION 2 — ORBIT around bubbling reaction. Color shift visible.
+CLIP 4: MACRO REACTION 3 — TRACKING the chain reaction spreading. Building intensity.
+CLIP 5: MACRO REACTION 4 — TOP-DOWN on emerging pattern. Symmetry forming.
+CLIP 6: MACRO REACTION 5 — DUTCH ANGLE on peak transformation. Energy at maximum.
+CLIP 7: MACRO REACTION 6 — PUSH-IN on the final state. Resolution achieved.
+CLIP 8: SLOW-MO PAYOFF — 120fps replay of the most striking moment, plus one-line scientific takeaway.`,
+  },
+  {
+    id: 'course-trailer',
+    name: 'Course Trailer',
+    description: '60-second sales trailer in 5 beats: hook promise, three module previews, CTA payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'epic',
+    clipCount: 5,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK PROMISE — PUSH-IN on bold outcome statement. "By the end of this course, you'll…" Confident hero lighting.
+CLIP 2: MODULE 1 PREVIEW — TRACKING through lesson visual. 2-second flash of Module 1 highlight.
+CLIP 3: MODULE 2 PREVIEW — ORBIT around Module 2 hero asset. Build anticipation.
+CLIP 4: MODULE 3 PREVIEW — CLOSE-UP on Module 3 transformation moment. Show the proof.
+CLIP 5: CTA PAYOFF — DIRECT-TO-CAMERA enrollment prompt with course logo. Memorable signature close.`,
+  },
+  {
+    id: 'exam-cram',
+    name: 'Exam Cram Sheet',
+    description: '2-minute rapid review in 7 beats: hook, five must-know facts, recall payoff',
+    category: 'educational',
+    genre: 'educational',
+    mood: 'uplifting',
+    clipCount: 7,
+    targetDurationMinutes: 2,
+    colorGrading: 'neutral',
+    environmentId: 'white_studio',
+    conceptPrompt: `CLIP 1: HOOK — EXTREME CLOSE-UP on countdown. "Five things you must know — go." Urgent confident energy.
+CLIP 2: FACT 1 — CARD FLASH with bold statement. PUSH-IN, 12-15 seconds, crisp recall delivery.
+CLIP 3: FACT 2 — Switch to new background card. Same template, new fact.
+CLIP 4: FACT 3 — Mid-point checkpoint. Slight pace change to keep attention.
+CLIP 5: FACT 4 — Visual mnemonic overlay. Make it stick.
+CLIP 6: FACT 5 — Final fact with strongest visual emphasis. The killer point.
+CLIP 7: RECALL PAYOFF — Rapid montage of all five cards, then direct-to-camera "you've got this." Uplifting close.`,
+  },
 ];
 
 // Convert environment DNA to a comprehensive prompt string

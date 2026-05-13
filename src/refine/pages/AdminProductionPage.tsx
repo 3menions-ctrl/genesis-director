@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Activity, AlertTriangle } from "lucide-react";
 import AdminPipelinePage from "./AdminPipelinePage";
 import AdminFailedPage from "./AdminFailedPage";
+import { AdminPageShell } from "../components/AdminPageShell";
 
 const TABS = [
   { key: "pipeline", label: "Live Pipeline", code: "LIVE", icon: Activity, Component: AdminPipelinePage },
@@ -17,17 +18,14 @@ export default memo(function AdminProductionPage() {
   const Active = TABS.find(t => t.key === active)!.Component;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <header className="space-y-3">
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono">
-          <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)] shadow-[0_0_8px_hsla(215,100%,60%,0.9)]" />
-          PRD · PIPELINE MEMBRANE
-        </div>
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">Production</h1>
-        <p className="text-[12px] text-white/40 max-w-xl">Live render telemetry and the failure recovery queue, in one continuous stream.</p>
-      </header>
-
-      <div className="flex items-center gap-1 p-1 rounded-2xl border border-white/[0.06] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-xl w-fit">
+    <AdminPageShell
+      eyebrow="01 // PULSE"
+      code="PRD"
+      title="Production"
+      italic="Pipeline."
+      description="Live render telemetry and the failure recovery queue, in one continuous stream."
+    >
+      <div className="flex items-center gap-1 p-1 rounded-2xl border border-white/[0.06] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-xl w-fit mb-6">
         {TABS.map(({ key, label, code, icon: Icon }) => {
           const isActive = active === key;
           return (
@@ -54,6 +52,6 @@ export default memo(function AdminProductionPage() {
           style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,60%,0.3), transparent)' }} />
         <Active />
       </div>
-    </div>
+    </AdminPageShell>
   );
 });

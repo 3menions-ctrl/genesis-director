@@ -1,7 +1,16 @@
-/**
- * Thin wrapper pages for existing admin sub-components.
- * Each page simply renders the component that already handles its own data.
- */
+import { AdminProjectsBrowser } from "@/components/admin/AdminProjectsBrowser";
+import { AdminPageShell } from "../components/AdminPageShell";
 
-// Projects page
-export { AdminProjectsBrowser as default } from "@/components/admin/AdminProjectsBrowser";
+export default function AdminProjectsPage() {
+  return (
+    <AdminPageShell
+      eyebrow="04 // CONTENT"
+      code="PRJ"
+      title="Projects"
+      italic="Registry."
+      description="Inspect every active render across the membrane. Filter, audit, and intervene on production assets in real time."
+    >
+      <AdminProjectsBrowser />
+    </AdminPageShell>
+  );
+}

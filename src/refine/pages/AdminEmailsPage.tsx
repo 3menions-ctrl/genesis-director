@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Mail, RefreshCw, Search, CheckCircle2, XCircle, Clock, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdminPageShell } from "../components/AdminPageShell";
 
 interface EmailLogRow {
   id: string;
@@ -92,16 +93,13 @@ export default function AdminEmailsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono mb-1">
-            <Mail className="w-3 h-3" /> EMAIL · DELIVERY LOG
-          </div>
-          <h1 className="text-2xl font-semibold text-white">Email Send Log</h1>
-          <p className="text-sm text-white/50 mt-1">Auth & transactional email delivery history. Latest status per message.</p>
-        </div>
+    <AdminPageShell
+      eyebrow="05 // SYSTEM"
+      code="EML"
+      title="Emails"
+      italic="Delivery."
+      description="Auth and transactional email delivery history with the latest status per message."
+      actions={
         <button
           onClick={() => fetchLogs(activeFilter)}
           disabled={loading}
@@ -110,7 +108,9 @@ export default function AdminEmailsPage() {
           <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
           Refresh
         </button>
-      </div>
+      }
+    >
+      <div className="space-y-6">
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -225,6 +225,7 @@ export default function AdminEmailsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminPageShell>
   );
 }

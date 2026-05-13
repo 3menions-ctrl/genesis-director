@@ -291,9 +291,10 @@ describe('Security — Admin Role Isolation', () => {
     expect(hook).not.toMatch(/sessionStorage.*admin/);
   });
 
-  it('AuthContext isAdmin check should query user_roles (not profile.role)', () => {
+  it('AuthContext isAdmin check should use server RPC (not profile.role)', () => {
     const auth = readFile('src/contexts/AuthContext.tsx');
-    expect(auth).toContain('user_roles');
+    expect(auth).toContain("rpc('is_admin'");
+    expect(auth).not.toMatch(/profile\.role\s*===?\s*['"]admin['"]/);
   });
 });
 

@@ -511,3 +511,105 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
     </AdminSurface>
   );
 }
+
+// ── Drill-down sheet ───────────────────────────────────────────────────
+function DrillSheet({ open, onClose, target, loading, error, payload }: {
+  open: boolean;
+  onClose: () => void;
+  target: { dataset: Dataset; date: string } | null;
+  loading: boolean;
+  error: string | null;
+  payload: DetailPayload | null;
+}) {
+  const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
+  const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-2xl lg:max-w-4xl bg-[hsl(220,14%,3%)] border-l border-white/[0.06] text-white p-0 flex flex-col"
+      >
+        <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${accent}33, transparent 65%)`, filter: "blur(60px)" }} />
+        <SheetHeader className="px-8 pt-8 pb-5 border-b border-white/[0.05] relative">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="px-2.5 py-1 rounded-full border text-[9px] font-mono font-bold uppercase tracking-[0.28em]"
+              style={{ borderColor: `${accent}66`, color: accent, background: `${accent}10` }}>
+              {target?.dataset}
+            </span>
+            <span className="h-px w-8 bg-white/15" />
+            <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
+              {target?.date}
+            </span>
+            <button onClick={onClose} className="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <SheetTitle className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            {heading}
+          </SheetTitle>
+          <SheetDescription className="text-[12px] text-white/40 mt-1">
+            {loading ? "Fetching rows…"
+              : payload ? `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+              : error ? "Error loading details"
+              : ""}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-auto px-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-5 w-5 animate-spin text-[#6FB6FF]" />
+            </div>
+          ) : error ? (
+            <div className="m-6 rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4 text-rose-300 text-sm flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          ) : !payload || payload.rows.length === 0 ? (
+            <div className="py-20 text-center text-[13px] text-white/30 italic">
+              No rows for this day.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/[0.05] hover:bg-transparent">
+                  {payload.columns.map((c) => (
+                    <TableHead key={c.key} className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">
+                      {c.label}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payload.rows.map((row, i) => (
+                  <TableRow key={i} className="border-white/[0.04] hover:bg-white/[0.02]">
+                    {payload.columns.map((c) => (
+                      <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
+                        {formatCell(c.key, row[c.key])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function formatCell(key: string, value: unknown): string {
+  if (value == null || value === "") return "—";
+  if (key.endsWith("_at") || key === "completed_at") {
+    const d = new Date(String(value));
+    if (!Number.isNaN(d.getTime())) return d.toLocaleString();
+  }
+  if (key === "user_id" || key === "project_id") {
+    const s = String(value);
+    return s.length > 8 ? `${s.slice(0, 8)}…` : s;
+  }
+  if (typeof value === "number") return value.toLocaleString();
+  return String(value);
+}

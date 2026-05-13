@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft } from 'lucide-react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCinemaEntitlement } from '@/hooks/useCinemaEntitlement';
+import { useCinemaEntitlement, useRefreshCinemaEntitlement } from '@/hooks/useCinemaEntitlement';
 import { toast } from 'sonner';
 
 type Cadence = 'monthly' | 'yearly';
@@ -70,9 +71,54 @@ const TIERS: CinemaTier[] = [
 export default function Credits() {
   const { user } = useAuth();
   const { data: entitlement } = useCinemaEntitlement();
+  const refreshEntitlement = useRefreshCinemaEntitlement();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const handledSessionRef = useRef<string | null>(null);
+
+  // Detect post-checkout return (`?cinema=success&plan=…&session_id=…`) and
+  // poll the entitlement RPC until the webhook has updated the subscription
+  // row. Strip the params after we kick off the refresh so reloads don't
+  // re-trigger it.
+  useEffect(() => {
+    if (searchParams.get('cinema') !== 'success') return;
+    const sessionId = searchParams.get('session_id') ?? 'unknown';
+    if (handledSessionRef.current === sessionId) return;
+    handledSessionRef.current = sessionId;
+
+    const plan = searchParams.get('plan');
+    setSelectedPriceId(null);
+    setRefreshing(true);
+
+    refreshEntitlement({
+      // Resolve once the webhook-written tier matches the purchased plan
+      // (covers upgrades from one Cinema tier to another), or any active
+      // entitlement appears.
+      predicate: (e) =>
+        e.isActive && (!plan || (e.priceId === plan) || !!e.tier),
+    })
+      .then((e) => {
+        if (e.isActive) {
+          toast.success(
+            `Cinema ${(e.tier ?? '').replace('cinema_', '')} active — ${e.remainingSeconds.toLocaleString()}s available`,
+          );
+        } else {
+          toast('Payment received. Your plan will activate shortly.');
+        }
+      })
+      .finally(() => {
+        setRefreshing(false);
+        // Strip the success params so a refresh doesn't replay the toast.
+        const next = new URLSearchParams(searchParams);
+        next.delete('cinema');
+        next.delete('plan');
+        next.delete('session_id');
+        setSearchParams(next, { replace: true });
+      });
+  }, [searchParams, refreshEntitlement, setSearchParams]);
 
   const selectedTier = useMemo(
     () => TIERS.find(t => t.monthly.priceId === selectedPriceId || t.yearly.priceId === selectedPriceId) ?? null,

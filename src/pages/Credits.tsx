@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +78,33 @@ export default function Credits() {
   const { user } = useAuth();
   const { data: entitlement } = useCinemaEntitlement();
   const refreshEntitlement = useRefreshCinemaEntitlement();
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  const openCustomerPortal = async () => {
+    if (openingPortal) return;
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-portal-session', {
+        body: {
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/credits`,
+        },
+      });
+      if (error) throw error;
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error('Portal URL missing');
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(
+        msg.includes('no_subscription')
+          ? 'No active subscription to manage yet.'
+          : 'Could not open the billing portal. Please try again.',
+      );
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);

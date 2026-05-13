@@ -176,9 +176,9 @@ export default function AdminAnalyticsPage() {
       }
       stats={[
         { label: "Active 24H", value: data ? fmtN(data.kpis.active1d) : "—", tone: "blue", sub: data ? `Stick ${data.kpis.stickiness}%` : undefined },
-        { label: `Signups ${windowDays}D`, value: data ? fmtN(windowDays === 7 ? data.kpis.signups7d : windowDays === 30 ? data.kpis.signups30d : data.kpis.signups30d) : "—", tone: "emerald", sub: data ? `${fmtN(data.kpis.totalUsers)} total` : undefined },
-        { label: "Completion", value: data ? `${data.kpis.completionRate}%` : "—", tone: "amber", sub: data ? `${fmtN(data.kpis.completedClips)} clips` : undefined },
-        { label: `Revenue ${windowDays}D`, value: data ? fmtUsd(data.kpis.grossRevenue) : "—", tone: "neutral", sub: data ? `${fmtN(data.kpis.creditsPurchased)} cr sold` : undefined },
+        { label: `Signups ${windowDays}D`, value: data ? fmtN(windowDays === 7 ? data.kpis.signups7d : data.kpis.signups30d) : "—", tone: "emerald", sub: data?.deltas ? deltaSub(data.deltas.signups, "vs prev") : undefined },
+        { label: "Completion", value: data ? `${data.kpis.completionRate}%` : "—", tone: "amber", sub: data?.deltas ? deltaSub(data.deltas.completionRate, "pp Δ", true) : undefined },
+        { label: `Revenue ${windowDays}D`, value: data ? fmtUsd(data.kpis.grossRevenue) : "—", tone: "neutral", sub: data?.deltas ? deltaSub(data.deltas.revenue, "vs prev") : undefined },
       ]}
     >
       {error && (
@@ -383,6 +383,13 @@ export default function AdminAnalyticsPage() {
       />
     </AdminPageShell>
   );
+}
+
+/** Render "+12.4% vs prev" or "-3.1% vs prev" — colored implicitly via tone passed by caller. */
+function deltaSub(delta: number, label: string, asPP = false): string {
+  const sign = delta > 0 ? "+" : "";
+  const unit = asPP ? "" : "%";
+  return `${sign}${delta}${unit} ${label}`;
 }
 
 function todayKey() {

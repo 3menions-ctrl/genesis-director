@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
+import { Loader2, ShieldCheck, Sparkles, Check, ArrowLeft, AlertTriangle, XCircle, Clock, RefreshCw, Settings, FileText, Download, ExternalLink, Receipt } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,6 +80,34 @@ export default function Credits() {
   const { data: entitlement } = useCinemaEntitlement();
   const refreshEntitlement = useRefreshCinemaEntitlement();
   const [openingPortal, setOpeningPortal] = useState(false);
+
+  type InvoiceRow = {
+    id: string;
+    number: string | null;
+    status: string | null;
+    amount_paid: number;
+    amount_due: number;
+    currency: string;
+    created: string | null;
+    period_end: string | null;
+    hosted_invoice_url: string | null;
+    pdf_url: string | null;
+    description: string | null;
+  };
+
+  const invoicesQuery = useQuery({
+    queryKey: ['cinema-invoices', user?.id],
+    enabled: !!user && !!entitlement?.hasEntitlement,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<InvoiceRow[]> => {
+      const { data, error } = await supabase.functions.invoke('list-cinema-invoices', {
+        body: { environment: getStripeEnvironment(), limit: 12 },
+      });
+      if (error) throw error;
+      return (data as { invoices?: InvoiceRow[] } | null)?.invoices ?? [];
+    },
+  });
 
   const openCustomerPortal = async () => {
     if (openingPortal) return;
@@ -522,6 +551,129 @@ export default function Credits() {
                   );
                 })}
               </div>
+
+              {/* Invoices */}
+              {entitlement?.hasEntitlement && (
+                <motion.section
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.1 }}
+                  className="mt-14"
+                >
+                  <div className="flex items-end justify-between mb-4">
+                    <div>
+                      <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF]">Billing history</p>
+                      <h2 className="font-display text-xl md:text-2xl font-semibold tracking-tight mt-1">Recent invoices</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => invoicesQuery.refetch()}
+                      disabled={invoicesQuery.isFetching}
+                      className="inline-flex items-center gap-1.5 text-[11px] text-white/55 hover:text-white/85 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${invoicesQuery.isFetching ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+                    {invoicesQuery.isLoading ? (
+                      <div className="p-10 flex items-center justify-center gap-2 text-white/55 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading invoices…
+                      </div>
+                    ) : invoicesQuery.isError ? (
+                      <div className="p-10 text-center text-rose-300 text-sm">
+                        Could not load invoices.
+                        <button
+                          onClick={() => invoicesQuery.refetch()}
+                          className="ml-2 underline text-[#9DCBFF]"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : (invoicesQuery.data?.length ?? 0) === 0 ? (
+                      <div className="p-10 text-center text-white/45 text-sm">
+                        <Receipt className="w-5 h-5 mx-auto mb-2 text-white/30" />
+                        No invoices yet — your first one will appear here after billing.
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-white/[0.05]">
+                        {invoicesQuery.data!.map(inv => {
+                          const date = inv.created
+                            ? new Date(inv.created).toLocaleDateString(undefined, {
+                                year: 'numeric', month: 'short', day: 'numeric',
+                              })
+                            : '—';
+                          const amount = new Intl.NumberFormat(undefined, {
+                            style: 'currency',
+                            currency: (inv.currency ?? 'usd').toUpperCase(),
+                          }).format(inv.amount_paid || inv.amount_due || 0);
+                          const statusMeta: Record<string, string> = {
+                            paid: 'text-emerald-200 bg-emerald-400/[0.08] border-emerald-400/20',
+                            open: 'text-amber-200 bg-amber-400/[0.08] border-amber-400/20',
+                            uncollectible: 'text-rose-200 bg-rose-500/[0.08] border-rose-400/25',
+                            void: 'text-white/45 bg-white/[0.04] border-white/[0.08]',
+                            draft: 'text-white/55 bg-white/[0.04] border-white/[0.08]',
+                          };
+                          const statusClass = statusMeta[inv.status ?? ''] ?? 'text-white/55 bg-white/[0.04] border-white/[0.08]';
+                          return (
+                            <li
+                              key={inv.id}
+                              className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
+                            >
+                              <FileText className="w-4 h-4 text-white/35" />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono text-xs text-white/85 truncate">
+                                    {inv.number ?? inv.id.slice(0, 14)}
+                                  </span>
+                                  <span className={`text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-full border ${statusClass}`}>
+                                    {inv.status ?? 'unknown'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-white/45 mt-0.5 truncate">
+                                  {date}
+                                  {inv.description && <span className="text-white/30"> · {inv.description}</span>}
+                                </div>
+                              </div>
+                              <div className="font-mono text-sm text-white/85 text-right tabular-nums hidden md:block">
+                                {amount}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {inv.hosted_invoice_url && (
+                                  <a
+                                    href={inv.hosted_invoice_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-white/75 hover:text-white hover:bg-white/[0.06] transition-colors"
+                                    title="View hosted invoice"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    <span className="hidden sm:inline">View</span>
+                                  </a>
+                                )}
+                                {inv.pdf_url && (
+                                  <a
+                                    href={inv.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-white/75 hover:text-white hover:bg-white/[0.06] transition-colors"
+                                    title="Download PDF"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span className="hidden sm:inline">PDF</span>
+                                  </a>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </motion.section>
+              )}
 
               <p className="text-center text-[11px] text-white/35 mt-10">
                 Prices in USD. Taxes calculated at checkout. Secured by Stripe.

@@ -34,15 +34,15 @@ function ModuleTile({
 }: { code: string; label: string; value: string | number; sub?: string; accent?: boolean; alert?: boolean }) {
   return (
     <div className={cn(
-      "bg-white/[0.02] border p-6 transition-colors hover:bg-white/[0.04]",
-      alert ? "border-red-500/30" : accent ? "border-[#0A84FF]/30" : "border-white/5 hover:border-white/15"
+      "group relative bg-white/[0.02] border rounded-2xl p-6 backdrop-blur-md transition-all hover:bg-white/[0.035]",
+      alert ? "border-red-500/30 hover:border-red-500/50" : accent ? "border-[#0A84FF]/25 hover:border-[#0A84FF]/40" : "border-white/5 hover:border-white/10"
     )}>
       <div className="flex justify-between items-start mb-6">
-        <div className="w-7 h-7 border border-white/10 flex items-center justify-center">
+        <div className="w-1.5 h-1.5 rounded-full">
           <div className={cn(
-            "w-1 h-1",
+            "w-1.5 h-1.5 rounded-full",
             alert ? "bg-red-400" : accent ? "bg-[#0A84FF]" : "bg-white/40"
-          )} />
+          )} style={accent || alert ? { boxShadow: alert ? "0 0 8px rgba(248,113,113,0.6)" : "0 0 8px rgba(10,132,255,0.6)" } : undefined} />
         </div>
         <span className={cn(
           "text-[9px] font-bold uppercase tracking-[0.22em]",
@@ -53,7 +53,7 @@ function ModuleTile({
       </div>
       <div className="space-y-1">
         <div
-          className="text-3xl font-light text-white tracking-tight tabular-nums"
+          className="text-4xl font-light text-white tracking-tight tabular-nums"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {value}
@@ -61,14 +61,13 @@ function ModuleTile({
         <div className="text-[10px] text-white/40 uppercase tracking-[0.18em]">{label}</div>
       </div>
       {sub && (
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
           <span className={cn(
-            "text-[10px]",
+            "text-[10px] font-mono uppercase tracking-wider",
             alert ? "text-red-400" : accent ? "text-[#0A84FF]" : "text-white/40"
           )}>
             {sub}
           </span>
-          <span className="h-px flex-1 bg-white/5" />
         </div>
       )}
     </div>
@@ -82,15 +81,15 @@ function Channel({ n, code, label, desc, icon: Icon, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-4 p-4 border border-white/5 hover:border-[#0A84FF]/40 hover:bg-white/[0.02] transition-all text-left w-full"
+      className="group flex items-center gap-4 p-4 rounded-xl border border-white/5 hover:border-[#0A84FF]/40 hover:bg-white/[0.02] transition-all text-left w-full"
     >
-      <div className="w-11 h-11 bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40 group-hover:text-[#0A84FF] group-hover:border-[#0A84FF]/40 transition-colors shrink-0">
+      <div className="w-11 h-11 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40 group-hover:text-[#0A84FF] group-hover:border-[#0A84FF]/40 transition-colors shrink-0">
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-white font-bold uppercase tracking-wider">{label}</span>
-          <span className="text-[9px] text-white/30 font-mono tracking-widest">{code}</span>
+          <span className="text-[15px] text-white" style={{ fontFamily: "'Fraunces', serif" }}>{label}</span>
+          <span className="text-[9px] text-white/25 font-mono tracking-widest">{code}</span>
         </div>
         <div className="text-[10px] text-white/40 truncate mt-0.5">{desc}</div>
       </div>
@@ -174,29 +173,24 @@ export default function AdminDashboardPage() {
   const sessionStart = "08:24:11"; // static label
 
   return (
-    <div className="p-8 lg:p-10 space-y-10 animate-fade-in">
+    <div className="p-8 lg:p-12 space-y-12 animate-fade-in max-w-[1480px] mx-auto">
       {/* ─── Command Bridge Hero ─── */}
-      <section className="relative bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] overflow-hidden">
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
+      <section className="relative bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.06] rounded-3xl overflow-hidden shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]">
         {/* Aurora */}
         <div
-          className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(40px)" }}
+          className="absolute -top-40 -right-40 w-[560px] h-[560px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(10,132,255,0.22), transparent 65%)", filter: "blur(60px)" }}
+        />
+        <div
+          className="absolute -bottom-40 -left-20 w-[400px] h-[400px] rounded-full pointer-events-none opacity-60"
+          style={{ background: "radial-gradient(circle, rgba(10,132,255,0.06), transparent 70%)", filter: "blur(80px)" }}
         />
 
-        <div className="relative p-10 lg:p-12 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
+        <div className="relative p-10 lg:p-14 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
           {/* Left */}
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-6">
-              <span className="px-2.5 py-1 border border-[#0A84FF] text-[#0A84FF] text-[9px] font-bold tracking-[0.28em] uppercase">
+              <span className="px-3 py-1 rounded-full border border-[#0A84FF]/40 bg-[#0A84FF]/5 text-[#0A84FF] text-[9px] font-bold tracking-[0.28em] uppercase">
                 Command Bridge
               </span>
               <span className="h-px w-12 bg-white/15" />
@@ -205,28 +199,28 @@ export default function AdminDashboardPage() {
               </span>
             </div>
             <h1
-              className="text-5xl lg:text-6xl text-white font-light tracking-tight leading-[0.95] mb-5"
+              className="text-5xl lg:text-7xl text-white font-light tracking-tight leading-[0.95] mb-6"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
               Welcome back,{" "}
-              <span className="italic text-[#0A84FF] font-normal">Operator.</span>
+              <span className="italic text-[#0A84FF] font-light">Operator.</span>
             </h1>
-            <p className="text-[12px] text-white/45 max-w-lg font-mono leading-relaxed">
-              Authenticated as <span className="text-white/80">{user?.email}</span>. Privileged session
+            <p className="text-[14px] text-white/45 max-w-lg leading-relaxed font-light">
+              Authenticated as <span className="text-white/75 font-mono text-[12px]">{user?.email}</span>. Privileged session
               active across the entire membrane. All systems nominal.
             </p>
 
             <div className="flex gap-3 pt-8">
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0A84FF] text-white text-[10px] font-bold uppercase tracking-[0.22em] hover:bg-[#0A84FF]/90 transition-colors shadow-[0_0_24px_rgba(10,132,255,0.35)]"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#0A84FF] text-white text-[10px] font-bold uppercase tracking-[0.22em] hover:brightness-110 transition-all shadow-[0_0_28px_rgba(10,132,255,0.4)]"
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", refreshing && "animate-spin")} />
                 System Sync
               </button>
               <button
                 onClick={handleForceLogout}
-                className="inline-flex items-center gap-2 px-5 py-2.5 border border-red-500/30 text-red-300 text-[10px] font-bold uppercase tracking-[0.22em] hover:bg-red-500/10 hover:border-red-500/60 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-white/10 text-white/60 text-[10px] font-bold uppercase tracking-[0.22em] hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-300 transition-all"
               >
                 <Power className="w-3.5 h-3.5" />
                 Force Logout
@@ -235,25 +229,25 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Right — vital readout */}
-          <div className="grid grid-cols-2 gap-px bg-white/5 border border-white/5 shrink-0 overflow-hidden">
-            <div className="bg-[#040506] p-5 min-w-[160px] flex flex-col gap-1.5">
-              <span className="text-[9px] text-white/40 uppercase tracking-[0.22em]">Active Jobs</span>
-              <span className="text-2xl text-white tabular-nums" style={{ fontFamily: "'Fraunces', serif" }}>
+          <div className="flex gap-10 lg:border-l lg:border-white/10 lg:pl-10 shrink-0">
+            <div className="flex flex-col gap-2 min-w-[120px]">
+              <span className="text-[9px] text-white/30 uppercase tracking-[0.28em] font-mono">Active Jobs</span>
+              <span className="text-5xl text-white font-light tabular-nums" style={{ fontFamily: "'Fraunces', serif" }}>
                 {stats?.active_generations ?? 0}
               </span>
-              <div className="w-full h-0.5 bg-white/5 mt-2 overflow-hidden">
+              <div className="w-full h-px bg-white/5 mt-3 overflow-hidden">
                 <div className="h-full bg-[#0A84FF]" style={{ width: `${Math.min(100, (stats?.active_generations ?? 0) * 8)}%` }} />
               </div>
             </div>
-            <div className="bg-[#040506] p-5 min-w-[160px] flex flex-col gap-1.5">
-              <span className="text-[9px] text-white/40 uppercase tracking-[0.22em]">Waste Ratio</span>
+            <div className="flex flex-col gap-2 min-w-[120px]">
+              <span className="text-[9px] text-white/30 uppercase tracking-[0.28em] font-mono">Waste Ratio</span>
               <span
-                className={cn("text-2xl tabular-nums", wastePct > 5 ? "text-red-400" : "text-[#0A84FF]")}
+                className={cn("text-5xl font-light tabular-nums", wastePct > 5 ? "text-red-400" : "text-[#0A84FF]")}
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 {wastePct.toFixed(1)}%
               </span>
-              <div className="w-full h-0.5 bg-white/5 mt-2 overflow-hidden">
+              <div className="w-full h-px bg-white/5 mt-3 overflow-hidden">
                 <div
                   className={cn("h-full", wastePct > 5 ? "bg-red-500" : "bg-[#0A84FF]")}
                   style={{ width: `${Math.min(100, wastePct * 4)}%` }}
@@ -262,23 +256,16 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* Decorative line */}
-        <svg className="absolute bottom-0 right-0 opacity-10 pointer-events-none" width="220" height="80" viewBox="0 0 220 80" fill="none">
-          <path d="M0 60L40 50L80 70L120 30L160 50L220 5" stroke="#0A84FF" strokeWidth="1.5" />
-        </svg>
       </section>
 
       {/* ─── Module grid: PEOPLE / CONTENT / MONEY / SYSTEM ─── */}
       <section>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-[10px] text-white/30 font-bold uppercase tracking-[0.32em]">
-            Telemetry
-          </span>
+        <div className="flex items-center gap-4 mb-6">
+          <span className="text-[11px] text-white/40 font-bold uppercase tracking-[0.4em]">Telemetry</span>
           <div className="h-px flex-1 bg-white/5" />
-          <span className="text-[10px] text-white/20 font-mono">04 modules</span>
+          <span className="text-[10px] text-white/20 font-mono uppercase tracking-widest">04 modules</span>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           <ModuleTile
             code="PPL"
             label="Total Users"
@@ -309,21 +296,20 @@ export default function AdminDashboardPage() {
 
       {/* ─── Treasury membrane ─── */}
       <section>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-[10px] text-white/30 font-bold uppercase tracking-[0.32em]">
-            Treasury Membrane
-          </span>
+        <div className="flex items-center gap-4 mb-6">
+          <span className="text-[11px] text-white/40 font-bold uppercase tracking-[0.4em]">Treasury Membrane</span>
           <div className="h-px flex-1 bg-white/5" />
           <span
             className={cn(
-              "text-[10px] font-mono uppercase tracking-widest",
+              "text-[10px] font-mono uppercase tracking-widest flex items-center gap-2",
               treasuryHealthy ? "text-emerald-400/80" : "text-red-400/80"
             )}
           >
+            <span className={cn("w-1.5 h-1.5 rounded-full", treasuryHealthy ? "bg-emerald-500" : "bg-red-500")} />
             {treasuryHealthy ? "Healthy" : "Attention"}
           </span>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           <ModuleTile code="SPN" label="API Spend" value={fmtUSD(cost?.totalApiCost || 0)} sub="All-time" />
           <ModuleTile
             code="WST"
@@ -339,21 +325,21 @@ export default function AdminDashboardPage() {
 
       {/* ─── Failure banner ─── */}
       {(cost?.failedClips || 0) > 0 && (
-        <div className="relative border border-red-500/30 bg-red-950/20 p-5 flex items-center gap-4">
-          <div className="w-11 h-11 border border-red-500/40 bg-red-500/10 flex items-center justify-center shrink-0">
+        <div className="relative rounded-2xl border border-red-500/25 bg-red-950/15 backdrop-blur-md p-5 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl border border-red-500/40 bg-red-500/10 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] text-white font-bold uppercase tracking-wider">
-              {cost?.failedClips} failed operations
+            <p className="text-[15px] text-white" style={{ fontFamily: "'Fraunces', serif" }}>
+              {cost?.failedClips} failed operations require triage
             </p>
-            <p className="text-[10px] text-white/50 font-mono mt-0.5">
+            <p className="text-[10px] text-white/45 font-mono mt-1 uppercase tracking-wider">
               {fmtUSD(cost?.totalWastedCost || 0)} burned · open Production to triage
             </p>
           </div>
           <button
             onClick={() => navigate("/admin/production")}
-            className="px-4 py-2 text-[10px] uppercase tracking-[0.22em] font-bold text-white bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 transition-colors"
+            className="px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-[0.22em] font-bold text-white bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 transition-colors"
           >
             Triage
           </button>
@@ -361,12 +347,11 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ─── Channels ─── */}
-      <section className="border-t border-white/5 pt-8">
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-[10px] text-white/30 font-bold uppercase tracking-[0.32em]">
-            Quick Channels
-          </span>
+      <section className="pt-4">
+        <div className="flex items-center gap-4 mb-6">
+          <span className="text-[11px] text-white/40 font-bold uppercase tracking-[0.4em]">Quick Channels</span>
           <div className="h-px flex-1 bg-white/5" />
+          <span className="text-[10px] text-white/20 font-mono uppercase tracking-widest">09 routes</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <Channel n="03" code="PPL" label="Identity" desc="Roles, suspensions, identity" icon={Users} onClick={() => navigate("/admin/users")} />

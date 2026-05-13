@@ -567,6 +567,17 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
 }
 
 // ── Drill-down sheet ───────────────────────────────────────────────────
+const FILTERABLE_KEYS = new Set([
+  "status",
+  "tier",
+  "account_tier",
+  "country",
+  "country_code",
+  "type",
+  "transaction_type",
+  "kind",
+]);
+
 function DrillSheet({ open, onClose, target, loading, error, payload }: {
   open: boolean;
   onClose: () => void;
@@ -577,6 +588,46 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
 }) {
   const accent = target ? DATASET_TONE[target.dataset] : "#0A84FF";
   const heading = payload?.title ?? (target ? `${target.dataset} · ${target.date}` : "");
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  // Reset filters whenever a new payload loads.
+  useEffect(() => { setFilters({}); }, [payload?.dataset, payload?.date]);
+
+  const filterableCols = useMemo(
+    () => (payload?.columns ?? []).filter((c) => FILTERABLE_KEYS.has(c.key)),
+    [payload?.columns],
+  );
+
+  const distinctValues = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    if (!payload) return map;
+    for (const c of filterableCols) {
+      const set = new Set<string>();
+      for (const row of payload.rows) {
+        const v = row[c.key];
+        if (v == null || v === "") continue;
+        set.add(String(v));
+      }
+      map[c.key] = Array.from(set).sort((a, b) => a.localeCompare(b));
+    }
+    return map;
+  }, [payload, filterableCols]);
+
+  const filteredRows = useMemo(() => {
+    if (!payload) return [];
+    const active = Object.entries(filters).filter(([, v]) => v && v !== "__all__");
+    if (active.length === 0) return payload.rows;
+    return payload.rows.filter((row) =>
+      active.every(([k, v]) => String(row[k] ?? "") === v),
+    );
+  }, [payload, filters]);
+
+  const activeFilterCount = Object.values(filters).filter((v) => v && v !== "__all__").length;
+  const clearFilters = () => setFilters({});
+
+  const exportPayload: DetailPayload | null = payload
+    ? { ...payload, rows: filteredRows }
+    : null;
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -596,9 +647,9 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
               {target?.date}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              {payload && payload.rows.length > 0 && (
+              {exportPayload && exportPayload.rows.length > 0 && (
                 <button
-                  onClick={() => downloadCsv(payload)}
+                  onClick={() => downloadCsv(exportPayload)}
                   className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
                   aria-label="Export CSV"
                 >
@@ -615,10 +666,51 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
           </SheetTitle>
           <SheetDescription className="text-[12px] text-white/40 mt-1">
             {loading ? "Fetching rows…"
-              : payload ? `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+              : payload ? (
+                  activeFilterCount > 0
+                    ? `${filteredRows.length} of ${payload.rows.length} rows${payload.truncated ? " (source truncated to 200)" : ""}`
+                    : `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+                )
               : error ? "Error loading details"
               : ""}
           </SheetDescription>
+          {payload && filterableCols.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Filter className="h-3 w-3 text-white/30" />
+              {filterableCols.map((c) => {
+                const opts = distinctValues[c.key] ?? [];
+                if (opts.length === 0) return null;
+                const value = filters[c.key] ?? "__all__";
+                return (
+                  <label key={c.key} className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-white/35">
+                      {c.label}
+                    </span>
+                    <select
+                      value={value}
+                      onChange={(e) =>
+                        setFilters((f) => ({ ...f, [c.key]: e.target.value }))
+                      }
+                      className="h-7 px-2 rounded-md bg-white/[0.04] border border-white/10 text-[11px] font-mono text-white/80 hover:border-white/20 focus:outline-none focus:border-[#0A84FF]/60"
+                    >
+                      <option value="__all__">All</option>
+                      {opts.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </label>
+                );
+              })}
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="ml-1 h-7 px-2.5 inline-flex items-center gap-1 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white hover:border-white/30 transition-colors"
+                >
+                  <X className="h-3 w-3" /> Clear
+                </button>
+              )}
+            </div>
+          )}
         </SheetHeader>
 
         <div className="flex-1 overflow-auto px-2">
@@ -635,6 +727,10 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
             <div className="py-20 text-center text-[13px] text-white/30 italic">
               No rows for this day.
             </div>
+          ) : filteredRows.length === 0 ? (
+            <div className="py-20 text-center text-[13px] text-white/30 italic">
+              No rows match the current filters.
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -647,7 +743,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload }: {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payload.rows.map((row, i) => (
+                {filteredRows.map((row, i) => (
                   <TableRow key={i} className="border-white/[0.04] hover:bg-white/[0.02]">
                     {payload.columns.map((c) => (
                       <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>

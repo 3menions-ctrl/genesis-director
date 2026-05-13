@@ -153,6 +153,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [mood, setMood] = useState('epic');
 
   const isBreakoutTemplate = appliedSettings?.isBreakout === true;
+  // Allow optional avatar attachment whenever a template is applied
+  // (educational/learning templates and any environment-driven template),
+  // not just breakout. Avatar stays REQUIRED only for breakout flows.
+  const supportsTemplateAvatar = !!appliedSettings && (
+    isBreakoutTemplate ||
+    appliedSettings.genre === 'educational' ||
+    !!appliedSettings.environmentPrompt
+  );
   const { maxClips, isLoading: tierLoading } = useTierLimits();
   const [clipCount, setClipCount] = useState(5);
 
@@ -319,6 +327,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       (creationConfig as any).isBreakout = true;
       (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
       (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
+      (creationConfig as any).imageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
+      (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
+      (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
+      (creationConfig as any).avatarTemplateId = selectedAvatar.id;
+      (creationConfig as any).avatarName = selectedAvatar.name;
+    } else if (selectedAvatar && supportsTemplateAvatar) {
+      // Optional avatar attached to a learning / environment-driven template.
+      // Use avatar face as the start image so Kling locks identity for every clip.
       (creationConfig as any).imageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
       (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
       (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
@@ -536,7 +552,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
               className="relative p-5 sm:p-7"
             >
               {/* Avatar selection (breakout template) */}
-              {isBreakoutTemplate && (
+              {supportsTemplateAvatar && (
                 <div
                   className="mb-5 p-5 rounded-3xl"
                   style={{
@@ -547,7 +563,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   }}
                 >
                   <div className="flex items-center gap-2 mb-3 text-[10px] text-white/55 uppercase tracking-[0.22em] font-light">
-                    <User className="w-3.5 h-3.5" strokeWidth={1.5} /> Select avatar
+                    <User className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    {isBreakoutTemplate ? 'Select avatar' : 'Add a presenter (optional)'}
                   </div>
                   <TemplateAvatarSelector
                     selectedAvatar={selectedAvatar}

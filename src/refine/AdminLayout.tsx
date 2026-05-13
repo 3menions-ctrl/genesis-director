@@ -10,6 +10,7 @@ import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
 import {
   Activity, AlertOctagon, Users, MessageSquare, DollarSign, Coins,
   FolderKanban, Shield, Mail, Settings, Loader2, ChevronLeft, Power,
+  ChevronDown,
   ScrollText, Terminal, Cloud, ListOrdered, Heart, DatabaseBackup,
   KeyRound, UserCog, MonitorSmartphone, FileLock2, Flag,
   Repeat, Undo2, TicketPercent, Share2, Receipt, Scale,
@@ -119,6 +120,22 @@ export function RefineAdminLayout() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Per-section collapse state, persisted across reloads.
+  const STORAGE_KEY = "admin.sidebar.openSections.v1";
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as Record<string, boolean>;
+    } catch { /* ignore */ }
+    return {};
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(openSections)); } catch { /* ignore */ }
+  }, [openSections]);
+  const toggleSection = (code: string) =>
+    setOpenSections((s) => ({ ...s, [code]: !(s[code] ?? false) }));
+
   useEffect(() => {
     const check = async () => {
       if (!user) { setIsAdmin(false); return; }
@@ -143,12 +160,13 @@ export function RefineAdminLayout() {
 
   let activeSection = "";
   let activeItem = "";
+  let activeSectionCode = "";
   for (const s of NAV) {
     for (const it of s.items) {
       const active = it.path === "/admin"
         ? location.pathname === "/admin"
         : location.pathname === it.path || location.pathname.startsWith(`${it.path}/`);
-      if (active) { activeSection = s.label; activeItem = it.label; }
+      if (active) { activeSection = s.label; activeItem = it.label; activeSectionCode = s.code; }
     }
   }
 
@@ -198,21 +216,42 @@ export function RefineAdminLayout() {
         </div>
 
         <nav className="flex-1 px-5 py-4 space-y-8 overflow-y-auto">
-          {NAV.map((section) => (
+          {NAV.map((section) => {
+            // Active section defaults open; user can toggle. Persisted state wins.
+            const stored = openSections[section.code];
+            const isOpen = collapsed
+              ? true
+              : stored !== undefined
+                ? stored
+                : section.code === activeSectionCode;
+            return (
             <div key={section.code}>
               {!collapsed ? (
-                <div className="text-[9px] text-white/30 mb-3 px-2 flex justify-between items-center font-mono font-semibold tracking-[0.28em] uppercase">
-                  <span>{section.code} <span className="text-white/15">//</span> {section.label}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.code)}
+                  aria-expanded={isOpen}
+                  className="group/sec w-full text-[9px] text-white/30 hover:text-white/60 mb-3 px-2 flex justify-between items-center font-mono font-semibold tracking-[0.28em] uppercase transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <ChevronDown
+                      className={cn(
+                        "w-2.5 h-2.5 opacity-50 group-hover/sec:opacity-100 transition-transform",
+                        !isOpen && "-rotate-90"
+                      )}
+                    />
+                    {section.code} <span className="text-white/15">//</span> {section.label}
+                  </span>
                   {section.live && (
                     <span className="text-[#0A84FF]/70 italic normal-case tracking-normal text-[11px]" style={{ fontFamily: "'Fraunces', serif" }}>
                       live
                     </span>
                   )}
-                </div>
+                </button>
               ) : (
                 <div className="mx-auto mb-2 w-6 h-px bg-white/5" />
               )}
-              <div className="space-y-1">
+              <div className={cn("space-y-1 overflow-hidden", !isOpen && "hidden")}>
                 {section.items.map(({ label, icon: Icon, path, n }) => (
                   <NavLink
                     key={path}
@@ -254,7 +293,7 @@ export function RefineAdminLayout() {
                 ))}
               </div>
             </div>
-          ))}
+          );})}
         </nav>
 
         {/* Operator card */}

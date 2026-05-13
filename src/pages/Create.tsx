@@ -155,6 +155,7 @@ function CreateContentInner() {
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();
+  const cinemaGuard = useCinemaGuard();
   
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');

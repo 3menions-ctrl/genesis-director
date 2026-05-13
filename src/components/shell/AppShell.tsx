@@ -72,10 +72,10 @@ export function AppShell({ children }: AppShellProps) {
   const credits = profile?.credits_balance?.toLocaleString() || '0';
   const isBusiness = profile?.account_type === 'business' || profile?.account_type === 'enterprise';
 
-  // Admin accounts are a fully cohesive admin-only experience. They never
-  // render the Studio app shell — any attempt to land on a studio route is
-  // redirected back to the admin console, preserving sub-paths under /admin.
-  if (profile?.account_type === 'admin' && !location.pathname.startsWith('/admin')) {
+  // Cole's admin role is a fully cohesive admin-only experience. Admin access
+  // is role-based, not profile-account-type based, so the Studio shell never
+  // renders for the admin account.
+  if (isAdmin && !location.pathname.startsWith('/admin')) {
     return <Navigate to="/admin" replace />;
   }
 

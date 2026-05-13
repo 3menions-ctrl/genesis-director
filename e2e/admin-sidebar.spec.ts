@@ -14,17 +14,45 @@ import { resolve } from "node:path";
  * spec will sign in through the public /auth form once before the suite runs.
  */
 
-type NavEntry = { label: string; path: string };
+type NavEntry = { label: string; path: string; component: string };
+
+/** Hand-wired admin shell pages (non-ops). Mirrors CORE_PATH_TO_COMPONENT in
+ *  src/test/admin/adminSidebarRoutes.test.ts — keep both in sync. */
+const CORE_PATH_TO_COMPONENT: Record<string, string> = {
+  "/admin": "AdminDashboardPage",
+  "/admin/users": "AdminUsersPage",
+  "/admin/messages": "AdminMessagesPage",
+  "/admin/finance": "AdminFinancePage",
+  "/admin/credits": "AdminCreditsPage",
+  "/admin/projects": "AdminProjectsPage",
+  "/admin/moderation": "AdminModerationPage",
+  "/admin/production": "AdminProductionPage",
+  "/admin/emails": "AdminEmailsPage",
+  "/admin/config": "AdminConfigPage",
+};
 
 function readSidebarEntries(): NavEntry[] {
-  const file = resolve(process.cwd(), "src/refine/AdminLayout.tsx");
-  const src = readFileSync(file, "utf8");
-  // Match: { n: "01", label: "Telemetry", icon: Activity, path: "/admin" }
-  const re = /label:\s*"([^"]+)"\s*,\s*icon:\s*\w+\s*,\s*path:\s*"(\/admin[^"]*)"/g;
+  const layoutSrc = readFileSync(
+    resolve(process.cwd(), "src/refine/AdminLayout.tsx"),
+    "utf8",
+  );
+  const registrySrc = readFileSync(
+    resolve(process.cwd(), "src/refine/pages/ops/_registry.ts"),
+    "utf8",
+  );
+  // path → file from the ops registry
+  const opsMap = new Map<string, string>();
+  const opsRe = /"file":\s*"([^"]+)"\s*,\s*"path":\s*"([^"]+)"/g;
+  for (let m: RegExpExecArray | null; (m = opsRe.exec(registrySrc)) !== null; ) {
+    opsMap.set(m[2], m[1]);
+  }
+  const navRe =
+    /label:\s*"([^"]+)"\s*,\s*icon:\s*\w+\s*,\s*path:\s*"(\/admin[^"]*)"/g;
   const out: NavEntry[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) {
-    out.push({ label: m[1], path: m[2] });
+  for (let m: RegExpExecArray | null; (m = navRe.exec(layoutSrc)) !== null; ) {
+    const path = m[2];
+    const component = CORE_PATH_TO_COMPONENT[path] ?? opsMap.get(path) ?? "";
+    out.push({ label: m[1], path, component });
   }
   return out;
 }
@@ -54,6 +82,8 @@ test.describe("Admin sidebar navigation", () => {
       ENTRIES.length,
       "Expected to extract sidebar entries from AdminLayout.tsx"
     ).toBeGreaterThan(10);
+    const orphans = ENTRIES.filter((e) => !e.component).map((e) => e.path);
+    expect(orphans, `Sidebar entries with no expected component mapping`).toEqual([]);
   });
 
   test("every sidebar item navigates without a 404", async ({ page }) => {
@@ -105,5 +135,73 @@ test.describe("Admin sidebar navigation", () => {
     expect(mismatches, "Sidebar items navigated to the wrong URL").toEqual([]);
     expect(bodyNotFound, "Sidebar items rendered a NotFound surface").toEqual([]);
     expect(failed404, "Network 404s while navigating sidebar").toEqual([]);
+  });
+
+  test("every sidebar item renders its expected component (not a swap or redirect)", async ({
+    page,
+  }) => {
+    await ensureSignedIn(page);
+
+    // Track every JS request the browser makes. Vite's lazy chunks keep the
+    // original module basename in the URL (e.g. `…/AdminUsersPage.tsx` in dev,
+    // `…/AdminUsersPage-abcdef.js` in prod), giving us a reliable proof that
+    // React.lazy actually resolved the *expected* component module — not a
+    // swap, not a redirect target, not a NotFound fallback.
+    const requestedScripts = new Set<string>();
+    page.on("request", (req) => {
+      if (req.resourceType() === "script") requestedScripts.add(req.url());
+    });
+
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/admin$/);
+
+    const wrongComponent: string[] = [];
+    const noEvidence: string[] = [];
+
+    for (const { label, path, component } of ENTRIES) {
+      const link = page.locator(`aside a[href="${path}"]`).first();
+      if ((await link.count()) === 0) continue;
+      if ((await link.getAttribute("aria-disabled")) === "true") continue;
+
+      requestedScripts.clear();
+      await link.scrollIntoViewIfNeeded();
+      await link.click();
+      await page.waitForURL(`**${path}`, { timeout: 15_000 }).catch(() => {});
+      // Let lazy chunk load + React commit.
+      await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+
+      const u = new URL(page.url());
+      if (u.pathname !== path) {
+        wrongComponent.push(
+          `${label} (${path}) → URL became ${u.pathname} (redirect intercepted the route)`,
+        );
+        continue;
+      }
+
+      // Evidence #1: Vite chunk URL contains the component name.
+      const chunkLoaded = Array.from(requestedScripts).some((u) => u.includes(component));
+      // Evidence #2 (fallback): the component module is already in the page's
+      // static module graph (loaded earlier in the session). Check via
+      // performance.getEntriesByType so we don't miss a same-session re-visit.
+      const inPerf = await page.evaluate((name: string) => {
+        const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+        return entries.some((e) => e.name.includes(name));
+      }, component);
+
+      if (!chunkLoaded && !inPerf) {
+        noEvidence.push(
+          `${label} (${path}) → expected <${component} /> but no matching lazy chunk was requested or cached`,
+        );
+      }
+    }
+
+    expect(
+      wrongComponent,
+      `Sidebar items whose URL was hijacked by a redirect:\n  ${wrongComponent.join("\n  ")}`,
+    ).toEqual([]);
+    expect(
+      noEvidence,
+      `Sidebar items where the expected lazy component was never resolved:\n  ${noEvidence.join("\n  ")}`,
+    ).toEqual([]);
   });
 });

@@ -10,7 +10,7 @@ import {
   Sun, Moon, Palette, Plus
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCustomTimeline, generateClipId, TimelineClip } from "@/hooks/useCustomTimeline";
+import { useCustomTimeline, generateClipId, TimelineClip, TimelineTrack } from "@/hooks/useCustomTimeline";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -128,31 +128,59 @@ export const TemplatesPanel = memo(function TemplatesPanel() {
   const { state, dispatch } = useCustomTimeline();
 
   const applyVideoTemplate = useCallback((template: VideoTemplate) => {
-    template.clips.forEach((clipData) => {
-      const trackType = clipData.type === "text" ? "text" : "video";
-      let targetTrack = state.tracks.find((t) => t.type === trackType);
+    // Anchor the template after existing content (or at the playhead, whichever is later)
+    // so it doesn't overwrite clips already on the timeline.
+    const existingEnd = state.tracks.reduce(
+      (max, t) => t.clips.reduce((m, c) => Math.max(m, c.end), max),
+      0
+    );
+    const offset = Math.max(existingEnd, state.playheadTime);
 
-      if (!targetTrack) {
-        const trackId = `track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        dispatch({
-          type: "ADD_TRACK",
-          track: { id: trackId, type: trackType, label: trackType === "text" ? "Text" : "Video", clips: [] },
-        });
-        targetTrack = { id: trackId, type: trackType, label: trackType === "text" ? "Text" : "Video", clips: [] };
+    // Cache resolved track IDs per type within this apply call so a multi-clip
+    // template doesn't spawn a new track per iteration (stale-state bug from
+    // re-reading state.tracks between dispatches).
+    const resolvedTracks: Record<"video" | "text", string | null> = { video: null, text: null };
+
+    template.clips.forEach((clipData) => {
+      const trackType: "video" | "text" = clipData.type === "text" ? "text" : "video";
+      let trackId = resolvedTracks[trackType];
+
+      if (!trackId) {
+        const existing = state.tracks.find((t) => t.type === trackType);
+        if (existing) {
+          trackId = existing.id;
+        } else {
+          trackId = `track-${Date.now()}-${trackType}-${Math.random().toString(36).slice(2, 6)}`;
+          const newTrack: TimelineTrack = {
+            id: trackId,
+            type: trackType,
+            label: trackType === "text" ? "Text" : "Video",
+            clips: [],
+          };
+          dispatch({ type: "ADD_TRACK", track: newTrack });
+        }
+        resolvedTracks[trackType] = trackId;
       }
 
-      const clip: TimelineClip = { ...clipData, id: generateClipId() };
-      dispatch({ type: "ADD_CLIP", trackId: targetTrack.id, clip });
+      const clip: TimelineClip = {
+        ...clipData,
+        id: generateClipId(),
+        start: clipData.start + offset,
+        end: clipData.end + offset,
+      };
+      dispatch({ type: "ADD_CLIP", trackId, clip });
     });
 
-    toast.success(`Applied "${template.name}" template`);
-  }, [state.tracks, dispatch]);
+    toast.success(`Applied "${template.name}" template`, {
+      description: offset > 0 ? `Inserted at ${offset.toFixed(1)}s` : undefined,
+    });
+  }, [state.tracks, state.playheadTime, dispatch]);
 
   const applyTextTemplate = useCallback((template: TextTemplate) => {
     let textTrack = state.tracks.find((t) => t.type === "text");
 
     if (!textTrack) {
-      const trackId = `track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const trackId = `track-${Date.now()}-text-${Math.random().toString(36).slice(2, 6)}`;
       dispatch({
         type: "ADD_TRACK",
         track: { id: trackId, type: "text", label: "Text", clips: [] },
@@ -160,7 +188,11 @@ export const TemplatesPanel = memo(function TemplatesPanel() {
       textTrack = { id: trackId, type: "text", label: "Text", clips: [] };
     }
 
-    const startTime = state.playheadTime;
+    // Don't drop the clip on top of an existing text clip already at the playhead.
+    const overlap = textTrack.clips.find(
+      (c) => state.playheadTime >= c.start && state.playheadTime < c.end
+    );
+    const startTime = overlap ? overlap.end : state.playheadTime;
     const clip: TimelineClip = {
       id: generateClipId(), type: "text", text: template.preview,
       start: startTime, end: startTime + template.duration,

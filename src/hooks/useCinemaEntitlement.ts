@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export type CinemaTier = 'cinema_lite' | 'cinema_pro' | 'cinema_studio';
 
@@ -119,4 +120,117 @@ export function useRefreshCinemaEntitlement() {
     },
     [qc],
   );
+}
+
+/**
+ * Format a seconds count as compact "Xm Ys" / "Ys" for user-facing copy.
+ */
+export function formatCinemaSeconds(total: number): string {
+  const s = Math.max(0, Math.floor(total));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r === 0 ? `${m}m` : `${m}m ${r}s`;
+}
+
+export interface CinemaGuardResult {
+  allowed: boolean;
+  reason: 'ok' | 'no-entitlement' | 'insufficient' | 'loading';
+  requiredSeconds: number;
+  remainingSeconds: number;
+  fairUseSeconds: number;
+  message?: string;
+}
+
+/**
+ * Client-side guard: if the user has an active Cinema entitlement, prevent
+ * generation requests that would exceed their remaining fair-use seconds.
+ *
+ * - When `enforce` is `false` (no Cinema sub), the guard is a no-op and
+ *   returns `allowed: true` so credit-based flows can proceed unchanged.
+ * - When the entitlement is still loading, we err on the side of allowing
+ *   the call (server-side enforcement remains the source of truth).
+ * - When insufficient, surfaces a toast with the remaining seconds and an
+ *   action to open the Credits page.
+ */
+export function useCinemaGuard() {
+  const { data: entitlement, isLoading } = useCinemaEntitlement();
+
+  const check = useCallback(
+    (
+      requiredSeconds: number,
+      opts: { silent?: boolean; onUpgrade?: () => void } = {},
+    ): CinemaGuardResult => {
+      const required = Math.max(0, Math.ceil(requiredSeconds || 0));
+      const fair = entitlement?.fairUseSeconds ?? 0;
+      const remaining = entitlement?.remainingSeconds ?? 0;
+
+      if (isLoading || !entitlement) {
+        return {
+          allowed: true,
+          reason: 'loading',
+          requiredSeconds: required,
+          remainingSeconds: remaining,
+          fairUseSeconds: fair,
+        };
+      }
+
+      // No Cinema entitlement → not the guard's concern; let credit gating
+      // handle the request.
+      if (!entitlement.hasEntitlement || !entitlement.isActive) {
+        return {
+          allowed: true,
+          reason: 'no-entitlement',
+          requiredSeconds: required,
+          remainingSeconds: remaining,
+          fairUseSeconds: fair,
+        };
+      }
+
+      if (required > remaining) {
+        const message =
+          remaining <= 0
+            ? `Cinema-seconds exhausted — you've used your ${formatCinemaSeconds(fair)} for this period.`
+            : `Not enough Cinema-seconds — this clip needs ${formatCinemaSeconds(required)} but only ${formatCinemaSeconds(remaining)} remain.`;
+
+        if (!opts.silent) {
+          toast.error(message, {
+            description: 'Upgrade your tier or wait for renewal to continue.',
+            action: {
+              label: 'View plan',
+              onClick: () => {
+                if (opts.onUpgrade) opts.onUpgrade();
+                else window.location.assign('/credits');
+              },
+            },
+            duration: 7000,
+          });
+        }
+
+        return {
+          allowed: false,
+          reason: 'insufficient',
+          requiredSeconds: required,
+          remainingSeconds: remaining,
+          fairUseSeconds: fair,
+          message,
+        };
+      }
+
+      return {
+        allowed: true,
+        reason: 'ok',
+        requiredSeconds: required,
+        remainingSeconds: remaining,
+        fairUseSeconds: fair,
+      };
+    },
+    [entitlement, isLoading],
+  );
+
+  return {
+    entitlement: entitlement ?? null,
+    isLoading,
+    check,
+  };
 }

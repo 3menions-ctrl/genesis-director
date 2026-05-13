@@ -8,6 +8,7 @@ import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
@@ -154,6 +155,7 @@ function CreateContentInner() {
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();
+  const cinemaGuard = useCinemaGuard();
   
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
@@ -239,6 +241,16 @@ function CreateContentInner() {
       toast.error('Please sign in to create videos');
       navigate('/auth');
       return;
+    }
+
+    // Cinema entitlement guard — block when remaining seconds < required.
+    // No-op for users without an active Cinema subscription.
+    const requiredSeconds = (config.clipCount ?? 0) * (config.clipDuration ?? 0);
+    if (requiredSeconds > 0) {
+      const guard = cinemaGuard.check(requiredSeconds, {
+        onUpgrade: () => navigate('/credits'),
+      });
+      if (!guard.allowed) return;
     }
 
     // Abort any previous request using navigation guard
@@ -330,7 +342,7 @@ function CreateContentInner() {
         safeSetState(setCreationStatus, '');
       }
     }
-  }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState]);
+  }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState, cinemaGuard]);
 
   return (
     <div className="relative min-h-screen flex flex-col">

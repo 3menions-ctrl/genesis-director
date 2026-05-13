@@ -39,6 +39,7 @@ import { AvatarsConfigPanel } from '@/components/avatars/AvatarsConfigPanel';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
+import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateCreditsRequired } from '@/lib/creditSystem';
 import { handleError } from '@/lib/errorHandler';
@@ -73,6 +74,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // No try-catch needed - that violated React's hook rules
   const authContext = useAuth();
   const tierLimits = useTierLimits();
+  const cinemaGuard = useCinemaGuard();
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -309,7 +311,17 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       setShowBuyCredits(true);
       return;
     }
-    
+
+    // Block creation when an active Cinema entitlement lacks remaining seconds.
+    // No-op for users without a Cinema subscription (credit gating above
+    // handles them). Surfaces a toast with remaining seconds + upgrade CTA.
+    const guard = cinemaGuard.check(estimatedDuration, {
+      onUpgrade: () => navigate('/credits'),
+    });
+    if (!guard.allowed) {
+      return;
+    }
+
     if (!selectedAvatar) {
       toast.error('Please select an avatar first');
       return;
@@ -388,7 +400,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         showUserFriendlyError(error, { navigate });
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, estimatedDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible, cinemaGuard]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');

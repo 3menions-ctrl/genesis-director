@@ -40,6 +40,13 @@ import musicVideoImg from '@/assets/templates/music-video.jpg';
 import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
 import brandStoryImg from '@/assets/templates/brand-story.jpg';
 import teamIntroImg from '@/assets/templates/team-intro.jpg';
+import lectureRecapImg from '@/assets/templates/lecture-recap.jpg';
+import microLessonImg from '@/assets/templates/micro-lesson.jpg';
+import whiteboardExplainerImg from '@/assets/templates/whiteboard-explainer.jpg';
+import languageDrillImg from '@/assets/templates/language-drill.jpg';
+import scienceDemoImg from '@/assets/templates/science-demo.jpg';
+import courseTrailerImg from '@/assets/templates/course-trailer.jpg';
+import examCramImg from '@/assets/templates/exam-cram.jpg';
 
 // 🔥 NEW 5 PREMIUM BREAKOUT EFFECT THUMBNAILS
 import postEscapeImg from '@/assets/templates/post-escape.jpg';
@@ -351,9 +358,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'lecture-recap',
     name: 'Lecture Recap',
-    description: 'Distill a 60-minute lecture into a sharp 2-minute recap with chapter beats',
+    description: '2-minute recap of a long lecture: hook, four chapter beats, takeaway payoff',
     category: 'educational',
-    thumbnail_url: educationalImg,
+    thumbnail_url: lectureRecapImg,
     use_count: 4720,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -363,9 +370,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'micro-lesson',
     name: 'Micro-Lesson',
-    description: 'Single-concept 60-second lesson — hook, teach, recap, quiz',
+    description: '60-second single-concept lesson in 4 beats: hook, teach, example, payoff',
     category: 'educational',
-    thumbnail_url: tutorialImg,
+    thumbnail_url: microLessonImg,
     use_count: 6310,
     target_duration_minutes: 1,
     clip_count: 4,
@@ -375,9 +382,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'whiteboard-explainer',
     name: 'Whiteboard Explainer',
-    description: 'Hand-drawn style breakdown for abstract concepts and frameworks',
+    description: '2-minute hand-drawn breakdown: hook, four diagram beats, summary payoff',
     category: 'educational',
-    thumbnail_url: documentaryImg,
+    thumbnail_url: whiteboardExplainerImg,
     use_count: 3980,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -387,9 +394,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'language-drill',
     name: 'Language Drill',
-    description: 'Bite-size vocab and pronunciation practice with on-screen captions',
+    description: '60-second vocab drill in 5 beats: hook word, three reps, recall payoff',
     category: 'educational',
-    thumbnail_url: podcastClipsImg,
+    thumbnail_url: languageDrillImg,
     use_count: 5210,
     target_duration_minutes: 1,
     clip_count: 5,
@@ -399,9 +406,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'science-demo',
     name: 'Science Demo',
-    description: 'Cinematic experiment walkthrough with macro shots and slow-mo payoff',
+    description: '3-minute cinematic experiment in 8 beats: setup, six macro reactions, slow-mo payoff',
     category: 'educational',
-    thumbnail_url: techShowcaseImg,
+    thumbnail_url: scienceDemoImg,
     use_count: 4640,
     target_duration_minutes: 3,
     clip_count: 8,
@@ -411,9 +418,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'course-trailer',
     name: 'Course Trailer',
-    description: 'Premium 45-second sales trailer that previews modules and outcomes',
+    description: '60-second sales trailer in 5 beats: hook promise, three module previews, CTA payoff',
     category: 'educational',
-    thumbnail_url: brandStoryImg,
+    thumbnail_url: courseTrailerImg,
     use_count: 3870,
     target_duration_minutes: 1,
     clip_count: 5,
@@ -423,9 +430,9 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'exam-cram',
     name: 'Exam Cram Sheet',
-    description: 'Rapid-fire 90-second review of must-know facts before test day',
+    description: '2-minute rapid review in 7 beats: hook, five must-know facts, recall payoff',
     category: 'educational',
-    thumbnail_url: educationalImg,
+    thumbnail_url: examCramImg,
     use_count: 7090,
     target_duration_minutes: 2,
     clip_count: 7,

@@ -37,23 +37,21 @@ const lazyImports = new Map(
 type RouteKind = { kind: "component"; component: string } | { kind: "redirect"; to: string };
 const pathToRoute: Map<string, RouteKind> = (() => {
   const out = new Map<string, RouteKind>();
+  // React Router uses the FIRST matching route — mirror that with
+  // first-write-wins so legacy redirects declared after the real component
+  // route don't shadow the real wiring.
+  const setOnce = (k: string, v: RouteKind) => { if (!out.has(k)) out.set(k, v); };
   // Index route
   const indexMatch = adminBlock.match(/<Route\s+index\s+element=\{<(\w+)\s*\/?>\}/);
-  if (indexMatch) out.set("/admin", { kind: "component", component: indexMatch[1] });
-  // Component routes: <Route path="x" element={<Foo />} />
-  for (const m of adminBlock.matchAll(
-    /<Route\s+path="([^"]+)"\s+element=\{<(\w+)\s*\/?>\}\s*\/>/g,
-  )) {
+  if (indexMatch) setOnce("/admin", { kind: "component", component: indexMatch[1] });
+  // Walk every <Route path="…" element={…} /> in source order.
+  for (const m of adminBlock.matchAll(/<Route\s+path="([^"]+)"\s+element=\{([^}]+)\}\s*\/>/g)) {
     const full = m[1].startsWith("/admin") ? m[1] : "/admin/" + m[1].replace(/^\//, "");
-    if (m[2] === "Navigate") continue;
-    out.set(full, { kind: "component", component: m[2] });
-  }
-  // Redirect routes: <Route path="x" element={<Navigate to="…" replace />} />
-  for (const m of adminBlock.matchAll(
-    /<Route\s+path="([^"]+)"\s+element=\{<Navigate\s+to="([^"]+)"/g,
-  )) {
-    const full = m[1].startsWith("/admin") ? m[1] : "/admin/" + m[1].replace(/^\//, "");
-    out.set(full, { kind: "redirect", to: m[2] });
+    const el = m[2].trim();
+    const nav = el.match(/<Navigate\s+to="([^"]+)"/);
+    if (nav) { setOnce(full, { kind: "redirect", to: nav[1] }); continue; }
+    const comp = el.match(/<(\w+)\s*\/?>/);
+    if (comp) setOnce(full, { kind: "component", component: comp[1] });
   }
   return out;
 })();

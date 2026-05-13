@@ -342,7 +342,7 @@ function CreateContentInner() {
         safeSetState(setCreationStatus, '');
       }
     }
-  }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState]);
+  }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState, cinemaGuard]);
 
   return (
     <div className="relative min-h-screen flex flex-col">

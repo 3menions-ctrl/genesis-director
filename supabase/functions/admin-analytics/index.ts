@@ -70,6 +70,111 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
+    const mode = url.searchParams.get('mode') || 'summary';
+
+    // ── Drill-down mode: return filtered detail rows for one dataset/day ──
+    if (mode === 'detail') {
+      const dataset = url.searchParams.get('dataset') || '';
+      const dateStr = url.searchParams.get('date') || '';
+      const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit') || 200)));
+      if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return new Response(JSON.stringify({ error: 'Invalid or missing date (YYYY-MM-DD)' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const dayStart = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
+      const dayEnd = new Date(`${dateStr}T23:59:59.999Z`).toISOString();
+
+      let rows: unknown[] = [];
+      let columns: { key: string; label: string }[] = [];
+      let title = '';
+
+      if (dataset === 'signups') {
+        const [profiles, signupGeo] = await Promise.all([
+          admin.from('profiles')
+            .select('id, email, display_name, account_tier, country, created_at')
+            .gte('created_at', dayStart).lte('created_at', dayEnd)
+            .order('created_at', { ascending: false }).limit(limit),
+          admin.from('signup_analytics')
+            .select('user_id, country, utm_source, referrer')
+            .gte('created_at', dayStart).lte('created_at', dayEnd),
+        ]);
+        const sourceByUser = new Map<string, { utm_source?: string; referrer?: string; country?: string }>();
+        for (const s of (signupGeo.data ?? []) as Array<{ user_id: string; utm_source?: string; referrer?: string; country?: string }>) {
+          sourceByUser.set(s.user_id, s);
+        }
+        rows = (profiles.data ?? []).map((p: any) => ({
+          ...p,
+          utm_source: sourceByUser.get(p.id)?.utm_source ?? null,
+          referrer: sourceByUser.get(p.id)?.referrer ?? null,
+          country: p.country ?? sourceByUser.get(p.id)?.country ?? null,
+        }));
+        columns = [
+          { key: 'created_at', label: 'Joined' },
+          { key: 'email', label: 'Email' },
+          { key: 'display_name', label: 'Name' },
+          { key: 'account_tier', label: 'Tier' },
+          { key: 'country', label: 'Country' },
+          { key: 'utm_source', label: 'Source' },
+          { key: 'referrer', label: 'Referrer' },
+        ];
+        title = `Signups · ${dateStr}`;
+      } else if (dataset === 'projects') {
+        const r = await admin.from('movie_projects')
+          .select('id, user_id, title, genre, target_duration_minutes, created_at')
+          .gte('created_at', dayStart).lte('created_at', dayEnd)
+          .order('created_at', { ascending: false }).limit(limit);
+        rows = r.data ?? [];
+        columns = [
+          { key: 'created_at', label: 'Created' },
+          { key: 'title', label: 'Title' },
+          { key: 'genre', label: 'Genre' },
+          { key: 'target_duration_minutes', label: 'Min' },
+          { key: 'user_id', label: 'User' },
+        ];
+        title = `Projects · ${dateStr}`;
+      } else if (dataset === 'clips') {
+        const r = await admin.from('video_clips')
+          .select('id, project_id, user_id, status, duration_seconds, error_message, created_at, completed_at')
+          .gte('created_at', dayStart).lte('created_at', dayEnd)
+          .order('created_at', { ascending: false }).limit(limit);
+        rows = r.data ?? [];
+        columns = [
+          { key: 'created_at', label: 'Created' },
+          { key: 'status', label: 'Status' },
+          { key: 'duration_seconds', label: 'Sec' },
+          { key: 'project_id', label: 'Project' },
+          { key: 'user_id', label: 'User' },
+          { key: 'error_message', label: 'Error' },
+        ];
+        title = `Clips · ${dateStr}`;
+      } else if (dataset === 'credits' || dataset === 'creditsSpent' || dataset === 'creditsPurchased') {
+        let q = admin.from('credit_transactions')
+          .select('id, user_id, amount, transaction_type, description, project_id, created_at')
+          .gte('created_at', dayStart).lte('created_at', dayEnd)
+          .order('created_at', { ascending: false }).limit(limit);
+        if (dataset === 'creditsSpent') q = q.in('transaction_type', ['usage', 'refund_negative', 'spend']).neq('amount', 0);
+        if (dataset === 'creditsPurchased') q = q.eq('transaction_type', 'purchase');
+        const r = await q;
+        rows = r.data ?? [];
+        columns = [
+          { key: 'created_at', label: 'Time' },
+          { key: 'transaction_type', label: 'Type' },
+          { key: 'amount', label: 'Amount' },
+          { key: 'description', label: 'Description' },
+          { key: 'user_id', label: 'User' },
+        ];
+        title = `Credit transactions · ${dateStr}`;
+      } else {
+        return new Response(JSON.stringify({ error: `Unknown dataset: ${dataset}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ dataset, date: dateStr, title, columns, rows, truncated: rows.length >= limit }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const windowDays = Math.max(7, Math.min(180, Number(url.searchParams.get('windowDays') || 30)));
     const now = Date.now();
     const since = (days: number) => new Date(now - days * DAY_MS).toISOString();

@@ -974,6 +974,51 @@ export type Database = {
           },
         ]
       }
+      cinema_usage_ledger: {
+        Row: {
+          clip_id: string | null
+          created_at: string
+          engine: string
+          id: string
+          metadata: Json
+          overage_credits_charged: number
+          period_end: string
+          period_start: string
+          project_id: string | null
+          seconds_used: number
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clip_id?: string | null
+          created_at?: string
+          engine: string
+          id?: string
+          metadata?: Json
+          overage_credits_charged?: number
+          period_end: string
+          period_start: string
+          project_id?: string | null
+          seconds_used: number
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clip_id?: string | null
+          created_at?: string
+          engine?: string
+          id?: string
+          metadata?: Json
+          overage_credits_charged?: number
+          period_end?: string
+          period_start?: string
+          project_id?: string | null
+          seconds_used?: number
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -2967,7 +3012,9 @@ export type Database = {
         Row: {
           aspect_ratio: string | null
           avatar_voice_id: string | null
+          continuity_manifest_v2: Json | null
           created_at: string
+          engine: string
           generated_script: string | null
           generation_checkpoint: Json | null
           generation_lock: Json | null
@@ -2991,6 +3038,7 @@ export type Database = {
           pipeline_stage: string | null
           pipeline_state: Json | null
           pro_features_data: Json | null
+          quality_options: Json
           quality_tier: string | null
           scene_images: Json | null
           script_content: string | null
@@ -3016,7 +3064,9 @@ export type Database = {
         Insert: {
           aspect_ratio?: string | null
           avatar_voice_id?: string | null
+          continuity_manifest_v2?: Json | null
           created_at?: string
+          engine?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
           generation_lock?: Json | null
@@ -3040,6 +3090,7 @@ export type Database = {
           pipeline_stage?: string | null
           pipeline_state?: Json | null
           pro_features_data?: Json | null
+          quality_options?: Json
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
@@ -3065,7 +3116,9 @@ export type Database = {
         Update: {
           aspect_ratio?: string | null
           avatar_voice_id?: string | null
+          continuity_manifest_v2?: Json | null
           created_at?: string
+          engine?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
           generation_lock?: Json | null
@@ -3089,6 +3142,7 @@ export type Database = {
           pipeline_stage?: string | null
           pipeline_state?: Json | null
           pro_features_data?: Json | null
+          quality_options?: Json
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
@@ -5741,7 +5795,10 @@ export type Database = {
           created_at: string
           debug_attempts: number | null
           duration_seconds: number | null
+          engine: string | null
           error_message: string | null
+          final_fps: number | null
+          final_resolution: string | null
           frame_extraction_attempts: number | null
           frame_extraction_status: string | null
           id: string
@@ -5768,7 +5825,10 @@ export type Database = {
           created_at?: string
           debug_attempts?: number | null
           duration_seconds?: number | null
+          engine?: string | null
           error_message?: string | null
+          final_fps?: number | null
+          final_resolution?: string | null
           frame_extraction_attempts?: number | null
           frame_extraction_status?: string | null
           id?: string
@@ -5795,7 +5855,10 @@ export type Database = {
           created_at?: string
           debug_attempts?: number | null
           duration_seconds?: number | null
+          engine?: string | null
           error_message?: string | null
+          final_fps?: number | null
+          final_resolution?: string | null
           frame_extraction_attempts?: number | null
           frame_extraction_status?: string | null
           id?: string
@@ -7172,6 +7235,9 @@ export type Database = {
             }
             Returns: string
           }
+      validate_engine_id: { Args: { _engine: string }; Returns: boolean }
+      validate_final_fps: { Args: { _fps: number }; Returns: boolean }
+      validate_final_resolution: { Args: { _res: string }; Returns: boolean }
       validate_session_stamp: {
         Args: { p_client_version: number; p_user_id: string }
         Returns: boolean

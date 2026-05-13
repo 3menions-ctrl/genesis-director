@@ -1,7 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { OPS_PAGES } from "@/refine/pages/ops/_registry";
+import {
+  OPS_PAGES,
+  type OpsRegistry,
+  type RegisteredOpsFile,
+  type RegisteredOpsPath,
+} from "@/refine/pages/ops/_registry";
 
 const layout = readFileSync(resolve(__dirname, "../../refine/AdminLayout.tsx"), "utf8");
 const app = readFileSync(resolve(__dirname, "../../App.tsx"), "utf8");
@@ -72,13 +77,27 @@ const CORE_PATH_TO_COMPONENT: Record<string, string> = {
   "/admin/emails": "AdminEmailsPage",
   "/admin/config": "AdminConfigPage",
 };
-const opsPathToComponent = new Map<string, string>(
-  OPS_PAGES.map((p) => [p.path as string, p.file as string]),
-);
+// Strongly-typed map: keys are the literal-union of every registered path,
+// values are the literal-union of every registered component file. Any future
+// drift in OPS_PAGES (renamed file, retyped path) flows into this map and the
+// test signature, surfacing as a compile error rather than a runtime miss.
+const opsPathToComponent: ReadonlyMap<RegisteredOpsPath, RegisteredOpsFile> =
+  new Map(OPS_PAGES.map((p) => [p.path, p.file] as const));
+
 const expectedComponentForPath = (path: string): string | undefined =>
-  CORE_PATH_TO_COMPONENT[path] ?? opsPathToComponent.get(path);
+  CORE_PATH_TO_COMPONENT[path] ?? opsPathToComponent.get(path as RegisteredOpsPath);
 
 describe("AdminLayout sidebar ↔ App routes", () => {
+  it("OPS_PAGES enforces template-literal typing for path & file", () => {
+    // Compile-time guarantees — these assertions are evaluated by tsc, not at
+    // runtime. If a registry entry ever has e.g. path: "admin/foo" (missing
+    // leading slash) or file: "FooComponent" (missing Admin*Page convention),
+    // the build fails before this test even runs.
+    expectTypeOf(OPS_PAGES).toMatchTypeOf<OpsRegistry>();
+    expectTypeOf<RegisteredOpsPath>().toMatchTypeOf<`/admin/${string}`>();
+    expectTypeOf<RegisteredOpsFile>().toMatchTypeOf<`Admin${string}Page`>();
+  });
+
   it("every sidebar path matches an actual <Route> under /admin", () => {
     const orphans = navPaths.filter((p) => !adminRoutes.has(p));
     expect(orphans, `Sidebar paths without a route: ${orphans.join(", ")}`).toEqual([]);

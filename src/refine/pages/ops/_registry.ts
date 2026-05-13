@@ -1,3 +1,35 @@
+/**
+ * Compile-time typing for the ops registry.
+ *
+ * `OpsPath` and `OpsFile` are template-literal types so any future entry that
+ * doesn't follow the `/admin/<slug>` route + `Admin<Name>Page` component
+ * naming convention fails the build instead of slipping through silently.
+ *
+ * The `satisfies OpsRegistry` clause below enforces the shape *while*
+ * preserving the literal-string narrowing from `as const`, so consumers (and
+ * tests) keep getting exact path/file unions instead of `string`.
+ */
+export type OpsPath = `/admin/${string}`;
+export type OpsFile = `Admin${string}Page`;
+export type OpsSection =
+  | "Observability"
+  | "Access"
+  | "Money"
+  | "Content"
+  | "Growth"
+  | "Comms"
+  | "System";
+
+export interface OpsRegistryEntry {
+  readonly file: OpsFile;
+  readonly path: OpsPath;
+  readonly section: OpsSection;
+  readonly label: string;
+  readonly code: string;
+}
+
+export type OpsRegistry = readonly OpsRegistryEntry[];
+
 export const OPS_PAGES = [
   {
     "file": "AdminAuditLogPage",
@@ -258,4 +290,8 @@ export const OPS_PAGES = [
     "label": "Crash",
     "code": "CRF"
   }
-] as const;
+] as const satisfies OpsRegistry;
+
+// Narrow string-union helpers derived directly from the registry.
+export type RegisteredOpsPath = (typeof OPS_PAGES)[number]["path"];
+export type RegisteredOpsFile = (typeof OPS_PAGES)[number]["file"];

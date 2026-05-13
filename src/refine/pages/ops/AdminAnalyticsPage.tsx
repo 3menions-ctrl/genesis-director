@@ -740,6 +740,26 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
     ? { ...payload, rows: filteredRows }
     : null;
 
+  const hasMore = !!payload?.hasMore;
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Auto-load next page when sentinel scrolls into view (no active filters).
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return;
+    if (activeFilterCount > 0) return; // Pause auto-load while filtering subset.
+    const node = sentinelRef.current;
+    if (!node) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting && !loadingMore && !loading) {
+          onLoadMore();
+          break;
+        }
+      }
+    }, { rootMargin: "240px" });
+    io.observe(node);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore, loadingMore, loading, activeFilterCount, payload?.rows.length]);
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -833,8 +853,8 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
             {loading ? "Fetching rows…"
               : payload ? (
                   activeFilterCount > 0
-                    ? `${filteredRows.length} of ${payload.rows.length} rows${payload.truncated ? " (source truncated to 200)" : ""}`
-                    : `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${payload.truncated ? " (truncated to 200)" : ""}`
+                    ? `${filteredRows.length} of ${payload.rows.length} loaded${hasMore ? " · more available" : ""}`
+                    : `${payload.rows.length} ${payload.rows.length === 1 ? "row" : "rows"}${hasMore ? " · scroll for more" : " · all loaded"}`
                 )
               : error ? "Error loading details"
               : ""}
@@ -919,6 +939,32 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 ))}
               </TableBody>
             </Table>
+          )}
+          {/* Infinite scroll sentinel + load-more affordance */}
+          {payload && payload.rows.length > 0 && hasMore && (
+            <div ref={sentinelRef} className="py-6 flex items-center justify-center">
+              {loadingMore ? (
+                <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.24em] text-white/45">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more…
+                </div>
+              ) : activeFilterCount > 0 ? (
+                <button
+                  onClick={() => onLoadMore?.()}
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                >
+                  Load next {DRILL_PAGE_SIZE_LABEL}
+                </button>
+              ) : (
+                <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/25">
+                  Scroll to load more
+                </span>
+              )}
+            </div>
+          )}
+          {payload && payload.rows.length > 0 && !hasMore && (
+            <div className="py-6 text-center text-[10px] font-mono uppercase tracking-[0.28em] text-white/20">
+              End of results
+            </div>
           )}
         </div>
       </SheetContent>

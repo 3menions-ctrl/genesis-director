@@ -10,6 +10,13 @@ import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
 import {
   Activity, AlertOctagon, Users, MessageSquare, DollarSign, Coins,
   FolderKanban, Shield, Mail, Settings, Loader2, ChevronLeft, Power,
+  ScrollText, Terminal, Cloud, ListOrdered, Heart, DatabaseBackup,
+  KeyRound, UserCog, MonitorSmartphone, FileLock2, Flag,
+  Repeat, Undo2, TicketPercent, Share2, Receipt, Scale,
+  UserSquare2, Images, LayoutTemplate, HardDrive, ShieldAlert,
+  BarChart3, Footprints, FlaskConical, GitBranch, ToggleLeft, Megaphone,
+  MailPlus, Bell, MessagesSquare, Newspaper,
+  Code2, Webhook, Lock, Database, Bug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,14 +38,59 @@ const NAV: NavSection[] = [
   { code: "03", label: "Money", items: [
     { n: "05", label: "Treasury",   icon: DollarSign,   path: "/admin/finance" },
     { n: "06", label: "Ledger",     icon: Coins,        path: "/admin/credits" },
+    { n: "11", label: "Subscriptions", icon: Repeat,        path: "/admin/subscriptions" },
+    { n: "12", label: "Refunds",       icon: Undo2,         path: "/admin/refunds" },
+    { n: "13", label: "Coupons",       icon: TicketPercent, path: "/admin/coupons" },
+    { n: "14", label: "Referrals",     icon: Share2,        path: "/admin/referrals" },
+    { n: "15", label: "Tax",           icon: Receipt,       path: "/admin/invoices" },
+    { n: "16", label: "Stripe",        icon: Scale,         path: "/admin/reconcile" },
   ]},
   { code: "04", label: "Content", items: [
     { n: "07", label: "Projects",   icon: FolderKanban, path: "/admin/projects" },
     { n: "08", label: "Moderation", icon: Shield,       path: "/admin/moderation" },
+    { n: "17", label: "Avatar",     icon: UserSquare2,   path: "/admin/avatar-catalog" },
+    { n: "18", label: "Gallery",    icon: Images,        path: "/admin/gallery" },
+    { n: "19", label: "Template",   icon: LayoutTemplate, path: "/admin/template-library" },
+    { n: "20", label: "Asset",      icon: HardDrive,     path: "/admin/storage" },
+    { n: "21", label: "Safety",     icon: ShieldAlert,   path: "/admin/content-safety" },
   ]},
-  { code: "05", label: "System", items: [
+  { code: "05", label: "Observability", items: [
+    { n: "22", label: "Audit",      icon: ScrollText,    path: "/admin/audit" },
+    { n: "23", label: "Edge",       icon: Terminal,      path: "/admin/edge-logs" },
+    { n: "24", label: "Provider",   icon: Cloud,         path: "/admin/providers" },
+    { n: "25", label: "Queue",      icon: ListOrdered,   path: "/admin/queue" },
+    { n: "26", label: "Status",     icon: Heart,         path: "/admin/status" },
+    { n: "27", label: "Backups",    icon: DatabaseBackup,path: "/admin/backups" },
+  ]},
+  { code: "06", label: "Access", items: [
+    { n: "28", label: "Roles",      icon: KeyRound,         path: "/admin/roles" },
+    { n: "29", label: "Admins",     icon: UserCog,          path: "/admin/team" },
+    { n: "30", label: "Sessions",   icon: MonitorSmartphone,path: "/admin/sessions" },
+    { n: "31", label: "GDPR",       icon: FileLock2,        path: "/admin/gdpr" },
+    { n: "32", label: "Abuse",      icon: Flag,             path: "/admin/abuse" },
+  ]},
+  { code: "07", label: "Growth", items: [
+    { n: "33", label: "Analytics",  icon: BarChart3,    path: "/admin/analytics" },
+    { n: "34", label: "Onboarding", icon: Footprints,   path: "/admin/onboarding-analytics" },
+    { n: "35", label: "A/B",        icon: FlaskConical, path: "/admin/experiments" },
+    { n: "36", label: "Cohorts",    icon: GitBranch,    path: "/admin/cohorts" },
+    { n: "37", label: "Flags",      icon: ToggleLeft,   path: "/admin/feature-flags" },
+    { n: "38", label: "News",       icon: Megaphone,    path: "/admin/announcements" },
+  ]},
+  { code: "08", label: "Comms", items: [
+    { n: "39", label: "Email",      icon: MailPlus,       path: "/admin/email-templates" },
+    { n: "40", label: "Notify",     icon: Bell,           path: "/admin/notifications-center" },
+    { n: "41", label: "Macros",     icon: MessagesSquare, path: "/admin/macros" },
+    { n: "42", label: "Changelog",  icon: Newspaper,      path: "/admin/changelog" },
+  ]},
+  { code: "09", label: "System", items: [
     { n: "09", label: "Emails",     icon: Mail,         path: "/admin/emails" },
     { n: "10", label: "Config",     icon: Settings,     path: "/admin/config" },
+    { n: "43", label: "API",        icon: Code2,    path: "/admin/api-keys" },
+    { n: "44", label: "Webhooks",   icon: Webhook,  path: "/admin/webhooks" },
+    { n: "45", label: "Secrets",    icon: Lock,     path: "/admin/secrets" },
+    { n: "46", label: "Database",   icon: Database, path: "/admin/db-health" },
+    { n: "47", label: "Crash",      icon: Bug,      path: "/admin/crash-forensics" },
   ]},
 ];
 

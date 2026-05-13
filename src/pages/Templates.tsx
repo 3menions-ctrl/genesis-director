@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
+import { TemplatePreviewPlayer } from '@/components/templates/TemplatePreviewPlayer';
 
 // Import AI-generated template thumbnails
 import viralHookImg from '@/assets/templates/viral-hook.jpg';
@@ -521,10 +522,12 @@ type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
 const TemplateCard = memo(function TemplateCard({ 
   template,
   onUse,
+  onPreview,
   index = 0,
 }: { 
   template: TemplateItem;
   onUse: () => void;
+  onPreview?: () => void;
   index?: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -598,20 +601,44 @@ const TemplateCard = memo(function TemplateCard({
             )}
           </div>
           
-          {/* Quick Use Button - CSS transition instead of motion */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onUse();
-            }}
-            className={cn(
-              "w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg",
-              "transition-all duration-200",
-              isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+          <div className="flex items-center gap-1.5">
+            {onPreview && (
+              <button
+                type="button"
+                title="Preview pacing"
+                aria-label="Preview pacing"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreview();
+                }}
+                className={cn(
+                  "w-8 h-8 rounded-full bg-[hsla(220,14%,4%,0.85)] backdrop-blur",
+                  "border border-[hsla(215,100%,60%,0.45)] flex items-center justify-center",
+                  "shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.7)] transition-all duration-200",
+                  isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                )}
+              >
+                <Eye className="w-3.5 h-3.5 text-[hsl(215,100%,82%)]" />
+              </button>
             )}
-          >
-            <Play className="w-4 h-4 text-black ml-0.5" />
-          </button>
+            {/* Quick Use Button - CSS transition instead of motion */}
+            <button
+              type="button"
+              title="Use template"
+              aria-label="Use template"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUse();
+              }}
+              className={cn(
+                "w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg",
+                "transition-all duration-200",
+                isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+              )}
+            >
+              <Play className="w-4 h-4 text-black ml-0.5" />
+            </button>
+          </div>
         </div>
 
         {/* Bottom Content */}
@@ -656,6 +683,9 @@ TemplateCard.displayName = 'TemplateCard';
 const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TemplatesContent(_, ref) {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
+
+  // Preview player state — opens the schematic pacing preview for a template.
+  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
   
   // FIX: useAuth now returns safe fallback if context is missing
   const { user } = useAuth();
@@ -807,6 +837,11 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
               key={template.id}
               template={template}
               onUse={() => handleUseTemplate(template)}
+              onPreview={
+                template.category === 'educational'
+                  ? () => setPreviewTemplate(template)
+                  : undefined
+              }
               index={index}
             />
           ))}
@@ -835,6 +870,13 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
           </div>
         )}
       </main>
+
+      {/* Schematic pacing preview for learning templates */}
+      <TemplatePreviewPlayer
+        template={previewTemplate}
+        onClose={() => setPreviewTemplate(null)}
+        onApply={handleUseTemplate}
+      />
     </div>
   );
 }));

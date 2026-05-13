@@ -1,5 +1,5 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   Project,
@@ -291,5 +291,57 @@ describe("AdminLayout sidebar ↔ App routes", () => {
       else seen.set(expected, path);
     }
     expect(dupes, `Duplicate component wiring:\n  ${dupes.join("\n  ")}`).toEqual([]);
+  });
+
+  it("emits a route↔sidebar wiring report (CSV + JSON)", () => {
+    type Row = {
+      sidebarPath: string;
+      expectedComponent: string | null;
+      actualComponent: string | null;
+      redirectTo: string | null;
+      lazyImport: string | null;
+      status: "ok" | "missing-route" | "redirect" | "component-mismatch" | "no-expected" | "missing-lazy-import";
+    };
+    const rows: Row[] = navPaths.map((path) => {
+      const expected = expectedComponentForPath(path) ?? null;
+      const route = pathToRoute.get(path);
+      const lazyImport = expected ? lazyImports.get(expected) ?? null : null;
+      let actualComponent: string | null = null;
+      let redirectTo: string | null = null;
+      let status: Row["status"];
+      if (!route) status = "missing-route";
+      else if (route.kind === "redirect") {
+        redirectTo = route.to;
+        status = "redirect";
+      } else {
+        actualComponent = route.component;
+        if (!expected) status = "no-expected";
+        else if (route.component !== expected) status = "component-mismatch";
+        else if (!lazyImport) status = "missing-lazy-import";
+        else status = "ok";
+      }
+      return { sidebarPath: path, expectedComponent: expected, actualComponent, redirectTo, lazyImport, status };
+    });
+
+    const outDir = resolve(SRC_DIR, "../reports/admin-sidebar");
+    mkdirSync(outDir, { recursive: true });
+    const esc = (v: string | null) => {
+      const s = v ?? "";
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = ["sidebarPath", "expectedComponent", "actualComponent", "redirectTo", "lazyImport", "status"];
+    const csv = [
+      header.join(","),
+      ...rows.map((r) => header.map((h) => esc((r as Record<string, string | null>)[h])).join(",")),
+    ].join("\n");
+    writeFileSync(resolve(outDir, "wiring-report.csv"), csv + "\n", "utf8");
+    writeFileSync(
+      resolve(outDir, "wiring-report.json"),
+      JSON.stringify({ generatedAt: new Date().toISOString(), rows }, null, 2) + "\n",
+      "utf8",
+    );
+    // The report itself is informational; the assertions above already gate
+    // the build. Sanity-check that we emitted a row per sidebar path.
+    expect(rows.length).toBe(navPaths.length);
   });
 });

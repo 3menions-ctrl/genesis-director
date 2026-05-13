@@ -32,9 +32,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-// Skin CSS is irrelevant in jsdom.
-vi.mock("@/refine/admin-skin.css", () => ({}), { virtual: true });
-
 import { RefineAdminLayout } from "@/refine/AdminLayout";
 
 // ── Extract sidebar entries from source-of-truth ─────────────────────────

@@ -199,6 +199,20 @@ const opsPathToComponent: ReadonlyMap<RegisteredOpsPath, RegisteredOpsFile> =
 const expectedComponentForPath = (path: string): string | undefined =>
   CORE_PATH_TO_COMPONENT[path] ?? opsPathToComponent.get(path as RegisteredOpsPath);
 
+/**
+ * Sidebar paths that are *intentionally* wired as <Navigate to="…" /> redirects
+ * (e.g., legacy aliases consolidated under a canonical Admin page). Each entry
+ * declares the canonical target path the sidebar item must redirect to. The
+ * target must itself resolve to a real component <Route> — not another redirect.
+ *
+ * Keep this map empty unless a sidebar item is *deliberately* a redirect. Any
+ * sidebar path that ends up as a Navigate without being listed here will fail
+ * the "every sidebar path renders its expected component" assertion above.
+ */
+const EXPECTED_SIDEBAR_REDIRECTS: Record<string, string> = {
+  // e.g. "/admin/legacy-finance": "/admin/finance",
+};
+
 describe("AdminLayout sidebar ↔ App routes", () => {
   it("OPS_PAGES enforces template-literal typing for path & file", () => {
     // Compile-time guarantees — these assertions are evaluated by tsc, not at

@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
-import authHeroImage from '@/assets/auth-hero-mittens.png';
+import authHeroImage from '@/assets/auth-hero-mittens.webp';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 // ─── Floating Particles ─────────────────────────────────────────────

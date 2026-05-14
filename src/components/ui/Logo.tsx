@@ -1,6 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
-import logoImage from '@/assets/apex-studio-logo.png';
+import logoImage from '@/assets/apex-studio-logo.webp';
 
 interface LogoProps {
   className?: string;

@@ -289,7 +289,7 @@ export default function Press() {
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <img src="/apex-studio-logo.png" alt="Apex-Studio" className="w-12 h-12 object-contain" />
+                    <img src="/apex-studio-logo.webp" alt="Apex-Studio" className="w-12 h-12 object-contain" />
                     <div className="text-left">
                       <div className="font-semibold">Apex-Studio</div>
                       <div className="text-sm text-muted-foreground">apex-studio.ai</div>

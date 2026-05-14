@@ -16,7 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { OnboardingWizard } from '@/components/workspace/OnboardingWizard';
-import logoImage from '@/assets/apex-studio-logo.png';
+import logoImage from '@/assets/apex-studio-logo.webp';
 
 interface NavItem {
   to: string;

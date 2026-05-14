@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import logoImage from '@/assets/apex-studio-logo.png';
+import logoImage from '@/assets/apex-studio-logo.webp';
 
 /**
  * Enterprise tier — coming-soon gate + lead-capture form.

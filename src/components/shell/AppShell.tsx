@@ -19,7 +19,7 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
-import logoImage from '@/assets/apex-studio-logo.png';
+import logoImage from '@/assets/apex-studio-logo.webp';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 

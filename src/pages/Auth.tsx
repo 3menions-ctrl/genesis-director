@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple, Building2 } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';

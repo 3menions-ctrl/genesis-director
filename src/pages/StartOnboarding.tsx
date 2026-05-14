@@ -83,24 +83,33 @@ const ENTERPRISE_PLAN: Plan = {
 // Billing/checkout is ALWAYS the final step. Account creation (incl. Google/Apple)
 // happens AFTER the user has completed all questionnaire + plan selection — this
 // preserves the full onboarding flow and lands users on billing as the last action.
-const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-// Business onboarding is intentionally deeper than personal — it captures workspace,
-// brand, volume, integrations and an optional teammate invite list before billing.
-const BUSINESS_STEPS = ['company', 'biz_usecase', 'team', 'role', 'brand', 'volume', 'integrations', 'plan', 'account', 'verify', 'invite', 'billing'] as const;
+// Personal onboarding — merged into the smallest sensible flow:
+//   intro (goals + style)  →  plan  →  account (name + email + pw)  →  verify
+const PERSONAL_STEPS = ['intro', 'plan', 'account', 'verify'] as const;
+// Business onboarding — combined screens to avoid asking the same shape of
+// question twice in a row. Brand & ops bundles colors + voice + monthly volume
+// + integrations. Invite & billing collects optional billing email + VAT after
+// verify, alongside teammate invites.
+const BUSINESS_STEPS = ['company', 'team_role', 'brand', 'plan', 'account', 'verify', 'invite'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
   | typeof PERSONAL_STEPS[number]
   | typeof BUSINESS_STEPS[number]
-  | typeof ENTERPRISE_STEPS[number];
+  | typeof ENTERPRISE_STEPS[number]
+  // Legacy step keys retained so dead render branches and STEP_META entries
+  // continue to type-check after the merge cleanup.
+  | 'goals' | 'usecase' | 'profile' | 'team' | 'role' | 'biz_usecase' | 'volume' | 'integrations' | 'billing';
 
 const STEP_META: Record<StepKey, { label: string; copy: string }> = {
+  intro:   { label: 'About you',     copy: 'What do you want to make — and how should it feel?' },
   goals:   { label: 'Goals',         copy: 'What do you want to make?' },
   usecase: { label: 'Style',         copy: 'Pick the experience you want.' },
   plan:    { label: 'Plan',          copy: 'Choose how you want to start.' },
   profile: { label: 'Profile',       copy: 'How should we greet you?' },
-  company: { label: 'Company',       copy: 'Tell us about your team.' },
+  company: { label: 'Company',       copy: 'Tell us about your team and what you produce.' },
   team:    { label: 'Team',          copy: 'How big is your crew?' },
+  team_role:{ label: 'You & your team', copy: 'How big is your crew, and what do you do?' },
   role:    { label: 'Your role',     copy: 'What do you do?' },
   billing: { label: 'Billing',       copy: 'Almost there — confirm your plan.' },
   scale:   { label: 'Scale',         copy: 'Help us size your contract.' },
@@ -109,10 +118,10 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   account: { label: 'Account',       copy: 'Create your account.' },
   verify:  { label: 'Verify',        copy: 'Confirm your email.' },
   biz_usecase:  { label: 'Use case',     copy: 'What will your team produce?' },
-  brand:        { label: 'Brand kit',    copy: 'Bring your brand into Apex.' },
+  brand:        { label: 'Brand & ops',  copy: 'Brand kit, monthly volume, and the tools you use.' },
   volume:       { label: 'Volume',       copy: 'How much content per month?' },
   integrations: { label: 'Integrations', copy: 'Where does video need to go?' },
-  invite:       { label: 'Invite team',  copy: 'Bring your crew on board.' },
+  invite:       { label: 'Invite & billing', copy: 'Add teammates and (optionally) your billing details.' },
 };
 
 const PERSONAL_GOALS = [
@@ -288,6 +297,12 @@ export default function StartOnboarding() {
   /* ── Validation per step ───────────────────────────────────────── */
   const validate = useCallback((): boolean => {
     setErrors({});
+    if (currentStep === 'intro') {
+      const fe: Record<string, string> = {};
+      if (form.goals.length === 0) fe.goals = 'Pick at least one';
+      if (!form.style) fe.style = 'Choose a style';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
+    }
     if (currentStep === 'goals' && form.goals.length === 0) {
       setErrors({ goals: 'Pick at least one' }); return false;
     }
@@ -305,6 +320,16 @@ export default function StartOnboarding() {
         r.error.errors.forEach(e => { if (e.path[0]) fe[e.path[0] as string] = e.message; });
         setErrors(fe); return false;
       }
+      // For business flow, also require a primary use case here (merged screen).
+      if (accountType === 'business' && !form.primary_use_case) {
+        setErrors({ primary_use_case: 'Pick what your team will produce' }); return false;
+      }
+    }
+    if (currentStep === 'team_role') {
+      const fe: Record<string, string> = {};
+      if (!form.team_size) fe.team_size = 'Pick a team size';
+      if (!form.job_role) fe.job_role = 'Pick a role';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
     }
     if (currentStep === 'team' && !form.team_size) {
       setErrors({ team_size: 'Pick a team size' }); return false;
@@ -318,15 +343,21 @@ export default function StartOnboarding() {
     if (currentStep === 'volume' && !form.monthly_volume) {
       setErrors({ monthly_volume: 'Pick a monthly volume' }); return false;
     }
-    if (currentStep === 'brand' && !form.brand_voice) {
-      setErrors({ brand_voice: 'Pick a brand voice' }); return false;
+    if (currentStep === 'brand') {
+      const fe: Record<string, string> = {};
+      if (!form.brand_voice) fe.brand_voice = 'Pick a brand voice';
+      if (!form.monthly_volume) fe.monthly_volume = 'Pick a monthly volume';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
     }
     // 'integrations' and 'invite' are optional — no validation
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }
     if (currentStep === 'account') {
-      // If already authenticated (e.g. via OAuth), skip validation
+      // Require display name (merged into the account screen).
+      const pr = profileSchema.safeParse({ display_name: form.display_name });
+      if (!pr.success) { setErrors({ display_name: pr.error.errors[0].message }); return false; }
+      // If already authenticated (e.g. via OAuth), skip credential validation
       if (user) return true;
       const r = accountSchema.safeParse({ email: form.email, password: form.password });
       if (!r.success) {
@@ -721,6 +752,33 @@ export default function StartOnboarding() {
               exit={{ opacity: 0, x: direction > 0 ? -40 : 40, filter: 'blur(8px)' }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* Intro (Personal) — goals + style merged */}
+              {currentStep === 'intro' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">What do you want to make?</p>
+                    <ChipGrid
+                      options={PERSONAL_GOALS.map(g => ({ id: g.id, label: g.label, Icon: g.Icon }))}
+                      selected={form.goals}
+                      onToggle={(id) => setForm(f => ({
+                        ...f, goals: f.goals.includes(id) ? f.goals.filter(x => x !== id) : [...f.goals, id],
+                      }))}
+                      error={errors.goals}
+                      multi
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Pick a look</p>
+                    <RadioGrid
+                      options={PERSONAL_STYLES}
+                      selected={form.style}
+                      onSelect={(id) => setForm(f => ({ ...f, style: id }))}
+                      error={errors.style}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Goals (Personal) */}
               {currentStep === 'goals' && (
                 <ChipGrid
@@ -769,25 +827,64 @@ export default function StartOnboarding() {
 
               {/* Company (Business / Enterprise) */}
               {currentStep === 'company' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Field label="Company name" error={errors.company_name}>
-                    <input
-                      placeholder="Acme Studios"
-                      value={form.company_name}
-                      onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))}
-                      className={inputCls}
+                <div className="space-y-7">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Company name" error={errors.company_name}>
+                      <input
+                        placeholder="Acme Studios"
+                        value={form.company_name}
+                        onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Industry" error={errors.industry}>
+                      <select
+                        value={form.industry}
+                        onChange={(e) => setForm(f => ({ ...f, industry: e.target.value }))}
+                        className={cn(inputCls, 'appearance-none')}
+                      >
+                        <option value="">Select industry…</option>
+                        {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                  {accountType === 'business' && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">What will your team produce?</p>
+                      <ChipGrid
+                        options={BUSINESS_USE_CASES.map(u => ({ id: u.id, label: u.label, desc: u.desc, Icon: u.Icon }))}
+                        selected={form.primary_use_case ? [form.primary_use_case] : []}
+                        onToggle={(id) => setForm(f => ({ ...f, primary_use_case: f.primary_use_case === id ? '' : id }))}
+                        error={errors.primary_use_case}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Team + Role merged (Business) */}
+              {currentStep === 'team_role' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Team size</p>
+                    <RadioGrid
+                      options={TEAM_SIZES.map(s => ({ id: s, label: s, desc: '' }))}
+                      selected={form.team_size}
+                      onSelect={(id) => setForm(f => ({ ...f, team_size: id }))}
+                      error={errors.team_size}
+                      compact
                     />
-                  </Field>
-                  <Field label="Industry" error={errors.industry}>
-                    <select
-                      value={form.industry}
-                      onChange={(e) => setForm(f => ({ ...f, industry: e.target.value }))}
-                      className={cn(inputCls, 'appearance-none')}
-                    >
-                      <option value="">Select industry…</option>
-                      {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
-                    </select>
-                  </Field>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Your role</p>
+                    <RadioGrid
+                      options={ROLES.map(r => ({ id: r, label: r, desc: '' }))}
+                      selected={form.job_role}
+                      onSelect={(id) => setForm(f => ({ ...f, job_role: id }))}
+                      error={errors.job_role}
+                      compact
+                    />
+                  </div>
                 </div>
               )}
 
@@ -871,6 +968,46 @@ export default function StartOnboarding() {
                       onSelect={(id) => setForm(f => ({ ...f, brand_voice: id }))}
                       error={errors.brand_voice}
                     />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Monthly volume</p>
+                    <RadioGrid
+                      options={BUSINESS_VOLUME}
+                      selected={form.monthly_volume}
+                      onSelect={(id) => setForm(f => ({ ...f, monthly_volume: id }))}
+                      error={errors.monthly_volume}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Plug className="w-3.5 h-3.5 text-[#9DCBFF]" /> Integrations (optional)
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {BUSINESS_INTEGRATIONS.map(i => {
+                        const active = form.integrations_needed.includes(i.id);
+                        return (
+                          <button
+                            key={i.id}
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              integrations_needed: active
+                                ? f.integrations_needed.filter(x => x !== i.id)
+                                : [...f.integrations_needed, i.id],
+                            }))}
+                            className={cn(
+                              'h-12 px-3 rounded-xl text-sm font-medium transition-all border inline-flex items-center justify-center gap-2',
+                              active
+                                ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] text-white shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                                : 'border-white/[0.08] bg-white/[0.02] text-white/75 hover:border-white/15 hover:text-white',
+                            )}
+                          >
+                            {active && <Check className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+                            {i.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -966,6 +1103,34 @@ export default function StartOnboarding() {
                   <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5">
                     <Users className="w-3 h-3" /> Invites are sent after billing. Skip to do this later.
                   </p>
+                  {/* Optional billing details merged into the final step. */}
+                  <div className="pt-4 border-t border-white/[0.06]">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Receipt className="w-3.5 h-3.5 text-[#9DCBFF]" /> Billing details (optional)
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <Field label="Billing email">
+                        <div className="relative">
+                          <Receipt className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            type="email"
+                            placeholder="ap@company.com"
+                            value={form.billing_email}
+                            onChange={(e) => setForm(f => ({ ...f, billing_email: e.target.value }))}
+                            className={cn(inputCls, 'pl-10')}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="VAT / Tax ID">
+                        <input
+                          placeholder="EU123456789"
+                          value={form.vat_id}
+                          onChange={(e) => setForm(f => ({ ...f, vat_id: e.target.value }))}
+                          className={inputCls}
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1070,6 +1235,18 @@ export default function StartOnboarding() {
               {/* Account creation (Personal / Business) */}
               {currentStep === 'account' && (
                 <div className="space-y-5">
+                  {/* Display name — merged into the account step so we don't ask
+                      for it on a dedicated screen. Always visible, even for
+                      OAuth-authenticated users (we still need a greeting name). */}
+                  <Field label="Your name" error={errors.display_name}>
+                    <input
+                      placeholder="Jordan Lin"
+                      value={form.display_name}
+                      onChange={(e) => setForm(f => ({ ...f, display_name: e.target.value }))}
+                      className={inputCls}
+                    />
+                  </Field>
+
                   {user ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
                       <Check className="w-5 h-5 text-[#9DCBFF]" />

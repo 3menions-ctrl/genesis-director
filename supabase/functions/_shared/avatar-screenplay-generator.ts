@@ -66,9 +66,17 @@ export async function generateAvatarScreenplay(params: {
   const isDualAvatar = !!secondaryCharacter;
   
   console.log(`[ScreenplayGen] 🎬 KLING-NATIVE screenplay: "${userPrompt.substring(0, 80)}", ${clipCount} clips @ ${clipDuration}s, dual=${isDualAvatar}`);
-  
+
+  // Parse speaker-tagged dialogue if the user wrote it as a script (e.g. "Alice: Hi" / "A: ...").
+  const parsedTurns = isDualAvatar
+    ? parseSpeakerTaggedScript(userPrompt, primaryCharacter.name, secondaryCharacter!.name)
+    : null;
+  if (parsedTurns) {
+    console.log(`[ScreenplayGen] 🎭 Detected ${parsedTurns.length} tagged turns from user script`);
+  }
+
   const systemPrompt = buildKlingNativeSystemPrompt(clipCount, clipDuration, primaryCharacter, secondaryCharacter, sceneDescription);
-  const userMessage = buildKlingNativeUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter, clipDuration);
+  const userMessage = buildKlingNativeUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter, clipDuration, parsedTurns);
   
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -101,7 +109,7 @@ export async function generateAvatarScreenplay(params: {
       return createFallbackScreenplay(userPrompt, clipCount, primaryCharacter, secondaryCharacter);
     }
 
-    const parsed = parseScreenplayResponse(content, clipCount, primaryCharacter, secondaryCharacter);
+    const parsed = parseScreenplayResponse(content, clipCount, primaryCharacter, secondaryCharacter, parsedTurns);
     console.log(`[ScreenplayGen] ✅ Generated ${parsed.segments.length} segments | Arc: ${parsed.narrativeArc} | Tone: ${parsed.tone}`);
     return parsed;
     

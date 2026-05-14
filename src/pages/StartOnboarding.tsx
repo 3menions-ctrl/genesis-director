@@ -827,25 +827,64 @@ export default function StartOnboarding() {
 
               {/* Company (Business / Enterprise) */}
               {currentStep === 'company' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Field label="Company name" error={errors.company_name}>
-                    <input
-                      placeholder="Acme Studios"
-                      value={form.company_name}
-                      onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))}
-                      className={inputCls}
+                <div className="space-y-7">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Company name" error={errors.company_name}>
+                      <input
+                        placeholder="Acme Studios"
+                        value={form.company_name}
+                        onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Industry" error={errors.industry}>
+                      <select
+                        value={form.industry}
+                        onChange={(e) => setForm(f => ({ ...f, industry: e.target.value }))}
+                        className={cn(inputCls, 'appearance-none')}
+                      >
+                        <option value="">Select industry…</option>
+                        {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                  {accountType === 'business' && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">What will your team produce?</p>
+                      <ChipGrid
+                        options={BUSINESS_USE_CASES.map(u => ({ id: u.id, label: u.label, desc: u.desc, Icon: u.Icon }))}
+                        selected={form.primary_use_case ? [form.primary_use_case] : []}
+                        onToggle={(id) => setForm(f => ({ ...f, primary_use_case: f.primary_use_case === id ? '' : id }))}
+                        error={errors.primary_use_case}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Team + Role merged (Business) */}
+              {currentStep === 'team_role' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Team size</p>
+                    <RadioGrid
+                      options={TEAM_SIZES.map(s => ({ id: s, label: s, desc: '' }))}
+                      selected={form.team_size}
+                      onSelect={(id) => setForm(f => ({ ...f, team_size: id }))}
+                      error={errors.team_size}
+                      compact
                     />
-                  </Field>
-                  <Field label="Industry" error={errors.industry}>
-                    <select
-                      value={form.industry}
-                      onChange={(e) => setForm(f => ({ ...f, industry: e.target.value }))}
-                      className={cn(inputCls, 'appearance-none')}
-                    >
-                      <option value="">Select industry…</option>
-                      {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
-                    </select>
-                  </Field>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Your role</p>
+                    <RadioGrid
+                      options={ROLES.map(r => ({ id: r, label: r, desc: '' }))}
+                      selected={form.job_role}
+                      onSelect={(id) => setForm(f => ({ ...f, job_role: id }))}
+                      error={errors.job_role}
+                      compact
+                    />
+                  </div>
                 </div>
               )}
 

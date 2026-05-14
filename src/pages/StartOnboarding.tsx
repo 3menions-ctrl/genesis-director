@@ -297,6 +297,12 @@ export default function StartOnboarding() {
   /* ── Validation per step ───────────────────────────────────────── */
   const validate = useCallback((): boolean => {
     setErrors({});
+    if (currentStep === 'intro') {
+      const fe: Record<string, string> = {};
+      if (form.goals.length === 0) fe.goals = 'Pick at least one';
+      if (!form.style) fe.style = 'Choose a style';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
+    }
     if (currentStep === 'goals' && form.goals.length === 0) {
       setErrors({ goals: 'Pick at least one' }); return false;
     }
@@ -314,6 +320,16 @@ export default function StartOnboarding() {
         r.error.errors.forEach(e => { if (e.path[0]) fe[e.path[0] as string] = e.message; });
         setErrors(fe); return false;
       }
+      // For business flow, also require a primary use case here (merged screen).
+      if (accountType === 'business' && !form.primary_use_case) {
+        setErrors({ primary_use_case: 'Pick what your team will produce' }); return false;
+      }
+    }
+    if (currentStep === 'team_role') {
+      const fe: Record<string, string> = {};
+      if (!form.team_size) fe.team_size = 'Pick a team size';
+      if (!form.job_role) fe.job_role = 'Pick a role';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
     }
     if (currentStep === 'team' && !form.team_size) {
       setErrors({ team_size: 'Pick a team size' }); return false;
@@ -327,15 +343,21 @@ export default function StartOnboarding() {
     if (currentStep === 'volume' && !form.monthly_volume) {
       setErrors({ monthly_volume: 'Pick a monthly volume' }); return false;
     }
-    if (currentStep === 'brand' && !form.brand_voice) {
-      setErrors({ brand_voice: 'Pick a brand voice' }); return false;
+    if (currentStep === 'brand') {
+      const fe: Record<string, string> = {};
+      if (!form.brand_voice) fe.brand_voice = 'Pick a brand voice';
+      if (!form.monthly_volume) fe.monthly_volume = 'Pick a monthly volume';
+      if (Object.keys(fe).length) { setErrors(fe); return false; }
     }
     // 'integrations' and 'invite' are optional — no validation
     if (currentStep === 'plan' && !form.selected_plan_id) {
       setErrors({ plan: 'Pick a plan to continue' }); return false;
     }
     if (currentStep === 'account') {
-      // If already authenticated (e.g. via OAuth), skip validation
+      // Require display name (merged into the account screen).
+      const pr = profileSchema.safeParse({ display_name: form.display_name });
+      if (!pr.success) { setErrors({ display_name: pr.error.errors[0].message }); return false; }
+      // If already authenticated (e.g. via OAuth), skip credential validation
       if (user) return true;
       const r = accountSchema.safeParse({ email: form.email, password: form.password });
       if (!r.success) {

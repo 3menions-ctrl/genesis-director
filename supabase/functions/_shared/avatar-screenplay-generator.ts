@@ -452,6 +452,7 @@ function parseScreenplayResponse(
   clipCount: number,
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
+  parsedTurns?: ParsedTurn[] | null,
 ): GeneratedScreenplay {
   let jsonStr = content.trim();
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -494,6 +495,8 @@ function parseScreenplayResponse(
         startPose: s.startPose || 'Standing naturally, facing camera',
         endPose: s.endPose || 'Same position, slight shift in weight',
         visualContinuity: s.visualContinuity || 'Same character, same outfit, same environment',
+        respondsTo: s.respondsTo || '',
+        handoffCue: s.handoffCue || '',
       };
     });
     
@@ -516,11 +519,13 @@ function parseScreenplayResponse(
       });
     }
     
-    // Enforce dual-avatar pattern
+    // Enforce dual-avatar pattern. Speaker-tagged turns from the user override the default
+    // alternation so explicit "Alice:" / "Bob:" lines map to the right avatar.
     if (secondary && segments.length >= 2) {
       const dualPattern = getDualAvatarPattern(segments.length);
       for (let i = 0; i < segments.length; i++) {
-        segments[i].avatarRole = dualPattern[i] || 'primary';
+        const tagged = parsedTurns && parsedTurns[i] ? parsedTurns[i].role : null;
+        segments[i].avatarRole = tagged || dualPattern[i] || 'primary';
       }
     }
     
@@ -560,18 +565,89 @@ function parseScreenplayResponse(
 
 /**
  * Returns the mandatory avatarRole pattern for dual-avatar clips.
- * Pattern: A1 solo → A2 enters → A2 solo → A1 returns → A1 continues → A2 finishes
+ * Default is STRICT ALTERNATION (ABABAB...) so the two avatars genuinely take turns.
+ * Special-cases short clip counts so A2 still gets a meaningful entrance.
  */
 function getDualAvatarPattern(clipCount: number): Array<'primary' | 'secondary'> {
-  if (clipCount <= 2) return ['primary', 'secondary'];
-  if (clipCount === 3) return ['primary', 'secondary', 'secondary'];
-  if (clipCount === 4) return ['primary', 'secondary', 'secondary', 'primary'];
-  if (clipCount === 5) return ['primary', 'secondary', 'secondary', 'primary', 'secondary'];
-  const pattern: Array<'primary' | 'secondary'> = ['primary', 'secondary', 'secondary', 'primary', 'primary', 'secondary'];
-  for (let i = 6; i < clipCount; i++) {
+  const pattern: Array<'primary' | 'secondary'> = [];
+  for (let i = 0; i < clipCount; i++) {
     pattern.push(i % 2 === 0 ? 'primary' : 'secondary');
   }
   return pattern;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Speaker-tag parser
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ParsedTurn {
+  role: 'primary' | 'secondary';
+  text: string;
+}
+
+/**
+ * Parse a user prompt for explicit speaker tags like:
+ *   "Alice: Hi there"
+ *   "Bob: Hey"
+ *   "A: ..."  /  "B: ..."
+ *   "Speaker 1: ..."  /  "Speaker 2: ..."
+ * Returns null if no tagged turns are detected so the caller can fall back to free-form.
+ */
+export function parseSpeakerTaggedScript(
+  text: string,
+  primaryName: string,
+  secondaryName: string,
+): ParsedTurn[] | null {
+  if (!text) return null;
+  const lines = text.split(/\r?\n+/).map(l => l.trim()).filter(Boolean);
+  // Also split single-line scripts that use inline tags ("Alice: hi  Bob: hey")
+  const candidate: string[] = [];
+  for (const line of lines) {
+    const inline = line.split(/(?=\b(?:[A-Z][a-zA-Z'’\- ]{0,30}|A|B|Speaker\s?[12])\s*:\s)/g)
+      .map(s => s.trim()).filter(Boolean);
+    if (inline.length > 1) candidate.push(...inline);
+    else candidate.push(line);
+  }
+
+  const tagRe = /^([A-Za-z][A-Za-z'’\- ]{0,30}|A|B|Speaker\s?[12])\s*[:\-]\s*(.+)$/;
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const pName = norm(primaryName);
+  const sName = norm(secondaryName);
+
+  const turns: ParsedTurn[] = [];
+  let tagged = 0;
+  for (const raw of candidate) {
+    const m = raw.match(tagRe);
+    if (!m) {
+      // Untagged line — append to last turn so we don't lose user words.
+      if (turns.length) turns[turns.length - 1].text += ' ' + raw;
+      continue;
+    }
+    tagged++;
+    const tagRaw = norm(m[1]);
+    const body = m[2].trim();
+    let role: 'primary' | 'secondary';
+    if (tagRaw === pName || tagRaw === 'a' || tagRaw === 'speaker 1' || tagRaw === 'speaker1') {
+      role = 'primary';
+    } else if (tagRaw === sName || tagRaw === 'b' || tagRaw === 'speaker 2' || tagRaw === 'speaker2') {
+      role = 'secondary';
+    } else if (pName.startsWith(tagRaw) || tagRaw.startsWith(pName)) {
+      role = 'primary';
+    } else if (sName.startsWith(tagRaw) || tagRaw.startsWith(sName)) {
+      role = 'secondary';
+    } else {
+      // Unknown speaker tag → strict alternation from previous turn.
+      role = turns.length === 0 ? 'primary' : (turns[turns.length - 1].role === 'primary' ? 'secondary' : 'primary');
+    }
+    turns.push({ role, text: body });
+  }
+
+  // Require at least 2 tagged turns AND at least one of each speaker before we trust it.
+  if (tagged < 2) return null;
+  const hasP = turns.some(t => t.role === 'primary');
+  const hasS = turns.some(t => t.role === 'secondary');
+  if (!hasP || !hasS) return null;
+  return turns;
 }
 
 function createFallbackScreenplay(

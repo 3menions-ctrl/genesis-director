@@ -1076,6 +1076,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                 setSearchQuery('');
                 setActiveCategory('all');
                 setDurationFilter('any');
+                setDurationMode('bucket');
               }}
             >
               Clear filters

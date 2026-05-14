@@ -752,6 +752,33 @@ export default function StartOnboarding() {
               exit={{ opacity: 0, x: direction > 0 ? -40 : 40, filter: 'blur(8px)' }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* Intro (Personal) — goals + style merged */}
+              {currentStep === 'intro' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">What do you want to make?</p>
+                    <ChipGrid
+                      options={PERSONAL_GOALS.map(g => ({ id: g.id, label: g.label, Icon: g.Icon }))}
+                      selected={form.goals}
+                      onToggle={(id) => setForm(f => ({
+                        ...f, goals: f.goals.includes(id) ? f.goals.filter(x => x !== id) : [...f.goals, id],
+                      }))}
+                      error={errors.goals}
+                      multi
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Pick a look</p>
+                    <RadioGrid
+                      options={PERSONAL_STYLES}
+                      selected={form.style}
+                      onSelect={(id) => setForm(f => ({ ...f, style: id }))}
+                      error={errors.style}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Goals (Personal) */}
               {currentStep === 'goals' && (
                 <ChipGrid

@@ -700,13 +700,16 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Persist search, category, and duration filter across reloads / revisits.
-  // Stored as a single JSON blob so one read covers all three.
+  // Persist search, category, duration filter, and duration mode across reloads / revisits.
+  // Stored as a single JSON blob so one read covers all four.
   const FILTERS_KEY = 'apex_templates_filters_v1';
+  type DurationFilter = 'any' | '1' | '2' | '3' | '3plus';
+  type DurationMode = 'bucket' | 'exact';
   type PersistedFilters = {
     search: string;
     category: string;
-    duration: 'any' | '1' | '2' | '3' | '3plus';
+    duration: DurationFilter;
+    durationMode: DurationMode;
   };
   const loadPersistedFilters = (): PersistedFilters => {
     try {
@@ -717,26 +720,29 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
           search: typeof p.search === 'string' ? p.search : '',
           category: typeof p.category === 'string' ? p.category : 'all',
           duration: ['any', '1', '2', '3', '3plus'].includes(p.duration) ? p.duration : 'any',
+          durationMode: p.durationMode === 'exact' ? 'exact' : 'bucket',
         };
       }
     } catch {}
-    return { search: '', category: 'all', duration: 'any' };
+    return { search: '', category: 'all', duration: 'any', durationMode: 'bucket' };
   };
   const initialFilters = loadPersistedFilters();
   const [searchQuery, setSearchQuery] = useState(initialFilters.search);
   const [activeCategory, setActiveCategory] = useState(initialFilters.category);
   // Educational-tab-only: filter by target length bucket.
-  const [durationFilter, setDurationFilter] = useState<'any' | '1' | '2' | '3' | '3plus'>(initialFilters.duration);
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>(initialFilters.duration);
+  // Educational-tab-only: toggle between bucketed ranges and exact minute matching.
+  const [durationMode, setDurationMode] = useState<DurationMode>(initialFilters.durationMode);
 
-  // Save filters whenever any of the three change.
+  // Save filters whenever any of the four change.
   useEffect(() => {
     try {
       localStorage.setItem(
         FILTERS_KEY,
-        JSON.stringify({ search: searchQuery, category: activeCategory, duration: durationFilter }),
+        JSON.stringify({ search: searchQuery, category: activeCategory, duration: durationFilter, durationMode }),
       );
     } catch {}
-  }, [searchQuery, activeCategory, durationFilter]);
+  }, [searchQuery, activeCategory, durationFilter, durationMode]);
 
   // "Jump to results" — auto-scroll to the first matching educational template
   // whenever the duration filter changes (skips initial mount and the "any" reset).

@@ -969,6 +969,46 @@ export default function StartOnboarding() {
                       error={errors.brand_voice}
                     />
                   </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Monthly volume</p>
+                    <RadioGrid
+                      options={BUSINESS_VOLUME}
+                      selected={form.monthly_volume}
+                      onSelect={(id) => setForm(f => ({ ...f, monthly_volume: id }))}
+                      error={errors.monthly_volume}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Plug className="w-3.5 h-3.5 text-[#9DCBFF]" /> Integrations (optional)
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {BUSINESS_INTEGRATIONS.map(i => {
+                        const active = form.integrations_needed.includes(i.id);
+                        return (
+                          <button
+                            key={i.id}
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              integrations_needed: active
+                                ? f.integrations_needed.filter(x => x !== i.id)
+                                : [...f.integrations_needed, i.id],
+                            }))}
+                            className={cn(
+                              'h-12 px-3 rounded-xl text-sm font-medium transition-all border inline-flex items-center justify-center gap-2',
+                              active
+                                ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] text-white shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                                : 'border-white/[0.08] bg-white/[0.02] text-white/75 hover:border-white/15 hover:text-white',
+                            )}
+                          >
+                            {active && <Check className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+                            {i.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 

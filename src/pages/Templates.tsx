@@ -822,14 +822,29 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     let matchesDuration = true;
     if (activeCategory === 'educational' && durationFilter !== 'any') {
       const d = template.target_duration_minutes ?? 0;
-      if (durationFilter === '1') matchesDuration = d <= 1;
-      else if (durationFilter === '2') matchesDuration = d === 2;
-      else if (durationFilter === '3') matchesDuration = d === 3;
-      else if (durationFilter === '3plus') matchesDuration = d > 3;
+      if (durationMode === 'bucket') {
+        if (durationFilter === '1') matchesDuration = d <= 1;
+        else if (durationFilter === '2') matchesDuration = d === 2;
+        else if (durationFilter === '3') matchesDuration = d === 3;
+        else if (durationFilter === '3plus') matchesDuration = d > 3;
+      } else {
+        // exact mode: match the exact minute value (stored as string in durationFilter)
+        matchesDuration = d === Number(durationFilter);
+      }
     }
 
     return matchesSearch && matchesCategory && matchesDuration;
   });
+
+  // Unique exact durations for the Educational tab (derived from currently visible edu templates before duration filtering)
+  const exactDurations = activeCategory === 'educational'
+    ? Array.from(new Set(
+        allTemplates
+          .filter(t => t.category === 'educational')
+          .map(t => t.target_duration_minutes ?? 0)
+          .filter(d => d > 0)
+      )).sort((a, b) => a - b)
+    : [];
 
   // Sort: trending first, then featured, then by use count
   const sortedTemplates = [...filteredTemplates].sort((a, b) => {

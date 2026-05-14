@@ -347,6 +347,64 @@ export default function Landing() {
       </Chapter>
       <Divider size="lg" />
 
+      {/* Enter the Studio — gateway to the full capability tour */}
+      <section id="studio" className="relative z-10 py-32 md:py-44 px-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(60% 70% at 50% 40%, hsla(212,100%,52%,0.10), transparent 70%)',
+          }}
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
+            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+            <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">
+              The Studio · Take the Tour
+            </span>
+          </div>
+          <h2
+            className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            Step inside.{' '}
+            <span
+              className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Every craft, one room.
+            </span>
+          </h2>
+          <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
+            A guided tour through every capability — text-to-video, avatars, voice,
+            score, character lock, the editor and the engine that moves it all.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => navigate('/studio')}
+              className="h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.04] shadow-[0_20px_60px_-20px_rgba(255,255,255,0.4)]"
+            >
+              Enter the Studio
+            </button>
+            <button
+              onClick={handleStart}
+              className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
+            >
+              Skip the tour, start now
+            </button>
+          </div>
+        </motion.div>
+      </section>
+
+      <Divider size="lg" />
+
       {/* Pricing anchor — keep simple, link to /pricing */}
       <section id="pricing" className="relative z-10 py-40 md:py-56 px-6">
         {/* Subtle radial spotlight behind pricing */}

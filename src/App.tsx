@@ -29,6 +29,7 @@ import { CommandPalette } from "@/components/agent/CommandPalette";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
+const Studio = lazy(() => import("./pages/Studio"));
 const Projects = lazy(() => import("./pages/Projects"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
@@ -296,6 +297,11 @@ const App = () => {
                 <Route path="/how-it-works" element={
                   <RouteContainer>
                     <AdaptiveShell><HowItWorks /></AdaptiveShell>
+                  </RouteContainer>
+                } />
+                <Route path="/studio" element={
+                  <RouteContainer fallbackMessage="Entering the studio…">
+                    <Studio />
                   </RouteContainer>
                 } />
                 

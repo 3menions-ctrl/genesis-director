@@ -4,6 +4,7 @@ import { Logo } from '@/components/ui/Logo';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 const SCROLL_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
+const ROUTE_ITEMS = [{ label: 'Studio', path: '/studio' }] as const;
 
 interface NavigationProps {
   onScrollToSection: (target: string) => void;
@@ -31,6 +32,15 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
                 className="px-4 py-1.5 text-[13px] text-white/45 hover:text-white rounded-lg hover:bg-white/[0.06] transition-all duration-200 font-medium tracking-wide"
               >
                 {item}
+              </button>
+            ))}
+            {ROUTE_ITEMS.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => onNavigate(item.path)}
+                className="px-4 py-1.5 text-[13px] text-white/45 hover:text-white rounded-lg hover:bg-white/[0.06] transition-all duration-200 font-medium tracking-wide"
+              >
+                {item.label}
               </button>
             ))}
           </div>

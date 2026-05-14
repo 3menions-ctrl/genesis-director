@@ -173,6 +173,192 @@ function VideoTile({
   );
 }
 
+/* ---------------- Cinematic global overlays & utilities ----------- */
+
+/** Top-of-page film-progress bar that fills as you scroll. */
+function ScrollProgressBar() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4 });
+  return (
+    <motion.div
+      aria-hidden
+      style={{ scaleX, transformOrigin: '0% 50%' }}
+      className="fixed top-0 left-0 right-0 h-[2px] z-[60] bg-gradient-to-r from-[#0A84FF] via-[#5AC8FA] to-[#9DCBFF] shadow-[0_0_20px_rgba(10,132,255,0.6)]"
+    />
+  );
+}
+
+/** Soft cursor-following spotlight — gives the page a premium, alive feel. */
+function CursorSpotlight() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const isFine = window.matchMedia('(pointer: fine)').matches;
+    if (!isFine) return;
+    let raf = 0;
+    let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+    let cx = tx, cy = ty;
+    const onMove = (e: MouseEvent) => { tx = e.clientX; ty = e.clientY; };
+    const tick = () => {
+      cx += (tx - cx) * 0.08;
+      cy += (ty - cy) * 0.08;
+      if (ref.current) ref.current.style.transform = `translate3d(${cx - 320}px, ${cy - 320}px, 0)`;
+      raf = requestAnimationFrame(tick);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    raf = requestAnimationFrame(tick);
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
+  }, []);
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[5] overflow-hidden mix-blend-screen">
+      <div
+        ref={ref}
+        className="w-[640px] h-[640px] rounded-full opacity-[0.18]"
+        style={{ background: 'radial-gradient(circle at center, rgba(10,132,255,0.6) 0%, rgba(10,132,255,0.15) 35%, transparent 65%)' }}
+      />
+    </div>
+  );
+}
+
+/** Subtle animated film grain — sits over everything. */
+function GrainOverlay() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[55] opacity-[0.06] mix-blend-overlay"
+      style={{
+        backgroundImage:
+          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>\")",
+        animation: 'grain 1.6s steps(6) infinite',
+      }}
+    />
+  );
+}
+
+/** Magnetic button — subtle pull toward cursor for premium tactility. */
+function MagneticButton({
+  children, onClick, className = '', strength = 0.35,
+}: { children: React.ReactNode; onClick?: () => void; className?: string; strength?: number }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const onMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const el = ref.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) * strength;
+    const dy = (e.clientY - (r.top + r.height / 2)) * strength;
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+  const onLeave = () => { const el = ref.current; if (el) el.style.transform = 'translate(0,0)'; };
+  return (
+    <button
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onClick={onClick}
+      className={`transition-transform duration-300 ease-out ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Counts a numeric value into view when scrolled to. */
+function AnimatedNumber({
+  value, suffix = '', duration = 1800, decimals = 0,
+}: { value: number; suffix?: string; duration?: number; decimals?: number }) {
+  const [n, setN] = useState(0);
+  const elRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = elRef.current; if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      const start = performance.now();
+      const tick = (t: number) => {
+        const p = Math.min(1, (t - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setN(value * eased);
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      io.disconnect();
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [value, duration]);
+  return <span ref={elRef}>{n.toFixed(decimals)}{suffix}</span>;
+}
+
+/** Cinematic stats strip — placed beneath the Hero. */
+function StatsBand() {
+  const items: { value: number; suffix: string; label: string; decimals?: number }[] = [
+    { value: 5,  suffix: '',  label: 'AI engines conducted' },
+    { value: 70, suffix: '+', label: 'Locked-identity avatars' },
+    { value: 30, suffix: '+', label: 'Languages re-voiced' },
+    { value: 8,  suffix: 's', label: 'First frame in' },
+  ];
+  return (
+    <section className="relative px-6 py-20 border-b border-white/[0.05] bg-gradient-to-b from-black/30 via-transparent to-transparent">
+      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.05] rounded-3xl overflow-hidden border border-white/[0.06]">
+        {items.map((it, i) => (
+          <motion.div
+            key={it.label}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10%' }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
+            className="relative bg-[hsl(220,14%,2%)] p-8 md:p-10 group overflow-hidden"
+          >
+            <div aria-hidden className="absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+                 style={{ background: 'radial-gradient(60% 60% at 30% 0%, rgba(10,132,255,0.15), transparent 70%)' }} />
+            <div className="font-display text-5xl md:text-6xl text-white tracking-[-0.04em]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <AnimatedNumber value={it.value} suffix={it.suffix} decimals={it.decimals ?? 0} />
+            </div>
+            <div className="mt-3 text-[10.5px] uppercase tracking-[0.28em] text-white/45">{it.label}</div>
+            <div aria-hidden className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Cinematic film-perforation divider between sections. */
+function FilmDivider() {
+  return (
+    <div aria-hidden className="relative py-6 overflow-hidden">
+      <div className="h-[18px] w-full opacity-50"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,0.06) 22px 30px)',
+        }}
+      />
+    </div>
+  );
+}
+
+/** Vertical-flip rotating word — cinematic typography animation. */
+function RotatingWord({ words, interval = 2400 }: { words: string[]; interval?: number }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % words.length), interval);
+    return () => clearInterval(t);
+  }, [words.length, interval]);
+  return (
+    <span className="relative inline-block align-baseline overflow-hidden" style={{ minWidth: '4ch' }}>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={words[i]}
+          initial={{ y: '90%', opacity: 0 }}
+          animate={{ y: '0%', opacity: 1 }}
+          exit={{ y: '-90%', opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="inline-block"
+        >
+          {words[i]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 /* =================================================================== */
 /*                                PAGE                                  */
 /* =================================================================== */
@@ -201,12 +387,18 @@ export default function Studio() {
 
   return (
     <PublicMarketingShell>
+      <ScrollProgressBar />
+      <CursorSpotlight />
+      <GrainOverlay />
       <Hero onEnter={handleEnter} />
       <FilmstripTicker />
+      <StatsBand />
       <EnginesSection />
+      <FilmDivider />
       <CapabilitiesBento />
       <AvatarCast />
       <EnvironmentsSection />
+      <FilmDivider />
       <TemplatesShowcase />
       <ScenesReel />
       <PipelineSection />
@@ -268,7 +460,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           The studio,<br />
-          <Italic>not the software.</Italic>
+          <Italic>not the <RotatingWord words={["software.", "tool.", "template.", "shortcut."]} /></Italic>
         </motion.h1>
 
         <motion.p
@@ -286,13 +478,14 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 1, delay: 0.4 }}
           className="mt-12 flex flex-col sm:flex-row items-start gap-4"
         >
-          <button
+          <MagneticButton
             onClick={onEnter}
-            className="group h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.04] shadow-[0_20px_60px_-20px_rgba(255,255,255,0.4)] inline-flex items-center gap-2.5"
+            className="group relative h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_20px_60px_-20px_rgba(255,255,255,0.5)] inline-flex items-center gap-2.5 overflow-hidden"
           >
-            Enter the Studio
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
+            <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-[#0A84FF]/20 to-transparent" />
+            <span className="relative z-10">Enter the Studio</span>
+            <ArrowRight className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </MagneticButton>
           <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all inline-flex items-center gap-2 border border-white/[0.08]">
             <Play className="w-3.5 h-3.5" /> Take the tour
           </a>

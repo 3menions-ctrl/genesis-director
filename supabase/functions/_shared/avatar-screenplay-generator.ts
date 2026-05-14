@@ -690,6 +690,8 @@ function createFallbackScreenplay(
       startPose: 'Standing naturally, facing camera, hands at sides',
       endPose: 'Same position with slight weight shift',
       visualContinuity: 'Same character, outfit, and environment',
+      respondsTo: i === 0 ? '' : 'reacting to the previous beat',
+      handoffCue: i === clipCount - 1 ? '' : 'lands a line that invites the other to respond',
     });
   }
   

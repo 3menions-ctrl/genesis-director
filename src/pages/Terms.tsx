@@ -8,7 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Terms = () => {
-  usePageMeta({ title: 'Terms of Service — Genesis Director', description: 'Read the terms and conditions governing your use of the Genesis Director platform.' });
+  usePageMeta({ title: 'Terms of Service — Apex-Studio', description: 'Read the terms and conditions governing your use of the Apex-Studio platform.' });
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
       {/* Abstract Background */}

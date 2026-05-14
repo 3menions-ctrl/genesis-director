@@ -5265,7 +5265,7 @@ Experience the future of production by heading to **Apex-Studio** today. High-fi
 const ALL_BLOG_ARTICLES = [...BLOG_ARTICLES, ...ADDITIONAL_ARTICLES, ...NEW_ARTICLES, ...SET_3_ARTICLES];
 
 export default function Blog() {
-  usePageMeta({ title: 'Blog — Genesis Director', description: 'Insights on AI video creation, avatar generation, and the future of filmmaking with Genesis Director.' });
+  usePageMeta({ title: 'Blog — Apex-Studio', description: 'Insights on AI video creation, avatar generation, and the future of filmmaking with Apex-Studio.' });
   const [selectedArticle, setSelectedArticle] = useState<BlogArticle | null>(null);
 
   if (selectedArticle) {

@@ -1103,6 +1103,34 @@ export default function StartOnboarding() {
                   <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5">
                     <Users className="w-3 h-3" /> Invites are sent after billing. Skip to do this later.
                   </p>
+                  {/* Optional billing details merged into the final step. */}
+                  <div className="pt-4 border-t border-white/[0.06]">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Receipt className="w-3.5 h-3.5 text-[#9DCBFF]" /> Billing details (optional)
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <Field label="Billing email">
+                        <div className="relative">
+                          <Receipt className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                          <input
+                            type="email"
+                            placeholder="ap@company.com"
+                            value={form.billing_email}
+                            onChange={(e) => setForm(f => ({ ...f, billing_email: e.target.value }))}
+                            className={cn(inputCls, 'pl-10')}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="VAT / Tax ID">
+                        <input
+                          placeholder="EU123456789"
+                          value={form.vat_id}
+                          onChange={(e) => setForm(f => ({ ...f, vat_id: e.target.value }))}
+                          className={inputCls}
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 </div>
               )}
 

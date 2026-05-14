@@ -703,7 +703,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 setResendingOtp(false);
                               }
                             }}
-                            className="text-xs text-white/40 hover:text-white/70 transition-colors disabled:opacity-50"
+                            className="text-xs text-white/75 hover:text-white/70 transition-colors disabled:opacity-50"
                           >
                             {resendingOtp ? 'Sending...' : "Didn't get a code? Resend"}
                           </button>
@@ -711,7 +711,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           <button
                             type="button"
                             onClick={() => { setPendingEmailConfirmation(null); setOtpCode(''); setPassword(''); setConfirmPassword(''); }}
-                            className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                            className="text-xs text-white/65 hover:text-white/60 transition-colors"
                           >
                             Use a different email
                           </button>
@@ -742,7 +742,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           <h2 className="text-[32px] sm:text-[36px] font-display font-semibold text-white mb-2 tracking-[-0.03em] leading-[1.05]">
                             {isLogin ? 'Sign in' : 'Create account'}
                           </h2>
-                          <p className="text-white/40 text-[13px]">
+                          <p className="text-white/75 text-[13px]">
                             {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
                           </p>
                         </div>
@@ -760,7 +760,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               </div>
                               <div>
                                 <p className="text-[13px] font-medium text-white tracking-tight">Your video is ready to create</p>
-                                <p className="text-[11px] text-white/40">Sign up to bring your vision to life</p>
+                                <p className="text-[11px] text-white/75">Sign up to bring your vision to life</p>
                               </div>
                             </div>
                           </motion.div>
@@ -773,7 +773,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               Email
                             </Label>
                             <div className="relative group">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
+                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                               <Input
                                 id="email"
                                 type="email"
@@ -813,7 +813,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               )}
                             </div>
                             <div className="relative group">
-                              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
+                              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                               <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
@@ -835,7 +835,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/65 hover:text-white/70 transition-colors"
                               >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
@@ -869,7 +869,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 Confirm Password
                               </Label>
                               <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                                 <Input
                                   id="confirmPassword"
                                   type={showConfirmPassword ? 'text' : 'password'}
@@ -891,7 +891,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 <button
                                   type="button"
                                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/65 hover:text-white/70 transition-colors"
                                 >
                                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
@@ -1011,7 +1011,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         )}
 
                         {/* Toggle Mode */}
-                        <p className="text-center text-[13px] text-white/40 mt-7">
+                        <p className="text-center text-[13px] text-white/75 mt-7">
                           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
                           <button
                             type="button"
@@ -1036,7 +1036,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         {/* Terms */}
                         {!isLogin && (
                           <motion.p 
-                            className="text-center text-[11px] text-white/30 mt-4 leading-relaxed"
+                            className="text-center text-[11px] text-white/65 mt-4 leading-relaxed"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3 }}
@@ -1067,7 +1067,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5">
                   <Icon className="w-3 h-3 text-white/25" />
-                  <span className="text-[10px] tracking-wide text-white/30">{text}</span>
+                  <span className="text-[10px] tracking-wide text-white/65">{text}</span>
                 </div>
               ))}
             </motion.div>

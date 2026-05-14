@@ -51,9 +51,9 @@ export const SocialProofTicker = memo(function SocialProofTicker({ suspended = f
         >
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <Icon className="w-3.5 h-3.5 text-white/40" />
-            <span className="text-sm text-white/40">{activity.text}</span>
-            <span className="text-xs text-white/20 ml-1">{activity.time}</span>
+            <Icon className="w-3.5 h-3.5 text-white/75" />
+            <span className="text-sm text-white/75">{activity.text}</span>
+            <span className="text-xs text-white/55 ml-1">{activity.time}</span>
           </div>
         </div>
       </div>

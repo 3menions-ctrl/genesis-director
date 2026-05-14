@@ -109,7 +109,7 @@ export default function WorkspaceNotifications() {
     >
       <Section icon={Bell} label="Event routing" sublabel="Defaults applied to every member of this workspace.">
         {loading ? (
-          <div className="px-2 py-8 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Loading prefs…</div>
+          <div className="px-2 py-8 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">Loading prefs…</div>
         ) : (
           <div className="overflow-x-auto -m-6 mt-2">
             <table className="w-full text-left">

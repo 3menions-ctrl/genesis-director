@@ -164,7 +164,7 @@ export default function WorkspaceApi() {
         )}
 
         {loading ? (
-          <div className="px-2 py-8 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Loading…</div>
+          <div className="px-2 py-8 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">Loading…</div>
         ) : keys.length === 0 ? (
           <EmptyState icon={KeyRound} title="No keys yet"
             body="Generate a workspace-scoped API key to call generation endpoints from your backend. Keys inherit the org credit pool." />
@@ -176,14 +176,14 @@ export default function WorkspaceApi() {
                   <div className="text-[13px] text-white/95 font-light truncate">{k.name}</div>
                   <div className="font-mono text-[11px] text-white/50 mt-0.5">{k.prefix}…</div>
                 </div>
-                <div className="hidden md:block font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                <div className="hidden md:block font-mono text-[10px] uppercase tracking-[0.18em] text-white/75">
                   {k.last_used_at ? `Used ${new Date(k.last_used_at).toLocaleDateString()}` : 'Never used'}
                 </div>
                 {k.revoked_at
                   ? <Pill tone="bad">Revoked</Pill>
                   : <Pill tone="good">Active</Pill>}
                 {canManage && !k.revoked_at && (
-                  <button onClick={() => revokeKey(k)} className="p-2 rounded-lg text-white/40 hover:text-[hsl(0,80%,76%)] hover:bg-white/[0.04] transition" aria-label="Revoke">
+                  <button onClick={() => revokeKey(k)} className="p-2 rounded-lg text-white/75 hover:text-[hsl(0,80%,76%)] hover:bg-white/[0.04] transition" aria-label="Revoke">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}

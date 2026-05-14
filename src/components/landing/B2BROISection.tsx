@@ -37,7 +37,7 @@ export const B2BROISection = memo(function B2BROISection() {
                 <div className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
                   {s.value}
                 </div>
-                <div className="text-[11px] tracking-[0.16em] uppercase text-white/40 mt-2 leading-snug">
+                <div className="text-[11px] tracking-[0.16em] uppercase text-white/75 mt-2 leading-snug">
                   {s.label}
                 </div>
               </div>

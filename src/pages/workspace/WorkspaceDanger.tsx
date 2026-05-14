@@ -139,7 +139,7 @@ export default function WorkspaceDanger() {
                   chosen === m.user_id ? 'border-[hsl(215,100%,55%)] bg-[hsl(215,100%,55%)]/10' : 'border-white/[0.08] hover:bg-white/[0.04]'
                 }`}>
                 <div className="text-[13px] text-white/90">{m.label}</div>
-                <div className="font-mono text-[10px] text-white/40">{m.user_id.slice(0, 12)}…</div>
+                <div className="font-mono text-[10px] text-white/75">{m.user_id.slice(0, 12)}…</div>
               </button>
             ))}
           </div>

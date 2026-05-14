@@ -114,7 +114,7 @@ export default function VideoDetailPage() {
   if (!video) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <p className="text-zinc-500">Video not found</p>
+        <p className="text-zinc-300">Video not found</p>
         <Button onClick={() => navigateTo('/creators')}>Back to Creators</Button>
       </div>
     );
@@ -170,7 +170,7 @@ export default function VideoDetailPage() {
                   className="w-full h-full"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-zinc-500">
+                <div className="flex items-center justify-center h-full text-zinc-300">
                   Video not available
                 </div>
               )}
@@ -185,7 +185,7 @@ export default function VideoDetailPage() {
             <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/[0.06] space-y-4">
               <h2 className="text-lg font-semibold text-white">{video.title}</h2>
               
-              <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-300">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
                   {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
@@ -208,15 +208,15 @@ export default function VideoDetailPage() {
               >
                 <Avatar className="w-12 h-12">
                   <AvatarImage src={video.creator?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-zinc-800 text-zinc-400">
+                  <AvatarFallback className="bg-zinc-800 text-zinc-300">
                     {creatorInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <p className="font-medium text-white">{creatorDisplayName}</p>
-                  <p className="text-sm text-zinc-500">View profile</p>
+                  <p className="text-sm text-zinc-300">View profile</p>
                 </div>
-                <ExternalLink className="w-4 h-4 text-zinc-500" />
+                <ExternalLink className="w-4 h-4 text-zinc-300" />
               </div>
             </div>
           </div>

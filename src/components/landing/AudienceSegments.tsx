@@ -388,7 +388,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
         >
           {/* LEFT — feature index rail */}
           <div className="hidden lg:flex col-span-3 flex-col justify-center gap-1 relative z-10">
-            <div className="text-[10px] font-mono tracking-[0.3em] uppercase text-white/40 mb-4 pl-3">
+            <div className="text-[10px] font-mono tracking-[0.3em] uppercase text-white/75 mb-4 pl-3">
               ◉ Feature Index
             </div>
             {FEATURES.map((f, i) => {
@@ -451,9 +451,9 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
               </div>
               <div className="mt-1">24.000 FPS</div>
             </div>
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] font-mono tracking-[0.28em] uppercase text-white/40 z-20">
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] font-mono tracking-[0.28em] uppercase text-white/75 z-20">
               <span>HUE {String(active.hue).padStart(3, '0')}°</span>
-              <span className="text-white/30">APEX-STUDIO · ENGINE LOOP</span>
+              <span className="text-white/65">APEX-STUDIO · ENGINE LOOP</span>
               <span>SIG · {active.id.toUpperCase()}</span>
             </div>
           </div>

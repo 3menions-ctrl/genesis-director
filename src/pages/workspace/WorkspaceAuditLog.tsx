@@ -103,7 +103,7 @@ export default function WorkspaceAuditLog() {
     >
       <Surface padded={false}>
         {loading ? (
-          <div className="px-5 py-12 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Reading ledger…</div>
+          <div className="px-5 py-12 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">Reading ledger…</div>
         ) : visible.length === 0 ? (
           <EmptyState
             icon={ScrollText}

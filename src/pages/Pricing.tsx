@@ -437,7 +437,7 @@ function CreditDial({ credits, clips, popular }: { credits: number; clips: strin
         <span className="font-display font-semibold text-white text-[28px] tabular-nums tracking-tight leading-none">
           {credits === 0 ? '∞' : credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
         </span>
-        <span className="mt-1 text-[9px] uppercase tracking-[0.28em] text-white/40 font-medium">credits</span>
+        <span className="mt-1 text-[9px] uppercase tracking-[0.28em] text-white/75 font-medium">credits</span>
         <div className="w-7 h-px bg-white/[0.08] my-2" />
         <span className="text-[10px] text-white/45 tabular-nums">{clips} clips</span>
       </div>
@@ -578,7 +578,7 @@ function PricingCard({
               <span className="font-display font-semibold text-white text-[52px] leading-none tabular-nums tracking-[-0.03em]">
                 {pkg.price.toLocaleString()}
               </span>
-              <span className="text-[11px] text-white/30 ml-1">
+              <span className="text-[11px] text-white/65 ml-1">
                 {pkg.interval ? `/ ${pkg.interval}` : 'one-time'}
               </span>
             </>
@@ -642,7 +642,7 @@ function PricingCard({
 
 function MatrixCell({ value }: { value: string | boolean }) {
   if (value === true) return <Check className="w-4 h-4 text-[hsl(var(--primary))] mx-auto" />;
-  if (value === false) return <span className="text-white/20">—</span>;
+  if (value === false) return <span className="text-white/55">—</span>;
   return <span className="text-[12px] text-white/70">{value}</span>;
 }
 
@@ -793,7 +793,7 @@ export default function Pricing() {
             </p>
 
             {/* Diagnostic ticker — signature */}
-            <div className="mt-8 inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+            <div className="mt-8 inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
               {['Engine', 'Render', 'Stream'].map((t, i) => (
                 <span key={t} className="inline-flex items-center gap-1.5">
                   <span
@@ -996,7 +996,7 @@ export default function Pricing() {
       </section>
 
       <div className="relative z-10 pb-12 text-center">
-        <Link to="/" className="text-[12px] text-white/20 hover:text-white/40 transition-colors">
+        <Link to="/" className="text-[12px] text-white/55 hover:text-white/75 transition-colors">
           ← Back to home
         </Link>
       </div>

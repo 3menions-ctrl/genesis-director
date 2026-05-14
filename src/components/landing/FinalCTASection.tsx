@@ -20,7 +20,7 @@ export const FinalCTASection = memo(forwardRef<HTMLElement, FinalCTASectionProps
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
               Ready to create?
             </h2>
-            <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">
+            <p className="text-lg text-white/75 mb-10 max-w-md mx-auto">
               Join thousands of creators making videos with AI.
             </p>
             <Button

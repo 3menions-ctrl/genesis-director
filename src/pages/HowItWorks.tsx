@@ -186,14 +186,14 @@ const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPE
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs font-mono text-white/30 tracking-widest">LAYER {layer.number}</span>
+                  <span className="text-xs font-mono text-white/65 tracking-widest">LAYER {layer.number}</span>
                   <h3 className="text-xl md:text-2xl font-semibold text-white tracking-tight">{layer.title}</h3>
                 </div>
               </div>
             </div>
 
             <p className="text-sm font-medium text-white/50 mb-3 tracking-wide uppercase">{layer.subtitle}</p>
-            <p className="text-[15px] text-white/40 leading-relaxed mb-6">{layer.description}</p>
+            <p className="text-[15px] text-white/75 leading-relaxed mb-6">{layer.description}</p>
 
             {/* Detail list */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -291,8 +291,8 @@ export default function HowItWorks() {
             This is what separates a production pipeline from a text field.
           </p>
 
-          <p className="text-sm text-white/20 mb-12">
-            Powered by <span className="text-white/40 font-medium">Kling V3</span> — orchestrated by Apex
+          <p className="text-sm text-white/55 mb-12">
+            Powered by <span className="text-white/75 font-medium">Kling V3</span> — orchestrated by Apex
           </p>
         </motion.div>
 
@@ -302,7 +302,7 @@ export default function HowItWorks() {
           transition={{ delay: 1.2 }}
           className="absolute bottom-8"
         >
-          <ChevronDown className="w-6 h-6 text-white/20 animate-bounce" style={{ animationDuration: '2s' }} />
+          <ChevronDown className="w-6 h-6 text-white/55 animate-bounce" style={{ animationDuration: '2s' }} />
         </motion.div>
       </motion.section>
 
@@ -361,7 +361,7 @@ export default function HowItWorks() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-white/10 shrink-0" />
-                  <span className="text-sm text-white/30 line-through decoration-white/10">{point.raw}</span>
+                  <span className="text-sm text-white/65 line-through decoration-white/10">{point.raw}</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-white/15 hidden md:block" />
                 <div className="flex items-center gap-3">
@@ -394,7 +394,7 @@ export default function HowItWorks() {
               <ArrowRight className="w-5 h-5 ml-3" />
             </Link>
           </Button>
-          <p className="mt-5 text-sm text-white/20">Credit packs start at $9 · No subscription required</p>
+          <p className="mt-5 text-sm text-white/55">Credit packs start at $9 · No subscription required</p>
         </motion.div>
       </section>
 
@@ -402,7 +402,7 @@ export default function HowItWorks() {
       <footer className="relative z-10 border-t border-white/[0.05] py-12 px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="sm" showText textClassName="text-sm" />
-          <div className="flex items-center gap-6 text-sm text-white/30">
+          <div className="flex items-center gap-6 text-sm text-white/65">
             <Link to="/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-white/60 transition-colors">Terms</Link>
             <Link to="/contact" className="hover:text-white/60 transition-colors">Contact</Link>

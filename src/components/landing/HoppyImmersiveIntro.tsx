@@ -248,7 +248,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
                 <ArrowRight className="w-4 h-4" />
               </span>
             </motion.button>
-            <p className="text-[10px] tracking-[0.28em] uppercase text-white/40">
+            <p className="text-[10px] tracking-[0.28em] uppercase text-white/75">
               Esc to skip · M to {muted ? 'unmute' : 'mute'}
             </p>
           </div>

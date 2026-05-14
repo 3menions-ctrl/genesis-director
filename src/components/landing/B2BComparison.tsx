@@ -27,7 +27,7 @@ export const B2BComparison = memo(function B2BComparison() {
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight leading-[1.05]">
             Stop renting a video team.<br className="hidden md:block" />
-            <span className="text-white/40">Start owning a studio.</span>
+            <span className="text-white/75">Start owning a studio.</span>
           </h2>
         </motion.div>
 
@@ -70,7 +70,7 @@ export const B2BComparison = memo(function B2BComparison() {
               <div className="text-sm text-white/85 font-medium tracking-tight">
                 {row.label}
               </div>
-              <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-white/40">
+              <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-white/75">
                 <X className="w-3.5 h-3.5 text-rose-400/60 shrink-0" strokeWidth={2.5} />
                 <span className="text-center line-through decoration-white/15">{row.old}</span>
               </div>

@@ -101,7 +101,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                 intelligence
               </span>
             </h2>
-            <p className="text-base md:text-lg text-white/30 max-w-lg mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-white/65 max-w-lg mx-auto leading-relaxed">
               Between your idea and the final frame — every shot passes through our cinematic AI stack.
             </p>
           </motion.div>
@@ -182,7 +182,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                       <span className="text-2xl md:text-3xl font-bold tabular-nums" style={{ color: layer.color }}>
                         {layer.stat}
                       </span>
-                      <span className="text-[10px] uppercase tracking-widest text-white/30 font-medium">
+                      <span className="text-[10px] uppercase tracking-widest text-white/65 font-medium">
                         {layer.statLabel}
                       </span>
                     </div>
@@ -211,7 +211,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.35 }}
-                className="text-sm md:text-base text-white/40 text-center max-w-md mt-8 leading-relaxed"
+                className="text-sm md:text-base text-white/75 text-center max-w-md mt-8 leading-relaxed"
               >
                 {layer.desc}
               </motion.p>
@@ -220,13 +220,13 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
             {/* Navigation arrows */}
             <button
               onClick={goPrev}
-              className="absolute left-0 md:-left-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/40 hover:text-white transition-all duration-300"
+              className="absolute left-0 md:-left-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={goNext}
-              className="absolute right-0 md:-right-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/40 hover:text-white transition-all duration-300"
+              className="absolute right-0 md:-right-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -265,7 +265,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
 
           {/* Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-white/[0.05]">
-            <p className="text-xs text-white/20 tracking-wide">
+            <p className="text-xs text-white/55 tracking-wide">
               Powered by <span className="text-[#0A84FF]/80 font-medium">Seedance 2.0</span> — orchestrated by Apex
             </p>
             <Link

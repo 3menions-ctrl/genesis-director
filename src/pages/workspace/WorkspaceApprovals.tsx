@@ -108,7 +108,7 @@ export default function WorkspaceApprovals() {
       actions={<Pill tone={pending.length > 0 ? 'amber' : 'neutral'}>QUEUE · {pending.length}</Pill>}
     >
       {loading ? (
-        <Surface><div className="px-2 py-10 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Loading queue…</div></Surface>
+        <Surface><div className="px-2 py-10 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">Loading queue…</div></Surface>
       ) : pending.length === 0 && closed.length === 0 ? (
         <Surface>
           <EmptyState icon={CheckCircle2} title="Nothing pending review"
@@ -125,11 +125,11 @@ export default function WorkspaceApprovals() {
                       <div className="w-14 h-14 rounded-xl border border-white/[0.06] bg-white/[0.03] flex items-center justify-center overflow-hidden shrink-0">
                         {row.project_thumb
                           ? <img src={row.project_thumb} alt="" className="w-full h-full object-cover" />
-                          : <Film className="w-4 h-4 text-white/30" />}
+                          : <Film className="w-4 h-4 text-white/65" />}
                       </div>
                       <div className="min-w-0">
                         <div className="text-[13px] text-white/95 font-light truncate">{row.project_title}</div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40 mt-1">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/75 mt-1">
                           Submitted {new Date(row.created_at).toLocaleString()}
                         </div>
                         {row.note && <div className="text-[12px] text-white/55 mt-2 italic">"{row.note}"</div>}
@@ -160,13 +160,13 @@ export default function WorkspaceApprovals() {
 
           {closed.length > 0 && (
             <Surface padded={false} className="mt-6">
-              <div className="px-5 py-3 border-b border-white/[0.05] font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">
+              <div className="px-5 py-3 border-b border-white/[0.05] font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">
                 Recent decisions
               </div>
               <ul className="divide-y divide-white/[0.05]">
                 {closed.slice(0, 50).map(row => (
                   <li key={row.id} className="px-5 py-3 flex items-center gap-4">
-                    <Clock className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-white/65 shrink-0" />
                     <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 w-44 shrink-0">
                       {row.reviewed_at ? new Date(row.reviewed_at).toLocaleString() : '—'}
                     </div>

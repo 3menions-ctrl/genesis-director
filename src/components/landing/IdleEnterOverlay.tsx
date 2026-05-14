@@ -191,7 +191,7 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
               animate={{ opacity: 1 }}
               transition={{ delay: 1, duration: 0.6 }}
               onClick={dismiss}
-              className="mt-10 text-[11px] tracking-[0.22em] uppercase text-white/40 hover:text-white/70 transition-colors"
+              className="mt-10 text-[11px] tracking-[0.22em] uppercase text-white/75 hover:text-white/70 transition-colors"
             >
               Continue browsing
             </motion.button>

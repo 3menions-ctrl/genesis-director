@@ -42,7 +42,7 @@ export const HeroSection = memo(forwardRef<HTMLElement, HeroSectionProps>(
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.4 }}
-            className="text-base md:text-lg text-white/30 tracking-[0.3em] uppercase mb-16"
+            className="text-base md:text-lg text-white/65 tracking-[0.3em] uppercase mb-16"
           >
             One Prompt. Minutes of Cinema.
           </motion.p>

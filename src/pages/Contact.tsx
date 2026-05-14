@@ -62,7 +62,7 @@ const Contact = () => {
         >
           <Link 
             to="/" 
-            className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors mb-12 group"
+            className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-12 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Home</span>
@@ -79,7 +79,7 @@ const Contact = () => {
           <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
             Contact Us
           </h1>
-          <p className="text-lg text-white/40 max-w-md mx-auto">
+          <p className="text-lg text-white/75 max-w-md mx-auto">
             Have questions? We're here to help. Reach out and we'll get back to you as soon as possible.
           </p>
         </motion.div>
@@ -94,7 +94,7 @@ const Contact = () => {
           >
             <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-                <Send className="w-5 h-5 text-white/40" />
+                <Send className="w-5 h-5 text-white/75" />
                 Send us a message
               </h2>
               
@@ -110,7 +110,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Your name"
                       required
-                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
                   
@@ -125,7 +125,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="you@example.com"
                       required
-                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
                 </div>
@@ -140,7 +140,7 @@ const Contact = () => {
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="How can we help?"
                     required
-                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                   />
                 </div>
                 
@@ -155,7 +155,7 @@ const Contact = () => {
                     placeholder="Tell us more about your inquiry..."
                     rows={5}
                     required
-                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
+                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
                   />
                 </div>
                 
@@ -187,7 +187,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-white mb-1">Email Support</h3>
-                    <p className="text-white/40 text-sm mb-2">
+                    <p className="text-white/75 text-sm mb-2">
                       For general inquiries and support
                     </p>
                     <a 
@@ -205,7 +205,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-white mb-1">Business Inquiries</h3>
-                    <p className="text-white/40 text-sm mb-2">
+                    <p className="text-white/75 text-sm mb-2">
                       For partnerships and enterprise
                     </p>
                     <a 
@@ -223,7 +223,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-white mb-1">Response Time</h3>
-                    <p className="text-white/40 text-sm">
+                    <p className="text-white/75 text-sm">
                       We typically respond within 24-48 hours during business days.
                     </p>
                   </div>
@@ -234,7 +234,7 @@ const Contact = () => {
             {/* FAQ Card */}
             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
               <h3 className="font-medium text-white mb-2">Frequently Asked Questions</h3>
-              <p className="text-white/40 text-sm mb-4">
+              <p className="text-white/75 text-sm mb-4">
                 Before reaching out, you might find your answer in our FAQ section.
               </p>
               <Button 

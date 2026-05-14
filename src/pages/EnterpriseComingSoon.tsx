@@ -100,7 +100,7 @@ export default function EnterpriseComingSoon() {
               <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display">
                 Apex<span className="text-white/85 mx-[1px]">-</span>Studio
               </span>
-              <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
+              <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/65 mt-[4px]">
                 Enterprise Suite
               </span>
             </div>
@@ -240,7 +240,7 @@ export default function EnterpriseComingSoon() {
                 />
 
                 <div>
-                  <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/40 mb-2">
+                  <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/75 mb-2">
                     Team size
                   </label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -265,7 +265,7 @@ export default function EnterpriseComingSoon() {
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/40 mb-2">
+                  <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/75 mb-2">
                     What will you build? <span className="text-white/25 normal-case tracking-normal">(optional)</span>
                   </label>
                   <textarea
@@ -302,7 +302,7 @@ export default function EnterpriseComingSoon() {
                 )}
               </button>
 
-              <p className="mt-4 text-center text-[11px] text-white/30 font-light">
+              <p className="mt-4 text-center text-[11px] text-white/65 font-light">
                 By submitting you agree to be contacted by our enterprise team.
               </p>
             </>
@@ -326,7 +326,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/40 mb-2">
+      <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-white/75 mb-2">
         {label}
       </label>
       <input

@@ -105,7 +105,7 @@ function RoadmapIntegration({
     <Surface>
       <div className="flex items-start gap-4">
         <div className="w-10 h-10 rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.06] to-white/[0.015] flex items-center justify-center shrink-0">
-          <Icon className="w-4 h-4 text-white/40" strokeWidth={1.5} />
+          <Icon className="w-4 h-4 text-white/75" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

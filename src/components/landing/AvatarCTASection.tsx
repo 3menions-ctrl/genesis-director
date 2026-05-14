@@ -107,7 +107,7 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Ready to create?
             </h2>
-            <p className="text-lg text-white/40 mb-8 max-w-md">
+            <p className="text-lg text-white/75 mb-8 max-w-md">
               Join thousands of creators making videos with AI.
               Credits are just $0.10 each — no subscriptions.
             </p>

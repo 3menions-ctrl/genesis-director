@@ -104,7 +104,7 @@ export default function WorkspaceSecurity() {
               <Lock className="w-3 h-3" /> Require 2FA
             </CmdButton>
           )}
-          {!canEdit && <span className="text-[11px] text-white/40 font-mono">Admin role required</span>}
+          {!canEdit && <span className="text-[11px] text-white/75 font-mono">Admin role required</span>}
         </div>
       </Section>
 
@@ -112,7 +112,7 @@ export default function WorkspaceSecurity() {
         sublabel="Claim your email domain so new signups land in this workspace automatically."
         action={<Pill tone={verifiedCount ? 'good' : 'neutral'}>{verifiedCount}/{domains.length} VERIFIED</Pill>}>
         {domains.length === 0 && (
-          <p className="text-[12px] text-white/40 mb-4 font-light">No domains yet. Add one below.</p>
+          <p className="text-[12px] text-white/75 mb-4 font-light">No domains yet. Add one below.</p>
         )}
         <ul className="space-y-2 mb-5">
           {domains.map((d) => (
@@ -120,7 +120,7 @@ export default function WorkspaceSecurity() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-white/90 font-display">{d.domain}</div>
-                  <div className="font-mono text-[10px] text-white/40 mt-0.5 break-all">
+                  <div className="font-mono text-[10px] text-white/75 mt-0.5 break-all">
                     TXT  apex-verify={d.verification_token}
                   </div>
                 </div>
@@ -135,7 +135,7 @@ export default function WorkspaceSecurity() {
                 )}
                 {canEdit && (
                   <button onClick={() => remove(d)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Remove">
-                    <Trash2 className="w-3.5 h-3.5 text-white/40 hover:text-[hsl(0,80%,70%)]" />
+                    <Trash2 className="w-3.5 h-3.5 text-white/75 hover:text-[hsl(0,80%,70%)]" />
                   </button>
                 )}
               </div>

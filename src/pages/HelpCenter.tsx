@@ -1395,25 +1395,25 @@ export default function HelpCenter() {
                 >
                   <Link 
                     to="/" 
-                    className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors mb-8"
+                    className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-8"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Home
                   </Link>
                   
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Help Center</h1>
-                  <p className="text-lg text-white/40 max-w-2xl mx-auto mb-8">
+                  <p className="text-lg text-white/75 max-w-2xl mx-auto mb-8">
                     Find answers, learn best practices, and get the most out of Apex-Studio
                   </p>
 
                   {/* Search */}
                   <div className="relative max-w-xl mx-auto">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/65" />
                     <Input
                       placeholder="Search for help..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-14 pl-12 pr-4 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 rounded-2xl focus:border-white/20 focus:ring-0"
+                      className="h-14 pl-12 pr-4 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 rounded-2xl focus:border-white/20 focus:ring-0"
                     />
                   </div>
                 </motion.div>
@@ -1446,9 +1446,9 @@ export default function HelpCenter() {
                               <h3 className="text-white font-medium group-hover:text-white/90">
                                 {article.title}
                               </h3>
-                              <p className="text-white/40 text-sm mt-1">{article.description}</p>
+                              <p className="text-white/75 text-sm mt-1">{article.description}</p>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/40 transition-colors" />
+                            <ChevronRight className="w-5 h-5 text-white/55 group-hover:text-white/75 transition-colors" />
                           </div>
                         </button>
                       ))}
@@ -1462,9 +1462,9 @@ export default function HelpCenter() {
                     animate={{ opacity: 1 }}
                     className="text-center py-12 mb-12"
                   >
-                    <HelpCircle className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                    <p className="text-white/40">No results found for "{searchQuery}"</p>
-                    <p className="text-white/30 text-sm mt-2">Try different keywords or browse categories below</p>
+                    <HelpCircle className="w-12 h-12 text-white/55 mx-auto mb-4" />
+                    <p className="text-white/75">No results found for "{searchQuery}"</p>
+                    <p className="text-white/65 text-sm mt-2">Try different keywords or browse categories below</p>
                   </motion.div>
                 )}
 
@@ -1492,9 +1492,9 @@ export default function HelpCenter() {
                               <h3 className="text-white font-medium group-hover:text-white/90">
                                 {article.title}
                               </h3>
-                              <p className="text-white/40 text-sm mt-1">{article.description}</p>
+                              <p className="text-white/75 text-sm mt-1">{article.description}</p>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/40 flex-shrink-0 ml-4" />
+                            <ChevronRight className="w-5 h-5 text-white/55 group-hover:text-white/75 flex-shrink-0 ml-4" />
                           </div>
                         </button>
                       ))}
@@ -1533,11 +1533,11 @@ export default function HelpCenter() {
                                 </div>
                                 <div className="text-left">
                                   <h3 className="text-white font-medium">{category.title}</h3>
-                                  <p className="text-white/40 text-sm">{category.description}</p>
+                                  <p className="text-white/75 text-sm">{category.description}</p>
                                 </div>
                               </div>
                               <ChevronDown className={cn(
-                                "w-5 h-5 text-white/30 transition-transform",
+                                "w-5 h-5 text-white/65 transition-transform",
                                 isExpanded && "rotate-180"
                               )} />
                             </button>
@@ -1564,7 +1564,7 @@ export default function HelpCenter() {
                                         className="group w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors"
                                       >
                                         <div className="flex items-center gap-3">
-                                          <FileText className="w-4 h-4 text-white/30" />
+                                          <FileText className="w-4 h-4 text-white/65" />
                                           <span className="text-white/70 group-hover:text-white transition-colors">
                                             {article.title}
                                           </span>
@@ -1574,7 +1574,7 @@ export default function HelpCenter() {
                                             </Badge>
                                           )}
                                         </div>
-                                        <span className="text-white/30 text-sm">{article.readTime}</span>
+                                        <span className="text-white/65 text-sm">{article.readTime}</span>
                                       </button>
                                     ))}
                                   </div>
@@ -1595,9 +1595,9 @@ export default function HelpCenter() {
                   transition={{ delay: 0.3 }}
                   className="mt-12 p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] text-center"
                 >
-                  <MessageCircle className="w-10 h-10 text-white/30 mx-auto mb-4" />
+                  <MessageCircle className="w-10 h-10 text-white/65 mx-auto mb-4" />
                   <h2 className="text-xl font-semibold text-white mb-2">Still need help?</h2>
-                  <p className="text-white/40 mb-6">
+                  <p className="text-white/75 mb-6">
                     Our support team is ready to assist you with any questions
                   </p>
                   <Button

@@ -111,7 +111,7 @@ export const B2BGlassFeatures = memo(function B2BGlassFeatures() {
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] max-w-3xl mx-auto">
             One workspace.{' '}
-            <span className="text-white/40">A complete</span>{' '}
+            <span className="text-white/75">A complete</span>{' '}
             video production studio.
           </h2>
           <p className="mt-6 max-w-2xl mx-auto text-white/55 text-lg font-light leading-relaxed">
@@ -196,7 +196,7 @@ export const B2BWorkflow = memo(function B2BWorkflow() {
               }}
             >
               <div className="flex items-center justify-between mb-5">
-                <span className="text-[10px] font-mono text-white/30 tracking-[0.2em]">{s.n}</span>
+                <span className="text-[10px] font-mono text-white/65 tracking-[0.2em]">{s.n}</span>
                 <s.icon className="w-4 h-4 text-[#0A84FF]" />
               </div>
               <h3 className="font-display text-lg font-semibold text-white tracking-tight mb-2">

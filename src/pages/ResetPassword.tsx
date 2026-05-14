@@ -70,7 +70,7 @@ export default function ResetPassword() {
   if (isValidSession === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[hsl(240,10%,4%)]">
-        <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+        <Loader2 className="w-6 h-6 animate-spin text-white/65" />
       </div>
     );
   }
@@ -128,21 +128,21 @@ export default function ResetPassword() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
-                <p className="text-white/40 text-sm mb-2">Choose a strong password for your account.</p>
+                <p className="text-white/75 text-sm mb-2">Choose a strong password for your account.</p>
 
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-white/70 text-xs font-medium uppercase tracking-wider">
                     New Password
                   </Label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary/70 transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-primary/70 transition-colors" />
                     <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                       value={password} onChange={(e) => setPassword(e.target.value)}
                       className="h-12 pl-11 pr-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
                       maxLength={72} required
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/65 hover:text-white/60 transition-colors">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -153,7 +153,7 @@ export default function ResetPassword() {
                     Confirm Password
                   </Label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary/70 transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-primary/70 transition-colors" />
                     <Input id="confirmPassword" type="password" placeholder="••••••••"
                       value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                       className="h-12 pl-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
@@ -179,7 +179,7 @@ export default function ResetPassword() {
         </div>
 
         <div className="text-center mt-6">
-          <Link to="/auth" className="text-xs text-white/30 hover:text-white/60 transition-colors inline-flex items-center gap-1">
+          <Link to="/auth" className="text-xs text-white/65 hover:text-white/60 transition-colors inline-flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Back to Sign In
           </Link>
         </div>

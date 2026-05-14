@@ -468,12 +468,12 @@ export default function Environments() {
             ] as HeroStat[]}
             actions={
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75" />
                 <Input
                   placeholder="Search environments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }

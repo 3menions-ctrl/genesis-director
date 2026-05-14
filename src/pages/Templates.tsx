@@ -929,37 +929,110 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
         {/* Educational-only duration filter rail */}
         {activeCategory === 'educational' && (
-          <div className="-mt-2 mb-6 flex justify-center">
+          <div className="-mt-2 mb-6 flex flex-col items-center gap-3">
+            {/* Mode toggle */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.5)] border border-[hsla(215,100%,60%,0.12)] backdrop-blur-xl">
+              <button
+                onClick={() => { setDurationMode('bucket'); setDurationFilter('any'); }}
+                className={cn(
+                  'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
+                  durationMode === 'bucket'
+                    ? 'text-white shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
+                    : 'text-white/45 hover:text-white/70'
+                )}
+                style={durationMode === 'bucket' ? {
+                  background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
+                } : undefined}
+              >
+                Buckets
+              </button>
+              <button
+                onClick={() => { setDurationMode('exact'); setDurationFilter('any'); }}
+                className={cn(
+                  'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
+                  durationMode === 'exact'
+                    ? 'text-white shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
+                    : 'text-white/45 hover:text-white/70'
+                )}
+                style={durationMode === 'exact' ? {
+                  background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
+                } : undefined}
+              >
+                Exact
+              </button>
+            </div>
+
+            {/* Filter pills */}
             <div className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.18)] backdrop-blur-xl">
               <span className="hidden sm:inline-flex items-center gap-1.5 pl-2 pr-1 text-[10px] uppercase tracking-[0.22em] text-white/45">
                 <Clock className="w-3 h-3" /> Length
               </span>
-              {([
-                { id: 'any', label: 'Any' },
-                { id: '1', label: '≤ 1 min' },
-                { id: '2', label: '2 min' },
-                { id: '3', label: '3 min' },
-                { id: '3plus', label: '3 min+' },
-              ] as const).map((opt) => {
-                const active = durationFilter === opt.id;
-                return (
+              {durationMode === 'bucket' ? (
+                ([
+                  { id: 'any', label: 'Any' },
+                  { id: '1', label: '≤ 1 min' },
+                  { id: '2', label: '2 min' },
+                  { id: '3', label: '3 min' },
+                  { id: '3plus', label: '3 min+' },
+                ] as const).map((opt) => {
+                  const active = durationFilter === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => setDurationFilter(opt.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
+                        active
+                          ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
+                          : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
+                      )}
+                      style={active ? {
+                        background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
+                      } : undefined}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })
+              ) : (
+                <>
                   <button
-                    key={opt.id}
-                    onClick={() => setDurationFilter(opt.id)}
+                    onClick={() => setDurationFilter('any')}
                     className={cn(
                       'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
-                      active
+                      durationFilter === 'any'
                         ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
                         : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
                     )}
-                    style={active ? {
+                    style={durationFilter === 'any' ? {
                       background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
                     } : undefined}
                   >
-                    {opt.label}
+                    Any
                   </button>
-                );
-              })}
+                  {exactDurations.map((d) => {
+                    const id = String(d) as DurationFilter;
+                    const active = durationFilter === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => setDurationFilter(id)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
+                          active
+                            ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
+                            : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
+                        )}
+                        style={active ? {
+                          background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
+                        } : undefined}
+                      >
+                        {d} min
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
         )}

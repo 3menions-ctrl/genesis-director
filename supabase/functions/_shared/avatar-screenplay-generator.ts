@@ -34,6 +34,9 @@ export interface ScreenplaySegment {
   startPose: string;       // What the character looks like at frame 0
   endPose: string;         // Where they should be at the last frame (becomes next clip's start)
   visualContinuity: string; // Explicit instruction for what carries over to next clip
+  // NEW: turn-taking fields
+  respondsTo?: string;     // Verbatim or paraphrase of the previous speaker's last beat this clip is reacting to
+  handoffCue?: string;     // The final beat of dialogue that invites the next speaker to respond
 }
 
 export interface GeneratedScreenplay {

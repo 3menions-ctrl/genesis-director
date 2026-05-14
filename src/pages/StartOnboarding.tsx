@@ -1235,6 +1235,18 @@ export default function StartOnboarding() {
               {/* Account creation (Personal / Business) */}
               {currentStep === 'account' && (
                 <div className="space-y-5">
+                  {/* Display name — merged into the account step so we don't ask
+                      for it on a dedicated screen. Always visible, even for
+                      OAuth-authenticated users (we still need a greeting name). */}
+                  <Field label="Your name" error={errors.display_name}>
+                    <input
+                      placeholder="Jordan Lin"
+                      value={form.display_name}
+                      onChange={(e) => setForm(f => ({ ...f, display_name: e.target.value }))}
+                      className={inputCls}
+                    />
+                  </Field>
+
                   {user ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
                       <Check className="w-5 h-5 text-[#9DCBFF]" />

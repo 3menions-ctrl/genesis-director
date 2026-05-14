@@ -435,7 +435,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           The studio,<br />
-          <Italic>not the software.</Italic>
+          <Italic>not the <RotatingWord words={["software.", "tool.", "template.", "shortcut."]} /></Italic>
         </motion.h1>
 
         <motion.p
@@ -453,13 +453,14 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 1, delay: 0.4 }}
           className="mt-12 flex flex-col sm:flex-row items-start gap-4"
         >
-          <button
+          <MagneticButton
             onClick={onEnter}
-            className="group h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.04] shadow-[0_20px_60px_-20px_rgba(255,255,255,0.4)] inline-flex items-center gap-2.5"
+            className="group relative h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_20px_60px_-20px_rgba(255,255,255,0.5)] inline-flex items-center gap-2.5 overflow-hidden"
           >
-            Enter the Studio
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
+            <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-[#0A84FF]/20 to-transparent" />
+            <span className="relative z-10">Enter the Studio</span>
+            <ArrowRight className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </MagneticButton>
           <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all inline-flex items-center gap-2 border border-white/[0.08]">
             <Play className="w-3.5 h-3.5" /> Take the tour
           </a>

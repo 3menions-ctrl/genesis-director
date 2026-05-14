@@ -606,6 +606,12 @@ const TemplateCard = memo(function TemplateCard({
                 Featured
               </Badge>
             )}
+            {template.category === 'educational' && template.target_duration_minutes != null && (
+              <Badge className="bg-[hsla(220,14%,8%,0.75)] text-white/70 border border-white/[0.12] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
+                <Clock className="w-2.5 h-2.5 mr-0.5 opacity-70" />
+                {template.target_duration_minutes <= 1 ? '≤1m' : template.target_duration_minutes === 2 ? '2m' : template.target_duration_minutes === 3 ? '3m' : '3m+'}
+              </Badge>
+            )}
           </div>
           
           <div className="flex items-center gap-1.5">

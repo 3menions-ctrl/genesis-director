@@ -359,14 +359,30 @@ function buildKlingNativeUserPrompt(
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
   clipDuration: number = 10,
+  parsedTurns?: ParsedTurn[] | null,
 ): string {
   const wordsPerClip = Math.floor(clipDuration * 2.2);
+  const turnPattern = isDual ? getDualAvatarPattern(clipCount) : null;
+  const patternLine = turnPattern
+    ? turnPattern.map((r, i) => `  Clip ${i + 1}: ${r === 'primary' ? primary.name : secondary!.name}`).join('\n')
+    : '';
+
+  const taggedBlock = parsedTurns && parsedTurns.length > 0
+    ? `\n═══ SPEAKER-TAGGED DIALOGUE (HONOR THESE SPEAKERS) ═══\n` +
+      parsedTurns.map((t, i) =>
+        `  Turn ${i + 1} — ${t.role === 'primary' ? primary.name : secondary!.name}: "${t.text}"`
+      ).join('\n') +
+      `\n\nMap each tagged turn to a clip in order. The avatarRole on that clip MUST match the tagged speaker. ` +
+      `Distribute remaining clips (if any) as natural reactions/follow-ups by the other speaker.\n`
+    : '';
   
   return `Write a ${clipCount}-clip screenplay using the user's EXACT text as the core dialogue.
 
 ═══ USER'S SCRIPT (MUST BE PRESERVED AS DIALOGUE) ═══
 "${userPrompt}"
 ═══ END USER SCRIPT ═══
+${taggedBlock}
+${turnPattern ? `\n═══ MANDATORY SPEAKER ORDER (true alternation) ═══\n${patternLine}\n` : ''}
 
 IMPORTANT: The text above is what the avatar MUST say. Split it naturally across ${clipCount} clips.
 You may add brief fun intros, reactions, or transitions to make it entertaining, but the user's
@@ -375,21 +391,26 @@ original words must appear as dialogue — in order, complete, and unaltered in 
 ${isDual 
   ? `${primary.name} (A1) and ${secondary!.name} (A2) tell this story TOGETHER as a TWO-HANDER.
 
-WHAT MAKES THIS GREAT:
-- A1 opens with something that DEMANDS a response — not generic setup
-- A2's first line REDEFINES what A1 just said (interrupt, react, reveal, or contrast)
-- They have DISTINCT speech patterns: one verbose, one punchy (or one earnest, one sarcastic)
-- Each clip ESCALATES — never plateau
-- Plant something small in clip 1, pay it off devastatingly in clip 6
-- The closer is the moment people SHARE the video
+TURN-TAKING DISCIPLINE (CRITICAL):
+- Speakers ALTERNATE every clip — never two clips in a row by the same character unless the
+  MANDATORY SPEAKER ORDER above explicitly says so.
+- Every clip's dialogue MUST end on a HAND-OFF: a question, a provocation, an unfinished thought,
+  a reaction-bait line, or a name-drop. Fill the "handoffCue" field with that final beat.
+- Every clip from clip 2 onward MUST react to the previous speaker's last beat. Fill the
+  "respondsTo" field with the specific phrase or idea this clip is responding to.
+- A2's first line REDEFINES what A1 just said (interrupt, react, reveal, or contrast).
+- Distinct speech patterns: one verbose, one punchy (or one earnest, one sarcastic).
+- Plant something small in clip 1, pay it off in the final clip.
+- The closer is the moment people SHARE the video.
 
-MANDATORY STRUCTURE:
-- CLIP 1: A1 solo — the HOOK. Say something that demands a response.
-- CLIP 2: A2 enters — the REFRAME. Their first line changes everything.
-- CLIP 3: A2 solo in DIFFERENT location — their SHOWCASE. We fall for A2 here.
-- CLIP 4: Back to A1 — the EVOLUTION. A1 has changed because of A2.
-- CLIP 5: A1 peak — the CLIMAX. Maximum tension or revelation.
-- CLIP 6: A2 closes — the PAYOFF. Callback, punchline, or emotional landing.
+MANDATORY STRUCTURE (true alternation):
+- Follow the MANDATORY SPEAKER ORDER above EXACTLY (default is strict ABABAB).
+- Clip 1 (A1): HOOK — say something that demands a response.
+- Clip 2 (A2): REFRAME — first line changes the meaning of clip 1.
+- Clip 3 (A1): COUNTER — A1 reacts to A2's reframe with a new angle.
+- Clip 4 (A2): ESCALATE — A2 raises the stakes or flips the status.
+- Clip 5 (A1): PEAK — A1's biggest beat, lands a revelation or twist.
+- Clip 6 (A2): PAYOFF — callback to clip 1, devastating one-liner, or quiet closer.
 
 CHEMISTRY CHECKLIST:
 □ Do they reference each other across clips? ("Can you believe she said...")
@@ -397,6 +418,8 @@ CHEMISTRY CHECKLIST:
 □ Is there a status shift? (One starts "winning," then it flips)
 □ Is there a plant/payoff? (Casual detail in clip 1 → devastating in clip 6)
 □ Does the introduction feel EARNED? (Not "Hi, I'm here" but a genuine reaction)
+□ Does every clip ≥2 fill respondsTo with the previous speaker's actual line/idea?
+□ Does every clip end on a hand-off cue that invites the OTHER speaker to respond?
 
 Each clip renders ONE character. They interact across cuts, not within frames.
 Every endPose must match the next clip's startPose for the same character.` 

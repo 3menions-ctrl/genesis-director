@@ -95,7 +95,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
               <div className="flex-1 flex justify-center">
-                <div className="px-4 py-1 rounded-md bg-white/[0.04] text-[10px] tracking-widest uppercase text-white/30 font-mono">
+                <div className="px-4 py-1 rounded-md bg-white/[0.04] text-[10px] tracking-widest uppercase text-white/65 font-mono">
                   studio.apexstudio.ai
                 </div>
               </div>
@@ -106,7 +106,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
                     return !m;
                   });
                 }}
-                className="text-white/40 hover:text-white transition-colors"
+                className="text-white/75 hover:text-white transition-colors"
                 aria-label={muted ? 'Unmute' : 'Mute'}
               >
                 {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -153,7 +153,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
           >
             <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_hsl(142,70%,55%)]" />
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-white/40">Render</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/75">Render</p>
               <p className="text-xs font-medium text-white tabular-nums">4m 12s · 1080p</p>
             </div>
           </motion.div>

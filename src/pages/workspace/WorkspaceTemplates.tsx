@@ -80,7 +80,7 @@ export default function WorkspaceTemplates() {
       ) : <Pill tone="neutral">READ ONLY</Pill>}
     >
       {loading ? (
-        <Surface><div className="px-2 py-10 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Loading templates…</div></Surface>
+        <Surface><div className="px-2 py-10 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/75">Loading templates…</div></Surface>
       ) : rows.length === 0 ? (
         <Surface>
           <EmptyState icon={LayoutTemplate} title="No templates yet"
@@ -102,7 +102,7 @@ export default function WorkspaceTemplates() {
               </div>
               {r.category && <Pill tone="neutral" className="mb-3">{r.category}</Pill>}
               {r.description && <p className="text-[12.5px] text-white/55 font-light line-clamp-3">{r.description}</p>}
-              <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+              <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-white/75">
                 <span>{r.use_count} uses</span>
                 <span>{new Date(r.created_at).toLocaleDateString()}</span>
               </div>
@@ -117,7 +117,7 @@ export default function WorkspaceTemplates() {
             <Surface>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display text-[18px] text-white/95 font-light">New template</h2>
-                <button onClick={() => !saving && setOpen(false)} className="p-1 text-white/40 hover:text-white" aria-label="Close"><X className="w-4 h-4" /></button>
+                <button onClick={() => !saving && setOpen(false)} className="p-1 text-white/75 hover:text-white" aria-label="Close"><X className="w-4 h-4" /></button>
               </div>
               <div className="space-y-4">
                 <Field label="Name"><DataInput value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g. 30-second product hero" /></Field>

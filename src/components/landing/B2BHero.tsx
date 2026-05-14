@@ -167,7 +167,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.4 }}
-        className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-white/30"
+        className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-white/65"
       >
         <span className="text-[9px] tracking-[0.4em] uppercase">Scroll</span>
         <motion.span

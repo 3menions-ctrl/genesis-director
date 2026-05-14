@@ -629,7 +629,7 @@ export default function StartOnboarding() {
           {/* Brand */}
           <div className="flex items-center justify-between mb-8">
             <Logo size="md" showText textClassName="text-base font-display font-bold" />
-            <p className="hidden md:block text-[10px] tracking-[0.32em] uppercase text-white/40">
+            <p className="hidden md:block text-[10px] tracking-[0.32em] uppercase text-white/75">
               Step {stepIdx + 1} / {steps.length}
             </p>
           </div>
@@ -1153,7 +1153,7 @@ export default function StartOnboarding() {
                         </div>
                       </Field>
 
-                      <p className="text-[11px] text-white/30 leading-relaxed">
+                      <p className="text-[11px] text-white/65 leading-relaxed">
                         By continuing you agree to our Terms and Privacy Policy. We'll send a 6-digit code to verify your email.
                       </p>
                     </>
@@ -1294,7 +1294,7 @@ export default function StartOnboarding() {
           </div>
 
           {/* Trust microcopy */}
-          <p className="text-[11px] text-white/30 mt-6">
+          <p className="text-[11px] text-white/65 mt-6">
             {currentStep === 'account' || currentStep === 'verify'
               ? 'Your details are encrypted in transit. We never share your email.'
               : currentStep === 'plan' || currentStep === 'billing'
@@ -1313,7 +1313,7 @@ export default function StartOnboarding() {
  * ──────────────────────────────────────────────────────────────────── */
 
 const inputCls =
-  'w-full h-12 px-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-white/[0.05] transition-all';
+  'w-full h-12 px-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-white/65 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-white/[0.05] transition-all';
 
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
@@ -1386,7 +1386,7 @@ function ChipGrid({
         })}
       </div>
       {error && <p className="text-[11px] text-rose-400 mt-3">{error}</p>}
-      {multi && <p className="text-[11px] text-white/30 mt-3">Pick as many as apply.</p>}
+      {multi && <p className="text-[11px] text-white/65 mt-3">Pick as many as apply.</p>}
     </div>
   );
 }

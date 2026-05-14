@@ -394,7 +394,7 @@ const GalleryContent = memo(function GalleryContent() {
                 return <Icon className="w-8 h-8 text-zinc-600" />;
               })()}
             </div>
-            <p className="text-zinc-500 text-sm mb-2">No videos in this category yet</p>
+            <p className="text-zinc-300 text-sm mb-2">No videos in this category yet</p>
             <button
               onClick={() => handleCategoryChange('all')}
               className="text-blue-400 text-sm hover:underline"

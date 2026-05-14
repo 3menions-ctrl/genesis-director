@@ -343,14 +343,14 @@ export default function Creators() {
                     padding: '1px',
                   }}
                 />
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(215,100%,75%)] transition-colors" strokeWidth={1.6} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-[hsl(215,100%,75%)] transition-colors" strokeWidth={1.6} />
                 <Input
                   ref={searchRef}
                   type="text"
                   placeholder="Search films, themes, creators…"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-13 pr-12 h-14 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/30 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.04] backdrop-blur-2xl transition-all text-[14px] font-light tracking-tight"
+                  className="pl-13 pr-12 h-14 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/65 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.04] backdrop-blur-2xl transition-all text-[14px] font-light tracking-tight"
                   style={{ paddingLeft: '3.25rem' }}
                 />
                 {searchQuery && (
@@ -365,7 +365,7 @@ export default function Creators() {
             </div>
 
             {/* Diagnostic ticker — signature */}
-            <div className="inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+            <div className="inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
               <span className="inline-flex items-center gap-1.5 tabular-nums text-white/55">
                 <Video className="w-3 h-3 text-[hsl(var(--primary))]" />
                 {totalVideos} films
@@ -479,9 +479,9 @@ export default function Creators() {
                 <div className="flex items-center gap-3">
                   <span className="w-1 h-5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_12px_hsla(215,100%,60%,0.6)]" />
                   <h2 className="font-display text-base font-medium text-white tracking-tight">All Films</h2>
-                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 font-medium">Library</span>
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/65 font-medium">Library</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 tabular-nums">{gridVideos.length} films</span>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-white/65 tabular-nums">{gridVideos.length} films</span>
               </div>
             )}
 
@@ -538,7 +538,7 @@ export default function Creators() {
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-20 text-center">
                 <Video className="w-12 h-12 text-white/10 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-white mb-2">No videos found</h3>
-                <p className="text-white/30 text-sm">
+                <p className="text-white/65 text-sm">
                   {searchQuery ? 'Try a different search term' : 'Be the first to share a video!'}
                 </p>
               </div>
@@ -739,7 +739,7 @@ function CreatorRow({
             </span>
           </div>
         )}
-        <span className="text-[11px] text-white/40 truncate">{creatorName || 'Creator'}</span>
+        <span className="text-[11px] text-white/75 truncate">{creatorName || 'Creator'}</span>
       </Link>
       {!isOwnVideo && (
         <button
@@ -747,7 +747,7 @@ function CreatorRow({
           className={cn(
             "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all flex-shrink-0",
             isFollowing
-              ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
+              ? "bg-white/[0.06] text-white/75 border border-white/[0.08]"
               : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
           )}
         >
@@ -828,7 +828,7 @@ function VideoPlayerModal({
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                     isFollowing
-                      ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
+                      ? "bg-white/[0.06] text-white/75 border border-white/[0.08]"
                       : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
                   )}
                 >

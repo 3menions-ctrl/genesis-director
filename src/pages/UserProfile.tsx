@@ -73,10 +73,10 @@ export default function UserProfile() {
         <AppHeader />
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
           <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
-            <Users className="w-8 h-8 text-white/20" />
+            <Users className="w-8 h-8 text-white/55" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-3 font-['Sora']">Creator Not Found</h1>
-          <p className="text-white/40 mb-8 max-w-sm mx-auto">This profile doesn't exist or hasn't been made public yet.</p>
+          <p className="text-white/75 mb-8 max-w-sm mx-auto">This profile doesn't exist or hasn't been made public yet.</p>
           <Link to="/creators">
             <Button variant="outline" className="gap-2 border-white/10 text-white/60 hover:text-white hover:bg-white/[0.05]">
               <ArrowLeft className="w-4 h-4" />
@@ -144,7 +144,7 @@ export default function UserProfile() {
                   )}
                 </div>
 
-                <p className="text-sm text-white/30 mb-5 flex items-center justify-center sm:justify-start gap-1.5">
+                <p className="text-sm text-white/65 mb-5 flex items-center justify-center sm:justify-start gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
                   Joined {memberSince}
                 </p>
@@ -160,9 +160,9 @@ export default function UserProfile() {
                       key={stat.label}
                       className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]"
                     >
-                      <stat.icon className="w-3.5 h-3.5 text-white/30" />
+                      <stat.icon className="w-3.5 h-3.5 text-white/65" />
                       <span className="text-sm font-bold text-white">{stat.value}</span>
-                      <span className="text-xs text-white/30 hidden sm:inline">{stat.label}</span>
+                      <span className="text-xs text-white/65 hidden sm:inline">{stat.label}</span>
                     </div>
                   ))}
                 </div>
@@ -223,7 +223,7 @@ export default function UserProfile() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white font-['Sora']">Showcase</h2>
-                <p className="text-xs text-white/30">{profile.videos_count} public video{profile.videos_count !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-white/65">{profile.videos_count} public video{profile.videos_count !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function UserProfile() {
                       {/* Always-visible bottom gradient with title */}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-12 pb-3 px-4">
                         <p className="text-white text-sm font-semibold truncate">{video.title}</p>
-                        <div className="flex items-center gap-3 mt-1 text-white/40 text-xs">
+                        <div className="flex items-center gap-3 mt-1 text-white/75 text-xs">
                           <span className="flex items-center gap-1">
                             <Heart className="w-3 h-3" /> {video.likes_count}
                           </span>
@@ -324,8 +324,8 @@ export default function UserProfile() {
               <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
                 <Film className="w-7 h-7 text-white/15" />
               </div>
-              <p className="text-white/40 text-sm mb-1">No public videos yet</p>
-              <p className="text-white/20 text-xs">This creator hasn't shared any videos publicly.</p>
+              <p className="text-white/75 text-sm mb-1">No public videos yet</p>
+              <p className="text-white/55 text-xs">This creator hasn't shared any videos publicly.</p>
             </div>
           )}
         </motion.section>
@@ -334,7 +334,7 @@ export default function UserProfile() {
         <div className="text-center pb-8">
           <Link 
             to="/creators" 
-            className="text-xs text-white/20 hover:text-white/40 transition-colors inline-flex items-center gap-1.5"
+            className="text-xs text-white/55 hover:text-white/75 transition-colors inline-flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3 h-3" />
             Browse all creators

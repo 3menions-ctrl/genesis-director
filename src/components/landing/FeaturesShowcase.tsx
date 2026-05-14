@@ -254,7 +254,7 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
                 </h3>
               </div>
               
-              <p className="text-sm md:text-[14px] text-white/30 leading-[1.7] mb-5 group-hover:text-white/50 transition-colors duration-500">
+              <p className="text-sm md:text-[14px] text-white/65 leading-[1.7] mb-5 group-hover:text-white/50 transition-colors duration-500">
                 {feature.description}
               </p>
               
@@ -313,14 +313,14 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
           {/* Section Header */}
           <div className="text-center mb-20 md:mb-28 animate-fade-in">
             <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.02] border border-white/[0.05] backdrop-blur-xl mb-8">
-              <Sparkles className="w-3.5 h-3.5 text-white/30" />
+              <Sparkles className="w-3.5 h-3.5 text-white/65" />
               <span className="text-[11px] text-white/35 tracking-[0.25em] uppercase font-medium">Production Suite</span>
             </div>
             
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-7 leading-[1.05]">
               Built for creators<span className="text-white/15">.</span>
             </h2>
-            <p className="text-lg md:text-xl text-white/30 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-white/65 max-w-2xl mx-auto leading-relaxed">
               A complete AI film studio in your browser. Write, generate, edit, 
               and publish — from first idea to final cut.
             </p>
@@ -335,7 +335,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-2xl md:text-3xl font-bold text-white/85 tracking-tight">{stat.value}</div>
-                  <div className="text-[10px] md:text-xs text-white/20 mt-1.5 tracking-[0.15em] uppercase">{stat.label}</div>
+                  <div className="text-[10px] md:text-xs text-white/55 mt-1.5 tracking-[0.15em] uppercase">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -351,7 +351,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
           {/* Additional Features */}
           <div className="mt-16 md:mt-24">
             <div className="text-center mb-10">
-              <p className="text-xs text-white/20 tracking-[0.25em] uppercase font-medium">And everything else you need</p>
+              <p className="text-xs text-white/55 tracking-[0.25em] uppercase font-medium">And everything else you need</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {ADDITIONAL_FEATURES.map((feature, i) => (
@@ -371,7 +371,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
               <span className="relative text-black font-semibold">Start Creating Free</span>
               <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
             </Link>
-            <p className="mt-5 text-sm text-white/20">
+            <p className="mt-5 text-sm text-white/55">
               Flexible credits • No subscription • Pay as you go
             </p>
           </div>

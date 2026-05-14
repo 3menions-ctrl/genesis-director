@@ -161,7 +161,7 @@ const SettingsContent = memo(function SettingsContent() {
             </div>
 
             {/* Diagnostic ticker — matches loader signature */}
-            <div className="hidden md:flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+            <div className="hidden md:flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
               {['Identity', 'Billing', 'Shield'].map((t, i) => (
                 <span key={t} className="inline-flex items-center gap-1.5">
                   <span
@@ -247,7 +247,7 @@ const SettingsContent = memo(function SettingsContent() {
                         <p className="font-display font-medium text-[13.5px] tracking-tight truncate">
                           {section.label}
                         </p>
-                        <p className="text-[10.5px] uppercase tracking-[0.22em] text-white/30 truncate mt-0.5">
+                        <p className="text-[10.5px] uppercase tracking-[0.22em] text-white/65 truncate mt-0.5">
                           {section.description}
                         </p>
                       </div>
@@ -266,7 +266,7 @@ const SettingsContent = memo(function SettingsContent() {
 
               {/* footer hairline */}
               <div className="mx-3 mt-2 mb-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="px-4 py-3 flex items-center justify-between text-[9.5px] uppercase tracking-[0.28em] text-white/30">
+              <div className="px-4 py-3 flex items-center justify-between text-[9.5px] uppercase tracking-[0.28em] text-white/65">
                 <span>Apex · v1</span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]" style={{ animation: 'settingsTick 2.4s ease-in-out infinite' }} />
@@ -290,11 +290,11 @@ const SettingsContent = memo(function SettingsContent() {
                 )}
                 <div>
                   <span className="font-display font-medium text-white text-sm tracking-tight">{currentSection?.label}</span>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 mt-0.5">{currentSection?.description}</p>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/65 mt-0.5">{currentSection?.description}</p>
                 </div>
               </div>
               <ChevronRight className={cn(
-                "w-5 h-5 text-white/30 transition-transform duration-200",
+                "w-5 h-5 text-white/65 transition-transform duration-200",
                 isMobileMenuOpen && "rotate-90"
               )} />
             </button>

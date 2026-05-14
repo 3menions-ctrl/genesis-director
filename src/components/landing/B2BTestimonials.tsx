@@ -97,10 +97,10 @@ export const B2BTestimonials = memo(function B2BTestimonials() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{q.name}</p>
-                  <p className="text-xs text-white/40 truncate">{q.role}</p>
+                  <p className="text-xs text-white/75 truncate">{q.role}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[10px] uppercase tracking-widest text-white/30">Result</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/65">Result</p>
                   <p className="text-xs text-[#0A84FF] font-medium tabular-nums">{q.metric}</p>
                 </div>
               </div>

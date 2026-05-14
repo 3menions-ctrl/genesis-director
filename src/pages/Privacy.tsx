@@ -35,14 +35,14 @@ const Privacy = () => {
           >
             <Link 
               to="/" 
-              className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors mb-8"
+              className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-8"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Privacy Policy</h1>
-            <p className="text-white/40 mb-12">Last updated: February 5, 2026</p>
+            <p className="text-white/75 mb-12">Last updated: February 5, 2026</p>
           </motion.div>
           
           <motion.div 

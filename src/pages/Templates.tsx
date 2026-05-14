@@ -923,12 +923,12 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
             ] as HeroStat[]}
             actions={
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75" />
                 <Input
                   placeholder="Search templates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }
@@ -1093,7 +1093,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
         {sortedTemplates.length === 0 && (
           <div className="text-center py-16 animate-fade-in">
             <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-white/40" />
+              <Search className="w-6 h-6 text-white/75" />
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">No templates found</h3>
             <p className="text-sm text-white/50 mb-4">

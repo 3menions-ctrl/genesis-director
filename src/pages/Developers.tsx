@@ -93,7 +93,7 @@ export default function Developers() {
       <div className="mx-auto w-full max-w-6xl px-6 py-12">
         {/* Hero */}
         <header className="mb-12">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/75">
             <Code2 className="w-3.5 h-3.5" /> Developers
           </div>
           <h1 className="mt-3 text-5xl font-semibold tracking-tight text-white">
@@ -115,8 +115,8 @@ export default function Developers() {
             <div key={p.endpoint} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">{p.name}</p>
               <p className="mt-2 font-mono text-[13px] text-white/85">{p.endpoint}</p>
-              <p className="mt-4 text-3xl font-light text-white tabular-nums">{p.credits}<span className="text-base text-white/40 ml-1">cr</span></p>
-              <p className="mt-1 text-[12px] text-white/40">{p.sub}</p>
+              <p className="mt-4 text-3xl font-light text-white tabular-nums">{p.credits}<span className="text-base text-white/75 ml-1">cr</span></p>
+              <p className="mt-1 text-[12px] text-white/75">{p.sub}</p>
             </div>
           ))}
         </section>
@@ -134,10 +134,10 @@ export default function Developers() {
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-            {loading && <div className="p-8 text-center text-white/40 text-sm">Loading…</div>}
+            {loading && <div className="p-8 text-center text-white/75 text-sm">Loading…</div>}
             {!loading && keys.length === 0 && (
               <div className="p-12 text-center">
-                <KeyRound className="w-8 h-8 mx-auto text-white/20 mb-3" />
+                <KeyRound className="w-8 h-8 mx-auto text-white/55 mb-3" />
                 <p className="text-white/50 text-sm">No keys yet. Create your first one to start integrating.</p>
               </div>
             )}
@@ -147,7 +147,7 @@ export default function Developers() {
                   <p className="text-[14px] font-medium text-white truncate">{k.name}</p>
                   <p className="mt-1 font-mono text-[12px] text-white/45">{k.key_prefix}…••••</p>
                 </div>
-                <div className="text-right text-[12px] text-white/40 hidden sm:block">
+                <div className="text-right text-[12px] text-white/75 hidden sm:block">
                   {k.revoked_at
                     ? <span className="text-red-400/70">Revoked</span>
                     : k.last_used_at
@@ -155,7 +155,7 @@ export default function Developers() {
                       : 'Never used'}
                 </div>
                 {!k.revoked_at && (
-                  <Button variant="ghost" size="icon" onClick={() => revoke(k.id)} className="text-white/40 hover:text-red-400">
+                  <Button variant="ghost" size="icon" onClick={() => revoke(k.id)} className="text-white/75 hover:text-red-400">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -178,12 +178,12 @@ export default function Developers() {
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Credits spent</p>
               <p className="mt-2 text-3xl font-light text-white tabular-nums">
                 {totals.credits}
-                <span className="text-base text-white/40 ml-2">${(totals.credits * 0.1).toFixed(2)}</span>
+                <span className="text-base text-white/75 ml-2">${(totals.credits * 0.1).toFixed(2)}</span>
               </p>
             </div>
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-            {logs.length === 0 && <div className="p-8 text-center text-white/40 text-sm">No API requests yet.</div>}
+            {logs.length === 0 && <div className="p-8 text-center text-white/75 text-sm">No API requests yet.</div>}
             {logs.slice(0, 20).map((l, i) => (
               <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-white/[0.04] last:border-b-0 text-[12px]">
                 <span className="font-mono text-white/70">{l.endpoint}</span>
@@ -208,7 +208,7 @@ export default function Developers() {
     "aspect_ratio": "16:9"
   }'`}
           </pre>
-          <p className="mt-3 text-[12px] text-white/40">
+          <p className="mt-3 text-[12px] text-white/75">
             Endpoints: <code className="text-white/70">/videos</code>, <code className="text-white/70">/avatars</code>, <code className="text-white/70">/photo-edit</code>, <code className="text-white/70">GET /projects</code>, <code className="text-white/70">GET /clips</code>, <code className="text-white/70">GET /me</code>.
           </p>
         </section>

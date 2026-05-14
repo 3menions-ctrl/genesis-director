@@ -265,7 +265,7 @@ export default function EnterpriseOnboarding() {
                   ) : (
                     <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-white/45'}`} />
                   )}
-                  <span className={`text-[10px] tracking-[0.22em] uppercase font-medium ${active ? 'text-white' : complete ? 'text-white/70' : 'text-white/40'}`}>
+                  <span className={`text-[10px] tracking-[0.22em] uppercase font-medium ${active ? 'text-white' : complete ? 'text-white/70' : 'text-white/75'}`}>
                     {s.label}
                   </span>
                 </div>
@@ -383,7 +383,7 @@ function Field({
 }
 
 const inputCls =
-  'w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-white/[0.05] transition-all';
+  'w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-white/65 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-white/[0.05] transition-all';
 
 function StepHeader({ icon: Icon, kicker, title, copy }: { icon: React.ComponentType<{ className?: string }>; kicker: string; title: string; copy: string }) {
   return (
@@ -409,13 +409,13 @@ function AccountStep({ value, onChange, errors }: any) {
         </Field>
         <Field label="Work email" error={errors.email}>
           <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75 pointer-events-none" />
             <input className={inputCls + ' pl-10'} type="email" placeholder="jane@studio.com" value={value.email} onChange={e => onChange({ ...value, email: e.target.value })} />
           </div>
         </Field>
         <Field label="Password" hint="At least 8 characters" error={errors.password}>
           <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75 pointer-events-none" />
             <input className={inputCls + ' pl-10'} type="password" placeholder="••••••••" value={value.password} onChange={e => onChange({ ...value, password: e.target.value })} />
           </div>
         </Field>

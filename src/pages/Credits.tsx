@@ -387,7 +387,7 @@ export default function Credits() {
                         <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                         {meta.label}
                       </span>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-white/40">{cadenceLabel}</span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-white/75">{cadenceLabel}</span>
                     </div>
                     <h3 className="font-display text-2xl font-semibold tracking-tight mt-2">{planName}</h3>
                     {activeTier?.tagline && (
@@ -445,7 +445,7 @@ export default function Credits() {
                         style={{ width: `${usedPct}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-white/40 mt-1.5">{usedPct}%</div>
+                    <div className="text-[10px] text-white/75 mt-1.5">{usedPct}%</div>
                   </div>
                 </div>
 
@@ -621,7 +621,7 @@ export default function Credits() {
                 )}
                 <button
                   onClick={() => setReturnStatus(null)}
-                  className="text-xs text-white/40 hover:text-white/70 px-2"
+                  className="text-xs text-white/75 hover:text-white/70 px-2"
                 >
                   Dismiss
                 </button>
@@ -707,7 +707,7 @@ export default function Credits() {
                         }}
                         className={`mt-7 w-full h-11 rounded-full text-sm font-medium tracking-wide transition-all ${
                           isCurrent
-                            ? 'bg-white/[0.04] text-white/40 cursor-not-allowed'
+                            ? 'bg-white/[0.04] text-white/75 cursor-not-allowed'
                             : tier.highlighted
                               ? 'bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white'
                               : 'bg-white/[0.06] hover:bg-white/[0.10] text-white'
@@ -762,7 +762,7 @@ export default function Credits() {
                       </div>
                     ) : (invoicesQuery.data?.length ?? 0) === 0 ? (
                       <div className="p-10 text-center text-white/45 text-sm">
-                        <Receipt className="w-5 h-5 mx-auto mb-2 text-white/30" />
+                        <Receipt className="w-5 h-5 mx-auto mb-2 text-white/65" />
                         No invoices yet — your first one will appear here after billing.
                       </div>
                     ) : (
@@ -802,7 +802,7 @@ export default function Credits() {
                                 </div>
                                 <div className="text-[11px] text-white/45 mt-0.5 truncate">
                                   {date}
-                                  {inv.description && <span className="text-white/30"> · {inv.description}</span>}
+                                  {inv.description && <span className="text-white/65"> · {inv.description}</span>}
                                 </div>
                               </div>
                               <div className="font-mono text-sm text-white/85 text-right tabular-nums hidden md:block">
@@ -909,7 +909,7 @@ export default function Credits() {
                 )}
               </div>
 
-              <div className="flex items-center justify-center gap-6 mt-6 text-[11px] text-white/40">
+              <div className="flex items-center justify-center gap-6 mt-6 text-[11px] text-white/75">
                 <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> SSL secure</span>
                 <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Powered by Stripe</span>
               </div>

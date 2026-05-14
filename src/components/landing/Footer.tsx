@@ -14,18 +14,18 @@ const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
             {/* Links */}
             <div className="flex flex-wrap gap-12 text-sm">
               <div className="space-y-3">
-                <div className="text-white/30 text-xs uppercase tracking-wider">Product</div>
+                <div className="text-white/65 text-xs uppercase tracking-wider">Product</div>
                 <Link to="/how-it-works" className="block text-white/50 hover:text-white transition-colors">How It Works</Link>
                 <a href="#pricing" className="block text-white/50 hover:text-white transition-colors">Pricing</a>
                 <a href="#faq" className="block text-white/50 hover:text-white transition-colors">FAQ</a>
               </div>
               <div className="space-y-3">
-                <div className="text-white/30 text-xs uppercase tracking-wider">Company</div>
+                <div className="text-white/65 text-xs uppercase tracking-wider">Company</div>
                 <Link to="/contact" className="block text-white/50 hover:text-white transition-colors">Contact</Link>
                 <Link to="/blog" className="block text-white/50 hover:text-white transition-colors">Blog</Link>
               </div>
               <div className="space-y-3">
-                <div className="text-white/30 text-xs uppercase tracking-wider">Legal</div>
+                <div className="text-white/65 text-xs uppercase tracking-wider">Legal</div>
                 <Link to="/privacy" className="block text-white/50 hover:text-white transition-colors">Privacy</Link>
                 <Link to="/terms" className="block text-white/50 hover:text-white transition-colors">Terms</Link>
               </div>
@@ -33,10 +33,10 @@ const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
           </div>
 
           <div className="mt-16 pt-8 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-            <p className="text-xs text-white/30">
+            <p className="text-xs text-white/65">
               © {new Date().getFullYear()} Apex-Studio. All rights reserved.
             </p>
-            <p className="text-[11px] text-white/20 leading-relaxed max-w-xl">
+            <p className="text-[11px] text-white/55 leading-relaxed max-w-xl">
               Apex-Studio is an AI video generation platform. Output is created by generative models and may contain inaccuracies or artifacts. You are responsible for reviewing and clearing any content before publication. Credits are non-refundable.
             </p>
           </div>

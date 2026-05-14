@@ -762,7 +762,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 placeholder="Enter what your character will say..."
                 value={scriptText}
                 onChange={(e) => setScriptText(e.target.value.slice(0, 500))}
-                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-emerald-500/50"
+                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-emerald-500/50"
               />
             </motion.div>
 
@@ -854,8 +854,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                     </div>
                   ) : (
                     <div className="text-center p-4">
-                      <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
-                      <p className="text-xs text-white/40">Upload image</p>
+                      <Upload className="w-8 h-8 text-white/75 mx-auto mb-2" />
+                      <p className="text-xs text-white/75">Upload image</p>
                     </div>
                   )}
                 </div>
@@ -890,7 +890,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                     {customBackground ? (
                       <img src={customBackground} alt="Custom" className="w-full h-full object-cover" />
                     ) : (
-                      <Upload className="w-3.5 h-3.5 text-white/40" />
+                      <Upload className="w-3.5 h-3.5 text-white/75" />
                     )}
                   </button>
                   {BACKGROUND_PRESETS.slice(0, 8).map((bg) => (
@@ -962,7 +962,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                            <User className="w-6 h-6 text-white/40" />
+                            <User className="w-6 h-6 text-white/75" />
                           </div>
                         </div>
                       )}
@@ -1021,7 +1021,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 </div>
               ) : (
                 <Button 
-                  className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-white/10 disabled:text-white/30"
+                  className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-white/10 disabled:text-white/65"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
@@ -1044,7 +1044,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               ].map((item, i) => (
                 <div key={i} className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-full text-[10px]",
-                  item.ok ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/40"
+                  item.ok ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/75"
                 )}>
                   {item.ok ? <Check className="w-2.5 h-2.5" /> : <CircleDot className="w-2.5 h-2.5" />}
                   {item.label}

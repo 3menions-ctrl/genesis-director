@@ -397,7 +397,7 @@ function CreateContentInner() {
               </p>
             </div>
 
-            <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+            <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
               <span className="inline-flex items-center gap-2 mr-1">
                 <Wand2 className="w-3.5 h-3.5 text-primary/80" />
                 Director Mode

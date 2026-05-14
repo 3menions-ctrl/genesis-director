@@ -226,7 +226,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
                   </AnimatePresence>
                   <div className="flex items-center justify-center gap-1.5 pt-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
-                    <span className="text-xs text-white/30">Drag slider to reveal result →</span>
+                    <span className="text-xs text-white/65">Drag slider to reveal result →</span>
                   </div>
                 </div>
               </div>

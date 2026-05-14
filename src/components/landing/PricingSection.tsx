@@ -89,36 +89,36 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
             <Sparkles className="w-6 h-6 text-white/80" />
           </div>
           <h2 className="text-2xl font-semibold text-white mb-2">Start creating</h2>
-          <p className="text-sm text-white/40">Purchase credits to start creating cinematic videos.</p>
+          <p className="text-sm text-white/75">Purchase credits to start creating cinematic videos.</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65" />
             <Input
               type="email"
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
+              className="pl-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
               required
             />
           </div>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65" />
             <Input
               type={showPassword ? 'text' : 'password'}
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-11 pr-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
+              className="pl-11 pr-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
               required
               minLength={6}
             />
             <button
               type="button"
               onClick={() => setShowPassword(p => !p)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/65 hover:text-white/60 transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -137,7 +137,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
         <div className="mt-6 text-center">
           <button
             onClick={() => { onClose(); onNavigate('/auth'); }}
-            className="text-xs text-white/30 hover:text-white/60 transition-colors"
+            className="text-xs text-white/65 hover:text-white/60 transition-colors"
           >
             Already have an account? <span className="text-white/50 underline underline-offset-2">Sign in</span>
           </button>
@@ -338,7 +338,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
                 <h3 className="text-2xl md:text-3xl font-semibold text-white mb-2">
                   Your Storytelling Journey
                 </h3>
-                <p className="text-white/40 max-w-md mx-auto">
+                <p className="text-white/75 max-w-md mx-auto">
                   Watch how creators bring their stories to life with AI-powered video
                 </p>
               </div>
@@ -347,7 +347,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
                 {suppressVideo ? (
                   /* Video suppressed to free GPU/memory for gallery or immersive */
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                    <Sparkles className="w-8 h-8 text-white/20" />
+                    <Sparkles className="w-8 h-8 text-white/55" />
                   </div>
                 ) : (
                 <UniversalHLSPlayer
@@ -394,7 +394,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
                   {PRICING_STATS.map((stat, i) => (
                     <div key={i} className="text-center">
                       <div className="text-xl font-semibold text-white/80 font-['Sora']">{stat.value}</div>
-                      <div className="text-[10px] text-white/20 mt-1 uppercase tracking-wider">{stat.label}</div>
+                      <div className="text-[10px] text-white/55 mt-1 uppercase tracking-wider">{stat.label}</div>
                     </div>
                   ))}
                 </div>

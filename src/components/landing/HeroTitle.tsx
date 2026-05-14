@@ -49,7 +49,7 @@ export const HeroTitle = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
             {/* STUDIO - refined, spaced, ethereal */}
             <motion.span
-              className="block text-[clamp(1.2rem,5vw,3.5rem)] font-light tracking-[0.4em] uppercase text-white/40"
+              className="block text-[clamp(1.2rem,5vw,3.5rem)] font-light tracking-[0.4em] uppercase text-white/75"
               initial={{ opacity: 0, y: 20, letterSpacing: '0.8em' }}
               animate={{ opacity: 1, y: 0, letterSpacing: '0.4em' }}
               transition={{ duration: 1.2, delay: 1, ease: [0.16, 1, 0.3, 1] }}

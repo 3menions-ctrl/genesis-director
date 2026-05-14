@@ -5291,7 +5291,7 @@ export default function Blog() {
             <Button
               variant="ghost"
               onClick={() => setSelectedArticle(null)}
-              className="mb-8 text-white/40 hover:text-white hover:bg-white/5"
+              className="mb-8 text-white/75 hover:text-white hover:bg-white/5"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Blog
@@ -5313,7 +5313,7 @@ export default function Blog() {
               </div>
 
               {/* Meta */}
-              <div className="flex flex-wrap items-center gap-4 mb-6 text-white/40">
+              <div className="flex flex-wrap items-center gap-4 mb-6 text-white/75">
                 <Badge variant="secondary" className="bg-white/10 text-white/70 border-0">
                   {selectedArticle.category}
                 </Badge>
@@ -5348,7 +5348,7 @@ export default function Blog() {
               {/* Tags */}
               <div className="mt-12 pt-8 border-t border-white/10">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Tag className="w-4 h-4 text-white/40" />
+                  <Tag className="w-4 h-4 text-white/75" />
                   {selectedArticle.tags.map(tag => (
                     <Badge 
                       key={tag} 
@@ -5428,14 +5428,14 @@ export default function Blog() {
           >
             <Link 
               to="/" 
-              className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors mb-8"
+              className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-8"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Blog</h1>
-            <p className="text-lg text-white/40 max-w-2xl mx-auto">
+            <p className="text-lg text-white/75 max-w-2xl mx-auto">
               Insights, tutorials, and updates from the Apex-Studio team
             </p>
           </motion.div>
@@ -5470,7 +5470,7 @@ export default function Blog() {
                     <p className="text-white/50 mb-4 max-w-2xl">
                       {ALL_BLOG_ARTICLES[0].excerpt}
                     </p>
-                    <div className="flex items-center gap-4 text-white/40 text-sm">
+                    <div className="flex items-center gap-4 text-white/75 text-sm">
                       <span>{ALL_BLOG_ARTICLES[0].date}</span>
                       <span>•</span>
                       <span>{ALL_BLOG_ARTICLES[0].readTime}</span>
@@ -5511,10 +5511,10 @@ export default function Blog() {
                       <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-white/90 transition-colors line-clamp-2">
                         {article.title}
                       </h3>
-                      <p className="text-white/40 text-sm mb-4 line-clamp-2">
+                      <p className="text-white/75 text-sm mb-4 line-clamp-2">
                         {article.excerpt}
                       </p>
-                      <div className="flex items-center justify-between text-white/30 text-xs">
+                      <div className="flex items-center justify-between text-white/65 text-xs">
                         <span>{article.date}</span>
                         <span className="flex items-center gap-1">
                           <BookOpen className="w-3 h-3" />

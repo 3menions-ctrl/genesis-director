@@ -107,7 +107,7 @@ export default function WelcomeCheckout() {
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-6 mt-8 text-[11px] text-white/40">
+        <div className="flex items-center justify-center gap-6 mt-8 text-[11px] text-white/75">
           <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> SSL secure</span>
           <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Powered by Stripe</span>
         </div>
@@ -115,7 +115,7 @@ export default function WelcomeCheckout() {
         <div className="text-center mt-6">
           <button
             onClick={() => navigate('/projects')}
-            className="text-xs text-white/40 hover:text-white/70 underline underline-offset-2"
+            className="text-xs text-white/75 hover:text-white/70 underline underline-offset-2"
           >
             Skip for now — I'll choose later
           </button>

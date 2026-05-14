@@ -68,7 +68,7 @@ export default function ForgotPassword() {
             <Logo size="xl" />
           </div>
           <h1 className="text-2xl font-display font-bold text-white tracking-tight">Reset Password</h1>
-          <p className="text-white/40 text-sm mt-2">We'll send you a recovery link</p>
+          <p className="text-white/75 text-sm mt-2">We'll send you a recovery link</p>
         </div>
 
         {/* Card */}
@@ -87,7 +87,7 @@ export default function ForgotPassword() {
                 <p className="text-white/50 text-sm mb-1">
                   If an account exists with <span className="text-white font-medium">{email}</span>, you'll receive a reset link.
                 </p>
-                <p className="text-white/30 text-xs mb-6">Check your spam folder if needed.</p>
+                <p className="text-white/65 text-xs mb-6">Check your spam folder if needed.</p>
                 <div className="space-y-3">
                   <Button onClick={() => setSubmitted(false)} variant="outline"
                     className="w-full h-11 rounded-xl border-white/[0.08] text-white hover:bg-white/[0.05]">
@@ -107,7 +107,7 @@ export default function ForgotPassword() {
                     Email address
                   </Label>
                   <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary/70 transition-colors" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-primary/70 transition-colors" />
                     <Input
                       id="email"
                       type="email"
@@ -135,7 +135,7 @@ export default function ForgotPassword() {
         </div>
 
         <div className="text-center mt-6">
-          <Link to="/auth" className="text-xs text-white/30 hover:text-white/60 transition-colors inline-flex items-center gap-1">
+          <Link to="/auth" className="text-xs text-white/65 hover:text-white/60 transition-colors inline-flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Back to Sign In
           </Link>
         </div>

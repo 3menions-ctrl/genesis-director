@@ -1043,7 +1043,7 @@ function ProjectsContentInner() {
           /* Minimal Empty State */
           <div className="flex flex-col items-center justify-center py-28 sm:py-36 px-4 animate-fade-in">
             <div className="w-20 h-20 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center mb-8">
-              <Film className="w-8 h-8 text-white/20" strokeWidth={1.25} />
+              <Film className="w-8 h-8 text-white/55" strokeWidth={1.25} />
             </div>
             
             <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3 text-center tracking-tight">
@@ -1213,7 +1213,7 @@ function ProjectsContentInner() {
                       <div className="flex items-start gap-4">
                         <div className="flex gap-3 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] uppercase tracking-wider text-white/30 mb-2">Original</p>
+                            <p className="text-[10px] uppercase tracking-wider text-white/65 mb-2">Original</p>
                             <div className="aspect-square rounded-xl overflow-hidden border border-white/[0.06]">
                               <img src={selectedPhotoEdit.original_url} alt="Original" className="w-full h-full object-cover" />
                             </div>
@@ -1225,12 +1225,12 @@ function ProjectsContentInner() {
                             </div>
                           </div>
                         </div>
-                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-colors flex-shrink-0">
+                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/65 hover:text-white/60 transition-colors flex-shrink-0">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       {selectedPhotoEdit.custom_instruction && (
-                        <p className="text-xs text-white/40 mt-3 italic">"{selectedPhotoEdit.custom_instruction}"</p>
+                        <p className="text-xs text-white/75 mt-3 italic">"{selectedPhotoEdit.custom_instruction}"</p>
                       )}
                     </div>
                   )}
@@ -1384,7 +1384,7 @@ function ProjectsContentInner() {
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="Enter project name"
-              className="h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 rounded-xl focus:border-white/30 focus:ring-0"
+              className="h-12 bg-white/5 border-white/10 text-white placeholder:text-white/65 rounded-xl focus:border-white/30 focus:ring-0"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newProjectName.trim()) {

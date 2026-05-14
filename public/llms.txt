@@ -4,6 +4,26 @@
 
 ---
 
+## Pages
+
+- [Home](/): AI video generation platform overview, hero demo, and live examples.
+- [Pricing](/pricing): Credit packs, plans, and feature comparison ($1 = 10 credits).
+- [How It Works](/how-it-works): Step-by-step walkthrough of the text-to-video and image-to-video pipeline.
+- [Enterprise](/enterprise): Enterprise plan, security posture, and team features.
+- [Help Center](/help): Guides, troubleshooting, and FAQ for creators.
+- [Blog](/blog): Articles on AI video creation, avatars, and cinematic prompting.
+- [Press](/press): Press kit, brand assets, and media contacts.
+- [Contact](/contact): Get in touch with the Apex-Studio team.
+- [Privacy Policy](/privacy): How Apex-Studio collects, uses, and protects personal information.
+- [Terms of Service](/terms): Terms and conditions for using the Apex-Studio platform.
+
+## Optional
+
+- [Sign in](/auth): Account login and signup entry point.
+- [Unsubscribe](/unsubscribe): Email unsubscribe page.
+
+---
+
 ## Platform Identity
 
 **Company**: Apex Studio (NOT Apex Fitness, NOT Apex Gaming, NOT Apex Legends)

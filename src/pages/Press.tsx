@@ -163,7 +163,7 @@ const itemVariants = {
 };
 
 export default function Press() {
-  usePageMeta({ title: 'Press — Genesis Director', description: 'Press kit, media resources, and the latest news about Genesis Director AI video platform.' });
+  usePageMeta({ title: 'Press — Apex-Studio', description: 'Press kit, media resources, and the latest news about Apex-Studio AI video platform.' });
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Animated Background */}

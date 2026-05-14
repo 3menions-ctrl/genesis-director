@@ -34,6 +34,9 @@ export interface ScreenplaySegment {
   startPose: string;       // What the character looks like at frame 0
   endPose: string;         // Where they should be at the last frame (becomes next clip's start)
   visualContinuity: string; // Explicit instruction for what carries over to next clip
+  // NEW: turn-taking fields
+  respondsTo?: string;     // Verbatim or paraphrase of the previous speaker's last beat this clip is reacting to
+  handoffCue?: string;     // The final beat of dialogue that invites the next speaker to respond
 }
 
 export interface GeneratedScreenplay {
@@ -63,9 +66,17 @@ export async function generateAvatarScreenplay(params: {
   const isDualAvatar = !!secondaryCharacter;
   
   console.log(`[ScreenplayGen] 🎬 KLING-NATIVE screenplay: "${userPrompt.substring(0, 80)}", ${clipCount} clips @ ${clipDuration}s, dual=${isDualAvatar}`);
-  
+
+  // Parse speaker-tagged dialogue if the user wrote it as a script (e.g. "Alice: Hi" / "A: ...").
+  const parsedTurns = isDualAvatar
+    ? parseSpeakerTaggedScript(userPrompt, primaryCharacter.name, secondaryCharacter!.name)
+    : null;
+  if (parsedTurns) {
+    console.log(`[ScreenplayGen] 🎭 Detected ${parsedTurns.length} tagged turns from user script`);
+  }
+
   const systemPrompt = buildKlingNativeSystemPrompt(clipCount, clipDuration, primaryCharacter, secondaryCharacter, sceneDescription);
-  const userMessage = buildKlingNativeUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter, clipDuration);
+  const userMessage = buildKlingNativeUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter, clipDuration, parsedTurns);
   
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -98,7 +109,7 @@ export async function generateAvatarScreenplay(params: {
       return createFallbackScreenplay(userPrompt, clipCount, primaryCharacter, secondaryCharacter);
     }
 
-    const parsed = parseScreenplayResponse(content, clipCount, primaryCharacter, secondaryCharacter);
+    const parsed = parseScreenplayResponse(content, clipCount, primaryCharacter, secondaryCharacter, parsedTurns);
     console.log(`[ScreenplayGen] ✅ Generated ${parsed.segments.length} segments | Arc: ${parsed.narrativeArc} | Tone: ${parsed.tone}`);
     return parsed;
     
@@ -309,7 +320,9 @@ ${sceneDescription ? `SCENE: ${sceneDescription}` : 'SCENE: Let the story determ
       "physicalDetail": "Micro-actions: fidgeting, glancing, adjusting hair",
       "startPose": "Character's position/pose at frame 0 of this clip",
       "endPose": "Character's position/pose at the last frame (becomes next clip's start)",
-      "visualContinuity": "What must stay the same between this clip and the next"
+      "visualContinuity": "What must stay the same between this clip and the next",
+      "respondsTo": "Verbatim or paraphrase of the previous speaker's last beat this clip is reacting to (empty for clip 1)",
+      "handoffCue": "The final beat of dialogue that invites the next speaker to respond (empty for the final clip)"
     }
   ]
 }
@@ -348,14 +361,30 @@ function buildKlingNativeUserPrompt(
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
   clipDuration: number = 10,
+  parsedTurns?: ParsedTurn[] | null,
 ): string {
   const wordsPerClip = Math.floor(clipDuration * 2.2);
+  const turnPattern = isDual ? getDualAvatarPattern(clipCount) : null;
+  const patternLine = turnPattern
+    ? turnPattern.map((r, i) => `  Clip ${i + 1}: ${r === 'primary' ? primary.name : secondary!.name}`).join('\n')
+    : '';
+
+  const taggedBlock = parsedTurns && parsedTurns.length > 0
+    ? `\n═══ SPEAKER-TAGGED DIALOGUE (HONOR THESE SPEAKERS) ═══\n` +
+      parsedTurns.map((t, i) =>
+        `  Turn ${i + 1} — ${t.role === 'primary' ? primary.name : secondary!.name}: "${t.text}"`
+      ).join('\n') +
+      `\n\nMap each tagged turn to a clip in order. The avatarRole on that clip MUST match the tagged speaker. ` +
+      `Distribute remaining clips (if any) as natural reactions/follow-ups by the other speaker.\n`
+    : '';
   
   return `Write a ${clipCount}-clip screenplay using the user's EXACT text as the core dialogue.
 
 ═══ USER'S SCRIPT (MUST BE PRESERVED AS DIALOGUE) ═══
 "${userPrompt}"
 ═══ END USER SCRIPT ═══
+${taggedBlock}
+${turnPattern ? `\n═══ MANDATORY SPEAKER ORDER (true alternation) ═══\n${patternLine}\n` : ''}
 
 IMPORTANT: The text above is what the avatar MUST say. Split it naturally across ${clipCount} clips.
 You may add brief fun intros, reactions, or transitions to make it entertaining, but the user's
@@ -364,21 +393,26 @@ original words must appear as dialogue — in order, complete, and unaltered in 
 ${isDual 
   ? `${primary.name} (A1) and ${secondary!.name} (A2) tell this story TOGETHER as a TWO-HANDER.
 
-WHAT MAKES THIS GREAT:
-- A1 opens with something that DEMANDS a response — not generic setup
-- A2's first line REDEFINES what A1 just said (interrupt, react, reveal, or contrast)
-- They have DISTINCT speech patterns: one verbose, one punchy (or one earnest, one sarcastic)
-- Each clip ESCALATES — never plateau
-- Plant something small in clip 1, pay it off devastatingly in clip 6
-- The closer is the moment people SHARE the video
+TURN-TAKING DISCIPLINE (CRITICAL):
+- Speakers ALTERNATE every clip — never two clips in a row by the same character unless the
+  MANDATORY SPEAKER ORDER above explicitly says so.
+- Every clip's dialogue MUST end on a HAND-OFF: a question, a provocation, an unfinished thought,
+  a reaction-bait line, or a name-drop. Fill the "handoffCue" field with that final beat.
+- Every clip from clip 2 onward MUST react to the previous speaker's last beat. Fill the
+  "respondsTo" field with the specific phrase or idea this clip is responding to.
+- A2's first line REDEFINES what A1 just said (interrupt, react, reveal, or contrast).
+- Distinct speech patterns: one verbose, one punchy (or one earnest, one sarcastic).
+- Plant something small in clip 1, pay it off in the final clip.
+- The closer is the moment people SHARE the video.
 
-MANDATORY STRUCTURE:
-- CLIP 1: A1 solo — the HOOK. Say something that demands a response.
-- CLIP 2: A2 enters — the REFRAME. Their first line changes everything.
-- CLIP 3: A2 solo in DIFFERENT location — their SHOWCASE. We fall for A2 here.
-- CLIP 4: Back to A1 — the EVOLUTION. A1 has changed because of A2.
-- CLIP 5: A1 peak — the CLIMAX. Maximum tension or revelation.
-- CLIP 6: A2 closes — the PAYOFF. Callback, punchline, or emotional landing.
+MANDATORY STRUCTURE (true alternation):
+- Follow the MANDATORY SPEAKER ORDER above EXACTLY (default is strict ABABAB).
+- Clip 1 (A1): HOOK — say something that demands a response.
+- Clip 2 (A2): REFRAME — first line changes the meaning of clip 1.
+- Clip 3 (A1): COUNTER — A1 reacts to A2's reframe with a new angle.
+- Clip 4 (A2): ESCALATE — A2 raises the stakes or flips the status.
+- Clip 5 (A1): PEAK — A1's biggest beat, lands a revelation or twist.
+- Clip 6 (A2): PAYOFF — callback to clip 1, devastating one-liner, or quiet closer.
 
 CHEMISTRY CHECKLIST:
 □ Do they reference each other across clips? ("Can you believe she said...")
@@ -386,6 +420,8 @@ CHEMISTRY CHECKLIST:
 □ Is there a status shift? (One starts "winning," then it flips)
 □ Is there a plant/payoff? (Casual detail in clip 1 → devastating in clip 6)
 □ Does the introduction feel EARNED? (Not "Hi, I'm here" but a genuine reaction)
+□ Does every clip ≥2 fill respondsTo with the previous speaker's actual line/idea?
+□ Does every clip end on a hand-off cue that invites the OTHER speaker to respond?
 
 Each clip renders ONE character. They interact across cuts, not within frames.
 Every endPose must match the next clip's startPose for the same character.` 
@@ -418,6 +454,7 @@ function parseScreenplayResponse(
   clipCount: number,
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
+  parsedTurns?: ParsedTurn[] | null,
 ): GeneratedScreenplay {
   let jsonStr = content.trim();
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -460,6 +497,8 @@ function parseScreenplayResponse(
         startPose: s.startPose || 'Standing naturally, facing camera',
         endPose: s.endPose || 'Same position, slight shift in weight',
         visualContinuity: s.visualContinuity || 'Same character, same outfit, same environment',
+        respondsTo: s.respondsTo || '',
+        handoffCue: s.handoffCue || '',
       };
     });
     
@@ -482,11 +521,13 @@ function parseScreenplayResponse(
       });
     }
     
-    // Enforce dual-avatar pattern
+    // Enforce dual-avatar pattern. Speaker-tagged turns from the user override the default
+    // alternation so explicit "Alice:" / "Bob:" lines map to the right avatar.
     if (secondary && segments.length >= 2) {
       const dualPattern = getDualAvatarPattern(segments.length);
       for (let i = 0; i < segments.length; i++) {
-        segments[i].avatarRole = dualPattern[i] || 'primary';
+        const tagged = parsedTurns && parsedTurns[i] ? parsedTurns[i].role : null;
+        segments[i].avatarRole = tagged || dualPattern[i] || 'primary';
       }
     }
     
@@ -526,18 +567,89 @@ function parseScreenplayResponse(
 
 /**
  * Returns the mandatory avatarRole pattern for dual-avatar clips.
- * Pattern: A1 solo → A2 enters → A2 solo → A1 returns → A1 continues → A2 finishes
+ * Default is STRICT ALTERNATION (ABABAB...) so the two avatars genuinely take turns.
+ * Special-cases short clip counts so A2 still gets a meaningful entrance.
  */
 function getDualAvatarPattern(clipCount: number): Array<'primary' | 'secondary'> {
-  if (clipCount <= 2) return ['primary', 'secondary'];
-  if (clipCount === 3) return ['primary', 'secondary', 'secondary'];
-  if (clipCount === 4) return ['primary', 'secondary', 'secondary', 'primary'];
-  if (clipCount === 5) return ['primary', 'secondary', 'secondary', 'primary', 'secondary'];
-  const pattern: Array<'primary' | 'secondary'> = ['primary', 'secondary', 'secondary', 'primary', 'primary', 'secondary'];
-  for (let i = 6; i < clipCount; i++) {
+  const pattern: Array<'primary' | 'secondary'> = [];
+  for (let i = 0; i < clipCount; i++) {
     pattern.push(i % 2 === 0 ? 'primary' : 'secondary');
   }
   return pattern;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Speaker-tag parser
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ParsedTurn {
+  role: 'primary' | 'secondary';
+  text: string;
+}
+
+/**
+ * Parse a user prompt for explicit speaker tags like:
+ *   "Alice: Hi there"
+ *   "Bob: Hey"
+ *   "A: ..."  /  "B: ..."
+ *   "Speaker 1: ..."  /  "Speaker 2: ..."
+ * Returns null if no tagged turns are detected so the caller can fall back to free-form.
+ */
+export function parseSpeakerTaggedScript(
+  text: string,
+  primaryName: string,
+  secondaryName: string,
+): ParsedTurn[] | null {
+  if (!text) return null;
+  const lines = text.split(/\r?\n+/).map(l => l.trim()).filter(Boolean);
+  // Also split single-line scripts that use inline tags ("Alice: hi  Bob: hey")
+  const candidate: string[] = [];
+  for (const line of lines) {
+    const inline = line.split(/(?=\b(?:[A-Z][a-zA-Z'’\- ]{0,30}|A|B|Speaker\s?[12])\s*:\s)/g)
+      .map(s => s.trim()).filter(Boolean);
+    if (inline.length > 1) candidate.push(...inline);
+    else candidate.push(line);
+  }
+
+  const tagRe = /^([A-Za-z][A-Za-z'’\- ]{0,30}|A|B|Speaker\s?[12])\s*[:\-]\s*(.+)$/;
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const pName = norm(primaryName);
+  const sName = norm(secondaryName);
+
+  const turns: ParsedTurn[] = [];
+  let tagged = 0;
+  for (const raw of candidate) {
+    const m = raw.match(tagRe);
+    if (!m) {
+      // Untagged line — append to last turn so we don't lose user words.
+      if (turns.length) turns[turns.length - 1].text += ' ' + raw;
+      continue;
+    }
+    tagged++;
+    const tagRaw = norm(m[1]);
+    const body = m[2].trim();
+    let role: 'primary' | 'secondary';
+    if (tagRaw === pName || tagRaw === 'a' || tagRaw === 'speaker 1' || tagRaw === 'speaker1') {
+      role = 'primary';
+    } else if (tagRaw === sName || tagRaw === 'b' || tagRaw === 'speaker 2' || tagRaw === 'speaker2') {
+      role = 'secondary';
+    } else if (pName.startsWith(tagRaw) || tagRaw.startsWith(pName)) {
+      role = 'primary';
+    } else if (sName.startsWith(tagRaw) || tagRaw.startsWith(sName)) {
+      role = 'secondary';
+    } else {
+      // Unknown speaker tag → strict alternation from previous turn.
+      role = turns.length === 0 ? 'primary' : (turns[turns.length - 1].role === 'primary' ? 'secondary' : 'primary');
+    }
+    turns.push({ role, text: body });
+  }
+
+  // Require at least 2 tagged turns AND at least one of each speaker before we trust it.
+  if (tagged < 2) return null;
+  const hasP = turns.some(t => t.role === 'primary');
+  const hasS = turns.some(t => t.role === 'secondary');
+  if (!hasP || !hasS) return null;
+  return turns;
 }
 
 function createFallbackScreenplay(
@@ -580,6 +692,8 @@ function createFallbackScreenplay(
       startPose: 'Standing naturally, facing camera, hands at sides',
       endPose: 'Same position with slight weight shift',
       visualContinuity: 'Same character, outfit, and environment',
+      respondsTo: i === 0 ? '' : 'reacting to the previous beat',
+      handoffCue: i === clipCount - 1 ? '' : 'lands a line that invites the other to respond',
     });
   }
   

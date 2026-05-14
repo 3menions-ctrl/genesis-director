@@ -96,7 +96,10 @@ const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 type StepKey =
   | typeof PERSONAL_STEPS[number]
   | typeof BUSINESS_STEPS[number]
-  | typeof ENTERPRISE_STEPS[number];
+  | typeof ENTERPRISE_STEPS[number]
+  // Legacy step keys retained so dead render branches and STEP_META entries
+  // continue to type-check after the merge cleanup.
+  | 'goals' | 'usecase' | 'profile' | 'team' | 'role' | 'biz_usecase' | 'volume' | 'integrations' | 'billing';
 
 const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   intro:   { label: 'About you',     copy: 'What do you want to make — and how should it feel?' },

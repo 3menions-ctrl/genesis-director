@@ -299,6 +299,11 @@ const App = () => {
                     <AdaptiveShell><HowItWorks /></AdaptiveShell>
                   </RouteContainer>
                 } />
+                <Route path="/studio" element={
+                  <RouteContainer fallbackMessage="Entering the studio…">
+                    <Studio />
+                  </RouteContainer>
+                } />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={

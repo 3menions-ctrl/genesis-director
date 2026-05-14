@@ -320,7 +320,9 @@ ${sceneDescription ? `SCENE: ${sceneDescription}` : 'SCENE: Let the story determ
       "physicalDetail": "Micro-actions: fidgeting, glancing, adjusting hair",
       "startPose": "Character's position/pose at frame 0 of this clip",
       "endPose": "Character's position/pose at the last frame (becomes next clip's start)",
-      "visualContinuity": "What must stay the same between this clip and the next"
+      "visualContinuity": "What must stay the same between this clip and the next",
+      "respondsTo": "Verbatim or paraphrase of the previous speaker's last beat this clip is reacting to (empty for clip 1)",
+      "handoffCue": "The final beat of dialogue that invites the next speaker to respond (empty for the final clip)"
     }
   ]
 }

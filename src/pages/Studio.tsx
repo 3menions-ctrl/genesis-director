@@ -943,7 +943,7 @@ function PipelineSection() {
                 <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-1 w-[40px] h-[40px] rounded-full bg-black border border-[#0A84FF]/40 flex items-center justify-center shadow-[0_0_30px_rgba(10,132,255,0.35)]">
                   <s.icon className="w-4 h-4 text-[#0A84FF]" />
                 </div>
-                <div className={`md:col-start-${right ? 2 : 1} md:row-start-1 ${right ? 'md:pl-12' : 'md:pr-12 md:text-right'}`}>
+                <div className={`md:row-start-1 ${right ? 'md:col-start-2 md:pl-12' : 'md:col-start-1 md:pr-12 md:text-right'}`}>
                   <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-2">Stage {String(i + 1).padStart(2, '0')}</div>
                   <h4 className="font-display text-2xl md:text-3xl text-white tracking-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>{s.t}</h4>
                   <p className="text-white/55 text-[14px] leading-relaxed font-light max-w-md md:inline-block">{s.sub}</p>

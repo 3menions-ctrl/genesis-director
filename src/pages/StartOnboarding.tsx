@@ -83,10 +83,14 @@ const ENTERPRISE_PLAN: Plan = {
 // Billing/checkout is ALWAYS the final step. Account creation (incl. Google/Apple)
 // happens AFTER the user has completed all questionnaire + plan selection — this
 // preserves the full onboarding flow and lands users on billing as the last action.
-const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-// Business onboarding is intentionally deeper than personal — it captures workspace,
-// brand, volume, integrations and an optional teammate invite list before billing.
-const BUSINESS_STEPS = ['company', 'biz_usecase', 'team', 'role', 'brand', 'volume', 'integrations', 'plan', 'account', 'verify', 'invite', 'billing'] as const;
+// Personal onboarding — merged into the smallest sensible flow:
+//   intro (goals + style)  →  plan  →  account (name + email + pw)  →  verify
+const PERSONAL_STEPS = ['intro', 'plan', 'account', 'verify'] as const;
+// Business onboarding — combined screens to avoid asking the same shape of
+// question twice in a row. Brand & ops bundles colors + voice + monthly volume
+// + integrations. Invite & billing collects optional billing email + VAT after
+// verify, alongside teammate invites.
+const BUSINESS_STEPS = ['company', 'team_role', 'brand', 'plan', 'account', 'verify', 'invite'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -95,12 +99,14 @@ type StepKey =
   | typeof ENTERPRISE_STEPS[number];
 
 const STEP_META: Record<StepKey, { label: string; copy: string }> = {
+  intro:   { label: 'About you',     copy: 'What do you want to make — and how should it feel?' },
   goals:   { label: 'Goals',         copy: 'What do you want to make?' },
   usecase: { label: 'Style',         copy: 'Pick the experience you want.' },
   plan:    { label: 'Plan',          copy: 'Choose how you want to start.' },
   profile: { label: 'Profile',       copy: 'How should we greet you?' },
-  company: { label: 'Company',       copy: 'Tell us about your team.' },
+  company: { label: 'Company',       copy: 'Tell us about your team and what you produce.' },
   team:    { label: 'Team',          copy: 'How big is your crew?' },
+  team_role:{ label: 'You & your team', copy: 'How big is your crew, and what do you do?' },
   role:    { label: 'Your role',     copy: 'What do you do?' },
   billing: { label: 'Billing',       copy: 'Almost there — confirm your plan.' },
   scale:   { label: 'Scale',         copy: 'Help us size your contract.' },
@@ -109,10 +115,10 @@ const STEP_META: Record<StepKey, { label: string; copy: string }> = {
   account: { label: 'Account',       copy: 'Create your account.' },
   verify:  { label: 'Verify',        copy: 'Confirm your email.' },
   biz_usecase:  { label: 'Use case',     copy: 'What will your team produce?' },
-  brand:        { label: 'Brand kit',    copy: 'Bring your brand into Apex.' },
+  brand:        { label: 'Brand & ops',  copy: 'Brand kit, monthly volume, and the tools you use.' },
   volume:       { label: 'Volume',       copy: 'How much content per month?' },
   integrations: { label: 'Integrations', copy: 'Where does video need to go?' },
-  invite:       { label: 'Invite team',  copy: 'Bring your crew on board.' },
+  invite:       { label: 'Invite & billing', copy: 'Add teammates and (optionally) your billing details.' },
 };
 
 const PERSONAL_GOALS = [

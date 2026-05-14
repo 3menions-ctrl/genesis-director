@@ -708,7 +708,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   const [loading, setLoading] = useState(true);
 
   // Persist search, category, duration filter, and duration mode across reloads / revisits.
-  // Stored as a single JSON blob so one read covers all four.
+  // URL query parameters take priority (shareable links), then localStorage fallback.
+  const [searchParams, setSearchParams] = useSearchParams();
   const FILTERS_KEY = 'apex_templates_filters_v1';
   type DurationFilter = 'any' | '1' | '2' | '3' | '3plus';
   type DurationMode = 'bucket' | 'exact';
@@ -718,7 +719,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     duration: DurationFilter;
     durationMode: DurationMode;
   };
-  const loadPersistedFilters = (): PersistedFilters => {
+
+  const loadLocalFilters = (): PersistedFilters => {
     try {
       const raw = localStorage.getItem(FILTERS_KEY);
       if (raw) {
@@ -733,7 +735,22 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     } catch {}
     return { search: '', category: 'all', duration: 'any', durationMode: 'bucket' };
   };
-  const initialFilters = loadPersistedFilters();
+
+  // URL params always win over localStorage so shared links load correctly.
+  const initialFilters = ((): PersistedFilters => {
+    const local = loadLocalFilters();
+    const urlSearch = searchParams.get('search') ?? local.search;
+    const urlCategory = searchParams.get('category') ?? local.category;
+    const urlDuration = (searchParams.get('duration') as DurationFilter | null) ?? local.duration;
+    const urlMode = (searchParams.get('mode') as DurationMode | null) ?? local.durationMode;
+    return {
+      search: urlSearch,
+      category: urlCategory,
+      duration: ['any', '1', '2', '3', '3plus'].includes(urlDuration) ? urlDuration : 'any',
+      durationMode: urlMode === 'exact' ? 'exact' : 'bucket',
+    };
+  })();
+
   const [searchQuery, setSearchQuery] = useState(initialFilters.search);
   const [activeCategory, setActiveCategory] = useState(initialFilters.category);
   // Educational-tab-only: filter by target length bucket.
@@ -741,8 +758,14 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   // Educational-tab-only: toggle between bucketed ranges and exact minute matching.
   const [durationMode, setDurationMode] = useState<DurationMode>(initialFilters.durationMode);
 
-  // Save filters whenever any of the four change.
+  // Sync filter changes to URL (replace, no history bloat) and localStorage.
   useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    if (durationFilter !== 'any') params.set('duration', durationFilter);
+    if (durationMode !== 'bucket') params.set('mode', durationMode);
+    setSearchParams(params, { replace: true });
     try {
       localStorage.setItem(
         FILTERS_KEY,

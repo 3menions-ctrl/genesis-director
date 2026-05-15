@@ -4,6 +4,7 @@ import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
   Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight, Code2,
+  Users as UsersIcon, Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +39,8 @@ const PRIMARY_NAV: NavItem[] = [
   { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 215 },
   { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 215 },
   { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
+  { label: 'Cast',      to: '/avatars-gallery',icon: UsersIcon,     hue: 215 },
+  { label: 'Mascots',   to: '/mascots',        icon: Smile,         hue: 215 },
   { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
   { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
   { label: 'Developers',to: '/developers',     icon: Code2,         hue: 215, match: (p) => p.startsWith('/developers') },

@@ -638,12 +638,12 @@ export default function StudioShell() {
 
                 {/* ===== Mode switcher — Text-to-Video is now first-class ===== */}
                 <div className="relative mb-8">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
+                  <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 p-1 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
                     {([
-                      { id: "text", label: "Text → Video", sub: "Pure prompt", Icon: Wand2 },
-                      { id: "image", label: "Image → Video", sub: "Reference frame", Icon: ImageIcon },
-                      { id: "template", label: "Template", sub: "Proven shots", Icon: Images },
-                    ] as const).map(({ id, label, sub, Icon }) => {
+                      { id: "text", label: "Text", Icon: Wand2 },
+                      { id: "image", label: "Image", Icon: ImageIcon },
+                      { id: "template", label: "Template", Icon: Images },
+                    ] as const).map(({ id, label, Icon }) => {
                       const active = createMode === id;
                       return (
                         <button
@@ -659,17 +659,14 @@ export default function StudioShell() {
                             }
                           }}
                           className={cn(
-                            "group relative flex items-center gap-3 rounded-full px-5 py-2.5 transition-all",
+                            "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] transition-all",
                             active
                               ? "bg-foreground text-background shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.55)]"
                               : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
                           )}
                         >
-                          <Icon className={cn("h-4 w-4", active ? "text-accent" : "")} />
-                          <span className="text-left">
-                            <span className={cn("block font-display text-[15px] italic leading-tight", active ? "text-background" : "")}>{label}</span>
-                            <span className={cn("block font-mono text-[8.5px] uppercase tracking-[0.28em]", active ? "text-background/55" : "text-muted-foreground/60")}>{sub}</span>
-                          </span>
+                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} />
+                          <span className={cn("font-medium", active ? "text-background" : "")}>{label}</span>
                         </button>
                       );
                     })}

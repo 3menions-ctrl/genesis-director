@@ -294,13 +294,43 @@ export default function StudioShell() {
       toast.error("Create or write scenes first");
       return;
     }
+    // ── Cinema entitlement gate ──
+    const blocking = draft.scenes.find(s => {
+      const eid = s.engine || draft.defaults.engine;
+      return ENGINES[eid].requiresEntitlement === "studio_cinema" && !hasCinema;
+    });
+    if (blocking) {
+      toast.error("Cinema engine requires a Studio Cinema subscription", {
+        description: "Switch to Kling V3 / Seedance, or upgrade to unlock Veo, Runway and Sora.",
+        action: { label: "Upgrade", onClick: () => navigate("/credits") },
+      });
+      return;
+    }
+    // ── Pre-flight credit check ──
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("credits_balance")
+          .eq("id", user.id)
+          .maybeSingle();
+        const balance = (profile as any)?.credits_balance ?? 0;
+        if (balance < totalCost) {
+          toast.error(`Insufficient credits — ${totalCost} required, ${balance} available`, {
+            action: { label: "Buy credits", onClick: () => navigate("/credits") },
+          });
+          return;
+        }
+      }
+    } catch { /* non-fatal — server enforces final deduct */ }
     setStep("clips");
     for (const scene of draft.scenes) {
       if (!scene.clipUrl && scene.status !== "generating") {
         await generateScene(scene.id);
       }
     }
-  }, [canRender, draft.scenes, generateScene]);
+  }, [canRender, draft.scenes, draft.defaults.engine, generateScene, hasCinema, navigate, totalCost]);
 
   const autoCreate = useCallback(async () => {
     if (!draft.scenes.length) {

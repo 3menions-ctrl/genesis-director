@@ -17,6 +17,7 @@ const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegment
 const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
 const SeedanceSection = lazy(() => import('@/components/landing/SeedanceSection').then(m => ({ default: m.SeedanceSection })));
 const B2BWorkflow = lazy(() => import('@/components/landing/B2BGlassFeatures').then(m => ({ default: m.B2BWorkflow })));
+const FrameChainingSection = lazy(() => import('@/components/landing/FrameChainingSection').then(m => ({ default: m.FrameChainingSection })));
 const B2BFinalCTA = lazy(() => import('@/components/landing/B2BFinalCTA').then(m => ({ default: m.B2BFinalCTA })));
 const HoppyImmersiveScrollSection = lazy(() =>
   import('@/components/landing/HoppyImmersiveScrollSection').then(m => ({ default: m.HoppyImmersiveScrollSection })),

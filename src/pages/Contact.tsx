@@ -7,13 +7,15 @@ import { useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Contact = () => {
+  const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: profile?.display_name || "",
+    email: user?.email || "",
     subject: "",
     message: ""
   });
@@ -31,13 +33,21 @@ const Contact = () => {
           email: formData.email,
           subject: formData.subject,
           message: formData.message,
-          source: 'contact'
+          source: 'contact',
+          user_id: user?.id ?? null,
         });
       
       if (error) throw error;
       
-      toast.success("Message sent! We'll get back to you within 24-48 hours.");
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      toast.success("Message sent! We'll get back to you within 24-48 hours.", {
+        description: user ? "Track replies in your Profile › Help & Support." : undefined,
+      });
+      setFormData({
+        name: profile?.display_name || "",
+        email: user?.email || "",
+        subject: "",
+        message: "",
+      });
     } catch (err) {
       console.error('Failed to send message:', err);
       toast.error("Failed to send message. Please try again or email us directly.");

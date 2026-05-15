@@ -1779,6 +1779,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[SingleClip] Error:", error);
+    // Release any active credit hold so the user isn't charged for a failed render.
+    try { await releaseHold(error instanceof Error ? error.message : 'unknown_error'); } catch {}
     
     // =========================================================
     // CRITICAL: Release lock on error

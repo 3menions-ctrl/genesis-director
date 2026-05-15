@@ -28,6 +28,17 @@ export interface ModelNodeData extends Record<string, unknown> {
   inputs?: Record<string, unknown>;
 }
 
+export interface ModelInputs {
+  prompt?: string;
+  imageUrl?: string;        // start frame for I2V
+  endImageUrl?: string;     // chain end frame
+  durationSec?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  audioPrompt?: string;
+  voicePrompt?: string;
+}
+
 export interface AvatarNodeData extends Record<string, unknown> {
   kind: 'avatar';
   label: string;

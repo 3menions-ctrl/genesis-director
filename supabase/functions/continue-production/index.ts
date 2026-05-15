@@ -108,7 +108,7 @@ serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // ═══ AUTH GUARD ═══
-  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
     return unauthorizedResponse(corsHeaders, auth.error);
@@ -126,7 +126,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { projectId, userId, completedClipIndex, completedClipResult, totalClips, pipelineContext } = request;
+    const { projectId, completedClipIndex, completedClipResult, totalClips, pipelineContext } = request;
+    // SECURITY: trust JWT for end-user calls; service-role may pass userId via body
+    let userId: string;
+    try {
+      userId = resolveEffectiveUserId(auth, request.userId);
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, (e as Error).message);
+    }
 
     console.log(`[ContinueProduction] Clip ${completedClipIndex + 1}/${totalClips} completed for project ${projectId}`);
 

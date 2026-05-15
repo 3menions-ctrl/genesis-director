@@ -289,7 +289,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
-  const effectiveDuration = clipDuration;
   const engineCaps = ENGINE_CAPS[videoEngine];
   const engineInfo = engineCaps;
   const clipDurationOptions = engineCaps.durations;
@@ -304,12 +303,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
   }, [selectedMode, videoEngine]);
 
-  // ── GUARDRAIL: snap duration into the engine's legal range.
+  // ── GUARDRAIL: snap default duration AND every per-scene duration into
+  //               the new engine's legal range.
   useEffect(() => {
     if (!clipDurationOptions.includes(clipDuration)) {
       setClipDuration(snapDuration(clipDuration, clipDurationOptions));
     }
+    setClipDurations((prev) => prev.map((d) => snapDuration(d, clipDurationOptions)));
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Keep per-scene durations sized to clipCount. New scenes inherit the
+  //    current default duration; trimmed scenes drop off the end.
+  useEffect(() => {
+    setClipDurations((prev) => {
+      if (prev.length === clipCount) return prev;
+      if (prev.length > clipCount) return prev.slice(0, clipCount);
+      const fill = snapDuration(clipDuration, clipDurationOptions);
+      return [...prev, ...Array.from({ length: clipCount - prev.length }, () => fill)];
+    });
+  }, [clipCount, clipDuration, clipDurationOptions]);
 
   // ── GUARDRAIL: snap aspect ratio into the engine's legal set
   //               (Veo + Sora don't support 1:1).
@@ -338,12 +350,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
   }, [selectedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const estimatedDuration = clipCount * effectiveDuration;
+  // Aligned per-scene durations (always reflects the current clipCount
+  // even before the sync effect runs, so totals never flicker).
+  const alignedDurations = useMemo(() => {
+    const fill = snapDuration(clipDuration, clipDurationOptions);
+    if (clipDurations.length === clipCount) {
+      return clipDurations.map((d) => snapDuration(d, clipDurationOptions));
+    }
+    if (clipDurations.length > clipCount) return clipDurations.slice(0, clipCount);
+    return [
+      ...clipDurations.map((d) => snapDuration(d, clipDurationOptions)),
+      ...Array.from({ length: clipCount - clipDurations.length }, () => fill),
+    ];
+  }, [clipDurations, clipCount, clipDuration, clipDurationOptions]);
+  const estimatedDuration = alignedDurations.reduce((a, b) => a + b, 0);
   const estMin = Math.floor(estimatedDuration / 60);
   const estSec = estimatedDuration % 60;
   const estimatedCredits = useMemo(
-    () => calculateCreditsRequired(clipCount, effectiveDuration, videoEngine as any),
-    [clipCount, effectiveDuration, videoEngine]
+    () => calculateCreditsForDurations(alignedDurations, videoEngine as any),
+    [alignedDurations, videoEngine]
   );
 
   const userCredits = profile?.credits_balance ?? 0;

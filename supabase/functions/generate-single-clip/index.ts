@@ -864,11 +864,55 @@ serve(async (req) => {
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
       videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
+      // Optional credit reservation handle. When present, we'll consume it on
+      // successful prediction creation and release it on any failure path so
+      // concurrent renders cannot drift past the pre-flight check.
+      holdId,
     } = body;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
     }
+
+    // ── Credit hold helpers (no-op when holdId is missing). Idempotent —
+    // the underlying RPCs short-circuit on already-consumed/released holds.
+    let holdSettled = false;
+    const consumeHold = async (description?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        const { data, error } = await supabase.rpc('consume_credit_hold', {
+          p_hold_id: holdId,
+          p_description: description || `Clip ${shotIndex + 1}`,
+          p_clip_duration: typeof body.durationSeconds === 'number' ? body.durationSeconds : null,
+        });
+        if (error) {
+          console.warn(`[SingleClip] consume_credit_hold error:`, error.message);
+          holdSettled = false;
+        } else if ((data as any)?.success !== true) {
+          console.warn(`[SingleClip] consume_credit_hold not successful:`, data);
+        } else {
+          console.log(`[SingleClip] 💳 Credit hold ${holdId} consumed (${(data as any).amount} cr)`);
+        }
+      } catch (e) {
+        console.warn(`[SingleClip] consume_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
+    const releaseHold = async (reason?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        await supabase.rpc('release_credit_hold', {
+          p_hold_id: holdId,
+          p_reason: reason || 'generate-single-clip failed',
+        });
+        console.log(`[SingleClip] 🔓 Credit hold ${holdId} released (${reason || 'failure'})`);
+      } catch (e) {
+        console.warn(`[SingleClip] release_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
 
     // ═══ ENGINE SELECTION — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
     // Why: hollywood-pipeline / continue-production / watchdog / resume-pipeline

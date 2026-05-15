@@ -339,89 +339,130 @@ export default function StudioShell() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 opacity-80">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--surface-2)/0.9),hsl(var(--background))_58%)]" />
-        <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
-        <div className="absolute inset-0 opacity-[0.035] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+      {/* Cinematic background — vignette + accent halos + film grain */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--accent)/0.18),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_85%_110%,hsl(var(--accent)/0.10),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_30%_30%_at_5%_5%,hsl(var(--accent)/0.06),transparent_70%)]" />
+        <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+        <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
       </div>
 
-      <header className="relative z-10 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-5 backdrop-blur-2xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-accent/30 bg-accent/15 shadow-[0_0_28px_hsl(var(--accent)/0.25)]">
+      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/50 bg-background/50 px-6 backdrop-blur-2xl">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 shadow-[0_0_32px_hsl(var(--accent)/0.4)]">
             <Film className="h-4 w-4 text-accent" />
+            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent))]" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 border-l border-border/50 pl-4">
             <input
               value={draft.brief.title}
               onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, title: e.target.value } }))}
-              placeholder="Untitled creation"
-              className="w-64 max-w-[30vw] bg-transparent font-display text-base text-foreground outline-none placeholder:text-muted-foreground"
+              placeholder="Untitled film"
+              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
             />
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Create flow · not editor</div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">A Cinematic Workflow · est. 2026</div>
           </div>
         </div>
 
-        <div className="hidden items-center gap-1 rounded-lg border border-border bg-card/60 p-1 md:flex">
-          {STEPS.map(({ id, label, icon: Icon }, index) => {
-            const active = step === id;
-            const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
-            return (
-              <button
-                key={id}
-                onClick={() => setStep(id)}
-                className={cn(
-                  "flex h-8 items-center gap-2 rounded-md px-3 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors",
-                  active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {complete && !active ? <Check className="h-3 w-3 text-success" /> : <Icon className="h-3 w-3" />}
-                {index + 1}. {label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1" />
-        {saving && <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:inline">saving…</span>}
-        <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-card/60 px-3 text-sm text-foreground transition-colors hover:bg-card md:flex">
-          <Cpu className="h-4 w-4 text-accent" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
-        </button>
-        <button
-          onClick={autoCreate}
-          disabled={autoBusy || uploading || !canGenerateScript}
-          className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground shadow-[0_0_28px_hsl(var(--accent)/0.3)] transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-          Auto create
-        </button>
-      </header>
-
-      <main className="relative z-10 grid h-[calc(100vh-4rem)] grid-cols-1 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)_360px]">
-        <aside className="hidden border-r border-border bg-background/45 p-5 backdrop-blur-xl lg:block">
-          <div className="mb-6 rounded-xl border border-border bg-card/50 p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">One flow</div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Upload an image or write an idea, pick cast, auto-write scenes, render clips, then move to the editor only when clips exist.</p>
-          </div>
-          <div className="space-y-2">
-            {STEPS.map(({ id, label, icon: Icon }, index) => {
+        <div className="hidden flex-1 items-center justify-center md:flex">
+          <div className="flex items-center gap-1.5">
+            {STEPS.map(({ id, label }, index) => {
               const active = step === id;
+              const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
               return (
-                <button
-                  key={id}
-                  onClick={() => setStep(id)}
-                  className={cn(
-                    "group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                    active ? "border-accent/50 bg-accent/[0.06] text-foreground" : "border-border bg-card/30 text-muted-foreground hover:bg-card/60 hover:text-foreground",
-                  )}
-                >
-                  <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg border font-mono text-[10px]", active ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-background/40")}>{index + 1}</span>
-                  <Icon className={cn("h-4 w-4", active && "text-accent")} />
-                  <span className="font-medium">{label}</span>
-                  <ChevronRight className="ml-auto h-4 w-4 opacity-40" />
-                </button>
+                <div key={id} className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setStep(id)}
+                    className={cn(
+                      "group flex h-9 items-center gap-2.5 rounded-full px-4 transition-all",
+                      active ? "bg-accent/[0.08] ring-1 ring-accent/40 shadow-[0_0_24px_hsl(var(--accent)/0.25)]" : "hover:bg-card/50",
+                    )}
+                  >
+                    <span className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded-full font-mono text-[9px] transition-colors",
+                      active ? "bg-accent text-accent-foreground" : complete ? "bg-success/20 text-success" : "border border-border text-muted-foreground",
+                    )}>
+                      {complete && !active ? <Check className="h-3 w-3" /> : String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{label}</span>
+                  </button>
+                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/70" />}
+                </div>
               );
             })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {saving && (
+            <span className="hidden items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground sm:flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving
+            </span>
+          )}
+          <button onClick={() => setDrawer("engines")} className="hidden h-10 items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 text-sm text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:flex">
+            <Cpu className="h-3.5 w-3.5 text-accent" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
+          </button>
+          <button
+            onClick={autoCreate}
+            disabled={autoBusy || uploading || !canGenerateScript}
+            className="group relative inline-flex h-10 items-center gap-2 overflow-hidden rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground shadow-[0_0_36px_hsl(var(--accent)/0.45)] transition-all hover:shadow-[0_0_52px_hsl(var(--accent)/0.65)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+          >
+            <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
+            {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            <span className="relative">Auto create</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="relative z-10 grid h-[calc(100vh-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)_380px]">
+        <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl lg:block">
+          <div className="mb-8">
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
+            <h2 className="mt-2 font-display text-2xl italic leading-tight text-foreground">One continuous flow.</h2>
+            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">From a single image or sentence to rendered cinematic clips, ready for the editor.</p>
+          </div>
+          <div className="relative">
+            <div className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-accent/50 via-border to-border/30" />
+            <div className="space-y-1">
+              {STEPS.map(({ id, label, icon: Icon }, index) => {
+                const active = step === id;
+                const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setStep(id)}
+                    className={cn(
+                      "group relative flex w-full items-center gap-4 rounded-xl px-2 py-3 text-left transition-all",
+                      active ? "bg-accent/[0.05]" : "hover:bg-card/40",
+                    )}
+                  >
+                    <span className={cn(
+                      "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-[10px] transition-all",
+                      active ? "border-accent bg-background text-accent shadow-[0_0_20px_hsl(var(--accent)/0.55)]"
+                        : complete ? "border-success/60 bg-background text-success"
+                        : "border-border bg-background text-muted-foreground",
+                    )}>
+                      {complete && !active ? <Check className="h-4 w-4" /> : String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {index + 1}</div>
+                      <div className={cn("mt-0.5 flex items-center gap-1.5 text-sm", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>
+                        <Icon className="h-3.5 w-3.5" /> {label}
+                      </div>
+                    </div>
+                    {active && <span className="h-8 w-0.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-8 border-t border-border/50 pt-5">
+            <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Now playing</div>
+            <div className="mt-2 truncate text-sm italic text-foreground">{draft.brief.title || "Untitled film"}</div>
+            <div className="mt-1 font-mono text-[10px] text-muted-foreground">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
           </div>
         </aside>
 
@@ -439,14 +480,18 @@ export default function StudioShell() {
                     />
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
 
-                    <div className="rounded-2xl border border-border bg-card/55 p-5">
-                      <label className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">What should be created?</label>
+                    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 to-card/20 p-7 shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.3)]">
+                      <div className="pointer-events-none absolute right-6 top-6 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Logline</div>
+                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+                        <span className="h-1 w-1 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
+                        The brief
+                      </div>
                       <textarea
                         value={draft.brief.logline}
                         onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
-                        placeholder="Example: A luxury streetwear launch film in a rainy neon alley, featuring one avatar walking toward camera and delivering a short line."
+                        placeholder="A luxury streetwear launch film in a rainy neon alley, featuring one avatar walking toward camera and delivering a short line."
                         rows={5}
-                        className="mt-3 w-full resize-none bg-transparent text-xl leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70"
+                        className="mt-4 w-full resize-none bg-transparent font-display text-2xl italic leading-snug text-foreground outline-none placeholder:text-muted-foreground/40"
                       />
                       <div className="mt-4 flex flex-wrap gap-2">
                         <input
@@ -676,13 +721,19 @@ export default function StudioShell() {
 
 function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: string; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.22 }}>
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
+      <div className="mb-8 flex items-end justify-between gap-6 border-b border-border/40 pb-6">
+        <div className="flex-1">
+          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-accent backdrop-blur">
+            <span className="h-1 w-1 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
             <Icon className="h-3 w-3" /> {eyebrow}
           </div>
-          <h1 className="max-w-4xl font-display text-4xl leading-tight text-foreground md:text-5xl">{title}</h1>
+          <h1 className="max-w-4xl font-display text-5xl italic leading-[0.98] tracking-tight text-foreground md:text-[64px]">{title}</h1>
+        </div>
+        <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 lg:flex">
+          <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>
+          <span className="h-px w-12 bg-border" />
+          <span>Take 01</span>
         </div>
       </div>
       {children}
@@ -692,24 +743,40 @@ function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; 
 
 function ReferenceUploader({ imageUrl, uploading, onUploadClick, onClear }: { imageUrl?: string; uploading: boolean; onUploadClick: () => void; onClear: () => void }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-card/55">
-      <div className="aspect-[16/7] min-h-[260px]">
+    <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/30 to-background/40 shadow-[0_24px_80px_-30px_hsl(var(--accent)/0.4)]">
+      {/* Cinema corner brackets */}
+      <span className="pointer-events-none absolute left-3 top-3 z-20 h-5 w-5 border-l-2 border-t-2 border-accent/60" />
+      <span className="pointer-events-none absolute right-3 top-3 z-20 h-5 w-5 border-r-2 border-t-2 border-accent/60" />
+      <span className="pointer-events-none absolute bottom-3 left-3 z-20 h-5 w-5 border-b-2 border-l-2 border-accent/60" />
+      <span className="pointer-events-none absolute bottom-3 right-3 z-20 h-5 w-5 border-b-2 border-r-2 border-accent/60" />
+
+      <div className="aspect-[21/9] min-h-[320px]">
         {imageUrl ? (
-          <img src={imageUrl} alt="Uploaded reference" className="h-full w-full object-cover" />
+          <>
+            <img src={imageUrl} alt="Uploaded reference" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+          </>
         ) : (
-          <button onClick={onUploadClick} className="flex h-full w-full flex-col items-center justify-center p-8 text-center transition-colors hover:bg-card/60">
-            <Upload className="mb-4 h-10 w-10 text-accent" />
-            <div className="text-2xl font-medium text-foreground">Upload the image here</div>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground">This becomes the visual reference for image-to-video, avatar continuity, and the first scene.</p>
+          <button onClick={onUploadClick} className="relative flex h-full w-full flex-col items-center justify-center p-10 text-center transition-colors">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--accent)/0.08),transparent_60%)] opacity-60 transition-opacity group-hover:opacity-100" />
+            <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 shadow-[0_0_40px_hsl(var(--accent)/0.35)]">
+              <Upload className="h-6 w-6 text-accent" />
+            </div>
+            <div className="font-display text-3xl italic text-foreground">Drop your first frame</div>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">A single still becomes the visual DNA — image-to-video, avatar continuity, and the opening scene all start here.</p>
+            <div className="mt-5 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">PNG · JPG · WEBP</div>
           </button>
         )}
       </div>
-      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
-        <button onClick={onUploadClick} disabled={uploading} className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground shadow-[0_0_20px_hsl(var(--accent)/0.28)] hover:bg-accent/90 disabled:opacity-50">
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {imageUrl ? "Replace image" : "Upload image"}
-        </button>
-        {imageUrl && <button onClick={onClear} className="h-10 rounded-lg border border-border bg-background/80 px-4 text-sm text-foreground backdrop-blur hover:bg-card">Remove</button>}
+      <div className="absolute bottom-5 left-5 right-5 z-10 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={onUploadClick} disabled={uploading} className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground shadow-[0_0_24px_hsl(var(--accent)/0.4)] hover:bg-accent/90 disabled:opacity-50">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {imageUrl ? "Replace" : "Upload image"}
+          </button>
+          {imageUrl && <button onClick={onClear} className="h-10 rounded-full border border-border/60 bg-background/70 px-4 text-sm text-foreground backdrop-blur hover:bg-card">Remove</button>}
+        </div>
+        {imageUrl && <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/80">REF · 01</span>}
       </div>
     </div>
   );
@@ -717,27 +784,36 @@ function ReferenceUploader({ imageUrl, uploading, onUploadClick, onClear }: { im
 
 function ActionTile({ icon: Icon, title, body, onClick }: { icon: typeof Sparkles; title: string; body: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="group w-full rounded-2xl border border-border bg-card/55 p-4 text-left transition-all hover:border-accent/35 hover:bg-card/80">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-accent">
-        <Icon className="h-4 w-4" />
+    <button onClick={onClick} className="group relative w-full overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/60 to-card/20 p-5 text-left transition-all hover:border-accent/50 hover:shadow-[0_0_32px_-8px_hsl(var(--accent)/0.4)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--accent)/0.08),transparent_60%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-accent/25 bg-accent/10 text-accent transition-all group-hover:border-accent/50 group-hover:shadow-[0_0_20px_hsl(var(--accent)/0.4)]">
+            <Icon className="h-4 w-4" />
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-accent" />
+        </div>
+        <div className="font-display text-lg italic text-foreground">{title}</div>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
       </div>
-      <div className="text-base font-medium text-foreground">{title}</div>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
     </button>
   );
 }
 
 function CommandCard({ icon: Icon, title, body, busy, disabled, onClick }: { icon: typeof Sparkles; title: string; body: string; busy?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="rounded-2xl border border-border bg-card/55 p-4 text-left transition-all hover:border-accent/35 hover:bg-card/80 disabled:cursor-not-allowed disabled:opacity-40">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-accent">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+    <button onClick={onClick} disabled={disabled} className="group relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/60 to-card/20 p-5 text-left transition-all hover:border-accent/50 hover:shadow-[0_0_32px_-8px_hsl(var(--accent)/0.4)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border/60 disabled:hover:shadow-none">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--accent)/0.08),transparent_60%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-accent/25 bg-accent/10 text-accent transition-all group-hover:border-accent/50 group-hover:shadow-[0_0_20px_hsl(var(--accent)/0.4)]">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-accent" />
         </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        <div className="font-display text-lg italic text-foreground">{title}</div>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
       </div>
-      <div className="text-base font-medium text-foreground">{title}</div>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
     </button>
   );
 }

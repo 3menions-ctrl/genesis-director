@@ -358,7 +358,10 @@ export default function StudioShell() {
       const sceneType: "monologue" | "dialogue" | "group" =
         !hasAvatar ? "monologue" : draft.cast.length === 1 ? "monologue" : draft.cast.length === 2 ? "dialogue" : "group";
 
-      const sceneCount = Math.max(3, Math.min(6, draft.scenes.length || 4));
+      const engineSpec = ENGINES[draft.defaults.engine];
+      const maxScenes = engineSpec?.maxScenesPerProject ?? 8;
+      const desired = draft.defaults.sceneCount ?? draft.scenes.length ?? engineSpec?.recommendedScenes ?? 4;
+      const sceneCount = Math.max(1, Math.min(maxScenes, draft.scenes.length || desired));
       const clipDuration = draft.defaults.duration;
 
       const { data, error } = await supabase.functions.invoke("smart-script-generator", {

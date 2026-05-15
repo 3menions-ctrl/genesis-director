@@ -1,0 +1,85 @@
+import { listEngines, type EngineId, type EngineSpec } from "@/lib/video/engines";
+import { Check, Zap, Volume2, Image as ImageIcon, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const TIER_CHIP: Record<string, string> = {
+  standard: "bg-white/10 text-white/70",
+  pro: "bg-[#0A84FF]/20 text-[#0A84FF]",
+  cinema: "bg-amber-500/15 text-amber-400",
+};
+
+interface Props {
+  selected?: EngineId;
+  duration?: 5 | 10 | 15;
+  onSelect: (id: EngineId) => void;
+}
+
+export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Props) {
+  const engines = listEngines({ healthyOnly: false });
+
+  return (
+    <div className="p-7 space-y-3">
+      {(["standard","pro","cinema"] as const).map(tier => (
+        <div key={tier} className="space-y-2">
+          <div className="flex items-center gap-3 mt-2">
+            <span className={cn("text-[10px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full", TIER_CHIP[tier])}>{tier}</span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+          {engines.filter(e => e.tier === tier).map(e => (
+            <EngineRow key={e.id} engine={e} selected={selected === e.id} duration={duration} onSelect={() => onSelect(e.id)} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpec; selected: boolean; duration: 5|10|15; onSelect: () => void }) {
+  const dur = engine.durations.includes(duration) ? duration : engine.durations[0];
+  let cost: number | null = null;
+  try { cost = engine.baseCreditsFor(dur); } catch { cost = null; }
+  return (
+    <button
+      onClick={onSelect}
+      disabled={!engine.healthy}
+      className={cn(
+        "w-full text-left rounded-2xl border p-5 transition-all relative overflow-hidden",
+        selected ? "border-[#0A84FF] bg-[#0A84FF]/[0.06] shadow-[0_0_32px_rgba(10,132,255,0.2)]" : "border-white/[0.06] hover:border-white/20 bg-white/[0.02]",
+        !engine.healthy && "opacity-40 cursor-not-allowed",
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-white font-medium" style={{ fontFamily: "Fraunces, serif" }}>{engine.label}</h3>
+            {engine.requiresEntitlement && <Lock className="w-3 h-3 text-amber-400" />}
+          </div>
+          <p className="text-[13px] text-white/50 leading-relaxed">{engine.description}</p>
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            <Badge icon={<Zap className="w-3 h-3" />} label={`~${Math.round(engine.etaSeconds)}s`} />
+            {engine.supportsAudio && <Badge icon={<Volume2 className="w-3 h-3" />} label="audio" />}
+            {engine.supportsImageInput && <Badge icon={<ImageIcon className="w-3 h-3" />} label="image-input" />}
+            <Badge label={`${engine.durations.join("/")}s`} />
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          {cost != null && (
+            <>
+              <div className="font-mono text-2xl text-white tabular-nums">{cost}</div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">credits</div>
+            </>
+          )}
+          {selected && <div className="mt-2 inline-flex items-center justify-end"><Check className="w-4 h-4 text-[#0A84FF]" /></div>}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function Badge({ icon, label }: { icon?: React.ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.04] text-[11px] font-mono uppercase tracking-wider text-white/50">
+      {icon}{label}
+    </span>
+  );
+}

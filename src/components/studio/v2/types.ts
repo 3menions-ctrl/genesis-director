@@ -52,6 +52,8 @@ export interface StudioDefaults {
   mode: "auto" | "director";
   /** Selected quality profile id (resolves to engine.qualityProfiles entry). */
   qualityProfileId?: string;
+  /** Planned scene count for auto-script. Defaults to engine.recommendedScenes. */
+  sceneCount?: number;
 }
 
 export interface StudioAudio {
@@ -76,7 +78,7 @@ export interface StudioDraft {
 export const EMPTY_DRAFT: StudioDraft = {
   v: 2,
   brief: { title: "", logline: "", style: "Cinematic" },
-  defaults: { engine: "kling-v3", aspect: "16:9", duration: 10, mode: "auto" },
+  defaults: { engine: "kling-v3", aspect: "16:9", duration: 10, mode: "auto", sceneCount: 4 },
   cast: [],
   scenes: [],
   audio: { sfx: [] },

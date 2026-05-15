@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   Images,
   Loader2,
+  Minus,
   Mic2,
   Music2,
   Play,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   Send,
   Sparkles,
+  Timer,
   Trash2,
   Upload,
   Users,
@@ -356,7 +358,10 @@ export default function StudioShell() {
       const sceneType: "monologue" | "dialogue" | "group" =
         !hasAvatar ? "monologue" : draft.cast.length === 1 ? "monologue" : draft.cast.length === 2 ? "dialogue" : "group";
 
-      const sceneCount = Math.max(3, Math.min(6, draft.scenes.length || 4));
+      const engineSpec = ENGINES[draft.defaults.engine];
+      const maxScenes = engineSpec?.maxScenesPerProject ?? 8;
+      const desired = draft.defaults.sceneCount ?? draft.scenes.length ?? engineSpec?.recommendedScenes ?? 4;
+      const sceneCount = Math.max(1, Math.min(maxScenes, draft.scenes.length || desired));
       const clipDuration = draft.defaults.duration;
 
       const { data, error } = await supabase.functions.invoke("smart-script-generator", {
@@ -785,6 +790,19 @@ export default function StudioShell() {
                         };
                       })}
                       onMore={() => setDrawer("engines")}
+                    />
+
+                    {/* ============= SCENE COUNT + DURATION CONTROLS ============= */}
+                    <SceneRuntimeControls
+                      engineId={draft.defaults.engine}
+                      sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
+                      duration={draft.defaults.duration}
+                      onSceneCountChange={(n) => setDraft(d => ({ ...d, defaults: { ...d.defaults, sceneCount: n } }))}
+                      onDurationChange={(s) => setDraft(d => ({
+                        ...d,
+                        defaults: { ...d.defaults, duration: s as 5 | 10 | 12 | 15 },
+                        scenes: d.scenes.map(scene => ({ ...scene, duration: s as 5 | 10 | 12 | 15 })),
+                      }))}
                     />
                   </div>
 
@@ -1377,6 +1395,102 @@ function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: E
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-foreground/40" /> Standard</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-accent" /> Pro</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-amber-400" /> Cinema</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SceneRuntimeControls — explicit scene count stepper + per-scene duration
+// segmented picker. Surfaces controls on Step 1 so users never have to guess
+// total runtime. Bounds: engine.maxScenesPerProject and engine.durations.
+// ============================================================================
+function SceneRuntimeControls({
+  engineId,
+  sceneCount,
+  duration,
+  onSceneCountChange,
+  onDurationChange,
+}: {
+  engineId: EngineId;
+  sceneCount: number;
+  duration: number;
+  onSceneCountChange: (n: number) => void;
+  onDurationChange: (seconds: number) => void;
+}) {
+  const engine = ENGINES[engineId];
+  const maxScenes = engine?.maxScenesPerProject ?? 8;
+  const durations = engine?.durations ?? [5, 10];
+  const safeCount = Math.max(1, Math.min(maxScenes, sceneCount));
+  const safeDuration = durations.includes(duration) ? duration : durations[0];
+  const total = safeCount * safeDuration;
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
+          <Timer className="h-3 w-3" />
+          Scenes &amp; runtime
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          {safeCount} × {safeDuration}s · <span className="text-foreground">{total}s total</span>
+        </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Scene count stepper */}
+        <div>
+          <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Scene count</div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 p-1.5">
+            <button
+              onClick={() => onSceneCountChange(Math.max(1, safeCount - 1))}
+              disabled={safeCount <= 1}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              aria-label="Decrease scene count"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <div className="min-w-[80px] px-3 text-center">
+              <div className="font-display text-2xl italic leading-none text-foreground">{safeCount}</div>
+              <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">/ {maxScenes} max</div>
+            </div>
+            <button
+              onClick={() => onSceneCountChange(Math.min(maxScenes, safeCount + 1))}
+              disabled={safeCount >= maxScenes}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              aria-label="Increase scene count"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Per-scene duration picker */}
+        <div>
+          <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Seconds per scene</div>
+          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5">
+            {durations.map((d) => {
+              const active = d === safeDuration;
+              return (
+                <button
+                  key={d}
+                  onClick={() => onDurationChange(d)}
+                  className={cn(
+                    "inline-flex h-9 min-w-[56px] items-center justify-center rounded-full px-4 text-sm transition-all",
+                    active
+                      ? "bg-foreground text-background shadow-[0_8px_24px_-10px_hsl(var(--accent)/0.55)]"
+                      : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+                  )}
+                >
+                  <span className={cn("font-display italic", active ? "text-background" : "")}>{d}s</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+            {engine.shortLabel} supports {durations.join(" / ")}s
+          </div>
+        </div>
       </div>
     </div>
   );

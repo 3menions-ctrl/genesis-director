@@ -494,6 +494,91 @@ serve(async (req) => {
       });
     }
 
+    // ═══ Public cron-tick-db: render any DB rows still using placeholder images ═══
+    if (earlyBody.action === "cron-tick-db") {
+      const tickCount = Math.min(Math.max(parseInt(earlyBody.count ?? "1", 10) || 1, 1), 3);
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: pendingRows } = await supabase
+        .from("avatar_templates")
+        .select("id, name, gender, age_range, ethnicity, style, personality, avatar_type, face_image_url")
+        .or("face_image_url.ilike.%placehold%,face_image_url.ilike.%placeholder%")
+        .limit(tickCount);
+
+      const tickResults: any[] = [];
+      for (const row of (pendingRows ?? [])) {
+        try {
+          const isAnimated = (row.avatar_type ?? "animated") === "animated";
+          const genderWord = row.gender === "neutral" ? "character" : `${row.gender} character`;
+          const ageHint = row.age_range && row.age_range !== "0-0" ? `, age ${row.age_range}` : "";
+          const ethHint = row.ethnicity && !["animated", "fantasy", "mythical"].includes(String(row.ethnicity).toLowerCase()) ? `, ${row.ethnicity}` : "";
+          const personality = row.personality ? `, ${row.personality} energy` : "";
+          const style = row.style ? `, ${row.style} aesthetic` : "";
+
+          const prompt = isAnimated
+            ? `Stylized 3D animated character portrait of "${row.name}", a charming ${genderWord}${ageHint}${personality}${style}. Pixar-quality cinematic 3D render, expressive friendly face, soft studio lighting, vibrant saturated colors, clean neutral background, full body visible head to toe, centered composition, hero pose. High detail, polished render, character design suitable for an animated film. NOT photorealistic — clearly stylized and animated.`
+            : `Ultra-realistic full-body professional studio photograph of ${row.gender === "neutral" ? "a person" : `a ${row.gender} person`} named "${row.name}"${ageHint}${ethHint}${personality}${style}. Shot on Canon EOS R5, 85mm lens, three-point studio lighting, neutral gray seamless backdrop, sharp focus, natural skin texture, authentic human features, confident relaxed pose, full figure visible head to toe, magazine editorial quality, 8K detail. Indistinguishable from a real photograph.`;
+
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-image",
+              messages: [{ role: "user", content: prompt }],
+              modalities: ["image", "text"],
+            }),
+          });
+          if (!aiResp.ok) {
+            tickResults.push({ name: row.name, success: false, error: `ai ${aiResp.status}: ${(await aiResp.text()).slice(0, 200)}` });
+            continue;
+          }
+          const aiData = await aiResp.json();
+          const dataUrl: string | undefined = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (!dataUrl) {
+            tickResults.push({ name: row.name, success: false, error: "no image in response" });
+            continue;
+          }
+
+          const base64Content = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+          const bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
+          const safeName = row.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+          const fileName = `${safeName}-front-${Date.now()}.png`;
+          const { data: upData, error: upErr } = await supabase.storage.from("avatars").upload(fileName, bytes, { contentType: "image/png", upsert: true });
+          if (upErr) {
+            tickResults.push({ name: row.name, success: false, error: `upload: ${upErr.message}` });
+            continue;
+          }
+          const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(upData.path);
+          const publicUrl = urlData.publicUrl;
+
+          await supabase
+            .from("avatar_templates")
+            .update({
+              face_image_url: publicUrl,
+              thumbnail_url: publicUrl,
+              front_image_url: publicUrl,
+            })
+            .eq("id", row.id);
+
+          tickResults.push({ name: row.name, success: true });
+        } catch (err: any) {
+          tickResults.push({ name: row.name, success: false, error: String(err?.message ?? err) });
+        }
+      }
+
+      const { count: remainingCount } = await supabase
+        .from("avatar_templates")
+        .select("id", { count: "exact", head: true })
+        .or("face_image_url.ilike.%placehold%,face_image_url.ilike.%placeholder%");
+
+      return new Response(JSON.stringify({ processed: tickResults, remaining: remainingCount ?? 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ═══ AUTH GUARD: Admin-only via user_roles table, OR seed-token bypass ═══
     const seedToken = Deno.env.get("SEED_BYPASS_TOKEN");
     const headerToken = req.headers.get("x-seed-token");

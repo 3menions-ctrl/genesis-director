@@ -147,6 +147,21 @@ export function calculateCreditsRequired(clipCount: number, clipDuration: number
 }
 
 /**
+ * Calculate credits when each scene has its own duration.
+ * Used by per-scene duration UI in CreationHub.
+ */
+export function calculateCreditsForDurations(
+  durations: number[],
+  videoEngine: VideoEngine = 'kling',
+): number {
+  let total = 0;
+  for (let i = 0; i < durations.length; i++) {
+    total += calculateCreditsPerClip(durations[i], i, videoEngine);
+  }
+  return total;
+}
+
+/**
  * Calculate how many clips can be afforded with given credits at specified duration
  */
 export function calculateAffordableClips(credits: number, clipDuration: number = 10): number {

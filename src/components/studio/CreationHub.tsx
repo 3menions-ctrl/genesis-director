@@ -9,7 +9,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { saveDraft, loadDraft } from '@/lib/sessionPersistence';
-import { calculateCreditsRequired } from '@/lib/creditSystem';
+import { calculateCreditsForDurations } from '@/lib/creditSystem';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { ActiveProjectBanner } from './ActiveProjectBanner';
 import { Button } from '@/components/ui/button';
@@ -149,6 +149,13 @@ interface CreationHubProps {
     aspectRatio: string;
     clipCount: number;
     clipDuration: number;
+    /**
+     * Per-scene durations. Length === clipCount. Each value is one of
+     * the engine's supported durations. Backend may use this to render
+     * each scene at its own length; legacy `clipDuration` is kept as
+     * the dominant value for older code paths.
+     */
+    clipDurations?: number[];
     enableNarration: boolean;
     enableMusic: boolean;
     genre?: string;
@@ -189,6 +196,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipDuration, setClipDuration] = useState(5);
+  // Per-scene durations. Always kept in lockstep with `clipCount` and the
+  // active engine — every entry must be one of `engineCaps.durations`.
+  const [clipDurations, setClipDurations] = useState<number[]>(() =>
+    Array.from({ length: 5 }, () => 5),
+  );
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic] = useState(false);
 
@@ -277,7 +289,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
-  const effectiveDuration = clipDuration;
   const engineCaps = ENGINE_CAPS[videoEngine];
   const engineInfo = engineCaps;
   const clipDurationOptions = engineCaps.durations;
@@ -292,12 +303,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
   }, [selectedMode, videoEngine]);
 
-  // ── GUARDRAIL: snap duration into the engine's legal range.
+  // ── GUARDRAIL: snap default duration AND every per-scene duration into
+  //               the new engine's legal range.
   useEffect(() => {
     if (!clipDurationOptions.includes(clipDuration)) {
       setClipDuration(snapDuration(clipDuration, clipDurationOptions));
     }
+    setClipDurations((prev) => prev.map((d) => snapDuration(d, clipDurationOptions)));
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Keep per-scene durations sized to clipCount. New scenes inherit the
+  //    current default duration; trimmed scenes drop off the end.
+  useEffect(() => {
+    setClipDurations((prev) => {
+      if (prev.length === clipCount) return prev;
+      if (prev.length > clipCount) return prev.slice(0, clipCount);
+      const fill = snapDuration(clipDuration, clipDurationOptions);
+      return [...prev, ...Array.from({ length: clipCount - prev.length }, () => fill)];
+    });
+  }, [clipCount, clipDuration, clipDurationOptions]);
 
   // ── GUARDRAIL: snap aspect ratio into the engine's legal set
   //               (Veo + Sora don't support 1:1).
@@ -326,12 +350,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
   }, [selectedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const estimatedDuration = clipCount * effectiveDuration;
+  // Aligned per-scene durations (always reflects the current clipCount
+  // even before the sync effect runs, so totals never flicker).
+  const alignedDurations = useMemo(() => {
+    const fill = snapDuration(clipDuration, clipDurationOptions);
+    if (clipDurations.length === clipCount) {
+      return clipDurations.map((d) => snapDuration(d, clipDurationOptions));
+    }
+    if (clipDurations.length > clipCount) return clipDurations.slice(0, clipCount);
+    return [
+      ...clipDurations.map((d) => snapDuration(d, clipDurationOptions)),
+      ...Array.from({ length: clipCount - clipDurations.length }, () => fill),
+    ];
+  }, [clipDurations, clipCount, clipDuration, clipDurationOptions]);
+  const estimatedDuration = alignedDurations.reduce((a, b) => a + b, 0);
   const estMin = Math.floor(estimatedDuration / 60);
   const estSec = estimatedDuration % 60;
   const estimatedCredits = useMemo(
-    () => calculateCreditsRequired(clipCount, effectiveDuration, videoEngine as any),
-    [clipCount, effectiveDuration, videoEngine]
+    () => calculateCreditsForDurations(alignedDurations, videoEngine as any),
+    [alignedDurations, videoEngine]
   );
 
   const userCredits = profile?.credits_balance ?? 0;
@@ -397,7 +434,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       toast.error(`${engineCaps.label} doesn't support ${aspectRatio} — pick ${engineCaps.aspectRatios.join(' or ')}.`);
       return;
     }
-    if (!engineCaps.durations.includes(clipDuration)) {
+    const invalid = alignedDurations.find((d) => !engineCaps.durations.includes(d));
+    if (invalid !== undefined) {
       toast.error(`${engineCaps.label} only supports ${engineCaps.durations.join('/')}s clips.`);
       return;
     }
@@ -409,6 +447,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       return;
     }
 
+    // Dominant duration for legacy `clipDuration` field — most-frequent, ties favor max.
+    const counts = new Map<number, number>();
+    alignedDurations.forEach((d) => counts.set(d, (counts.get(d) ?? 0) + 1));
+    const dominantDuration = [...counts.entries()].sort((a, b) =>
+      b[1] - a[1] || b[0] - a[0],
+    )[0]?.[0] ?? clipDuration;
+
+    const finalDurations = isBreakoutTemplate
+      ? Array.from({ length: 3 }, () => dominantDuration)
+      : alignedDurations;
+
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
       mode: isBreakoutTemplate ? 'text-to-video' : selectedMode,
       prompt,
@@ -416,7 +465,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount: isBreakoutTemplate ? 3 : clipCount,
-      clipDuration: effectiveDuration,
+      clipDuration: dominantDuration,
+      clipDurations: finalDurations,
       enableNarration: true,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
@@ -855,10 +905,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       <span className="pr-2 text-[10px] tabular-nums text-white/30 font-light">/ {maxClips}</span>
                     </div>
 
-                    {/* Per-scene duration — segmented, all engine options visible */}
+                    {/* Default duration — applied to every NEW scene and to
+                        all scenes when clicked (apply-to-all). Shows only
+                        engine-supported values. */}
                     <div
                       className="h-10 inline-flex items-center gap-0.5 rounded-full bg-white/[0.03] pl-2 pr-1"
-                      title={`Per-scene duration (${engineCaps.label} supports ${clipDurationOptions.join('/')}s)`}
+                      title={`Default scene duration · ${engineCaps.label} supports ${clipDurationOptions.join('/')}s`}
                     >
                       <Clock className="w-3.5 h-3.5 text-white/45 mr-1" strokeWidth={1.5} />
                       {clipDurationOptions.map((d) => {
@@ -867,7 +919,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           <button
                             key={d}
                             type="button"
-                            onClick={() => setClipDuration(d)}
+                            onClick={() => {
+                              setClipDuration(d);
+                              setClipDurations((prev) => prev.map(() => d));
+                            }}
                             className={cn(
                               'h-8 px-3 inline-flex items-center justify-center rounded-full text-[11.5px] font-light tracking-[-0.005em] transition-all duration-300 tabular-nums',
                               active
@@ -879,6 +934,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                               boxShadow: '0 0 14px hsla(215,100%,60%,0.28), inset 0 1px 0 hsla(0,0%,100%,0.08)',
                             } : undefined}
                             aria-pressed={active}
+                            aria-label={`Set every scene to ${d} seconds`}
                           >
                             {d}s
                           </button>
@@ -893,7 +949,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     >
                       <Timer className="w-3.5 h-3.5 text-white/40" strokeWidth={1.5} />
                       <span className="tabular-nums text-white/80">
-                        {clipCount * clipDuration}s
+                        {estimatedDuration}s
                       </span>
                       <span className="text-white/30">total</span>
                     </div>
@@ -992,6 +1048,59 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     </Button>
                   </div>
                 </div>
+
+                {/* ── Per-scene durations ──────────────────────────────────
+                    One compact dropdown per scene, scrollable horizontally
+                    on narrow viewports. Options are constrained to the
+                    chosen engine's supported durations and update live
+                    when the user switches engines. */}
+                {!isBreakoutTemplate && clipCount > 1 && (
+                  <div className="mt-4 -mx-1 px-1">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <span className="text-[10.5px] uppercase tracking-[0.14em] text-white/35 font-light">
+                        Per-scene length
+                      </span>
+                      <span className="text-[10.5px] text-white/25 font-light">
+                        · {engineCaps.label} · {clipDurationOptions.join(' / ')}s
+                      </span>
+                    </div>
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      role="group"
+                      aria-label="Per-scene durations"
+                    >
+                      {alignedDurations.map((sceneDuration, idx) => (
+                        <Select
+                          key={idx}
+                          value={String(sceneDuration)}
+                          onValueChange={(v) => {
+                            const next = Number(v);
+                            setClipDurations((prev) => {
+                              const arr = [...prev];
+                              while (arr.length < clipCount) arr.push(clipDuration);
+                              arr[idx] = next;
+                              return arr.slice(0, clipCount);
+                            });
+                          }}
+                        >
+                          <SelectTrigger
+                            className="h-8 w-[88px] bg-white/[0.025] hover:bg-white/[0.05] border-0 rounded-full pl-3 pr-2 text-[11px] font-light tabular-nums text-white/80 focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-colors"
+                            aria-label={`Scene ${idx + 1} duration`}
+                            title={`Scene ${idx + 1} · ${engineCaps.label}`}
+                          >
+                            <span className="text-white/40 mr-1">S{idx + 1}</span>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clipDurationOptions.map((d) => (
+                              <SelectItem key={d} value={String(d)}>{d}s</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Advanced options drawer */}
                 <AnimatePresence initial={false}>

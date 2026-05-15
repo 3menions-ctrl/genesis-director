@@ -18,12 +18,33 @@ export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Prop
   const engines = listEngines({ healthyOnly: false });
 
   return (
-    <div className="p-7 space-y-3">
+    <div className="relative p-8 space-y-4">
+      {/* Ambient hero halo */}
+      <div aria-hidden className="pointer-events-none absolute -top-20 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.20), transparent 65%)" }} />
+
+      {/* Editorial hero */}
+      <div className="relative mb-6 border-b border-white/[0.06] pb-7">
+        <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-[#0A84FF]/30 bg-[#0A84FF]/[0.08] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[#0A84FF]">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inset-0 animate-ping rounded-full bg-[#0A84FF] opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#0A84FF]" />
+          </span>
+          The render engines
+        </div>
+        <h2 className="font-light tracking-[-0.02em] text-white" style={{ fontFamily: "'Fraunces', serif", fontSize: "44px", lineHeight: "1" }}>
+          Choose the <em className="bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent">cinema engine.</em>
+        </h2>
+        <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-white/55" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+          Five world-class video models — Kling, Seedance, Veo, Runway, Sora — tuned for one continuous flow. Switch any time; your scenes carry over.
+        </p>
+      </div>
+
       {(["standard","pro","cinema"] as const).map(tier => (
         <div key={tier} className="space-y-2">
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-3 mt-4">
             <span className={cn("text-[10px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full", TIER_CHIP[tier])}>{tier}</span>
             <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-white/30">{engines.filter(e => e.tier === tier).length} engines</span>
           </div>
           {engines.filter(e => e.tier === tier).map(e => (
             <EngineRow key={e.id} engine={e} selected={selected === e.id} duration={duration} onSelect={() => onSelect(e.id)} />

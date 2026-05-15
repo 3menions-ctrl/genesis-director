@@ -365,13 +365,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
   const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
 
-  const tier = computeTier(profile?.total_credits_used || 0);
-  const TierIcon = tier.icon;
   const lifetimeSpendUsd = ((profile?.total_credits_used || 0) * 0.10);
   const lifetimeValueUsd = ((profile?.total_credits_used || 0) + (profile?.credits_balance || 0)) * 0.10;
-  const tierProgressPct = tier.next
-    ? Math.min(100, Math.round(((profile?.total_credits_used || 0) / tier.next) * 100))
-    : 100;
   const serial = (user?.id || '').replace(/-/g, '').slice(0, 12).toUpperCase();
 
   const copyToClipboard = useCallback((value: string, label: string) => {
@@ -482,16 +477,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 <span className="text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono">
                   ACCOUNT · ID {(user?.id || '').slice(0, 6).toUpperCase()}
                 </span>
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-mono border"
-                  style={{
-                    color: tier.tone,
-                    borderColor: `${tier.tone.replace(')', ',0.35)').replace('hsl', 'hsla')}`,
-                    background: `${tier.tone.replace(')', ',0.08)').replace('hsl', 'hsla')}`,
-                  }}
-                >
-                  <TierIcon className="w-3 h-3" />
-                  {tier.name}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-mono border border-white/10 text-muted-foreground">
+                  <Lock className="w-3 h-3" />
+                  Private
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -592,28 +580,6 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             </div>
           </div>
 
-          {/* Tier progress rail */}
-          <div className="relative mt-7">
-            <div className="flex items-center justify-between mb-2 text-[10px] uppercase tracking-[0.32em] font-mono text-muted-foreground">
-              <span>Tier · {tier.name}</span>
-              <span>
-                {tier.next
-                  ? `${(profile?.total_credits_used || 0).toLocaleString()} / ${tier.next.toLocaleString()} credits to next rank`
-                  : 'Maximum rank reached'}
-              </span>
-            </div>
-            <div className="relative h-1.5 rounded-full overflow-hidden bg-[hsla(220,14%,8%,0.8)] border border-white/[0.04]">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{
-                  width: `${tierProgressPct}%`,
-                  background: `linear-gradient(90deg, ${tier.tone}, hsl(215,100%,68%))`,
-                  boxShadow: `0 0 18px ${tier.tone.replace(')', ',0.55)').replace('hsl', 'hsla')}`,
-                  transition: 'width 800ms ease-out',
-                }}
-              />
-            </div>
-          </div>
         </section>
 
         {/* ─── At-a-glance stats ─── */}

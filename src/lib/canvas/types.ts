@@ -18,7 +18,7 @@ export interface ReplicateModelRef {
   owner: string;
   name: string;
   label?: string;
-  category?: 'video' | 'image' | 'audio' | 'other';
+  category?: 'video' | 'image' | 'audio' | 'voice' | 'other';
 }
 
 export interface ModelNodeData extends Record<string, unknown> {

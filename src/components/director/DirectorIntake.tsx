@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, FileText, ImageIcon, GitBranch, ChevronRight, ChevronLeft,
   Wand2, Clapperboard, Users, User, Film, Check, X, ArrowRight,
+  AlertCircle, RotateCcw, Save,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +14,41 @@ import { DEFAULT_INTAKE, type IntakeData, type IntakeFormat, type DirectorMode }
 
 const SERIF = { fontFamily: "'Fraunces', serif" };
 const MONO = { fontFamily: "'JetBrains Mono', monospace" };
+
+const DRAFT_KEY = "director-studio:intake-draft:v1";
+
+interface SavedDraft {
+  data: IntakeData;
+  step: number;
+  savedAt: number;
+}
+
+function loadDraft(): SavedDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedDraft;
+    if (!parsed?.data || typeof parsed.step !== "number") return null;
+    // Sanity-merge against defaults so older shapes still work
+    return { ...parsed, data: { ...DEFAULT_INTAKE, ...parsed.data } };
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+}
+
+function formatRelative(ts: number) {
+  const s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 const STEPS = [
   { id: "concept", label: "Concept" },
@@ -46,9 +82,38 @@ interface Props {
 export function DirectorIntake({ open, onComplete, onCancel }: Props) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<IntakeData>(DEFAULT_INTAKE);
+  const [pendingDraft, setPendingDraft] = useState<SavedDraft | null>(null);
+  const [showError, setShowError] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const dirtyRef = useRef(false);
+
+  // On open, surface any saved draft for resume
+  useEffect(() => {
+    if (!open) return;
+    const d = loadDraft();
+    if (d) setPendingDraft(d);
+  }, [open]);
+
+  // Auto-save (debounced) once user starts editing
+  useEffect(() => {
+    if (!open || pendingDraft) return; // don't overwrite while resume banner is showing
+    if (!dirtyRef.current) return;
+    const t = window.setTimeout(() => {
+      const payload: SavedDraft = { data, step, savedAt: Date.now() };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setSavedAt(payload.savedAt);
+      } catch { /* ignore quota errors */ }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [data, step, open, pendingDraft]);
 
   const update = <K extends keyof IntakeData>(k: K, v: IntakeData[K]) =>
-    setData((d) => ({ ...d, [k]: v }));
+    setData((d) => {
+      dirtyRef.current = true;
+      setShowError(false);
+      return { ...d, [k]: v };
+    });
 
   const canAdvance = useMemo(() => {
     switch (step) {
@@ -63,11 +128,62 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
   }, [step, data]);
 
   const next = () => {
-    if (!canAdvance) return;
-    if (step === STEPS.length - 1) onComplete(data);
-    else setStep((s) => s + 1);
+    if (!canAdvance) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
+    if (step === STEPS.length - 1) {
+      clearDraft();
+      onComplete(data);
+    } else {
+      setStep((s) => s + 1);
+    }
   };
-  const prev = () => setStep((s) => Math.max(0, s - 1));
+  const prev = () => { setShowError(false); setStep((s) => Math.max(0, s - 1)); };
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    setData(pendingDraft.data);
+    setStep(Math.min(pendingDraft.step, STEPS.length - 1));
+    setSavedAt(pendingDraft.savedAt);
+    dirtyRef.current = true;
+    setPendingDraft(null);
+  };
+  const discardDraft = () => {
+    clearDraft();
+    setPendingDraft(null);
+    setSavedAt(null);
+  };
+
+  const errorFor = (s: number): string | null => {
+    switch (s) {
+      case 0:
+        if (data.title.trim().length < 2) return "Add a working title (min 2 characters).";
+        if (data.logline.trim().length < 4) return "Add a logline (min 4 characters).";
+        return null;
+      case 1:
+        if (data.format !== "concept" && data.scriptOrIdea.trim().length === 0) return "Paste your script, reference, or remix source.";
+        return null;
+      case 2:
+        if (data.genres.length === 0) return "Pick at least one genre.";
+        if (!data.tone) return "Pick a tonal register.";
+        return null;
+      case 3:
+        if (!data.aspect) return "Pick an aspect ratio.";
+        if (data.sceneCount < 2) return "Scene count must be at least 2.";
+        return null;
+      case 4:
+        if (data.characterA.trim().length === 0) return "Name your lead character.";
+        if (data.castSize === 2 && data.characterB.trim().length === 0) return "Name the second character.";
+        return null;
+      case 5:
+        if (!data.mode) return "Choose Auto or Director.";
+        return null;
+      default: return null;
+    }
+  };
+  const currentError = showError ? errorFor(step) : null;
 
   if (!open) return null;
 

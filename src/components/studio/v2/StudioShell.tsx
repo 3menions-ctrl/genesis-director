@@ -34,7 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, type EngineId } from "@/lib/video/engines";
+import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, type EngineId } from "@/lib/video/engines";
+import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";
@@ -138,9 +139,11 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 }
 
 export default function StudioShell() {
-  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive } = useStudioDraft();
+  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
-  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene);
+  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
+  const { data: cinemaEntitlement } = useCinemaEntitlement();
+  const hasCinema = !!cinemaEntitlement?.hasEntitlement;
   const [drawer, setDrawer] = useState<DrawerKey>(null);
   const [step, setStep] = useState<StepId>("start");
   const [autoBusy, setAutoBusy] = useState(false);
@@ -160,13 +163,13 @@ export default function StudioShell() {
 
   const renderedCount = draft.scenes.filter(s => s.clipUrl).length;
   const totalCost = useMemo(() => draft.scenes.reduce((acc, scene) => {
-    const engine = ENGINES[scene.engine || draft.defaults.engine];
+    const engineId = scene.engine || draft.defaults.engine;
     try {
-      return acc + engine.baseCreditsFor(scene.duration);
+      return acc + creditsForScene(engineId, scene.duration, draft.defaults.qualityProfileId);
     } catch {
       return acc;
     }
-  }, 0), [draft.scenes, draft.defaults.engine]);
+  }, 0), [draft.scenes, draft.defaults.engine, draft.defaults.qualityProfileId]);
 
   const canGenerateScript = Boolean(draft.brief.logline.trim() || draft.brief.refImageUrl || draft.brief.templateId);
   const canRender = draft.scenes.length > 0 && (draft.brief.logline.trim() || draft.scenes.some(s => s.beat || s.dialogue));

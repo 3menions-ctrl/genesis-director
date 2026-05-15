@@ -68,7 +68,17 @@ interface PipelineRequest {
   // Breakout template parameters - for reality-breaking visual effects
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
-  breakoutPlatform?: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape';
+  breakoutPlatform?:
+    | 'post-escape'
+    | 'scroll-grab'
+    | 'freeze-walk'
+    | 'reality-rip'
+    | 'aspect-escape'
+    | 'mirror-shatter'
+    | 'canvas-emerge'
+    | 'billboard-leap'
+    | 'page-burst'
+    | 'hologram-materialize';
 }
 
 interface ExtractedCharacter {
@@ -218,7 +228,18 @@ interface BreakoutEffectConfig {
   visualElements: string;
 }
 
-function getBreakoutEffectConfig(effectType: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape'): BreakoutEffectConfig {
+function getBreakoutEffectConfig(effectType:
+  | 'post-escape'
+  | 'scroll-grab'
+  | 'freeze-walk'
+  | 'reality-rip'
+  | 'aspect-escape'
+  | 'mirror-shatter'
+  | 'canvas-emerge'
+  | 'billboard-leap'
+  | 'page-burst'
+  | 'hologram-materialize'
+): BreakoutEffectConfig {
   /**
    * VIRAL-GRADE BREAKOUT PROMPTS v2.0
    * 
@@ -282,6 +303,51 @@ function getBreakoutEffectConfig(effectType: 'post-escape' | 'scroll-grab' | 'fr
       lightingDescription: 'Harsh webcam to Hollywood lighting evolution',
       breakLightingDescription: 'Dimensional light at format boundary, prismatic distortion',
       visualElements: 'Aspect ratio edges, format shards, dimensional boundary',
+    },
+    'mirror-shatter': {
+      clip1Prompt: `${ID} Slow DOLLY PUSH-IN. Person trapped behind ornate gilded baroque mirror, palms pressed against silvered glass, breath fogging the surface. Candlelit ballroom with chandeliers reflected around the frame. Quicksilver droplets clinging to glass. Warm chiaroscuro key, cool moonlight rim on subject. ${MO}`,
+      clip2Prompt: `${ID} Cinematic TRACKING with slight DUTCH ANGLE. Mirror SHATTERS outward in a halo of silvered glass shards and quicksilver droplets. Person stepping forward through breaking plane. Volumetric candlelight flooding past them. Slow-motion shards arcing toward viewer. ${MO}`,
+      clip3Prompt: `${ID} Hero CRANE SHOT settling at eye level. Confident step onto polished marble floor, gilded frame splintered behind. Chandelier rim, warm key, cool fill. Glass dust drifting through god rays. Speaking with regal conviction. ${MO}`,
+      colorDescription: 'Warm gold candlelight against cool moonlight, deep noir shadows',
+      lightingDescription: 'Baroque chiaroscuro, chandelier rim, mirror as practical light',
+      breakLightingDescription: 'Volumetric god rays through shattering glass, quicksilver refractions',
+      visualElements: 'Gilded baroque frame splinters, silvered glass shards, quicksilver droplets, polished marble reflections',
+    },
+    'canvas-emerge': {
+      clip1Prompt: `${ID} Slow DOLLY PUSH-IN on enormous gilded baroque frame in pristine white-cube gallery. Person in painterly oil-paint style stands inside the canvas, eyes shifting to lock on viewer. Brushstrokes visibly trembling. Painted chiaroscuro inside frame, cool gallery spotlights outside. ${MO}`,
+      clip2Prompt: `${ID} TRACKING SHOT, perspective shifting from painterly to photoreal. Person PUSHES THROUGH the canvas - cracking it like a wet membrane. Glossy oil paint stretching, then tearing. Wet pigment dripping off shoulders and outstretched hand. Painterly aesthetic dissolving into photoreal lighting. ${MO}`,
+      clip3Prompt: `${ID} DOLLY BACK establishing gallery composition. Confident step onto polished concrete floor, oil paint pooling at feet, torn canvas hanging in gilded frame behind. Crisp museum spotlights — clean key, soft fill, sculptural rim. Speaking with cultured authority. ${MO}`,
+      colorDescription: 'Warm umber and ochre painterly tones against cool museum white',
+      lightingDescription: 'Painted chiaroscuro to crisp museum spotlight transformation',
+      breakLightingDescription: 'Painterly to photoreal dissolve, glossy pigment refractions',
+      visualElements: 'Carved gilt frame, cracked oil canvas, glossy wet pigment drips, gallery spotlights, paint pool',
+    },
+    'billboard-leap': {
+      clip1Prompt: `${ID} Slow CRANE UP toward billboard. Person inside colossal Times Square LED billboard, body rendered with faint RGB scanlines and pixel grid. Below, neon-soaked rainy street with motion-blurred yellow taxis and umbrella crowds. Hand pressing against the inside of the screen. Magenta/cyan Blade Runner color grade. ${MO}`,
+      clip2Prompt: `${ID} EXPLOSIVE WHIP DOWN with parallax. Person LEAPS off the billboard, screen shattering into a cascade of pixel sparks and shattered LED panels. Mid-air silhouette against magenta/cyan glow. Rain refracting in slow motion. Steam rising from manholes below. ${MO}`,
+      clip3Prompt: `${ID} LOW ANGLE TRACKING settling at eye level. Athletic landing on wet asphalt, neon reflections rippling outward, taxis braking around them. Volumetric haze, magenta key + cyan rim, soft amber fill from streetlights. Speaking with metropolitan swagger. ${MO}`,
+      colorDescription: 'Magenta and cyan dual-tone neon over deep teal noir',
+      lightingDescription: 'LED billboard as practical light, neon street wash, rain volumetrics',
+      breakLightingDescription: 'Pixel-spark shower, shattered LED light bursts, slow-motion rain refractions',
+      visualElements: 'LED billboard pixel grid, shattered LED panels, pixel sparks, wet asphalt neon reflections, steam',
+    },
+    'page-burst': {
+      clip1Prompt: `${ID} Slow DOLLY PUSH-IN over the spread of a colossal open hardcover book on a library lectern. Person stands inside the page, surrounded by towering walls of elegant calligraphic typography and floating ink characters. Warm candlelight, golden god rays through drifting paper dust. Hand reaching forward. ${MO}`,
+      clip2Prompt: `${ID} EXPLOSIVE TRACKING with whip energy. Person BURSTS through the page - tornado of paper shreds, torn calligraphy, swirling ink ribbons spraying outward. Candle flames bending in the shockwave. Paper dust catching golden god rays. Mid-stride silhouette punching toward viewer. ${MO}`,
+      clip3Prompt: `${ID} DOLLY BACK establishing the candlelit library. Confident step onto warm parquet floor, paper shreds settling around boots, ink droplets pattering. Towering bookshelves in soft bokeh behind. Warm hero key, candle rim, cool moonlight fill from a high window. Speaking with scholarly conviction. ${MO}`,
+      colorDescription: 'Warm parchment gold and candlelight against deep library shadow',
+      lightingDescription: 'Candlelight god rays, scholarly chiaroscuro, cool moonlight counter',
+      breakLightingDescription: 'Paper-dust volumetrics, swirling ink ribbon trails, candle flame flicker',
+      visualElements: 'Open hardcover book, calligraphic typography walls, swirling ink ribbons, torn paper confetti, candlelit library',
+    },
+    'hologram-materialize': {
+      clip1Prompt: `${ID} Slow DOLLY PUSH-IN through dark sci-fi corridor. Person compressed inside glitching cyan holographic cube on polished obsidian plinth. Faint scanline distortion, particle data drifting upward, palm pressed against inner wall. Volumetric cyan and white light beams. Restrained Villeneuve atmosphere. ${MO}`,
+      clip2Prompt: `${ID} EXPLOSIVE PUSH-IN through shockwave. Hologram SOLIDIFIES — cube collapsing in a burst of volumetric cyan light and particle wash. Person stepping forward as flesh stabilizes from wireframe to photoreal in a single motion. Glitch fragments spiralling outward. Lens flare bloom. ${MO}`,
+      clip3Prompt: `${ID} LOW ANGLE TRACKING with slow tilt up. Confident step off the obsidian plinth, last data particles fading from shoulders. Sleek dark corridor stretching behind. Cinematic key from above-left, cyan rim, soft cool fill. Mist drifting at floor level. Speaking with calm machine-age authority. ${MO}`,
+      colorDescription: 'Cyan and ice-white over obsidian black, restrained sci-fi palette',
+      lightingDescription: 'Volumetric cyan beams, hologram as practical light, cinematic key',
+      breakLightingDescription: 'Particle shockwave bloom, wireframe-to-flesh light dissolve, lens flare',
+      visualElements: 'Glitching holographic cube, obsidian plinth, cyan volumetric beams, drifting data particles, sci-fi corridor',
     },
   };
   

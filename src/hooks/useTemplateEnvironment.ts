@@ -14,6 +14,11 @@ import scrollGrabImg from '@/assets/templates/scroll-grab.jpg';
 import freezeWalkImg from '@/assets/templates/freeze-walk.jpg';
 import realityRipImg from '@/assets/templates/reality-rip.jpg';
 import aspectEscapeImg from '@/assets/templates/aspect-escape.jpg';
+import mirrorShatterImg from '@/assets/templates/mirror-shatter.jpg';
+import canvasEmergeImg from '@/assets/templates/canvas-emerge.jpg';
+import billboardLeapImg from '@/assets/templates/billboard-leap.jpg';
+import pageBurstImg from '@/assets/templates/page-burst.jpg';
+import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
 
 // Map breakout template IDs to their start images - Premium effects row
 const BREAKOUT_START_IMAGES: Record<string, string> = {
@@ -22,6 +27,11 @@ const BREAKOUT_START_IMAGES: Record<string, string> = {
   'freeze-walk': freezeWalkImg,
   'reality-rip': realityRipImg,
   'aspect-escape': aspectEscapeImg,
+  'mirror-shatter': mirrorShatterImg,
+  'canvas-emerge': canvasEmergeImg,
+  'billboard-leap': billboardLeapImg,
+  'page-burst': pageBurstImg,
+  'hologram-materialize': hologramMaterializeImg,
 };
 // Environment DNA structure matching Environments page
 interface EnvironmentDNA {
@@ -796,6 +806,76 @@ CLIP 6: CAMERA - GROUP hero shot. Full team together, unified energy. Profession
     startImageUrl: aspectEscapeImg,
     conceptPrompt: '', // User provides dialogue only
   },
+  {
+    id: 'mirror-shatter',
+    name: 'Mirror Shatter',
+    description: 'Trapped behind a gilded baroque mirror, avatar SHATTERS the silvered glass and steps onto candlelit marble',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'epic',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: mirrorShatterImg,
+    conceptPrompt: '',
+  },
+  {
+    id: 'canvas-emerge',
+    name: 'Canvas Emerge',
+    description: 'Avatar steps OUT of a Renaissance oil painting in a museum, wet pigment dripping off their shoulders',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'mysterious',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: canvasEmergeImg,
+    conceptPrompt: '',
+  },
+  {
+    id: 'billboard-leap',
+    name: 'Billboard Leap',
+    description: 'Avatar LEAPS from a colossal Times Square LED billboard onto a neon-soaked rainy street',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'action',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: billboardLeapImg,
+    conceptPrompt: '',
+  },
+  {
+    id: 'page-burst',
+    name: 'Page Burst',
+    description: 'Avatar BURSTS through the page of a giant open book in a candlelit library, ink and paper exploding outward',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'epic',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: pageBurstImg,
+    conceptPrompt: '',
+  },
+  {
+    id: 'hologram-materialize',
+    name: 'Hologram Materialize',
+    description: 'Avatar compressed inside a glitching hologram MATERIALIZES into reality on an obsidian plinth',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'mysterious',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: hologramMaterializeImg,
+    conceptPrompt: '',
+  },
   // 🎓 LEARNING TEMPLATES — schematic Hook → Beats → Payoff pacing.
   // These mirror the Templates page educational entries so navigating
   // /create?template=<id> applies real settings instead of a "Template not found" toast.
@@ -1200,7 +1280,17 @@ export interface AppliedSettings {
   // Breakout template specific
   isBreakout?: boolean;
   startImageUrl?: string; // Template start image for first clip
-  breakoutPlatform?: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape';
+  breakoutPlatform?:
+    | 'post-escape'
+    | 'scroll-grab'
+    | 'freeze-walk'
+    | 'reality-rip'
+    | 'aspect-escape'
+    | 'mirror-shatter'
+    | 'canvas-emerge'
+    | 'billboard-leap'
+    | 'page-burst'
+    | 'hologram-materialize';
 }
 
 export function useTemplateEnvironment() {
@@ -1230,14 +1320,10 @@ export function useTemplateEnvironment() {
         }
         
         // Determine breakout effect type from template ID
-        let breakoutPlatform: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape' | undefined;
+        let breakoutPlatform: AppliedSettings['breakoutPlatform'];
         if (builtIn.isBreakout) {
-          // New premium breakout effects
-          if (builtIn.id === 'post-escape') breakoutPlatform = 'post-escape';
-          else if (builtIn.id === 'scroll-grab') breakoutPlatform = 'scroll-grab';
-          else if (builtIn.id === 'freeze-walk') breakoutPlatform = 'freeze-walk';
-          else if (builtIn.id === 'reality-rip') breakoutPlatform = 'reality-rip';
-          else if (builtIn.id === 'aspect-escape') breakoutPlatform = 'aspect-escape';
+          // Premium breakout effects — id maps 1:1 to platform key
+          breakoutPlatform = builtIn.id as AppliedSettings['breakoutPlatform'];
         }
         
         const settings: AppliedSettings = {

@@ -55,6 +55,11 @@ import scrollGrabImg from '@/assets/templates/scroll-grab.jpg';
 import freezeWalkImg from '@/assets/templates/freeze-walk.jpg';
 import realityRipImg from '@/assets/templates/reality-rip.jpg';
 import aspectEscapeImg from '@/assets/templates/aspect-escape.jpg';
+import mirrorShatterImg from '@/assets/templates/mirror-shatter.jpg';
+import canvasEmergeImg from '@/assets/templates/canvas-emerge.jpg';
+import billboardLeapImg from '@/assets/templates/billboard-leap.jpg';
+import pageBurstImg from '@/assets/templates/page-burst.jpg';
+import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
 
 interface Template {
   id: string;
@@ -155,6 +160,81 @@ const BUILT_IN_TEMPLATES = [
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'action',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'mirror-shatter',
+    name: 'Mirror Shatter',
+    description: 'Baroque 4th-wall break. Avatar SHATTERS a gilded silvered mirror in a candlelit ballroom and steps onto marble.',
+    category: 'trending',
+    thumbnail_url: mirrorShatterImg,
+    use_count: 119200,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'canvas-emerge',
+    name: 'Canvas Emerge',
+    description: 'Museum-grade 4th-wall step-out. Avatar walks out of a Renaissance oil painting with wet pigment dripping off them.',
+    category: 'trending',
+    thumbnail_url: canvasEmergeImg,
+    use_count: 108700,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'mysterious',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'billboard-leap',
+    name: 'Billboard Leap',
+    description: 'Blockbuster 4th-wall jump. Avatar LEAPS from a Times Square LED billboard onto a neon-soaked rainy street.',
+    category: 'trending',
+    thumbnail_url: billboardLeapImg,
+    use_count: 134500,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'action',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'page-burst',
+    name: 'Page Burst',
+    description: 'Literary 4th-wall blast. Avatar BURSTS through the page of a giant book in a candlelit library, ink and paper flying.',
+    category: 'trending',
+    thumbnail_url: pageBurstImg,
+    use_count: 97300,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'hologram-materialize',
+    name: 'Hologram Materialize',
+    description: 'Sci-fi 4th-wall arrival. Avatar compressed in a glitching hologram MATERIALIZES into reality on an obsidian plinth.',
+    category: 'trending',
+    thumbnail_url: hologramMaterializeImg,
+    use_count: 112600,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'mysterious',
     genre: 'ad',
     is_featured: true,
     is_trending: true,

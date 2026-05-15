@@ -479,6 +479,14 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
             : 'Kling V3 entertainment mode';
     console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} (${enginePersona})`);
 
+    const modelBoundDirectives = targetEngine === 'veo'
+      ? `\n━━━ MODEL BOUNDS — VEO 3 FAST ━━━\nWrite single-shot beats with natural physics, clear cause/effect motion, and explicit diegetic audio. Favor coherent real-world action over fast cutting. Keep every clip within ${clipDuration}s and avoid unsupported aspect/scene complexity. Dialogue may exist, but audio cues and natural ambience must be specified.`
+      : targetEngine === 'runway'
+        ? `\n━━━ MODEL BOUNDS — RUNWAY GEN-4 TURBO ━━━\nWrite concise, visually anchored prompts that prioritize character consistency, wardrobe continuity, clean subject-background separation, and one deliberate camera intent per clip. No long dialogue reliance; use action, posture, silhouette, and end-frame continuity.`
+        : targetEngine === 'sora'
+          ? `\n━━━ MODEL BOUNDS — SORA 2 ━━━\nWrite narrative-causal beats: subject → action → consequence → final tableau. Sora rewards coherent story logic, spatial continuity, and grounded physical transformations. Use audio/ambient cues where helpful, but do not overload with lens jargon.`
+          : '';
+
     const systemPrompt = isSeedance ? `You are a master cinematographer writing for SEEDANCE 2.0 (Bytedance) — a physics-grade, 1080p, 24fps cinematic video model that REWARDS technical precision and PUNISHES vague description.
 
 Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total). Every clip must be of EPIC CINEMATIC PROPORTIONS — the kind of shot that wins at Cannes, that opens a Villeneuve film, that lives rent-free in the audience's head.
@@ -610,9 +618,10 @@ OUTPUT FORMAT (strict JSON):
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
-}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for Kling V3.
+}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for ${targetEngine === 'kling' ? 'Kling V3' : targetEngine.toUpperCase()}.
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
+${modelBoundDirectives}
 
 ━━━ BANNED CONTENT (will break the pipeline) ━━━
 Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"

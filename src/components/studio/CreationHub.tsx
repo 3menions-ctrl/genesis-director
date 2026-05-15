@@ -675,8 +675,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 </div>
               )}
 
-              {/* Image / Video upload */}
-              {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && !isBreakoutTemplate && (
+              {/* Image / Video upload — hidden if template owns the start frame
+                  (e.g. 4th-wall breakout) or the user picked Avatar mode (avatar
+                  face IS the start frame). */}
+              {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && !isBreakoutTemplate && !templateProvidesStartImage && selectedMode !== 'avatar' && (
                 <div className="mb-5">
                   <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                   <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />

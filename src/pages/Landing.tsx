@@ -12,6 +12,7 @@ import { CategoryChooserOverlay, type AudienceCategory } from '@/components/land
 import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Heavy below-the-fold sections — lazy split to keep first paint snappy
 const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegments').then(m => ({ default: m.AudienceSegments })));
 const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
@@ -116,6 +117,8 @@ const Chapter = ({
 };
 
 export default function Landing() {
+  usePageMeta({ title: "Apex Studio — Cinematic AI video creation", description: "Generate Hollywood-quality video scenes from a single prompt. Avatars, environments, and dialogue, all unified." });
+
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
 

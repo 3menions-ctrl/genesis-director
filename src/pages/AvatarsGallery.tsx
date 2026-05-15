@@ -18,6 +18,7 @@ import lowpolyExplorer from '@/assets/avatars/lowpoly-explorer.png';
 import clayInventor from '@/assets/avatars/clay-inventor.png';
 import inkMonk from '@/assets/avatars/ink-monk.png';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type StyleTag =
   | 'chibi' | 'watercolor' | 'anime' | 'pixel-art'
   | 'low-poly' | 'claymation' | 'ink-wash';
@@ -66,6 +67,8 @@ const TAGS: { key: StyleTag; label: string }[] = [
 ];
 
 export default function AvatarsGallery() {
+  usePageMeta({ title: "Avatar Gallery — Apex Studio", description: "Browse and remix cinematic avatars made by the Apex Studio community." });
+
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<StyleTag>>(new Set());
   const [query, setQuery] = useState('');

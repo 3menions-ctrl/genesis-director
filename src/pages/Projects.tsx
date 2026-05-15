@@ -55,6 +55,7 @@ import {
 import type { ProjectTab } from '@/components/projects';
 import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // STABILITY: motion/AnimatePresence disabled - replaced with CSS-only shims
 const MotionDiv = forwardRef<HTMLDivElement, any>(({ children, className, style, onClick, onMouseEnter, onMouseLeave, ...rest }, ref) => (
   <div ref={ref} className={className} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</div>
@@ -1503,6 +1504,8 @@ const ProjectsContent = withSafePageRef(ProjectsContentInner, 'ProjectsContent')
 
 // Wrapper with error boundary
 export default function Projects() {
+  usePageMeta({ title: "My Projects — Apex Studio", description: "Browse, resume, and publish every project in your Apex Studio workspace." });
+
   return (
     <ErrorBoundary>
       <ProjectsContent />

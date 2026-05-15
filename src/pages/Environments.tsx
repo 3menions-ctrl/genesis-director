@@ -39,6 +39,7 @@ import zenGardenImg from '@/assets/environments/zen-garden.jpg';
 import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
 import { EXTENDED_ENVIRONMENTS } from '@/data/environment-extensions';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Environment presets with unique epic ideas - 20 stunning environments
 const BASE_PRESETS = [
   // TRENDING - What creators love
@@ -426,6 +427,8 @@ function EnvironmentCard({
 }
 
 export default function Environments() {
+  usePageMeta({ title: "Environments — Apex Studio", description: "Cinematic location packs and environment libraries for Apex Studio scenes." });
+
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');

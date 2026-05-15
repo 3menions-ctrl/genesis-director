@@ -31,6 +31,7 @@ import { MessagesInbox } from '@/components/social/MessagesInbox';
 import { SupportInbox } from '@/components/social/SupportInbox';
 import { TwoFactorCard } from '@/components/security/TwoFactorCard';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Cinematic glass system (mirrors Settings/Pricing/Create signature)
 const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
 const glassCardHover = "hover:border-[hsla(215,100%,60%,0.22)] hover:shadow-[0_40px_140px_-40px_hsla(215,100%,60%,0.55)] transition-all duration-500";
@@ -41,6 +42,8 @@ function useAnimatedNumber(target: number, duration = 1400) {
   const startRef = useRef<number | null>(null);
   const fromRef = useRef(0);
   useEffect(() => {
+  usePageMeta({ title: "Profile — Apex Studio", description: "Your public director profile, showcased projects, and creator stats." });
+
     fromRef.current = value;
     startRef.current = null;
     let raf = 0;

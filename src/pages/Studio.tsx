@@ -90,6 +90,7 @@ import avDragon from '@/assets/avatars/drake-dragon.jpg';
 import editorConcept from '@/assets/editor-concepts/concept-10-cinematic.jpg';
 import editorBrutal from '@/assets/editor-concepts/concept-3-command-center.jpg';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 /* =================================================================== */
 /*                         PRIMITIVE COMPONENTS                         */
 /* =================================================================== */
@@ -365,6 +366,8 @@ function RotatingWord({ words, interval = 2400 }: { words: string[]; interval?: 
 /* =================================================================== */
 
 export default function Studio() {
+  usePageMeta({ title: "Studio — Apex Studio", description: "The unified Apex Studio production environment for cinematic AI video." });
+
   const { navigate } = useSafeNavigation();
   const [chooserOpen, setChooserOpen] = useState(false);
   const handleEnter = useCallback(() => setChooserOpen(true), []);

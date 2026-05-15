@@ -19,7 +19,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ProfileBackground from '@/components/profile/ProfileBackground';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function UserProfile() {
+  usePageMeta({ title: "Creator profile — Apex Studio", description: "Public creator profile and reel from the Apex Studio community." });
+
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const { profile, isLoading, videos, videosLoading, followUser, unfollowUser } = usePublicProfile(userId);

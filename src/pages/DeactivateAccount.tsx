@@ -9,7 +9,10 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { ArrowLeft, AlertCircle, UserX, Power, Loader2, ShieldAlert } from 'lucide-react';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function DeactivateAccount() {
+  usePageMeta({ title: "Deactivate account — Apex Studio", description: "Permanently deactivate your Apex Studio account." });
+
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();
   const [reason, setReason] = useState('');

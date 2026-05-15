@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Building2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function AcceptInvite() {
+  usePageMeta({ title: "Accept invite — Apex Studio", description: "Join your team's Apex Studio workspace." });
+
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();

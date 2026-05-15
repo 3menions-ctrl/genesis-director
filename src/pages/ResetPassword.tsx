@@ -12,11 +12,14 @@ import { motion } from 'framer-motion';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const passwordSchema = z.string()
   .min(6, 'Password must be at least 6 characters')
   .max(72, 'Password must be less than 72 characters');
 
 export default function ResetPassword() {
+  usePageMeta({ title: "Reset password — Apex Studio", description: "Choose a new password for your Apex Studio account." });
+
   const [searchParams] = useSearchParams();
   const { navigate } = useSafeNavigation();
   const [password, setPassword] = useState('');

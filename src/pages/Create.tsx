@@ -23,6 +23,7 @@ import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '
 import { cn } from '@/lib/utils';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Premium tab definition for the Create studio
 const STUDIO_TABS = [
   { key: 'create' as const, label: 'Create Video', sub: 'Cinematic generation', icon: Film },
@@ -476,6 +477,8 @@ const CreateContent = withSafePageRef(CreateContentInner, 'CreateContent');
 
 // Wrapper with error boundary
 export default function Create() {
+  usePageMeta({ title: "Create — Apex Studio", description: "Compose cinematic scenes, avatars, and environments in one studio." });
+
   return (
     <ErrorBoundary>
       <CreateContent />

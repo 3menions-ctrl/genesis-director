@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
@@ -26,6 +27,7 @@ import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '
 import { SimpleVideoPlayer } from '@/components/player';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Lazy load non-critical heavy components only
 const ProductionSidebar = lazy(() => import('@/components/production/ProductionSidebar').then(m => ({ default: m.ProductionSidebar })));
 const ProductionFinalVideo = lazy(() => import('@/components/production/ProductionFinalVideo').then(m => ({ default: m.ProductionFinalVideo })));
@@ -109,6 +111,7 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 function ProductionContentInner() {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
+  const confirmDialog = useConfirmDialog();
   const { getSignal, isMounted, abort: abortRequests } = useNavigationAbort();
   
   const [searchParams] = useSearchParams();
@@ -1147,8 +1150,15 @@ function ProductionContentInner() {
 
   const handleCancelPipeline = async () => {
     if (!projectId || !user || isCancelling) return;
-    
-    if (!window.confirm('Are you sure you want to cancel this production? This will stop all background processing and cannot be undone.')) return;
+
+    const ok = await confirmDialog.confirm({
+      title: 'Cancel this production?',
+      description: 'This stops all background processing and cannot be undone.',
+      confirmLabel: 'Cancel production',
+      cancelLabel: 'Keep running',
+      destructive: true,
+    });
+    if (!ok) return;
     
     setIsCancelling(true);
     
@@ -1388,6 +1398,7 @@ const transitionsData = useMemo(() =>
     <div className="min-h-screen flex flex-col">
       {/* App Header */}
       <AppHeader />
+      <confirmDialog.Dialog />
 
       {/* Main Layout */}
       <div className="relative z-10 flex-1 flex overflow-hidden">
@@ -1695,6 +1706,8 @@ const ProductionContent = withSafePageRef(ProductionContentInner, 'ProductionCon
 
 // Wrapper with error boundary
 export default function Production() {
+  usePageMeta({ title: "Production — Apex Studio", description: "Track, recover, and resume every cinematic production stage in real time." });
+
   return (
     <ErrorBoundary>
       <ProductionContent />

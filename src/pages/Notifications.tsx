@@ -14,6 +14,7 @@ import { useEffect } from 'react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const ICONS: Record<NotificationType, typeof Bell> = {
   like: Heart, comment: MessageCircle, follow: UserPlus, achievement: Trophy,
   challenge_complete: Star, message: MessageCircle, universe_invite: Gift,
@@ -90,6 +91,8 @@ function dayLabel(d: Date): string {
 }
 
 export default function NotificationsPage() {
+  usePageMeta({ title: "Notifications — Apex Studio", description: "Updates on your projects, credits, and the Apex Studio community." });
+
   const { user, loading } = useAuth();
   const { navigate } = useSafeNavigation();
   const realNavigate = useNavigate();

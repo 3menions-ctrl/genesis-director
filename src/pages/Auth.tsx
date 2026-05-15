@@ -18,6 +18,7 @@ import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero-mittens.webp';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Floating Particles ─────────────────────────────────────────────
 function FloatingParticles() {
   return (
@@ -97,6 +98,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const internalRef = useRef<HTMLDivElement>(null);
   
   const mergedRef = useCallback((node: HTMLDivElement | null) => {
+  usePageMeta({ title: "Sign in — Apex Studio", description: "Sign in or create your Apex Studio account." });
+
     internalRef.current = node;
     if (ref) {
       if (typeof ref === 'function') {

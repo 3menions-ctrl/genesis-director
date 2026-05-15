@@ -7,6 +7,7 @@ import { useNavigationWithLoading } from '@/components/navigation';
 import { toast } from 'sonner';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 /**
  * AuthCallback - Handles email confirmation and OAuth callbacks
  * 
@@ -17,6 +18,8 @@ import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
  * - OAuth provider redirects
  */
 export default function AuthCallback() {
+  usePageMeta({ title: "Signing in — Apex Studio", description: "Completing your Apex Studio sign-in." });
+
   const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const { navigateTo } = useNavigationWithLoading();

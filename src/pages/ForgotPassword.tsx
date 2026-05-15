@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const emailSchema = z.string()
   .trim()
   .min(1, 'Email is required')
@@ -18,6 +19,8 @@ const emailSchema = z.string()
   .max(255, 'Email must be less than 255 characters');
 
 export default function ForgotPassword() {
+  usePageMeta({ title: "Forgot password — Apex Studio", description: "Reset your Apex Studio password by email." });
+
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);

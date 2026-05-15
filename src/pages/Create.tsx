@@ -166,10 +166,10 @@ function CreateContentInner() {
   const [isHubReady, setIsHubReady] = useState(false);
   
   // Restore active tab from session persistence
-  const [activeTab, setActiveTab] = useState<'create' | 'scenes' | 'photo'>(() => {
+  const [activeTab, setActiveTab] = useState<StudioTab>(() => {
     try {
       const saved = localStorage.getItem('apex_create_active_tab');
-      if (saved === 'create' || saved === 'scenes' || saved === 'photo') return saved;
+      if (saved === 'create' || saved === 'image' || saved === 'scenes' || saved === 'photo') return saved;
     } catch {}
     return 'create';
   });
@@ -447,6 +447,8 @@ function CreateContentInner() {
                   onStartCreation={handleStartCreation}
                   onReady={handleHubReady}
                 />
+              ) : activeTab === 'image' ? (
+                <ImageStudioHub />
               ) : activeTab === 'photo' ? (
                 <PhotoEditorHub />
               ) : (

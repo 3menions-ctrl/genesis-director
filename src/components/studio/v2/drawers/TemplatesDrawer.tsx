@@ -3,6 +3,39 @@ import { Clock, Film, Flame, LayoutTemplate, Search, Sparkles, Users } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTemplateEnvironment, type AppliedSettings } from "@/hooks/useTemplateEnvironment";
+import viralHookImg from "@/assets/templates/viral-hook.jpg";
+import aestheticVlogImg from "@/assets/templates/aesthetic-vlog.jpg";
+import transformationImg from "@/assets/templates/transformation.jpg";
+import asmrSatisfyingImg from "@/assets/templates/asmr-satisfying.jpg";
+import storytimeImg from "@/assets/templates/storytime.jpg";
+import documentaryImg from "@/assets/templates/documentary.jpg";
+import neoNoirImg from "@/assets/templates/neo-noir.jpg";
+import actionMontageImg from "@/assets/templates/action-montage.jpg";
+import animeStyleImg from "@/assets/templates/anime-style.jpg";
+import productRevealImg from "@/assets/templates/product-reveal.jpg";
+import foodLifestyleImg from "@/assets/templates/food-lifestyle.jpg";
+import techShowcaseImg from "@/assets/templates/tech-showcase.jpg";
+import ugcTestimonialImg from "@/assets/templates/ugc-testimonial.jpg";
+import educationalImg from "@/assets/templates/educational.jpg";
+import tutorialImg from "@/assets/templates/tutorial.jpg";
+import viralSocialImg from "@/assets/templates/viral-social.jpg";
+import travelVlogImg from "@/assets/templates/travel-vlog.jpg";
+import musicVideoImg from "@/assets/templates/music-video.jpg";
+import podcastClipsImg from "@/assets/templates/podcast-clips.jpg";
+import brandStoryImg from "@/assets/templates/brand-story.jpg";
+import teamIntroImg from "@/assets/templates/team-intro.jpg";
+import lectureRecapImg from "@/assets/templates/lecture-recap.jpg";
+import microLessonImg from "@/assets/templates/micro-lesson.jpg";
+import whiteboardExplainerImg from "@/assets/templates/whiteboard-explainer.jpg";
+import languageDrillImg from "@/assets/templates/language-drill.jpg";
+import scienceDemoImg from "@/assets/templates/science-demo.jpg";
+import courseTrailerImg from "@/assets/templates/course-trailer.jpg";
+import examCramImg from "@/assets/templates/exam-cram.jpg";
+import postEscapeImg from "@/assets/templates/post-escape.jpg";
+import scrollGrabImg from "@/assets/templates/scroll-grab.jpg";
+import freezeWalkImg from "@/assets/templates/freeze-walk.jpg";
+import realityRipImg from "@/assets/templates/reality-rip.jpg";
+import aspectEscapeImg from "@/assets/templates/aspect-escape.jpg";
 
 interface ProjectTemplateRow {
   id: string;
@@ -51,6 +84,46 @@ const CATEGORIES = [
   { id: "corporate", label: "Corporate" },
 ];
 
+const TEMPLATE_THUMBNAILS: Record<string, string> = {
+  cinematic: documentaryImg,
+  commercial: productRevealImg,
+  explainer: educationalImg,
+  "featured-1": productRevealImg,
+  "featured-2": documentaryImg,
+  "featured-3": viralSocialImg,
+  "template-edu-1": educationalImg,
+  "template-story-1": storytimeImg,
+  "template-noir-1": neoNoirImg,
+  "template-action-1": actionMontageImg,
+  "template-corp-1": brandStoryImg,
+  "template-travel-1": travelVlogImg,
+  "template-music-1": musicVideoImg,
+  "template-food-1": foodLifestyleImg,
+  "template-tech-1": techShowcaseImg,
+  "viral-hook": viralHookImg,
+  "aesthetic-vlog": aestheticVlogImg,
+  transformation: transformationImg,
+  "asmr-satisfying": asmrSatisfyingImg,
+  storytime: storytimeImg,
+  "anime-style": animeStyleImg,
+  "ugc-testimonial": ugcTestimonialImg,
+  "how-to-tutorial": tutorialImg,
+  "podcast-clips": podcastClipsImg,
+  "team-intro": teamIntroImg,
+  "post-escape": postEscapeImg,
+  "scroll-grab": scrollGrabImg,
+  "freeze-walk": freezeWalkImg,
+  "reality-rip": realityRipImg,
+  "aspect-escape": aspectEscapeImg,
+  "lecture-recap": lectureRecapImg,
+  "micro-lesson": microLessonImg,
+  "whiteboard-explainer": whiteboardExplainerImg,
+  "language-drill": languageDrillImg,
+  "science-demo": scienceDemoImg,
+  "course-trailer": courseTrailerImg,
+  "exam-cram": examCramImg,
+};
+
 interface Props {
   onPick: (pick: TemplatePick) => void;
 }
@@ -87,7 +160,10 @@ export function TemplatesDrawerContent({ onPick }: Props) {
     return () => { cancel = true; };
   }, []);
 
-  const builtIn = getBuiltInTemplates() as TemplateCardItem[];
+  const builtIn = (getBuiltInTemplates() as TemplateCardItem[]).map((template) => ({
+    ...template,
+    thumbnail_url: template.thumbnail_url || TEMPLATE_THUMBNAILS[template.id],
+  }));
 
   const templates = useMemo<TemplateCardItem[]>(() => {
     const dbTemplates = rows.map((row) => ({

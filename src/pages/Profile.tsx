@@ -30,6 +30,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
 import { SupportInbox } from '@/components/social/SupportInbox';
 import { TwoFactorCard } from '@/components/security/TwoFactorCard';
+import { SessionsCard } from '@/components/security/SessionsCard';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // Cinematic glass system (mirrors Settings/Pricing/Create signature)
@@ -837,6 +838,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
             {/* Two-factor — full TOTP enroll/verify/disable */}
             <TwoFactorCard glassCard={glassCard} />
+
+            {/* Active sessions — device/IP, revoke, force sign-out */}
+            <SessionsCard glassCard={glassCard} />
 
             {/* Connected accounts */}
             <div className={cn("p-6", glassCard)}>

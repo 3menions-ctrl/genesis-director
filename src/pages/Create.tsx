@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
+import { ImageStudioHub } from '@/components/studio/ImageStudioHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,7 @@ import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 // Premium tab definition for the Create studio
 const STUDIO_TABS = [
   { key: 'create' as const, label: 'Create Video', sub: 'Cinematic generation', icon: Film },
+  { key: 'image'  as const, label: 'Image Studio', sub: 'Text-to-image · remix',  icon: Wand2 },
   { key: 'scenes' as const, label: 'Scenes',       sub: 'Build your world',     icon: Sparkles },
   { key: 'photo'  as const, label: 'Photo Editor', sub: 'Refine every frame',   icon: ImageIcon },
 ];
@@ -76,12 +78,14 @@ const StudioAurora = memo(function StudioAurora() {
 });
 
 // Premium glass segmented tabs with sliding indicator
+type StudioTab = 'create' | 'image' | 'scenes' | 'photo';
+
 function StudioTabs({
   value,
   onChange,
 }: {
-  value: 'create' | 'scenes' | 'photo';
-  onChange: (v: 'create' | 'scenes' | 'photo') => void;
+  value: StudioTab;
+  onChange: (v: StudioTab) => void;
 }) {
   return (
     <div
@@ -162,10 +166,16 @@ function CreateContentInner() {
   const [isHubReady, setIsHubReady] = useState(false);
   
   // Restore active tab from session persistence
-  const [activeTab, setActiveTab] = useState<'create' | 'scenes' | 'photo'>(() => {
+  const [activeTab, setActiveTab] = useState<StudioTab>(() => {
+    // URL ?tab= overrides persisted value
+    try {
+      const url = new URLSearchParams(window.location.search);
+      const t = url.get('tab');
+      if (t === 'create' || t === 'image' || t === 'scenes' || t === 'photo') return t;
+    } catch {}
     try {
       const saved = localStorage.getItem('apex_create_active_tab');
-      if (saved === 'create' || saved === 'scenes' || saved === 'photo') return saved;
+      if (saved === 'create' || saved === 'image' || saved === 'scenes' || saved === 'photo') return saved;
     } catch {}
     return 'create';
   });
@@ -443,6 +453,8 @@ function CreateContentInner() {
                   onStartCreation={handleStartCreation}
                   onReady={handleHubReady}
                 />
+              ) : activeTab === 'image' ? (
+                <ImageStudioHub />
               ) : activeTab === 'photo' ? (
                 <PhotoEditorHub />
               ) : (

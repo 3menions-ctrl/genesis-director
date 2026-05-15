@@ -68,7 +68,17 @@ interface PipelineRequest {
   // Breakout template parameters - for reality-breaking visual effects
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
-  breakoutPlatform?: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape';
+  breakoutPlatform?:
+    | 'post-escape'
+    | 'scroll-grab'
+    | 'freeze-walk'
+    | 'reality-rip'
+    | 'aspect-escape'
+    | 'mirror-shatter'
+    | 'canvas-emerge'
+    | 'billboard-leap'
+    | 'page-burst'
+    | 'hologram-materialize';
 }
 
 interface ExtractedCharacter {

@@ -257,7 +257,8 @@ function CreateContentInner() {
 
     // Cinema entitlement guard — block when remaining seconds < required.
     // No-op for users without an active Cinema subscription.
-    const requiredSeconds = (config.clipCount ?? 0) * (config.clipDuration ?? 0);
+    const requiredSeconds = config.clipDurations?.reduce((a, b) => a + b, 0)
+      ?? (config.clipCount ?? 0) * (config.clipDuration ?? 0);
     if (requiredSeconds > 0) {
       const guard = cinemaGuard.check(requiredSeconds, {
         onUpgrade: () => navigate('/credits'),

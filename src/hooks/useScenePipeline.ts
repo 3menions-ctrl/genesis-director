@@ -70,6 +70,37 @@ export function useScenePipeline(
       const profile = getQualityProfile(engineId, sourceDraft.defaults.qualityProfileId);
       const isAvatarMode = !!cast?.imageUrl;
 
+      // ── Reserve credits server-side BEFORE invoking the renderer. The
+      // reservation reduces the user's effective balance for any concurrent
+      // render (other tab, other scene), eliminating pre-flight drift.
+      let holdId: string | null = null;
+      try {
+        const estimated = creditsForScene(engineId, scene.duration, profile.id);
+        const { data: hold, error: holdErr } = await supabase.functions.invoke("reserve-credits", {
+          body: {
+            action: "reserve",
+            amount: estimated,
+            projectId,
+            description: `Scene ${scene.index + 1} (${engineId})`,
+            idempotencyKey: `scene:${projectId}:${scene.index}:${Date.now()}`,
+            ttlSeconds: 900,
+          },
+        });
+        if (holdErr || (hold as any)?.success !== true) {
+          const reserved = (hold as any)?.reserved ?? 0;
+          const balance = (hold as any)?.balance ?? 0;
+          const eff = (hold as any)?.effectiveBalance ?? balance - reserved;
+          patchScene(sceneId, { status: "failed" });
+          toast.error(`Insufficient credits — ${estimated} required, ${eff} available`);
+          return;
+        }
+        holdId = (hold as any).holdId as string;
+      } catch (e) {
+        patchScene(sceneId, { status: "failed" });
+        toast.error("Could not reserve credits");
+        return;
+      }
+
       const promptParts = [
         scene.location,
         scene.beat || sourceDraft.brief.logline,
@@ -93,6 +124,7 @@ export function useScenePipeline(
           qualityOptions: profile.options,
           qualityProfileId: profile.id,
           estimatedCredits: (() => { try { return creditsForScene(engineId, scene.duration, profile.id); } catch { return engineSpec.baseCreditsFor(engineSpec.durations[0]); } })(),
+          holdId,
           startImageUrl: scene.refImageUrl || sourceDraft.brief.refImageUrl || cast?.imageUrl,
           voiceId: cast?.voiceId || sourceDraft.defaults.voiceId,
           characterName: cast?.name,
@@ -102,7 +134,16 @@ export function useScenePipeline(
           source: "studio-v2",
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Renderer errored before consume_credit_hold ran — release the hold
+        // so the user isn't billed.
+        if (holdId) {
+          await supabase.functions.invoke("reserve-credits", {
+            body: { action: "release", holdId, reason: "invoke_error" },
+          }).catch(() => {});
+        }
+        throw error;
+      }
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
       const directUrl = (data as any)?.videoUrl;
       if (directUrl) {

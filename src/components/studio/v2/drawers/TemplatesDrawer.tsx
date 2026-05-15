@@ -67,10 +67,16 @@ export function TemplatesDrawerContent({ onPick }: Props) {
     let cancel = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data: authData } = await supabase.auth.getUser();
+        let request = supabase
           .from("project_templates")
-          .select("id,name,description,category,thumbnail_url,use_count,genre,mood,target_duration_minutes,clip_count,is_public")
-          .or("is_public.eq.true,user_id.eq." + (await supabase.auth.getUser()).data.user?.id)
+          .select("id,name,description,category,thumbnail_url,use_count,genre,mood,target_duration_minutes,clip_count,is_public");
+
+        request = authData.user
+          ? request.or(`is_public.eq.true,user_id.eq.${authData.user.id}`)
+          : request.eq("is_public", true);
+
+        const { data } = await request
           .order("use_count", { ascending: false })
           .limit(80);
         if (!cancel) setRows((data as ProjectTemplateRow[]) || []);

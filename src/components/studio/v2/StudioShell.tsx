@@ -25,6 +25,7 @@ import {
   Upload,
   Users,
   Wand2,
+  type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -45,7 +46,7 @@ import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./
 type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music";
 type StepId = "start" | "cast" | "script" | "clips";
 
-const STEPS: Array<{ id: StepId; label: string; icon: typeof Sparkles }> = [
+const STEPS: Array<{ id: StepId; label: string; icon: LucideIcon }> = [
   { id: "start", label: "Start", icon: Sparkles },
   { id: "cast", label: "Cast", icon: Users },
   { id: "script", label: "Script", icon: Edit3 },

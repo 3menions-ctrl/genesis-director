@@ -749,17 +749,18 @@ export default function StudioShell() {
                           <div className="mt-6 flex flex-wrap items-center gap-2">
                             <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
                             {[
-                              "A vintage car drifts through Tokyo neon at 3am",
-                              "Slow-motion espresso pour, macro, golden light",
-                              "Drone over snow-capped peaks at dawn",
-                              "Streetwear model walks toward camera, rain, slow-mo",
-                            ].map((seed) => (
+                              { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
+                              { label: "Espresso macro", prompt: "Slow-motion espresso pour, macro, golden light" },
+                              { label: "Snow drone", prompt: "Drone over snow-capped peaks at dawn" },
+                              { label: "Rainy walk", prompt: "Streetwear model walks toward camera, rain, slow-mo" },
+                            ].map(({ label, prompt }) => (
                               <button
-                                key={seed}
-                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: seed } }))}
-                                className="rounded-full border border-border/50 bg-background/30 px-3 py-1.5 text-[12px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
+                                key={label}
+                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
+                                title={prompt}
+                                className="h-7 rounded-full border border-border/50 bg-background/30 px-2.5 text-[11.5px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
                               >
-                                {seed}
+                                {label}
                               </button>
                             ))}
                           </div>

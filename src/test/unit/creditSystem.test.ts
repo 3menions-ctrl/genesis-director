@@ -63,12 +63,12 @@ describe('Credit System — Source of Truth', () => {
       expect(calculateCreditsPerClip(15, 0, 'kling')).toBe(90);
     });
 
-    it('returns 50 for 10s standard (veo) clip', () => {
-      expect(calculateCreditsPerClip(10, 0, 'veo')).toBe(50);
+    it('returns flat 55 for veo clips regardless of duration (10s)', () => {
+      expect(calculateCreditsPerClip(10, 0, 'veo')).toBe(55);
     });
 
-    it('returns 75 for 15s standard (veo) clip', () => {
-      expect(calculateCreditsPerClip(15, 0, 'veo')).toBe(75);
+    it('returns flat 55 for veo clips regardless of duration (15s)', () => {
+      expect(calculateCreditsPerClip(15, 0, 'veo')).toBe(55);
     });
 
     it('returns 60 for 5s avatar clip (still base rate)', () => {
@@ -89,8 +89,8 @@ describe('Credit System — Source of Truth', () => {
       expect(calculateCreditsRequired(5, 15, 'kling')).toBe(450);
     });
 
-    it('calculates correctly for 3 clips at 10s (veo)', () => {
-      expect(calculateCreditsRequired(3, 10, 'veo')).toBe(150);
+    it('calculates correctly for 3 clips at 10s (veo, flat 55/clip)', () => {
+      expect(calculateCreditsRequired(3, 10, 'veo')).toBe(165);
     });
 
     it('returns 0 for 0 clips', () => {

@@ -231,7 +231,8 @@ describe('PAYMENT: stripe-webhook edge function', () => {
   });
 
   it('verifies webhook signature cryptographically', () => {
-    expect(src).toMatch(/constructEvent/);
+    // Webhook signature verification was moved to the shared verifyStripeWebhook helper.
+    expect(src).toMatch(/verifyStripeWebhook|constructEvent/);
   });
 
   it('handles checkout.session.completed event', () => {

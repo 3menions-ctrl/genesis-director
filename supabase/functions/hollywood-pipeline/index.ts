@@ -38,7 +38,7 @@ interface PipelineRequest {
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
-  videoEngine?: 'kling' | 'veo' | 'seedance';
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedScript?: { shots: any[] };
@@ -316,16 +316,33 @@ const CREDIT_PRICING = {
   AVATAR_EXTENDED_CREDITS_PER_CLIP: 90, // Avatar + native audio >10s
   SEEDANCE_BASE_CREDITS_PER_CLIP: 65,   // Seedance 2.0 1080p ≤10s
   SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95, // Seedance 2.0 1080p >10s
+  // Cinema-tier engines (must match src/lib/video/engines.ts baseCreditsFor)
+  RUNWAY_BASE_CREDITS_PER_CLIP: 250,        // Runway Gen-4 Turbo 5s
+  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 500,    // Runway Gen-4 Turbo 10s
+  SORA_BASE_CREDITS_PER_CLIP: 300,          // Sora 2 5s
+  SORA_EXTENDED_CREDITS_PER_CLIP: 600,      // Sora 2 10s
+  SORA_LONG_CREDITS_PER_CLIP: 900,          // Sora 2 15s
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
-function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
+function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   const extended = clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
   // Seedance overrides avatar (avatar is force-rerouted to Kling in generate-single-clip)
   if (videoEngine === 'seedance') {
     return extended
       ? CREDIT_PRICING.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
       : CREDIT_PRICING.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'runway') {
+    return extended
+      ? CREDIT_PRICING.RUNWAY_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.RUNWAY_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'sora') {
+    if (clipDuration > 12) return CREDIT_PRICING.SORA_LONG_CREDITS_PER_CLIP;
+    return extended
+      ? CREDIT_PRICING.SORA_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.SORA_BASE_CREDITS_PER_CLIP;
   }
   // Avatar mode (generate_audio=true, pose-chained) carries higher cost
   if (isAvatarMode) {
@@ -338,7 +355,7 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
     total += getCreditsForClip(i, clipDuration, isAvatarMode, videoEngine);
@@ -415,7 +432,7 @@ function calculatePipelineParams(
   // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
   // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
   // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'kling' | 'veo' | 'seedance' = (request as any).videoEngine || 'kling';
+  const videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
@@ -6431,7 +6448,7 @@ serve(async (req) => {
           .select('video_engine')
           .eq('id', (request as any).projectId)
           .maybeSingle();
-        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' | null) || null;
         if (persistedEngine) {
           const incoming = (request as any).videoEngine;
           if (incoming && incoming !== persistedEngine) {

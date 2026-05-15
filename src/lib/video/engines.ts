@@ -310,18 +310,18 @@ export function defaultQualityProfile(id: EngineId): QualityProfile {
 }
 
 /**
- * Translate the kebab frontend EngineId to the legacy backend token expected by
- * `generate-single-clip` / `hollywood-pipeline` (`kling | seedance | veo`).
- * Cinema-tier engines without a dedicated backend branch (Runway, Sora) fall
- * back to `kling` so the request can still complete — UI gating must prevent
- * those selections when the entitlement is missing.
+ * Translate the kebab frontend EngineId to the backend token expected by
+ * `generate-single-clip` / `hollywood-pipeline`. All five engines now have
+ * a dedicated native branch — no silent fallbacks.
  */
-export function engineToBackend(id: EngineId): 'kling' | 'seedance' | 'veo' {
+export type BackendEngine = 'kling' | 'seedance' | 'veo' | 'runway' | 'sora';
+
+export function engineToBackend(id: EngineId): BackendEngine {
   switch (id) {
     case 'seedance-2':  return 'seedance';
     case 'veo-3':       return 'veo';
-    case 'runway-gen4': return 'veo';   // closest cinema sibling until native branch ships
-    case 'sora-2':      return 'veo';   // ditto
+    case 'runway-gen4': return 'runway';
+    case 'sora-2':      return 'sora';
     case 'kling-v3':
     default:            return 'kling';
   }

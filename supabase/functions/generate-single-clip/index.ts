@@ -48,6 +48,18 @@ const SEEDANCE_MODEL_OWNER = "bytedance";
 const SEEDANCE_MODEL_NAME = "seedance-2.0";
 const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
 
+// ─── Runway Gen-4 Turbo (Replicate-hosted) ─────────────────────────────────
+// Model: runwayml/gen4-turbo — best-in-class character consistency, 5s/10s clips
+const RUNWAY_MODEL_OWNER = "runwayml";
+const RUNWAY_MODEL_NAME = "gen4-turbo";
+const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}/predictions`;
+
+// ─── OpenAI Sora 2 (Replicate-hosted) ──────────────────────────────────────
+// Model: openai/sora-2 — state-of-the-art realism, native audio, 4–15s clips
+const SORA_MODEL_OWNER = "openai";
+const SORA_MODEL_NAME = "sora-2";
+const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
+
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
 // When enabled, include dialogue in prompt inside quotes for lip-sync
 const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio
@@ -283,8 +295,160 @@ async function createSeedancePrediction(
 }
 
 
-// REMOVED: Runway Gen-4 Turbo and Gen-4.5 functions
-// All video generation now unified on Kling V3 (kwaivgi/kling-v3-video)
+/**
+ * Create a Runway Gen-4 Turbo prediction via Replicate.
+ *
+ * Model: runwayml/gen4-turbo
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 5s or 10s
+ *   - Aspect ratios mapped to Runway's pixel ratios
+ */
+async function createRunwayGen4Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Runway Gen-4 Turbo: only 5s or 10s. Snap to nearest.
+  const duration = durationSeconds <= 7 ? 5 : 10;
+
+  // Map our aspect ratios to Runway's pixel ratios (gen4-turbo schema).
+  const ratioMap: Record<'16:9' | '9:16' | '1:1', string> = {
+    '16:9': '1280:720',
+    '9:16': '720:1280',
+    '1:1':  '960:960',
+  };
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    ratio: ratioMap[aspectRatio] || '1280:720',
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][RunwayGen4] Creating ${mode} prediction:`, {
+    model: `${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}`,
+    duration,
+    ratio: input.ratio,
+    hasStartImage: !!input.image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(RUNWAY_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][RunwayGen4] Replicate API error:", response.status, errorText);
+    throw new Error(`Runway Gen-4 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Runway Gen-4 response");
+  }
+
+  console.log(`[SingleClip][RunwayGen4] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+/**
+ * Create an OpenAI Sora 2 prediction via Replicate.
+ *
+ * Model: openai/sora-2
+ *   - Text-to-Video and Image-to-Video
+ *   - Duration: 4–15s (we clamp to engine spec)
+ *   - Native audio supported
+ */
+async function createSora2Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Sora 2: clamp to 4–15s.
+  const duration = Math.max(4, Math.min(15, durationSeconds));
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    aspect_ratio: aspectRatio,
+    duration,
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.input_image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Sora2] Creating ${mode} prediction:`, {
+    model: `${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}`,
+    duration,
+    aspectRatio,
+    hasStartImage: !!input.input_image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(SORA_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Sora2] Replicate API error:", response.status, errorText);
+    throw new Error(`Sora 2 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Sora 2 response");
+  }
+
+  console.log(`[SingleClip][Sora2] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
 
 // Poll a Replicate prediction until it completes (works for both Kling and Veo)
 async function pollReplicatePrediction(
@@ -714,14 +878,15 @@ serve(async (req) => {
     //
     // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
     // The body param is only a hint and can never override the DB lock.
-    let videoEngine: 'kling' | 'veo' | 'seedance' = rawVideoEngine;
+    type BackendEngine = 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
         .select('video_engine')
         .eq('id', projectId)
         .maybeSingle();
-      const persistedEngine = (projRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+      const persistedEngine = (projRow?.video_engine as BackendEngine | null) || null;
       if (persistedEngine) {
         if (persistedEngine !== rawVideoEngine) {
           console.warn(
@@ -741,7 +906,14 @@ serve(async (req) => {
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
-    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
+    const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
+      kling:    'kwaivgi/kling-v3-video',
+      seedance: 'bytedance/seedance-2.0',
+      veo:      'kwaivgi/kling-v3-video (veo legacy → kling)',
+      runway:   'runwayml/gen4-turbo',
+      sora:     'openai/sora-2',
+    };
+    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${ENGINE_ROUTE_LABEL[videoEngine]}`);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - Final defense layer at clip generation
@@ -1081,7 +1253,26 @@ serve(async (req) => {
         endImageUrl, // Optional Seedance-only end-frame target
       );
       predictionId = seedanceResult.predictionId;
+    } else if (videoEngine === 'runway') {
+      console.log(`[SingleClip] ══ ROUTING TO RUNWAY GEN-4 TURBO (runwayml/gen4-turbo) ══`);
+      const runwayResult = await createRunwayGen4Prediction(
+        enhancedPrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = runwayResult.predictionId;
+    } else if (videoEngine === 'sora') {
+      console.log(`[SingleClip] ══ ROUTING TO SORA 2 (openai/sora-2) ══`);
+      const soraResult = await createSora2Prediction(
+        enhancedPrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = soraResult.predictionId;
     } else {
+      // 'kling' and legacy 'veo' both render via Kling V3.
       const klingResult = await createKlingV3Prediction(
         enhancedPrompt,
         fullNegativePrompt,

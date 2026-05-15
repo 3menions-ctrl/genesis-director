@@ -167,6 +167,12 @@ function CreateContentInner() {
   
   // Restore active tab from session persistence
   const [activeTab, setActiveTab] = useState<StudioTab>(() => {
+    // URL ?tab= overrides persisted value
+    try {
+      const url = new URLSearchParams(window.location.search);
+      const t = url.get('tab');
+      if (t === 'create' || t === 'image' || t === 'scenes' || t === 'photo') return t;
+    } catch {}
     try {
       const saved = localStorage.getItem('apex_create_active_tab');
       if (saved === 'create' || saved === 'image' || saved === 'scenes' || saved === 'photo') return saved;

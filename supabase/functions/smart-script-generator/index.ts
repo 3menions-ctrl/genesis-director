@@ -114,8 +114,10 @@ interface SmartScriptRequest {
   // ENGINE TARGETING — tailors prompt structure & vocabulary to the underlying model
   // 'kling'    → Kling V3 (entertainment-first, action-dense, dialogue-aware)
   // 'seedance' → Seedance 2.0 1080p (physics-grade motion, end-frame chaining, lens-aware)
-  // 'veo'      → Veo (reserved)
-  videoEngine?: 'kling' | 'veo' | 'seedance';
+  // 'veo'      → Veo 3 Fast (native audio / physics)
+  // 'runway'   → Runway Gen-4 Turbo (character consistency / concise action)
+  // 'sora'     → Sora 2 (narrative coherence / longer cinematic beats)
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 }
 
 interface SceneClip {

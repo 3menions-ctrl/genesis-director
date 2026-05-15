@@ -18,7 +18,7 @@ export interface ReplicateModelRef {
   owner: string;
   name: string;
   label?: string;
-  category?: 'video' | 'image' | 'audio' | 'other';
+  category?: 'video' | 'image' | 'audio' | 'voice' | 'other';
 }
 
 export interface ModelNodeData extends Record<string, unknown> {
@@ -26,6 +26,17 @@ export interface ModelNodeData extends Record<string, unknown> {
   label: string;
   model?: ReplicateModelRef;
   inputs?: Record<string, unknown>;
+}
+
+export interface ModelInputs {
+  prompt?: string;
+  imageUrl?: string;        // start frame for I2V
+  endImageUrl?: string;     // chain end frame
+  durationSec?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  audioPrompt?: string;
+  voicePrompt?: string;
 }
 
 export interface AvatarNodeData extends Record<string, unknown> {

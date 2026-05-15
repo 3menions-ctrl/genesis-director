@@ -425,9 +425,84 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ═══ AUTH GUARD: Admin-only via user_roles table ═══
+    // Peek body early so we can short-circuit auth for the public cron-tick action
+    const rawBody = await req.text();
+    let earlyBody: any = {};
+    try { earlyBody = rawBody ? JSON.parse(rawBody) : {}; } catch (_) { earlyBody = {}; }
+
+    // ═══ Public cron-tick: idempotent, only fills missing presets ═══
+    if (earlyBody.action === "cron-tick") {
+      const tickCount = Math.min(Math.max(parseInt(earlyBody.count ?? "1", 10) || 1, 1), 3);
+      const { data: rows } = await supabase
+        .from("avatar_templates")
+        .select("name, face_image_url");
+      const seededNames = new Set(
+        (rows ?? [])
+          .filter((r: any) => r.face_image_url && !r.face_image_url.includes("placehold") && !r.face_image_url.includes("placeholder"))
+          .map((r: any) => r.name)
+      );
+      const missing = AVATAR_PRESETS
+        .map((p, i) => ({ p, i }))
+        .filter(({ p }) => !seededNames.has(p.name))
+        .slice(0, tickCount);
+
+      const tickResults: any[] = [];
+      for (const { p: preset, i } of missing) {
+        try {
+          const genResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-image`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${supabaseServiceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: preset.name,
+              gender: preset.gender,
+              ageRange: preset.ageRange,
+              ethnicity: preset.ethnicity,
+              style: preset.style,
+              personality: preset.personality,
+              clothing: preset.clothing,
+              generateAllViews: false,
+            }),
+          });
+          if (!genResponse.ok) {
+            tickResults.push({ name: preset.name, success: false, error: await genResponse.text() });
+            continue;
+          }
+          const generated = await genResponse.json();
+          await supabase.from("avatar_templates").upsert({
+            name: preset.name,
+            gender: preset.gender,
+            age_range: preset.ageRange,
+            ethnicity: preset.ethnicity,
+            style: preset.style,
+            personality: preset.personality,
+            face_image_url: generated.frontImageUrl,
+            thumbnail_url: generated.frontImageUrl,
+            front_image_url: generated.frontImageUrl,
+            character_bible: generated.characterBible,
+            voice_id: "alloy",
+            voice_provider: "openai",
+            is_active: true,
+          }, { onConflict: "name" });
+          tickResults.push({ name: preset.name, success: true, index: i });
+        } catch (err: any) {
+          tickResults.push({ name: preset.name, success: false, error: String(err?.message ?? err) });
+        }
+      }
+      const remaining = AVATAR_PRESETS.length - seededNames.size - tickResults.filter(r => r.success).length;
+      return new Response(JSON.stringify({ processed: tickResults, remaining }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ═══ AUTH GUARD: Admin-only via user_roles table, OR seed-token bypass ═══
+    const seedToken = Deno.env.get("SEED_BYPASS_TOKEN");
+    const headerToken = req.headers.get("x-seed-token");
+    const tokenBypass = !!(seedToken && headerToken && headerToken === seedToken);
+
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
+    const auth = tokenBypass
+      ? { authenticated: true, userId: null, isServiceRole: true }
+      : await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
@@ -446,7 +521,7 @@ serve(async (req) => {
       }
     }
 
-    const body = await req.json();
+    const body = earlyBody;
     const { action, startIndex = 0, count = 1 } = body;
 
     if (action === "list-presets") {

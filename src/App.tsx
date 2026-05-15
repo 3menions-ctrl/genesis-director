@@ -562,6 +562,15 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+
+                {/* Avatar Gallery — style-tagged cast */}
+                <Route path="/avatars-gallery" element={
+                  <RouteContainer fallbackMessage="Loading avatar gallery...">
+                    <ProtectedRoute>
+                      <AppShell><AvatarsGallery /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
                 {/* Consumer social hub sunset — redirect to projects */}
                 <Route path="/creators" element={<Navigate to="/projects" replace />} />

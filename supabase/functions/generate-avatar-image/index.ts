@@ -221,7 +221,7 @@ serve(async (req) => {
       const sidePrompt = buildAvatarPrompt(config, "side");
       const sideBase64 = await generateImage(sidePrompt);
       if (sideBase64) {
-        const sideFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-side-${timestamp}.png`;
+        const sideFileName = `${safeName}-side-${timestamp}.png`;
         sideImageUrl = await uploadToStorage(supabase, sideBase64, sideFileName);
         console.log("[Avatar Gen] Side view uploaded:", sideFileName);
       }
@@ -230,7 +230,7 @@ serve(async (req) => {
       const backPrompt = buildAvatarPrompt(config, "back");
       const backBase64 = await generateImage(backPrompt);
       if (backBase64) {
-        const backFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-back-${timestamp}.png`;
+        const backFileName = `${safeName}-back-${timestamp}.png`;
         backImageUrl = await uploadToStorage(supabase, backBase64, backFileName);
         console.log("[Avatar Gen] Back view uploaded:", backFileName);
       }

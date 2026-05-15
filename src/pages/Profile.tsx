@@ -29,6 +29,7 @@ import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
 import { SupportInbox } from '@/components/social/SupportInbox';
+import { TwoFactorCard } from '@/components/security/TwoFactorCard';
 
 // Cinematic glass system (mirrors Settings/Pricing/Create signature)
 const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
@@ -872,31 +873,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </div>
             </div>
 
-            {/* Two-factor */}
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Lock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Two-factor authentication</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Hardware-grade login</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Authenticator app</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Use any TOTP app (1Password, Authy, Google Authenticator)</p>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => toast.info('2FA setup coming soon')}
-                  className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
-                  Enable
-                </Button>
-              </div>
-            </div>
+            {/* Two-factor — full TOTP enroll/verify/disable */}
+            <TwoFactorCard glassCard={glassCard} />
 
             {/* Connected accounts */}
             <div className={cn("p-6", glassCard)}>

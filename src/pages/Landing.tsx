@@ -354,6 +354,14 @@ export default function Landing() {
       </Chapter>
       <Divider size="lg" />
 
+      {/* Frame Chaining — five-second clips chain into long-form films */}
+      <Chapter n="3.5" kicker="Frame Chaining" size="lg">
+        <Suspense fallback={<SectionLoader />}>
+          <FrameChainingSection />
+        </Suspense>
+      </Chapter>
+      <Divider size="lg" />
+
       {/* The Workflow — prompt → film, in plain language */}
       <Chapter n="04" kicker="The Workflow">
         <Suspense fallback={<SectionLoader />}><B2BWorkflow /></Suspense>

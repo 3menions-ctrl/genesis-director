@@ -50,7 +50,7 @@ const AVATARS: Avatar[] = [
 
   { id: 'a10', name: 'Otto', archetype: 'Mountain Explorer', bio: 'Faceted, rugged, optimistic. Outdoor brands, expedition spots, and travel pre-rolls.', style: 'low-poly', styleLabel: 'Low Poly', palette: ['hsl(45,95%,55%)', 'hsl(215,40%,40%)'], src: lowpolyExplorer },
 
-  { id: 'a11', name: 'Pip', archetype: 'Inventor', bio: 'Stop-motion warmth — children\\'s storytelling, tactile DTC ads, and craft-brand intros.', style: 'claymation', styleLabel: 'Claymation', palette: ['hsl(28,55%,60%)', 'hsl(45,40%,75%)'], src: clayInventor },
+  { id: 'a11', name: 'Pip', archetype: 'Inventor', bio: 'Stop-motion warmth — kids storytelling, tactile DTC ads, and craft-brand intros.', style: 'claymation', styleLabel: 'Claymation', palette: ['hsl(28,55%,60%)', 'hsl(45,40%,75%)'], src: clayInventor },
 
   { id: 'a12', name: 'Master Wen', archetype: 'Wandering Monk', bio: 'Sumi-e minimalism. Editorial, meditative pacing, and slow-burn cinematic openings.', style: 'ink-wash', styleLabel: 'Ink Wash', palette: ['hsl(0,0%,15%)', 'hsl(0,0%,55%)'], src: inkMonk },
 ];

@@ -1253,7 +1253,26 @@ serve(async (req) => {
         endImageUrl, // Optional Seedance-only end-frame target
       );
       predictionId = seedanceResult.predictionId;
+    } else if (videoEngine === 'runway') {
+      console.log(`[SingleClip] ══ ROUTING TO RUNWAY GEN-4 TURBO (runwayml/gen4-turbo) ══`);
+      const runwayResult = await createRunwayGen4Prediction(
+        enhancedPrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = runwayResult.predictionId;
+    } else if (videoEngine === 'sora') {
+      console.log(`[SingleClip] ══ ROUTING TO SORA 2 (openai/sora-2) ══`);
+      const soraResult = await createSora2Prediction(
+        enhancedPrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = soraResult.predictionId;
     } else {
+      // 'kling' and legacy 'veo' both render via Kling V3.
       const klingResult = await createKlingV3Prediction(
         enhancedPrompt,
         fullNegativePrompt,

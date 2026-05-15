@@ -144,6 +144,11 @@ export default function StudioShell() {
   const [step, setStep] = useState<StepId>("start");
   const [autoBusy, setAutoBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [createMode, setCreateMode] = useState<"text" | "image" | "template">(() => {
+    if (draft.brief.templateId) return "template";
+    if (draft.brief.refImageUrl) return "image";
+    return "text";
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -469,56 +474,158 @@ export default function StudioShell() {
         <section className="overflow-y-auto p-4 premium-scroll md:p-7">
           <AnimatePresence mode="wait">
             {step === "start" && (
-              <FlowPanel key="start" eyebrow="Step 01 · Begin" title={<>The film starts <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>with a single frame.</em></>} icon={Sparkles}>
-                {/* Ambient cinematic orbs — landing-page key + fill */}
-                <div aria-hidden className="pointer-events-none absolute -left-24 top-10 h-[520px] w-[520px] rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.18), transparent 65%)" }} />
-                <div aria-hidden className="pointer-events-none absolute -right-32 top-1/2 h-[420px] w-[420px] rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, hsla(200,100%,60%,0.12), transparent 70%)" }} />
+              <FlowPanel
+                key="start"
+                eyebrow={createMode === "text" ? "Step 01 · Text → Video" : createMode === "image" ? "Step 01 · Image → Video" : "Step 01 · Template"}
+                title={createMode === "text"
+                  ? <>From a single sentence, <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>a finished film.</em></>
+                  : createMode === "image"
+                    ? <>One frame becomes <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>the entire scene.</em></>
+                    : <>Hand-crafted blueprints, <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>made yours.</em></>
+                }
+                icon={Sparkles}
+              >
+                {/* ===== Cinematic ambience: drifting orbs, scanlines, hairline crosshairs ===== */}
+                <div aria-hidden className="pointer-events-none absolute -left-32 top-0 h-[640px] w-[640px] rounded-full opacity-60 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.20), transparent 65%)", animationDuration: "9s" }} />
+                <div aria-hidden className="pointer-events-none absolute -right-40 top-1/3 h-[520px] w-[520px] rounded-full opacity-55 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(200,100%,60%,0.14), transparent 70%)", animationDuration: "11s", animationDelay: "1.4s" }} />
+                <div aria-hidden className="pointer-events-none absolute left-1/3 bottom-0 h-[360px] w-[360px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, hsla(220,100%,70%,0.10), transparent 70%)" }} />
+                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, hsl(var(--accent)/0.4) 2px, hsl(var(--accent)/0.4) 3px)" }} />
+
+                {/* ===== Mode switcher — Text-to-Video is now first-class ===== */}
+                <div className="relative mb-8">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
+                    {([
+                      { id: "text", label: "Text → Video", sub: "Pure prompt", Icon: Wand2 },
+                      { id: "image", label: "Image → Video", sub: "Reference frame", Icon: ImageIcon },
+                      { id: "template", label: "Template", sub: "Proven shots", Icon: Images },
+                    ] as const).map(({ id, label, sub, Icon }) => {
+                      const active = createMode === id;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setCreateMode(id);
+                            if (id === "image") {
+                              setTimeout(() => fileInputRef.current?.click(), 80);
+                            } else if (id === "template") {
+                              setDrawer("templates");
+                            } else if (id === "text") {
+                              setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined, templateId: undefined } }));
+                            }
+                          }}
+                          className={cn(
+                            "group relative flex items-center gap-3 rounded-full px-5 py-2.5 transition-all",
+                            active
+                              ? "bg-foreground text-background shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.55)]"
+                              : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
+                          )}
+                        >
+                          <Icon className={cn("h-4 w-4", active ? "text-accent" : "")} />
+                          <span className="text-left">
+                            <span className={cn("block font-display text-[15px] italic leading-tight", active ? "text-background" : "")}>{label}</span>
+                            <span className={cn("block font-mono text-[8.5px] uppercase tracking-[0.28em]", active ? "text-background/55" : "text-muted-foreground/60")}>{sub}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
                   <div className="space-y-5">
-                    <ReferenceUploader
-                      imageUrl={draft.brief.refImageUrl}
-                      uploading={uploading}
-                      onUploadClick={() => fileInputRef.current?.click()}
-                      onClear={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
-                    />
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+                    {createMode === "image" && (
+                      <>
+                        <ReferenceUploader
+                          imageUrl={draft.brief.refImageUrl}
+                          uploading={uploading}
+                          onUploadClick={() => fileInputRef.current?.click()}
+                          onClear={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
+                        />
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+                      </>
+                    )}
+                    {createMode !== "image" && (
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+                    )}
 
-                    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/70 via-card/30 to-background/40 p-8 shadow-[0_24px_80px_-30px_hsl(var(--accent)/0.4)] backdrop-blur-xl">
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-                      <div className="pointer-events-none absolute right-7 top-7 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Logline · 01</div>
-                      <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                        </span>
-                        The brief
-                      </div>
-                      <textarea
-                        value={draft.brief.logline}
-                        onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
-                        placeholder="A luxury streetwear launch in a rainy neon alley — one avatar walks toward camera and delivers a single line."
-                        rows={5}
-                        className="mt-5 w-full resize-none bg-transparent font-display text-[28px] italic leading-[1.2] text-foreground outline-none placeholder:text-muted-foreground/40"
-                      />
-                      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border/40 pt-5">
-                        <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
-                        <input
-                          value={draft.brief.style}
-                          onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
-                          placeholder="Anamorphic · neon · 35mm grain"
-                          className="h-9 min-w-[200px] flex-1 rounded-full border border-border/60 bg-background/40 px-4 text-sm text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
+                    {/* ===== HERO COMPOSER — bigger and more art-directed than the landing ===== */}
+                    <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_40px_120px_-40px_hsl(var(--accent)/0.55)] backdrop-blur-2xl">
+                      {/* Top hairline + bottom hairline */}
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
+
+                      {/* Cinema corner brackets */}
+                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-4 w-4 border-l-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-4 w-4 border-r-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-4 w-4 border-b-2 border-l-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-4 w-4 border-b-2 border-r-2 border-accent/70" />
+
+                      <div className="px-9 py-9">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                            </span>
+                            {createMode === "text" ? "Pure text prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
+                          </div>
+                          <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/60">SC. 01 · TAKE 01</div>
+                        </div>
+
+                        <textarea
+                          value={draft.brief.logline}
+                          onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
+                          placeholder={createMode === "text"
+                            ? "A lone surfer paddles into a 30-foot wave at golden hour. Camera pushes in as the wave curls overhead. Anamorphic, 35mm grain, sun flares."
+                            : createMode === "image"
+                              ? "Animate the uploaded frame — the camera slowly dollies forward as light bends through the scene."
+                              : "Describe the spin you want on the template — tone, era, hero moment."
+                          }
+                          rows={5}
+                          className="mt-6 w-full resize-none bg-transparent font-display text-[34px] italic leading-[1.15] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
+                          style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
-                        <span className="ml-3 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
-                        <SegmentedSelect
-                          value={draft.defaults.aspect}
-                          options={["16:9", "9:16", "1:1", "21:9"]}
-                          onChange={(value) => setDraft(d => ({ ...d, defaults: { ...d.defaults, aspect: value as StudioDraft["defaults"]["aspect"] } }))}
-                        />
+
+                        <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-border/40 pt-6">
+                          <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
+                          <input
+                            value={draft.brief.style}
+                            onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
+                            placeholder="Anamorphic · neon · 35mm grain"
+                            className="h-9 min-w-[220px] flex-1 rounded-full border border-border/60 bg-background/40 px-4 text-sm text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
+                          />
+                          <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
+                          <SegmentedSelect
+                            value={draft.defaults.aspect}
+                            options={["16:9", "9:16", "1:1", "21:9"]}
+                            onChange={(value) => setDraft(d => ({ ...d, defaults: { ...d.defaults, aspect: value as StudioDraft["defaults"]["aspect"] } }))}
+                          />
+                        </div>
+
+                        {/* Quick prompt seeds — only shown when prompt is empty */}
+                        {!draft.brief.logline && (
+                          <div className="mt-6 flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
+                            {[
+                              "A vintage car drifts through Tokyo neon at 3am",
+                              "Slow-motion espresso pour, macro, golden light",
+                              "Drone over snow-capped peaks at dawn",
+                              "Streetwear model walks toward camera, rain, slow-mo",
+                            ].map((seed) => (
+                              <button
+                                key={seed}
+                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: seed } }))}
+                                className="rounded-full border border-border/50 bg-background/30 px-3 py-1.5 text-[12px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
+                              >
+                                {seed}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* ============= ENGINE PILL RAIL — answers "where do I pick the engine" ============= */}
+                    {/* ============= ENGINE PILL RAIL ============= */}
                     <EnginePillRail
                       selected={draft.defaults.engine}
                       onSelect={(id) => setDraft(d => ({ ...d, defaults: { ...d.defaults, engine: id }, scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })) }))}
@@ -527,12 +634,28 @@ export default function StudioShell() {
                   </div>
 
                   <div className="space-y-3">
-                    <ActionTile icon={Images} title="Templates" body="Proven structures, fully editable." onClick={() => setDrawer("templates")} />
+                    {/* Mode-specific helper card */}
+                    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/[0.10] via-card/40 to-background/30 p-5 backdrop-blur-xl">
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+                      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">
+                        {createMode === "text" ? "Text-to-video" : createMode === "image" ? "Image-to-video" : "Template"}
+                      </div>
+                      <div className="mt-2 font-display text-xl italic leading-tight text-foreground">
+                        {createMode === "text" ? "No image required." : createMode === "image" ? "Drop a still, get a scene." : "Pick a structure."}
+                      </div>
+                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                        {createMode === "text" ? "Write the scene. The selected engine renders it from the prompt alone." : createMode === "image" ? "Your frame becomes the visual DNA — color, character, composition all carry through." : "Cinematic blueprints with shot lists you can edit before render."}
+                      </p>
+                    </div>
+
+                    {createMode !== "template" && <ActionTile icon={Images} title="Templates" body="Proven structures, fully editable." onClick={() => { setCreateMode("template"); setDrawer("templates"); }} />}
                     <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => setDrawer("envs")} />
+                    <ActionTile icon={Music2} title="Score & voice" body="Pick the sonic palette early." onClick={() => setDrawer("music")} />
+
                     <button
                       onClick={() => setStep("cast")}
                       disabled={!canGenerateScript}
-                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-2xl bg-foreground px-5 py-5 text-left text-background transition-all hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.5),0_0_80px_-20px_hsl(var(--accent)/0.5)] disabled:opacity-30 disabled:hover:shadow-none"
+                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-2xl bg-foreground px-5 py-5 text-left text-background transition-all hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.5),0_0_80px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
                     >
                       <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
                       <span className="relative">

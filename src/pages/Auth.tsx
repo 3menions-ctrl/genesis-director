@@ -96,10 +96,9 @@ const signupFormSchema = z.object({
 // CRITICAL: forwardRef wrapper to prevent "Function components cannot be given refs" crash
 const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_props, ref) {
   const internalRef = useRef<HTMLDivElement>(null);
-  
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
   usePageMeta({ title: "Sign in — Apex Studio", description: "Sign in or create your Apex Studio account." });
 
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
     internalRef.current = node;
     if (ref) {
       if (typeof ref === 'function') {

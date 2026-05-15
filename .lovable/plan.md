@@ -1,51 +1,59 @@
-# Pricing Unification & Checkout Consolidation
+# Comprehensive Account/Permission Hardening Plan
 
-## Canonical price catalog (from `/pricing`)
+## What's already correct ✅
+- All **118 public tables have RLS enabled** (zero unprotected tables).
+- Auth = mandatory OTP + Google OAuth, single‑project enforcement in place.
+- `user_roles` + `has_role()` SECURITY DEFINER pattern is implemented.
+- Most admin RPCs are wrapped behind `has_role(..., 'admin')` checks internally.
 
-**Personal credit packs (one-time)**
-| ID | Price | Credits |
+## What needs fixing — grouped into 5 bundles
+
+### Bundle 1 — Critical write‑side RLS (highest risk)
+Four policies use `USING (true)` / `WITH CHECK (true)` for INSERT/UPDATE/ALL. Anyone (anon or any logged‑in user) can write.
+
+| Table | Policy | Fix |
 |---|---|---|
-| `credits_starter` | $9 | 90 |
-| `credits_creator` | $37 | 370 |
-| `credits_pro` | $99 | 1,000 |
-| `credits_studio` | $249 | 2,500 |
+| `org_credit_refills` | `org_credit_refills_service` (ALL) | Restrict to `auth.role() = 'service_role'` |
+| `subscriptions` | `subscriptions_service_all` (ALL) | Restrict to `auth.role() = 'service_role'` |
+| `onboarding_intents` | `Anyone can create onboarding intent` (INSERT) | Keep public but rate‑limit + add column constraints (this is pre‑signup, intentional) |
+| `sales_inquiries` | `Anyone can submit a sales inquiry` (INSERT) | Keep public (lead form), but tighten WITH CHECK to require non‑empty email + length caps |
 
-**Business credit packs (one-time)**
-| ID | Price | Credits |
-|---|---|---|
-| `credits_business_starter` | $499 | 5,500 |
-| `credits_business_growth` | $999 | 12,000 |
-| `credits_business_scale` | $2,499 | 32,000 |
+### Bundle 2 — Anon‑callable SECURITY DEFINER functions
+~25 functions (mostly `admin_*`, plus `accept_organization_invite`, `add_org_creator_as_owner`, `add_org_domain`, `assign_org_seat`, `admin_force_tier`, `admin_change_account_type`, `admin_create_impersonation_token`, `admin_delete_org`, `admin_suspend_account`, `admin_unsuspend_account`, `admin_transfer_org_owner`, `admin_get_email_log`, `admin_bump_security_versions_except`, `admin_activate_enterprise_org`) currently grant EXECUTE to `anon`.
 
-**Subscriptions (monthly recurring)**
-| ID | Price | Credits/mo |
-|---|---|---|
-| `sub_creator_monthly` | $19 | 220 |
-| `sub_pro_monthly` | $49 | 600 |
-| `sub_studio_monthly` | $149 | 2,000 |
+Internal `has_role(...)` guard means they reject anon at runtime, but defense‑in‑depth says: `REVOKE EXECUTE … FROM anon, public; GRANT EXECUTE … TO authenticated;`. Org‑invite functions stay callable by `authenticated` only.
 
-**Enterprise** — contact sales (no Stripe price; CTA → `/contact?topic=sales`).
+### Bundle 3 — Storage buckets
+All **16 buckets are public** with broad listing. Reclassify:
 
-All credit packs use Stripe tax code `txcd_10000000` (general digital goods). Subscriptions use `txcd_10103001` (SaaS).
+| Bucket | Decision |
+|---|---|
+| `final-videos`, `thumbnails`, `video-thumbnails`, `scene-images`, `genesis-castings` | Stay public read (showcase). Disallow listing — restrict SELECT to `name = requested object`. |
+| `user-uploads`, `hoppy-uploads`, `brand-assets`, `enterprise-brand-kits`, `voice-tracks`, `character-references`, `photo-edits`, `temp-frames`, `avatars`, `video-clips`, `videos` | Convert to **private**, gate SELECT/INSERT/DELETE by `auth.uid()::text = (storage.foldername(name))[1]`. Use signed URLs in client where playback needs it. |
 
-## Steps
+This is the single biggest exposure — today anyone with a bucket name can list every other user's uploaded reference images, voice tracks, and brand kits.
 
-1. **Register Stripe products** via `payments--batch_create_product` — 10 products above, with correct tax codes, single-purchase quantity (1,1).
-2. **Build unified `supabase/functions/create-checkout/index.ts`** — accepts `{ priceId, quantity?, environment, returnUrl, userId?, customerEmail? }`, resolves via `lookup_keys`, picks `mode` from price `type`, uses `resolveOrCreateCustomer` w/ userId metadata, embedded checkout, `managed_payments: { enabled: true }`. `verify_jwt = false` in `config.toml`.
-3. **Delete** `create-plan-checkout`, `create-credit-checkout`, `create-cinema-checkout` (and any related config blocks).
-4. **Wire Pricing.tsx CTAs**: each card → `useStripeCheckout({ priceId, userId, returnUrl })`. Enterprise → `/contact`. Add the embedded checkout sheet.
-5. **Rewrite WorkspaceBilling.tsx tiers** to the canonical Business credit packs (one-time, not monthly/yearly). Update CTA call to unified `create-checkout`.
-6. **Rewrite Credits.tsx** (cinema_*) to use the canonical Subscriptions table. Update calls to unified `create-checkout`.
-7. **Update BuyCreditsModal & WelcomeOfferModal** to canonical pack IDs and unified `create-checkout`.
-8. **Update StartOnboarding plan picker** IDs to canonical set so `/welcome/checkout` works against `create-checkout`.
-9. **Update `WelcomeCheckout.tsx`** invoke target to `create-checkout`.
-10. **QA**: typecheck, hit `/pricing`, `/credits`, `/workspace/billing`, `/start`, `/welcome/checkout` in console for any stale ID/function references.
+### Bundle 4 — Function search_path & duplicates
+- 5 functions are missing `SET search_path = public`. Add it.
+- Three duplicate signatures of `charge_preproduction_credits` / `charge_production_credits` exist. Drop the unused overloads to remove ambiguity.
 
-## Out of scope
-- Changing webhook handler (`payments-webhook`) — already keys off `lookup_key`.
-- Migrating existing live subscriptions onto new IDs.
-- Touching FAQ / features-comparison copy on `/pricing`.
+### Bundle 5 — Client‑side account scoping
+Sweep `src/` for queries that don't filter by `auth.uid()` (RLS protects us, but explicit scoping prevents accidental cross‑user cache hits in React Query and cuts payload size). Also:
+- Verify every `useQuery` key includes `userId`/`session.user.id` so logout invalidates all caches.
+- Ensure `supabase.auth.signOut()` is followed by `queryClient.clear()` everywhere (not just one path).
+- Audit edge functions for any that accept `userId` from the request body instead of deriving it from `getClaims(token).sub` — those are privilege‑escalation vectors.
 
-## Risk notes
-- Existing customers on old `cinema_*` / `business_*_monthly` / `sub_*` price IDs keep working through the webhook (their stripe `subscription.id` stays valid). New checkouts route through new IDs.
-- `managed_payments` adds +3.5% per transaction; tax/fraud/disputes/support handled end-to-end. If you want to opt out, say so before I enable it.
+---
+
+## Execution order
+1. **Bundle 1** (4 policies) — single migration, instant lockdown of write paths.
+2. **Bundle 3** (storage) — single migration, biggest user‑visible privacy win.
+3. **Bundle 2** (REVOKE EXECUTE) — single migration, no behavior change for legit callers.
+4. **Bundle 4** (search_path + dupes) — cleanup migration.
+5. **Bundle 5** (client + edge sweep) — code‑only PR, no DB changes.
+
+Each bundle = one migration + verification (rerun scanner). I'll pause between bundles so you can review.
+
+## What I'm NOT touching
+- The 24 `USING (true)` SELECT policies on showcase tables (achievements, tier_limits, world chat, public profiles, follows, etc.) — these are intentional public‑read and will be documented in `@security-memory`.
+- The `extension in public` warning — moving pgcrypto/uuid out of public is breaking; accepting the risk and noting it.

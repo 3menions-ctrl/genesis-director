@@ -42,8 +42,6 @@ function useAnimatedNumber(target: number, duration = 1400) {
   const startRef = useRef<number | null>(null);
   const fromRef = useRef(0);
   useEffect(() => {
-  usePageMeta({ title: "Profile — Apex Studio", description: "Your public director profile, showcased projects, and creator stats." });
-
     fromRef.current = value;
     startRef.current = null;
     let raf = 0;
@@ -998,6 +996,7 @@ function FieldRow({ label, value, mono, action }: { label: string; value: string
 }
 
 function Profile() {
+  usePageMeta({ title: "Profile — Apex Studio", description: "Your public director profile, showcased projects, and creator stats." });
   return (
     <ErrorBoundary>
       <ProfileContent />

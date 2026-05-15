@@ -1263,6 +1263,7 @@ serve(async (req) => {
     if (claimError) {
       console.error(`[SingleClip] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, claimError.message);
       await releaseLock();
+      await releaseHold('atomic_claim_rpc_failed');
       return new Response(
         JSON.stringify({
           success: false,
@@ -1274,6 +1275,7 @@ serve(async (req) => {
     } else if (claimed === false) {
       console.error(`[SingleClip] ❌ ATOMIC CLAIM REJECTED: clip ${shotIndex} already claimed by another process`);
       await releaseLock();
+      await releaseHold('clip_already_claimed');
       return new Response(
         JSON.stringify({
           success: false,
@@ -1327,6 +1329,12 @@ serve(async (req) => {
       );
       predictionId = klingResult.predictionId;
     }
+
+    // ─── Provider call succeeded → finalize the credit hold. We bill on
+    // prediction creation (we've committed GPU spend) regardless of whether
+    // polling/post-processing later fails. The watchdog will refund via
+    // refund_credits if the prediction itself fails terminally.
+    await consumeHold(`Clip ${shotIndex + 1} (${videoEngine})`);
     
     // ═══════════════════════════════════════════════════════════════════
     // IMMEDIATE PREDICTION REGISTRATION in pending_video_tasks

@@ -200,9 +200,18 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 
         {/* Top chrome */}
         <div className="relative z-10 flex items-center justify-between px-8 py-5">
-          <div className="flex items-center gap-3 text-white/70">
-            <Clapperboard className="h-4 w-4 text-[#0A84FF]" />
-            <span className="text-[10px] tracking-[0.32em]" style={MONO}>DIRECTOR STUDIO / INTAKE</span>
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
+            style={{
+              border: "1px solid hsla(0,0%,100%,0.10)",
+              background: "hsla(0,0%,100%,0.03)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <Sparkles className="h-3 w-3 text-[#9DCBFF]" />
+            <span className="text-[10px] tracking-[0.32em] uppercase text-white/65 font-medium" style={MONO}>
+              Director Studio · Intake
+            </span>
           </div>
           <div className="flex items-center gap-4">
             {savedAt && !pendingDraft && (

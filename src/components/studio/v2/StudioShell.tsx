@@ -800,14 +800,14 @@ export default function StudioShell() {
                     <button
                       onClick={() => setStep("cast")}
                       disabled={!canGenerateScript}
-                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-2xl bg-foreground px-5 py-5 text-left text-background transition-all hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.5),0_0_80px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
+                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-xl bg-foreground px-4 py-3 text-left text-background transition-all hover:shadow-[0_16px_48px_-15px_hsl(var(--foreground)/0.5),0_0_64px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
                     >
                       <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
                       <span className="relative">
-                        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-background/60">Phase 02</span>
-                        <span className="mt-0.5 block font-display text-lg italic">Cast the avatars</span>
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-background/60">Phase 02</span>
+                        <span className="mt-0.5 block font-display text-[15px] italic leading-tight">Cast the avatars</span>
                       </span>
-                      <ArrowRight className="relative h-5 w-5 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </button>
                   </div>
                 </div>

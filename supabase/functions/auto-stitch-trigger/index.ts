@@ -30,7 +30,7 @@ serve(async (req) => {
   
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -43,7 +43,12 @@ serve(async (req) => {
     
     const body = await req.json() as AutoStitchRequest;
     projectId = body.projectId;
-    userId = body.userId;
+    // SECURITY: trust JWT, never the body, for end-user calls
+    try {
+      userId = resolveEffectiveUserId(auth, body.userId);
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, (e as Error).message);
+    }
     forceStitch = body.forceStitch ?? false;
 
     if (!projectId) {

@@ -18,7 +18,6 @@ interface SavedCharacterRow {
   name: string;
   description: string | null;
   voice_id: string | null;
-  reference_image_urls: string[] | null;
 }
 
 export function AvatarsDrawerContent({ onSelect, selectedIds, onClose }: Props) {
@@ -36,7 +35,7 @@ export function AvatarsDrawerContent({ onSelect, selectedIds, onClose }: Props) 
       if (!user) return;
       const { data } = await supabase
         .from("characters")
-        .select("id,name,description,voice_id,reference_image_urls")
+        .select("id,name,description,voice_id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(60);
@@ -123,7 +122,7 @@ export function AvatarsDrawerContent({ onSelect, selectedIds, onClose }: Props) 
       {tab === "saved" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {filteredSaved.map(character => {
-            const imageUrl = character.reference_image_urls?.[0] || "";
+            const imageUrl = "";
             const selected = selectedIds.includes(character.id);
             return (
               <button

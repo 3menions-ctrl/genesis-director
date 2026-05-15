@@ -171,9 +171,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const { profile } = useAuth();
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
-  // The active mode CARD index — multiple cards can map to the same VideoGenerationMode
-  // (Cinematic and Seedance both point to text-to-video) but route to a different engine.
-  const [selectedModeIndex, setSelectedModeIndex] = useState<number>(0);
+  // Engine is now an INDEPENDENT axis from mode. The capability matrix
+  // (ENGINE_CAPS) decides which engines are valid for the chosen mode.
+  const [videoEngine, setVideoEngine] = useState<EngineKey>('kling');
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -278,23 +278,53 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   const effectiveDuration = clipDuration;
-  const activeMode = CREATION_MODES[selectedModeIndex] ?? CREATION_MODES[0];
-  // Engine derives from the selected mode card.
-  // 'kling' here = the credit/system token for the Kling V3 family used everywhere
-  // (note: legacy 'veo' is a backward-compat alias that also routes to Kling V3).
-  const videoEngine: 'kling' | 'seedance' = activeMode.engine;
-  const engineInfo = ENGINE_INFO[videoEngine];
-  const clipDurationOptions = videoEngine === 'seedance' ? CLIP_DURATIONS_SEEDANCE : CLIP_DURATIONS_KLING;
+  const engineCaps = ENGINE_CAPS[videoEngine];
+  const engineInfo = engineCaps;
+  const clipDurationOptions = engineCaps.durations;
+  const aspectOptions = ASPECT_RATIOS.filter(a => engineCaps.aspectRatios.includes(a.id));
 
-  // If user selected Seedance while a Kling-only duration (e.g. 15s) is active,
-  // snap down to the closest legal Seedance value (≤12s) so we never over-bill
-  // the extended tier for a model that will hard-truncate the output.
+  // ── GUARDRAIL: if the chosen engine doesn't support the chosen mode, snap
+  //               the engine back to the canonical engine for that mode.
+  //               (Avatar = Kling lip-sync only; everything else falls back to Kling.)
+  useEffect(() => {
+    if (!engineSupportsMode(videoEngine, selectedMode as CreationModeId)) {
+      setVideoEngine('kling');
+    }
+  }, [selectedMode, videoEngine]);
+
+  // ── GUARDRAIL: snap duration into the engine's legal range.
   useEffect(() => {
     if (!clipDurationOptions.includes(clipDuration)) {
-      const safest = [...clipDurationOptions].reverse().find(d => d <= clipDuration) ?? clipDurationOptions[0];
-      setClipDuration(safest);
+      setClipDuration(snapDuration(clipDuration, clipDurationOptions));
     }
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── GUARDRAIL: snap aspect ratio into the engine's legal set
+  //               (Veo + Sora don't support 1:1).
+  useEffect(() => {
+    if (!engineCaps.aspectRatios.includes(aspectRatio as any)) {
+      setAspectRatio(engineCaps.aspectRatios[0]);
+    }
+  }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── GUARDRAIL: a template environment with a baked-in start image (e.g.
+  //               breakout 4th-wall) implicitly OWNS the start frame. Block
+  //               manual image upload so we don't double-source the first
+  //               frame and confuse the pipeline.
+  const templateProvidesStartImage = !!appliedSettings?.startImageUrl;
+
+  // ── GUARDRAIL: avatar mode requires lip-sync, which only Kling supports.
+  //               If the user is in Avatar mode they cannot also upload a
+  //               separate scene image — the avatar's face IS the start frame.
+  useEffect(() => {
+    if (selectedMode === 'avatar' && uploadedImage) {
+      setUploadedImage(null);
+      setUploadedFileName(null);
+    }
+    if (selectedMode === 'image-to-video' && selectedAvatar && !supportsTemplateAvatar) {
+      setSelectedAvatar(null);
+    }
+  }, [selectedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);

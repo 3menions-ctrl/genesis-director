@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
+import { SupportInbox } from '@/components/social/SupportInbox';
 
 // Cinematic glass system (mirrors Settings/Pricing/Create signature)
 const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
@@ -615,6 +616,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             <div className="space-y-6">
               <ErrorBoundary fallback={null}>
                 <MessagesInbox className="h-auto" />
+              </ErrorBoundary>
+              <ErrorBoundary fallback={null}>
+                <SupportInbox />
               </ErrorBoundary>
             </div>
           </div>

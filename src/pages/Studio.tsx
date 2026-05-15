@@ -1503,3 +1503,231 @@ function FinalCTA({ onEnter }: { onEnter: () => void }) {
     </section>
   );
 }
+/* =================================================================== */
+/*                     1.25  KINETIC MEDIA COLLAGE                      */
+/*  A vibrant, parallax-driven floating collage right after the Hero.   */
+/*  Mixes avatars, environments, templates and live video tiles, tilted */
+/*  on a 3-D plane with mouse-driven depth and continuous drift.        */
+/* =================================================================== */
+
+type CollageTile =
+  | { kind: 'img'; src: string; x: number; y: number; w: number; rot: number; depth: number; tag?: string }
+  | { kind: 'vid'; src: string; x: number; y: number; w: number; rot: number; depth: number; tag?: string };
+
+const COLLAGE_TILES: CollageTile[] = [
+  { kind: 'img', src: avEmma,        x: 8,   y: 14,  w: 16, rot: -6,  depth: 1.3, tag: 'Cast' },
+  { kind: 'vid', src: KLING_VIDEO,    x: 26,  y: 6,   w: 24, rot:  3,  depth: 0.7, tag: 'Kling V3' },
+  { kind: 'img', src: tplNeoNoir,    x: 56,  y: 10,  w: 22, rot: -4,  depth: 1.0, tag: 'Templates' },
+  { kind: 'img', src: avZara,        x: 82,  y: 16,  w: 14, rot:  7,  depth: 1.5 },
+  { kind: 'img', src: envNeon,       x: 4,   y: 42,  w: 22, rot:  4,  depth: 1.1, tag: 'Worlds' },
+  { kind: 'vid', src: SEEDANCE_VIDEO, x: 30,  y: 38,  w: 18, rot: -5,  depth: 0.9, tag: 'Seedance' },
+  { kind: 'img', src: sceneCinematic,x: 52,  y: 44,  w: 24, rot:  2,  depth: 1.2, tag: 'Scenes' },
+  { kind: 'img', src: avDarius,      x: 80,  y: 46,  w: 16, rot: -8,  depth: 1.4 },
+  { kind: 'img', src: envCherry,     x: 10,  y: 72,  w: 18, rot: -3,  depth: 0.8 },
+  { kind: 'vid', src: AVATAR_VIDEO,   x: 32,  y: 76,  w: 20, rot:  6,  depth: 1.0, tag: 'Avatars' },
+  { kind: 'img', src: tplMusicVideo, x: 56,  y: 74,  w: 18, rot: -5,  depth: 1.1, tag: 'Music' },
+  { kind: 'img', src: avSofia,       x: 78,  y: 78,  w: 14, rot:  8,  depth: 1.3 },
+  { kind: 'img', src: envGolden,     x: 44,  y: 22,  w: 14, rot: -10, depth: 1.6 },
+  { kind: 'img', src: tplViralHook,  x: 66,  y: 30,  w: 12, rot:  9,  depth: 1.7 },
+];
+
+function KineticCollage() {
+  const wrap = useRef<HTMLDivElement>(null);
+  const layer = useRef<HTMLDivElement>(null);
+
+  // Mouse-driven parallax — tiles drift opposite to cursor based on depth.
+  useEffect(() => {
+    const isFine = window.matchMedia('(pointer: fine)').matches;
+    if (!isFine) return;
+    let raf = 0;
+    let tx = 0, ty = 0, cx = 0, cy = 0;
+    const onMove = (e: MouseEvent) => {
+      const r = wrap.current?.getBoundingClientRect();
+      if (!r) return;
+      tx = ((e.clientX - r.left) / r.width  - 0.5) * 2;  // -1..1
+      ty = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+    };
+    const tick = () => {
+      cx += (tx - cx) * 0.06;
+      cy += (ty - cy) * 0.06;
+      const el = layer.current;
+      if (el) {
+        const tiles = el.querySelectorAll<HTMLDivElement>('[data-depth]');
+        tiles.forEach((t) => {
+          const d = parseFloat(t.dataset.depth || '1');
+          const rx = parseFloat(t.dataset.rot || '0');
+          t.style.transform =
+            `translate3d(${(-cx * 22 * d).toFixed(2)}px, ${(-cy * 18 * d).toFixed(2)}px, 0) rotate(${rx}deg)`;
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    raf = requestAnimationFrame(tick);
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
+  }, []);
+
+  return (
+    <section
+      ref={wrap}
+      aria-label="A kinetic preview of every craft inside the Studio"
+      className="relative overflow-hidden border-y border-white/[0.05]"
+      style={{ minHeight: 'min(92vh, 880px)' }}
+    >
+      {/* Vibrant ambient color field — breaks the monochrome blue rhythm */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <motion.div
+          animate={{ x: ['-8%', '6%', '-8%'], y: ['-4%', '6%', '-4%'] }}
+          transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full blur-[180px] opacity-[0.55]"
+          style={{ background: 'radial-gradient(circle, rgba(217,70,239,0.45) 0%, rgba(217,70,239,0) 65%)' }}
+        />
+        <motion.div
+          animate={{ x: ['6%', '-6%', '6%'], y: ['4%', '-4%', '4%'] }}
+          transition={{ duration: 34, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-0 right-0 w-[55vw] h-[55vw] rounded-full blur-[180px] opacity-[0.5]"
+          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.45) 0%, rgba(34,211,238,0) 65%)' }}
+        />
+        <motion.div
+          animate={{ x: ['-4%', '8%', '-4%'], y: ['6%', '-2%', '6%'] }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute bottom-[-15%] left-1/3 w-[55vw] h-[55vw] rounded-full blur-[180px] opacity-[0.45]"
+          style={{ background: 'radial-gradient(circle, rgba(251,191,36,0.40) 0%, rgba(251,191,36,0) 65%)' }}
+        />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, hsl(220,14%,2%) 0%, transparent 18%, transparent 82%, hsl(220,14%,2%) 100%)' }} />
+      </div>
+
+      {/* Floating tile layer */}
+      <div
+        ref={layer}
+        aria-hidden
+        className="absolute inset-0"
+        style={{ perspective: '1400px', transformStyle: 'preserve-3d' }}
+      >
+        {COLLAGE_TILES.map((t, i) => (
+          <motion.div
+            key={i}
+            data-depth={t.depth}
+            data-rot={t.rot}
+            initial={{ opacity: 0, y: 40, scale: 0.92 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: '-8%' }}
+            transition={{ duration: 1, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute will-change-transform"
+            style={{
+              left: `${t.x}%`,
+              top: `${t.y}%`,
+              width: `${t.w}%`,
+              transform: `rotate(${t.rot}deg)`,
+              filter: `drop-shadow(0 30px 50px rgba(0,0,0,${0.35 + t.depth * 0.12}))`,
+            }}
+          >
+            <motion.div
+              animate={{ y: [0, -8 - t.depth * 4, 0] }}
+              transition={{ duration: 6 + i * 0.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative aspect-[4/5] rounded-[18px] overflow-hidden border border-white/[0.10] bg-background/40 backdrop-blur-[2px] group"
+              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(255,255,255,0.04)' }}
+            >
+              {t.kind === 'img' ? (
+                <img src={t.src} alt="" loading="lazy" className="w-full h-full object-cover transition-transform duration-[2400ms] group-hover:scale-[1.06]" />
+              ) : (
+                <VideoTile src={t.src} className="brightness-90" />
+              )}
+              {/* Holo shimmer */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)' }}
+              />
+              {/* Tag chip */}
+              {t.tag && (
+                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/65 border border-white/15 backdrop-blur-md">
+                  <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                  <span className="text-[8.5px] uppercase tracking-[0.22em] text-foreground/85 truncate">{t.tag}</span>
+                </div>
+              )}
+              {/* Live pip on videos */}
+              {t.kind === 'vid' && (
+                <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/50 border border-white/15 backdrop-blur-md">
+                  <span className="w-1 h-1 rounded-full bg-[#22D3EE] animate-pulse" />
+                  <span className="text-[7.5px] uppercase tracking-[0.2em] text-white/85">Live</span>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Centerpiece copy */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-32 md:py-44 text-center pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-20%' }}
+          transition={{ duration: 0.8 }}
+          className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-background/55 border border-white/[0.10] backdrop-blur-2xl mb-8"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#22D3EE] animate-pulse" />
+          <span className="text-[10px] font-medium tracking-[0.32em] uppercase text-foreground/80">Everything, all at once</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span className="text-[10px] font-medium tracking-[0.32em] uppercase text-[#D946EF]/85">Move your cursor</span>
+        </motion.div>
+
+        <motion.h2
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="font-display text-5xl md:text-8xl tracking-[-0.045em] leading-[0.95] max-w-5xl mx-auto"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          <span className="text-foreground">A studio that</span>{' '}
+          <span
+            className="italic font-light bg-clip-text text-transparent"
+            style={{
+              fontFamily: "'Fraunces', serif",
+              backgroundImage: 'linear-gradient(110deg, #22D3EE 0%, #0A84FF 35%, #D946EF 70%, #FBBF24 100%)',
+            }}
+          >
+            actually moves.
+          </span>
+        </motion.h2>
+
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.9, delay: 0.15 }}
+          className="mt-8 max-w-2xl mx-auto text-muted-foreground text-base md:text-xl font-light leading-relaxed"
+        >
+          Cast, worlds, templates, scenes, score — every craft drifting in the
+          same room. Lean in, the whole studio leans with you.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.9, delay: 0.3 }}
+          className="mt-10 inline-flex flex-wrap items-center justify-center gap-2"
+        >
+          {[
+            { l: '70+ Avatars',     c: '#22D3EE' },
+            { l: '40+ Worlds',      c: '#0A84FF' },
+            { l: '5 Engines',        c: '#D946EF' },
+            { l: '30+ Languages',   c: '#FBBF24' },
+            { l: 'Native Audio',    c: '#7DD3FC' },
+          ].map((p) => (
+            <span
+              key={p.l}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-background/55 border border-white/[0.10] backdrop-blur-xl text-[11px] tracking-[0.2em] uppercase text-foreground/85"
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.c, boxShadow: `0 0 10px ${p.c}` }} />
+              {p.l}
+            </span>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}

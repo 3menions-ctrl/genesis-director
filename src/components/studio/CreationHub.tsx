@@ -112,16 +112,11 @@ function snapDuration(value: number, allowed: number[]): number {
   return [...allowed].sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0] ?? allowed[0];
 }
 
-const ASPECT_RATIOS = [
+const ASPECT_RATIOS: Array<{ id: '16:9' | '9:16' | '1:1'; icon: any; label: string }> = [
   { id: '16:9', icon: RectangleHorizontal, label: 'Wide' },
   { id: '9:16', icon: RectangleVertical,   label: 'Tall' },
   { id: '1:1',  icon: Square,              label: 'Square' },
 ];
-
-const CLIP_DURATIONS_KLING = [5, 10, 15];
-// Seedance 2.0 hard-clamps duration to 2–12s — never expose 15s, the API
-// silently truncates and we'd be charging the extended tier for short output.
-const CLIP_DURATIONS_SEEDANCE = [5, 10, 12];
 
 const GENRE_OPTIONS = [
   { value: 'cinematic',     label: 'Cinematic' },

@@ -9,6 +9,7 @@ import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { CategoryChooserOverlay, type AudienceCategory } from '@/components/landing/CategoryChooserOverlay';
+import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
 // Heavy below-the-fold sections — lazy split to keep first paint snappy
@@ -252,6 +253,15 @@ export default function Landing() {
   );
   const handleSales = useCallback(() => navigate('/contact?topic=sales'), [navigate]);
 
+  // Cinematic studio entrance — plays before navigating to /studio.
+  const [studioIntroPlaying, setStudioIntroPlaying] = useState(false);
+  const handleEnterStudio = useCallback(() => {
+    setStudioIntroPlaying(true);
+    // Navigate just before the intro finishes so the studio is painted
+    // underneath the dissolve — no black flash between scenes.
+    window.setTimeout(() => navigate('/studio'), 3050);
+  }, [navigate]);
+
   // The cinema loader is a sibling of the page content. We render the page
   // markup eagerly (hidden at opacity-0) so the browser can lay it out and
   // decode imagery while the loader is still on screen — this guarantees
@@ -315,7 +325,7 @@ export default function Landing() {
       {/* Foreground content column — stacks above the fixed video layer */}
       <div className="relative z-10">
       {/* Hero — extra top breathing room from sticky nav */}
-      <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
+      <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleEnterStudio} /></div>
 
       <Divider size="lg" />
 
@@ -495,6 +505,9 @@ export default function Landing() {
         onClose={() => setChooserOpen(false)}
         onSelect={handleSelectCategory}
       />
+
+      {/* Cinematic title-card sequence — plays before entering /studio */}
+      <StudioIntro isPlaying={studioIntroPlaying} />
       </div>
     </>
   );

@@ -4,7 +4,7 @@ import {
   Wand2, Image as ImageIcon, User, Film, Coins, Sparkles, Upload,
   ChevronRight, RectangleHorizontal, Square, RectangleVertical,
   Clock, Hash, Mic, ChevronDown, X, CheckCircle2, Loader2,
-  ArrowRight, Layers, Settings2, Zap, Cpu,
+  ArrowRight, Layers, Settings2, Zap, Cpu, Lock, Info,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -31,36 +31,86 @@ import {
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
-// ─── Mode catalog ─────────────────────────────────────────────────────────────
-// `engine` defines which video model the pipeline routes to.
-//   kling    → Kling V3 (kwaivgi/kling-v3-video) — cinematic, lip-sync, default
-//   seedance → Seedance 2.0 (bytedance/seedance-2.0) — premium hyperreal motion
+// ─── Creation modes ───────────────────────────────────────────────────────────
+// A "mode" is the *intent* (text→video, image→video, avatar). The "engine" is
+// the *render model*. We model them separately and use a capability matrix so
+// invalid combinations (e.g. "Avatar with Sora 2") are physically impossible
+// to choose in the UI.
+type CreationModeId = 'text-to-video' | 'image-to-video' | 'avatar';
 type CreationModeDef = {
-  id: VideoGenerationMode;
+  id: CreationModeId;
   name: string;
   icon: any;
   hint: string;
-  engine: 'kling' | 'seedance';
-  badge?: string;
+  requiresImage?: boolean;
+  requiresLipSync?: boolean;
 };
 const CREATION_MODES: CreationModeDef[] = [
-  { id: 'text-to-video',  name: 'Cinematic', icon: Wand2,     hint: 'Generate from text',     engine: 'kling' },
-  { id: 'image-to-video', name: 'Animate',   icon: ImageIcon, hint: 'Bring an image to life', engine: 'kling' },
-  { id: 'avatar',         name: 'Avatar',    icon: User,      hint: 'Talking presenter',      engine: 'kling' },
-  { id: 'text-to-video',  name: 'Seedance',  icon: Zap,       hint: 'Premium hyperreal motion', engine: 'seedance', badge: 'NEW' },
+  { id: 'text-to-video',  name: 'Cinematic', icon: Wand2,     hint: 'Generate from text' },
+  { id: 'image-to-video', name: 'Animate',   icon: ImageIcon, hint: 'Bring an image to life', requiresImage: true },
+  { id: 'avatar',         name: 'Avatar',    icon: User,      hint: 'Talking presenter (lip-sync)', requiresLipSync: true },
 ];
 
-// Each engine has a public-facing identity card (shown in the engine badge
-// and confirmation pill on the CTA so the user always knows what is running).
-const ENGINE_INFO: Record<'kling' | 'seedance', {
+// ─── Engine capability matrix ─────────────────────────────────────────────────
+// Single source of truth for what each render model can/can't do. The UI reads
+// this to dim invalid engines, snap aspect ratio + duration into legal range,
+// and prevent incoherent submissions before they reach the pipeline.
+type EngineKey = 'kling' | 'seedance' | 'veo' | 'sora';
+type EngineCapabilities = {
   label: string;
   model: string;
   tagline: string;
-  hue: string;
-}> = {
-  kling:    { label: 'Kling V3',     model: 'kwaivgi/kling-v3-video',   tagline: 'Cinematic · Native lip-sync', hue: '212 100% 60%' },
-  seedance: { label: 'Seedance 2.0', model: 'bytedance/seedance-2.0',   tagline: 'Premium hyperreal motion',    hue: '280 95% 65%' },
+  badge?: string;
+  supportsT2V: boolean;
+  supportsI2V: boolean;
+  supportsLipSync: boolean;          // Talking-head with native dialogue audio
+  supportsNativeAudio: boolean;
+  aspectRatios: Array<'16:9' | '9:16' | '1:1'>;
+  durations: number[];
 };
+const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
+  kling: {
+    label: 'Kling V3', model: 'kwaivgi/kling-v3-video',
+    tagline: 'Cinematic · Native lip-sync',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: true, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 15],
+  },
+  seedance: {
+    label: 'Seedance 1 Pro', model: 'bytedance/seedance-1-pro',
+    tagline: 'Premium hyperreal motion', badge: 'NEW',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 12],
+  },
+  veo: {
+    label: 'Veo 3 Fast', model: 'google/veo-3-fast',
+    tagline: 'Native audio · 1080p · 8s',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16'], durations: [4, 6, 8],
+  },
+  sora: {
+    label: 'Sora 2', model: 'openai/sora-2',
+    tagline: 'Narrative coherence · Long shots',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16'], durations: [4, 8, 12],
+  },
+};
+
+// Is this engine compatible with the selected mode?
+function engineSupportsMode(engine: EngineKey, mode: CreationModeId): boolean {
+  const caps = ENGINE_CAPS[engine];
+  if (mode === 'avatar') return caps.supportsLipSync;
+  if (mode === 'image-to-video') return caps.supportsI2V;
+  return caps.supportsT2V;
+}
+
+// Snap a value to the nearest legal entry (used for duration + aspect ratio
+// when the user changes engine).
+function snapToAllowed<T>(value: T, allowed: T[]): T {
+  return allowed.includes(value) ? value : allowed[0];
+}
+function snapDuration(value: number, allowed: number[]): number {
+  return [...allowed].sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0] ?? allowed[0];
+}
 
 const ASPECT_RATIOS = [
   { id: '16:9', icon: RectangleHorizontal, label: 'Wide' },

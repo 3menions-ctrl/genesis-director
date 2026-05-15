@@ -374,30 +374,200 @@ export default function Landing() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-15%' }}
           transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-6xl mx-auto"
         >
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
-            <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">
-              The Studio · Take the Tour
-            </span>
-          </div>
-          <h2
-            className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            Step inside.{' '}
-            <span
-              className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
+          {/* Eyebrow */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
+              <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+              <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">
+                The Studio · Chapter 04
+              </span>
+            </div>
+            <h2
+              className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-7 leading-[1.02]"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
-              Every craft, one room.
-            </span>
-          </h2>
-          <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
-            A guided tour through every capability — text-to-video, avatars, voice,
-            score, character lock, the editor and the engine that moves it all.
-          </p>
+              Four engines.{' '}
+              <span
+                className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                One studio.
+              </span>
+            </h2>
+            <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-14 max-w-2xl mx-auto">
+              Switch models per shot. Lip-sync, multi-character dialogue, native audio,
+              continuity locked across every cut — orchestrated by a single pipeline.
+            </p>
+          </div>
+
+          {/* Capability matrix — engines (left) × pipelines/features (right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-14">
+
+            {/* ─── ENGINES STACK ─── */}
+            <div className="lg:col-span-7 relative rounded-3xl overflow-hidden p-7 md:p-9 backdrop-blur-2xl"
+              style={{
+                background: 'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
+                boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), inset 0 1px 0 hsla(0,0%,100%,0.06)',
+              }}
+            >
+              <div className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.5), transparent)' }} />
+              <div className="flex items-baseline justify-between mb-6">
+                <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Generation engines</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">Pick per shot</p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    name: 'Kling V3',
+                    tag: 'Cinematic · Native lip-sync',
+                    durations: '5 / 10 / 15s',
+                    aspects: '16:9 · 9:16 · 1:1',
+                    badges: ['T2V', 'I2V', 'Lip-sync', 'Native audio'],
+                    accent: '#0A84FF',
+                  },
+                  {
+                    name: 'Seedance 1 Pro',
+                    tag: 'Hyperreal motion',
+                    durations: '5 / 10 / 12s',
+                    aspects: '16:9 · 9:16 · 1:1',
+                    badges: ['T2V', 'I2V', 'New'],
+                    accent: '#7DD3FC',
+                  },
+                  {
+                    name: 'Veo 3 Fast',
+                    tag: 'Native audio · 1080p',
+                    durations: '4 / 6 / 8s',
+                    aspects: '16:9 · 9:16',
+                    badges: ['T2V', 'I2V', 'Native audio'],
+                    accent: '#A78BFA00',
+                  },
+                  {
+                    name: 'Sora 2',
+                    tag: 'Narrative coherence',
+                    durations: '4 / 8 / 12s',
+                    aspects: '16:9 · 9:16',
+                    badges: ['T2V', 'I2V', 'Native audio', 'Long shots'],
+                    accent: '#9DCBFF',
+                  },
+                ].map((eng, i) => (
+                  <motion.div
+                    key={eng.name}
+                    initial={{ opacity: 0, x: -12 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                    className="group relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 rounded-2xl bg-white/[0.015] hover:bg-white/[0.04] transition-all duration-500 border border-white/[0.04] hover:border-[hsla(212,100%,60%,0.25)]"
+                  >
+                    {/* Index numeral */}
+                    <div className="w-10 shrink-0 text-[11px] font-mono tracking-[0.2em] text-white/30 tabular-nums">
+                      0{i + 1}
+                    </div>
+
+                    {/* Engine identity */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#0A84FF', boxShadow: '0 0 10px #0A84FF' }} />
+                        <h3 className="text-white text-[17px] font-medium tracking-[-0.012em]"
+                          style={{ fontFamily: "'Fraunces', serif" }}>
+                          {eng.name}
+                        </h3>
+                      </div>
+                      <p className="text-white/45 text-[12.5px] font-light mt-0.5 leading-snug">{eng.tag}</p>
+                    </div>
+
+                    {/* Specs */}
+                    <div className="flex flex-col items-start sm:items-end shrink-0 gap-1">
+                      <span className="text-[10.5px] font-mono tabular-nums text-white/65">{eng.durations}</span>
+                      <span className="text-[10px] font-mono tracking-[0.08em] text-white/35">{eng.aspects}</span>
+                    </div>
+
+                    {/* Capability badges */}
+                    <div className="flex flex-wrap gap-1.5 sm:max-w-[210px] sm:justify-end">
+                      {eng.badges.map((b) => (
+                        <span
+                          key={b}
+                          className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-white/65 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Engine footer note */}
+              <p className="mt-6 text-[11px] text-white/40 font-light leading-relaxed">
+                Each shot routes to the right engine automatically — or pin one model
+                for the whole project. Credits are gated per second, billed at $0.10 each.
+              </p>
+            </div>
+
+            {/* ─── PIPELINES & FEATURES ─── */}
+            <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {[
+                { k: 'Hollywood Pipeline',     v: 'Unified T2V + I2V engine' },
+                { k: 'Multi-Character Dialogue', v: 'Two avatars, six-clip arcs' },
+                { k: 'Face Lock Identity',     v: 'No drift between cuts' },
+                { k: 'Continuity Engine',      v: 'Manifest-level shot memory' },
+                { k: 'Cinematic Scoring',      v: 'MusicGen + dialogue duck' },
+                { k: 'Verbatim Script',        v: 'Your dialogue, untouched' },
+                { k: 'Photo Editor · Gemini',  v: '2-credit preservation edits' },
+                { k: 'Native Video Editor',    v: 'Multi-track timeline + scopes' },
+              ].map((f, i) => (
+                <motion.div
+                  key={f.k}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.55, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                  className="group relative p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.045] border border-white/[0.05] hover:border-[hsla(212,100%,60%,0.22)] transition-all duration-500 overflow-hidden"
+                >
+                  <span aria-hidden className="absolute -top-px left-4 right-4 h-px"
+                    style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.5), transparent)', opacity: 0.6 }} />
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                    <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/55">
+                      {f.k}
+                    </p>
+                  </div>
+                  <p className="text-white/82 text-[13.5px] font-light leading-snug tracking-[-0.005em]">
+                    {f.v}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pipeline ribbon — end-to-end flow */}
+          <div className="relative mb-12 rounded-3xl p-6 md:p-7 overflow-hidden"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.018) 0%, hsla(0,0%,100%,0.003) 100%)',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono mb-5">End-to-end pipeline</p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+              {[
+                'Prompt', 'Script · LLM', 'Scene DNA', 'Character Lock',
+                'Engine Route', 'Generate', 'Continuity Audit', 'Score + Mix', 'Stitch', 'Edit',
+              ].map((step, i, arr) => (
+                <div key={step} className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono tabular-nums text-white/35">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-[12.5px] text-white/80 font-light tracking-[-0.005em]">{step}</span>
+                  {i < arr.length - 1 && (
+                    <span aria-hidden className="text-white/20 text-[12px] mx-1.5">→</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/studio')}

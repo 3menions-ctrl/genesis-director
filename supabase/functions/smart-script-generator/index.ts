@@ -879,7 +879,7 @@ USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
 ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 ` : ''}
 
-Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on ${generationTargetLabel}.
 Total duration: ${targetSeconds} seconds.
 The IMAGE is the story origin. Clip 1 unfreezes the photograph. Every clip stays in this world.
 Each description: 80-150 words, vivid and action-dense. No generic adjectives.
@@ -929,7 +929,7 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
-Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on ${generationTargetLabel}.
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive story arc: hook → build → escalate → climax → resolve.

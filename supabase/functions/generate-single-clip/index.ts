@@ -1049,7 +1049,7 @@ serve(async (req) => {
     const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
       kling:    'kwaivgi/kling-v3-video',
       seedance: 'bytedance/seedance-2.0',
-      veo:      'kwaivgi/kling-v3-video (veo legacy → kling)',
+      veo:      'google/veo-3-fast',
       runway:   'runwayml/gen4-turbo',
       sora:     'openai/sora-2',
     };

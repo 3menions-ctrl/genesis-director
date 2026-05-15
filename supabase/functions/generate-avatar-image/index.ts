@@ -207,7 +207,8 @@ serve(async (req) => {
 
     // Upload front image
     const timestamp = Date.now();
-    const frontFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-front-${timestamp}.png`;
+    const safeName = config.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const frontFileName = `${safeName}-front-${timestamp}.png`;
     const frontImageUrl = await uploadToStorage(supabase, frontBase64, frontFileName);
     console.log("[Avatar Gen] Front view uploaded:", frontFileName);
 

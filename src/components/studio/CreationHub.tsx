@@ -825,25 +825,78 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       }}
                       title={`Aspect ratio (${engineCaps.label} supports ${engineCaps.aspectRatios.join(', ')})`}
                     />
-                    <ControlPill
-                      icon={Hash}
-                      label={`${clipCount} clip${clipCount > 1 ? 's' : ''}`}
-                      onClick={() => {
-                        const next = clipCount >= maxClips ? 1 : clipCount + 1;
-                        setClipCount(next);
-                      }}
-                      title={`Clips (max ${maxClips})`}
-                    />
-                    <ControlPill
-                      icon={Clock}
-                      label={`${clipDuration}s`}
-                      onClick={() => {
-                        const idx = clipDurationOptions.indexOf(clipDuration);
-                        const next = clipDurationOptions[(idx + 1) % clipDurationOptions.length];
-                        setClipDuration(next);
-                      }}
-                      title="Per-clip duration"
-                    />
+                    {/* Scenes stepper — explicit, no cycling */}
+                    <div
+                      className="h-10 inline-flex items-center gap-1 rounded-full bg-white/[0.03] hover:bg-white/[0.05] transition-colors duration-300 pl-2 pr-1"
+                      title={`Number of scenes (1 – ${maxClips})`}
+                    >
+                      <Hash className="w-3.5 h-3.5 text-white/45" strokeWidth={1.5} />
+                      <button
+                        type="button"
+                        onClick={() => setClipCount(Math.max(1, clipCount - 1))}
+                        disabled={clipCount <= 1}
+                        className="h-7 w-7 inline-flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-30 disabled:hover:bg-transparent transition"
+                        aria-label="Fewer scenes"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="min-w-[3.25rem] text-center text-[12px] font-light tracking-[-0.005em] text-white/85 tabular-nums">
+                        {clipCount} <span className="text-white/35">scene{clipCount > 1 ? 's' : ''}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setClipCount(Math.min(maxClips, clipCount + 1))}
+                        disabled={clipCount >= maxClips}
+                        className="h-7 w-7 inline-flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-30 disabled:hover:bg-transparent transition"
+                        aria-label="More scenes"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="pr-2 text-[10px] tabular-nums text-white/30 font-light">/ {maxClips}</span>
+                    </div>
+
+                    {/* Per-scene duration — segmented, all engine options visible */}
+                    <div
+                      className="h-10 inline-flex items-center gap-0.5 rounded-full bg-white/[0.03] pl-2 pr-1"
+                      title={`Per-scene duration (${engineCaps.label} supports ${clipDurationOptions.join('/')}s)`}
+                    >
+                      <Clock className="w-3.5 h-3.5 text-white/45 mr-1" strokeWidth={1.5} />
+                      {clipDurationOptions.map((d) => {
+                        const active = d === clipDuration;
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setClipDuration(d)}
+                            className={cn(
+                              'h-8 px-3 inline-flex items-center justify-center rounded-full text-[11.5px] font-light tracking-[-0.005em] transition-all duration-300 tabular-nums',
+                              active
+                                ? 'text-[hsl(215,100%,82%)] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)]'
+                                : 'text-white/55 hover:text-white/90 hover:bg-white/[0.05]'
+                            )}
+                            style={active ? {
+                              background: 'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
+                              boxShadow: '0 0 14px hsla(215,100%,60%,0.28), inset 0 1px 0 hsla(0,0%,100%,0.08)',
+                            } : undefined}
+                            aria-pressed={active}
+                          >
+                            {d}s
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Live total runtime readout */}
+                    <div
+                      className="h-10 hidden sm:inline-flex items-center gap-1.5 px-3.5 rounded-full bg-white/[0.02] text-[11.5px] font-light tracking-[-0.005em] text-white/55"
+                      title="Total runtime (scenes × per-scene duration)"
+                    >
+                      <Timer className="w-3.5 h-3.5 text-white/40" strokeWidth={1.5} />
+                      <span className="tabular-nums text-white/80">
+                        {clipCount * clipDuration}s
+                      </span>
+                      <span className="text-white/30">total</span>
+                    </div>
                     <button
                       onClick={() => setEnableNarration(v => !v)}
                       className={cn(

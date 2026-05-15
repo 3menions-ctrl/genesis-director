@@ -257,16 +257,127 @@ export default function StudioShell() {
 
     setAutoBusy(true);
     try {
+      // ── Resolve mode from current draft state ──
+      const hasAvatar = draft.cast.length > 0;
+      const hasImage = !!draft.brief.refImageUrl;
+      const mode: "avatar" | "image-to-video" | "text-to-video" =
+        hasAvatar ? "avatar" : hasImage ? "image-to-video" : "text-to-video";
+
+      // ── Image-to-video: extract Scene Identity DNA so the script ADHERES
+      //    to the uploaded frame (character + environment + lighting + color).
+      //    Cached on the project's pro_features_data so we only charge once.
+      let referenceImageAnalysis: any = undefined;
+      let sceneIdentityContext: any = undefined;
+      if (mode === "image-to-video" && draft.brief.refImageUrl) {
+        try {
+          const projectId = await ensureProjectId();
+          const { data: existing } = await supabase
+            .from("movie_projects")
+            .select("pro_features_data")
+            .eq("id", projectId)
+            .maybeSingle();
+          const cachedIdentity = (existing as any)?.pro_features_data?.sceneIdentity;
+          let identity = cachedIdentity;
+          if (!identity) {
+            toast.message("Reading the image…", { description: "Extracting character + scene DNA (5 cr)" });
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: idData, error: idErr } = await supabase.functions.invoke("extract-scene-identity", {
+              body: { imageUrl: draft.brief.refImageUrl, projectId, userId: user?.id },
+            });
+            if (idErr) console.warn("extract-scene-identity failed:", idErr);
+            if ((idData as any)?.success) {
+              identity = {
+                characterDNA: (idData as any).characterDNA,
+                environmentDNA: (idData as any).environmentDNA,
+                lightingProfile: (idData as any).lightingProfile,
+                colorScience: (idData as any).colorScience,
+                cinematicStyle: (idData as any).cinematicStyle,
+                masterConsistencyPrompt: (idData as any).masterConsistencyPrompt,
+                allNegatives: (idData as any).allNegatives,
+              };
+            }
+          }
+          if (identity?.characterDNA || identity?.environmentDNA) {
+            const c = identity.characterDNA || {};
+            const e = identity.environmentDNA || {};
+            const l = identity.lightingProfile || {};
+            referenceImageAnalysis = {
+              characterIdentity: c.facialFeatures ? {
+                description: c.description || c.identitySummary || "",
+                facialFeatures: [c.facialFeatures.faceShape, c.facialFeatures.eyes, c.facialFeatures.jawline].filter(Boolean).join(", "),
+                clothing: c.clothingSignature ? [c.clothingSignature.topwear, c.clothingSignature.bottomwear].filter(Boolean).join(", ") : "",
+                bodyType: c.bodyProfile?.build || "",
+                distinctiveMarkers: c.distinctiveMarkers || [],
+                hairColor: c.hairProfile?.color,
+                skinTone: c.facialFeatures?.skinTone,
+              } : undefined,
+              environment: e.setting ? {
+                setting: e.setting,
+                geometry: typeof e.geometry === "string" ? e.geometry : JSON.stringify(e.geometry || {}),
+                keyObjects: (e.keyProps || []).map((p: any) => p.object || p).filter(Boolean),
+                backgroundElements: e.backgroundElements || [],
+              } : undefined,
+              lighting: l.style ? {
+                style: l.style,
+                direction: l.shadows?.direction || "",
+                quality: l.mood || "",
+                timeOfDay: l.colorTemperature || "",
+              } : undefined,
+              consistencyPrompt: identity.masterConsistencyPrompt,
+            };
+            sceneIdentityContext = {
+              characterAnchor: c.identitySummary || "",
+              environmentAnchor: e.setting || "",
+              lightingAnchor: l.style || "",
+              colorAnchor: identity.colorScience?.gradingStyle || "",
+              cinematicAnchor: identity.cinematicStyle?.lensFeel || "",
+              masterConsistencyPrompt: identity.masterConsistencyPrompt || "",
+              allNegatives: identity.allNegatives || [],
+              environmentDNA: e,
+              lightingProfile: l,
+              colorScience: identity.colorScience,
+            };
+          }
+        } catch (visionErr) {
+          console.warn("[runAutoScript] vision pre-pass failed (continuing without DNA):", visionErr);
+        }
+      }
+
+      // ── Avatar mode: send the cast so the script writes lines for THEM,
+      //    keyed to the right speakerId per scene.
+      const characterCast = hasAvatar ? draft.cast.map((c) => ({
+        id: c.id,
+        name: c.name,
+        appearance: c.appearance || c.name,
+        voiceId: c.voiceId || draft.defaults.voiceId || "",
+        role: "protagonist" as const,
+        referenceImageUrl: c.imageUrl,
+      })) : undefined;
+      const sceneType: "monologue" | "dialogue" | "group" =
+        !hasAvatar ? "monologue" : draft.cast.length === 1 ? "monologue" : draft.cast.length === 2 ? "dialogue" : "group";
+
+      const sceneCount = Math.max(3, Math.min(6, draft.scenes.length || 4));
+      const clipDuration = draft.defaults.duration;
+
       const { data, error } = await supabase.functions.invoke("smart-script-generator", {
         body: {
-          title: draft.brief.title || "Untitled film",
-          logline: draft.brief.logline || "Create a cinematic sequence from the uploaded reference image.",
+          topic: draft.brief.logline || "Create a cinematic sequence from the uploaded reference image.",
+          synopsis: draft.brief.title,
           style: draft.brief.style,
-          sceneCount: Math.max(3, Math.min(6, draft.scenes.length || 4)),
+          targetDurationSeconds: sceneCount * clipDuration,
+          clipCount: sceneCount,
+          clipDuration,
+          mode,
+          videoEngine: engineToBackend(draft.defaults.engine),
           aspectRatio: draft.defaults.aspect,
-          characters: draft.cast.map(c => ({ name: c.name })),
           referenceImageUrl: draft.brief.refImageUrl,
-          engine: draft.defaults.engine,
+          referenceImageAnalysis,
+          sceneIdentityContext,
+          multiCharacterMode: hasAvatar && draft.cast.length > 1,
+          characterCast,
+          sceneType,
+          includeVoice: hasAvatar,
+          preserveUserContent: true,
         },
       });
       if (error) throw error;

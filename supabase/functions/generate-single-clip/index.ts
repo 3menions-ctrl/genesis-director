@@ -60,6 +60,10 @@ const SORA_MODEL_OWNER = "openai";
 const SORA_MODEL_NAME = "sora-2";
 const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
 
+const VEO_MODEL_OWNER = "google";
+const VEO_MODEL_NAME = "veo-3-fast";
+const VEO_MODEL_URL = `https://api.replicate.com/v1/models/${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}/predictions`;
+
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
 // When enabled, include dialogue in prompt inside quotes for lip-sync
 const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio

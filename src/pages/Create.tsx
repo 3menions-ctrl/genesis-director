@@ -232,6 +232,7 @@ function CreateContentInner() {
     aspectRatio: string;
     clipCount: number;
     clipDuration: number;
+    clipDurations?: number[];
     enableNarration: boolean;
     enableMusic: boolean;
     genre?: string;
@@ -286,6 +287,7 @@ function CreateContentInner() {
         aspectRatio: config.aspectRatio,
         clipCount: config.clipCount,
         clipDuration: config.clipDuration,
+        clipDurations: config.clipDurations,
         enableNarration: config.enableNarration,
         enableMusic: config.enableMusic,
         genre: config.genre,

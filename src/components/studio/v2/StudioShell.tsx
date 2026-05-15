@@ -860,6 +860,22 @@ export default function StudioShell() {
           setDrawer(null);
         }} />
       </StudioDrawer>
+
+      <StudioDrawer open={drawer === "styles"} onClose={() => setDrawer(null)} title="Visual style" subtitle="Lock the look — color, lensing, era, and mood" width="xl">
+        <StylesDrawerContent selectedId={draft.brief.styleId} onSelect={(style) => {
+          setDraft(d => ({
+            ...d,
+            brief: {
+              ...d.brief,
+              styleId: style.id,
+              style: style.name,
+              styleModifier: style.modifier,
+            },
+          }));
+          setDrawer(null);
+          toast.success(`${style.name} style applied`);
+        }} />
+      </StudioDrawer>
     </div>
   );
 }

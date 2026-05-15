@@ -42,7 +42,6 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
 
   const [trackingOptedOut, setTrackingOptedOut] = useState(false);
-  const [hideFromLeaderboard, setHideFromLeaderboard] = useState(false);
   const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
   const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
   
@@ -79,7 +78,10 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           .maybeSingle();
         if (data) {
           setTrackingOptedOut(data.tracking_opted_out ?? false);
-          setHideFromLeaderboard(data.hide_from_leaderboard ?? false);
+          // Leaderboards are removed product-wide; force-hide regardless of stored pref.
+          if (data.hide_from_leaderboard === false) {
+            await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
+          }
         }
       } catch (e) {
         console.error('Failed to load privacy prefs:', e);
@@ -90,12 +92,10 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     loadPrivacy();
   }, [user]);
 
-  const handlePrivacyToggle = async (field: 'tracking_opted_out' | 'hide_from_leaderboard', value: boolean) => {
+  const handlePrivacyToggle = async (field: 'tracking_opted_out', value: boolean) => {
     if (!user) return;
-    const prev = field === 'tracking_opted_out' ? trackingOptedOut : hideFromLeaderboard;
-    // Optimistic update
-    if (field === 'tracking_opted_out') setTrackingOptedOut(value);
-    else setHideFromLeaderboard(value);
+    const prev = trackingOptedOut;
+    setTrackingOptedOut(value);
 
     setIsSavingPrivacy(true);
     try {
@@ -106,9 +106,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       if (error) throw error;
       toast.success('Privacy preference updated');
     } catch (e) {
-      // Rollback
-      if (field === 'tracking_opted_out') setTrackingOptedOut(prev);
-      else setHideFromLeaderboard(prev);
+      setTrackingOptedOut(prev);
       toast.error('Failed to update preference');
     } finally {
       setIsSavingPrivacy(false);

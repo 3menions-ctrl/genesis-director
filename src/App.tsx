@@ -136,7 +136,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 // ExtractThumbnails removed — orphan utility with no nav entry
-const Create = lazy(() => import("./pages/Create"));
+const Create = lazy(() => import("./pages/CreateCanvas"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));

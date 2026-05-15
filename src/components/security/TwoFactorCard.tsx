@@ -34,10 +34,10 @@ export function TwoFactorCard({ glassCard }: Props) {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) throw error;
       const totp = (data?.totp || []) as Factor[];
-      const v = totp.find(f => f.status === "verified") || null;
+      const v = totp.find(f => (f.status as string) === "verified") || null;
       setVerified(v);
       // Clean up any stale unverified factors so a fresh enroll always works
-      const stale = totp.filter(f => f.status === "unverified");
+      const stale = totp.filter(f => (f.status as string) !== "verified");
       for (const f of stale) {
         await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
       }

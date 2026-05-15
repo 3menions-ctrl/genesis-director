@@ -177,8 +177,8 @@ export function AppShell({ children }: AppShellProps) {
               filter: 'blur(24px)',
             }}
           />
-          {/* Brand */}
-          <div className={cn('relative flex h-[60px] shrink-0 items-center gap-3 px-4', collapsed && 'lg:justify-center lg:px-0')}>
+          {/* Brand — height matches topbar (56px) for perfect cross-axis alignment */}
+          <div className={cn('relative flex h-[56px] shrink-0 items-center gap-3 px-4 border-b border-white/[0.04]', collapsed && 'lg:justify-center lg:px-0')}>
             <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
@@ -259,15 +259,14 @@ export function AppShell({ children }: AppShellProps) {
                     className={cn(
                       'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                       active
-                        ? 'text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)]'
+                      ? 'text-white'
                         : 'text-white/55 hover:text-white',
                       collapsed && 'lg:justify-center lg:px-0 lg:gap-0',
                     )}
                     style={
                       active
                         ? {
-                            background: `linear-gradient(90deg, ${tint(0.16)} 0%, ${tint(0.05)} 55%, transparent 100%)`,
-                            boxShadow: `inset 0 1px 0 hsla(0,0%,100%,0.07), 0 12px 28px -16px ${tint(0.5)}`,
+                          background: `linear-gradient(90deg, ${tint(0.10)} 0%, ${tint(0.025)} 60%, transparent 100%)`,
                           }
                         : undefined
                     }
@@ -278,47 +277,33 @@ export function AppShell({ children }: AppShellProps) {
                         aria-hidden
                         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                         style={{
-                          background: `linear-gradient(90deg, ${tint(0.09)} 0%, ${tint(0.025)} 60%, transparent 100%)`,
+                        background: `linear-gradient(90deg, ${tint(0.06)} 0%, ${tint(0.015)} 60%, transparent 100%)`,
                         }}
                       />
                     )}
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-7 w-[2px] rounded-r-full"
+                      className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-[2px] rounded-r-full"
                         style={{
                           background: `linear-gradient(180deg, hsl(${hue}, 100%, 72%) 0%, hsl(${hue}, 95%, 55%) 100%)`,
-                          boxShadow: `0 0 16px ${tint(0.85)}, 0 0 32px ${tint(0.4)}`,
+                        boxShadow: `0 0 12px ${tint(0.65)}`,
                         }}
                       />
                     )}
                     <Icon
                       className={cn(
-                        'relative w-[18px] h-[18px] shrink-0 transition-all duration-300',
-                        active ? '' : 'group-hover:scale-[1.1] group-hover:translate-x-[1px]',
+                      'relative w-[18px] h-[18px] shrink-0 transition-colors duration-300',
                       )}
                       strokeWidth={1.5}
                       style={{
-                        color: active ? `hsl(${hue}, 100%, 72%)` : tint(0.5),
-                        filter: active
-                          ? `drop-shadow(0 0 8px ${tint(0.7)})`
-                          : undefined,
+                      color: active ? `hsl(${hue}, 100%, 72%)` : tint(0.55),
                       }}
                     />
                     {!collapsed && (
-                      <span className="relative truncate transition-transform duration-300 group-hover:translate-x-[2px]">
+                    <span className="relative truncate">
                         {item.label}
                       </span>
-                    )}
-                    {active && !collapsed && (
-                      <span
-                        aria-hidden
-                        className="relative ml-auto h-1.5 w-1.5 rounded-full"
-                        style={{
-                          background: `hsl(${hue}, 100%, 72%)`,
-                          boxShadow: `0 0 10px ${tint(0.9)}, 0 0 20px ${tint(0.4)}`,
-                        }}
-                      />
                     )}
                   </NavLink>
                 );
@@ -355,13 +340,13 @@ export function AppShell({ children }: AppShellProps) {
                           className={cn(
                             'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                             active
-                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.08)] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06),0_12px_28px_-16px_hsl(var(--warning)/0.5)]'
-                              : 'text-white/55 hover:text-white hover:bg-white/[0.035]',
+                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.07)]'
+                              : 'text-white/55 hover:text-white hover:bg-white/[0.03]',
                             collapsed && 'lg:justify-center lg:px-0',
                           )}
                         >
-                          <Shield strokeWidth={1.5} className={cn('w-[18px] h-[18px] shrink-0 transition-all duration-300', active ? 'text-[hsl(var(--warning))] drop-shadow-[0_0_8px_hsl(var(--warning)/0.6)]' : 'text-white/45 group-hover:text-white/80 group-hover:scale-[1.1] group-hover:translate-x-[1px]')} />
-                          {!collapsed && <span className="transition-transform duration-300 group-hover:translate-x-[2px]">Admin Panel</span>}
+                          <Shield strokeWidth={1.5} className={cn('w-[18px] h-[18px] shrink-0 transition-colors duration-300', active ? 'text-[hsl(var(--warning))]' : 'text-white/45 group-hover:text-white/80')} />
+                          {!collapsed && <span>Admin Panel</span>}
                         </NavLink>
                       );
                       return collapsed ? (

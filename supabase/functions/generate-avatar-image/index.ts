@@ -207,7 +207,8 @@ serve(async (req) => {
 
     // Upload front image
     const timestamp = Date.now();
-    const frontFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-front-${timestamp}.png`;
+    const safeName = config.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const frontFileName = `${safeName}-front-${timestamp}.png`;
     const frontImageUrl = await uploadToStorage(supabase, frontBase64, frontFileName);
     console.log("[Avatar Gen] Front view uploaded:", frontFileName);
 
@@ -220,7 +221,7 @@ serve(async (req) => {
       const sidePrompt = buildAvatarPrompt(config, "side");
       const sideBase64 = await generateImage(sidePrompt);
       if (sideBase64) {
-        const sideFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-side-${timestamp}.png`;
+        const sideFileName = `${safeName}-side-${timestamp}.png`;
         sideImageUrl = await uploadToStorage(supabase, sideBase64, sideFileName);
         console.log("[Avatar Gen] Side view uploaded:", sideFileName);
       }
@@ -229,7 +230,7 @@ serve(async (req) => {
       const backPrompt = buildAvatarPrompt(config, "back");
       const backBase64 = await generateImage(backPrompt);
       if (backBase64) {
-        const backFileName = `${config.name.toLowerCase().replace(/\s+/g, "-")}-back-${timestamp}.png`;
+        const backFileName = `${safeName}-back-${timestamp}.png`;
         backImageUrl = await uploadToStorage(supabase, backBase64, backFileName);
         console.log("[Avatar Gen] Back view uploaded:", backFileName);
       }

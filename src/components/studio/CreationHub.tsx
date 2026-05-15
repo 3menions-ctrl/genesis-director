@@ -949,7 +949,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     >
                       <Timer className="w-3.5 h-3.5 text-white/40" strokeWidth={1.5} />
                       <span className="tabular-nums text-white/80">
-                        {clipCount * clipDuration}s
+                        {estimatedDuration}s
                       </span>
                       <span className="text-white/30">total</span>
                     </div>

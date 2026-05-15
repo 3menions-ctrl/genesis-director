@@ -594,7 +594,7 @@ const TemplateCard = memo(function TemplateCard({
             {template.is_breakout && (
               <Badge className="bg-[hsl(215,100%,60%)] text-white border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />
-                Premium
+                4th Wall · Pro
               </Badge>
             )}
             {template.is_trending && !template.is_breakout && (

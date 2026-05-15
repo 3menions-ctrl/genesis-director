@@ -160,6 +160,31 @@ export function AdminMessageCenter() {
     }
   };
 
+  const sendReply = async () => {
+    if (!selectedMessage || !replyText.trim()) return;
+    setSendingReply(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('support_messages')
+        .update({
+          admin_reply: replyText.trim(),
+          replied_at: new Date().toISOString(),
+          admin_reply_by: user?.id ?? null,
+          status: 'resolved',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedMessage.id);
+      if (error) throw error;
+      toast.success('Reply sent — visible to user in their Profile');
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+      toast.error('Failed to send reply');
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
   const deleteMessage = async (messageId: string) => {
     try {
       const { error } = await supabase

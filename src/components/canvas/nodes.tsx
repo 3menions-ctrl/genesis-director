@@ -69,7 +69,7 @@ export function ModelNode({ data }: NodeProps) {
 export function AvatarNode({ data }: NodeProps) {
   const d = data as AvatarNodeData;
   return (
-    <NodeFrame accent="#a855f7">
+    <NodeFrame accent="#7DA8FF">
       <H side="l" />
       <div className={HEADER}><Bot className="h-3 w-3" /> Avatar</div>
       <div className={BODY + ' flex items-center gap-3'}>

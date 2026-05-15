@@ -102,24 +102,24 @@ export default function StudioShell() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[hsl(220,14%,2%)] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0A84FF]" />
+      <div className="fixed inset-0 bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-[hsl(220,14%,2%)] text-white flex flex-col overflow-hidden" style={{ fontFamily: "Fraunces, serif" }}>
+    <div className="fixed inset-0 bg-background text-white flex flex-col overflow-hidden" style={{ fontFamily: "Fraunces, serif" }}>
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[#0A84FF]/10 blur-[120px]" />
-        <div className="absolute -bottom-60 -right-40 w-[700px] h-[700px] rounded-full bg-[#0A84FF]/5 blur-[140px]" />
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-accent/10 blur-[120px]" />
+        <div className="absolute -bottom-60 -right-40 w-[700px] h-[700px] rounded-full bg-accent/5 blur-[140px]" />
       </div>
 
       {/* TOP BAR */}
       <header className="relative z-10 flex items-center gap-4 px-6 h-16 border-b border-white/[0.06] bg-black/30 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A84FF] to-[#0050D0] flex items-center justify-center shadow-[0_0_24px_rgba(10,132,255,0.4)]">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center shadow-[0_0_24px_hsl(var(--accent)/0.4)]">
             <Film className="w-4 h-4 text-white" />
           </div>
           <input
@@ -137,7 +137,7 @@ export default function StudioShell() {
 
         <button onClick={() => setDrawer("engines")}
           className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all text-sm">
-          <Cpu className="w-3.5 h-3.5 text-[#0A84FF]" />
+          <Cpu className="w-3.5 h-3.5 text-accent" />
           <span className="font-mono text-xs uppercase tracking-wider text-white/70">{ENGINES[draft.defaults.engine].shortLabel}</span>
         </button>
 
@@ -149,7 +149,7 @@ export default function StudioShell() {
         <button
           onClick={renderAll}
           disabled={!draft.scenes.length}
-          className="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-[#0A84FF] hover:bg-[#0A84FF]/90 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium shadow-[0_0_24px_rgba(10,132,255,0.4)] transition-all">
+          className="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-accent hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium shadow-[0_0_24px_hsl(var(--accent)/0.4)] transition-all">
           <Play className="w-3.5 h-3.5" />Render all
         </button>
 
@@ -267,7 +267,7 @@ function ModeToggle({ mode, onChange }: { mode: "auto" | "director"; onChange: (
       {(["auto","director"] as const).map(m => (
         <button key={m} onClick={() => onChange(m)}
           className={cn("px-3 h-7 rounded-md text-[11px] font-mono uppercase tracking-wider transition-colors",
-            mode === m ? "bg-[#0A84FF] text-white" : "text-white/50 hover:text-white")}>
+            mode === m ? "bg-accent text-white" : "text-white/50 hover:text-white")}>
           {m}
         </button>
       ))}
@@ -290,7 +290,7 @@ function Section({ title, action, children }: { title: string; action?: React.Re
 function BriefBlock({ draft, setDraft, onPickTemplate, onPickEnv }: any) {
   return (
     <Section title="Brief" action={
-      <button onClick={onPickTemplate} className="text-[11px] font-mono uppercase tracking-wider text-[#0A84FF] hover:text-white transition-colors flex items-center gap-1">
+      <button onClick={onPickTemplate} className="text-[11px] font-mono uppercase tracking-wider text-accent hover:text-white transition-colors flex items-center gap-1">
         <Sparkles className="w-3 h-3" />Templates
       </button>
     }>
@@ -308,7 +308,7 @@ function BriefBlock({ draft, setDraft, onPickTemplate, onPickEnv }: any) {
             value={draft.brief.style}
             onChange={(e) => setDraft((d: any) => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
             placeholder="Style"
-            className="flex-1 min-w-[200px] h-9 px-3 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-sm outline-none focus:border-[#0A84FF]/40"
+            className="flex-1 min-w-[200px] h-9 px-3 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-sm outline-none focus:border-accent/40"
           />
           <select
             value={draft.defaults.aspect}
@@ -329,12 +329,12 @@ function BriefBlock({ draft, setDraft, onPickTemplate, onPickEnv }: any) {
 function CastBlock({ cast, onAdd, onRemove }: any) {
   return (
     <Section title="Cast" action={
-      <button onClick={onAdd} className="text-[11px] font-mono uppercase tracking-wider text-[#0A84FF] hover:text-white transition-colors flex items-center gap-1">
+      <button onClick={onAdd} className="text-[11px] font-mono uppercase tracking-wider text-accent hover:text-white transition-colors flex items-center gap-1">
         <Plus className="w-3 h-3" />Add character
       </button>
     }>
       {cast.length === 0 ? (
-        <button onClick={onAdd} className="w-full rounded-2xl border-2 border-dashed border-white/10 hover:border-[#0A84FF]/40 bg-white/[0.01] p-6 flex items-center justify-center gap-3 text-white/40 hover:text-white transition-all">
+        <button onClick={onAdd} className="w-full rounded-2xl border-2 border-dashed border-white/10 hover:border-accent/40 bg-white/[0.01] p-6 flex items-center justify-center gap-3 text-white/40 hover:text-white transition-all">
           <Users className="w-4 h-4" />
           <span className="text-sm">Pick avatars from the library</span>
         </button>
@@ -361,8 +361,8 @@ function AudioBlock({ audio, onPickMusic, onPickVoice }: any) {
       <div className="grid grid-cols-2 gap-3">
         <button onClick={onPickMusic}
           className={cn("rounded-xl border p-4 text-left transition-all flex items-center gap-3",
-            audio.scoreUrl ? "border-[#0A84FF]/40 bg-[#0A84FF]/[0.04]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/20")}>
-          <Music2 className="w-4 h-4 text-[#0A84FF]" />
+            audio.scoreUrl ? "border-accent/40 bg-accent/[0.04]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/20")}>
+          <Music2 className="w-4 h-4 text-accent" />
           <div className="min-w-0">
             <div className="text-white text-sm font-medium">Score</div>
             <div className="text-[11px] text-white/40 truncate">{audio.scorePrompt || "Generate a musical bed"}</div>
@@ -370,7 +370,7 @@ function AudioBlock({ audio, onPickMusic, onPickVoice }: any) {
         </button>
         <button onClick={onPickVoice}
           className="rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02] p-4 text-left transition-all flex items-center gap-3">
-          <Mic2 className="w-4 h-4 text-[#0A84FF]" />
+          <Mic2 className="w-4 h-4 text-accent" />
           <div className="min-w-0">
             <div className="text-white text-sm font-medium">Default voice</div>
             <div className="text-[11px] text-white/40 truncate">Used for new characters</div>
@@ -389,7 +389,7 @@ function ScriptBlock({
       <div className="flex items-center gap-3">
         {mode === "auto" && (
           <button onClick={onAuto} disabled={autoBusy}
-            className="text-[11px] font-mono uppercase tracking-wider text-[#0A84FF] hover:text-white disabled:opacity-50 transition-colors flex items-center gap-1">
+            className="text-[11px] font-mono uppercase tracking-wider text-accent hover:text-white disabled:opacity-50 transition-colors flex items-center gap-1">
             {autoBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
             {autoBusy ? "Drafting…" : "Auto-write"}
           </button>
@@ -407,15 +407,15 @@ function ScriptBlock({
               transition={{ duration: 0.18 }}
               onClick={() => onSelectScene(s.id)}
               className={cn("rounded-2xl border p-4 cursor-pointer transition-all",
-                activeId === s.id ? "border-[#0A84FF]/60 bg-[#0A84FF]/[0.04] shadow-[0_0_24px_rgba(10,132,255,0.15)]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/15")}>
+                activeId === s.id ? "border-accent/60 bg-accent/[0.04] shadow-[0_0_24px_hsl(var(--accent)/0.15)]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/15")}>
               <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] tabular-nums text-[#0A84FF] uppercase tracking-wider">SCENE {String(s.index + 1).padStart(2, "0")}</span>
+                  <span className="font-mono text-[10px] tabular-nums text-accent uppercase tracking-wider">SCENE {String(s.index + 1).padStart(2, "0")}</span>
                   <StatusPill status={s.status} />
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={(e) => { e.stopPropagation(); onGenerate(s.id); }}
-                    className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-md bg-[#0A84FF]/15 text-[#0A84FF] hover:bg-[#0A84FF]/25 inline-flex items-center gap-1">
+                    className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-md bg-accent/15 text-accent hover:bg-accent/25 inline-flex items-center gap-1">
                     {s.status === "generating" ? <Loader2 className="w-3 h-3 animate-spin" /> : s.clipUrl ? <RefreshCw className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                     {s.clipUrl ? "Regen" : "Render"}
                   </button>
@@ -446,7 +446,7 @@ function ScriptBlock({
                       value={s.speakerId || ""}
                       onChange={(e) => onPatchScene(s.id, { speakerId: e.target.value || undefined })}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-transparent text-[10px] font-mono uppercase tracking-wider text-[#0A84FF] outline-none">
+                      className="bg-transparent text-[10px] font-mono uppercase tracking-wider text-accent outline-none">
                       <option value="">— Speaker —</option>
                       {cast.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -478,8 +478,8 @@ function ScriptBlock({
 
         {scenes.length === 0 && (
           <button onClick={mode === "auto" ? onAuto : onAddScene}
-            className="w-full rounded-2xl border-2 border-dashed border-white/10 hover:border-[#0A84FF]/40 p-8 text-white/40 hover:text-white transition-all flex flex-col items-center gap-2">
-            {mode === "auto" ? <Wand2 className="w-5 h-5 text-[#0A84FF]" /> : <Plus className="w-5 h-5" />}
+            className="w-full rounded-2xl border-2 border-dashed border-white/10 hover:border-accent/40 p-8 text-white/40 hover:text-white transition-all flex flex-col items-center gap-2">
+            {mode === "auto" ? <Wand2 className="w-5 h-5 text-accent" /> : <Plus className="w-5 h-5" />}
             <span className="text-sm">{mode === "auto" ? "Auto-write a script from your brief" : "Add your first scene"}</span>
           </button>
         )}
@@ -501,7 +501,7 @@ function StatusPill({ status }: { status: SceneDraft["status"] }) {
   const map: Record<string, { label: string; cls: string }> = {
     idle: { label: "idle", cls: "bg-white/5 text-white/40" },
     queued: { label: "queued", cls: "bg-amber-500/15 text-amber-400" },
-    generating: { label: "generating", cls: "bg-[#0A84FF]/15 text-[#0A84FF]" },
+    generating: { label: "generating", cls: "bg-accent/15 text-accent" },
     done: { label: "done", cls: "bg-emerald-500/15 text-emerald-400" },
     failed: { label: "failed", cls: "bg-rose-500/15 text-rose-400" },
   };
@@ -538,7 +538,7 @@ function Stage({ scene, onPickEngine, onGenerate }: { scene?: SceneDraft; onPick
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0A84FF]">SCENE {String(scene.index + 1).padStart(2, "0")}</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">SCENE {String(scene.index + 1).padStart(2, "0")}</span>
         <StatusPill status={scene.status} />
         <div className="flex-1" />
         <button onClick={onPickEngine}
@@ -546,7 +546,7 @@ function Stage({ scene, onPickEngine, onGenerate }: { scene?: SceneDraft; onPick
           <Cpu className="w-3 h-3" />{ENGINES[scene.engine || "kling-v3"].shortLabel}
         </button>
         <button onClick={() => onGenerate(scene.id)}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white text-sm font-medium transition-all">
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-accent hover:bg-accent/90 text-white text-sm font-medium transition-all">
           {scene.clipUrl ? <RefreshCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           {scene.clipUrl ? "Regenerate" : "Render"}
         </button>
@@ -556,7 +556,7 @@ function Stage({ scene, onPickEngine, onGenerate }: { scene?: SceneDraft; onPick
         <p className="text-white/70 text-base leading-relaxed" style={{ fontFamily: "Fraunces, serif" }}>{scene.beat}</p>
       )}
       {scene.dialogue && (
-        <blockquote className="border-l-2 border-[#0A84FF] pl-4 italic text-white/80" style={{ fontFamily: "Fraunces, serif" }}>"{scene.dialogue}"</blockquote>
+        <blockquote className="border-l-2 border-accent pl-4 italic text-white/80" style={{ fontFamily: "Fraunces, serif" }}>"{scene.dialogue}"</blockquote>
       )}
     </div>
   );
@@ -568,7 +568,7 @@ function StagePlaceholder({ scene }: { scene: SceneDraft }) {
       <div>
         {scene.status === "generating" || scene.status === "queued" ? (
           <>
-            <Loader2 className="w-8 h-8 text-[#0A84FF] animate-spin mx-auto mb-3" />
+            <Loader2 className="w-8 h-8 text-accent animate-spin mx-auto mb-3" />
             <div className="text-white/70 text-sm">Generating clip…</div>
           </>
         ) : (
@@ -589,7 +589,7 @@ function Reel({ scenes, activeId, onSelect, onAdd, onOpenEditor }: any) {
         {scenes.map((s: SceneDraft) => (
           <button key={s.id} onClick={() => onSelect(s.id)}
             className={cn("group relative shrink-0 w-32 aspect-video rounded-lg overflow-hidden border-2 transition-all",
-              activeId === s.id ? "border-[#0A84FF] shadow-[0_0_16px_rgba(10,132,255,0.4)]" : "border-white/[0.06] hover:border-white/20")}>
+              activeId === s.id ? "border-accent shadow-[0_0_16px_hsl(var(--accent)/0.4)]" : "border-white/[0.06] hover:border-white/20")}>
             {s.clipUrl ? (
               <video src={s.clipUrl} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
             ) : s.refImageUrl ? (
@@ -603,7 +603,7 @@ function Reel({ scenes, activeId, onSelect, onAdd, onOpenEditor }: any) {
           </button>
         ))}
         <button onClick={onAdd}
-          className="shrink-0 w-32 aspect-video rounded-lg border-2 border-dashed border-white/10 hover:border-[#0A84FF]/40 text-white/30 hover:text-white flex items-center justify-center transition-all">
+          className="shrink-0 w-32 aspect-video rounded-lg border-2 border-dashed border-white/10 hover:border-accent/40 text-white/30 hover:text-white flex items-center justify-center transition-all">
           <Plus className="w-5 h-5" />
         </button>
         <div className="flex-1" />

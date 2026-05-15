@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
+import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
 import { ENGINES } from "@/lib/video/engines";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
@@ -137,6 +138,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 
 export default function StudioShell() {
   const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive } = useStudioDraft();
+  const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
   const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene);
   const [drawer, setDrawer] = useState<DrawerKey>(null);
   const [step, setStep] = useState<StepId>("start");
@@ -162,6 +164,40 @@ export default function StudioShell() {
 
   const canGenerateScript = Boolean(draft.brief.logline.trim() || draft.brief.refImageUrl || draft.brief.templateId);
   const canRender = draft.scenes.length > 0 && (draft.brief.logline.trim() || draft.scenes.some(s => s.beat || s.dialogue));
+
+  useEffect(() => {
+    if (!appliedSettings) return;
+
+    const pick: TemplatePick = {
+      id: templateId || appliedSettings.templateName || "template",
+      name: appliedSettings.templateName || "Template",
+      logline: appliedSettings.concept,
+      style: [appliedSettings.genre, appliedSettings.mood, appliedSettings.colorGrading].filter(Boolean).join(" · ") || "Cinematic",
+      thumbnailUrl: appliedSettings.startImageUrl,
+      settings: appliedSettings,
+    };
+
+    setDraft(d => {
+      if (d.brief.templateId === pick.id) return d;
+      const scenes = scenesFromTemplatePick(pick, d);
+      return {
+        ...d,
+        brief: {
+          ...d.brief,
+          title: d.brief.title || pick.name,
+          logline: pick.logline || d.brief.logline,
+          style: pick.style || d.brief.style,
+          templateId: pick.id,
+          refImageUrl: pick.thumbnailUrl || d.brief.refImageUrl,
+          environmentId: appliedSettings.environmentName || d.brief.environmentId,
+        },
+        scenes,
+        activeSceneId: scenes[0]?.id,
+      };
+    });
+    setStep("cast");
+    clearAppliedSettings();
+  }, [appliedSettings, clearAppliedSettings, setDraft, templateId]);
 
   const uploadReferenceImage = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {

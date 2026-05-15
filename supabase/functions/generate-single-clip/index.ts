@@ -864,11 +864,55 @@ serve(async (req) => {
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
       videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
+      // Optional credit reservation handle. When present, we'll consume it on
+      // successful prediction creation and release it on any failure path so
+      // concurrent renders cannot drift past the pre-flight check.
+      holdId,
     } = body;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
     }
+
+    // ── Credit hold helpers (no-op when holdId is missing). Idempotent —
+    // the underlying RPCs short-circuit on already-consumed/released holds.
+    let holdSettled = false;
+    const consumeHold = async (description?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        const { data, error } = await supabase.rpc('consume_credit_hold', {
+          p_hold_id: holdId,
+          p_description: description || `Clip ${shotIndex + 1}`,
+          p_clip_duration: typeof body.durationSeconds === 'number' ? body.durationSeconds : null,
+        });
+        if (error) {
+          console.warn(`[SingleClip] consume_credit_hold error:`, error.message);
+          holdSettled = false;
+        } else if ((data as any)?.success !== true) {
+          console.warn(`[SingleClip] consume_credit_hold not successful:`, data);
+        } else {
+          console.log(`[SingleClip] 💳 Credit hold ${holdId} consumed (${(data as any).amount} cr)`);
+        }
+      } catch (e) {
+        console.warn(`[SingleClip] consume_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
+    const releaseHold = async (reason?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        await supabase.rpc('release_credit_hold', {
+          p_hold_id: holdId,
+          p_reason: reason || 'generate-single-clip failed',
+        });
+        console.log(`[SingleClip] 🔓 Credit hold ${holdId} released (${reason || 'failure'})`);
+      } catch (e) {
+        console.warn(`[SingleClip] release_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
 
     // ═══ ENGINE SELECTION — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
     // Why: hollywood-pipeline / continue-production / watchdog / resume-pipeline
@@ -933,7 +977,7 @@ serve(async (req) => {
           errorMessage: `Content policy violation: ${safetyCheck.category}`,
         });
       }
-      
+      await releaseHold('content_policy_violation');
       return new Response(
         JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1219,6 +1263,7 @@ serve(async (req) => {
     if (claimError) {
       console.error(`[SingleClip] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, claimError.message);
       await releaseLock();
+      await releaseHold('atomic_claim_rpc_failed');
       return new Response(
         JSON.stringify({
           success: false,
@@ -1230,6 +1275,7 @@ serve(async (req) => {
     } else if (claimed === false) {
       console.error(`[SingleClip] ❌ ATOMIC CLAIM REJECTED: clip ${shotIndex} already claimed by another process`);
       await releaseLock();
+      await releaseHold('clip_already_claimed');
       return new Response(
         JSON.stringify({
           success: false,
@@ -1283,6 +1329,12 @@ serve(async (req) => {
       );
       predictionId = klingResult.predictionId;
     }
+
+    // ─── Provider call succeeded → finalize the credit hold. We bill on
+    // prediction creation (we've committed GPU spend) regardless of whether
+    // polling/post-processing later fails. The watchdog will refund via
+    // refund_credits if the prediction itself fails terminally.
+    await consumeHold(`Clip ${shotIndex + 1} (${videoEngine})`);
     
     // ═══════════════════════════════════════════════════════════════════
     // IMMEDIATE PREDICTION REGISTRATION in pending_video_tasks
@@ -1727,6 +1779,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[SingleClip] Error:", error);
+    // Release any active credit hold so the user isn't charged for a failed render.
+    try { await releaseHold(error instanceof Error ? error.message : 'unknown_error'); } catch {}
     
     // =========================================================
     // CRITICAL: Release lock on error

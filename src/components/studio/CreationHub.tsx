@@ -196,6 +196,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipDuration, setClipDuration] = useState(5);
+  // Per-scene durations. Always kept in lockstep with `clipCount` and the
+  // active engine — every entry must be one of `engineCaps.durations`.
+  const [clipDurations, setClipDurations] = useState<number[]>(() =>
+    Array.from({ length: 5 }, () => 5),
+  );
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic] = useState(false);
 

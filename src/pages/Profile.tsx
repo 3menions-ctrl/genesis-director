@@ -1,11 +1,12 @@
 /**
- * Profile Page — Maximalist Cinematic
- * Pro-Dark + cinematic blue, conic aurora, halo rings, diagnostic ticker.
- * Purges orange/amber/purple/indigo/teal/sky/fuchsia per design memory.
+ * Profile Page — Private Account
+ * Cinematic Pro-Dark identity page. Only private data: account identity,
+ * plan, credits, billing history, usage, messages, settings.
+ * NO public/social surfaces (followers, leaderboards, achievements, public link).
  */
 
 import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
@@ -15,22 +16,15 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
-  User, Coins, Gift, ShoppingCart,
-  Zap, Video, Crown, Sparkles, Trophy,
-  Flame, Target, Award, ChevronRight, Plus,
-  Star, Heart, Users, Medal, Settings,
-  BarChart3, MessageCircle, TrendingUp, Clock,
-  Calendar, Camera, Edit2, Loader2, ExternalLink
+  User, Coins, Gift, ShoppingCart, Zap, Video, Crown, Sparkles,
+  Plus, Settings, BarChart3, TrendingUp, Clock, Camera, Edit2, Loader2,
+  Mail, Shield, KeyRound, Calendar, CreditCard, Download, LogOut, Check,
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
-import { useGamification } from '@/hooks/useGamification';
-import { useSocial } from '@/hooks/useSocial';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRealAnalytics } from '@/hooks/useRealAnalytics';
-import { RealAnalyticsCards } from '@/components/analytics/RealAnalyticsCards';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
 
@@ -38,7 +32,7 @@ import { MessagesInbox } from '@/components/social/MessagesInbox';
 const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
 const glassCardHover = "hover:border-[hsla(215,100%,60%,0.22)] hover:shadow-[0_40px_140px_-40px_hsla(215,100%,60%,0.55)] transition-all duration-500";
 
-// Animated counter — eases to target value
+// Animated counter
 function useAnimatedNumber(target: number, duration = 1400) {
   const [value, setValue] = useState(0);
   const startRef = useRef<number | null>(null);
@@ -61,80 +55,7 @@ function useAnimatedNumber(target: number, duration = 1400) {
   return value;
 }
 
-// Magnetic 3D tilt — premium pointer-tracked transform
-function useMagneticTilt(strength = 8) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let raf = 0;
-    const onMove = (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width - 0.5;
-      const py = (e.clientY - rect.top) / rect.height - 0.5;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        el.style.transform = `perspective(1200px) rotateX(${(-py * strength).toFixed(2)}deg) rotateY(${(px * strength).toFixed(2)}deg)`;
-        el.style.setProperty('--mx', `${(px * 100 + 50).toFixed(1)}%`);
-        el.style.setProperty('--my', `${(py * 100 + 50).toFixed(1)}%`);
-      });
-    };
-    const onLeave = () => {
-      cancelAnimationFrame(raf);
-      el.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg)';
-    };
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseleave', onLeave);
-    return () => {
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseleave', onLeave);
-      cancelAnimationFrame(raf);
-    };
-  }, [strength]);
-  return ref;
-}
-
-// Achievement definitions
-const ACHIEVEMENTS = [
-  { id: 'first_video', name: 'First Light', desc: 'Generated your first video', icon: Sparkles, threshold: 1, type: 'videos' },
-  { id: '10_videos', name: 'Rising Star', desc: 'Generated 10 videos', icon: Star, threshold: 10, type: 'videos' },
-  { id: '50_videos', name: 'Content Machine', desc: 'Generated 50 videos', icon: Zap, threshold: 50, type: 'videos' },
-  { id: '100_videos', name: 'Video Legend', desc: 'Generated 100 videos', icon: Crown, threshold: 100, type: 'videos' },
-  { id: 'power_user', name: 'Power User', desc: 'Used 1000+ credits', icon: Flame, threshold: 1000, type: 'credits' },
-];
-
-// Premium animated stat tile with cursor spotlight + counter
-const StatTile = memo(function StatTile({
-  index, value, label, Icon,
-}: { index: number; value: number; label: string; Icon: any }) {
-  const animated = useAnimatedNumber(value);
-  const tiltRef = useMagneticTilt(6);
-  return (
-    <div
-      ref={tiltRef}
-      className={cn(
-        "relative p-5 overflow-hidden transition-transform duration-300 will-change-transform",
-        glassCard, glassCardHover,
-      )}
-      style={{ animation: `profileRise 0.6s ease-out both`, animationDelay: `${index * 80}ms` }}
-    >
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.55)] to-transparent" />
-      <div
-        className="absolute inset-0 pointer-events-none opacity-90"
-        style={{
-          background: 'radial-gradient(280px circle at var(--mx,50%) var(--my,50%), hsla(215,100%,60%,0.16), transparent 55%)',
-        }}
-      />
-      <div className="relative w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
-        <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-      </div>
-      <p className="relative text-3xl font-bold text-foreground tabular-nums">{animated.toLocaleString()}</p>
-      <p className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mt-1">{label}</p>
-    </div>
-  );
-});
-
-type TabType = 'overview' | 'analytics' | 'settings';
+type TabType = 'account' | 'usage' | 'security';
 
 interface Transaction {
   id: string;
@@ -151,7 +72,7 @@ interface UserMetrics {
   totalVideoDuration: number;
 }
 
-// ─── Signature cinematic atmosphere ───────────────────────────────────────────
+// Atmosphere (kept identical to design system)
 const ProfileAtmosphere = memo(function ProfileAtmosphere() {
   return (
     <>
@@ -160,47 +81,32 @@ const ProfileAtmosphere = memo(function ProfileAtmosphere() {
         @keyframes profileTick { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
         @keyframes profileFloat { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
         @keyframes profileShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        @keyframes profileScan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
         @keyframes profileTwinkle { 0%,100% { opacity: 0.15; } 50% { opacity: 0.9; } }
-        @keyframes profileGlowPulse { 0%,100% { box-shadow: 0 0 0 0 hsla(215,100%,60%,0.45); } 50% { box-shadow: 0 0 30px 6px hsla(215,100%,60%,0.0); } }
         @keyframes profileRise { 0% { opacity: 0; transform: translateY(24px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
-      {/* Deep base */}
       <div className="fixed inset-0 -z-50 bg-[hsl(220,14%,2%)]" aria-hidden />
-      {/* Conic aurora sweep */}
       <div
         className="fixed inset-0 -z-40 pointer-events-none"
         style={{
           background:
-            'conic-gradient(from 0deg at 50% 45%, transparent 0deg, hsla(215,100%,60%,0.34) 60deg, transparent 130deg, hsla(210,100%,55%,0.22) 220deg, transparent 300deg, hsla(215,100%,60%,0.28) 360deg)',
-          filter: 'blur(90px)',
-          animation: 'profileAurora 70s linear infinite',
-          opacity: 0.85,
+            'conic-gradient(from 0deg at 50% 45%, transparent 0deg, hsla(215,100%,60%,0.30) 60deg, transparent 130deg, hsla(210,100%,55%,0.18) 220deg, transparent 300deg, hsla(215,100%,60%,0.24) 360deg)',
+          filter: 'blur(100px)',
+          animation: 'profileAurora 80s linear infinite',
+          opacity: 0.7,
         }}
         aria-hidden
       />
-      {/* Floating halos */}
       <div
         className="fixed -z-30 pointer-events-none rounded-full"
         style={{
           width: 720, height: 720, top: '-20%', right: '-12%',
-          background: 'radial-gradient(circle, hsla(215,100%,60%,0.18), transparent 65%)',
+          background: 'radial-gradient(circle, hsla(215,100%,60%,0.14), transparent 65%)',
           filter: 'blur(60px)', animation: 'profileFloat 14s ease-in-out infinite',
         }}
         aria-hidden
       />
-      <div
-        className="fixed -z-30 pointer-events-none rounded-full"
-        style={{
-          width: 560, height: 560, bottom: '-15%', left: '-10%',
-          background: 'radial-gradient(circle, hsla(210,100%,55%,0.14), transparent 65%)',
-          filter: 'blur(70px)', animation: 'profileFloat 18s ease-in-out infinite reverse',
-        }}
-        aria-hidden
-      />
-      {/* Ambient star/dust field */}
       <div className="fixed inset-0 -z-30 pointer-events-none overflow-hidden" aria-hidden>
-        {Array.from({ length: 28 }).map((_, i) => {
+        {Array.from({ length: 22 }).map((_, i) => {
           const top = (i * 137.5) % 100;
           const left = (i * 73.3) % 100;
           const size = 1 + ((i * 7) % 3);
@@ -215,30 +121,19 @@ const ProfileAtmosphere = memo(function ProfileAtmosphere() {
                 boxShadow: '0 0 8px hsla(215,100%,68%,0.6)',
                 animation: `profileTwinkle ${5 + (i % 4)}s ease-in-out infinite`,
                 animationDelay: `${delay}s`,
-                opacity: 0.35,
+                opacity: 0.3,
               }}
             />
           );
         })}
       </div>
-      {/* Slow scan line */}
       <div
-        className="fixed inset-x-0 -z-20 pointer-events-none h-[40vh]"
-        style={{
-          background: 'linear-gradient(180deg, transparent 0%, hsla(215,100%,68%,0.06) 50%, transparent 100%)',
-          animation: 'profileScan 18s linear infinite',
-        }}
-        aria-hidden
-      />
-      {/* Film grain */}
-      <div
-        className="fixed inset-0 -z-20 pointer-events-none opacity-[0.06] mix-blend-overlay"
+        className="fixed inset-0 -z-20 pointer-events-none opacity-[0.05] mix-blend-overlay"
         style={{
           backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.07 0 0 0 0 0.08 0 0 0 0.65 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
         aria-hidden
       />
-      {/* Edge vignette */}
       <div
         className="fixed inset-0 -z-10 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsla(220,14%,1%,0.85) 100%)' }}
@@ -248,34 +143,20 @@ const ProfileAtmosphere = memo(function ProfileAtmosphere() {
   );
 });
 
-const DiagnosticTicker = memo(function DiagnosticTicker() {
-  const items = [
-    { code: 'SIG', label: 'Signal' },
-    { code: 'XP', label: 'Telemetry' },
-    { code: 'LIVE', label: 'Stream' },
-  ];
+const PrivateBadge = memo(function PrivateBadge() {
   return (
-    <div className="inline-flex items-center gap-4 px-4 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.14)] backdrop-blur-xl">
-      {items.map((item, i) => (
-        <div key={item.code} className="flex items-center gap-1.5">
-          <span
-            className="w-1.5 h-1.5 rounded-full bg-[hsl(215,100%,60%)]"
-            style={{ animation: `profileTick 2.4s ease-in-out infinite`, animationDelay: `${i * 0.4}s` }}
-          />
-          <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-mono">
-            {item.code} <span className="text-muted-foreground">/</span> {item.label}
-          </span>
-        </div>
-      ))}
+    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.18)] backdrop-blur-xl">
+      <Shield className="w-3 h-3 text-[hsl(215,100%,72%)]" />
+      <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-mono">
+        Private · Only visible to you
+      </span>
     </div>
   );
 });
 
-// Main content component
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading, refreshProfile } = useAuth();
-  const heroTiltRef = useMagneticTilt(4);
+  const { user, profile, loading, refreshProfile, signOut } = useAuth();
 
   const gatekeeper = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.profile,
@@ -283,21 +164,15 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     dataLoading: loading,
     dataSuccess: !loading && !!user,
   });
-  const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading } = useGamification();
-  const { followersCount, followingCount } = useSocial();
 
   let analyticsData: any = { analytics: null, loading: false };
-  try {
-    analyticsData = useRealAnalytics();
-  } catch {
-    console.warn('[Profile] useRealAnalytics failed, using fallback');
-  }
+  try { analyticsData = useRealAnalytics(); } catch { /* noop */ }
   const { analytics, loading: analyticsLoading } = analyticsData;
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [showBuyModal, setShowBuyModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('account');
   const [metrics, setMetrics] = useState<UserMetrics>({
     totalProjects: 0, completedProjects: 0, totalVideosGenerated: 0, totalVideoDuration: 0,
   });
@@ -305,7 +180,10 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleSaveName = useCallback(async () => {
     if (!user || !nameValue.trim()) return;
@@ -323,14 +201,11 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     }
   }, [user, nameValue, refreshProfile]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-
   const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
-
     setUploadingAvatar(true);
     try {
       const ext = file.name.split('.').pop() || 'jpg';
@@ -342,7 +217,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
       if (updateError) throw updateError;
       await refreshProfile();
-      toast.success('Profile picture updated!');
+      toast.success('Profile picture updated');
     } catch (error: any) {
       console.error('Avatar upload error:', error);
       toast.error('Failed to upload picture');
@@ -351,6 +226,38 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       if (avatarInputRef.current) avatarInputRef.current.value = '';
     }
   }, [user, refreshProfile]);
+
+  const handlePasswordReset = useCallback(async () => {
+    if (!user?.email) return;
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success('Password reset link sent to your email');
+    } catch {
+      toast.error('Failed to send reset link');
+    } finally {
+      setSendingReset(false);
+    }
+  }, [user]);
+
+  const handleExport = useCallback(() => {
+    const blob = new Blob([JSON.stringify({
+      account: { id: user?.id, email: user?.email, display_name: profile?.display_name, member_since: profile?.created_at },
+      credits: { balance: profile?.credits_balance, total_used: profile?.total_credits_used },
+      transactions,
+      metrics,
+      exported_at: new Date().toISOString(),
+    }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `apex-account-${(user?.id || '').slice(0,8)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success('Account data exported');
+  }, [user, profile, transactions, metrics]);
 
   useEffect(() => {
     if (!loading && !user) navigate('/auth');
@@ -368,10 +275,12 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     } else if (buy) {
       setShowBuyModal(true); setSearchParams({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   useEffect(() => {
     if (user) { fetchTransactions(); fetchMetrics(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchMetrics = async () => {
@@ -397,7 +306,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     if (!user) return;
     const { data, error } = await supabase
       .from('credit_transactions_safe').select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false }).limit(5);
+      .order('created_at', { ascending: false }).limit(20);
     if (!error) setTransactions(data || []);
     setLoadingTransactions(false);
   };
@@ -416,24 +325,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const level = gamificationStats?.level || 1;
-  const xpTotal = gamificationStats?.xp_total || 0;
-  const streak = gamificationStats?.current_streak || 0;
-
-  // Animated values — eased counters for premium feel
   const animatedCredits = useAnimatedNumber(profile?.credits_balance || 0);
-  const animatedXp = useAnimatedNumber(xpTotal);
-  const animatedFollowers = useAnimatedNumber(followersCount || 0);
-  const animatedFollowing = useAnimatedNumber(followingCount || 0);
-  const animatedStreak = useAnimatedNumber(streak);
-
-  const unlockedAchievements = ACHIEVEMENTS.filter(a => {
-    switch (a.type) {
-      case 'videos': return metrics.totalVideosGenerated >= a.threshold;
-      case 'credits': return (profile?.total_credits_used || 0) >= a.threshold;
-      default: return false;
-    }
-  });
+  const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
+  const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
 
   const getTransactionIcon = (type: string, amount: number) => {
     if (type === 'bonus') return <Gift className="w-4 h-4 text-[hsl(150,80%,55%)]" />;
@@ -441,6 +335,10 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     if (amount < 0) return <Zap className="w-4 h-4 text-[hsl(215,100%,68%)]" />;
     return <TrendingUp className="w-4 h-4 text-[hsl(150,80%,55%)]" />;
   };
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : 'Recently';
 
   if (loading || gatekeeper.isLoading) {
     return (
@@ -460,63 +358,38 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       <ProfileAtmosphere />
       <AppHeader />
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-        {/* ─── Eyebrow ticker ─── */}
+        {/* ─── Eyebrow: privacy badge ─── */}
         <div className="flex items-center justify-center animate-fade-in">
-          <DiagnosticTicker />
+          <PrivateBadge />
         </div>
 
-        {/* ─── HERO ─── */}
+        {/* ─── HERO: Identity card ─── */}
         <section
-          ref={heroTiltRef}
-          className="relative px-6 sm:px-10 py-10 rounded-[28px] overflow-hidden animate-fade-in transition-transform duration-300 will-change-transform"
-          style={{ transformStyle: 'preserve-3d' }}
+          className="relative px-6 sm:px-10 py-8 rounded-[28px] overflow-hidden animate-fade-in"
         >
-          {/* Hero halo */}
-          <div className="absolute inset-0 rounded-[28px] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-2xl border border-[hsla(215,100%,60%,0.12)]" />
-          {/* Cursor spotlight */}
-          <div
-            className="absolute inset-0 rounded-[28px] pointer-events-none opacity-80"
-            style={{
-              background: 'radial-gradient(600px circle at var(--mx,50%) var(--my,50%), hsla(215,100%,60%,0.18), transparent 45%)',
-            }}
-          />
-          {/* Prismatic top frame */}
+          <div className="absolute inset-0 rounded-[28px] bg-[hsla(220,14%,4%,0.6)] backdrop-blur-2xl border border-[hsla(215,100%,60%,0.12)]" />
           <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,75%,0.7), hsla(215,100%,60%,0.3), hsla(215,100%,75%,0.7), transparent)' }} />
-          <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,60%,0.45), transparent)' }} />
-          {/* Corner ticks */}
-          {[
-            'top-3 left-3 border-l border-t',
-            'top-3 right-3 border-r border-t',
-            'bottom-3 left-3 border-l border-b',
-            'bottom-3 right-3 border-r border-b',
-          ].map((p, i) => (
-            <div key={i} className={`absolute ${p} w-4 h-4 border-[hsla(215,100%,68%,0.5)] rounded-[3px]`} />
-          ))}
           <div
             className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.28), transparent 65%)', filter: 'blur(60px)' }}
+            style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.22), transparent 65%)', filter: 'blur(60px)' }}
           />
-          <div
-            className="absolute -bottom-40 -left-32 w-[24rem] h-[24rem] rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, hsla(210,100%,55%,0.20), transparent 65%)', filter: 'blur(70px)' }}
-          />
+
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
-            {/* Avatar — luminous halo */}
+            {/* Avatar */}
             <div className="relative group shrink-0">
               <div
-                className="absolute -inset-3 rounded-full opacity-90 group-hover:opacity-100 transition-opacity"
+                className="absolute -inset-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
                 style={{
-                  background: 'conic-gradient(from 0deg, hsla(215,100%,60%,0.6), hsla(210,100%,55%,0.2), hsla(215,100%,68%,0.5), hsla(215,100%,60%,0.6))',
-                  filter: 'blur(18px)',
-                  animation: 'profileAurora 12s linear infinite',
+                  background: 'conic-gradient(from 0deg, hsla(215,100%,60%,0.55), hsla(210,100%,55%,0.2), hsla(215,100%,68%,0.45), hsla(215,100%,60%,0.55))',
+                  filter: 'blur(14px)',
+                  animation: 'profileAurora 14s linear infinite',
                 }}
               />
-              <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-[hsl(215,100%,60%)] to-[hsl(210,100%,55%)] opacity-80" />
-              <Avatar className="relative w-28 h-28 ring-2 ring-[hsla(215,100%,60%,0.45)]">
+              <Avatar className="relative w-24 h-24 ring-2 ring-[hsla(215,100%,60%,0.4)]">
                 <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-[hsl(220,14%,6%)] text-[hsl(215,100%,75%)] text-3xl font-bold">
+                <AvatarFallback className="bg-[hsl(220,14%,6%)] text-[hsl(215,100%,75%)] text-2xl font-bold">
                   {profile?.display_name?.charAt(0) || user?.email?.charAt(0) || '?'}
                 </AvatarFallback>
               </Avatar>
@@ -527,86 +400,79 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               <button
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[hsl(220,14%,6%)] border border-[hsla(215,100%,60%,0.4)] flex items-center justify-center hover:bg-[hsl(220,14%,9%)] hover:border-[hsl(215,100%,60%)] transition-all disabled:opacity-50 shadow-[0_8px_24px_-8px_hsla(215,100%,60%,0.6)]"
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(220,14%,6%)] border border-[hsla(215,100%,60%,0.4)] flex items-center justify-center hover:bg-[hsl(220,14%,9%)] hover:border-[hsl(215,100%,60%)] transition-all disabled:opacity-50"
               >
                 {uploadingAvatar ? (
-                  <Loader2 className="w-4 h-4 text-[hsl(215,100%,68%)] animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 text-[hsl(215,100%,68%)] animate-spin" />
                 ) : (
-                  <Camera className="w-4 h-4 text-[hsl(215,100%,68%)]" />
+                  <Camera className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
                 )}
               </button>
             </div>
 
-            {/* Info */}
+            {/* Identity */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono">
-                  CREATOR · ID {(user?.id || '').slice(0, 6).toUpperCase()}
+                  ACCOUNT · ID {(user?.id || '').slice(0, 6).toUpperCase()}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <h1
-                  className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground"
-                  style={{
-                    fontFamily: 'Sora, sans-serif',
-                    backgroundImage: 'linear-gradient(135deg, #ffffff 0%, hsl(215,100%,85%) 60%, hsl(215,100%,68%) 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  {profile?.display_name || 'Creator'}
-                </h1>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.35)] backdrop-blur">
-                  <Crown className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
-                  <span className="text-xs font-semibold text-[hsl(215,100%,82%)] font-mono uppercase tracking-wider">Lvl {level}</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      className="bg-[hsla(220,14%,3%,0.85)] border border-[hsla(215,100%,60%,0.35)] rounded-lg px-3 py-1.5 text-2xl font-bold text-foreground outline-none focus:border-[hsl(215,100%,60%)] focus:ring-2 focus:ring-[hsla(215,100%,60%,0.2)]"
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName();
+                        if (e.key === 'Escape') setEditingName(false);
+                      }}
+                      maxLength={50}
+                    />
+                    <Button size="sm" variant="ghost" className="text-[hsl(150,80%,60%)]" onClick={handleSaveName} disabled={savingName}>
+                      {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <h1
+                      className="text-3xl sm:text-4xl font-bold tracking-tight"
+                      style={{
+                        fontFamily: 'Sora, sans-serif',
+                        backgroundImage: 'linear-gradient(135deg, #ffffff 0%, hsl(215,100%,85%) 60%, hsl(215,100%,68%) 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
+                      {profile?.display_name || 'Set your name'}
+                    </h1>
+                    <button
+                      onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)] transition"
+                      aria-label="Edit display name"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* XP bar with shimmer */}
-              <div className="flex items-center gap-3 mb-4 max-w-md">
-                <div className="relative flex-1 h-1.5 rounded-full bg-[hsla(220,14%,10%,0.8)] overflow-hidden border border-[hsla(215,100%,60%,0.10)]">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full"
-                    style={{
-                      width: `${xpProgress?.percentage || 0}%`,
-                      background: 'linear-gradient(90deg, hsl(210,100%,55%), hsl(215,100%,68%))',
-                      boxShadow: '0 0 18px hsla(215,100%,60%,0.7)',
-                    }}
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: 'linear-gradient(90deg, transparent, hsla(255,255,255,0.18), transparent)',
-                      backgroundSize: '200% 100%',
-                      animation: 'profileShimmer 3.2s linear infinite',
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">{xpTotal.toLocaleString()} XP</span>
-              </div>
-
-              {/* Stats row */}
-              <div className="flex flex-wrap items-center gap-5 text-sm">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-foreground font-semibold tabular-nums">{animatedFollowers}</span>
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Followers</span>
+                  <Mail className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
+                  <span className="font-mono text-xs">{user?.email}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Heart className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-foreground font-semibold tabular-nums">{animatedFollowing}</span>
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Following</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  <span className="text-foreground font-semibold tabular-nums">{animatedStreak}</span>
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Day streak</span>
+                  <Calendar className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
+                  <span className="text-xs">Member since {memberSince}</span>
                 </div>
               </div>
             </div>
 
-            {/* Credits cluster */}
+            {/* Credits */}
             <div className="flex flex-col items-stretch gap-2 lg:items-end shrink-0">
               <div className="relative flex items-center gap-3 px-5 py-3 rounded-2xl bg-[hsl(220,14%,4%)] border border-[hsla(215,100%,60%,0.25)] overflow-hidden">
                 <div className="absolute inset-0 opacity-60"
@@ -624,35 +490,46 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 <Plus className="w-4 h-4 mr-1.5" />
                 Buy Credits
               </Button>
-              {user && (
-                <Link to={`/user/${user.id}`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-1.5 border-[hsla(215,100%,60%,0.18)] text-muted-foreground hover:text-foreground hover:bg-[hsla(215,100%,60%,0.08)] hover:border-[hsla(215,100%,60%,0.35)] backdrop-blur"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Public Profile
-                  </Button>
-                </Link>
-              )}
             </div>
           </div>
         </section>
 
+        {/* ─── At-a-glance stats ─── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in">
+          {[
+            { label: 'Credits Available', value: animatedCredits, icon: Coins, accent: true },
+            { label: 'Credits Used', value: animatedUsed, icon: Zap },
+            { label: 'Videos Generated', value: animatedVideos, icon: Video },
+            { label: 'Projects', value: metrics.totalProjects, icon: Sparkles },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className={cn("relative p-5 overflow-hidden", glassCard, glassCardHover)}
+              style={{ animation: `profileRise 0.55s ease-out both`, animationDelay: `${i * 70}ms` }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.45)] to-transparent" />
+              <div className="relative w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
+                <stat.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+              </div>
+              <p className="relative text-3xl font-bold text-foreground tabular-nums">{Number(stat.value).toLocaleString()}</p>
+              <p className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
         {/* ─── TABS ─── */}
-        <section className="flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.08s' }}>
-          <div className="inline-flex p-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.12)] backdrop-blur-2xl shadow-[0_20px_60px_-20px_hsla(215,100%,60%,0.4)]">
+        <section className="flex items-center justify-center animate-fade-in">
+          <div className="inline-flex p-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.12)] backdrop-blur-2xl">
             {[
-              { id: 'overview' as TabType, label: 'Overview', icon: Sparkles },
-              { id: 'analytics' as TabType, label: 'Analytics', icon: BarChart3 },
-              { id: 'settings' as TabType, label: 'Settings', icon: Settings },
+              { id: 'account' as TabType, label: 'Account', icon: User },
+              { id: 'usage' as TabType, label: 'Usage & Billing', icon: BarChart3 },
+              { id: 'security' as TabType, label: 'Security', icon: Shield },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "relative flex items-center gap-2 px-6 py-2.5 text-sm font-medium transition-all rounded-full uppercase tracking-[0.18em] text-[11px]",
+                  "relative flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-full uppercase tracking-[0.18em] text-[11px]",
                   activeTab === tab.id
                     ? "text-foreground shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)]"
                     : "text-muted-foreground hover:text-foreground/90 hover:bg-[hsla(215,100%,60%,0.06)]"
@@ -668,237 +545,98 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           </div>
         </section>
 
-        {/* ─── OVERVIEW ─── */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'New Project', icon: Plus, onClick: () => navigate('/create') },
-                { label: 'My Videos', icon: Video, onClick: () => navigate('/projects') },
-                { label: 'Leaderboard', icon: Trophy, onClick: () => {} },
-                { label: 'Creators', icon: Star, onClick: () => navigate('/creators') },
-              ].map((action, i) => (
-                <button
-                  key={i}
-                  onClick={action.onClick}
-                  className={cn("group relative p-5 rounded-2xl overflow-hidden text-left", glassCard, glassCardHover)}
-                >
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.6)] to-transparent" />
-                  <div
-                    className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                    style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.35), transparent 65%)', filter: 'blur(20px)' }}
-                  />
-                  <div className="relative w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.28)] group-hover:bg-[hsla(215,100%,60%,0.2)] transition-all">
-                    <action.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+        {/* ─── ACCOUNT ─── */}
+        {activeTab === 'account' && (
+          <div className="space-y-6 animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Account fields */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className={cn("p-6", glassCard)}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                    <User className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                   </div>
-                  <span className="relative text-sm font-medium text-foreground">{action.label}</span>
-                  <span className="block text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-1 font-mono">Open</span>
-                </button>
-              ))}
+                  <div>
+                    <h3 className="font-semibold text-foreground">Account Identity</h3>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Private to you</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <FieldRow
+                    label="Display Name"
+                    value={profile?.display_name || 'Not set'}
+                    action={
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[hsl(215,100%,72%)]"
+                        onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    }
+                  />
+                  <FieldRow label="Email" value={user?.email || ''} mono />
+                  <FieldRow label="Account ID" value={user?.id || ''} mono />
+                  <FieldRow label="Member Since" value={memberSince} />
+                </div>
+              </div>
+
+              {/* Plan */}
+              <div className={cn("p-6 relative overflow-hidden", glassCard)}>
+                <div
+                  className="absolute -top-20 -right-20 w-72 h-72 rounded-full pointer-events-none"
+                  style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.20), transparent 65%)', filter: 'blur(40px)' }}
+                />
+                <div className="relative flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                    <Crown className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">Plan & Credits</h3>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Pay-as-you-go</p>
+                  </div>
+                </div>
+
+                <div className="relative p-5 rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.25)] flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">Personal</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(profile?.credits_balance || 0).toLocaleString()} credits available · ${((profile?.credits_balance || 0) * 0.10).toFixed(2)} value
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setShowBuyModal(true)}
+                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
+                  >
+                    Top up
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left — Achievements & Leaderboard */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Achievements */}
-                <div className={cn("p-6", glassCard)}>
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                        <Trophy className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Achievements</h3>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">{unlockedAchievements.length}/{ACHIEVEMENTS.length} Unlocked</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {ACHIEVEMENTS.map((achievement) => {
-                      const isUnlocked = unlockedAchievements.some(a => a.id === achievement.id);
-                      return (
-                        <div
-                          key={achievement.id}
-                          className={cn(
-                            "relative p-4 rounded-xl border transition-all overflow-hidden",
-                            isUnlocked
-                              ? "bg-[hsla(215,100%,60%,0.08)] border-[hsla(215,100%,60%,0.35)] shadow-[0_10px_30px_-15px_hsla(215,100%,60%,0.6)]"
-                              : "bg-[hsla(220,14%,5%,0.5)] border-white/[0.05] opacity-55"
-                          )}
-                        >
-                          {isUnlocked && (
-                            <div
-                              className="absolute -top-8 -right-8 w-20 h-20 rounded-full pointer-events-none"
-                              style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.35), transparent 65%)', filter: 'blur(12px)' }}
-                            />
-                          )}
-                          <div className={cn(
-                            "relative w-9 h-9 rounded-lg flex items-center justify-center mb-2 border",
-                            isUnlocked
-                              ? "bg-[hsla(215,100%,60%,0.18)] border-[hsla(215,100%,60%,0.45)]"
-                              : "bg-white/5 border-white/10"
-                          )}>
-                            <achievement.icon className={cn("w-4 h-4", isUnlocked ? "text-[hsl(215,100%,75%)]" : "text-foreground/80")} />
-                          </div>
-                          <p className="relative text-xs font-semibold text-foreground truncate">{achievement.name}</p>
-                          <p className="relative text-[10px] text-muted-foreground truncate">{achievement.desc}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Leaderboard */}
-                <div className={cn("p-6", glassCard)}>
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                        <Medal className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Top Creators</h3>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">This Week · Live Ranking</p>
-                      </div>
-                    </div>
-                    <button className="flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-[hsl(215,100%,72%)] transition-colors font-mono">
-                      View all <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {leaderboardLoading ? (
-                      Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-14 rounded-xl bg-white/[0.03]" />
-                      ))
-                    ) : (leaderboard || []).length === 0 ? (
-                      <div className="text-center py-10">
-                        <Trophy className="w-10 h-10 text-foreground/15 mx-auto mb-2" />
-                        <p className="text-sm text-foreground/80">No rankings yet — be the first.</p>
-                      </div>
-                    ) : (
-                      (leaderboard || []).slice(0, 5).map((entry, i) => {
-                        const isCurrentUser = entry.user_id === user?.id;
-                        return (
-                          <div
-                            key={entry.user_id}
-                            className={cn(
-                              "relative flex items-center gap-3 p-3 rounded-xl transition-all border overflow-hidden",
-                              i === 0
-                                ? "bg-[hsla(215,100%,60%,0.08)] border-[hsla(215,100%,60%,0.32)]"
-                                : "bg-[hsla(220,14%,5%,0.5)] border-white/[0.05] hover:border-[hsla(215,100%,60%,0.18)]",
-                              isCurrentUser && "ring-1 ring-[hsla(215,100%,60%,0.5)]"
-                            )}
-                          >
-                            {i === 0 && (
-                              <div
-                                className="absolute -top-6 -right-6 w-20 h-20 rounded-full pointer-events-none"
-                                style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.35), transparent 65%)', filter: 'blur(14px)' }}
-                              />
-                            )}
-                            <div className="relative w-7 text-center">
-                              {i === 0 ? <Crown className="w-4 h-4 text-[hsl(215,100%,75%)] mx-auto" /> :
-                               i === 1 ? <Medal className="w-4 h-4 text-muted-foreground mx-auto" /> :
-                               i === 2 ? <Medal className="w-4 h-4 text-[hsl(215,100%,55%)] mx-auto" /> :
-                               <span className="text-[10px] font-bold text-foreground/80 font-mono">#{i + 1}</span>}
-                            </div>
-
-                            <Avatar className={cn("relative h-9 w-9 border", i === 0 ? "border-[hsla(215,100%,60%,0.45)]" : "border-white/10")}>
-                              <AvatarImage src={entry.avatar_url || undefined} />
-                              <AvatarFallback className="bg-[hsla(215,100%,60%,0.1)] text-[hsl(215,100%,75%)] text-xs">
-                                {entry.display_name?.charAt(0) || '?'}
-                              </AvatarFallback>
-                            </Avatar>
-
-                            <div className="relative flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{entry.display_name || 'Creator'}</p>
-                              <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">{entry.xp_total?.toLocaleString()} XP</p>
-                            </div>
-
-                            <div className="relative flex items-center gap-1 text-[11px] text-[hsl(215,100%,72%)]">
-                              <Flame className="w-3 h-3" />
-                              <span className="font-mono">{entry.current_streak || 0}</span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right — Messages & Recent Activity */}
-              <div className="space-y-6">
+            {/* Messages — private */}
+            <div className="space-y-6">
+              <ErrorBoundary fallback={null}>
                 <MessagesInbox className="h-auto" />
-
-                <div className={cn("p-6", glassCard)}>
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                      <Coins className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Recent Activity</h3>
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Credit Stream</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {loadingTransactions ? (
-                      Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-10 rounded-lg bg-white/[0.03]" />
-                      ))
-                    ) : transactions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-5">No transactions yet</p>
-                    ) : (
-                      transactions.slice(0, 4).map((tx) => (
-                        <div key={tx.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[hsla(220,14%,5%,0.5)] border border-white/[0.04] hover:border-[hsla(215,100%,60%,0.18)] transition-colors">
-                          {getTransactionIcon(tx.transaction_type, tx.amount)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-foreground truncate">{tx.description || tx.transaction_type}</p>
-                            <p className="text-[10px] text-foreground/80 font-mono">{formatRelativeTime(tx.created_at)}</p>
-                          </div>
-                          <span className={cn(
-                            "text-sm font-semibold font-mono",
-                            tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-muted-foreground"
-                          )}>
-                            {tx.amount > 0 ? '+' : ''}{tx.amount}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+              </ErrorBoundary>
             </div>
           </div>
         )}
 
-        {/* ─── ANALYTICS ─── */}
-        {activeTab === 'analytics' && (
+        {/* ─── USAGE & BILLING ─── */}
+        {activeTab === 'usage' && (
           <div className="space-y-6 animate-fade-in">
-            <RealAnalyticsCards analytics={analytics} loading={analyticsLoading} />
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Projects', value: metrics.totalProjects, icon: Video },
-                { label: 'Completed', value: metrics.completedProjects, icon: Target },
-                { label: 'Videos Generated', value: metrics.totalVideosGenerated, icon: Zap },
-                { label: 'Credits Used', value: profile?.total_credits_used || 0, icon: Coins },
-              ].map((stat, i) => (
-                <StatTile key={i} index={i} value={stat.value} label={stat.label} Icon={stat.icon} />
-              ))}
-            </div>
-
             <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">Credit History</h3>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">All transactions</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Credit History</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Recent Transactions</p>
-                </div>
+                <Button variant="ghost" size="sm" onClick={handleExport} className="text-muted-foreground hover:text-[hsl(215,100%,72%)] gap-1.5">
+                  <Download className="w-3.5 h-3.5" /> Export
+                </Button>
               </div>
 
               <div className="space-y-2">
@@ -917,7 +655,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                         <p className="text-[10px] text-muted-foreground font-mono">{formatRelativeTime(tx.created_at)}</p>
                       </div>
                       <span className={cn(
-                        "text-lg font-semibold font-mono",
+                        "text-base font-semibold font-mono tabular-nums",
                         tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-muted-foreground"
                       )}>
                         {tx.amount > 0 ? '+' : ''}{tx.amount}
@@ -927,129 +665,98 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 )}
               </div>
             </div>
+
+            <div className={cn("p-6", glassCard)}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Billing</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Manage payment methods</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                <p className="text-sm text-muted-foreground">Buy more credits or open the secure payment portal.</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/credits')}
+                    className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
+                    Open Credits
+                  </Button>
+                  <Button size="sm" onClick={() => setShowBuyModal(true)}
+                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground">
+                    Buy Credits
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ─── SETTINGS ─── */}
-        {activeTab === 'settings' && (
+        {/* ─── SECURITY ─── */}
+        {activeTab === 'security' && (
           <div className="space-y-6 animate-fade-in">
             <div className={cn("p-6", glassCard)}>
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <User className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                  <KeyRound className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Profile Settings</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Account Identity</p>
+                  <h3 className="font-semibold text-foreground">Password</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Account access</p>
                 </div>
               </div>
-
-              <div className="space-y-3">
-                {/* Picture */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10 ring-1 ring-[hsla(215,100%,60%,0.25)]">
-                      <AvatarImage src={profile?.avatar_url || undefined} />
-                      <AvatarFallback className="bg-[hsla(215,100%,60%,0.12)] text-[hsl(215,100%,75%)] text-sm">
-                        {profile?.display_name?.charAt(0) || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Profile Picture</p>
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">JPG · PNG · 5MB MAX</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost" size="sm"
-                    className="text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                  >
-                    {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                  </Button>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Reset password</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">We'll email a secure link to {user?.email}</p>
                 </div>
-
-                {/* Display Name */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div className="flex-1 mr-3">
-                    <p className="text-sm font-medium text-foreground">Display Name</p>
-                    {editingName ? (
-                      <input
-                        autoFocus
-                        className="mt-1 w-full bg-[hsla(220,14%,3%,0.8)] border border-[hsla(215,100%,60%,0.3)] rounded-lg px-3 py-1.5 text-sm text-foreground outline-none focus:border-[hsl(215,100%,60%)] focus:ring-2 focus:ring-[hsla(215,100%,60%,0.2)] transition-all"
-                        value={nameValue}
-                        onChange={(e) => setNameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveName();
-                          if (e.key === 'Escape') setEditingName(false);
-                        }}
-                        maxLength={50}
-                      />
-                    ) : (
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">{profile?.display_name || 'Not set'}</p>
-                    )}
-                  </div>
-                  {editingName ? (
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="text-[hsl(150,80%,60%)] hover:text-[hsl(150,80%,70%)]" onClick={handleSaveName} disabled={savingName}>
-                        {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : '✓'}
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-foreground/80 hover:text-foreground" onClick={() => setEditingName(false)}>✕</Button>
-                    </div>
-                  ) : (
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]" onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Email</p>
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">{user?.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Member Since</p>
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">
-                      {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}
-                    </p>
-                  </div>
-                </div>
+                <Button size="sm" variant="outline" onClick={handlePasswordReset} disabled={sendingReset}
+                  className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
+                  {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send link'}
+                </Button>
               </div>
             </div>
 
-            {/* Account Tier */}
-            <div className={cn("p-6 relative overflow-hidden", glassCard)}>
-              <div
-                className="absolute -top-20 -right-20 w-72 h-72 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.22), transparent 65%)', filter: 'blur(40px)' }}
-              />
-              <div className="relative flex items-center gap-3 mb-5">
+            <div className={cn("p-6", glassCard)}>
+              <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Crown className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                  <Settings className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Account Tier</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Current Plan</p>
+                  <h3 className="font-semibold text-foreground">Sessions & Data</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Privacy controls</p>
                 </div>
               </div>
-
-              <div className="relative p-5 rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.25)]">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
                   <div>
-                    <p className="text-2xl font-bold text-foreground capitalize">Free</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {profile?.credits_balance || 0} credits available
-                    </p>
+                    <p className="text-sm font-medium text-foreground">Export account data</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Download your identity, credits and transactions</p>
                   </div>
-                  <Button
-                    onClick={() => setShowBuyModal(true)}
-                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
-                  >
-                    Upgrade
+                  <Button size="sm" variant="outline" onClick={handleExport}
+                    className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)] gap-1.5">
+                    <Download className="w-3.5 h-3.5" /> Export
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Sign out everywhere</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">End this session and return to sign-in</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => signOut?.()}
+                    className="border-[hsla(0,70%,50%,0.3)] text-[hsl(0,70%,70%)] hover:bg-[hsla(0,70%,50%,0.08)] gap-1.5">
+                    <LogOut className="w-3.5 h-3.5" /> Sign out
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(0,70%,50%,0.05)] border border-[hsla(0,70%,50%,0.18)]">
+                  <div>
+                    <p className="text-sm font-medium text-[hsl(0,70%,75%)]">Deactivate account</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your account and all data</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/settings/deactivate')}
+                    className="border-[hsla(0,70%,50%,0.4)] text-[hsl(0,70%,75%)] hover:bg-[hsla(0,70%,50%,0.12)]">
+                    Deactivate
                   </Button>
                 </div>
               </div>
@@ -1057,12 +764,12 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           </div>
         )}
 
-        {/* ─── Signature footer plate ─── */}
-        <div className="relative pt-4 pb-2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        {/* ─── Footer plate ─── */}
+        <div className="relative pt-4 pb-2 flex flex-col items-center gap-2 animate-fade-in">
           <div className="h-px w-32" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,68%,0.6), transparent)' }} />
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-mono">
             <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
-            APEX STUDIO · CREATOR MEMBRANE · ENC-{(user?.id || '').slice(0, 4).toUpperCase()}
+            APEX STUDIO · PRIVATE ACCOUNT · ENC-{(user?.id || '').slice(0, 4).toUpperCase()}
             <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite', animationDelay: '0.6s' }} />
           </div>
         </div>
@@ -1072,6 +779,18 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     </div>
   );
 }));
+
+function FieldRow({ label, value, mono, action }: { label: string; value: string; mono?: boolean; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mb-1">{label}</p>
+        <p className={cn("text-sm text-foreground truncate", mono && "font-mono text-xs")}>{value}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
 
 function Profile() {
   return (

@@ -1092,7 +1092,12 @@ function SceneEditor({ scene, cast, active, onSelect, onPatch, onRemove, onRende
       <div className="mt-3 flex flex-wrap gap-2">
         <MiniSelect value={scene.lens} options={["wide", "medium", "close", "macro", "aerial"]} onChange={(v) => onPatch({ lens: v as SceneDraft["lens"] })} />
         <MiniSelect value={scene.move} options={["static", "dolly", "pan", "tilt", "handheld", "crane"]} onChange={(v) => onPatch({ move: v as SceneDraft["move"] })} />
-        <MiniSelect value={String(scene.duration)} options={["5", "10", "15"]} suffix="s" onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 12 | 15 })} />
+        <MiniSelect
+          value={String(scene.duration)}
+          options={ENGINES[scene.engine || "kling-v3"].durations.map(String)}
+          suffix="s"
+          onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 12 | 15 })}
+        />
       </div>
     </div>
   );

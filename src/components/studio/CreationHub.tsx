@@ -789,10 +789,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       icon={ASPECT_RATIOS.find(a => a.id === aspectRatio)?.icon || RectangleHorizontal}
                       label={aspectRatio}
                       onClick={() => {
-                        const idx = ASPECT_RATIOS.findIndex(a => a.id === aspectRatio);
-                        setAspectRatio(ASPECT_RATIOS[(idx + 1) % ASPECT_RATIOS.length].id);
+                        // Cycle ONLY through aspect ratios the engine actually supports.
+                        const legal = aspectOptions;
+                        if (legal.length === 0) return;
+                        const idx = legal.findIndex(a => a.id === aspectRatio);
+                        setAspectRatio(legal[(idx + 1) % legal.length].id);
                       }}
-                      title="Aspect ratio"
+                      title={`Aspect ratio (${engineCaps.label} supports ${engineCaps.aspectRatios.join(', ')})`}
                     />
                     <ControlPill
                       icon={Hash}

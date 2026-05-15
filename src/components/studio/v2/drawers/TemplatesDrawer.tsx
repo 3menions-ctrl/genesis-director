@@ -36,6 +36,18 @@ import scrollGrabImg from "@/assets/templates/scroll-grab.jpg";
 import freezeWalkImg from "@/assets/templates/freeze-walk.jpg";
 import realityRipImg from "@/assets/templates/reality-rip.jpg";
 import aspectEscapeImg from "@/assets/templates/aspect-escape.jpg";
+import cyberpunkChaseImg from "@/assets/templates/cyberpunk-chase.jpg";
+import noirMonologueImg from "@/assets/templates/noir-monologue.jpg";
+import animeOpeningImg from "@/assets/templates/anime-opening.jpg";
+import natureDocumentaryImg from "@/assets/templates/nature-documentary.jpg";
+import fashionRunwayImg from "@/assets/templates/fashion-runway.jpg";
+import horrorColdOpenImg from "@/assets/templates/horror-cold-open.jpg";
+import sportsHypeImg from "@/assets/templates/sports-hype.jpg";
+import newsBroadcastImg from "@/assets/templates/news-broadcast.jpg";
+import realEstateTourImg from "@/assets/templates/real-estate-tour.jpg";
+import cookingReelImg from "@/assets/templates/cooking-reel.jpg";
+import weddingCinematicImg from "@/assets/templates/wedding-cinematic.jpg";
+import gamingTrailerImg from "@/assets/templates/gaming-trailer.jpg";
 
 interface ProjectTemplateRow {
   id: string;
@@ -123,6 +135,18 @@ const TEMPLATE_THUMBNAILS: Record<string, string> = {
   "science-demo": scienceDemoImg,
   "course-trailer": courseTrailerImg,
   "exam-cram": examCramImg,
+  "cyberpunk-chase": cyberpunkChaseImg,
+  "noir-monologue": noirMonologueImg,
+  "anime-opening": animeOpeningImg,
+  "nature-documentary": natureDocumentaryImg,
+  "fashion-runway": fashionRunwayImg,
+  "horror-cold-open": horrorColdOpenImg,
+  "sports-hype": sportsHypeImg,
+  "news-broadcast": newsBroadcastImg,
+  "real-estate-tour": realEstateTourImg,
+  "cooking-reel": cookingReelImg,
+  "wedding-cinematic": weddingCinematicImg,
+  "gaming-trailer": gamingTrailerImg,
 };
 
 interface Props {

@@ -408,7 +408,7 @@ export const EXTENDED_ENVIRONMENTS: ExtendedEnvironment[] = [
     category: 'interior', image: u('1497366216548-37526070297c'),
     lighting: { type:'mixed', direction:'overhead', intensity:'bright', temperature:'neutral', timeOfDay:'midday' },
     colorPalette: { primary:'#E8E4DC', secondary:'#A89578', accent:'#1E8AA8', shadows:'#3A3A35' },
-    mood: 'productive', icon: Briefcase = Building2 as any ?? Building2 },
+    mood: 'productive', icon: Building2 },
 
   { id: 'medical_lab_bright', name: 'Medical Lab', description: 'Stainless steel, white surfaces, cool overhead lights.',
     category: 'interior', image: u('1576091160550-2173dba999ef'),

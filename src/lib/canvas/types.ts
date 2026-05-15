@@ -21,14 +21,14 @@ export interface ReplicateModelRef {
   category?: 'video' | 'image' | 'audio' | 'other';
 }
 
-export interface ModelNodeData {
+export interface ModelNodeData extends Record<string, unknown> {
   kind: 'model';
   label: string;
   model?: ReplicateModelRef;
   inputs?: Record<string, unknown>;
 }
 
-export interface AvatarNodeData {
+export interface AvatarNodeData extends Record<string, unknown> {
   kind: 'avatar';
   label: string;
   avatarId?: string;
@@ -36,7 +36,7 @@ export interface AvatarNodeData {
   name?: string;
 }
 
-export interface EnvironmentNodeData {
+export interface EnvironmentNodeData extends Record<string, unknown> {
   kind: 'environment';
   label: string;
   prompt?: string;
@@ -47,14 +47,14 @@ export interface DialogueLine {
   speaker: string; // matches an Avatar node label
   text: string;
 }
-export interface DialogueNodeData {
+export interface DialogueNodeData extends Record<string, unknown> {
   kind: 'dialogue';
   label: string;
   mode: 'storyboard' | 'conversation';
   lines: DialogueLine[];
 }
 
-export interface AudioNodeData {
+export interface AudioNodeData extends Record<string, unknown> {
   kind: 'audio';
   label: string;
   source: 'musicgen' | 'elevenlabs' | 'upload';
@@ -62,14 +62,14 @@ export interface AudioNodeData {
   url?: string;
 }
 
-export interface SceneNodeData {
+export interface SceneNodeData extends Record<string, unknown> {
   kind: 'scene';
   label: string;
   duration: number; // seconds
   cameraNote?: string;
 }
 
-export interface RenderNodeData {
+export interface RenderNodeData extends Record<string, unknown> {
   kind: 'render';
   label: string;
   status?: 'idle' | 'queued' | 'running' | 'done' | 'error';

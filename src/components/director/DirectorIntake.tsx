@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, FileText, ImageIcon, GitBranch, ChevronRight, ChevronLeft,
@@ -187,7 +188,7 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -663,6 +664,8 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
         </div>
       </motion.div>
     </AnimatePresence>
+  ,
+    document.body,
   );
 }
 

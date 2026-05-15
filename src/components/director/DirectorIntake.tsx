@@ -222,16 +222,66 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
             <Clapperboard className="h-4 w-4 text-[#0A84FF]" />
             <span className="text-[10px] tracking-[0.32em]" style={MONO}>DIRECTOR STUDIO / INTAKE</span>
           </div>
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-white/40 hover:text-white/80 transition-colors"
-              aria-label="Cancel"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {savedAt && !pendingDraft && (
+              <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/35 tracking-widest" style={MONO}>
+                <Save className="h-3 w-3" /> DRAFT SAVED · {formatRelative(savedAt).toUpperCase()}
+              </span>
+            )}
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                className="text-white/40 hover:text-white/80 transition-colors"
+                aria-label="Cancel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Resume draft banner */}
+        {pendingDraft && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-10 mx-8 mb-2 border border-[#0A84FF]/40 bg-[#0A84FF]/[0.06] backdrop-blur-sm"
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF] shadow-[0_0_10px_2px_rgba(10,132,255,0.7)]" />
+            <div className="flex items-center justify-between gap-4 px-5 py-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <RotateCcw className="h-4 w-4 text-[#0A84FF] shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-white text-sm" style={SERIF}>
+                    Resume your draft
+                    {pendingDraft.data.title && (
+                      <span className="text-white/55 italic"> — “{pendingDraft.data.title}”</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-white/45 tracking-widest" style={MONO}>
+                    SAVED {formatRelative(pendingDraft.savedAt).toUpperCase()} · STEP {String(pendingDraft.step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={discardDraft}
+                  className="h-9 px-4 text-[10px] tracking-[0.28em] text-white/60 hover:text-white border border-white/10 hover:border-white/30 transition-all"
+                  style={MONO}
+                >
+                  START OVER
+                </button>
+                <button
+                  onClick={resumeDraft}
+                  className="h-9 px-4 text-[10px] tracking-[0.28em] bg-[#0A84FF] text-white hover:shadow-[0_0_18px_rgba(10,132,255,0.55)] transition-all"
+                  style={MONO}
+                >
+                  RESUME
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Stepper */}
         <div className="relative z-10 px-8">

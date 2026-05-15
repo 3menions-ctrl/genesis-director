@@ -37,9 +37,10 @@ import steampunkLabImg from '@/assets/environments/steampunk-lab.jpg';
 import cloudNineImg from '@/assets/environments/cloud-nine.jpg';
 import zenGardenImg from '@/assets/environments/zen-garden.jpg';
 import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
+import { EXTENDED_ENVIRONMENTS } from '@/data/environment-extensions';
 
 // Environment presets with unique epic ideas - 20 stunning environments
-const ENVIRONMENT_PRESETS = [
+const BASE_PRESETS = [
   // TRENDING - What creators love
   {
     id: 'golden_hour_magic',
@@ -283,6 +284,9 @@ const ENVIRONMENT_PRESETS = [
     is_popular: true,
   },
 ];
+
+// Hand-curated 20 + 100 cinematic atmospheres from Unsplash CDN
+const ENVIRONMENT_PRESETS = [...BASE_PRESETS, ...EXTENDED_ENVIRONMENTS] as any[];
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Palette },

@@ -40,10 +40,10 @@ const MASCOTS: Mascot[] = [
 ];
 
 const PACK_FILTERS = [
-  { value: 'all',         label: 'All' },
-  { value: 'food-truck',  label: 'Food Truck' },
-  { value: 'cereal-box',  label: 'Cereal Box' },
-  { value: 'indie-game',  label: 'Indie Heroes' },
+  { key: 'all',         label: 'All' },
+  { key: 'food-truck',  label: 'Food Truck' },
+  { key: 'cereal-box',  label: 'Cereal Box' },
+  { key: 'indie-game',  label: 'Indie Heroes' },
 ] as const;
 
 export default function Mascots() {
@@ -66,10 +66,10 @@ export default function Mascots() {
           </Button>
         }
         toolbar={
-          <SegmentedControl
+          <SegmentedControl<Pack>
             value={filter}
-            onValueChange={(v) => setFilter(v as Pack)}
-            items={PACK_FILTERS as unknown as { value: string; label: string }[]}
+            onChange={setFilter}
+            items={PACK_FILTERS as unknown as { key: Pack; label: string }[]}
           />
         }
       />

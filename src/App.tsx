@@ -132,6 +132,7 @@ const Production = lazy(() => import("./pages/Production"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
+const Mascots = lazy(() => import("./pages/Mascots"));
 // Discover removed - redirects to /creators
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
@@ -548,6 +549,15 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading environments...">
                     <ProtectedRoute>
                       <AppShell><Environments /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+
+                {/* Brand Mascot Pack */}
+                <Route path="/mascots" element={
+                  <RouteContainer fallbackMessage="Loading mascot pack...">
+                    <ProtectedRoute>
+                      <AppShell><Mascots /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

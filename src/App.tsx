@@ -133,6 +133,7 @@ const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
 const Mascots = lazy(() => import("./pages/Mascots"));
+const AvatarsGallery = lazy(() => import("./pages/AvatarsGallery"));
 // Discover removed - redirects to /creators
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
@@ -558,6 +559,15 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading mascot pack...">
                     <ProtectedRoute>
                       <AppShell><Mascots /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+
+                {/* Avatar Gallery — style-tagged cast */}
+                <Route path="/avatars-gallery" element={
+                  <RouteContainer fallbackMessage="Loading avatar gallery...">
+                    <ProtectedRoute>
+                      <AppShell><AvatarsGallery /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

@@ -1,5 +1,5 @@
 import { listEngines, type EngineId, type EngineSpec } from "@/lib/video/engines";
-import { Check, Zap, Volume2, Image as ImageIcon, Lock } from "lucide-react";
+import { Check, Zap, Volume2, Image as ImageIcon, Lock, Film, Layers, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TIER_CHIP: Record<string, string> = {
@@ -76,11 +76,28 @@ function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpe
             {engine.requiresEntitlement && <Lock className="w-3 h-3 text-amber-400" />}
           </div>
           <p className="text-[13px] text-white/50 leading-relaxed">{engine.description}</p>
+          <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-white/[0.06] bg-black/30 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+            <Layers className="h-3 w-3 text-[#0A84FF]" /> {engine.pipelineId}
+            <span className="text-white/25">·</span>
+            <span className="text-white/40 normal-case tracking-normal">{engine.pipelineFunction}()</span>
+          </div>
           <div className="flex flex-wrap items-center gap-3 mt-3">
             <Badge icon={<Zap className="w-3 h-3" />} label={`~${Math.round(engine.etaSeconds)}s`} />
             {engine.supportsAudio && <Badge icon={<Volume2 className="w-3 h-3" />} label="audio" />}
             {engine.supportsImageInput && <Badge icon={<ImageIcon className="w-3 h-3" />} label="image-input" />}
             <Badge label={`${engine.durations.join("/")}s`} />
+            <Badge icon={<Film className="w-3 h-3" />} label={`${engine.recommendedScenes}/${engine.maxScenesPerProject} scenes`} />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {engine.qualityProfiles.map(q => (
+              <span key={q.id} className={cn(
+                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-wider",
+                q.recommended ? "border-[#0A84FF]/40 bg-[#0A84FF]/[0.08] text-[#9DCBFF]" : "border-white/[0.06] bg-white/[0.02] text-white/45",
+              )}>
+                {q.recommended && <Sparkles className="h-3 w-3" />}
+                {q.resolution} · {q.fps}fps
+              </span>
+            ))}
           </div>
         </div>
         <div className="text-right shrink-0">

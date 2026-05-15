@@ -34,7 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, type EngineId } from "@/lib/video/engines";
+import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, type EngineId } from "@/lib/video/engines";
+import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";
@@ -73,7 +74,7 @@ function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
     location: s.location || s.heading || `SCENE ${index + 1}`,
     beat: s.beat || s.action || s.description || draft.brief.logline || "",
     dialogue: s.dialogue || "",
-    duration: (s.duration && [5, 10, 15].includes(Number(s.duration)) ? Number(s.duration) : draft.defaults.duration) as 5 | 10 | 15,
+    duration: (s.duration && [5, 10, 15].includes(Number(s.duration)) ? Number(s.duration) : draft.defaults.duration) as 5 | 10 | 12 | 15,
     lens: s.lens || "medium",
     move: s.move || "dolly",
     speakerId: draft.cast[0]?.id,
@@ -115,7 +116,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
         location: shot.title || `SCENE ${index + 1}`,
         beat: shot.description || pick.logline,
         dialogue: shot.dialogue || "",
-        duration: ([5, 10, 15].includes(Number(shot.durationSeconds)) ? Number(shot.durationSeconds) : draft.defaults.duration) as 5 | 10 | 15,
+        duration: ([5, 10, 15].includes(Number(shot.durationSeconds)) ? Number(shot.durationSeconds) : draft.defaults.duration) as 5 | 10 | 12 | 15,
         lens: lensMap[cameraScale] || "medium",
         move: moveMap[movement] || "dolly",
         speakerId: draft.cast[0]?.id,
@@ -138,9 +139,11 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 }
 
 export default function StudioShell() {
-  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive } = useStudioDraft();
+  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
-  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene);
+  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
+  const { data: cinemaEntitlement } = useCinemaEntitlement();
+  const hasCinema = !!cinemaEntitlement?.hasEntitlement;
   const [drawer, setDrawer] = useState<DrawerKey>(null);
   const [step, setStep] = useState<StepId>("start");
   const [autoBusy, setAutoBusy] = useState(false);
@@ -160,13 +163,13 @@ export default function StudioShell() {
 
   const renderedCount = draft.scenes.filter(s => s.clipUrl).length;
   const totalCost = useMemo(() => draft.scenes.reduce((acc, scene) => {
-    const engine = ENGINES[scene.engine || draft.defaults.engine];
+    const engineId = scene.engine || draft.defaults.engine;
     try {
-      return acc + engine.baseCreditsFor(scene.duration);
+      return acc + creditsForScene(engineId, scene.duration, draft.defaults.qualityProfileId);
     } catch {
       return acc;
     }
-  }, 0), [draft.scenes, draft.defaults.engine]);
+  }, 0), [draft.scenes, draft.defaults.engine, draft.defaults.qualityProfileId]);
 
   const canGenerateScript = Boolean(draft.brief.logline.trim() || draft.brief.refImageUrl || draft.brief.templateId);
   const canRender = draft.scenes.length > 0 && (draft.brief.logline.trim() || draft.scenes.some(s => s.beat || s.dialogue));
@@ -291,13 +294,43 @@ export default function StudioShell() {
       toast.error("Create or write scenes first");
       return;
     }
+    // ── Cinema entitlement gate ──
+    const blocking = draft.scenes.find(s => {
+      const eid = s.engine || draft.defaults.engine;
+      return ENGINES[eid].requiresEntitlement === "studio_cinema" && !hasCinema;
+    });
+    if (blocking) {
+      toast.error("Cinema engine requires a Studio Cinema subscription", {
+        description: "Switch to Kling V3 / Seedance, or upgrade to unlock Veo, Runway and Sora.",
+        action: { label: "Upgrade", onClick: () => navigate("/credits") },
+      });
+      return;
+    }
+    // ── Pre-flight credit check ──
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("credits_balance")
+          .eq("id", user.id)
+          .maybeSingle();
+        const balance = (profile as any)?.credits_balance ?? 0;
+        if (balance < totalCost) {
+          toast.error(`Insufficient credits — ${totalCost} required, ${balance} available`, {
+            action: { label: "Buy credits", onClick: () => navigate("/credits") },
+          });
+          return;
+        }
+      }
+    } catch { /* non-fatal — server enforces final deduct */ }
     setStep("clips");
     for (const scene of draft.scenes) {
       if (!scene.clipUrl && scene.status !== "generating") {
         await generateScene(scene.id);
       }
     }
-  }, [canRender, draft.scenes, generateScene]);
+  }, [canRender, draft.scenes, draft.defaults.engine, generateScene, hasCinema, navigate, totalCost]);
 
   const autoCreate = useCallback(async () => {
     if (!draft.scenes.length) {
@@ -629,6 +662,7 @@ export default function StudioShell() {
                     {/* ============= ENGINE PILL RAIL ============= */}
                     <EnginePillRail
                       selected={draft.defaults.engine}
+                      hasCinema={hasCinema}
                       onSelect={(id) => setDraft(d => ({ ...d, defaults: { ...d.defaults, engine: id }, scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })) }))}
                       onMore={() => setDrawer("engines")}
                     />
@@ -827,10 +861,19 @@ export default function StudioShell() {
         <EnginesDrawerContent
           selected={draft.defaults.engine}
           duration={draft.defaults.duration}
+          hasCinema={hasCinema}
           onSelect={(id) => {
+            const target = ENGINES[id];
+            if (target.requiresEntitlement === "studio_cinema" && !hasCinema) {
+              toast.error(`${target.shortLabel} requires Studio Cinema`, {
+                description: "Upgrade to unlock Veo, Runway and Sora.",
+                action: { label: "Upgrade", onClick: () => navigate("/credits") },
+              });
+              return;
+            }
             setDraft(d => {
               const spec = ENGINES[id];
-              const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 15;
+              const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
               const profile = defaultQualityProfile(id);
               // Clamp scenes to engine's per-project cap and re-clamp each scene's duration.
               const clampedScenes = d.scenes
@@ -838,7 +881,7 @@ export default function StudioShell() {
                 .map(scene => ({
                   ...scene,
                   engine: id,
-                  duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 15,
+                  duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
                 }));
               return {
                 ...d,
@@ -1049,7 +1092,12 @@ function SceneEditor({ scene, cast, active, onSelect, onPatch, onRemove, onRende
       <div className="mt-3 flex flex-wrap gap-2">
         <MiniSelect value={scene.lens} options={["wide", "medium", "close", "macro", "aerial"]} onChange={(v) => onPatch({ lens: v as SceneDraft["lens"] })} />
         <MiniSelect value={scene.move} options={["static", "dolly", "pan", "tilt", "handheld", "crane"]} onChange={(v) => onPatch({ move: v as SceneDraft["move"] })} />
-        <MiniSelect value={String(scene.duration)} options={["5", "10", "15"]} suffix="s" onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 15 })} />
+        <MiniSelect
+          value={String(scene.duration)}
+          options={ENGINES[scene.engine || "kling-v3"].durations.map(String)}
+          suffix="s"
+          onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 12 | 15 })}
+        />
       </div>
     </div>
   );
@@ -1152,7 +1200,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 // Runway and Sora directly on Step 1 so users never have to hunt for the
 // engine drawer. Each pill is glassmorphic with a tier dot and live cost.
 // ============================================================================
-function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; onSelect: (id: EngineId) => void; onMore: () => void }) {
+function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: EngineId; onSelect: (id: EngineId) => void; onMore: () => void; hasCinema?: boolean }) {
   const engines = listEngines({ healthyOnly: false });
   const tierColor: Record<string, string> = {
     standard: "bg-foreground/40",
@@ -1174,6 +1222,7 @@ function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; on
       <div className="flex flex-wrap gap-2.5">
         {engines.map((e) => {
           const active = selected === e.id;
+          const locked = e.requiresEntitlement === "studio_cinema" && !hasCinema;
           let cost: number | null = null;
           try { cost = e.baseCreditsFor(e.durations[0]); } catch { cost = null; }
           return (
@@ -1181,16 +1230,19 @@ function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; on
               key={e.id}
               onClick={() => onSelect(e.id)}
               disabled={!e.healthy}
+              title={locked ? `${e.shortLabel} requires Studio Cinema` : undefined}
               className={cn(
                 "group relative inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm transition-all",
                 active
                   ? "border-accent bg-accent/[0.08] text-foreground shadow-[0_0_24px_hsl(var(--accent)/0.35)]"
                   : "border-border/60 bg-background/30 text-muted-foreground hover:border-foreground/30 hover:bg-background/50 hover:text-foreground",
                 !e.healthy && "cursor-not-allowed opacity-30",
+                locked && "opacity-60",
               )}
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", tierColor[e.tier] || "bg-foreground/40")} />
               <span className="font-display text-[15px] italic">{e.shortLabel}</span>
+              {locked && <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-amber-400/80">PRO</span>}
               {cost != null && (
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground/60">
                   {cost}c

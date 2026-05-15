@@ -308,3 +308,44 @@ export function defaultQualityProfile(id: EngineId): QualityProfile {
   const spec = ENGINES[id];
   return spec.qualityProfiles.find(q => q.recommended) ?? spec.qualityProfiles[0];
 }
+
+/**
+ * Translate the kebab frontend EngineId to the legacy backend token expected by
+ * `generate-single-clip` / `hollywood-pipeline` (`kling | seedance | veo`).
+ * Cinema-tier engines without a dedicated backend branch (Runway, Sora) fall
+ * back to `kling` so the request can still complete — UI gating must prevent
+ * those selections when the entitlement is missing.
+ */
+export function engineToBackend(id: EngineId): 'kling' | 'seedance' | 'veo' {
+  switch (id) {
+    case 'seedance-2':  return 'seedance';
+    case 'veo-3':       return 'veo';
+    case 'runway-gen4': return 'veo';   // closest cinema sibling until native branch ships
+    case 'sora-2':      return 'veo';   // ditto
+    case 'kling-v3':
+    default:            return 'kling';
+  }
+}
+
+/**
+ * Resolve a quality profile by id (fallback to the engine default).
+ */
+export function getQualityProfile(id: EngineId, profileId?: string): QualityProfile {
+  const spec = ENGINES[id];
+  return spec.qualityProfiles.find(q => q.id === profileId) ?? defaultQualityProfile(id);
+}
+
+/**
+ * Total credits for one scene at the given duration on the given engine,
+ * including the active quality profile's surcharges. Throws on unsupported
+ * duration (caller should clamp first via `clampDurationForEngine`).
+ */
+export function creditsForScene(
+  id: EngineId,
+  duration: number,
+  profileId?: string,
+): number {
+  const spec = ENGINES[id];
+  const profile = getQualityProfile(id, profileId);
+  return creditsFor(spec, duration, profile.options);
+}

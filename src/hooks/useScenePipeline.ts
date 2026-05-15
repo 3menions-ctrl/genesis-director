@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SceneDraft, StudioDraft } from "@/components/studio/v2/types";
+import { engineToBackend, getQualityProfile, creditsForScene, ENGINES } from "@/lib/video/engines";
 
 /**
  * Per-scene generate / poll. Server-side does the actual credit deduction
@@ -10,6 +11,7 @@ import type { SceneDraft, StudioDraft } from "@/components/studio/v2/types";
 export function useScenePipeline(
   draft: StudioDraft,
   patchScene: (id: string, patch: Partial<SceneDraft>) => void,
+  ensureProjectId: () => Promise<string>,
 ) {
   const polling = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
@@ -56,27 +58,48 @@ export function useScenePipeline(
 
     patchScene(sceneId, { status: "queued" });
     try {
+      // ── Ensure backend project exists (engine lock, mutex, credits) ──
+      const projectId = await ensureProjectId();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in to render");
+
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
+      const engineId = scene.engine || sourceDraft.defaults.engine;
+      const engineSpec = ENGINES[engineId];
+      const backendEngine = engineToBackend(engineId);
+      const profile = getQualityProfile(engineId, sourceDraft.defaults.qualityProfileId);
+      const isAvatarMode = !!cast?.imageUrl;
+
       const promptParts = [
         scene.location,
         scene.beat || sourceDraft.brief.logline,
         sourceDraft.brief.style ? `Style: ${sourceDraft.brief.style}` : "",
+        sourceDraft.brief.styleModifier ? sourceDraft.brief.styleModifier : "",
         scene.dialogue ? `Dialogue: "${scene.dialogue}"` : "",
       ].filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("generate-single-clip", {
         body: {
+          projectId,
+          userId: user.id,
+          shotIndex: scene.index,
+          totalClips: sourceDraft.scenes.length,
           prompt: promptParts.join(". "),
           dialogue: scene.dialogue,
-          duration: scene.duration,
-          aspect_ratio: sourceDraft.defaults.aspect,
-          engine: scene.engine || sourceDraft.defaults.engine,
+          durationSeconds: scene.duration,
+          aspectRatio: sourceDraft.defaults.aspect,
+          videoEngine: backendEngine,
+          isAvatarMode,
+          qualityOptions: profile.options,
+          qualityProfileId: profile.id,
+          estimatedCredits: (() => { try { return creditsForScene(engineId, scene.duration, profile.id); } catch { return engineSpec.baseCreditsFor(engineSpec.durations[0]); } })(),
           startImageUrl: scene.refImageUrl || sourceDraft.brief.refImageUrl || cast?.imageUrl,
           voiceId: cast?.voiceId || sourceDraft.defaults.voiceId,
           characterName: cast?.name,
           lens: scene.lens,
           cameraMove: scene.move,
-          mode: cast?.imageUrl ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+          mode: isAvatarMode ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+          source: "studio-v2",
         },
       });
       if (error) throw error;
@@ -94,7 +117,7 @@ export function useScenePipeline(
       patchScene(sceneId, { status: "failed" });
       toast.error(e?.message || "Failed to start generation");
     }
-  }, [draft, patchScene, pollPrediction]);
+  }, [draft, patchScene, pollPrediction, ensureProjectId]);
 
   const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
 

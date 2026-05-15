@@ -23,7 +23,7 @@ export interface SceneDraft {
   speakerId?: string;     // CastMember.id
   lens: "wide" | "medium" | "close" | "macro" | "aerial";
   move: "static" | "dolly" | "pan" | "tilt" | "handheld" | "crane";
-  duration: 5 | 10 | 15;
+  duration: 5 | 10 | 12 | 15;
   engine?: EngineId;      // override of project default
   refImageUrl?: string;
   clipUrl?: string;       // rendered HLS or mp4
@@ -47,7 +47,7 @@ export interface StudioBrief {
 export interface StudioDefaults {
   engine: EngineId;
   aspect: "16:9" | "9:16" | "1:1" | "21:9";
-  duration: 5 | 10 | 15;
+  duration: 5 | 10 | 12 | 15;
   voiceId?: string;
   mode: "auto" | "director";
   /** Selected quality profile id (resolves to engine.qualityProfiles entry). */
@@ -68,6 +68,9 @@ export interface StudioDraft {
   scenes: SceneDraft[];
   audio: StudioAudio;
   activeSceneId?: string;
+  /** Lazy-bound `movie_projects.id` — created on first generate so backend
+   *  pipelines (engine lock, mutex, credits, watchdog) can attach. */
+  projectId?: string;
 }
 
 export const EMPTY_DRAFT: StudioDraft = {

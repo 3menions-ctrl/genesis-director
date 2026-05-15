@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { EMPTY_DRAFT, newScene, type StudioDraft } from "@/components/studio/v2/types";
+import { engineToBackend } from "@/lib/video/engines";
 
 const LS_KEY = "studio:v2:draft";
 
@@ -99,5 +100,42 @@ export function useStudioDraft() {
 
   const setActive = useCallback((id?: string) => update(d => ({ ...d, activeSceneId: id })), [update]);
 
-  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, setActive };
+  /**
+   * Lazily ensure a `movie_projects` row exists for this draft and return its
+   * id. Generation pipelines (`generate-single-clip`, `hollywood-pipeline`)
+   * require a projectId; the engine lock, mutex, and credit accounting all
+   * key off it. We create it on first render to avoid charging users for an
+   * empty project.
+   */
+  const ensureProjectId = useCallback(async (): Promise<string> => {
+    // 1. Already bound — return immediately.
+    if (draft.projectId) return draft.projectId;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Sign in to start a render");
+
+    const backendEngine = engineToBackend(draft.defaults.engine);
+    const title = (draft.brief.title || "Untitled film").slice(0, 120);
+
+    const { data: row, error } = await supabase
+      .from("movie_projects")
+      .insert({
+        user_id: user.id,
+        title,
+        video_engine: backendEngine,
+        engine: draft.defaults.engine,
+        aspect_ratio: draft.defaults.aspect,
+        mode: draft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+        status: "draft",
+        synopsis: draft.brief.logline?.slice(0, 500) || null,
+      })
+      .select("id")
+      .single();
+    if (error || !row) throw error || new Error("Could not create project");
+
+    update(d => ({ ...d, projectId: row.id }));
+    return row.id;
+  }, [draft.projectId, draft.defaults.engine, draft.defaults.aspect, draft.brief.title, draft.brief.logline, draft.brief.refImageUrl, update]);
+
+  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId };
 }

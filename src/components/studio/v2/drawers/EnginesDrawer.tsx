@@ -10,11 +10,12 @@ const TIER_CHIP: Record<string, string> = {
 
 interface Props {
   selected?: EngineId;
-  duration?: 5 | 10 | 15;
+  duration?: 5 | 10 | 12 | 15;
+  hasCinema?: boolean;
   onSelect: (id: EngineId) => void;
 }
 
-export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Props) {
+export function EnginesDrawerContent({ selected, duration = 10, hasCinema = false, onSelect }: Props) {
   const engines = listEngines({ healthyOnly: false });
 
   return (
@@ -47,7 +48,7 @@ export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Prop
             <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-white/30">{engines.filter(e => e.tier === tier).length} engines</span>
           </div>
           {engines.filter(e => e.tier === tier).map(e => (
-            <EngineRow key={e.id} engine={e} selected={selected === e.id} duration={duration} onSelect={() => onSelect(e.id)} />
+            <EngineRow key={e.id} engine={e} selected={selected === e.id} duration={duration} locked={!!e.requiresEntitlement && !hasCinema} onSelect={() => onSelect(e.id)} />
           ))}
         </div>
       ))}
@@ -55,7 +56,7 @@ export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Prop
   );
 }
 
-function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpec; selected: boolean; duration: 5|10|15; onSelect: () => void }) {
+function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: EngineSpec; selected: boolean; duration: 5|10|12|15; locked: boolean; onSelect: () => void }) {
   const dur = engine.durations.includes(duration) ? duration : engine.durations[0];
   let cost: number | null = null;
   try { cost = engine.baseCreditsFor(dur); } catch { cost = null; }
@@ -63,10 +64,12 @@ function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpe
     <button
       onClick={onSelect}
       disabled={!engine.healthy}
+      title={locked ? `${engine.shortLabel} requires Studio Cinema` : undefined}
       className={cn(
         "w-full text-left rounded-2xl border p-5 transition-all relative overflow-hidden",
         selected ? "border-[#0A84FF] bg-[#0A84FF]/[0.06] shadow-[0_0_32px_rgba(10,132,255,0.2)]" : "border-white/[0.06] hover:border-white/20 bg-white/[0.02]",
         !engine.healthy && "opacity-40 cursor-not-allowed",
+        locked && "opacity-60",
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -74,6 +77,7 @@ function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpe
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-white font-medium" style={{ fontFamily: "Fraunces, serif" }}>{engine.label}</h3>
             {engine.requiresEntitlement && <Lock className="w-3 h-3 text-amber-400" />}
+            {locked && <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-amber-400">Cinema only</span>}
           </div>
           <p className="text-[13px] text-white/50 leading-relaxed">{engine.description}</p>
           <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-white/[0.06] bg-black/30 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">

@@ -48,6 +48,18 @@ const SEEDANCE_MODEL_OWNER = "bytedance";
 const SEEDANCE_MODEL_NAME = "seedance-2.0";
 const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
 
+// ─── Runway Gen-4 Turbo (Replicate-hosted) ─────────────────────────────────
+// Model: runwayml/gen4-turbo — best-in-class character consistency, 5s/10s clips
+const RUNWAY_MODEL_OWNER = "runwayml";
+const RUNWAY_MODEL_NAME = "gen4-turbo";
+const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}/predictions`;
+
+// ─── OpenAI Sora 2 (Replicate-hosted) ──────────────────────────────────────
+// Model: openai/sora-2 — state-of-the-art realism, native audio, 4–15s clips
+const SORA_MODEL_OWNER = "openai";
+const SORA_MODEL_NAME = "sora-2";
+const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
+
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
 // When enabled, include dialogue in prompt inside quotes for lip-sync
 const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio

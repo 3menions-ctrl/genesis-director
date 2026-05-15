@@ -31,6 +31,60 @@ import {
   runPreGenerationChecks,
 } from "../_shared/pipeline-guard-rails.ts";
 
+// ─────────────────────────────────────────────────────────────────────
+// Per-engine prompt optimizers — each model rewards a different prompt
+// grammar. The upstream `buildComprehensivePrompt` already handled identity,
+// continuity, motion vectors, and dialogue. These tuners only adjust the
+// final cinematographic phrasing per model so each engine plays to its
+// strengths instead of receiving a one-size-fits-all string.
+// ─────────────────────────────────────────────────────────────────────
+function tuneForEngine(
+  engine: 'kling' | 'seedance' | 'veo' | 'sora' | 'runway',
+  prompt: string,
+  opts: { isAvatarMode: boolean; hasStartImage: boolean }
+): string {
+  const has = (re: RegExp) => re.test(prompt);
+  let p = prompt;
+
+  if (engine === 'kling') {
+    // Kling V3: lens grammar, lip-sync hints, controlled camera moves.
+    if (opts.isAvatarMode && !has(/\blip[- ]sync|mouth shapes\b/i)) {
+      p += `\n\n[CAMERA] 85mm portrait, eye-level, subtle handheld breath. [LIP-SYNC] Mouth shapes precisely match the spoken dialogue; natural micro-expressions; blink cadence every 3-5s.`;
+    } else if (!has(/\b(lens|anamorphic|85mm|35mm|24mm|50mm)\b/i)) {
+      p += `\n\n[CAMERA] Cinematic anamorphic lens, deliberate movement, natural parallax. [LIGHT] Motivated practicals, soft key, controlled contrast.`;
+    }
+  } else if (engine === 'seedance') {
+    // Seedance 2.0 auto-frames; explicit lens/dolly jargon hurts it.
+    p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic lens|dolly in|dolly out|pan left|pan right|zoom in|zoom out|crane shot|tracking shot)\b/gi, '')
+         .replace(/\s{2,}/g, ' ').trim();
+    if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
+      p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;
+    }
+  } else if (engine === 'veo') {
+    // Veo 3 generates audio natively — explicit audio cues materially help.
+    if (!has(/\b(audio|sound|ambient|dialogue|music|voice|whisper|footsteps|wind|rain)\b/i)) {
+      p += `\n\n[AUDIO] Subtle ambient room tone; natural diegetic sound matching the action. No music unless action implies it.`;
+    }
+    if (!has(/\b(beat|pacing|single shot|no cuts)\b/i)) {
+      p += `\n\n[PACING] Single coherent beat — establish, develop, resolve. No scene cuts.`;
+    }
+  } else if (engine === 'sora') {
+    // Sora 2 rewards narrative scaffolding and longer coherent shots.
+    if (!has(/\b(subject|action|camera|lighting|style|audio):/i)) {
+      p = `Narrative beat — ${p}\n\nCamera: deliberate and observational. Lighting: natural and motivated. Style: cinematic, photoreal, 35mm film aesthetic. Audio: ambient diegetic sound.`;
+    }
+  } else if (engine === 'runway') {
+    // Runway Gen-4 Turbo: concise, action-forward; reward visual nouns.
+    p = p.replace(/\s{2,}/g, ' ').trim();
+    if (!has(/\b(motion|camera|action)\b/i)) {
+      p += `\n\nMotion-forward: clear primary action, single deliberate camera intent, photoreal grading.`;
+    }
+  }
+
+  // Hard cap to keep us inside every provider's prompt window.
+  return p.slice(0, 2400);
+}
+
 // ============================================================================
 // Kling V3 via Replicate - ALL modes: Text-to-Video, Image-to-Video, Avatar
 // Model: kwaivgi/kling-v3-video

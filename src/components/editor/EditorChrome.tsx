@@ -1068,6 +1068,17 @@ export function EditorChrome({
                   'radial-gradient(70% 100% at 50% 0%, hsla(215, 85%, 20%, 0.22), transparent 72%), radial-gradient(40% 60% at 50% 100%, hsla(215, 70%, 14%, 0.10), transparent 70%), hsla(220, 16%, 1.6%, 0.7)',
               }}
             >
+              {/* Aurora ambient — left/right diffused glow gives the stage a cinematic key-light */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -left-24 top-1/4 w-72 h-72 rounded-full opacity-60 blur-[80px]"
+                style={{ background: 'radial-gradient(closest-side, hsla(215,100%,55%,0.22), transparent 70%)' }}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-24 top-1/3 w-72 h-72 rounded-full opacity-50 blur-[80px]"
+                style={{ background: 'radial-gradient(closest-side, hsla(200,100%,60%,0.18), transparent 70%)' }}
+              />
               {/* Soft top key-light streak — gives the stage a "spotlight" feel */}
               <div
                 aria-hidden
@@ -1102,6 +1113,31 @@ export function EditorChrome({
                     />
                   ))}
                 </div>
+                {/* Premium Timecode HUD — top-center floating chip */}
+                <PlayerTimecodeHUD
+                  time={timelineState.playheadTime}
+                  fps={timelineState.fps}
+                  width={timelineState.width}
+                  height={timelineState.height}
+                  isRendering={isRendering}
+                />
+                {/* Brand watermark — bottom-right, subliminal */}
+                <div
+                  className="pointer-events-none absolute bottom-3 right-6 z-20 flex items-baseline gap-1.5 select-none"
+                  style={{ textShadow: '0 1px 6px hsla(0,0%,0%,0.6)' }}
+                >
+                  <span className="font-display text-[9px] font-semibold tracking-[0.32em] uppercase text-white/30">Apex</span>
+                  <span className="font-display text-[7px] font-medium tracking-[0.4em] uppercase text-white/15">Pro</span>
+                </div>
+                {/* Subtle film grain — gives the dark stage organic texture */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-[0.08]"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+                  }}
+                />
                 {/* Subtle vignette inside the stage for cinematic depth */}
                 <div
                   aria-hidden
@@ -1365,5 +1401,65 @@ function EditorCreditsBadge({ userId }: { userId: string }) {
         {balance.toLocaleString()} credits remaining
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+/** Premium floating timecode HUD — broadcast NLE feel */
+function PlayerTimecodeHUD({
+  time,
+  fps,
+  width,
+  height,
+  isRendering,
+}: {
+  time: number;
+  fps: number;
+  width: number;
+  height: number;
+  isRendering: boolean;
+}) {
+  const totalFrames = Math.floor(time * fps);
+  const hh = Math.floor(time / 3600).toString().padStart(2, "0");
+  const mm = Math.floor((time % 3600) / 60).toString().padStart(2, "0");
+  const ss = Math.floor(time % 60).toString().padStart(2, "0");
+  const ff = (totalFrames % fps).toString().padStart(2, "0");
+  return (
+    <div
+      className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-xl"
+      style={{
+        background: "linear-gradient(180deg, hsla(220, 14%, 8%, 0.72), hsla(220, 14%, 4%, 0.65))",
+        boxShadow:
+          "inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 0 1px hsla(0,0%,100%,0.06), 0 8px 24px -8px hsla(0,0%,0%,0.7), 0 0 24px -6px hsla(215,100%,55%,0.35)",
+      }}
+    >
+      {/* Status dot */}
+      <span className="relative flex items-center justify-center w-2 h-2">
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: isRendering ? "hsl(0,80%,60%)" : "hsl(142, 70%, 55%)",
+            boxShadow: isRendering
+              ? "0 0 10px hsla(0,80%,60%,0.85)"
+              : "0 0 10px hsla(142,72%,55%,0.7)",
+          }}
+        />
+        <span
+          className="absolute inset-0 rounded-full animate-ping opacity-40"
+          style={{ background: isRendering ? "hsl(0,80%,60%)" : "hsl(142,70%,55%)" }}
+        />
+      </span>
+      <span
+        className="font-mono text-[11px] tabular-nums tracking-[0.10em] text-white/90"
+        style={{ textShadow: "0 0 8px hsla(215,100%,75%,0.35)" }}
+      >
+        {hh}:{mm}:{ss}
+        <span className="text-white/35">:</span>
+        <span className="text-[hsl(200,100%,75%)]/85">{ff}</span>
+      </span>
+      <span className="w-px h-3 bg-white/[0.10]" />
+      <span className="font-mono text-[9px] tabular-nums tracking-[0.18em] text-white/35 uppercase">
+        {width}×{height} · {fps}p
+      </span>
+    </div>
   );
 }

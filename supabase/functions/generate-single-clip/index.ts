@@ -400,17 +400,23 @@ async function createSora2Prediction(
   }
 
   // Sora 2: clamp to 4–15s.
-  const duration = Math.max(4, Math.min(15, durationSeconds));
+  // Sora 2 (Replicate openai/sora-2) supports seconds: 4, 8, 12. Snap to nearest.
+  const allowed = [4, 8, 12];
+  const seconds = allowed.reduce((best, d) =>
+    Math.abs(d - durationSeconds) < Math.abs(best - durationSeconds) ? d : best, 8);
+
+  // Sora 2 uses "portrait" / "landscape" — NOT "16:9" / "9:16"
+  const soraAspect = aspectRatio === "9:16" ? "portrait" : "landscape";
 
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
-    aspect_ratio: aspectRatio,
-    duration,
-    seed: Math.floor(Math.random() * 2147483647),
+    aspect_ratio: soraAspect,
+    seconds,
   };
 
   if (startImageUrl && startImageUrl.startsWith("http")) {
-    input.input_image = startImageUrl;
+    // Per Replicate docs: field is `input_reference`, not `input_image`
+    input.input_reference = startImageUrl;
   }
 
   const mode = startImageUrl ? "I2V" : "T2V";

@@ -60,13 +60,8 @@ function useAnimatedNumber(target: number, duration = 1400) {
 
 type TabType = 'account' | 'usage' | 'security';
 
-// Tier ladder — derived purely client-side from lifetime credits used.
-function computeTier(used: number) {
-  if (used >= 5000) return { name: 'Visionary', tone: 'hsl(45,90%,62%)', icon: Crown, next: null as number | null };
-  if (used >= 1500) return { name: 'Auteur',    tone: 'hsl(280,80%,72%)', icon: Award, next: 5000 };
-  if (used >= 400)  return { name: 'Director',  tone: 'hsl(215,100%,72%)', icon: Star,  next: 1500 };
-  return { name: 'Initiate', tone: 'hsl(150,70%,62%)', icon: Sparkles, next: 400 };
-}
+// Ranking, tiers, XP and achievements are intentionally NOT shown.
+// Account data — including credits and lifetime spend — is private to the user.
 
 function Sparkline({ values, color = 'hsl(215,100%,70%)' }: { values: number[]; color?: string }) {
   if (!values.length) return null;

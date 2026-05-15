@@ -88,10 +88,10 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'post-escape',
     name: 'Post Escape',
-    description: 'Avatar trapped in a social post, presses against glass, then SMASHES through into reality',
+    description: 'Flagship 4th-wall VFX. Avatar trapped inside a social post smashes the glass UI into volumetric shards and steps into reality.',
     category: 'trending',
     thumbnail_url: postEscapeImg,
-    use_count: 52400,
+    use_count: 184200,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'epic',
@@ -103,10 +103,10 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'scroll-grab',
     name: 'Scroll Grab',
-    description: 'Avatar reaches OUT of vertical video and grabs the screen edge to pull themselves through',
+    description: 'Most-shared 4th-wall effect. Avatar bulges the screen, grabs the bezel, and pulls themselves out of a vertical feed.',
     category: 'trending',
     thumbnail_url: scrollGrabImg,
-    use_count: 48900,
+    use_count: 167500,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'action',
@@ -118,10 +118,10 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'freeze-walk',
     name: 'Freeze & Walk',
-    description: 'Avatar freezes in a video call while others keep moving, then steps OUT of their box into 3D space',
+    description: 'Advanced 2D→3D 4th-wall step-out. Avatar freezes in a live call grid while everyone else keeps moving, then walks into the room.',
     category: 'trending',
     thumbnail_url: freezeWalkImg,
-    use_count: 41200,
+    use_count: 152800,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'mysterious',
@@ -133,10 +133,10 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'reality-rip',
     name: 'Reality Rip',
-    description: 'Reality TEARS like fabric, avatar silhouette emerges through the glowing rip with power',
+    description: 'Cinema-grade 4th-wall rupture. Reality tears like fabric and the avatar emerges through a glowing supernova rift.',
     category: 'trending',
     thumbnail_url: realityRipImg,
-    use_count: 39700,
+    use_count: 141300,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'epic',
@@ -148,10 +148,10 @@ const BUILT_IN_TEMPLATES = [
   {
     id: 'aspect-escape',
     name: 'Aspect Ratio Escape',
-    description: 'Avatar STEPS ACROSS the boundary between vertical and horizontal video formats',
+    description: 'Format-bending 4th-wall move. Avatar shatters the vertical frame and steps into widescreen with cinema lighting.',
     category: 'trending',
     thumbnail_url: aspectEscapeImg,
-    use_count: 36500,
+    use_count: 128900,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'action',
@@ -167,7 +167,7 @@ const BUILT_IN_TEMPLATES = [
     description: 'Stop-the-scroll hooks that capture attention in 0.5 seconds',
     category: 'trending',
     thumbnail_url: viralHookImg,
-    use_count: 24500,
+    use_count: 96400,
     target_duration_minutes: 1,
     clip_count: 4,
     mood: 'action',
@@ -181,7 +181,7 @@ const BUILT_IN_TEMPLATES = [
     description: 'Dreamy, soft-lit vlogs with that perfect cozy aesthetic',
     category: 'trending',
     thumbnail_url: aestheticVlogImg,
-    use_count: 18900,
+    use_count: 74500,
     target_duration_minutes: 2,
     clip_count: 6,
     mood: 'peaceful',
@@ -195,7 +195,7 @@ const BUILT_IN_TEMPLATES = [
     description: 'Dramatic before/after reveals with cinematic transitions',
     category: 'trending',
     thumbnail_url: transformationImg,
-    use_count: 15200,
+    use_count: 88700,
     target_duration_minutes: 1,
     clip_count: 5,
     mood: 'uplifting',
@@ -209,12 +209,13 @@ const BUILT_IN_TEMPLATES = [
     description: 'Oddly satisfying visuals with calming, hypnotic sequences',
     category: 'trending',
     thumbnail_url: asmrSatisfyingImg,
-    use_count: 21300,
+    use_count: 81200,
     target_duration_minutes: 1,
     clip_count: 6,
     mood: 'peaceful',
     genre: 'ad',
     is_trending: true,
+    is_featured: true,
   },
   {
     id: 'storytime',
@@ -222,12 +223,13 @@ const BUILT_IN_TEMPLATES = [
     description: 'Captivating personal stories with dramatic pauses and reveals',
     category: 'trending',
     thumbnail_url: storytimeImg,
-    use_count: 12800,
+    use_count: 67300,
     target_duration_minutes: 2,
     clip_count: 6,
     mood: 'emotional',
     genre: 'storytelling',
     is_trending: true,
+    is_featured: true,
   },
   // 🎬 CINEMATIC
   {
@@ -592,7 +594,7 @@ const TemplateCard = memo(function TemplateCard({
             {template.is_breakout && (
               <Badge className="bg-[hsl(215,100%,60%)] text-white border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />
-                Premium
+                4th Wall · Pro
               </Badge>
             )}
             {template.is_trending && !template.is_breakout && (

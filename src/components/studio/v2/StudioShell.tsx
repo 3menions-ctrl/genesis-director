@@ -39,7 +39,7 @@ import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";
 import { EnvironmentsDrawerContent } from "./drawers/EnvironmentsDrawer";
 import { MusicDrawerContent } from "./drawers/MusicDrawer";
-import { TemplatesDrawerContent } from "./drawers/TemplatesDrawer";
+import { TemplatesDrawerContent, type TemplatePick } from "./drawers/TemplatesDrawer";
 import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
 
@@ -76,6 +76,61 @@ function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
     move: s.move || "dolly",
     speakerId: draft.cast[0]?.id,
     refImageUrl: draft.brief.refImageUrl,
+    engine: draft.defaults.engine,
+  }));
+}
+
+function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDraft[] {
+  const shotSequence = pick.settings?.shotSequence || [];
+  const lensMap: Record<string, SceneDraft["lens"]> = {
+    wide: "wide",
+    medium: "medium",
+    close: "close",
+    macro: "macro",
+    aerial: "aerial",
+    establishing: "wide",
+    closeup: "close",
+    "close-up": "close",
+  };
+  const moveMap: Record<string, SceneDraft["move"]> = {
+    static: "static",
+    dolly: "dolly",
+    push: "dolly",
+    tracking: "dolly",
+    pan: "pan",
+    tilt: "tilt",
+    handheld: "handheld",
+    crane: "crane",
+    orbit: "pan",
+  };
+
+  if (shotSequence.length) {
+    return shotSequence.map((shot, index) => {
+      const cameraScale = String(shot.cameraScale || "medium").toLowerCase();
+      const movement = String(shot.movementType || "dolly").toLowerCase();
+      return {
+        ...newScene(index),
+        location: shot.title || `SCENE ${index + 1}`,
+        beat: shot.description || pick.logline,
+        dialogue: shot.dialogue || "",
+        duration: ([5, 10, 15].includes(Number(shot.durationSeconds)) ? Number(shot.durationSeconds) : draft.defaults.duration) as 5 | 10 | 15,
+        lens: lensMap[cameraScale] || "medium",
+        move: moveMap[movement] || "dolly",
+        speakerId: draft.cast[0]?.id,
+        refImageUrl: pick.thumbnailUrl || pick.settings?.startImageUrl || draft.brief.refImageUrl,
+        engine: draft.defaults.engine,
+      };
+    });
+  }
+
+  const count = Math.max(3, Math.min(10, pick.settings?.clipCount || 4));
+  return Array.from({ length: count }, (_, index) => ({
+    ...newScene(index),
+    location: `${pick.name.toUpperCase()} — BEAT ${index + 1}`,
+    beat: index === 0 ? pick.logline : `${pick.name}: ${pick.logline} — beat ${index + 1}`,
+    duration: draft.defaults.duration,
+    speakerId: draft.cast[0]?.id,
+    refImageUrl: pick.thumbnailUrl || pick.settings?.startImageUrl || draft.brief.refImageUrl,
     engine: draft.defaults.engine,
   }));
 }
@@ -512,19 +567,29 @@ export default function StudioShell() {
 
       <StudioDrawer open={drawer === "templates"} onClose={() => setDrawer(null)} title="Template gallery" subtitle="Pick a structure, then continue the same flow" width="lg">
         <TemplatesDrawerContent onPick={(pick) => {
-          setDraft(d => ({
-            ...d,
-            brief: {
-              ...d.brief,
-              title: d.brief.title || pick.name,
-              logline: pick.logline || d.brief.logline,
-              style: pick.style || d.brief.style,
-              templateId: pick.name,
-            },
-          }));
+          setDraft(d => {
+            const scenes = scenesFromTemplatePick(pick, d);
+            return {
+              ...d,
+              brief: {
+                ...d.brief,
+                title: d.brief.title || pick.name,
+                logline: pick.logline || d.brief.logline,
+                style: pick.style || d.brief.style,
+                templateId: pick.id,
+                refImageUrl: pick.thumbnailUrl || pick.settings?.startImageUrl || d.brief.refImageUrl,
+              },
+              defaults: {
+                ...d.defaults,
+                duration: pick.settings?.targetDurationMinutes && pick.settings.targetDurationMinutes <= 1 ? 5 : d.defaults.duration,
+              },
+              scenes,
+              activeSceneId: scenes[0]?.id,
+            };
+          });
           setDrawer(null);
-          setStep("start");
-          toast.success(`${pick.name} applied`);
+          setStep("cast");
+          toast.success(`${pick.name} template loaded`);
         }} />
       </StudioDrawer>
 

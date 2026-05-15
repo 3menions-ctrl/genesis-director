@@ -383,6 +383,32 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
     if (isBreakoutTemplate && !selectedAvatar) return;
 
+    // ── Final guardrail wall: refuse incoherent submissions even if the UI
+    //    state somehow drifted. These mirror ENGINE_CAPS rules.
+    if (selectedMode === 'avatar' && !engineCaps.supportsLipSync) {
+      toast.error(`${engineCaps.label} can't render talking-head avatars. Switch engine to Kling V3.`);
+      return;
+    }
+    if (selectedMode === 'image-to-video' && !engineCaps.supportsI2V) {
+      toast.error(`${engineCaps.label} doesn't support image-to-video.`);
+      return;
+    }
+    if (!engineCaps.aspectRatios.includes(aspectRatio as any)) {
+      toast.error(`${engineCaps.label} doesn't support ${aspectRatio} — pick ${engineCaps.aspectRatios.join(' or ')}.`);
+      return;
+    }
+    if (!engineCaps.durations.includes(clipDuration)) {
+      toast.error(`${engineCaps.label} only supports ${engineCaps.durations.join('/')}s clips.`);
+      return;
+    }
+    // Avatar mode + manually uploaded scene image is incoherent: the avatar
+    // face IS the start frame. We cleared this in an effect, but double-block
+    // here in case something raced.
+    if (selectedMode === 'avatar' && uploadedImage) {
+      toast.error('Avatar mode uses the avatar face as the start frame — please remove the uploaded image.');
+      return;
+    }
+
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
       mode: isBreakoutTemplate ? 'text-to-video' : selectedMode,
       prompt,

@@ -1049,6 +1049,59 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   </div>
                 </div>
 
+                {/* ── Per-scene durations ──────────────────────────────────
+                    One compact dropdown per scene, scrollable horizontally
+                    on narrow viewports. Options are constrained to the
+                    chosen engine's supported durations and update live
+                    when the user switches engines. */}
+                {!isBreakoutTemplate && clipCount > 1 && (
+                  <div className="mt-4 -mx-1 px-1">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <span className="text-[10.5px] uppercase tracking-[0.14em] text-white/35 font-light">
+                        Per-scene length
+                      </span>
+                      <span className="text-[10.5px] text-white/25 font-light">
+                        · {engineCaps.label} · {clipDurationOptions.join(' / ')}s
+                      </span>
+                    </div>
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      role="group"
+                      aria-label="Per-scene durations"
+                    >
+                      {alignedDurations.map((sceneDuration, idx) => (
+                        <Select
+                          key={idx}
+                          value={String(sceneDuration)}
+                          onValueChange={(v) => {
+                            const next = Number(v);
+                            setClipDurations((prev) => {
+                              const arr = [...prev];
+                              while (arr.length < clipCount) arr.push(clipDuration);
+                              arr[idx] = next;
+                              return arr.slice(0, clipCount);
+                            });
+                          }}
+                        >
+                          <SelectTrigger
+                            className="h-8 w-[88px] bg-white/[0.025] hover:bg-white/[0.05] border-0 rounded-full pl-3 pr-2 text-[11px] font-light tabular-nums text-white/80 focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-colors"
+                            aria-label={`Scene ${idx + 1} duration`}
+                            title={`Scene ${idx + 1} · ${engineCaps.label}`}
+                          >
+                            <span className="text-white/40 mr-1">S{idx + 1}</span>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clipDurationOptions.map((d) => (
+                              <SelectItem key={d} value={String(d)}>{d}s</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Advanced options drawer */}
                 <AnimatePresence initial={false}>
                   {supportsAdvancedOptions && showAdvanced && (

@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Clapperboard } from 'lucide-react';
 
 interface Props {
   onPrimary: () => void;
@@ -145,6 +145,17 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         >
           <Sparkles className="w-4 h-4 mr-2" />
           Create your first video
+          <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+        </Button>
+        <Button
+          onClick={onSecondary}
+          size="lg"
+          variant="ghost"
+          className="group relative h-14 px-8 text-[15px] font-medium rounded-full text-white/95 bg-white/[0.04] backdrop-blur-xl border border-white/15 hover:border-white/30 hover:bg-white/[0.08] transition-all duration-300 hover:scale-[1.02] shadow-[0_20px_60px_-20px_rgba(10,132,255,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+        >
+          <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'radial-gradient(120% 120% at 50% 0%, hsla(212,100%,55%,0.18), transparent 60%)' }} />
+          <Clapperboard className="w-4 h-4 mr-2 text-white/85 group-hover:text-white transition-colors" />
+          Enter Studio
           <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
         </Button>
       </motion.div>

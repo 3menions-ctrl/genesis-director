@@ -505,10 +505,12 @@ export default function Landing() {
         onClose={() => setChooserOpen(false)}
         onSelect={handleSelectCategory}
       />
-
-      {/* Cinematic title-card sequence — plays before entering /studio */}
-      <StudioIntro isPlaying={studioIntroPlaying} />
       </div>
+
+      {/* Cinematic title-card sequence — rendered OUTSIDE the landing wrapper
+          so `overflow-hidden` / opacity transitions on the page shell can never
+          clip or hide it. This is the top-level overlay above all page chrome. */}
+      <StudioIntro isPlaying={studioIntroPlaying} />
     </>
   );
 }

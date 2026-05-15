@@ -60,8 +60,14 @@ export function AppShell({ children }: AppShellProps) {
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     // Default to expanded so every nav item shows its icon + label.
-    // Users can still collapse via the toggle if they prefer the icon rail.
-    try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
+    // Users can still collapse via the toggle; stored preference is honoured
+    // only after they explicitly choose the icon rail again.
+    try {
+      const stored = localStorage.getItem(SIDEBAR_KEY);
+      return stored === '1';
+    } catch {
+      return false;
+    }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);

@@ -490,9 +490,6 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Legacy route - redirect to new Create page */}
-                <Route path="/studio" element={<Navigate to="/create" replace />} />
-                
                 {/* Script Review Route */}
                 <Route path="/script-review" element={
                   <RouteContainer fallbackMessage="Loading script review...">

@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES, listEngines, type EngineId } from "@/lib/video/engines";
+import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, type EngineId } from "@/lib/video/engines";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";
@@ -828,13 +828,27 @@ export default function StudioShell() {
           selected={draft.defaults.engine}
           duration={draft.defaults.duration}
           onSelect={(id) => {
-            setDraft(d => ({
-              ...d,
-              defaults: { ...d.defaults, engine: id },
-              scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })),
-            }));
+            setDraft(d => {
+              const spec = ENGINES[id];
+              const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 15;
+              const profile = defaultQualityProfile(id);
+              // Clamp scenes to engine's per-project cap and re-clamp each scene's duration.
+              const clampedScenes = d.scenes
+                .slice(0, spec.maxScenesPerProject)
+                .map(scene => ({
+                  ...scene,
+                  engine: id,
+                  duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 15,
+                }));
+              return {
+                ...d,
+                defaults: { ...d.defaults, engine: id, duration: newDuration, qualityProfileId: profile.id },
+                scenes: clampedScenes,
+              };
+            });
             setDrawer(null);
-            toast.success(`${ENGINES[id].shortLabel} selected`);
+            const spec = ENGINES[id];
+            toast.success(`${spec.shortLabel} · ${spec.pipelineId} · up to ${spec.maxScenesPerProject} scenes`);
           }}
         />
       </StudioDrawer>

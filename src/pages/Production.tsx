@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
@@ -1148,8 +1149,15 @@ function ProductionContentInner() {
 
   const handleCancelPipeline = async () => {
     if (!projectId || !user || isCancelling) return;
-    
-    if (!window.confirm('Are you sure you want to cancel this production? This will stop all background processing and cannot be undone.')) return;
+
+    const ok = await confirmDialog.confirm({
+      title: 'Cancel this production?',
+      description: 'This stops all background processing and cannot be undone.',
+      confirmLabel: 'Cancel production',
+      cancelLabel: 'Keep running',
+      destructive: true,
+    });
+    if (!ok) return;
     
     setIsCancelling(true);
     

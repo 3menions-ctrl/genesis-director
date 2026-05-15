@@ -10,7 +10,7 @@ const TIER_CHIP: Record<string, string> = {
 
 interface Props {
   selected?: EngineId;
-  duration?: 5 | 10 | 15;
+  duration?: 5 | 10 | 12 | 15;
   onSelect: (id: EngineId) => void;
 }
 
@@ -55,7 +55,7 @@ export function EnginesDrawerContent({ selected, duration = 10, onSelect }: Prop
   );
 }
 
-function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpec; selected: boolean; duration: 5|10|15; onSelect: () => void }) {
+function EngineRow({ engine, selected, duration, onSelect }: { engine: EngineSpec; selected: boolean; duration: 5|10|12|15; onSelect: () => void }) {
   const dur = engine.durations.includes(duration) ? duration : engine.durations[0];
   let cost: number | null = null;
   try { cost = engine.baseCreditsFor(dur); } catch { cost = null; }

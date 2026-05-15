@@ -1195,7 +1195,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 // Runway and Sora directly on Step 1 so users never have to hunt for the
 // engine drawer. Each pill is glassmorphic with a tier dot and live cost.
 // ============================================================================
-function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; onSelect: (id: EngineId) => void; onMore: () => void }) {
+function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: EngineId; onSelect: (id: EngineId) => void; onMore: () => void; hasCinema?: boolean }) {
   const engines = listEngines({ healthyOnly: false });
   const tierColor: Record<string, string> = {
     standard: "bg-foreground/40",
@@ -1217,6 +1217,7 @@ function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; on
       <div className="flex flex-wrap gap-2.5">
         {engines.map((e) => {
           const active = selected === e.id;
+          const locked = e.requiresEntitlement === "studio_cinema" && !hasCinema;
           let cost: number | null = null;
           try { cost = e.baseCreditsFor(e.durations[0]); } catch { cost = null; }
           return (
@@ -1224,16 +1225,19 @@ function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; on
               key={e.id}
               onClick={() => onSelect(e.id)}
               disabled={!e.healthy}
+              title={locked ? `${e.shortLabel} requires Studio Cinema` : undefined}
               className={cn(
                 "group relative inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm transition-all",
                 active
                   ? "border-accent bg-accent/[0.08] text-foreground shadow-[0_0_24px_hsl(var(--accent)/0.35)]"
                   : "border-border/60 bg-background/30 text-muted-foreground hover:border-foreground/30 hover:bg-background/50 hover:text-foreground",
                 !e.healthy && "cursor-not-allowed opacity-30",
+                locked && "opacity-60",
               )}
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", tierColor[e.tier] || "bg-foreground/40")} />
               <span className="font-display text-[15px] italic">{e.shortLabel}</span>
+              {locked && <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-amber-400/80">PRO</span>}
               {cost != null && (
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground/60">
                   {cost}c

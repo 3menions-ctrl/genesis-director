@@ -62,13 +62,14 @@ const BUSINESS_PLANS: Plan[] = [
 
 /* ───────── Steps ───────── */
 
-const PERSONAL_STEPS = ['craft', 'plan', 'account', 'verify'] as const;
+// Personal onboarding is intentionally lean: pick a plan, create an account, verify.
+// Taste/goals/channels/experience are collected later in Settings so first-run feels effortless.
+const PERSONAL_STEPS = ['plan', 'account', 'verify'] as const;
 const BUSINESS_STEPS = ['company', 'team', 'plan', 'account', 'verify'] as const;
 
 type StepKey = typeof PERSONAL_STEPS[number] | typeof BUSINESS_STEPS[number];
 
 const STEP_META: Record<StepKey, { chapter: string; question: string; whisper: string }> = {
-  craft:   { chapter: 'Chapter I', question: 'Tell us about\nyour craft.', whisper: 'Goals, taste, distribution, fluency — we tune the engines from this.' },
   company: { chapter: 'Chapter I', question: 'Introduce\nyour company.', whisper: 'A few firmographics so we can shape the workspace around you.' },
   team:    { chapter: 'Chapter II', question: 'Sketch out\nyour operation.', whisper: 'Team, role, monthly volume, brand voice — defaults baked in.' },
   plan:    { chapter: 'Chapter III', question: 'Pick your\nstarting capacity.', whisper: 'Change anytime. No contracts. You won\u2019t be charged until checkout.' },
@@ -243,12 +244,6 @@ export default function StartOnboarding() {
     setErrors({});
     const fe: Record<string, string> = {};
 
-    if (currentStep === 'craft') {
-      if (form.goals.length === 0) fe.goals = 'Pick at least one';
-      if (!form.style) fe.style = 'Choose a visual style';
-      if (form.channels.length === 0) fe.channels = 'Pick at least one channel';
-      if (!form.experience) fe.experience = 'Tell us your level';
-    }
     if (currentStep === 'company') {
       const r = companySchema.safeParse({ company_name: form.company_name, industry: form.industry });
       if (!r.success) {
@@ -549,51 +544,6 @@ export default function StartOnboarding() {
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             className="font-sans"
           >
-            {/* PERSONAL · CRAFT */}
-            {currentStep === 'craft' && (
-              <div className="space-y-10">
-                <Block label="What do you want to make?" hint="Pick one or several">
-                  <ChipGrid
-                    options={PERSONAL_GOALS.map(g => ({ id: g.id, label: g.label, Icon: g.Icon }))}
-                    selected={form.goals}
-                    onToggle={(id) => setForm(f => ({
-                      ...f, goals: f.goals.includes(id) ? f.goals.filter(x => x !== id) : [...f.goals, id],
-                    }))}
-                    error={errors.goals} multi
-                  />
-                </Block>
-
-                <Block label="Pick a visual taste" hint="One look — guides our defaults">
-                  <RadioCards
-                    options={PERSONAL_STYLES}
-                    selected={form.style}
-                    onSelect={(id) => setForm(f => ({ ...f, style: id }))}
-                    error={errors.style}
-                  />
-                </Block>
-
-                <Block label="Where will it live?" hint="Pick all that apply — sets aspect ratio defaults">
-                  <PillGrid
-                    options={PERSONAL_CHANNELS}
-                    selected={form.channels}
-                    onToggle={(id) => setForm(f => ({
-                      ...f, channels: f.channels.includes(id) ? f.channels.filter(x => x !== id) : [...f.channels, id],
-                    }))}
-                    error={errors.channels}
-                  />
-                </Block>
-
-                <Block label="How comfortable are you?" hint="Tunes shortcuts and tutorials">
-                  <SegmentScale
-                    options={EXPERIENCE_LEVELS}
-                    selected={form.experience}
-                    onSelect={(id) => setForm(f => ({ ...f, experience: id }))}
-                    error={errors.experience}
-                  />
-                </Block>
-              </div>
-            )}
-
             {/* BUSINESS · COMPANY */}
             {currentStep === 'company' && (
               <div className="space-y-10">
@@ -1015,7 +965,6 @@ function CinematicBackdrop({ accountType, stepKey }: { accountType: AccountType;
 
   // Step-driven hue + position
   const hueByStep: Record<StepKey, { angle: string; tint: string; pos: string }> = {
-    craft:   { angle: '15% 0%',  tint: 'hsla(212,100%,40%,0.22)', pos: '85% 100%' },
     company: { angle: '15% 0%',  tint: 'hsla(212,100%,40%,0.22)', pos: '85% 100%' },
     team:    { angle: '85% 0%',  tint: 'hsla(195,100%,55%,0.18)', pos: '15% 100%' },
     plan:    { angle: '50% 0%',  tint: 'hsla(212,100%,55%,0.20)', pos: '50% 100%' },

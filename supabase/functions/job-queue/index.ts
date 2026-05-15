@@ -334,13 +334,21 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD: Prevent unauthorized job queue access ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
     const request = await req.json() as QueueRequest;
+    // SECURITY: For end-user JWT calls, force userId to JWT identity. Reject mismatches.
+    if (request.userId !== undefined || !auth.isServiceRole) {
+      try {
+        request.userId = resolveEffectiveUserId(auth, request.userId);
+      } catch (e) {
+        return forbiddenResponse(corsHeaders, (e as Error).message);
+      }
+    }
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

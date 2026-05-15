@@ -71,3 +71,44 @@ export function unauthorizedResponse(corsHeaders: Record<string, string>, messag
     { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
+
+/**
+ * Resolve the effective user id for a request, preventing privilege escalation.
+ *
+ * Rule:
+ *   - End-user JWT: ALWAYS return the JWT's user id. Any `userId` in the body is ignored.
+ *   - Service-role caller (internal function-to-function): trust the body-supplied `userId`.
+ *
+ * Throws if the request is end-user-authenticated but the body's `userId` does not match the JWT
+ * (so the function can return a clear 403 instead of silently swapping ids).
+ */
+export function resolveEffectiveUserId(
+  auth: AuthResult,
+  bodyUserId: string | null | undefined
+): string {
+  if (!auth.authenticated) {
+    throw new Error('UNAUTHENTICATED');
+  }
+  if (auth.isServiceRole) {
+    if (!bodyUserId) throw new Error('SERVICE_ROLE_REQUIRES_USER_ID');
+    return bodyUserId;
+  }
+  // End-user JWT: trust ONLY the JWT, never the body.
+  if (bodyUserId && bodyUserId !== auth.userId) {
+    throw new Error('USER_ID_MISMATCH');
+  }
+  return auth.userId!;
+}
+
+/**
+ * Returns a 403 Response for privilege-escalation attempts (body userId ≠ JWT userId).
+ */
+export function forbiddenResponse(
+  corsHeaders: Record<string, string>,
+  message = 'Forbidden: user id does not match authenticated session'
+): Response {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}

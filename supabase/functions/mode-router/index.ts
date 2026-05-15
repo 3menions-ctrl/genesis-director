@@ -235,6 +235,7 @@ serve(async (req) => {
     // =========================================================
     const authHeader = req.headers.get("Authorization");
     let authenticatedUserId: string | null = null;
+    let isServiceRoleCall = false;
     
     if (authHeader) {
       try {
@@ -242,6 +243,8 @@ serve(async (req) => {
         const authResult = await validateAuth(req);
         if (authResult.authenticated && authResult.userId) {
           authenticatedUserId = authResult.userId;
+        } else if (authResult.isServiceRole) {
+          isServiceRoleCall = true;
         }
       } catch (authErr) {
         console.error("[ModeRouter] Auth extraction failed:", authErr);
@@ -251,8 +254,15 @@ serve(async (req) => {
     const request: ModeRouterRequest = await req.json();
     const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine } = request;
     
-    // Use authenticated userId, fall back to request.userId only if auth fails (for backward compat)
-    const userId = authenticatedUserId || request.userId;
+    // SECURITY: end-user calls MUST use JWT identity; service-role internal calls may pass request.userId
+    if (authenticatedUserId && request.userId && request.userId !== authenticatedUserId) {
+      console.error(`[ModeRouter] userId mismatch: JWT=${authenticatedUserId}, body=${request.userId}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden: user id does not match authenticated session" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userId = authenticatedUserId || (isServiceRoleCall ? request.userId : null);
     
     if (!userId) {
       console.error("[ModeRouter] No userId from JWT or request body");

@@ -1413,8 +1413,19 @@ serve(async (req) => {
         durationSeconds,
       );
       predictionId = soraResult.predictionId;
+    } else if (videoEngine === 'veo') {
+      console.log(`[SingleClip] ══ ROUTING TO VEO 3 FAST (google/veo-3-fast) ══`);
+      const veoResult = await createVeo3FastPrediction(
+        enhancedPrompt,
+        fullNegativePrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        enableNativeAudio !== false,
+      );
+      predictionId = veoResult.predictionId;
     } else {
-      // 'kling' and legacy 'veo' both render via Kling V3.
+      // 'kling' renders via Kling V3 (default + avatar lip-sync).
       const klingResult = await createKlingV3Prediction(
         enhancedPrompt,
         fullNegativePrompt,

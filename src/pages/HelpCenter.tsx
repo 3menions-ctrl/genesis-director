@@ -16,6 +16,30 @@ import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer'
 import { SupportInbox } from '@/components/social/SupportInbox';
 import { useAuth } from '@/contexts/AuthContext';
 
+function ContactSupportBlock() {
+  const { user } = useAuth();
+  if (user) {
+    return <SupportInbox defaultExpanded />;
+  }
+  return (
+    <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] text-center">
+      <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+      <h2 className="text-xl font-semibold text-foreground mb-2">Still need help?</h2>
+      <p className="text-foreground/80 mb-6">
+        Sign in to message our team in-app and track replies, or send us a note.
+      </p>
+      <div className="flex items-center justify-center gap-3">
+        <Button asChild className="bg-white text-black hover:bg-white/90 rounded-full">
+          <Link to="/auth">Sign in to message admin <ArrowUpRight className="w-4 h-4 ml-2" /></Link>
+        </Button>
+        <Button asChild variant="outline" className="rounded-full">
+          <Link to="/contact">Contact form</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 // Help categories with articles

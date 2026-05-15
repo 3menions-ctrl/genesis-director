@@ -119,7 +119,7 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
       className={cn(
         "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[9px] font-light uppercase tracking-[0.14em] transition-all duration-300 relative min-w-0",
         active
-          ? "text-white"
+          ? "text-foreground"
           : "text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04]"
       )}
       style={

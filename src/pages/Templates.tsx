@@ -592,7 +592,7 @@ const TemplateCard = memo(function TemplateCard({
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
           <div className="flex gap-1.5">
             {template.is_breakout && (
-              <Badge className="bg-[hsl(215,100%,60%)] text-white border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
+              <Badge className="bg-[hsl(215,100%,60%)] text-foreground border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />
                 4th Wall · Pro
               </Badge>
@@ -610,7 +610,7 @@ const TemplateCard = memo(function TemplateCard({
               </Badge>
             )}
             {template.category === 'educational' && template.target_duration_minutes != null && (
-              <Badge className="bg-[hsla(220,14%,8%,0.75)] text-white/70 border border-white/[0.12] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
+              <Badge className="bg-[hsla(220,14%,8%,0.75)] text-muted-foreground border border-white/[0.12] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
                 <Clock className="w-2.5 h-2.5 mr-0.5 opacity-70" />
                 {template.target_duration_minutes <= 1 ? '≤1m' : template.target_duration_minutes === 2 ? '2m' : template.target_duration_minutes === 3 ? '3m' : '3m+'}
               </Badge>
@@ -659,19 +659,19 @@ const TemplateCard = memo(function TemplateCard({
 
         {/* Bottom Content */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-sm font-semibold text-white mb-1 line-clamp-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1 line-clamp-1">
             {template.name}
           </h3>
           
           <p className={cn(
-            "text-xs text-white/60 line-clamp-1 transition-all duration-300 mb-2",
+            "text-xs text-muted-foreground line-clamp-1 transition-all duration-300 mb-2",
             isHovered ? "opacity-100" : "opacity-0 h-0 mb-0"
           )}>
             {template.description}
           </p>
           
           {/* Stats Row */}
-          <div className="flex items-center gap-2 text-[10px] text-white/50">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <Film className="w-3 h-3" />
               {template.clip_count}
@@ -893,7 +893,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   }, [navigate]);
 
   return (
-    <div ref={ref} className="min-h-screen text-white overflow-x-hidden relative">
+    <div ref={ref} className="min-h-screen text-foreground overflow-x-hidden relative">
       <CinematicAtmosphere ns="tmpl" stars={26} />
       <AppHeader />
       
@@ -918,19 +918,19 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
             titleSuffix="."
             description="Production-ready scene blueprints. Pick a template, swap your story, ship in minutes."
             stats={[
-              { label: 'Templates', value: sortedTemplates.length, accent: 'text-white' },
+              { label: 'Templates', value: sortedTemplates.length, accent: 'text-foreground' },
               { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-[hsl(var(--primary))]' },
-              { label: 'Featured', value: sortedTemplates.filter((t: any) => t.is_featured).length, accent: 'text-white/85' },
-              { label: 'Trending', value: sortedTemplates.filter((t: any) => (t.use_count || 0) > 100).length, accent: 'text-white/85' },
+              { label: 'Featured', value: sortedTemplates.filter((t: any) => t.is_featured).length, accent: 'text-foreground/90' },
+              { label: 'Trending', value: sortedTemplates.filter((t: any) => (t.use_count || 0) > 100).length, accent: 'text-foreground/90' },
             ] as HeroStat[]}
             actions={
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/80" />
                 <Input
                   placeholder="Search templates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }
@@ -946,8 +946,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
               className={cn(
                 "flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium whitespace-nowrap transition-all uppercase tracking-[0.18em]",
                 activeCategory === cat.id
-                  ? "text-white shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)] border border-[hsla(215,100%,75%,0.3)]"
-                  : "bg-[hsla(220,14%,4%,0.6)] text-white/55 hover:text-white hover:bg-[hsla(215,100%,60%,0.08)] border border-[hsla(215,100%,60%,0.12)] hover:border-[hsla(215,100%,60%,0.32)] backdrop-blur-xl"
+                  ? "text-foreground shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)] border border-[hsla(215,100%,75%,0.3)]"
+                  : "bg-[hsla(220,14%,4%,0.6)] text-muted-foreground hover:text-foreground hover:bg-[hsla(215,100%,60%,0.08)] border border-[hsla(215,100%,60%,0.12)] hover:border-[hsla(215,100%,60%,0.32)] backdrop-blur-xl"
               )}
               style={activeCategory === cat.id ? {
                 background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -969,8 +969,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                 className={cn(
                   'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
                   durationMode === 'bucket'
-                    ? 'text-white shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
-                    : 'text-white/45 hover:text-white/70'
+                    ? 'text-foreground shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
+                    : 'text-muted-foreground hover:text-muted-foreground'
                 )}
                 style={durationMode === 'bucket' ? {
                   background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -983,8 +983,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                 className={cn(
                   'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
                   durationMode === 'exact'
-                    ? 'text-white shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
-                    : 'text-white/45 hover:text-white/70'
+                    ? 'text-foreground shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
+                    : 'text-muted-foreground hover:text-muted-foreground'
                 )}
                 style={durationMode === 'exact' ? {
                   background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -996,7 +996,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
             {/* Filter pills */}
             <div className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.18)] backdrop-blur-xl">
-              <span className="hidden sm:inline-flex items-center gap-1.5 pl-2 pr-1 text-[10px] uppercase tracking-[0.22em] text-white/45">
+              <span className="hidden sm:inline-flex items-center gap-1.5 pl-2 pr-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 <Clock className="w-3 h-3" /> Length
               </span>
               {durationMode === 'bucket' ? (
@@ -1015,8 +1015,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                       className={cn(
                         'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                         active
-                          ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                          : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
+                          ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
                       )}
                       style={active ? {
                         background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1033,8 +1033,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                     className={cn(
                       'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                       durationFilter === 'any'
-                        ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                        : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
+                        ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
                     )}
                     style={durationFilter === 'any' ? {
                       background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1052,8 +1052,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                         className={cn(
                           'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                           active
-                            ? 'text-white shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                            : 'text-white/55 hover:text-white hover:bg-white/[0.05]'
+                            ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
                         )}
                         style={active ? {
                           background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1095,15 +1095,15 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
         {sortedTemplates.length === 0 && (
           <div className="text-center py-16 animate-fade-in">
             <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-white/75" />
+              <Search className="w-6 h-6 text-foreground/80" />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">No templates found</h3>
-            <p className="text-sm text-white/50 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">No templates found</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Try adjusting your search or filter
             </p>
             <Button 
               variant="outline" 
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-white/20 text-foreground hover:bg-white/10"
               onClick={() => {
                 setSearchQuery('');
                 setActiveCategory('all');

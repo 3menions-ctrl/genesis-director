@@ -330,7 +330,7 @@ export default function Credits() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-0px)] text-white">
+    <div className="relative min-h-[calc(100vh-0px)] text-foreground">
       <div
         aria-hidden
         className="absolute inset-0 -z-10"
@@ -349,7 +349,7 @@ export default function Credits() {
           <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
             Choose your tier of craft
           </h1>
-          <p className="text-white/55 text-sm md:text-base mt-3 max-w-xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-xl mx-auto">
             Unlock cinematic generation with monthly fair-use seconds. Cancel anytime.
           </p>
 
@@ -373,7 +373,7 @@ export default function Credits() {
               unpaid:    { label: 'Unpaid',    dot: 'bg-rose-400',    text: 'text-rose-200',    border: 'border-rose-400/25',    bg: 'bg-rose-500/[0.06]' },
               incomplete:{ label: 'Incomplete',dot: 'bg-amber-400',   text: 'text-amber-200',   border: 'border-amber-400/25',   bg: 'bg-amber-400/[0.06]' },
             };
-            const meta = statusMeta[status] ?? { label: status, dot: 'bg-white/40', text: 'text-white/70', border: 'border-white/[0.10]', bg: 'bg-white/[0.04]' };
+            const meta = statusMeta[status] ?? { label: status, dot: 'bg-white/40', text: 'text-muted-foreground', border: 'border-white/[0.10]', bg: 'bg-white/[0.04]' };
             const usedPct = entitlement.fairUseSeconds > 0
               ? Math.min(100, Math.round((entitlement.usedSeconds / entitlement.fairUseSeconds) * 100))
               : 0;
@@ -387,11 +387,11 @@ export default function Credits() {
                         <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                         {meta.label}
                       </span>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-white/75">{cadenceLabel}</span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-foreground/80">{cadenceLabel}</span>
                     </div>
                     <h3 className="font-display text-2xl font-semibold tracking-tight mt-2">{planName}</h3>
                     {activeTier?.tagline && (
-                      <p className="text-white/45 text-xs mt-1">{activeTier.tagline}</p>
+                      <p className="text-muted-foreground text-xs mt-1">{activeTier.tagline}</p>
                     )}
                   </div>
                   <div className="shrink-0 flex items-center gap-2 flex-wrap justify-end">
@@ -400,7 +400,7 @@ export default function Credits() {
                       onClick={recheckEntitlement}
                       disabled={recheckingEntitlement}
                       title="Re-check entitlement and reload plan status"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.10] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-white/75 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.10] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/[0.18] transition-colors text-foreground/80 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${recheckingEntitlement ? 'animate-spin' : ''}`} />
                       {recheckingEntitlement ? 'Re-checking…' : 'Re-check entitlement'}
@@ -409,7 +409,7 @@ export default function Credits() {
                       type="button"
                       onClick={openCustomerPortal}
                       disabled={openingPortal}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-foreground/90 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {openingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5" />}
                       Manage in billing portal
@@ -419,20 +419,20 @@ export default function Credits() {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/[0.06]">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                       {cancelling ? 'Access ends' : status === 'canceled' ? 'Ended' : 'Renews'}
                     </div>
-                    <div className="text-sm text-white/85 font-mono mt-1">{renewalDate ?? '—'}</div>
+                    <div className="text-sm text-foreground/90 font-mono mt-1">{renewalDate ?? '—'}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Cinema-seconds left</div>
-                    <div className="text-sm text-white/85 font-mono mt-1">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Cinema-seconds left</div>
+                    <div className="text-sm text-foreground/90 font-mono mt-1">
                       {entitlement.remainingSeconds.toLocaleString()}
-                      <span className="text-white/35"> / {entitlement.fairUseSeconds.toLocaleString()}</span>
+                      <span className="text-muted-foreground"> / {entitlement.fairUseSeconds.toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="col-span-2 md:col-span-1">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Used this period</div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Used this period</div>
                     <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
@@ -445,7 +445,7 @@ export default function Credits() {
                         style={{ width: `${usedPct}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-white/75 mt-1.5">{usedPct}%</div>
+                    <div className="text-[10px] text-foreground/80 mt-1.5">{usedPct}%</div>
                   </div>
                 </div>
 
@@ -481,7 +481,7 @@ export default function Credits() {
                         type="button"
                         onClick={openCustomerPortal}
                         disabled={openingPortal}
-                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-white/85 disabled:opacity-60"
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border border-white/[0.14] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors text-foreground/90 disabled:opacity-60"
                       >
                         {openingPortal ? <Loader2 className="w-3 h-3 animate-spin" /> : <Settings className="w-3 h-3" />}
                         Manage
@@ -563,7 +563,7 @@ export default function Credits() {
           })()}
 
           {refreshing && !returnStatus && (
-            <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] text-white/70 text-xs">
+            <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] text-muted-foreground text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
               Verifying your payment…
             </div>
@@ -593,12 +593,12 @@ export default function Credits() {
                 {returnStatus.kind === 'cancelled' && <AlertTriangle className="w-5 h-5 text-amber-300/80" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-foreground">
                   {returnStatus.kind === 'failed' && 'Payment could not be completed'}
                   {returnStatus.kind === 'processing' && 'Payment is processing'}
                   {returnStatus.kind === 'cancelled' && 'Checkout cancelled'}
                 </p>
-                <p className="text-xs text-white/55 mt-0.5">{returnStatus.reason}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{returnStatus.reason}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {returnStatus.kind !== 'processing' && returnStatus.priceId && (
@@ -613,7 +613,7 @@ export default function Credits() {
                       setReturnStatus(null);
                       setSelectedPriceId(returnStatus.priceId);
                     }}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-foreground text-xs font-medium"
                   >
                     <RefreshCw className="w-3 h-3" />
                     Try again
@@ -621,7 +621,7 @@ export default function Credits() {
                 )}
                 <button
                   onClick={() => setReturnStatus(null)}
-                  className="text-xs text-white/75 hover:text-white/70 px-2"
+                  className="text-xs text-foreground/80 hover:text-muted-foreground px-2"
                 >
                   Dismiss
                 </button>
@@ -647,7 +647,7 @@ export default function Credits() {
                       key={c}
                       onClick={() => setCadence(c)}
                       className={`relative px-5 py-1.5 text-xs tracking-wide uppercase rounded-full transition-colors ${
-                        cadence === c ? 'bg-[#0A84FF] text-white' : 'text-white/55 hover:text-white/80'
+                        cadence === c ? 'bg-[#0A84FF] text-foreground' : 'text-muted-foreground hover:text-foreground/85'
                       }`}
                     >
                       {c}
@@ -677,20 +677,20 @@ export default function Credits() {
                       }`}
                     >
                       {tier.highlighted && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#0A84FF] text-[10px] tracking-[0.2em] uppercase text-white">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#0A84FF] text-[10px] tracking-[0.2em] uppercase text-foreground">
                           Most chosen
                         </div>
                       )}
 
                       <h3 className="font-display text-2xl font-semibold tracking-tight">{tier.name}</h3>
-                      <p className="text-white/50 text-sm mt-1.5">{tier.tagline}</p>
+                      <p className="text-muted-foreground text-sm mt-1.5">{tier.tagline}</p>
 
                       <div className="mt-6 flex items-baseline gap-1.5">
                         <span className="text-4xl font-display font-bold">${price.amount}</span>
-                        <span className="text-white/45 text-sm">/{cadence === 'monthly' ? 'mo' : 'yr'}</span>
+                        <span className="text-muted-foreground text-sm">/{cadence === 'monthly' ? 'mo' : 'yr'}</span>
                       </div>
 
-                      <ul className="mt-6 space-y-2.5 text-sm text-white/70 flex-1">
+                      <ul className="mt-6 space-y-2.5 text-sm text-muted-foreground flex-1">
                         {tier.features.map(f => (
                           <li key={f} className="flex gap-2.5">
                             <Check className="w-4 h-4 text-[#9DCBFF] mt-0.5 shrink-0" />
@@ -707,10 +707,10 @@ export default function Credits() {
                         }}
                         className={`mt-7 w-full h-11 rounded-full text-sm font-medium tracking-wide transition-all ${
                           isCurrent
-                            ? 'bg-white/[0.04] text-white/75 cursor-not-allowed'
+                            ? 'bg-white/[0.04] text-foreground/80 cursor-not-allowed'
                             : tier.highlighted
-                              ? 'bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white'
-                              : 'bg-white/[0.06] hover:bg-white/[0.10] text-white'
+                              ? 'bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-foreground'
+                              : 'bg-white/[0.06] hover:bg-white/[0.10] text-foreground'
                         }`}
                       >
                         {isCurrent ? 'Current plan' : `Choose ${tier.name}`}
@@ -737,7 +737,7 @@ export default function Credits() {
                       type="button"
                       onClick={() => invoicesQuery.refetch()}
                       disabled={invoicesQuery.isFetching}
-                      className="inline-flex items-center gap-1.5 text-[11px] text-white/55 hover:text-white/85 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground/90 transition-colors disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3 h-3 ${invoicesQuery.isFetching ? 'animate-spin' : ''}`} />
                       Refresh
@@ -746,7 +746,7 @@ export default function Credits() {
 
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
                     {invoicesQuery.isLoading ? (
-                      <div className="p-10 flex items-center justify-center gap-2 text-white/55 text-sm">
+                      <div className="p-10 flex items-center justify-center gap-2 text-muted-foreground text-sm">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Loading invoices…
                       </div>
@@ -761,8 +761,8 @@ export default function Credits() {
                         </button>
                       </div>
                     ) : (invoicesQuery.data?.length ?? 0) === 0 ? (
-                      <div className="p-10 text-center text-white/45 text-sm">
-                        <Receipt className="w-5 h-5 mx-auto mb-2 text-white/65" />
+                      <div className="p-10 text-center text-muted-foreground text-sm">
+                        <Receipt className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
                         No invoices yet — your first one will appear here after billing.
                       </div>
                     ) : (
@@ -781,31 +781,31 @@ export default function Credits() {
                             paid: 'text-emerald-200 bg-emerald-400/[0.08] border-emerald-400/20',
                             open: 'text-amber-200 bg-amber-400/[0.08] border-amber-400/20',
                             uncollectible: 'text-rose-200 bg-rose-500/[0.08] border-rose-400/25',
-                            void: 'text-white/45 bg-white/[0.04] border-white/[0.08]',
-                            draft: 'text-white/55 bg-white/[0.04] border-white/[0.08]',
+                            void: 'text-muted-foreground bg-white/[0.04] border-white/[0.08]',
+                            draft: 'text-muted-foreground bg-white/[0.04] border-white/[0.08]',
                           };
-                          const statusClass = statusMeta[inv.status ?? ''] ?? 'text-white/55 bg-white/[0.04] border-white/[0.08]';
+                          const statusClass = statusMeta[inv.status ?? ''] ?? 'text-muted-foreground bg-white/[0.04] border-white/[0.08]';
                           return (
                             <li
                               key={inv.id}
                               className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
                             >
-                              <FileText className="w-4 h-4 text-white/35" />
+                              <FileText className="w-4 h-4 text-muted-foreground" />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-mono text-xs text-white/85 truncate">
+                                  <span className="font-mono text-xs text-foreground/90 truncate">
                                     {inv.number ?? inv.id.slice(0, 14)}
                                   </span>
                                   <span className={`text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-full border ${statusClass}`}>
                                     {inv.status ?? 'unknown'}
                                   </span>
                                 </div>
-                                <div className="text-[11px] text-white/45 mt-0.5 truncate">
+                                <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
                                   {date}
-                                  {inv.description && <span className="text-white/65"> · {inv.description}</span>}
+                                  {inv.description && <span className="text-muted-foreground"> · {inv.description}</span>}
                                 </div>
                               </div>
-                              <div className="font-mono text-sm text-white/85 text-right tabular-nums hidden md:block">
+                              <div className="font-mono text-sm text-foreground/90 text-right tabular-nums hidden md:block">
                                 {amount}
                               </div>
                               <div className="flex items-center gap-1">
@@ -814,7 +814,7 @@ export default function Credits() {
                                     href={inv.hosted_invoice_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-white/75 hover:text-white hover:bg-white/[0.06] transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-foreground/80 hover:text-foreground hover:bg-white/[0.06] transition-colors"
                                     title="View hosted invoice"
                                   >
                                     <ExternalLink className="w-3 h-3" />
@@ -826,7 +826,7 @@ export default function Credits() {
                                     href={inv.pdf_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-white/75 hover:text-white hover:bg-white/[0.06] transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] text-foreground/80 hover:text-foreground hover:bg-white/[0.06] transition-colors"
                                     title="Download PDF"
                                   >
                                     <Download className="w-3 h-3" />
@@ -843,7 +843,7 @@ export default function Credits() {
                 </motion.section>
               )}
 
-              <p className="text-center text-[11px] text-white/35 mt-10">
+              <p className="text-center text-[11px] text-muted-foreground mt-10">
                 Prices in USD. Taxes calculated at checkout. Secured by Stripe.
               </p>
             </motion.div>
@@ -865,7 +865,7 @@ export default function Credits() {
                     priceId: selectedPriceId,
                   });
                 }}
-                className="inline-flex items-center gap-1.5 text-xs text-white/55 hover:text-white mb-5"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Cancel and choose another plan
@@ -877,7 +877,7 @@ export default function Credits() {
                     <p className="text-[10px] tracking-[0.28em] uppercase text-[#9DCBFF]">Selected</p>
                     <p className="font-display text-lg font-semibold">{selectedTier.name}</p>
                   </div>
-                  <p className="text-white/65 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     {selectedTier.fairUseSeconds.toLocaleString()}s / mo
                   </p>
                 </div>
@@ -896,7 +896,7 @@ export default function Credits() {
                   </div>
                 ) : !user ? (
                   <div className="p-12 text-center">
-                    <Loader2 className="w-5 h-5 animate-spin text-white/55 mx-auto" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mx-auto" />
                   </div>
                 ) : (
                   <EmbeddedCheckoutProvider
@@ -909,7 +909,7 @@ export default function Credits() {
                 )}
               </div>
 
-              <div className="flex items-center justify-center gap-6 mt-6 text-[11px] text-white/75">
+              <div className="flex items-center justify-center gap-6 mt-6 text-[11px] text-foreground/80">
                 <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> SSL secure</span>
                 <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Powered by Stripe</span>
               </div>

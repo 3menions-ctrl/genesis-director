@@ -125,7 +125,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(220,14%,2%)] text-white font-body relative overflow-hidden">
+    <div className="min-h-screen bg-[hsl(220,14%,2%)] text-foreground font-body relative overflow-hidden">
       {/* Atmospheric backdrop */}
       <div aria-hidden className="fixed inset-0 pointer-events-none opacity-60">
         <div className="absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full bg-[#0A84FF]/[0.05] blur-[120px]" />
@@ -138,7 +138,7 @@ export default function NotificationsPage() {
         {/* Back */}
         <button
           onClick={() => realNavigate(-1)}
-          className="inline-flex items-center gap-2 text-[12px] text-white/45 hover:text-white transition mb-6"
+          className="inline-flex items-center gap-2 text-[12px] text-muted-foreground hover:text-foreground transition mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
           <h1 className="font-display text-[40px] sm:text-[52px] leading-[1.05] font-light tracking-tight">
             Notifications
           </h1>
-          <p className="text-[14px] text-white/45 mt-2 font-light max-w-xl">
+          <p className="text-[14px] text-muted-foreground mt-2 font-light max-w-xl">
             Render updates, rewards, billing alerts and team activity — quietly organized.
           </p>
         </header>
@@ -169,16 +169,16 @@ export default function NotificationsPage() {
                   className={cn(
                     'px-3.5 py-1.5 rounded-xl border text-[12px] transition flex items-center gap-2',
                     active
-                      ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.10] text-white shadow-[0_0_20px_-10px_hsla(212,100%,55%,0.6)]'
-                      : 'border-white/[0.06] bg-white/[0.02] text-white/65 hover:bg-white/[0.05] hover:text-white',
+                      ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.10] text-foreground shadow-[0_0_20px_-10px_hsla(212,100%,55%,0.6)]'
+                      : 'border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground',
                   )}
                 >
-                  <span className="text-[9px] uppercase tracking-[0.16em] text-white/35">{f.code}</span>
+                  <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{f.code}</span>
                   {f.label}
                   {count > 0 && (
                     <span className={cn(
                       'text-[10px] tabular-nums px-1.5 rounded-full',
-                      active ? 'bg-[#0A84FF]/30 text-white' : 'bg-white/[0.06] text-white/55',
+                      active ? 'bg-[#0A84FF]/30 text-foreground' : 'bg-white/[0.06] text-muted-foreground',
                     )}>
                       {count}
                     </span>
@@ -194,7 +194,7 @@ export default function NotificationsPage() {
                 onClick={() => markAllAsRead.mutate()}
                 variant="outline"
                 size="sm"
-                className="border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-white h-8"
+                className="border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-foreground h-8"
               >
                 <Check className="w-3.5 h-3.5 mr-1.5" /> Mark all read
               </Button>
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
                 onClick={() => clearAll.mutate()}
                 variant="ghost"
                 size="sm"
-                className="text-white/45 hover:text-rose-300 hover:bg-white/[0.03] h-8"
+                className="text-muted-foreground hover:text-rose-300 hover:bg-white/[0.03] h-8"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear all
               </Button>
@@ -222,23 +222,23 @@ export default function NotificationsPage() {
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] py-20 text-center">
             <div className="w-14 h-14 mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center">
-              <Bell className="w-6 h-6 text-white/35" strokeWidth={1.4} />
+              <Bell className="w-6 h-6 text-muted-foreground" strokeWidth={1.4} />
             </div>
-            <p className="font-display text-[20px] font-light text-white/85 mt-4">Quiet on this channel</p>
-            <p className="text-[13px] text-white/45 mt-1">No notifications match this filter yet.</p>
+            <p className="font-display text-[20px] font-light text-foreground/90 mt-4">Quiet on this channel</p>
+            <p className="text-[13px] text-muted-foreground mt-1">No notifications match this filter yet.</p>
           </div>
         ) : (
           <div className="space-y-8">
             {grouped.map(([day, items]) => (
               <section key={day}>
                 <div className="flex items-center gap-3 mb-3">
-                  <p className="text-[10px] uppercase tracking-[0.32em] text-white/35 font-medium">{day}</p>
+                  <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-medium">{day}</p>
                   <div className="flex-1 h-px bg-gradient-to-r from-white/[0.08] to-transparent" />
                 </div>
                 <div className="space-y-2">
                   {items.map((n) => {
                     const Icon = ICONS[n.type] || Bell;
-                    const color = COLORS[n.type] || 'text-white/55';
+                    const color = COLORS[n.type] || 'text-muted-foreground';
                     const dest = deepLinkFor(n);
                     return (
                       <div
@@ -269,16 +269,16 @@ export default function NotificationsPage() {
                           <div className="flex items-start justify-between gap-3">
                             <p className={cn(
                               'text-[14px] leading-snug',
-                              n.read ? 'text-white/80' : 'text-white font-medium',
+                              n.read ? 'text-foreground/85' : 'text-foreground font-medium',
                             )}>
                               {n.title}
                             </p>
-                            <p className="text-[10px] uppercase tracking-[0.16em] text-white/35 shrink-0 mt-1">
+                            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground shrink-0 mt-1">
                               {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                             </p>
                           </div>
                           {n.body && (
-                            <p className="text-[13px] text-white/55 mt-1 leading-relaxed">{n.body}</p>
+                            <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">{n.body}</p>
                           )}
                           {dest && (
                             <p className="text-[11px] text-[#9DCBFF] mt-2 inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
@@ -289,7 +289,7 @@ export default function NotificationsPage() {
                         <button
                           aria-label="Dismiss"
                           onClick={(e) => { e.stopPropagation(); deleteNotification.mutate(n.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition text-white/35 hover:text-rose-300 p-1.5"
+                          className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-rose-300 p-1.5"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

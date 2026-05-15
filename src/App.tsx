@@ -463,20 +463,19 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* New Premium Creation Hub */}
+                {/* Director Studio — comprehensive cockpit (now the primary Create experience) */}
                 <Route path="/create" element={
-                  <RouteContainer fallbackMessage="Preparing studio...">
-                    <ProtectedRoute>
-                      <AppShell><Create /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-
-                {/* Director Studio — comprehensive cockpit */}
-                <Route path="/director" element={
                   <RouteContainer fallbackMessage="Entering Director Studio...">
                     <ProtectedRoute>
                       <AppShell><DirectorStudio /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/director" element={<Navigate to="/create" replace />} />
+                <Route path="/create/legacy" element={
+                  <RouteContainer fallbackMessage="Preparing studio...">
+                    <ProtectedRoute>
+                      <AppShell><Create /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

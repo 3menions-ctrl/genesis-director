@@ -472,6 +472,9 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/director" element={<Navigate to="/create" replace />} />
+                {/* Legacy /studio route — Studio was unified into /create */}
+                <Route path="/studio" element={<Navigate to="/create" replace />} />
+                <Route path="/studio/*" element={<Navigate to="/create" replace />} />
                 <Route path="/create/legacy" element={
                   <RouteContainer fallbackMessage="Preparing studio...">
                     <ProtectedRoute>

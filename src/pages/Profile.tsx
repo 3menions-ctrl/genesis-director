@@ -19,6 +19,7 @@ import {
   User, Coins, Gift, ShoppingCart, Zap, Video, Crown, Sparkles,
   Plus, Settings, BarChart3, TrendingUp, Clock, Camera, Edit2, Loader2,
   Mail, Shield, KeyRound, Calendar, CreditCard, Download, LogOut, Check,
+  Copy, Fingerprint, Smartphone, Globe, Lock, Star, Award, ChevronRight,
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
@@ -57,6 +58,33 @@ function useAnimatedNumber(target: number, duration = 1400) {
 }
 
 type TabType = 'account' | 'usage' | 'security';
+
+// Tier ladder — derived purely client-side from lifetime credits used.
+function computeTier(used: number) {
+  if (used >= 5000) return { name: 'Visionary', tone: 'hsl(45,90%,62%)', icon: Crown, next: null as number | null };
+  if (used >= 1500) return { name: 'Auteur',    tone: 'hsl(280,80%,72%)', icon: Award, next: 5000 };
+  if (used >= 400)  return { name: 'Director',  tone: 'hsl(215,100%,72%)', icon: Star,  next: 1500 };
+  return { name: 'Initiate', tone: 'hsl(150,70%,62%)', icon: Sparkles, next: 400 };
+}
+
+function Sparkline({ values, color = 'hsl(215,100%,70%)' }: { values: number[]; color?: string }) {
+  if (!values.length) return null;
+  const w = 96, h = 28, max = Math.max(1, ...values);
+  const step = w / Math.max(1, values.length - 1);
+  const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`).join(' ');
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <defs>
+        <linearGradient id={`sp-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`url(#sp-${color})`} stroke="none" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 interface Transaction {
   id: string;
@@ -177,6 +205,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [metrics, setMetrics] = useState<UserMetrics>({
     totalProjects: 0, completedProjects: 0, totalVideosGenerated: 0, totalVideoDuration: 0,
   });
+  const [usageSeries, setUsageSeries] = useState<number[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');
@@ -290,7 +319,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       const { data: projects } = await supabase
         .from('movie_projects').select('id, status').eq('user_id', user.id);
       const { data: allTransactions } = await supabase
-        .from('credit_transactions_safe').select('amount, clip_duration_seconds, transaction_type').eq('user_id', user.id);
+        .from('credit_transactions_safe').select('amount, clip_duration_seconds, transaction_type, created_at').eq('user_id', user.id);
       const videoTransactions = allTransactions?.filter(t => t.transaction_type === 'usage' && t.amount < 0) || [];
       setMetrics({
         totalProjects: projects?.length || 0,
@@ -298,6 +327,16 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         totalVideosGenerated: videoTransactions.length,
         totalVideoDuration: videoTransactions.reduce((sum, t) => sum + (t.clip_duration_seconds || 0), 0),
       });
+      // Build a 14-day usage sparkline (absolute spend per day)
+      const now = new Date();
+      const buckets: number[] = Array.from({ length: 14 }, () => 0);
+      (allTransactions || []).forEach((t: any) => {
+        if (t.amount >= 0 || !t.created_at) return;
+        const d = new Date(t.created_at);
+        const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        if (days >= 0 && days < 14) buckets[13 - days] += Math.abs(t.amount);
+      });
+      setUsageSeries(buckets);
     } catch (error) {
       console.error('Error fetching metrics:', error);
     }
@@ -329,6 +368,22 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const animatedCredits = useAnimatedNumber(profile?.credits_balance || 0);
   const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
   const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
+
+  const tier = computeTier(profile?.total_credits_used || 0);
+  const TierIcon = tier.icon;
+  const lifetimeSpendUsd = ((profile?.total_credits_used || 0) * 0.10);
+  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + (profile?.credits_balance || 0)) * 0.10;
+  const tierProgressPct = tier.next
+    ? Math.min(100, Math.round(((profile?.total_credits_used || 0) / tier.next) * 100))
+    : 100;
+  const serial = (user?.id || '').replace(/-/g, '').slice(0, 12).toUpperCase();
+
+  const copyToClipboard = useCallback((value: string, label: string) => {
+    navigator.clipboard?.writeText(value).then(
+      () => toast.success(`${label} copied`),
+      () => toast.error('Copy failed'),
+    );
+  }, []);
 
   const getTransactionIcon = (type: string, amount: number) => {
     if (type === 'bonus') return <Gift className="w-4 h-4 text-[hsl(150,80%,55%)]" />;
@@ -377,6 +432,20 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.22), transparent 65%)', filter: 'blur(60px)' }}
           />
 
+          {/* Engraved monogram watermark */}
+          <div
+            aria-hidden
+            className="absolute right-6 bottom-2 pointer-events-none select-none font-bold tracking-tighter opacity-[0.06] text-foreground hidden sm:block"
+            style={{ fontFamily: 'Sora, sans-serif', fontSize: 180, lineHeight: 1 }}
+          >
+            {(profile?.display_name?.charAt(0) || user?.email?.charAt(0) || 'A').toUpperCase()}
+          </div>
+          {/* Serial engraving */}
+          <div className="absolute left-6 top-3 hidden md:flex items-center gap-2 text-[9px] uppercase tracking-[0.5em] text-muted-foreground font-mono">
+            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
+            SN · {serial}
+          </div>
+
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
             {/* Avatar */}
             <div className="relative group shrink-0">
@@ -416,6 +485,17 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono">
                   ACCOUNT · ID {(user?.id || '').slice(0, 6).toUpperCase()}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-mono border"
+                  style={{
+                    color: tier.tone,
+                    borderColor: `${tier.tone.replace(')', ',0.35)').replace('hsl', 'hsla')}`,
+                    background: `${tier.tone.replace(')', ',0.08)').replace('hsl', 'hsla')}`,
+                  }}
+                >
+                  <TierIcon className="w-3 h-3" />
+                  {tier.name}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -471,6 +551,28 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <span className="text-xs">Member since {memberSince}</span>
                 </div>
               </div>
+
+              {/* Quick action chips */}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => user?.email && copyToClipboard(user.email, 'Email')}
+                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
+                >
+                  <Copy className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Copy email
+                </button>
+                <button
+                  onClick={() => user?.id && copyToClipboard(user.id, 'Account ID')}
+                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
+                >
+                  <Fingerprint className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Copy ID
+                </button>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
+                >
+                  <Settings className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Settings
+                </button>
+              </div>
             </div>
 
             {/* Credits */}
@@ -493,15 +595,38 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </Button>
             </div>
           </div>
+
+          {/* Tier progress rail */}
+          <div className="relative mt-7">
+            <div className="flex items-center justify-between mb-2 text-[10px] uppercase tracking-[0.32em] font-mono text-muted-foreground">
+              <span>Tier · {tier.name}</span>
+              <span>
+                {tier.next
+                  ? `${(profile?.total_credits_used || 0).toLocaleString()} / ${tier.next.toLocaleString()} credits to next rank`
+                  : 'Maximum rank reached'}
+              </span>
+            </div>
+            <div className="relative h-1.5 rounded-full overflow-hidden bg-[hsla(220,14%,8%,0.8)] border border-white/[0.04]">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  width: `${tierProgressPct}%`,
+                  background: `linear-gradient(90deg, ${tier.tone}, hsl(215,100%,68%))`,
+                  boxShadow: `0 0 18px ${tier.tone.replace(')', ',0.55)').replace('hsl', 'hsla')}`,
+                  transition: 'width 800ms ease-out',
+                }}
+              />
+            </div>
+          </div>
         </section>
 
         {/* ─── At-a-glance stats ─── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in">
           {[
-            { label: 'Credits Available', value: animatedCredits, icon: Coins, accent: true },
-            { label: 'Credits Used', value: animatedUsed, icon: Zap },
-            { label: 'Videos Generated', value: animatedVideos, icon: Video },
-            { label: 'Projects', value: metrics.totalProjects, icon: Sparkles },
+            { label: 'Credits Available', value: animatedCredits, icon: Coins, accent: true, sub: `$${(animatedCredits * 0.10).toFixed(2)} value` },
+            { label: 'Credits Used', value: animatedUsed, icon: Zap, sub: `$${lifetimeSpendUsd.toFixed(2)} lifetime`, spark: true },
+            { label: 'Videos Generated', value: animatedVideos, icon: Video, sub: `${Math.round(metrics.totalVideoDuration)}s rendered` },
+            { label: 'Projects', value: metrics.totalProjects, icon: Sparkles, sub: `${metrics.completedProjects} completed` },
           ].map((stat, i) => (
             <div
               key={i}
@@ -509,11 +634,19 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               style={{ animation: `profileRise 0.55s ease-out both`, animationDelay: `${i * 70}ms` }}
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.45)] to-transparent" />
-              <div className="relative w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
-                <stat.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
+                  <stat.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                </div>
+                {stat.spark && usageSeries.some(v => v > 0) && (
+                  <div className="opacity-90"><Sparkline values={usageSeries} /></div>
+                )}
               </div>
               <p className="relative text-3xl font-bold text-foreground tabular-nums">{Number(stat.value).toLocaleString()}</p>
               <p className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mt-1">{stat.label}</p>
+              {stat.sub && (
+                <p className="relative text-[11px] text-muted-foreground/80 mt-2 font-mono">{stat.sub}</p>
+              )}
             </div>
           ))}
         </div>
@@ -597,9 +730,12 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
                 <div className="relative p-5 rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.25)] flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-foreground">Personal</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-foreground">Personal</p>
+                      <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-muted-foreground">Pay-as-you-go · $0.10/credit</span>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {(profile?.credits_balance || 0).toLocaleString()} credits available · ${((profile?.credits_balance || 0) * 0.10).toFixed(2)} value
+                      {(profile?.credits_balance || 0).toLocaleString()} credits · ${((profile?.credits_balance || 0) * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
                     </p>
                   </div>
                   <Button
@@ -608,6 +744,20 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   >
                     Top up
                   </Button>
+                </div>
+
+                {/* Mini spend summary */}
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  {[
+                    { k: 'Lifetime spend', v: `$${lifetimeSpendUsd.toFixed(2)}` },
+                    { k: 'Avg / video', v: metrics.totalVideosGenerated ? `$${(lifetimeSpendUsd / metrics.totalVideosGenerated).toFixed(2)}` : '—' },
+                    { k: 'Credits / project', v: metrics.totalProjects ? Math.round((profile?.total_credits_used || 0) / metrics.totalProjects).toLocaleString() : '—' },
+                  ].map((m, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                      <p className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground font-mono">{m.k}</p>
+                      <p className="text-base font-bold text-foreground tabular-nums mt-1">{m.v}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -719,6 +869,115 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
                   {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send link'}
                 </Button>
+              </div>
+            </div>
+
+            {/* Two-factor */}
+            <div className={cn("p-6", glassCard)}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Two-factor authentication</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Hardware-grade login</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-4 h-4 text-[hsl(215,100%,68%)]" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Authenticator app</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Use any TOTP app (1Password, Authy, Google Authenticator)</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => toast.info('2FA setup coming soon')}
+                  className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
+                  Enable
+                </Button>
+              </div>
+            </div>
+
+            {/* Connected accounts */}
+            <div className={cn("p-6", glassCard)}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Connected sign-in</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Identity providers</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {(() => {
+                  const provider = (user as any)?.app_metadata?.provider || 'email';
+                  const isGoogle = provider === 'google';
+                  const isApple = provider === 'apple';
+                  return (
+                    <>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Email & password</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-[hsl(150,80%,60%)]">Active</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Google</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{isGoogle ? 'Linked to this account' : 'Not connected'}</p>
+                        </div>
+                        <span className={cn("text-[10px] uppercase tracking-[0.3em] font-mono", isGoogle ? 'text-[hsl(150,80%,60%)]' : 'text-muted-foreground')}>
+                          {isGoogle ? 'Linked' : 'Available'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Apple</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{isApple ? 'Linked to this account' : 'Not connected'}</p>
+                        </div>
+                        <span className={cn("text-[10px] uppercase tracking-[0.3em] font-mono", isApple ? 'text-[hsl(150,80%,60%)]' : 'text-muted-foreground')}>
+                          {isApple ? 'Linked' : 'Available'}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Active session */}
+            <div className={cn("p-6", glassCard)}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
+                  <Fingerprint className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Active session</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">This device</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-[hsla(215,100%,60%,0.1)] border border-[hsla(215,100%,60%,0.25)] flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4 text-[hsl(215,100%,68%)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {typeof navigator !== 'undefined' ? (navigator.userAgent.match(/(Chrome|Safari|Firefox|Edge)/)?.[0] || 'Browser') : 'Browser'}
+                      {' · '}
+                      {typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground font-mono truncate">
+                      {typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC'} · last active just now
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] font-mono text-[hsl(150,80%,60%)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[hsl(150,80%,55%)]" style={{ animation: 'profileTick 1.6s ease-in-out infinite' }} />
+                  Live
+                </span>
               </div>
             </div>
 

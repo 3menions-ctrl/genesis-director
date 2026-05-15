@@ -62,7 +62,9 @@ const BUSINESS_PLANS: Plan[] = [
 
 /* ───────── Steps ───────── */
 
-const PERSONAL_STEPS = ['craft', 'plan', 'account', 'verify'] as const;
+// Personal onboarding is intentionally lean: pick a plan, create an account, verify.
+// Taste/goals/channels/experience are collected later in Settings so first-run feels effortless.
+const PERSONAL_STEPS = ['plan', 'account', 'verify'] as const;
 const BUSINESS_STEPS = ['company', 'team', 'plan', 'account', 'verify'] as const;
 
 type StepKey = typeof PERSONAL_STEPS[number] | typeof BUSINESS_STEPS[number];

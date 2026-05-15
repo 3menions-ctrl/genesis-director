@@ -2077,6 +2077,13 @@ img, a, button {
   100% { transform: translate(calc(var(--drift-x, 20px) * 3), calc(var(--drift-y, -30px) * 3)) scale(0); opacity: 0; }
 }
 
+/* PageHeader hairline draw — divider scales in from the left after the title settles. */
+@keyframes header-rule-draw {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
 /* Holographic card effect */
 @keyframes holo-card-shine {
   0% { transform: translateX(-150%) rotate(15deg); }

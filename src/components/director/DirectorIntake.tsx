@@ -1,0 +1,566 @@
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles, FileText, ImageIcon, GitBranch, ChevronRight, ChevronLeft,
+  Wand2, Clapperboard, Users, User, Film, Check, X, ArrowRight,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { DEFAULT_INTAKE, type IntakeData, type IntakeFormat, type DirectorMode } from "./types";
+
+const SERIF = { fontFamily: "'Fraunces', serif" };
+const MONO = { fontFamily: "'JetBrains Mono', monospace" };
+
+const STEPS = [
+  { id: "concept", label: "Concept" },
+  { id: "format", label: "Format" },
+  { id: "tone", label: "Tone" },
+  { id: "shape", label: "Shape" },
+  { id: "cast", label: "Cast" },
+  { id: "mode", label: "Mode" },
+] as const;
+
+const GENRES = [
+  "Neo-Noir", "Sci-Fi", "Drama", "Thriller", "Romance", "Western",
+  "Documentary", "Action", "Horror", "Comedy", "Fantasy", "Music Video",
+];
+
+const TONES = ["Cinematic", "Gritty", "Dreamy", "Tense", "Epic", "Intimate", "Surreal", "Vérité"];
+
+const FORMAT_CARDS: { id: IntakeFormat; title: string; desc: string; Icon: typeof Sparkles }[] = [
+  { id: "concept", title: "From a concept", desc: "One sentence. The brain writes the rest.", Icon: Sparkles },
+  { id: "script", title: "Paste a script", desc: "Fountain or plain dialogue. Verbatim.", Icon: FileText },
+  { id: "image", title: "From an image", desc: "Upload a frame. We extract its DNA.", Icon: ImageIcon },
+  { id: "remix", title: "Remix a project", desc: "Fork an existing film and evolve it.", Icon: GitBranch },
+];
+
+interface Props {
+  open: boolean;
+  onComplete: (data: IntakeData) => void;
+  onCancel?: () => void;
+}
+
+export function DirectorIntake({ open, onComplete, onCancel }: Props) {
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState<IntakeData>(DEFAULT_INTAKE);
+
+  const update = <K extends keyof IntakeData>(k: K, v: IntakeData[K]) =>
+    setData((d) => ({ ...d, [k]: v }));
+
+  const canAdvance = useMemo(() => {
+    switch (step) {
+      case 0: return data.title.trim().length >= 2 && data.logline.trim().length >= 4;
+      case 1: return data.format === "concept" || data.scriptOrIdea.trim().length > 0;
+      case 2: return data.genres.length > 0 && data.tone.length > 0;
+      case 3: return !!data.aspect && data.sceneCount >= 2;
+      case 4: return data.characterA.trim().length > 0 && (data.castSize === 1 || data.characterB.trim().length > 0);
+      case 5: return !!data.mode;
+      default: return false;
+    }
+  }, [step, data]);
+
+  const next = () => {
+    if (!canAdvance) return;
+    if (step === STEPS.length - 1) onComplete(data);
+    else setStep((s) => s + 1);
+  };
+  const prev = () => setStep((s) => Math.max(0, s - 1));
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] overflow-hidden"
+        style={{ background: "hsl(220 14% 2%)" }}
+      >
+        {/* Cinematic backdrop */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-[0.35]"
+            style={{
+              background:
+                "radial-gradient(1000px 700px at 18% 20%, hsl(215 100% 50% / 0.18), transparent 60%), radial-gradient(900px 600px at 85% 90%, hsl(215 90% 40% / 0.10), transparent 65%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+            }}
+          />
+          <div className="absolute inset-x-0 top-0 h-px bg-white/[0.06]" />
+          <div className="absolute inset-x-0 bottom-0 h-px bg-white/[0.06]" />
+        </div>
+
+        {/* Top chrome */}
+        <div className="relative z-10 flex items-center justify-between px-8 py-5">
+          <div className="flex items-center gap-3 text-white/70">
+            <Clapperboard className="h-4 w-4 text-[#0A84FF]" />
+            <span className="text-[10px] tracking-[0.32em]" style={MONO}>DIRECTOR STUDIO / INTAKE</span>
+          </div>
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="text-white/40 hover:text-white/80 transition-colors"
+              aria-label="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Stepper */}
+        <div className="relative z-10 px-8">
+          <div className="flex items-center gap-2 max-w-3xl">
+            {STEPS.map((s, i) => {
+              const active = i === step;
+              const done = i < step;
+              return (
+                <div key={s.id} className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full transition-all",
+                        done && "bg-[#0A84FF]",
+                        active && "bg-[#0A84FF] shadow-[0_0_10px_2px_rgba(10,132,255,0.7)]",
+                        !active && !done && "bg-white/20"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "text-[10px] tracking-[0.28em] transition-colors",
+                        active ? "text-white/90" : done ? "text-white/50" : "text-white/30"
+                      )}
+                      style={MONO}
+                    >
+                      {String(i + 1).padStart(2, "0")} {s.label.toUpperCase()}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && <div className="h-px flex-1 bg-white/10" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="relative z-10 flex items-start justify-center px-8 pt-12 pb-32">
+          <div className="w-full max-w-3xl">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {/* Step header */}
+                <div className="mb-10">
+                  <div className="text-[10px] tracking-[0.32em] text-[#0A84FF] mb-3" style={MONO}>
+                    STEP {String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
+                  </div>
+                  {step === 0 && <StepHeader title="What are we making?" sub="Give it a working title and a single sentence the camera can chase." />}
+                  {step === 1 && <StepHeader title="Where does it begin?" sub="Choose how the brain receives your idea." />}
+                  {step === 2 && <StepHeader title="What does it feel like?" sub="Pick the genres and tonal register. Used by score, color, and pacing." />}
+                  {step === 3 && <StepHeader title="Shape & length." sub="Frame proportions and how many scenes the brain should plan." />}
+                  {step === 4 && <StepHeader title="Who is on screen?" sub="One or two locked characters. Names matter — they appear in dialogue." />}
+                  {step === 5 && <StepHeader title="How do you want to direct?" sub="Sit back and let it render — or grab the wheel on every shot." />}
+                </div>
+
+                {/* Step content */}
+                {step === 0 && (
+                  <div className="space-y-6">
+                    <Field label="Working title" mono>
+                      <Input
+                        value={data.title}
+                        onChange={(e) => update("title", e.target.value)}
+                        placeholder="Untitled Film 03"
+                        className="bg-white/[0.03] border-white/10 text-white text-2xl h-14 rounded-none focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
+                        style={SERIF}
+                        maxLength={80}
+                      />
+                    </Field>
+                    <Field label="Logline" mono>
+                      <Textarea
+                        value={data.logline}
+                        onChange={(e) => update("logline", e.target.value)}
+                        placeholder="A noir detective interrogates a suspect in a rainy Tokyo alley as memory bleeds into evidence."
+                        className="bg-white/[0.03] border-white/10 text-white text-base rounded-none min-h-[120px] focus-visible:ring-1 focus-visible:ring-[#0A84FF] leading-relaxed"
+                        style={SERIF}
+                        maxLength={400}
+                      />
+                      <Counter n={data.logline.length} max={400} />
+                    </Field>
+                  </div>
+                )}
+
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-3">
+                      {FORMAT_CARDS.map(({ id, title, desc, Icon }) => {
+                        const active = data.format === id;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => update("format", id)}
+                            className={cn(
+                              "relative text-left p-5 border transition-all group",
+                              active
+                                ? "border-[#0A84FF] bg-[#0A84FF]/[0.06]"
+                                : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            {active && (
+                              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF] shadow-[0_0_12px_2px_rgba(10,132,255,0.7)]" />
+                            )}
+                            <Icon className={cn("h-5 w-5 mb-4", active ? "text-[#0A84FF]" : "text-white/60")} />
+                            <div className="text-white text-lg mb-1" style={SERIF}>{title}</div>
+                            <div className="text-white/50 text-sm leading-relaxed">{desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {data.format !== "concept" && (
+                      <Field
+                        label={
+                          data.format === "script" ? "Paste your script"
+                          : data.format === "image" ? "Reference URL or notes"
+                          : "Source project ID or URL"
+                        }
+                        mono
+                      >
+                        <Textarea
+                          value={data.scriptOrIdea}
+                          onChange={(e) => update("scriptOrIdea", e.target.value)}
+                          placeholder={
+                            data.format === "script"
+                              ? "INT. TOKYO POLICE STATION — INTERROGATION — NIGHT\n\nSATO\n  You said it was rain.\n  The witness said it was blood."
+                              : data.format === "image"
+                              ? "Paste a reference image URL, or describe what you want extracted."
+                              : "Paste the project URL you want to remix."
+                          }
+                          className="bg-white/[0.03] border-white/10 text-white rounded-none min-h-[200px] focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
+                          style={data.format === "script" ? MONO : SERIF}
+                        />
+                      </Field>
+                    )}
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-8">
+                    <div>
+                      <Label>Genre · pick up to 3</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {GENRES.map((g) => {
+                          const active = data.genres.includes(g);
+                          return (
+                            <button
+                              key={g}
+                              onClick={() => {
+                                const next = active
+                                  ? data.genres.filter((x) => x !== g)
+                                  : data.genres.length < 3 ? [...data.genres, g] : data.genres;
+                                update("genres", next);
+                              }}
+                              className={cn(
+                                "px-4 py-2 text-sm border rounded-full transition-all",
+                                active
+                                  ? "border-[#0A84FF] bg-[#0A84FF]/15 text-white"
+                                  : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
+                              )}
+                              style={SERIF}
+                            >
+                              {g}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Tonal register</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {TONES.map((t) => {
+                          const active = data.tone === t;
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => update("tone", t)}
+                              className={cn(
+                                "px-4 py-2 text-sm border rounded-full transition-all",
+                                active
+                                  ? "border-[#0A84FF] bg-[#0A84FF]/15 text-white"
+                                  : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
+                              )}
+                              style={SERIF}
+                            >
+                              {t}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-10">
+                    <div>
+                      <Label>Aspect ratio</Label>
+                      <div className="grid grid-cols-4 gap-3">
+                        {(["2.39:1", "16:9", "9:16", "1:1"] as const).map((r) => {
+                          const active = data.aspect === r;
+                          const ratioMap = { "2.39:1": "aspect-[2.39/1]", "16:9": "aspect-video", "9:16": "aspect-[9/16]", "1:1": "aspect-square" } as const;
+                          return (
+                            <button
+                              key={r}
+                              onClick={() => update("aspect", r)}
+                              className={cn(
+                                "p-4 border transition-all flex flex-col items-center gap-3",
+                                active ? "border-[#0A84FF] bg-[#0A84FF]/[0.06]" : "border-white/10 bg-white/[0.02] hover:border-white/25"
+                              )}
+                            >
+                              <div className={cn("w-full bg-white/[0.04] border border-white/10", ratioMap[r], r === "9:16" && "max-h-20 mx-auto w-12")} />
+                              <span className={cn("text-xs", active ? "text-white" : "text-white/60")} style={MONO}>{r}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-baseline justify-between mb-4">
+                        <Label className="!mb-0">Scene count</Label>
+                        <span className="text-3xl text-white" style={SERIF}>{data.sceneCount}</span>
+                      </div>
+                      <Slider
+                        value={[data.sceneCount]}
+                        onValueChange={([v]) => update("sceneCount", v)}
+                        min={2}
+                        max={12}
+                        step={1}
+                      />
+                      <div className="flex justify-between text-[10px] text-white/40 mt-2 tracking-widest" style={MONO}>
+                        <span>2 · TEASER</span>
+                        <span>6 · SHORT</span>
+                        <span>12 · EPISODE</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 4 && (
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 gap-3">
+                      {([1, 2] as const).map((n) => {
+                        const active = data.castSize === n;
+                        const Icon = n === 1 ? User : Users;
+                        return (
+                          <button
+                            key={n}
+                            onClick={() => update("castSize", n)}
+                            className={cn(
+                              "p-5 border text-left transition-all",
+                              active ? "border-[#0A84FF] bg-[#0A84FF]/[0.06]" : "border-white/10 bg-white/[0.02] hover:border-white/25"
+                            )}
+                          >
+                            <Icon className={cn("h-5 w-5 mb-3", active ? "text-[#0A84FF]" : "text-white/60")} />
+                            <div className="text-white text-lg" style={SERIF}>
+                              {n === 1 ? "Solo lead" : "Two characters"}
+                            </div>
+                            <div className="text-white/50 text-sm mt-1">
+                              {n === 1 ? "One face. Identity-locked across every scene." : "Dual locks with cinematic switching between them."}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label="Character A" mono>
+                        <Input
+                          value={data.characterA}
+                          onChange={(e) => update("characterA", e.target.value)}
+                          placeholder="Detective Sato"
+                          className="bg-white/[0.03] border-white/10 text-white h-12 rounded-none focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
+                          style={SERIF}
+                          maxLength={40}
+                        />
+                      </Field>
+                      {data.castSize === 2 && (
+                        <Field label="Character B" mono>
+                          <Input
+                            value={data.characterB}
+                            onChange={(e) => update("characterB", e.target.value)}
+                            placeholder="The Suspect"
+                            className="bg-white/[0.03] border-white/10 text-white h-12 rounded-none focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
+                            style={SERIF}
+                            maxLength={40}
+                          />
+                        </Field>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {step === 5 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <ModeCard
+                      active={data.mode === "auto"}
+                      onClick={() => update("mode", "auto")}
+                      Icon={Wand2}
+                      title="Auto"
+                      tagline="One click. The brain ships the film."
+                      bullets={[
+                        "Script · cast · cinematography all auto",
+                        "Render dashboard with live progress",
+                        "Hand-off to editor when complete",
+                      ]}
+                    />
+                    <ModeCard
+                      active={data.mode === "director"}
+                      onClick={() => update("mode", "director")}
+                      Icon={Film}
+                      title="Director"
+                      tagline="Grab the wheel on every shot."
+                      bullets={[
+                        "Per-scene inspector and continuity pinning",
+                        "Swap avatars, lenses, motion, references",
+                        "Same engine — under your hand",
+                      ]}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Footer / nav */}
+        <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/[0.06] bg-black/60 backdrop-blur-xl">
+          <div className="px-8 py-5 flex items-center justify-between">
+            <button
+              onClick={prev}
+              disabled={step === 0}
+              className={cn(
+                "flex items-center gap-2 text-sm transition-colors",
+                step === 0 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:text-white"
+              )}
+              style={MONO}
+            >
+              <ChevronLeft className="h-4 w-4" /> BACK
+            </button>
+
+            <div className="text-[10px] text-white/40 tracking-[0.3em]" style={MONO}>
+              {STEPS[step].label.toUpperCase()}
+            </div>
+
+            <Button
+              onClick={next}
+              disabled={!canAdvance}
+              className={cn(
+                "rounded-none h-11 px-6 gap-2 text-[11px] tracking-[0.28em] transition-all",
+                canAdvance
+                  ? "bg-[#0A84FF] hover:bg-[#0A84FF] hover:shadow-[0_0_24px_rgba(10,132,255,0.55)] text-white"
+                  : "bg-white/10 text-white/30"
+              )}
+              style={MONO}
+            >
+              {step === STEPS.length - 1 ? (
+                <>ENTER THE STUDIO <ArrowRight className="h-4 w-4" /></>
+              ) : (
+                <>CONTINUE <ChevronRight className="h-4 w-4" /></>
+              )}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function StepHeader({ title, sub }: { title: string; sub: string }) {
+  return (
+    <>
+      <h1 className="text-white text-5xl leading-[1.05] tracking-tight" style={SERIF}>{title}</h1>
+      <p className="text-white/55 text-base mt-3 max-w-xl leading-relaxed" style={SERIF}>{sub}</p>
+    </>
+  );
+}
+
+function Label({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("text-[10px] tracking-[0.32em] text-white/45 mb-4", className)} style={MONO}>
+      {typeof children === "string" ? children.toUpperCase() : children}
+    </div>
+  );
+}
+
+function Field({ label, children, mono }: { label: string; children: React.ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <div
+        className="text-[10px] tracking-[0.32em] text-white/45 mb-3"
+        style={mono ? MONO : undefined}
+      >
+        {label.toUpperCase()}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Counter({ n, max }: { n: number; max: number }) {
+  return (
+    <div className="flex justify-end mt-2">
+      <span className="text-[10px] text-white/35 tracking-widest" style={MONO}>
+        {n} / {max}
+      </span>
+    </div>
+  );
+}
+
+function ModeCard({
+  active, onClick, Icon, title, tagline, bullets,
+}: {
+  active: boolean;
+  onClick: () => void;
+  Icon: typeof Wand2;
+  title: string;
+  tagline: string;
+  bullets: string[];
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative text-left p-7 border transition-all overflow-hidden group",
+        active
+          ? "border-[#0A84FF] bg-gradient-to-br from-[#0A84FF]/[0.10] to-transparent"
+          : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]"
+      )}
+    >
+      {active && (
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF] shadow-[0_0_14px_3px_rgba(10,132,255,0.7)]" />
+      )}
+      <Icon className={cn("h-6 w-6 mb-5", active ? "text-[#0A84FF]" : "text-white/60")} />
+      <div className="text-white text-3xl mb-2" style={SERIF}>{title}</div>
+      <div className="text-white/55 text-sm mb-5" style={SERIF}>{tagline}</div>
+      <ul className="space-y-2">
+        {bullets.map((b) => (
+          <li key={b} className="flex items-start gap-2 text-white/65 text-sm">
+            <Check className={cn("h-3.5 w-3.5 mt-1 shrink-0", active ? "text-[#0A84FF]" : "text-white/40")} />
+            <span style={SERIF}>{b}</span>
+          </li>
+        ))}
+      </ul>
+    </button>
+  );
+}

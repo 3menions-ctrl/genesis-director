@@ -37,6 +37,8 @@ export interface StudioBrief {
   title: string;
   logline: string;
   style: string;          // free-form mood / genre
+  styleId?: string;       // selected preset id from StylesDrawer
+  styleModifier?: string; // prompt modifier appended at render time
   refImageUrl?: string;
   templateId?: string;
   environmentId?: string;

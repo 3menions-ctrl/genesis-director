@@ -463,11 +463,11 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Director Studio — comprehensive cockpit (now the primary Create experience) */}
+                {/* Director Studio — full-bleed cinematic experience (no shell chrome) */}
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Entering Director Studio...">
                     <ProtectedRoute>
-                      <AppShell><DirectorStudio /></AppShell>
+                      <DirectorStudio />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

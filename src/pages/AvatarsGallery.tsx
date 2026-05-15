@@ -19,8 +19,8 @@ import clayInventor from '@/assets/avatars/clay-inventor.png';
 import inkMonk from '@/assets/avatars/ink-monk.png';
 
 type StyleTag =
-  | 'chibi' | 'voxel' | 'watercolor' | 'anime'
-  | 'pixel-art' | 'low-poly' | 'claymation' | 'ink-wash';
+  | 'chibi' | 'watercolor' | 'anime' | 'pixel-art'
+  | 'low-poly' | 'claymation' | 'ink-wash';
 
 interface Avatar {
   id: string;
@@ -37,8 +37,8 @@ const AVATARS: Avatar[] = [
   { id: 'a1', name: 'Linnea', archetype: 'Forest Ranger', bio: 'Soft-spoken tracker with a starlit bow. Born for woodland chase scenes and dialogue under canopy light.', style: 'chibi', styleLabel: 'Chibi', palette: ['hsl(142,65%,55%)', 'hsl(28,90%,60%)'], src: chibiRanger },
   { id: 'a2', name: 'Mira',   archetype: 'Star Mage',     bio: 'Pastel-bright mascot energy. Best for kid-friendly hooks, magical reveals, and sparkle-led product cuts.', style: 'chibi', styleLabel: 'Chibi', palette: ['hsl(330,80%,75%)', 'hsl(48,95%,65%)'], src: chibiMage },
 
-  { id: 'a3', name: 'Bjorn',  archetype: 'Voxel Viking',   bio: 'Blocky, brave, broadcast-ready. Perfect for indie-game trailers and gritty fantasy hooks.', style: 'voxel', styleLabel: 'Voxel', palette: ['hsl(0,75%,55%)', 'hsl(38,85%,55%)'], src: voxelViking },
-  { id: 'a4', name: 'Echo-7', archetype: 'Cyber Hacker',   bio: 'Neon-hooded operative for synthwave product spots and futurist explainers.', style: 'voxel', styleLabel: 'Voxel', palette: ['hsl(285,75%,60%)', 'hsl(195,95%,60%)'], src: voxelHacker },
+  { id: 'a3', name: 'Bjorn',  archetype: 'Norse Raider',  bio: 'Faceted, brave, broadcast-ready. Perfect for indie-game trailers and gritty fantasy hooks.', style: 'low-poly', styleLabel: 'Low Poly', palette: ['hsl(0,75%,55%)', 'hsl(38,85%,55%)'], src: voxelViking },
+  { id: 'a4', name: 'Echo-7', archetype: 'Cyber Hacker',  bio: 'Neon-hooded operative for synthwave product spots and futurist explainers.', style: 'low-poly', styleLabel: 'Low Poly', palette: ['hsl(285,75%,60%)', 'hsl(195,95%,60%)'], src: voxelHacker },
 
   { id: 'a5', name: 'Solène', archetype: 'Florist',        bio: 'Hand-painted softness for slow-cinema beauty, lifestyle, and editorial fragrance scenes.', style: 'watercolor', styleLabel: 'Watercolor', palette: ['hsl(20,75%,75%)', 'hsl(150,40%,70%)'], src: wcFlorist },
   { id: 'a6', name: 'Old Hal', archetype: 'Sailor',         bio: 'Weathered, warm, narrative — built for documentary opens and heritage-brand voiceovers.', style: 'watercolor', styleLabel: 'Watercolor', palette: ['hsl(210,55%,55%)', 'hsl(38,75%,60%)'], src: wcFisherman },
@@ -48,7 +48,7 @@ const AVATARS: Avatar[] = [
 
   { id: 'a9', name: 'Vex-09', archetype: 'Space Marine', bio: '32-bit retro grit. For arcade trailers, gaming brands, and chiptune-flavored launches.', style: 'pixel-art', styleLabel: 'Pixel Art', palette: ['hsl(215,30%,50%)', 'hsl(0,80%,55%)'], src: pixelMarine },
 
-  { id: 'a10', name: 'Otto', archetype: 'Mountain Explorer', bio: 'Faceted, rugged, optimistic. Outdoor brands, expedition spots, and travel pre-rolls.', style: 'low-poly', styleLabel: 'Low Poly', palette: ['hsl(45,95%,55%)', 'hsl(215,40%,40%)'], src: lowpolyExplorer },
+  { id: 'a10', name: 'Otto', archetype: 'Mountain Explorer', bio: 'Stylized 3D toon — outdoor brands, expedition spots, and travel pre-rolls.', style: 'low-poly', styleLabel: 'Low Poly', palette: ['hsl(45,95%,55%)', 'hsl(215,40%,40%)'], src: lowpolyExplorer },
 
   { id: 'a11', name: 'Pip', archetype: 'Inventor', bio: 'Stop-motion warmth — kids storytelling, tactile DTC ads, and craft-brand intros.', style: 'claymation', styleLabel: 'Claymation', palette: ['hsl(28,55%,60%)', 'hsl(45,40%,75%)'], src: clayInventor },
 
@@ -57,7 +57,6 @@ const AVATARS: Avatar[] = [
 
 const TAGS: { key: StyleTag; label: string }[] = [
   { key: 'chibi',      label: 'Chibi' },
-  { key: 'voxel',      label: 'Voxel' },
   { key: 'watercolor', label: 'Watercolor' },
   { key: 'anime',      label: 'Anime' },
   { key: 'pixel-art',  label: 'Pixel Art' },

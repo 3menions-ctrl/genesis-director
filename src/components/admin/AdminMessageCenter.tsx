@@ -43,6 +43,9 @@ interface SupportMessage {
   created_at: string;
   updated_at: string;
   user_id: string | null;
+  admin_reply?: string | null;
+  replied_at?: string | null;
+  admin_reply_by?: string | null;
 }
 
 type StatusFilter = 'all' | 'new' | 'in_progress' | 'resolved';
@@ -55,6 +58,8 @@ export function AdminMessageCenter() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -117,6 +122,7 @@ export function AdminMessageCenter() {
   // Update admin notes when selecting a message
   useEffect(() => {
     setAdminNotes(selectedMessage?.admin_notes || '');
+    setReplyText(selectedMessage?.admin_reply || '');
   }, [selectedMessage]);
 
   const updateMessageStatus = async (messageId: string, status: string) => {

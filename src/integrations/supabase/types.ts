@@ -1154,6 +1154,42 @@ export type Database = {
         }
         Relationships: []
       }
+      creation_canvases: {
+        Row: {
+          created_at: string
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          project_id: string | null
+          updated_at: string
+          user_id: string
+          viewport: Json
+        }
+        Insert: {
+          created_at?: string
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          project_id?: string | null
+          updated_at?: string
+          user_id: string
+          viewport?: Json
+        }
+        Update: {
+          created_at?: string
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          project_id?: string | null
+          updated_at?: string
+          user_id?: string
+          viewport?: Json
+        }
+        Relationships: []
+      }
       credit_packages: {
         Row: {
           created_at: string

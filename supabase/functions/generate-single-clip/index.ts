@@ -460,6 +460,92 @@ async function createSora2Prediction(
   return { predictionId: prediction.id };
 }
 
+/**
+ * Create a Google Veo 3 Fast prediction via Replicate.
+ *
+ * Model: google/veo-3-fast
+ *   - Text-to-Video and Image-to-Video
+ *   - Native audio generation (ambient + diegetic)
+ *   - Allowed durations: 4, 6, 8 seconds (snap to nearest)
+ *   - Aspect ratios: 16:9 or 9:16 only
+ */
+async function createVeo3FastPrediction(
+  prompt: string,
+  negativePrompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 8,
+  enableAudio: boolean = true,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  const allowed = [4, 6, 8];
+  const duration = allowed.reduce((best, d) =>
+    Math.abs(d - durationSeconds) < Math.abs(best - durationSeconds) ? d : best, 8);
+
+  // Veo 3 Fast does not support 1:1 — fall back to 16:9.
+  const veoAspect = aspectRatio === "9:16" ? "9:16" : "16:9";
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    negative_prompt: (negativePrompt || "").slice(0, 1500),
+    aspect_ratio: veoAspect,
+    duration,
+    resolution: "1080p",
+    generate_audio: enableAudio !== false,
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Veo3Fast] Creating ${mode} prediction:`, {
+    model: `${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}`,
+    duration,
+    aspectRatio: veoAspect,
+    hasStartImage: !!input.image,
+    audio: input.generate_audio,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(VEO_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Veo3Fast] Replicate API error:", response.status, errorText);
+    if (response.status === 403 || response.status === 404) {
+      throw new Error(`Veo 3 Fast access not enabled on this Replicate account. Visit replicate.com/google/veo-3-fast to request access. (${response.status})`);
+    }
+    throw new Error(`Veo 3 Fast API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Veo 3 Fast response");
+  }
+
+  console.log(`[SingleClip][Veo3Fast] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
 // Poll a Replicate prediction until it completes (works for both Kling and Veo)
 async function pollReplicatePrediction(
   predictionId: string,
@@ -963,7 +1049,7 @@ serve(async (req) => {
     const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
       kling:    'kwaivgi/kling-v3-video',
       seedance: 'bytedance/seedance-2.0',
-      veo:      'kwaivgi/kling-v3-video (veo legacy → kling)',
+      veo:      'google/veo-3-fast',
       runway:   'runwayml/gen4-turbo',
       sora:     'openai/sora-2',
     };
@@ -1327,8 +1413,19 @@ serve(async (req) => {
         durationSeconds,
       );
       predictionId = soraResult.predictionId;
+    } else if (videoEngine === 'veo') {
+      console.log(`[SingleClip] ══ ROUTING TO VEO 3 FAST (google/veo-3-fast) ══`);
+      const veoResult = await createVeo3FastPrediction(
+        enhancedPrompt,
+        fullNegativePrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        enableNativeAudio !== false,
+      );
+      predictionId = veoResult.predictionId;
     } else {
-      // 'kling' and legacy 'veo' both render via Kling V3.
+      // 'kling' renders via Kling V3 (default + avatar lip-sync).
       const klingResult = await createKlingV3Prediction(
         enhancedPrompt,
         fullNegativePrompt,

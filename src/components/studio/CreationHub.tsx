@@ -4,7 +4,7 @@ import {
   Wand2, Image as ImageIcon, User, Film, Coins, Sparkles, Upload,
   ChevronRight, RectangleHorizontal, Square, RectangleVertical,
   Clock, Hash, Mic, ChevronDown, X, CheckCircle2, Loader2,
-  ArrowRight, Layers, Settings2, Zap, Cpu,
+  ArrowRight, Layers, Settings2, Zap, Cpu, Lock, Info,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -31,47 +31,92 @@ import {
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
-// ─── Mode catalog ─────────────────────────────────────────────────────────────
-// `engine` defines which video model the pipeline routes to.
-//   kling    → Kling V3 (kwaivgi/kling-v3-video) — cinematic, lip-sync, default
-//   seedance → Seedance 2.0 (bytedance/seedance-2.0) — premium hyperreal motion
+// ─── Creation modes ───────────────────────────────────────────────────────────
+// A "mode" is the *intent* (text→video, image→video, avatar). The "engine" is
+// the *render model*. We model them separately and use a capability matrix so
+// invalid combinations (e.g. "Avatar with Sora 2") are physically impossible
+// to choose in the UI.
+type CreationModeId = 'text-to-video' | 'image-to-video' | 'avatar';
 type CreationModeDef = {
-  id: VideoGenerationMode;
+  id: CreationModeId;
   name: string;
   icon: any;
   hint: string;
-  engine: 'kling' | 'seedance';
-  badge?: string;
+  requiresImage?: boolean;
+  requiresLipSync?: boolean;
 };
 const CREATION_MODES: CreationModeDef[] = [
-  { id: 'text-to-video',  name: 'Cinematic', icon: Wand2,     hint: 'Generate from text',     engine: 'kling' },
-  { id: 'image-to-video', name: 'Animate',   icon: ImageIcon, hint: 'Bring an image to life', engine: 'kling' },
-  { id: 'avatar',         name: 'Avatar',    icon: User,      hint: 'Talking presenter',      engine: 'kling' },
-  { id: 'text-to-video',  name: 'Seedance',  icon: Zap,       hint: 'Premium hyperreal motion', engine: 'seedance', badge: 'NEW' },
+  { id: 'text-to-video',  name: 'Cinematic', icon: Wand2,     hint: 'Generate from text' },
+  { id: 'image-to-video', name: 'Animate',   icon: ImageIcon, hint: 'Bring an image to life', requiresImage: true },
+  { id: 'avatar',         name: 'Avatar',    icon: User,      hint: 'Talking presenter (lip-sync)', requiresLipSync: true },
 ];
 
-// Each engine has a public-facing identity card (shown in the engine badge
-// and confirmation pill on the CTA so the user always knows what is running).
-const ENGINE_INFO: Record<'kling' | 'seedance', {
+// ─── Engine capability matrix ─────────────────────────────────────────────────
+// Single source of truth for what each render model can/can't do. The UI reads
+// this to dim invalid engines, snap aspect ratio + duration into legal range,
+// and prevent incoherent submissions before they reach the pipeline.
+type EngineKey = 'kling' | 'seedance' | 'veo' | 'sora';
+type EngineCapabilities = {
   label: string;
   model: string;
   tagline: string;
-  hue: string;
-}> = {
-  kling:    { label: 'Kling V3',     model: 'kwaivgi/kling-v3-video',   tagline: 'Cinematic · Native lip-sync', hue: '212 100% 60%' },
-  seedance: { label: 'Seedance 2.0', model: 'bytedance/seedance-2.0',   tagline: 'Premium hyperreal motion',    hue: '280 95% 65%' },
+  badge?: string;
+  supportsT2V: boolean;
+  supportsI2V: boolean;
+  supportsLipSync: boolean;          // Talking-head with native dialogue audio
+  supportsNativeAudio: boolean;
+  aspectRatios: Array<'16:9' | '9:16' | '1:1'>;
+  durations: number[];
+};
+const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
+  kling: {
+    label: 'Kling V3', model: 'kwaivgi/kling-v3-video',
+    tagline: 'Cinematic · Native lip-sync',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: true, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 15],
+  },
+  seedance: {
+    label: 'Seedance 1 Pro', model: 'bytedance/seedance-1-pro',
+    tagline: 'Premium hyperreal motion', badge: 'NEW',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 12],
+  },
+  veo: {
+    label: 'Veo 3 Fast', model: 'google/veo-3-fast',
+    tagline: 'Native audio · 1080p · 8s',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16'], durations: [4, 6, 8],
+  },
+  sora: {
+    label: 'Sora 2', model: 'openai/sora-2',
+    tagline: 'Narrative coherence · Long shots',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16'], durations: [4, 8, 12],
+  },
 };
 
-const ASPECT_RATIOS = [
+// Is this engine compatible with the selected mode?
+function engineSupportsMode(engine: EngineKey, mode: CreationModeId): boolean {
+  const caps = ENGINE_CAPS[engine];
+  if (mode === 'avatar') return caps.supportsLipSync;
+  if (mode === 'image-to-video') return caps.supportsI2V;
+  return caps.supportsT2V;
+}
+
+// Snap a value to the nearest legal entry (used for duration + aspect ratio
+// when the user changes engine).
+function snapToAllowed<T>(value: T, allowed: T[]): T {
+  return allowed.includes(value) ? value : allowed[0];
+}
+function snapDuration(value: number, allowed: number[]): number {
+  return [...allowed].sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0] ?? allowed[0];
+}
+
+const ASPECT_RATIOS: Array<{ id: '16:9' | '9:16' | '1:1'; icon: any; label: string }> = [
   { id: '16:9', icon: RectangleHorizontal, label: 'Wide' },
   { id: '9:16', icon: RectangleVertical,   label: 'Tall' },
   { id: '1:1',  icon: Square,              label: 'Square' },
 ];
-
-const CLIP_DURATIONS_KLING = [5, 10, 15];
-// Seedance 2.0 hard-clamps duration to 2–12s — never expose 15s, the API
-// silently truncates and we'd be charging the extended tier for short output.
-const CLIP_DURATIONS_SEEDANCE = [5, 10, 12];
 
 const GENRE_OPTIONS = [
   { value: 'cinematic',     label: 'Cinematic' },
@@ -108,7 +153,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-    videoEngine?: 'kling' | 'veo' | 'seedance';
+    videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
     breakoutPlatform?: string;
@@ -126,9 +171,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const { profile } = useAuth();
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
-  // The active mode CARD index — multiple cards can map to the same VideoGenerationMode
-  // (Cinematic and Seedance both point to text-to-video) but route to a different engine.
-  const [selectedModeIndex, setSelectedModeIndex] = useState<number>(0);
+  // Engine is now an INDEPENDENT axis from mode. The capability matrix
+  // (ENGINE_CAPS) decides which engines are valid for the chosen mode.
+  const [videoEngine, setVideoEngine] = useState<EngineKey>('kling');
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -233,23 +278,53 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   const effectiveDuration = clipDuration;
-  const activeMode = CREATION_MODES[selectedModeIndex] ?? CREATION_MODES[0];
-  // Engine derives from the selected mode card.
-  // 'kling' here = the credit/system token for the Kling V3 family used everywhere
-  // (note: legacy 'veo' is a backward-compat alias that also routes to Kling V3).
-  const videoEngine: 'kling' | 'seedance' = activeMode.engine;
-  const engineInfo = ENGINE_INFO[videoEngine];
-  const clipDurationOptions = videoEngine === 'seedance' ? CLIP_DURATIONS_SEEDANCE : CLIP_DURATIONS_KLING;
+  const engineCaps = ENGINE_CAPS[videoEngine];
+  const engineInfo = engineCaps;
+  const clipDurationOptions = engineCaps.durations;
+  const aspectOptions = ASPECT_RATIOS.filter(a => engineCaps.aspectRatios.includes(a.id));
 
-  // If user selected Seedance while a Kling-only duration (e.g. 15s) is active,
-  // snap down to the closest legal Seedance value (≤12s) so we never over-bill
-  // the extended tier for a model that will hard-truncate the output.
+  // ── GUARDRAIL: if the chosen engine doesn't support the chosen mode, snap
+  //               the engine back to the canonical engine for that mode.
+  //               (Avatar = Kling lip-sync only; everything else falls back to Kling.)
+  useEffect(() => {
+    if (!engineSupportsMode(videoEngine, selectedMode as CreationModeId)) {
+      setVideoEngine('kling');
+    }
+  }, [selectedMode, videoEngine]);
+
+  // ── GUARDRAIL: snap duration into the engine's legal range.
   useEffect(() => {
     if (!clipDurationOptions.includes(clipDuration)) {
-      const safest = [...clipDurationOptions].reverse().find(d => d <= clipDuration) ?? clipDurationOptions[0];
-      setClipDuration(safest);
+      setClipDuration(snapDuration(clipDuration, clipDurationOptions));
     }
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── GUARDRAIL: snap aspect ratio into the engine's legal set
+  //               (Veo + Sora don't support 1:1).
+  useEffect(() => {
+    if (!engineCaps.aspectRatios.includes(aspectRatio as any)) {
+      setAspectRatio(engineCaps.aspectRatios[0]);
+    }
+  }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── GUARDRAIL: a template environment with a baked-in start image (e.g.
+  //               breakout 4th-wall) implicitly OWNS the start frame. Block
+  //               manual image upload so we don't double-source the first
+  //               frame and confuse the pipeline.
+  const templateProvidesStartImage = !!appliedSettings?.startImageUrl;
+
+  // ── GUARDRAIL: avatar mode requires lip-sync, which only Kling supports.
+  //               If the user is in Avatar mode they cannot also upload a
+  //               separate scene image — the avatar's face IS the start frame.
+  useEffect(() => {
+    if (selectedMode === 'avatar' && uploadedImage) {
+      setUploadedImage(null);
+      setUploadedFileName(null);
+    }
+    if (selectedMode === 'image-to-video' && selectedAvatar && !supportsTemplateAvatar) {
+      setSelectedAvatar(null);
+    }
+  }, [selectedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);
@@ -307,6 +382,32 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       return;
     }
     if (isBreakoutTemplate && !selectedAvatar) return;
+
+    // ── Final guardrail wall: refuse incoherent submissions even if the UI
+    //    state somehow drifted. These mirror ENGINE_CAPS rules.
+    if (selectedMode === 'avatar' && !engineCaps.supportsLipSync) {
+      toast.error(`${engineCaps.label} can't render talking-head avatars. Switch engine to Kling V3.`);
+      return;
+    }
+    if (selectedMode === 'image-to-video' && !engineCaps.supportsI2V) {
+      toast.error(`${engineCaps.label} doesn't support image-to-video.`);
+      return;
+    }
+    if (!engineCaps.aspectRatios.includes(aspectRatio as any)) {
+      toast.error(`${engineCaps.label} doesn't support ${aspectRatio} — pick ${engineCaps.aspectRatios.join(' or ')}.`);
+      return;
+    }
+    if (!engineCaps.durations.includes(clipDuration)) {
+      toast.error(`${engineCaps.label} only supports ${engineCaps.durations.join('/')}s clips.`);
+      return;
+    }
+    // Avatar mode + manually uploaded scene image is incoherent: the avatar
+    // face IS the start frame. We cleared this in an effect, but double-block
+    // here in case something raced.
+    if (selectedMode === 'avatar' && uploadedImage) {
+      toast.error('Avatar mode uses the avatar face as the start frame — please remove the uploaded image.');
+      return;
+    }
 
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
       mode: isBreakoutTemplate ? 'text-to-video' : selectedMode,
@@ -394,13 +495,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           >
             {CREATION_MODES.map((m, idx) => {
               const Icon = m.icon;
-              const active = selectedModeIndex === idx;
+              const active = selectedMode === m.id;
               return (
                 <button
-                  key={`${m.id}-${m.engine}-${idx}`}
+                  key={`${m.id}-${idx}`}
                   onClick={() => {
                     if (m.id === 'avatar') navigate('/avatars');
-                    else { setSelectedMode(m.id); setSelectedModeIndex(idx); }
+                    else { setSelectedMode(m.id); }
                   }}
                   className={cn(
                     'relative z-10 flex items-center gap-2 px-4 sm:px-4 h-10 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
@@ -426,17 +527,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     strokeWidth={1.5}
                   />
                   <span>{m.name}</span>
-                  {m.badge && (
-                    <span
-                      className="ml-0.5 px-2 py-0.5 rounded-full text-[9px] font-light tracking-[0.14em] leading-none"
-                      style={{
-                        background: 'hsla(215,100%,60%,0.15)',
-                        color: 'hsl(215,100%,78%)',
-                      }}
-                    >
-                      {m.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -469,44 +559,81 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
         </div>
 
-        {/* ─── Engine identity strip — always visible, premium reveal ──── */}
-        <motion.div
-          key={videoEngine}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-6 flex items-center gap-3 flex-wrap"
-        >
-          <div
-            className="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full"
-            style={{
-              background: 'linear-gradient(180deg, hsla(215,100%,60%,0.10), hsla(215,100%,55%,0.03))',
-              backdropFilter: 'blur(40px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-              boxShadow: '0 0 24px -6px hsla(215,100%,60%,0.35), inset 0 1px 0 hsla(0,0%,100%,0.08)',
-            }}
-          >
-            <span
-              className="relative flex h-6 w-6 items-center justify-center rounded-full"
-              style={{
-                background: 'hsla(215,100%,60%,0.20)',
-                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.10)',
-              }}
-            >
-              <Cpu className="w-3 h-3 text-[hsl(215,100%,80%)]" strokeWidth={1.5} />
-              <span className="absolute inset-0 rounded-full animate-ping opacity-40"
-                    style={{ boxShadow: '0 0 0 2px hsla(215,100%,60%,0.35)' }} />
-            </span>
-            <div className="leading-tight">
-              <div className="text-[9px] uppercase tracking-[0.24em] text-white/50 font-light">Engine</div>
-              <div className="text-[13px] font-light text-white tracking-[-0.01em]">{engineInfo.label}</div>
-            </div>
+        {/* ─── Engine rail — interactive, capability-gated ──────────────── */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2.5 text-[10px] uppercase tracking-[0.24em] text-white/40 font-light">
+            <Cpu className="w-3 h-3" strokeWidth={1.5} />
+            Render engine
           </div>
-          <div className="text-[11px] text-white/45 font-light tracking-[0.005em]">
-            {engineInfo.tagline} <span className="text-white/25 mx-1.5">·</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {(Object.keys(ENGINE_CAPS) as EngineKey[]).map((k) => {
+              const caps = ENGINE_CAPS[k];
+              const compatible = engineSupportsMode(k, selectedMode as CreationModeId);
+              const active = videoEngine === k && compatible;
+              return (
+                <button
+                  key={k}
+                  onClick={() => compatible && setVideoEngine(k)}
+                  disabled={!compatible}
+                  title={
+                    !compatible
+                      ? selectedMode === 'avatar'
+                        ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
+                        : `${caps.label} isn't compatible with this mode.`
+                      : caps.tagline
+                  }
+                  className={cn(
+                    'group relative inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full transition-all duration-400',
+                    active && 'scale-[1.02]',
+                    !compatible && 'opacity-35 cursor-not-allowed',
+                  )}
+                  style={{
+                    background: active
+                      ? 'linear-gradient(180deg, hsla(215,100%,60%,0.22), hsla(215,100%,55%,0.08))'
+                      : 'hsla(0,0%,100%,0.025)',
+                    boxShadow: active
+                      ? '0 0 24px -6px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.08)'
+                      : 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+                  }}
+                >
+                  <span
+                    className="relative flex h-5 w-5 items-center justify-center rounded-full"
+                    style={{
+                      background: active ? 'hsla(215,100%,60%,0.30)' : 'hsla(0,0%,100%,0.06)',
+                    }}
+                  >
+                    {compatible ? (
+                      <Cpu className={cn('w-2.5 h-2.5', active ? 'text-[hsl(215,100%,82%)]' : 'text-white/55')} strokeWidth={1.5} />
+                    ) : (
+                      <Lock className="w-2.5 h-2.5 text-white/40" strokeWidth={1.5} />
+                    )}
+                  </span>
+                  <span className={cn('text-[12px] font-light tracking-[-0.005em]', active ? 'text-white' : 'text-white/65')}>
+                    {caps.label}
+                  </span>
+                  {caps.badge && compatible && (
+                    <span
+                      className="px-1.5 py-0.5 rounded-full text-[9px] font-light tracking-[0.14em] leading-none"
+                      style={{ background: 'hsla(215,100%,60%,0.15)', color: 'hsl(215,100%,78%)' }}
+                    >
+                      {caps.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-white/45 font-light">
+            <Info className="w-3 h-3 opacity-60" strokeWidth={1.5} />
+            <span>{engineInfo.tagline}</span>
+            <span className="text-white/25">·</span>
             <span className="font-mono text-white/35">{engineInfo.model}</span>
+            <span className="text-white/25">·</span>
+            <span className="text-white/35">{engineCaps.aspectRatios.join(' / ')}</span>
+            <span className="text-white/25">·</span>
+            <span className="text-white/35">{engineCaps.durations.join(' / ')}s</span>
           </div>
-        </motion.div>
+        </div>
 
         {/* ─── Stage: prompt + (optional upload) ───────────────────────── */}
         <motion.div
@@ -574,8 +701,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 </div>
               )}
 
-              {/* Image / Video upload */}
-              {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && !isBreakoutTemplate && (
+              {/* Image / Video upload — hidden if template owns the start frame
+                  (e.g. 4th-wall breakout) or the user picked Avatar mode (avatar
+                  face IS the start frame). */}
+              {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && !isBreakoutTemplate && !templateProvidesStartImage && selectedMode !== 'avatar' && (
                 <div className="mb-5">
                   <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                   <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />
@@ -688,10 +817,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       icon={ASPECT_RATIOS.find(a => a.id === aspectRatio)?.icon || RectangleHorizontal}
                       label={aspectRatio}
                       onClick={() => {
-                        const idx = ASPECT_RATIOS.findIndex(a => a.id === aspectRatio);
-                        setAspectRatio(ASPECT_RATIOS[(idx + 1) % ASPECT_RATIOS.length].id);
+                        // Cycle ONLY through aspect ratios the engine actually supports.
+                        const legal = aspectOptions;
+                        if (legal.length === 0) return;
+                        const idx = legal.findIndex(a => a.id === aspectRatio);
+                        setAspectRatio(legal[(idx + 1) % legal.length].id);
                       }}
-                      title="Aspect ratio"
+                      title={`Aspect ratio (${engineCaps.label} supports ${engineCaps.aspectRatios.join(', ')})`}
                     />
                     <ControlPill
                       icon={Hash}

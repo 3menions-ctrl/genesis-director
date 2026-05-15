@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, FileText, ImageIcon, GitBranch, ChevronRight, ChevronLeft,
@@ -188,34 +187,16 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 
   if (!open) return null;
 
-  return createPortal(
+  return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] overflow-hidden"
-        style={{ background: "hsl(220 14% 2%)" }}
+        className="relative w-full min-h-screen overflow-hidden"
       >
-        {/* Cinematic backdrop */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div
-            className="absolute inset-0 opacity-[0.35]"
-            style={{
-              background:
-                "radial-gradient(1000px 700px at 18% 20%, hsl(215 100% 50% / 0.18), transparent 60%), radial-gradient(900px 600px at 85% 90%, hsl(215 90% 40% / 0.10), transparent 65%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-            }}
-          />
-          <div className="absolute inset-x-0 top-0 h-px bg-white/[0.06]" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-white/[0.06]" />
-        </div>
+        {/* Top hairline */}
+        <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
         {/* Top chrome */}
         <div className="relative z-10 flex items-center justify-between px-8 py-5">
@@ -664,8 +645,6 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
         </div>
       </motion.div>
     </AnimatePresence>
-  ,
-    document.body,
   );
 }
 

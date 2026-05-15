@@ -222,6 +222,7 @@ const App = () => {
                     <Landing />
                   </RouteContainer>
                 } />
+                <Route path="/mockup" element={<MockupPreview />} />
                 <Route path="/auth" element={
                   <RouteContainer fallbackMessage="Loading authentication...">
                     <Auth />

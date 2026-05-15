@@ -259,7 +259,7 @@ export default function Landing() {
     setStudioIntroPlaying(true);
     // Navigate just before the intro finishes so the studio is painted
     // underneath the dissolve — no black flash between scenes.
-    window.setTimeout(() => navigate('/studio'), 3050);
+    window.setTimeout(() => navigate('/studio'), 4150);
   }, [navigate]);
 
   // The cinema loader is a sibling of the page content. We render the page

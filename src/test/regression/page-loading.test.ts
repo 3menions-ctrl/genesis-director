@@ -167,8 +167,9 @@ describe('GATEKEEPER_PRESETS — Coverage', () => {
 // ─── Page Integration — Each Page Uses Gatekeeper ────────────────────────────
 
 describe('Page Loading Integration — Gatekeeper Adoption', () => {
+  // Landing was redesigned away from the gatekeeper pattern (cinematic
+  // hero handles its own ready-state), so it is intentionally excluded.
   const gatekeeperPages = [
-    { name: 'Landing', path: 'src/pages/Landing.tsx', preset: 'landing' },
     { name: 'Projects', path: 'src/pages/Projects.tsx', preset: 'projects' },
     { name: 'Production', path: 'src/pages/Production.tsx', preset: 'production' },
   ];

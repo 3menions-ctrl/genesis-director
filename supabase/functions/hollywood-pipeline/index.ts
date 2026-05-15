@@ -316,6 +316,12 @@ const CREDIT_PRICING = {
   AVATAR_EXTENDED_CREDITS_PER_CLIP: 90, // Avatar + native audio >10s
   SEEDANCE_BASE_CREDITS_PER_CLIP: 65,   // Seedance 2.0 1080p ≤10s
   SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95, // Seedance 2.0 1080p >10s
+  // Cinema-tier engines (must match src/lib/video/engines.ts baseCreditsFor)
+  RUNWAY_BASE_CREDITS_PER_CLIP: 250,        // Runway Gen-4 Turbo 5s
+  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 500,    // Runway Gen-4 Turbo 10s
+  SORA_BASE_CREDITS_PER_CLIP: 300,          // Sora 2 5s
+  SORA_EXTENDED_CREDITS_PER_CLIP: 600,      // Sora 2 10s
+  SORA_LONG_CREDITS_PER_CLIP: 900,          // Sora 2 15s
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
@@ -326,6 +332,17 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode
     return extended
       ? CREDIT_PRICING.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
       : CREDIT_PRICING.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'runway') {
+    return extended
+      ? CREDIT_PRICING.RUNWAY_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.RUNWAY_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'sora') {
+    if (clipDuration > 12) return CREDIT_PRICING.SORA_LONG_CREDITS_PER_CLIP;
+    return extended
+      ? CREDIT_PRICING.SORA_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.SORA_BASE_CREDITS_PER_CLIP;
   }
   // Avatar mode (generate_audio=true, pose-chained) carries higher cost
   if (isAvatarMode) {

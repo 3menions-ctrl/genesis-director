@@ -295,8 +295,160 @@ async function createSeedancePrediction(
 }
 
 
-// REMOVED: Runway Gen-4 Turbo and Gen-4.5 functions
-// All video generation now unified on Kling V3 (kwaivgi/kling-v3-video)
+/**
+ * Create a Runway Gen-4 Turbo prediction via Replicate.
+ *
+ * Model: runwayml/gen4-turbo
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 5s or 10s
+ *   - Aspect ratios mapped to Runway's pixel ratios
+ */
+async function createRunwayGen4Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Runway Gen-4 Turbo: only 5s or 10s. Snap to nearest.
+  const duration = durationSeconds <= 7 ? 5 : 10;
+
+  // Map our aspect ratios to Runway's pixel ratios (gen4-turbo schema).
+  const ratioMap: Record<'16:9' | '9:16' | '1:1', string> = {
+    '16:9': '1280:720',
+    '9:16': '720:1280',
+    '1:1':  '960:960',
+  };
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    ratio: ratioMap[aspectRatio] || '1280:720',
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][RunwayGen4] Creating ${mode} prediction:`, {
+    model: `${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}`,
+    duration,
+    ratio: input.ratio,
+    hasStartImage: !!input.image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(RUNWAY_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][RunwayGen4] Replicate API error:", response.status, errorText);
+    throw new Error(`Runway Gen-4 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Runway Gen-4 response");
+  }
+
+  console.log(`[SingleClip][RunwayGen4] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+/**
+ * Create an OpenAI Sora 2 prediction via Replicate.
+ *
+ * Model: openai/sora-2
+ *   - Text-to-Video and Image-to-Video
+ *   - Duration: 4–15s (we clamp to engine spec)
+ *   - Native audio supported
+ */
+async function createSora2Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Sora 2: clamp to 4–15s.
+  const duration = Math.max(4, Math.min(15, durationSeconds));
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    aspect_ratio: aspectRatio,
+    duration,
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.input_image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Sora2] Creating ${mode} prediction:`, {
+    model: `${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}`,
+    duration,
+    aspectRatio,
+    hasStartImage: !!input.input_image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(SORA_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Sora2] Replicate API error:", response.status, errorText);
+    throw new Error(`Sora 2 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Sora 2 response");
+  }
+
+  console.log(`[SingleClip][Sora2] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
 
 // Poll a Replicate prediction until it completes (works for both Kling and Veo)
 async function pollReplicatePrediction(

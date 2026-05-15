@@ -167,7 +167,7 @@ export function AdminAvatarSeeder() {
           </Button>
 
           {presets.length > 0 && !isGenerating && (
-            <Button onClick={startGeneration} className="gap-2">
+            <Button onClick={() => startGeneration()} className="gap-2">
               <Play className="w-4 h-4" />
               {currentIndex > 0 ? 'Restart Generation' : 'Start Generation'}
             </Button>

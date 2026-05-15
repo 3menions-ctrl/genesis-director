@@ -37,9 +37,10 @@ import steampunkLabImg from '@/assets/environments/steampunk-lab.jpg';
 import cloudNineImg from '@/assets/environments/cloud-nine.jpg';
 import zenGardenImg from '@/assets/environments/zen-garden.jpg';
 import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
+import { EXTENDED_ENVIRONMENTS } from '@/data/environment-extensions';
 
 // Environment presets with unique epic ideas - 20 stunning environments
-const ENVIRONMENT_PRESETS = [
+const BASE_PRESETS = [
   // TRENDING - What creators love
   {
     id: 'golden_hour_magic',
@@ -284,6 +285,9 @@ const ENVIRONMENT_PRESETS = [
   },
 ];
 
+// Hand-curated 20 + 100 cinematic atmospheres from Unsplash CDN
+const ENVIRONMENT_PRESETS = [...BASE_PRESETS, ...EXTENDED_ENVIRONMENTS] as any[];
+
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Palette },
   { id: 'trending', label: 'Trending', icon: TrendingUp },
@@ -411,7 +415,7 @@ function EnvironmentCard({
               <div
                 key={i}
                 className="w-4 h-4 rounded-full border border-white/30"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: color as string }}
               />
             ))}
           </div>

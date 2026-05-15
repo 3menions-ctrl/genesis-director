@@ -1280,7 +1280,17 @@ export interface AppliedSettings {
   // Breakout template specific
   isBreakout?: boolean;
   startImageUrl?: string; // Template start image for first clip
-  breakoutPlatform?: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape';
+  breakoutPlatform?:
+    | 'post-escape'
+    | 'scroll-grab'
+    | 'freeze-walk'
+    | 'reality-rip'
+    | 'aspect-escape'
+    | 'mirror-shatter'
+    | 'canvas-emerge'
+    | 'billboard-leap'
+    | 'page-burst'
+    | 'hologram-materialize';
 }
 
 export function useTemplateEnvironment() {
@@ -1310,14 +1320,10 @@ export function useTemplateEnvironment() {
         }
         
         // Determine breakout effect type from template ID
-        let breakoutPlatform: 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip' | 'aspect-escape' | undefined;
+        let breakoutPlatform: AppliedSettings['breakoutPlatform'];
         if (builtIn.isBreakout) {
-          // New premium breakout effects
-          if (builtIn.id === 'post-escape') breakoutPlatform = 'post-escape';
-          else if (builtIn.id === 'scroll-grab') breakoutPlatform = 'scroll-grab';
-          else if (builtIn.id === 'freeze-walk') breakoutPlatform = 'freeze-walk';
-          else if (builtIn.id === 'reality-rip') breakoutPlatform = 'reality-rip';
-          else if (builtIn.id === 'aspect-escape') breakoutPlatform = 'aspect-escape';
+          // Premium breakout effects — id maps 1:1 to platform key
+          breakoutPlatform = builtIn.id as AppliedSettings['breakoutPlatform'];
         }
         
         const settings: AppliedSettings = {

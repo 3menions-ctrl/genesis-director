@@ -905,10 +905,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       <span className="pr-2 text-[10px] tabular-nums text-white/30 font-light">/ {maxClips}</span>
                     </div>
 
-                    {/* Per-scene duration — segmented, all engine options visible */}
+                    {/* Default duration — applied to every NEW scene and to
+                        all scenes when clicked (apply-to-all). Shows only
+                        engine-supported values. */}
                     <div
                       className="h-10 inline-flex items-center gap-0.5 rounded-full bg-white/[0.03] pl-2 pr-1"
-                      title={`Per-scene duration (${engineCaps.label} supports ${clipDurationOptions.join('/')}s)`}
+                      title={`Default scene duration · ${engineCaps.label} supports ${clipDurationOptions.join('/')}s`}
                     >
                       <Clock className="w-3.5 h-3.5 text-white/45 mr-1" strokeWidth={1.5} />
                       {clipDurationOptions.map((d) => {
@@ -917,7 +919,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           <button
                             key={d}
                             type="button"
-                            onClick={() => setClipDuration(d)}
+                            onClick={() => {
+                              setClipDuration(d);
+                              setClipDurations((prev) => prev.map(() => d));
+                            }}
                             className={cn(
                               'h-8 px-3 inline-flex items-center justify-center rounded-full text-[11.5px] font-light tracking-[-0.005em] transition-all duration-300 tabular-nums',
                               active
@@ -929,6 +934,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                               boxShadow: '0 0 14px hsla(215,100%,60%,0.28), inset 0 1px 0 hsla(0,0%,100%,0.08)',
                             } : undefined}
                             aria-pressed={active}
+                            aria-label={`Set every scene to ${d} seconds`}
                           >
                             {d}s
                           </button>

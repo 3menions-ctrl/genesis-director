@@ -30,6 +30,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
 import { SupportInbox } from '@/components/social/SupportInbox';
 import { TwoFactorCard } from '@/components/security/TwoFactorCard';
+import { SessionsCard } from '@/components/security/SessionsCard';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // Cinematic glass system (mirrors Settings/Pricing/Create signature)

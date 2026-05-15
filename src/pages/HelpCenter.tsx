@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
+import { SupportInbox } from '@/components/social/SupportInbox';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -1593,22 +1595,9 @@ export default function HelpCenter() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="mt-12 p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] text-center"
+                  className="mt-12"
                 >
-                  <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-foreground mb-2">Still need help?</h2>
-                  <p className="text-foreground/80 mb-6">
-                    Our support team is ready to assist you with any questions
-                  </p>
-                  <Button
-                    asChild
-                    className="bg-white text-black hover:bg-white/90 rounded-full"
-                  >
-                    <a href="mailto:cole@apex-studio.com">
-                      Contact Support
-                      <ArrowUpRight className="w-4 h-4 ml-2" />
-                    </a>
-                  </Button>
+                  <ContactSupportBlock />
                 </motion.div>
               </motion.div>
             )}

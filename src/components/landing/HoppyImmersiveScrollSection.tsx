@@ -193,18 +193,13 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
               </motion.div>
             )}
 
-            {/* Tap-to-play fallback */}
+            {/* Tap-to-play fallback — invisible full-area click target (play button hidden per design) */}
             {showTapHint && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+              <button
                 onClick={handleTap}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[5] w-20 h-20 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white"
+                className="fixed inset-0 z-[5] w-full h-full bg-transparent cursor-pointer"
                 aria-label="Play video"
-              >
-                <Play className="w-7 h-7 ml-1 fill-white" />
-              </motion.button>
+              />
             )}
 
             {/* Mute toggle — fixed bottom-right, above content */}

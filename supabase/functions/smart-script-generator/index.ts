@@ -466,9 +466,18 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     //   • Seedance 2.0 → physics-grade motion, lens & camera vocabulary IS interpreted,
     //                    end-frame chaining critical, native 1080p 24fps cinematic
     // ═══════════════════════════════════════════════════════════════════
-    const targetEngine: 'kling' | 'veo' | 'seedance' = request.videoEngine || 'kling';
+    const targetEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = request.videoEngine || 'kling';
     const isSeedance = targetEngine === 'seedance';
-    console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} ${isSeedance ? '(Seedance 2.0 cinematic mode)' : '(Kling V3 entertainment mode)'}`);
+    const enginePersona = isSeedance
+      ? 'Seedance 2.0 cinematic mode'
+      : targetEngine === 'veo'
+        ? 'Veo 3 native-audio physics mode'
+        : targetEngine === 'runway'
+          ? 'Runway Gen-4 character-consistency mode'
+          : targetEngine === 'sora'
+            ? 'Sora 2 narrative-coherence mode'
+            : 'Kling V3 entertainment mode';
+    console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} (${enginePersona})`);
 
     const systemPrompt = isSeedance ? `You are a master cinematographer writing for SEEDANCE 2.0 (Bytedance) — a physics-grade, 1080p, 24fps cinematic video model that REWARDS technical precision and PUNISHES vague description.
 

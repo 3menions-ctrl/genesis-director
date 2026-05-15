@@ -102,6 +102,61 @@ const AVATAR_PRESETS = [
   { name: "Dwarf Smith Brakka", gender: "male", ageRange: "mature", ethnicity: "fantasy", style: "fantasy", personality: "gruff and proud", clothing: "Soot-stained leather apron, braided iron-grey beard, hammer slung over shoulder, forge sparks behind" },
   { name: "Sorceress Vael", gender: "female", ageRange: "middle-aged", ethnicity: "fantasy", style: "fantasy", personality: "imperious and mysterious", clothing: "Deep violet robes with silver star embroidery, crystal staff, hood casting shadow over eyes" },
   { name: "Steampunk Aviatrix Cog", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "fantasy", personality: "daring and inventive", clothing: "Brass goggles on leather flight cap, corset over canvas trousers, gear-trimmed gauntlets" },
+
+  // === POP-CULTURE ARCHETYPES (no real-person likenesses) ===
+  { name: "K-Pop Idol Sora", gender: "female", ageRange: "young-adult", ethnicity: "Korean", style: "popstar", personality: "luminous and precise", clothing: "Pastel-pink crop set with crystal harness, silver micro-braids, in-ear monitor, stadium spotlight rim-light" },
+  { name: "K-Pop Idol Haru", gender: "male", ageRange: "young-adult", ethnicity: "Korean", style: "popstar", personality: "magnetic and sharp", clothing: "Sculpted silver bomber jacket, eyeliner, bleached-blonde fringe, choker mic, fog-machine haze" },
+  { name: "Drill Rapper Ace", gender: "male", ageRange: "young-adult", ethnicity: "African American", style: "hiphop", personality: "cold and confident", clothing: "Black tactical vest over hoodie, ski-mask pulled to forehead, iced cuban chain, designer balaclava in pocket" },
+  { name: "Trap Princess Nyla", gender: "female", ageRange: "young-adult", ethnicity: "Afro-Latina", style: "hiphop", personality: "fierce and flirty", clothing: "Y2K leather corset, baggy cargo pants, butterfly shades, chrome grills, long acrylic nails" },
+  { name: "Latin Pop Star Camilo", gender: "male", ageRange: "young-adult", ethnicity: "Colombian", style: "popstar", personality: "smooth and joyful", clothing: "Open silk shirt, gold cross necklace, cuffed linen trousers, beach-sunset golden hour" },
+  { name: "Reggaeton Diva Selene", gender: "female", ageRange: "young-adult", ethnicity: "Puerto Rican", style: "popstar", personality: "fiery and commanding", clothing: "Metallic two-piece, hoop earrings, slicked baby hairs, neon Miami nightclub backdrop" },
+  { name: "Afrobeats Star Kemi", gender: "female", ageRange: "young-adult", ethnicity: "Nigerian", style: "popstar", personality: "radiant and playful", clothing: "Beaded crop top, ankara skirt, gold waist chain, braided ponytail with cowrie shells" },
+  { name: "DJ Vapor", gender: "non-binary", ageRange: "young-adult", ethnicity: "Mixed", style: "popstar", personality: "hypnotic and chill", clothing: "Reflective LED visor, oversized neon hoodie, Berlin warehouse rave laser haze" },
+  { name: "Indie Frontwoman Wren", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "musician", personality: "wistful and clever", clothing: "Vintage band tee under thrifted blazer, smudged eyeliner, electric guitar slung low" },
+  { name: "Punk Frontman Riot", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "musician", personality: "snarling and sincere", clothing: "Leather jacket bristling with patches, ripped jeans, smudged eyeliner, snarl mid-shout" },
+  { name: "Country Heartthrob Wyatt", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "musician", personality: "charming and easy", clothing: "Worn cowboy hat, denim jacket over white tee, belt buckle, golden field at dusk" },
+
+  // === SPORTS ARCHETYPES ===
+  { name: "Baller King Tre", gender: "male", ageRange: "young-adult", ethnicity: "African American", style: "athlete", personality: "swaggering and elite", clothing: "Pre-game tunnel fit — designer black leather coat, sunglasses indoors, headphones, championship-arena tunnel lighting" },
+  { name: "Striker Mateo", gender: "male", ageRange: "young-adult", ethnicity: "Argentine", style: "athlete", personality: "intense and theatrical", clothing: "Sky-blue national jersey mid-celebration, sweat-soaked, stadium floodlights, confetti raining" },
+  { name: "F1 Driver Kade", gender: "male", ageRange: "young-adult", ethnicity: "British", style: "athlete", personality: "icy and focused", clothing: "Fireproof racing suit unzipped to waist, balaclava in hand, helmet under arm, podium champagne mist" },
+  { name: "MMA Champ Rook", gender: "male", ageRange: "young-adult", ethnicity: "Mixed", style: "athlete", personality: "menacing and respectful", clothing: "Hand wraps, tattoos visible, championship belt over shoulder, cage-light shadow on face" },
+  { name: "Tennis Phenom Lior", gender: "female", ageRange: "young-adult", ethnicity: "Mixed", style: "athlete", personality: "fierce and graceful", clothing: "Crisp white tennis dress, racket mid-swing, Wimbledon-grass-court light" },
+  { name: "Skater Pixel", gender: "non-binary", ageRange: "young-adult", ethnicity: "Mixed", style: "athlete", personality: "loose and fearless", clothing: "Baggy tee, scuffed Vans, board mid-trick, sun-bleached LA skatepark concrete" },
+  { name: "Surfer Coral", gender: "female", ageRange: "young-adult", ethnicity: "Polynesian", style: "athlete", personality: "calm and elemental", clothing: "Black wetsuit pulled to waist, salt-tangled hair, board under arm, North Shore golden hour" },
+
+  // === CREATOR / INTERNET ARCHETYPES ===
+  { name: "TikTok Creator Lulu", gender: "female", ageRange: "young-adult", ethnicity: "Filipina", style: "influencer", personality: "bubbly and quick", clothing: "Ring-light glow on face, fluffy pastel hoodie, claw-clip messy bun, phone-on-tripod setup" },
+  { name: "Twitch Streamer Pixl", gender: "non-binary", ageRange: "young-adult", ethnicity: "Mixed", style: "influencer", personality: "hyped and witty", clothing: "RGB-keyboard glow, cat-ear headset, oversized graphic hoodie, cluttered gaming-cave backdrop" },
+  { name: "YouTube Vlogger Theo", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "influencer", personality: "earnest and energetic", clothing: "Beanie, hoodie under flannel, GoPro in hand, mid-stride city b-roll" },
+  { name: "Beauty Guru Rosa", gender: "female", ageRange: "young-adult", ethnicity: "Mexican American", style: "influencer", personality: "polished and warm", clothing: "Glass-skin makeup, satin slip top, ring-light catchlights, palette of bronzes in hand" },
+  { name: "Fitness Influencer Knox", gender: "male", ageRange: "young-adult", ethnicity: "Brazilian", style: "influencer", personality: "intense and motivating", clothing: "Sleeveless compression tee, sweat-glistened, rooftop sunrise gym, weighted chain around neck" },
+  { name: "Foodie Critic Marisol", gender: "female", ageRange: "young-adult", ethnicity: "Spanish", style: "influencer", personality: "discerning and warm", clothing: "Linen blouse, gold hoops, market basket of produce, Mediterranean farmer's market backdrop" },
+  { name: "BookTok Witch Hazel", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "influencer", personality: "moody and bookish", clothing: "Black turtleneck, stack of dark-academia novels, candle glow, autumn library backdrop" },
+
+  // === FASHION / TREND ARCHETYPES ===
+  { name: "Y2K Icon Sasha", gender: "female", ageRange: "young-adult", ethnicity: "Eastern European", style: "fashion", personality: "playful and cool", clothing: "Low-rise denim, butterfly halter, blue-tinted micro shades, frosted lip gloss, flip phone in hand" },
+  { name: "Cottagecore Wren", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "fashion", personality: "soft and dreamy", clothing: "Linen prairie dress, woven basket of wildflowers, freckles, golden meadow backdrop" },
+  { name: "Dark Academia Edmund", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "fashion", personality: "brooding and clever", clothing: "Tweed blazer over knit vest, paperback in coat pocket, ivy-covered Oxford courtyard backdrop" },
+  { name: "Streetwear Hypebeast Jin", gender: "male", ageRange: "young-adult", ethnicity: "Korean American", style: "fashion", personality: "deadpan and exacting", clothing: "Hooded designer puffer, layered tech vest, balaclava down, rare-sneaker cred" },
+  { name: "Afrofuturist Queen Naima", gender: "female", ageRange: "young-adult", ethnicity: "Ethiopian", style: "fashion", personality: "regal and visionary", clothing: "Sculpted gold headpiece, geometric beaded collar, metallic bodysuit, cosmic nebula backdrop" },
+  { name: "Goth Princess Morgaine", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "fashion", personality: "icy and theatrical", clothing: "Black corset gown, lace choker, silver claw rings, candlelit cathedral backdrop" },
+  { name: "Old-Money Heir Sebastian", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "fashion", personality: "aloof and polished", clothing: "Ivory cashmere sweater over collar, linen trousers, Hamptons-veranda golden hour" },
+
+  // === ANIME / POP-FANTASY ARCHETYPES ===
+  { name: "Magical Girl Stardust", gender: "female", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "hopeful and brave", clothing: "Sailor-style uniform with crystal brooch, twin-tail pastel hair, glowing wand, sparkle particles — anime art direction" },
+  { name: "Shōnen Hero Kaito", gender: "male", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "stubborn and loyal", clothing: "Torn black training gi, headband, electric-yellow aura, dramatic action pose — anime art direction" },
+  { name: "Mecha Pilot Ren", gender: "non-binary", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "cold and brilliant", clothing: "Skintight pilot suit with neon piping, helmet under arm, hangar-lights backdrop — anime art direction" },
+  { name: "Demon Slayer Akira", gender: "female", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "deadly and serene", clothing: "Black uniform haori with crimson trim, katana drawn, cherry-blossom petals swirling — anime art direction" },
+  { name: "Catgirl Hacker Mochi", gender: "female", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "smug and quick", clothing: "Oversized hoodie with cat ears, glitching holo-screens reflected in glasses, cyberpunk neon — anime art direction" },
+  { name: "Isekai Mage Lyra", gender: "female", ageRange: "young-adult", ethnicity: "anime", style: "anime", personality: "curious and powerful", clothing: "Lavender academy robes, floating spellbook, glowing rune circle at feet — anime art direction" },
+
+  // === COSPLAY-FRIENDLY HEROES (no IP names) ===
+  { name: "Web-Slinger Vigilante", gender: "male", ageRange: "young-adult", ethnicity: "fantasy", style: "hero", personality: "quippy and quick", clothing: "Crimson and indigo bodysuit with web pattern, mask up to nose, neon-rooftop skyline — original superhero design, not a licensed character" },
+  { name: "Star Princess Aurelia", gender: "female", ageRange: "young-adult", ethnicity: "fantasy", style: "hero", personality: "regal and steely", clothing: "White ceremonial gown, twin braided side-buns, holstered blaster, desert-planet golden light — original sci-fi design" },
+  { name: "Cowled Vigilante Nox", gender: "male", ageRange: "middle-aged", ethnicity: "fantasy", style: "hero", personality: "grim and methodical", clothing: "Matte-black armored suit with pointed cowl, glowing eye-lenses, gargoyle-perched skyline — original dark vigilante design" },
+  { name: "Amazon Warrior Thalassa", gender: "female", ageRange: "young-adult", ethnicity: "fantasy", style: "hero", personality: "fierce and noble", clothing: "Bronze-plated armor with golden bracers, lasso at hip, windswept cliffs at dawn — original warrior design" },
+  { name: "Space Marine Kael", gender: "male", ageRange: "middle-aged", ethnicity: "fantasy", style: "hero", personality: "stoic and lethal", clothing: "Heavy weathered powered armor, helmet under arm, war-torn alien battlefield — original sci-fi soldier design" },
 ];
 
 serve(async (req) => {

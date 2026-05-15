@@ -89,7 +89,7 @@ interface SmartScriptRequest {
     consistencyPrompt?: string;
   };
   // Mode flag to enforce strict adherence
-  mode?: 'text-to-video' | 'image-to-video' | 'b-roll';
+  mode?: 'text-to-video' | 'image-to-video' | 'avatar' | 'b-roll';
   
   // SCENE IDENTITY CONTEXT — rich DNA from extract-scene-identity (avatar-grade)
   // Passed from hollywood-pipeline after deep extraction, injected into script generation
@@ -1188,7 +1188,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     // in the prompt that reaches Kling V3, regardless of how the pipeline assembles it.
     // The block is structured so Kling reads it first (highest attention weight).
     // =====================================================
-    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video';
+    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video' || request.mode === 'avatar';
 
     if (shouldInjectDNA) {
       const lockedChar = lockFields.characterDescription;
@@ -1204,6 +1204,12 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         // Seedance reads technical directives — inject them at the very top, highest weight.
         if (isSeedance) {
           dnaParts.push(`[SEEDANCE_DIRECTIVES — TARGET ENGINE: Seedance 2.0 1080p 24fps. Honor all named camera moves, lens specs, aperture cues, and end-frame locks. Render with photographic 35mm film grain. Maintain physics-grade motion: inertia, gravity, follow-through, secondary motion on hair/fabric/particulate.]`);
+        } else if (targetEngine === 'veo') {
+          dnaParts.push(`[VEO_DIRECTIVES — TARGET ENGINE: Veo 3 Fast. Prioritize coherent real-world physics, natural native audio cues, diegetic sound, and single-shot causal motion inside ${clipDuration}s.]`);
+        } else if (targetEngine === 'runway') {
+          dnaParts.push(`[RUNWAY_DIRECTIVES — TARGET ENGINE: Runway Gen-4 Turbo. Prioritize character consistency, wardrobe continuity, clear subject silhouette, and one concise camera intent per clip.]`);
+        } else if (targetEngine === 'sora') {
+          dnaParts.push(`[SORA_DIRECTIVES — TARGET ENGINE: Sora 2. Prioritize narrative coherence, spatial continuity, grounded transformations, and a clear final tableau.]`);
         }
 
         if (lockedChar && lockedChar.length > 10) {

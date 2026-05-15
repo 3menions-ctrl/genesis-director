@@ -529,7 +529,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
             <div className="pr-4">
               <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
-              <p className="text-xs text-white/35 mt-0.5">Disable tracking of your usage patterns for analytics and gamification</p>
+              <p className="text-xs text-white/35 mt-0.5">Stop usage-pattern analytics on your account. Your data stays private to you regardless.</p>
             </div>
             <Switch
               checked={trackingOptedOut}
@@ -538,16 +538,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <div className="pr-4">
-              <p className="text-sm font-medium text-white">Hide from leaderboards</p>
-              <p className="text-xs text-white/35 mt-0.5">Keep your profile hidden from public leaderboard rankings</p>
-            </div>
-            <Switch
-              checked={hideFromLeaderboard}
-              onCheckedChange={(v) => handlePrivacyToggle('hide_from_leaderboard', v)}
-              disabled={isLoadingPrivacy || isSavingPrivacy}
-            />
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <p className="text-sm font-medium text-white">No public ranking</p>
+            <p className="text-xs text-white/35 mt-0.5">
+              Leaderboards, XP and ranking points have been removed. Your credits, usage and activity are visible only to you.
+            </p>
           </div>
         </div>
       </motion.div>

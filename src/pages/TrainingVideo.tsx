@@ -702,7 +702,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   };
 
   return (
-    <div ref={ref} className="min-h-screen text-white overflow-x-hidden relative">
+    <div ref={ref} className="min-h-screen text-foreground overflow-x-hidden relative">
       <CinematicAtmosphere ns="train" stars={22} />
       <AppHeader />
       
@@ -727,10 +727,10 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
             titleSuffix="studio."
             description="Pick a presenter, write a script, ship a polished training clip with synced voice and lip movement."
             stats={[
-              { label: 'Voices', value: VOICE_OPTIONS.length, icon: Mic, accent: 'text-white' },
+              { label: 'Voices', value: VOICE_OPTIONS.length, icon: Mic, accent: 'text-foreground' },
               { label: 'Backgrounds', value: BACKGROUND_PRESETS.length, icon: Image, accent: 'text-[hsl(var(--primary))]' },
-              { label: 'Cost / Clip', value: `${ESTIMATED_CREDITS} cr`, icon: Coins, accent: 'text-white/85' },
-              { label: 'Render Time', value: '~2 min', icon: Zap, accent: 'text-white/85' },
+              { label: 'Cost / Clip', value: `${ESTIMATED_CREDITS} cr`, icon: Coins, accent: 'text-foreground/90' },
+              { label: 'Render Time', value: '~2 min', icon: Zap, accent: 'text-foreground/90' },
             ] as HeroStat[]}
           />
         </div>
@@ -750,19 +750,19 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 <div className="flex items-center gap-2">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    scriptText.trim() ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
+                    scriptText.trim() ? "bg-emerald-500 text-foreground" : "bg-white/10 text-muted-foreground"
                   )}>
                     {scriptText.trim() ? <Check className="w-3.5 h-3.5" /> : "1"}
                   </div>
-                  <h3 className="font-semibold text-sm text-white">Script</h3>
+                  <h3 className="font-semibold text-sm text-foreground">Script</h3>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-white/20 text-white/60">{scriptText.length}/500</Badge>
+                <Badge variant="outline" className="text-[10px] border-white/20 text-muted-foreground">{scriptText.length}/500</Badge>
               </div>
               <Textarea
                 placeholder="Enter what your character will say..."
                 value={scriptText}
                 onChange={(e) => setScriptText(e.target.value.slice(0, 500))}
-                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-emerald-500/50"
+                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground focus:border-emerald-500/50"
               />
             </motion.div>
 
@@ -776,11 +776,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               <div className="flex items-center gap-2 mb-3">
                 <div className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                  selectedVoice ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
+                  selectedVoice ? "bg-emerald-500 text-foreground" : "bg-white/10 text-muted-foreground"
                 )}>
                   {selectedVoice ? <Check className="w-3.5 h-3.5" /> : "2"}
                 </div>
-                <h3 className="font-semibold text-sm text-white">Voice</h3>
+                <h3 className="font-semibold text-sm text-foreground">Voice</h3>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                 {VOICE_OPTIONS.map((voice) => {
@@ -798,18 +798,18 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                           : "border-white/[0.08] bg-white/[0.02] hover:border-emerald-500/30"
                       )}
                     >
-                      <div className="text-xs font-medium truncate text-white">{voice.name}</div>
-                      <div className="text-[10px] text-white/50 truncate">{voice.gender}</div>
+                      <div className="text-xs font-medium truncate text-foreground">{voice.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{voice.gender}</div>
                       {isSelected && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-white" />
+                          <Check className="w-2.5 h-2.5 text-foreground" />
                         </div>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleVoicePreview(voice.id); }}
                         className={cn(
                           "absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                          isPlaying ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50 opacity-0 group-hover:opacity-100"
+                          isPlaying ? "bg-emerald-500 text-foreground" : "bg-white/10 text-muted-foreground opacity-0 group-hover:opacity-100"
                         )}
                       >
                         {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
@@ -832,11 +832,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    characterImage ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
+                    characterImage ? "bg-emerald-500 text-foreground" : "bg-white/10 text-muted-foreground"
                   )}>
                     {characterImage ? <Check className="w-3.5 h-3.5" /> : "3"}
                   </div>
-                  <h3 className="font-semibold text-sm text-white">Character</h3>
+                  <h3 className="font-semibold text-sm text-foreground">Character</h3>
                 </div>
                 <div 
                   className={cn(
@@ -848,14 +848,14 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                   {characterImage ? (
                     <div className="relative w-full h-full group">
                       <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Upload className="w-6 h-6 text-white" />
+                      <div className="absolute inset-0 bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-foreground" />
                       </div>
                     </div>
                   ) : (
                     <div className="text-center p-4">
-                      <Upload className="w-8 h-8 text-white/75 mx-auto mb-2" />
-                      <p className="text-xs text-white/75">Upload image</p>
+                      <Upload className="w-8 h-8 text-foreground/80 mx-auto mb-2" />
+                      <p className="text-xs text-foreground/80">Upload image</p>
                     </div>
                   )}
                 </div>
@@ -872,11 +872,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    (selectedBackground || customBackground) ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
+                    (selectedBackground || customBackground) ? "bg-emerald-500 text-foreground" : "bg-white/10 text-muted-foreground"
                   )}>
                     {(selectedBackground || customBackground) ? <Check className="w-3.5 h-3.5" /> : "4"}
                   </div>
-                  <h3 className="font-semibold text-sm text-white">Scene</h3>
+                  <h3 className="font-semibold text-sm text-foreground">Scene</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {/* Custom upload */}
@@ -890,7 +890,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                     {customBackground ? (
                       <img src={customBackground} alt="Custom" className="w-full h-full object-cover" />
                     ) : (
-                      <Upload className="w-3.5 h-3.5 text-white/75" />
+                      <Upload className="w-3.5 h-3.5 text-foreground/80" />
                     )}
                   </button>
                   {BACKGROUND_PRESETS.slice(0, 8).map((bg) => (
@@ -905,7 +905,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
                       {selectedBackground === bg.id && !customBackground && (
                         <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center">
-                          <Check className="w-2 h-2 text-white" />
+                          <Check className="w-2 h-2 text-foreground" />
                         </div>
                       )}
                     </button>
@@ -927,13 +927,13 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
             >
               <div className="p-2.5 border-b border-white/[0.08] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4 text-white/50" />
-                  <span className="text-sm font-medium text-white">Preview</span>
+                  <Video className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Preview</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-white/20 text-white/60">16:9</Badge>
+                <Badge variant="outline" className="text-[10px] border-white/20 text-muted-foreground">16:9</Badge>
               </div>
               
-              <div className="aspect-video bg-black/50 relative">
+              <div className="aspect-video bg-background/50 relative">
                 <AnimatePresence mode="wait">
                   {generatedVideoUrl ? (
                     <motion.div
@@ -951,7 +951,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                   ) : (
                     <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-full h-full">
                       <img src={getBackgroundImage()} alt="Background" className="absolute inset-0 w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40" />
+                      <div className="absolute inset-0 bg-background/40" />
                       
                       {characterImage ? (
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -962,15 +962,15 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                            <User className="w-6 h-6 text-white/75" />
+                            <User className="w-6 h-6 text-foreground/80" />
                           </div>
                         </div>
                       )}
                       
                       {isGenerating && (
-                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center backdrop-blur-sm">
                           <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mb-2" />
-                          <p className="text-sm font-medium text-white mb-2">
+                          <p className="text-sm font-medium text-foreground mb-2">
                             {generationStep === 'generating_audio' && 'Generating voice...'}
                             {generationStep === 'generating_video' && 'Creating video...'}
                             {generationStep === 'applying_lipsync' && 'Syncing lips...'}
@@ -983,7 +983,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                         <div className="absolute inset-0 bg-red-500/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
                           <AlertCircle className="w-6 h-6 text-red-400 mb-2" />
                           <p className="text-xs text-red-400 text-center line-clamp-2">{error}</p>
-                          <Button variant="outline" size="sm" className="mt-2 border-white/20 text-white hover:bg-white/10" onClick={() => setGenerationStep('idle')}>Retry</Button>
+                          <Button variant="outline" size="sm" className="mt-2 border-white/20 text-foreground hover:bg-white/10" onClick={() => setGenerationStep('idle')}>Retry</Button>
                         </div>
                       )}
                     </motion.div>
@@ -992,7 +992,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               </div>
               
               {/* Quick Summary */}
-              <div className="p-2.5 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between text-[10px] text-white/50">
+              <div className="p-2.5 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Mic className="w-3 h-3" />
                   <span>{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
@@ -1008,27 +1008,27 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               {generationStep === 'complete' ? (
                 <div className="space-y-2">
-                  <Button className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white" asChild>
+                  <Button className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-foreground" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
                       <Download className="w-4 h-4 mr-2" />
                       Download Video
                     </a>
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full border-white/20 text-white hover:bg-white/10" onClick={handleReset}>
+                  <Button variant="outline" size="sm" className="w-full border-white/20 text-foreground hover:bg-white/10" onClick={handleReset}>
                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                     Create Another
                   </Button>
                 </div>
               ) : (
                 <Button 
-                  className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-white/10 disabled:text-white/65"
+                  className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-foreground disabled:bg-white/10 disabled:text-muted-foreground"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
                   {isGenerating ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
                   ) : (
-                    <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge className="ml-2 text-xs bg-white/20 text-white border-0">{ESTIMATED_CREDITS} cr</Badge></>
+                    <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge className="ml-2 text-xs bg-white/20 text-foreground border-0">{ESTIMATED_CREDITS} cr</Badge></>
                   )}
                 </Button>
               )}
@@ -1044,7 +1044,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               ].map((item, i) => (
                 <div key={i} className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-full text-[10px]",
-                  item.ok ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/75"
+                  item.ok ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-foreground/80"
                 )}>
                   {item.ok ? <Check className="w-2.5 h-2.5" /> : <CircleDot className="w-2.5 h-2.5" />}
                   {item.label}

@@ -103,7 +103,7 @@ function Eyebrow({ n, kicker }: { n: string; kicker: string }) {
       className="flex justify-center mb-6"
     >
       <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl">
-        <span className="text-[10px] font-medium text-white/40 tracking-[0.32em] uppercase">{n}</span>
+        <span className="text-[10px] font-medium text-muted-foreground tracking-[0.32em] uppercase">{n}</span>
         <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
         <span className="text-[10px] font-medium text-[#0A84FF]/85 tracking-[0.32em] uppercase">{kicker}</span>
       </div>
@@ -118,7 +118,7 @@ function SectionTitle({ children, className = '' }: { children: React.ReactNode;
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-10%' }}
       transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-      className={`font-display text-center text-4xl md:text-6xl text-white tracking-[-0.03em] leading-[1.05] max-w-4xl mx-auto ${className}`}
+      className={`font-display text-center text-4xl md:text-6xl text-foreground tracking-[-0.03em] leading-[1.05] max-w-4xl mx-auto ${className}`}
       style={{ fontFamily: "'Fraunces', serif" }}
     >
       {children}
@@ -308,10 +308,10 @@ function StatsBand() {
           >
             <div aria-hidden className="absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                  style={{ background: 'radial-gradient(60% 60% at 30% 0%, rgba(10,132,255,0.15), transparent 70%)' }} />
-            <div className="font-display text-5xl md:text-6xl text-white tracking-[-0.04em]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="font-display text-5xl md:text-6xl text-foreground tracking-[-0.04em]" style={{ fontFamily: "'Fraunces', serif" }}>
               <AnimatedNumber value={it.value} suffix={it.suffix} decimals={it.decimals ?? 0} />
             </div>
-            <div className="mt-3 text-[10.5px] uppercase tracking-[0.28em] text-white/45">{it.label}</div>
+            <div className="mt-3 text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">{it.label}</div>
             <div aria-hidden className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
           </motion.div>
         ))}
@@ -450,13 +450,13 @@ function Hero({ onEnter }: { onEnter: () => void }) {
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
           className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
-          <span className="text-[10.5px] font-medium text-white/75 tracking-[0.32em] uppercase">A guided tour · 11 chapters</span>
+          <span className="text-[10.5px] font-medium text-foreground/80 tracking-[0.32em] uppercase">A guided tour · 11 chapters</span>
         </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-          className="font-display text-[3.4rem] md:text-[8rem] leading-[0.92] tracking-[-0.045em] text-white max-w-5xl"
+          className="font-display text-[3.4rem] md:text-[8rem] leading-[0.92] tracking-[-0.045em] text-foreground max-w-5xl"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           The studio,<br />
@@ -466,7 +466,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
         <motion.p
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.25 }}
-          className="mt-10 max-w-2xl text-white/65 text-lg md:text-2xl font-light leading-relaxed"
+          className="mt-10 max-w-2xl text-muted-foreground text-lg md:text-2xl font-light leading-relaxed"
         >
           Eleven chapters through every craft inside Apex. Seedance and Kling V3,
           a cast of avatars, forty environments, the score room, the editor — and
@@ -486,14 +486,14 @@ function Hero({ onEnter }: { onEnter: () => void }) {
             <span className="relative z-10">Enter the Studio</span>
             <ArrowRight className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </MagneticButton>
-          <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all inline-flex items-center gap-2 border border-white/[0.08]">
+          <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all inline-flex items-center gap-2 border border-white/[0.08]">
             <Play className="w-3.5 h-3.5" /> Take the tour
           </a>
         </motion.div>
 
         {/* Footer strip — chapters list */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 1 }}
-          className="mt-24 hidden md:flex items-center gap-6 text-[10.5px] tracking-[0.28em] uppercase text-white/40">
+          className="mt-24 hidden md:flex items-center gap-6 text-[10.5px] tracking-[0.28em] uppercase text-muted-foreground">
           <span className="text-[#0A84FF]/80">01 · Engines</span>
           <span>02 · Capabilities</span>
           <span>03 · Cast</span>
@@ -521,12 +521,12 @@ function FilmstripTicker() {
   ];
   const row = [...items, ...items, ...items];
   return (
-    <section className="relative py-10 border-y border-white/[0.05] bg-black/40 overflow-hidden">
+    <section className="relative py-10 border-y border-white/[0.05] bg-background/40 overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-10" />
       <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background to-transparent z-10" />
       <motion.div className="flex gap-12 w-max" animate={{ x: ['0%', '-33.333%'] }} transition={{ duration: 50, ease: 'linear', repeat: Infinity }}>
         {row.map((t, i) => (
-          <div key={i} className="flex items-center gap-3 text-[12.5px] uppercase tracking-[0.28em] text-white/55">
+          <div key={i} className="flex items-center gap-3 text-[12.5px] uppercase tracking-[0.28em] text-muted-foreground">
             <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
             {t}
           </div>
@@ -622,7 +622,7 @@ function EnginesSection() {
       <SectionTitle>
         Five engines.{' '}<Italic>One director.</Italic>
       </SectionTitle>
-      <p className="mt-6 max-w-2xl mx-auto text-center text-white/55 text-base md:text-lg font-light">
+      <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
         Apex doesn't ride one model — it conducts five, each a master of one craft. Pick a name to look inside.
       </p>
 
@@ -647,11 +647,11 @@ function EnginesSection() {
                     <e.icon className="w-4 h-4 text-[#0A84FF]" />
                   </div>
                   <div>
-                    <div className="font-display text-lg text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{e.name}</div>
-                    <div className="text-[10.5px] uppercase tracking-[0.22em] text-white/45 mt-0.5">{e.role}</div>
+                    <div className="font-display text-lg text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{e.name}</div>
+                    <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{e.role}</div>
                   </div>
                 </div>
-                <ChevronRight className={`w-4 h-4 transition-transform ${i === active ? 'text-[#0A84FF] translate-x-0.5' : 'text-white/30'}`} />
+                <ChevronRight className={`w-4 h-4 transition-transform ${i === active ? 'text-[#0A84FF] translate-x-0.5' : 'text-foreground/30'}`} />
               </div>
             </button>
           ))}
@@ -666,26 +666,26 @@ function EnginesSection() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-black"
+              className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-background"
             >
               <div className="relative aspect-[16/10]">
                 <VideoTile src={E.video} className="brightness-[0.7]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                <div className="absolute top-5 left-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/55 border border-white/10 backdrop-blur-md">
+                <div className="absolute top-5 left-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-background/55 border border-white/10 backdrop-blur-md">
                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: E.accent }} />
-                  <span className="text-[10px] uppercase tracking-[0.24em] text-white/75">Live · Engine demo</span>
+                  <span className="text-[10px] uppercase tracking-[0.24em] text-foreground/80">Live · Engine demo</span>
                 </div>
                 <div className="absolute bottom-6 left-6 right-6">
                   <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/85 mb-2">{E.role}</div>
-                  <h3 className="font-display text-4xl md:text-5xl text-white tracking-[-0.02em] mb-3" style={{ fontFamily: "'Fraunces', serif" }}>{E.name}</h3>
-                  <p className="text-white/70 text-sm md:text-base font-light leading-relaxed max-w-2xl">{E.desc}</p>
+                  <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-3" style={{ fontFamily: "'Fraunces', serif" }}>{E.name}</h3>
+                  <p className="text-muted-foreground text-sm md:text-base font-light leading-relaxed max-w-2xl">{E.desc}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06]">
                 {E.spec.map(([k, v]) => (
-                  <div key={k} className="bg-black/80 p-4">
-                    <div className="text-[9.5px] uppercase tracking-[0.26em] text-white/40 mb-1">{k}</div>
-                    <div className="text-[13px] text-white/85 font-medium">{v}</div>
+                  <div key={k} className="bg-background/80 p-4">
+                    <div className="text-[9.5px] uppercase tracking-[0.26em] text-muted-foreground mb-1">{k}</div>
+                    <div className="text-[13px] text-foreground/90 font-medium">{v}</div>
                   </div>
                 ))}
               </div>
@@ -798,9 +798,9 @@ function BentoCard({ children, className = '' }: { children: React.ReactNode; cl
 
 function BentoBadge({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <div className="absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/55 border border-white/10 backdrop-blur-md">
+    <div className="absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/55 border border-white/10 backdrop-blur-md">
       <Icon className="w-3 h-3 text-[#0A84FF]" />
-      <span className="text-[9.5px] tracking-[0.22em] uppercase text-white/75">{label}</span>
+      <span className="text-[9.5px] tracking-[0.22em] uppercase text-foreground/80">{label}</span>
     </div>
   );
 }
@@ -811,20 +811,20 @@ function BentoCaption({
   return (
     <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7 z-10">
       <h3
-        className={`font-display text-white tracking-[-0.02em] mb-2 ${compact ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'}`}
+        className={`font-display text-foreground tracking-[-0.02em] mb-2 ${compact ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'}`}
         style={{ fontFamily: "'Fraunces', serif" }}
       >
         {title}
       </h3>
-      <p className={`text-white/65 font-light leading-relaxed ${compact ? 'text-[12px]' : 'text-sm md:text-[15px] max-w-md'}`}>
+      <p className={`text-muted-foreground font-light leading-relaxed ${compact ? 'text-[12px]' : 'text-sm md:text-[15px] max-w-md'}`}>
         {sub}
       </p>
       {metric && (
         <div className="mt-5 flex gap-6">
           {metric.map((m) => (
             <div key={m.l}>
-              <div className="font-display text-2xl text-white" style={{ fontFamily: "'Fraunces', serif" }}>{m.k}</div>
-              <div className="text-[9.5px] uppercase tracking-[0.24em] text-white/40 mt-0.5">{m.l}</div>
+              <div className="font-display text-2xl text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>{m.k}</div>
+              <div className="text-[9.5px] uppercase tracking-[0.24em] text-muted-foreground mt-0.5">{m.l}</div>
             </div>
           ))}
         </div>
@@ -855,7 +855,7 @@ function AvatarCast() {
       <div className="px-6">
         <Eyebrow n="03" kicker="The Cast" />
         <SectionTitle>A bench of{' '}<Italic>working actors.</Italic></SectionTitle>
-        <p className="mt-6 max-w-2xl mx-auto text-center text-white/55 text-base md:text-lg font-light">
+        <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
           Seventy-plus avatars — humans, archetypes, mascots — every face Face-Locked
           for continuity, every voice castable in 30+ languages.
         </p>
@@ -885,7 +885,7 @@ function AvatarRow({ items, direction }: { items: { img: string; name: string }[
                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-              <div className="text-[12px] tracking-[0.18em] uppercase text-white/85">{a.name}</div>
+              <div className="text-[12px] tracking-[0.18em] uppercase text-foreground/90">{a.name}</div>
               <div className="text-[9.5px] tracking-[0.24em] uppercase text-[#0A84FF]/80">Locked</div>
             </div>
           </div>
@@ -927,18 +927,18 @@ function EnvironmentsSection() {
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             viewport={{ once: true, margin: '-5%' }}
             transition={{ duration: 0.7, delay: (i % 4) * 0.05 }}
-            className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-black ${
+            className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-background ${
               i === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : 'aspect-[4/5]'
             }`}
           >
             <img src={e.img} alt={e.label} loading="lazy"
                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] ease-out group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-            <div className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-black/55 border border-white/10 backdrop-blur-md text-[9.5px] uppercase tracking-[0.24em] text-white/70">
+            <div className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-background/55 border border-white/10 backdrop-blur-md text-[9.5px] uppercase tracking-[0.24em] text-muted-foreground">
               {e.tag}
             </div>
             <div className="absolute bottom-5 left-5 right-5">
-              <div className={`font-display text-white tracking-tight ${i === 0 ? 'text-3xl md:text-5xl' : 'text-xl md:text-2xl'}`}
+              <div className={`font-display text-foreground tracking-tight ${i === 0 ? 'text-3xl md:text-5xl' : 'text-xl md:text-2xl'}`}
                    style={{ fontFamily: "'Fraunces', serif" }}>
                 {e.label}
               </div>
@@ -983,7 +983,7 @@ function TemplatesShowcase() {
       <div className="px-6">
         <Eyebrow n="05" kicker="Templates" />
         <SectionTitle>Forty starting points.{' '}<Italic>One blank canvas.</Italic></SectionTitle>
-        <p className="mt-6 max-w-2xl mx-auto text-center text-white/55 text-base md:text-lg font-light">
+        <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
           Cinematic templates across brand, narrative, social, education and music — each a directorial shortcut.
         </p>
       </div>
@@ -1009,8 +1009,8 @@ function TplRow({ items, dir }: { items: { img: string; label: string }[]; dir: 
                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-              <div className="text-[11px] tracking-[0.22em] uppercase text-white/85">{t.label}</div>
-              <Play className="w-3.5 h-3.5 text-white/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-[11px] tracking-[0.22em] uppercase text-foreground/90">{t.label}</div>
+              <Play className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
         ))}
@@ -1051,15 +1051,15 @@ function ScenesReel() {
               className={`grid grid-cols-1 lg:grid-cols-12 gap-10 items-center ${reverse ? 'lg:[&>*:first-child]:order-2' : ''}`}
             >
               <div className="relative lg:col-span-7 group">
-                <div className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-black aspect-[16/10]">
+                <div className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-background aspect-[16/10]">
                   <VideoTile src={s.video} poster={s.img} className="brightness-[0.85]" />
                   <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-transparent" />
-                  <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-black/55 border border-white/10 backdrop-blur-md text-[10px] tracking-[0.24em] uppercase text-white/70">
+                  <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-background/55 border border-white/10 backdrop-blur-md text-[10px] tracking-[0.24em] uppercase text-muted-foreground">
                     Scene {String(i + 1).padStart(2, '0')}
                   </div>
                   {/* Pseudo-scrubber */}
                   <div className="absolute bottom-5 left-5 right-5 flex items-center gap-3">
-                    <button aria-label="Play" className="w-10 h-10 rounded-full bg-white/[0.10] border border-white/15 backdrop-blur-md flex items-center justify-center text-white">
+                    <button aria-label="Play" className="w-10 h-10 rounded-full bg-white/[0.10] border border-white/15 backdrop-blur-md flex items-center justify-center text-foreground">
                       <Pause className="w-3.5 h-3.5" />
                     </button>
                     <div className="flex-1 h-1 rounded-full bg-white/15 overflow-hidden">
@@ -1067,18 +1067,18 @@ function ScenesReel() {
                         animate={{ scaleX: [0, 1] }}
                         transition={{ duration: 8, ease: 'linear', repeat: Infinity }} />
                     </div>
-                    <span className="text-[11px] font-mono text-white/60">00:0{i + 2} / 00:08</span>
+                    <span className="text-[11px] font-mono text-muted-foreground">00:0{i + 2} / 00:08</span>
                   </div>
                 </div>
                 <div aria-hidden className="absolute -inset-x-10 -bottom-10 h-24 bg-[#0A84FF]/20 blur-3xl -z-10" />
               </div>
               <div className="lg:col-span-5">
                 <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-4">Example {i + 1}</div>
-                <h3 className="font-display text-4xl md:text-5xl text-white tracking-[-0.02em] mb-5" style={{ fontFamily: "'Fraunces', serif" }}>{s.title}</h3>
-                <p className="text-white/60 text-base md:text-lg font-light leading-relaxed mb-8">{s.body}</p>
+                <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-5" style={{ fontFamily: "'Fraunces', serif" }}>{s.title}</h3>
+                <p className="text-muted-foreground text-base md:text-lg font-light leading-relaxed mb-8">{s.body}</p>
                 <div className="flex flex-wrap gap-2">
                   {['Anamorphic', 'Native audio', 'Identity-locked', 'Auto-graded'].map((t) => (
-                    <span key={t} className="px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-white/60 tracking-wide">{t}</span>
+                    <span key={t} className="px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">{t}</span>
                   ))}
                 </div>
               </div>
@@ -1133,13 +1133,13 @@ function PipelineSection() {
                 transition={{ duration: 0.8, delay: i * 0.04 }}
                 className="relative pl-12 md:pl-0 md:grid md:grid-cols-2 md:gap-12 items-center"
               >
-                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-1 w-[40px] h-[40px] rounded-full bg-black border border-[#0A84FF]/40 flex items-center justify-center shadow-[0_0_30px_rgba(10,132,255,0.35)]">
+                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-1 w-[40px] h-[40px] rounded-full bg-background border border-[#0A84FF]/40 flex items-center justify-center shadow-[0_0_30px_rgba(10,132,255,0.35)]">
                   <s.icon className="w-4 h-4 text-[#0A84FF]" />
                 </div>
                 <div className={`md:row-start-1 ${right ? 'md:col-start-2 md:pl-12' : 'md:col-start-1 md:pr-12 md:text-right'}`}>
                   <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-2">Stage {String(i + 1).padStart(2, '0')}</div>
-                  <h4 className="font-display text-2xl md:text-3xl text-white tracking-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>{s.t}</h4>
-                  <p className="text-white/55 text-[14px] leading-relaxed font-light max-w-md md:inline-block">{s.sub}</p>
+                  <h4 className="font-display text-2xl md:text-3xl text-foreground tracking-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>{s.t}</h4>
+                  <p className="text-muted-foreground text-[14px] leading-relaxed font-light max-w-md md:inline-block">{s.sub}</p>
                 </div>
               </motion.div>
             );
@@ -1167,15 +1167,15 @@ function EditorMockupSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-10%' }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="relative rounded-3xl overflow-hidden border border-white/[0.08] bg-black shadow-[0_60px_140px_-40px_rgba(10,132,255,0.35)]"
+            className="relative rounded-3xl overflow-hidden border border-white/[0.08] bg-background shadow-[0_60px_140px_-40px_rgba(10,132,255,0.35)]"
           >
             {/* Window chrome */}
             <div className="flex items-center gap-2 px-4 h-9 border-b border-white/[0.06] bg-white/[0.02]">
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-              <div className="ml-4 text-[10.5px] tracking-[0.22em] uppercase text-white/40 font-mono">apex.studio / editor / brand-film-v3</div>
-              <div className="ml-auto flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
+              <div className="ml-4 text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">apex.studio / editor / brand-film-v3</div>
+              <div className="ml-auto flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 <span>4K · 23.976</span>
                 <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
                 <span>Auto-Sync</span>
@@ -1183,14 +1183,14 @@ function EditorMockupSection() {
             </div>
 
             {/* Viewer */}
-            <div className="relative aspect-[16/9] bg-black">
+            <div className="relative aspect-[16/9] bg-background">
               <VideoTile src={KLING_VIDEO} className="brightness-[0.85]" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               {/* Scopes overlay (top-right) */}
               <div className="absolute top-3 right-3 flex gap-2">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="w-16 h-12 rounded-md border border-white/15 bg-black/60 backdrop-blur-md p-1.5 overflow-hidden">
-                    <div className="text-[7.5px] uppercase tracking-[0.18em] text-white/40">{['Wave', 'Vec', 'Hist'][i]}</div>
+                  <div key={i} className="w-16 h-12 rounded-md border border-white/15 bg-background/60 backdrop-blur-md p-1.5 overflow-hidden">
+                    <div className="text-[7.5px] uppercase tracking-[0.18em] text-muted-foreground">{['Wave', 'Vec', 'Hist'][i]}</div>
                     <svg viewBox="0 0 60 24" className="w-full h-7 mt-0.5">
                       <path d="M0 18 Q 10 4 20 14 T 40 10 T 60 16" stroke="#0A84FF" strokeWidth="1" fill="none" />
                     </svg>
@@ -1199,22 +1199,22 @@ function EditorMockupSection() {
               </div>
               {/* Transport */}
               <div className="absolute bottom-3 left-3 right-3 flex items-center gap-3">
-                <button className="w-9 h-9 rounded-full bg-white/[0.10] border border-white/15 backdrop-blur-md flex items-center justify-center text-white">
+                <button className="w-9 h-9 rounded-full bg-white/[0.10] border border-white/15 backdrop-blur-md flex items-center justify-center text-foreground">
                   <Pause className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-[11px] font-mono text-white/70">00:00:24:12</span>
+                <span className="text-[11px] font-mono text-muted-foreground">00:00:24:12</span>
                 <div className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden">
                   <motion.div className="h-full bg-[#0A84FF] origin-left"
                     animate={{ scaleX: [0, 1] }} transition={{ duration: 12, ease: 'linear', repeat: Infinity }} />
                 </div>
-                <span className="text-[11px] font-mono text-white/40">/ 00:01:36:00</span>
+                <span className="text-[11px] font-mono text-muted-foreground">/ 00:01:36:00</span>
               </div>
             </div>
 
             {/* Timeline */}
-            <div className="bg-black/80 border-t border-white/[0.06]">
+            <div className="bg-background/80 border-t border-white/[0.06]">
               {/* Ruler */}
-              <div className="flex items-center gap-0 h-6 border-b border-white/[0.06] px-2 font-mono text-[9px] text-white/35">
+              <div className="flex items-center gap-0 h-6 border-b border-white/[0.06] px-2 font-mono text-[9px] text-muted-foreground">
                 {Array.from({ length: 24 }).map((_, i) => (
                   <div key={i} className="flex-1 text-left">{i % 2 === 0 ? `${i}s` : ''}</div>
                 ))}
@@ -1248,8 +1248,8 @@ function EditorMockupSection() {
                 <f.icon className="w-4 h-4 text-[#0A84FF]" />
               </div>
               <div>
-                <div className="font-display text-lg text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{f.t}</div>
-                <div className="text-[13px] text-white/55 leading-relaxed font-light mt-1">{f.d}</div>
+                <div className="font-display text-lg text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{f.t}</div>
+                <div className="text-[13px] text-muted-foreground leading-relaxed font-light mt-1">{f.d}</div>
               </div>
             </motion.div>
           ))}
@@ -1264,7 +1264,7 @@ function TimelineTrack({
 }: { label: string; color: string; segments: { x: number; w: number; lbl: string }[]; thin?: boolean }) {
   return (
     <div className={`flex items-center px-2 border-b border-white/[0.04] ${thin ? 'h-8' : 'h-12'}`}>
-      <div className="w-9 text-[10px] font-mono text-white/40 uppercase tracking-[0.18em]">{label}</div>
+      <div className="w-9 text-[10px] font-mono text-muted-foreground uppercase tracking-[0.18em]">{label}</div>
       <div className="relative flex-1 h-full">
         {segments.map((s, i) => (
           <motion.div
@@ -1282,7 +1282,7 @@ function TimelineTrack({
               boxShadow: `inset 0 0 0 1px ${color}22`,
             }}
           >
-            <span className="text-[9.5px] uppercase tracking-[0.18em] text-white/75 truncate">{s.lbl}</span>
+            <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/80 truncate">{s.lbl}</span>
           </motion.div>
         ))}
       </div>
@@ -1318,7 +1318,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
 
       <Eyebrow n="09" kicker="The Create Page" />
       <SectionTitle>Where{' '}<Italic>a sentence becomes a film.</Italic></SectionTitle>
-      <p className="mt-6 max-w-2xl mx-auto text-center text-white/55 text-base md:text-lg font-light">
+      <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
         A peek at the room you walk into after sign-in. Type a brief, pick a cast,
         choose a world — Apex takes it from there.
       </p>
@@ -1335,22 +1335,22 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
 
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.10] bg-gradient-to-b from-white/[0.05] to-white/[0.01] backdrop-blur-2xl shadow-[0_60px_160px_-40px_rgba(10,132,255,0.45)]">
           {/* Window chrome */}
-          <div className="flex items-center gap-2 px-4 h-10 border-b border-white/[0.06] bg-black/30">
+          <div className="flex items-center gap-2 px-4 h-10 border-b border-white/[0.06] bg-background/30">
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-            <div className="mx-auto text-[10.5px] tracking-[0.22em] uppercase text-white/40 font-mono">apex.studio / create / new-project</div>
-            <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">Untitled</div>
+            <div className="mx-auto text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">apex.studio / create / new-project</div>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Untitled</div>
           </div>
 
           <div className="p-8 md:p-12">
             {/* Brief input */}
             <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/80 mb-3">Step 01 · Brief</div>
-            <div className="font-display text-3xl md:text-5xl text-white tracking-[-0.02em] leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="font-display text-3xl md:text-5xl text-foreground tracking-[-0.02em] leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
               Tell me about your film.
             </div>
 
-            <div className="mt-8 relative rounded-2xl border border-white/[0.10] bg-black/40 backdrop-blur-xl p-5">
+            <div className="mt-8 relative rounded-2xl border border-white/[0.10] bg-background/40 backdrop-blur-xl p-5">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-xl bg-[#0A84FF]/[0.15] border border-[#0A84FF]/30 flex items-center justify-center shrink-0">
                   <Wand2 className="w-4 h-4 text-[#0A84FF]" />
@@ -1363,7 +1363,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.6 }}
-                      className="text-white/85 text-base md:text-lg font-light leading-relaxed"
+                      className="text-foreground/90 text-base md:text-lg font-light leading-relaxed"
                     >
                       {SUGGEST_PROMPTS[active]}
                       <motion.span
@@ -1375,13 +1375,13 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                   </AnimatePresence>
                 </div>
                 <div className="hidden md:flex items-center gap-2 shrink-0">
-                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60">
+                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-muted-foreground">
                     <Mic2 className="w-4 h-4" />
                   </button>
-                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60">
+                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-muted-foreground">
                     <ImageIcon className="w-4 h-4" />
                   </button>
-                  <button className="h-10 px-4 rounded-lg bg-[#0A84FF] text-white text-[12px] font-medium tracking-wide flex items-center gap-2">
+                  <button className="h-10 px-4 rounded-lg bg-[#0A84FF] text-foreground text-[12px] font-medium tracking-wide flex items-center gap-2">
                     Generate <Send className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1397,7 +1397,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                   { i: Languages, l: 'EN · ES · JA' },
                   { i: Hash, l: '9:16 · 1:1 · 16:9' },
                 ].map((p) => (
-                  <span key={p.l} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-white/65 tracking-wide">
+                  <span key={p.l} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">
                     <p.i className="w-3 h-3 text-[#0A84FF]" /> {p.l}
                   </span>
                 ))}
@@ -1406,9 +1406,9 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
 
             {/* Casting & worlds preview */}
             <div className="mt-8 grid md:grid-cols-2 gap-5">
-              <div className="rounded-2xl border border-white/[0.06] bg-black/30 p-5">
+              <div className="rounded-2xl border border-white/[0.06] bg-background/30 p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-white/45">Cast</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">Cast</div>
                   <div className="text-[10.5px] uppercase tracking-[0.22em] text-[#0A84FF]/80">2 selected</div>
                 </div>
                 <div className="flex -space-x-3">
@@ -1417,12 +1417,12 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                       <img src={src} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  <button className="w-12 h-12 rounded-full bg-white/[0.04] border-2 border-black ring-1 ring-white/10 flex items-center justify-center text-white/50 text-lg">+</button>
+                  <button className="w-12 h-12 rounded-full bg-white/[0.04] border-2 border-black ring-1 ring-white/10 flex items-center justify-center text-muted-foreground text-lg">+</button>
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/[0.06] bg-black/30 p-5">
+              <div className="rounded-2xl border border-white/[0.06] bg-background/30 p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-white/45">World</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">World</div>
                   <div className="text-[10.5px] uppercase tracking-[0.22em] text-[#0A84FF]/80">Neon Noir</div>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
@@ -1439,10 +1439,10 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
             {/* CTA — sign in to actually create */}
             <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-5 p-5 rounded-2xl border border-white/[0.10] bg-gradient-to-r from-[#0A84FF]/[0.08] to-transparent">
               <div>
-                <div className="font-display text-xl md:text-2xl text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+                <div className="font-display text-xl md:text-2xl text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
                   This is the room you walk into.
                 </div>
-                <div className="text-[13px] text-white/55 mt-1 font-light">
+                <div className="text-[13px] text-muted-foreground mt-1 font-light">
                   Sign up free to set your first scene — credits cost $0.10 each, no expiry.
                 </div>
               </div>
@@ -1481,12 +1481,12 @@ function FinalCTA({ onEnter }: { onEnter: () => void }) {
       >
         <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
           <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
-          <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">The doors are open</span>
+          <span className="text-[10.5px] font-medium text-muted-foreground tracking-[0.32em] uppercase">The doors are open</span>
         </div>
-        <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]" style={{ fontFamily: "'Fraunces', serif" }}>
+        <h2 className="font-display text-5xl md:text-7xl font-bold text-foreground tracking-[-0.035em] mb-8 leading-[1.02]" style={{ fontFamily: "'Fraunces', serif" }}>
           Ready to{' '}<Italic>roll camera?</Italic>
         </h2>
-        <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
+        <p className="text-muted-foreground text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
           Walk in. Cast your first character, set your first scene, score your first cut. The room is warm.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

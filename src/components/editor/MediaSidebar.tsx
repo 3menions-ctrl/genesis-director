@@ -84,7 +84,7 @@ export const MediaSidebar = memo(function MediaSidebar({
             <TooltipTrigger asChild>
               <button
                 onClick={() => setCollapsed(false)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-[hsla(0,0%,100%,0.4)] hover:text-white hover:bg-[hsla(0,0%,100%,0.05)] transition-all duration-300"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[hsla(0,0%,100%,0.4)] hover:text-foreground hover:bg-[hsla(0,0%,100%,0.05)] transition-all duration-300"
               >
                 <PanelLeftOpen className="w-4 h-4" strokeWidth={1.5} />
               </button>
@@ -106,7 +106,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                 <Layers className="w-4 h-4 text-[hsla(215,100%,75%,0.85)]" strokeWidth={1.5} />
                 {clipCount > 0 && (
                   <span
-                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-light tabular-nums text-white px-0.5"
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-light tabular-nums text-foreground px-0.5"
                     style={{
                       background: 'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,48%))',
                       boxShadow: '0 0 8px hsla(215,100%,55%,0.6), inset 0 1px 0 hsla(0,0%,100%,0.18)',
@@ -137,15 +137,15 @@ export const MediaSidebar = memo(function MediaSidebar({
             <div className="flex items-start justify-between mb-4">
               <div className="min-w-0">
                 <div className="text-eyebrow-rule mb-2">Your Archive</div>
-                <h2 className="font-display text-[20px] font-semibold tracking-[-0.025em] text-white leading-none">
-                  Every <span className="display-serif text-white/90">clip</span>
+                <h2 className="font-display text-[20px] font-semibold tracking-[-0.025em] text-foreground leading-none">
+                  Every <span className="display-serif text-foreground/95">clip</span>
                 </h2>
                 {clipCount > 0 && (
-                  <p className="mt-2 text-[10px] font-light text-white/40 tabular-nums tracking-[0.16em] uppercase">
+                  <p className="mt-2 text-[10px] font-light text-muted-foreground tabular-nums tracking-[0.16em] uppercase">
                     <span className="text-metric text-[12px]">{clipCount}</span>
-                    <span className="mx-1.5 text-white/25">·</span>
+                    <span className="mx-1.5 text-foreground/25">·</span>
                     {projectCount} project{projectCount !== 1 ? 's' : ''}
-                    <span className="mx-1.5 text-white/25">·</span>
+                    <span className="mx-1.5 text-foreground/25">·</span>
                     {totalDuration.toFixed(0)}s
                   </p>
                 )}
@@ -156,7 +156,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white/35 hover:text-white hover:bg-white/[0.06] transition-all duration-300"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all duration-300"
                     >
                       <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
@@ -169,12 +169,12 @@ export const MediaSidebar = memo(function MediaSidebar({
             {/* Search + view toggle */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" strokeWidth={1.5} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" strokeWidth={1.5} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search clips, shots, prompts…"
-                  className="w-full h-9 pl-9 pr-3 rounded-full text-[11.5px] font-light tracking-tight text-white/90 placeholder:text-white/30 outline-none transition-all duration-300"
+                  className="w-full h-9 pl-9 pr-3 rounded-full text-[11.5px] font-light tracking-tight text-foreground/95 placeholder:text-foreground/30 outline-none transition-all duration-300"
                   style={{
                     background: 'hsla(0,0%,100%,0.025)',
                     backdropFilter: 'blur(24px) saturate(160%)',
@@ -202,8 +202,8 @@ export const MediaSidebar = memo(function MediaSidebar({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
                     viewMode === "grid"
-                      ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
-                      : "text-white/35 hover:text-white/70"
+                      ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
+                      : "text-muted-foreground hover:text-muted-foreground"
                   )}
                   aria-label="Grid view"
                 >
@@ -214,8 +214,8 @@ export const MediaSidebar = memo(function MediaSidebar({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
                     viewMode === "list"
-                      ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
-                      : "text-white/35 hover:text-white/70"
+                      ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
+                      : "text-muted-foreground hover:text-muted-foreground"
                   )}
                   aria-label="List view"
                 >
@@ -269,10 +269,10 @@ export const MediaSidebar = memo(function MediaSidebar({
                     </motion.div>
                   </div>
                   <div className="text-center space-y-2 px-6 max-w-[260px]">
-                    <p className="font-display text-[14px] font-semibold text-white/55 tracking-[-0.01em]">
+                    <p className="font-display text-[14px] font-semibold text-muted-foreground tracking-[-0.01em]">
                       {search ? "No matching clips" : "Your archive is empty"}
                     </p>
-                    <p className="text-[11px] text-white/30 leading-relaxed font-light">
+                    <p className="text-[11px] text-foreground/30 leading-relaxed font-light">
                       {search
                         ? "Try a different search term."
                         : "Render your first project and every clip will appear here automatically."}
@@ -284,7 +284,7 @@ export const MediaSidebar = memo(function MediaSidebar({
               {loading && filtered.length === 0 && (
                 <div className="flex flex-col items-center py-14 gap-3">
                   <Loader2 className="w-6 h-6 animate-spin text-[hsla(215,100%,60%,0.45)]" />
-                  <p className="text-[10.5px] uppercase tracking-[0.28em] text-white/35 font-light">Loading archive…</p>
+                  <p className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground font-light">Loading archive…</p>
                 </div>
               )}
 
@@ -294,10 +294,10 @@ export const MediaSidebar = memo(function MediaSidebar({
                   {/* Section header — editorial chapter marker */}
                   <div className="flex items-baseline justify-between gap-3 px-1">
                     <div className="min-w-0 flex items-baseline gap-2">
-                      <span className="font-display text-[12.5px] font-semibold text-white/85 tracking-[-0.01em] truncate">
+                      <span className="font-display text-[12.5px] font-semibold text-foreground/90 tracking-[-0.01em] truncate">
                         {group.title}
                       </span>
-                      <span className="text-[9px] uppercase tracking-[0.24em] text-white/30 font-light shrink-0">
+                      <span className="text-[9px] uppercase tracking-[0.24em] text-foreground/30 font-light shrink-0">
                         {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
                       </span>
                     </div>
@@ -396,7 +396,7 @@ const ClipGridCard = memo(function ClipGridCard({
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Film className="w-6 h-6 text-white/15" strokeWidth={1.5} />
+          <Film className="w-6 h-6 text-foreground/15" strokeWidth={1.5} />
         </div>
       )}
       {isHovered && (
@@ -419,7 +419,7 @@ const ClipGridCard = memo(function ClipGridCard({
       {/* Shot index — top-left, editorial */}
       <div className="absolute top-2 left-2 flex items-center gap-1.5">
         <span
-          className="px-1.5 h-[18px] inline-flex items-center rounded-full text-[9px] font-display font-semibold tabular-nums text-white tracking-[-0.01em]"
+          className="px-1.5 h-[18px] inline-flex items-center rounded-full text-[9px] font-display font-semibold tabular-nums text-foreground tracking-[-0.01em]"
           style={{
             background: 'linear-gradient(180deg, hsla(0,0%,100%,0.18), hsla(0,0%,100%,0.06))',
             backdropFilter: 'blur(12px)',
@@ -433,7 +433,7 @@ const ClipGridCard = memo(function ClipGridCard({
       {/* Duration badge — bottom-right */}
       {clip.durationSeconds && (
         <div
-          className="absolute bottom-2 right-2 px-1.5 h-[18px] inline-flex items-center rounded-full text-[9px] font-mono font-light tabular-nums text-white/90"
+          className="absolute bottom-2 right-2 px-1.5 h-[18px] inline-flex items-center rounded-full text-[9px] font-mono font-light tabular-nums text-foreground/95"
           style={{
             background: 'hsla(0,0%,0%,0.55)',
             backdropFilter: 'blur(12px)',
@@ -459,9 +459,9 @@ const ClipGridCard = memo(function ClipGridCard({
               'inset 0 1px 0 hsla(0,0%,100%,0.28), 0 6px 16px -2px hsla(215,100%,55%,0.7), 0 0 0 1px hsla(0,0%,100%,0.06)',
           }}
         >
-          <Plus className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+          <Plus className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
         </div>
-        <span className="text-[10px] font-display font-semibold text-white tracking-[-0.005em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+        <span className="text-[10px] font-display font-semibold text-foreground tracking-[-0.005em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
           Add
         </span>
       </div>
@@ -506,16 +506,16 @@ const ClipListRow = memo(function ClipListRow({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Film className="w-4 h-4 text-white/20" strokeWidth={1.5} />
+            <Film className="w-4 h-4 text-foreground/20" strokeWidth={1.5} />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-white/[0.04] pointer-events-none" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-display font-semibold text-white/90 tracking-[-0.005em] truncate leading-tight">
+        <p className="text-[12px] font-display font-semibold text-foreground/95 tracking-[-0.005em] truncate leading-tight">
           Shot {String(clip.shotIndex + 1).padStart(2, '0')}
         </p>
-        <p className="text-[9.5px] font-light text-white/40 truncate mt-1 tabular-nums">
+        <p className="text-[9.5px] font-light text-muted-foreground truncate mt-1 tabular-nums">
           {clip.durationSeconds ? `${clip.durationSeconds.toFixed(1)}s` : '—'}
         </p>
       </div>
@@ -526,7 +526,7 @@ const ClipListRow = memo(function ClipListRow({
           boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.22), 0 4px 12px -2px hsla(215,100%,55%,0.55)',
         }}
       >
-        <Plus className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+        <Plus className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
       </div>
     </motion.button>
   );

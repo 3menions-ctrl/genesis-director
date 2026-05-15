@@ -128,7 +128,7 @@ const SettingsContent = memo(function SettingsContent() {
               variant="ghost"
               size="icon"
               onClick={() => window.history.back()}
-              className="h-9 w-9 rounded-full border border-white/[0.07] bg-white/[0.02] text-white/55 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.16] backdrop-blur-md transition-all"
+              className="h-9 w-9 rounded-full border border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover:border-white/[0.16] backdrop-blur-md transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -136,7 +136,7 @@ const SettingsContent = memo(function SettingsContent() {
               <span className="absolute inset-0 rounded-full bg-[hsl(var(--primary))] animate-ping opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
             </span>
-            <span className="text-[11px] uppercase tracking-[0.28em] text-white/50 font-medium">
+            <span className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
               Apex-Studio · Settings
             </span>
           </div>
@@ -144,7 +144,7 @@ const SettingsContent = memo(function SettingsContent() {
           <div className="flex items-end justify-between gap-8 flex-wrap">
             <div className="min-w-0 max-w-3xl">
               <h1 className="font-display text-[clamp(2.5rem,6.5vw,5rem)] leading-[0.95] tracking-[-0.035em] font-medium">
-                <span className="text-white/95">Studio</span>{' '}
+                <span className="text-foreground/95">Studio</span>{' '}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{
@@ -155,13 +155,13 @@ const SettingsContent = memo(function SettingsContent() {
                   controls.
                 </span>
               </h1>
-              <p className="text-base sm:text-lg text-white/55 mt-5 leading-relaxed font-light max-w-xl">
+              <p className="text-base sm:text-lg text-muted-foreground mt-5 leading-relaxed font-light max-w-xl">
                 Account, billing, security and preferences — every system that powers your stories, in one quiet room.
               </p>
             </div>
 
             {/* Diagnostic ticker — matches loader signature */}
-            <div className="hidden md:flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
+            <div className="hidden md:flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-foreground/80 font-medium">
               {['Identity', 'Billing', 'Shield'].map((t, i) => (
                 <span key={t} className="inline-flex items-center gap-1.5">
                   <span
@@ -222,7 +222,7 @@ const SettingsContent = memo(function SettingsContent() {
                       onClick={() => handleSectionChange(section.id)}
                       className={cn(
                         'w-full h-16 flex items-center gap-3.5 px-3.5 rounded-2xl text-left transition-colors duration-500 relative',
-                        isActive ? 'text-white' : 'text-white/55 hover:text-white/85'
+                        isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/90'
                       )}
                     >
                       <div
@@ -238,7 +238,7 @@ const SettingsContent = memo(function SettingsContent() {
                             'w-4 h-4 transition-all duration-500',
                             isActive
                               ? 'text-[hsl(215,100%,75%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.55)]'
-                            : 'text-white/45'
+                            : 'text-muted-foreground'
                           )}
                           strokeWidth={1.5}
                         />
@@ -247,14 +247,14 @@ const SettingsContent = memo(function SettingsContent() {
                         <p className="font-display font-medium text-[13.5px] tracking-tight truncate">
                           {section.label}
                         </p>
-                        <p className="text-[10.5px] uppercase tracking-[0.22em] text-white/65 truncate mt-0.5">
+                        <p className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground truncate mt-0.5">
                           {section.description}
                         </p>
                       </div>
                       <span
                         className={cn(
                           'text-[9px] font-medium tabular-nums tracking-[0.18em] transition-colors',
-                          isActive ? 'text-[hsl(215,100%,75%)]' : 'text-white/25'
+                          isActive ? 'text-[hsl(215,100%,75%)]' : 'text-foreground/25'
                         )}
                       >
                         {section.code}
@@ -266,7 +266,7 @@ const SettingsContent = memo(function SettingsContent() {
 
               {/* footer hairline */}
               <div className="mx-3 mt-2 mb-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="px-4 py-3 flex items-center justify-between text-[9.5px] uppercase tracking-[0.28em] text-white/65">
+              <div className="px-4 py-3 flex items-center justify-between text-[9.5px] uppercase tracking-[0.28em] text-muted-foreground">
                 <span>Apex · v1</span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]" style={{ animation: 'settingsTick 2.4s ease-in-out infinite' }} />
@@ -289,12 +289,12 @@ const SettingsContent = memo(function SettingsContent() {
                   </div>
                 )}
                 <div>
-                  <span className="font-display font-medium text-white text-sm tracking-tight">{currentSection?.label}</span>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/65 mt-0.5">{currentSection?.description}</p>
+                  <span className="font-display font-medium text-foreground text-sm tracking-tight">{currentSection?.label}</span>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{currentSection?.description}</p>
                 </div>
               </div>
               <ChevronRight className={cn(
-                "w-5 h-5 text-white/65 transition-transform duration-200",
+                "w-5 h-5 text-muted-foreground transition-transform duration-200",
                 isMobileMenuOpen && "rotate-90"
               )} />
             </button>
@@ -318,15 +318,15 @@ const SettingsContent = memo(function SettingsContent() {
                           className={cn(
                             "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left transition-all",
                             isActive
-                              ? "bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.22)] text-white"
-                              : "text-white/50 hover:text-white/80 hover:bg-white/[0.03] border border-transparent"
+                              ? "bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.22)] text-foreground"
+                              : "text-muted-foreground hover:text-foreground/85 hover:bg-white/[0.03] border border-transparent"
                           )}
                         >
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
                             isActive ? 'bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.22)]' : 'bg-white/[0.04]'
                           )}>
-                            <section.icon className={cn('w-4 h-4', isActive ? 'text-[hsl(215,100%,75%)]' : 'text-white/35')} strokeWidth={1.5} />
+                            <section.icon className={cn('w-4 h-4', isActive ? 'text-[hsl(215,100%,75%)]' : 'text-muted-foreground')} strokeWidth={1.5} />
                           </div>
                           <span className="font-medium text-sm">{section.label}</span>
                         </button>

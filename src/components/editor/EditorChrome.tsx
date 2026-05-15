@@ -760,7 +760,7 @@ export function EditorChrome({
                     '0 0 0 1px hsla(215,100%,70%,0.35) inset, 0 4px 14px -4px hsla(215,100%,50%,0.55)',
                 }}
               >
-                <Sparkles className="w-3 h-3 text-white drop-shadow-[0_0_4px_hsla(0,0%,100%,0.6)]" />
+                <Sparkles className="w-3 h-3 text-foreground drop-shadow-[0_0_4px_hsla(0,0%,100%,0.6)]" />
               </div>
               <div className="flex items-baseline gap-1.5 leading-none">
                 <span className="font-display text-[12px] font-semibold tracking-[0.14em] uppercase text-foreground/85">
@@ -1126,8 +1126,8 @@ export function EditorChrome({
                   className="pointer-events-none absolute bottom-3 right-6 z-20 flex items-baseline gap-1.5 select-none"
                   style={{ textShadow: '0 1px 6px hsla(0,0%,0%,0.6)' }}
                 >
-                  <span className="font-display text-[9px] font-semibold tracking-[0.32em] uppercase text-white/30">Apex</span>
-                  <span className="font-display text-[7px] font-medium tracking-[0.4em] uppercase text-white/15">Pro</span>
+                  <span className="font-display text-[9px] font-semibold tracking-[0.32em] uppercase text-foreground/30">Apex</span>
+                  <span className="font-display text-[7px] font-medium tracking-[0.4em] uppercase text-foreground/15">Pro</span>
                 </div>
                 {/* Subtle film grain — gives the dark stage organic texture */}
                 <div
@@ -1329,7 +1329,7 @@ export function EditorChrome({
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 text-white text-[10px] font-light tracking-[0.18em] uppercase px-5 py-2.5 rounded-full z-20 flex items-center gap-2"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 text-foreground text-[10px] font-light tracking-[0.18em] uppercase px-5 py-2.5 rounded-full z-20 flex items-center gap-2"
               style={{
                 background: 'linear-gradient(135deg, hsla(215,100%,62%,0.95) 0%, hsla(215,100%,52%,0.95) 100%)',
                 backdropFilter: 'blur(24px) saturate(180%)',
@@ -1449,15 +1449,15 @@ function PlayerTimecodeHUD({
         />
       </span>
       <span
-        className="font-mono text-[11px] tabular-nums tracking-[0.10em] text-white/90"
+        className="font-mono text-[11px] tabular-nums tracking-[0.10em] text-foreground/95"
         style={{ textShadow: "0 0 8px hsla(215,100%,75%,0.35)" }}
       >
         {hh}:{mm}:{ss}
-        <span className="text-white/35">:</span>
+        <span className="text-muted-foreground">:</span>
         <span className="text-[hsl(200,100%,75%)]/85">{ff}</span>
       </span>
       <span className="w-px h-3 bg-white/[0.10]" />
-      <span className="font-mono text-[9px] tabular-nums tracking-[0.18em] text-white/35 uppercase">
+      <span className="font-mono text-[9px] tabular-nums tracking-[0.18em] text-muted-foreground uppercase">
         {width}×{height} · {fps}p
       </span>
     </div>

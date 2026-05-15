@@ -1043,10 +1043,10 @@ function ProjectsContentInner() {
           /* Minimal Empty State */
           <div className="flex flex-col items-center justify-center py-28 sm:py-36 px-4 animate-fade-in">
             <div className="w-20 h-20 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center mb-8">
-              <Film className="w-8 h-8 text-white/55" strokeWidth={1.25} />
+              <Film className="w-8 h-8 text-muted-foreground" strokeWidth={1.25} />
             </div>
             
-            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3 text-center tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-foreground mb-3 text-center tracking-tight">
               No projects yet
             </h2>
             
@@ -1088,13 +1088,13 @@ function ProjectsContentInner() {
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--success))] opacity-70 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--success))]" />
                     </span>
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">
                       Library · Live
                     </span>
                   </div>
 
                   {/* Display title with gradient accent */}
-                  <h1 className="font-display font-semibold tracking-[-0.03em] text-[40px] sm:text-[56px] leading-[1.02] text-white">
+                  <h1 className="font-display font-semibold tracking-[-0.03em] text-[40px] sm:text-[56px] leading-[1.02] text-foreground">
                     Your{' '}
                     <span
                       className="bg-clip-text text-transparent"
@@ -1107,7 +1107,7 @@ function ProjectsContentInner() {
                     </span>{' '}
                     library.
                   </h1>
-                  <p className="text-[14px] sm:text-[15px] text-white/45 mt-3 max-w-xl leading-relaxed">
+                  <p className="text-[14px] sm:text-[15px] text-muted-foreground mt-3 max-w-xl leading-relaxed">
                     Every project, always visible. A single resilient editorial wall — your entire creative archive.
                   </p>
                 </div>
@@ -1134,16 +1134,16 @@ function ProjectsContentInner() {
               {/* Stat strip */}
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm">
                 {[
-                  { label: 'Total', value: stats.total, accent: 'text-white' },
+                  { label: 'Total', value: stats.total, accent: 'text-foreground' },
                   { label: 'Completed', value: stats.completed, accent: 'text-[hsl(var(--success))]' },
                   { label: 'Processing', value: stats.processing, accent: 'text-[hsl(var(--primary))]' },
-                  { label: 'Clips rendered', value: stats.totalClips, accent: 'text-white/85' },
+                  { label: 'Clips rendered', value: stats.totalClips, accent: 'text-foreground/90' },
                 ].map((s) => (
                   <div
                     key={s.label}
                     className="relative px-5 py-4 bg-[hsl(220_14%_3%/0.6)]"
                   >
-                    <div className="text-[9px] uppercase tracking-[0.22em] text-white/35 font-medium">
+                    <div className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground font-medium">
                       {s.label}
                     </div>
                     <div className={cn('mt-1.5 font-display font-semibold text-[26px] tabular-nums tracking-tight', s.accent)}>
@@ -1190,18 +1190,18 @@ function ProjectsContentInner() {
                           <img src={edit.edited_url || edit.original_url} alt="Photo edit" className="w-full h-full object-cover" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={(e) => { e.stopPropagation(); if (edit.edited_url) { const a = document.createElement('a'); a.href = edit.edited_url; a.download = `photo-edit-${edit.id.slice(0, 8)}.png`; a.target = '_blank'; a.click(); } }} className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-white/20 border border-white/10" title="Download">
-                              <Download className="w-3 h-3 text-white" />
+                            <button onClick={(e) => { e.stopPropagation(); if (edit.edited_url) { const a = document.createElement('a'); a.href = edit.edited_url; a.download = `photo-edit-${edit.id.slice(0, 8)}.png`; a.target = '_blank'; a.click(); } }} className="w-7 h-7 rounded-lg bg-background/40 backdrop-blur-md flex items-center justify-center hover:bg-white/20 border border-white/10" title="Download">
+                              <Download className="w-3 h-3 text-foreground" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); if (edit.edited_url) { sessionStorage.setItem('imageToVideoUrl', edit.edited_url); navigate('/create?mode=image-to-video'); toast.success('Photo loaded into video creator'); } }} className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-cyan-500/40 border border-white/10" title="Use in Video">
-                              <Film className="w-3 h-3 text-white" />
+                            <button onClick={(e) => { e.stopPropagation(); if (edit.edited_url) { sessionStorage.setItem('imageToVideoUrl', edit.edited_url); navigate('/create?mode=image-to-video'); toast.success('Photo loaded into video creator'); } }} className="w-7 h-7 rounded-lg bg-background/40 backdrop-blur-md flex items-center justify-center hover:bg-cyan-500/40 border border-white/10" title="Use in Video">
+                              <Film className="w-3 h-3 text-foreground" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDeletePhoto(edit.id); }} disabled={deletingPhotoId === edit.id} className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-red-500/40 border border-white/10" title="Delete">
-                              {deletingPhotoId === edit.id ? <Loader2 className="w-3 h-3 text-white animate-spin" /> : <Trash2 className="w-3 h-3 text-white" />}
+                            <button onClick={(e) => { e.stopPropagation(); handleDeletePhoto(edit.id); }} disabled={deletingPhotoId === edit.id} className="w-7 h-7 rounded-lg bg-background/40 backdrop-blur-md flex items-center justify-center hover:bg-red-500/40 border border-white/10" title="Delete">
+                              {deletingPhotoId === edit.id ? <Loader2 className="w-3 h-3 text-foreground animate-spin" /> : <Trash2 className="w-3 h-3 text-foreground" />}
                             </button>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[10px] text-white/50 truncate">{edit.custom_instruction || edit.edit_type}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{edit.custom_instruction || edit.edit_type}</p>
                           </div>
                         </div>
                       </div>
@@ -1213,7 +1213,7 @@ function ProjectsContentInner() {
                       <div className="flex items-start gap-4">
                         <div className="flex gap-3 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] uppercase tracking-wider text-white/65 mb-2">Original</p>
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Original</p>
                             <div className="aspect-square rounded-xl overflow-hidden border border-white/[0.06]">
                               <img src={selectedPhotoEdit.original_url} alt="Original" className="w-full h-full object-cover" />
                             </div>
@@ -1225,12 +1225,12 @@ function ProjectsContentInner() {
                             </div>
                           </div>
                         </div>
-                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/65 hover:text-white/60 transition-colors flex-shrink-0">
+                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-muted-foreground transition-colors flex-shrink-0">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       {selectedPhotoEdit.custom_instruction && (
-                        <p className="text-xs text-white/75 mt-3 italic">"{selectedPhotoEdit.custom_instruction}"</p>
+                        <p className="text-xs text-foreground/80 mt-3 italic">"{selectedPhotoEdit.custom_instruction}"</p>
                       )}
                     </div>
                   )}
@@ -1279,7 +1279,7 @@ function ProjectsContentInner() {
                   <div ref={loadMoreRef} className="py-6">
                     {isLoadingMore && (
                       <div className="flex justify-center">
-                        <div className="flex items-center gap-3 text-white/15 text-xs">
+                        <div className="flex items-center gap-3 text-foreground/15 text-xs">
                           <Loader2 className="w-4 h-4 animate-spin" />
                         </div>
                       </div>
@@ -1294,11 +1294,11 @@ function ProjectsContentInner() {
 
       {/* Video Player Modal - UniversalVideoPlayer for seamless transitions */}
       {videoModalOpen && selectedProject && !isLoadingClips && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
           {/* Header controls */}
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
             <div className="flex items-center gap-3">
-              <h2 className="text-white font-medium text-lg truncate max-w-md">{selectedProject.name}</h2>
+              <h2 className="text-foreground font-medium text-lg truncate max-w-md">{selectedProject.name}</h2>
             </div>
             <div className="flex items-center gap-2">
               <button 
@@ -1309,7 +1309,7 @@ function ProjectsContentInner() {
                 className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                 title="Close"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-6 h-6 text-foreground" />
               </button>
             </div>
           </div>
@@ -1356,11 +1356,11 @@ function ProjectsContentInner() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95"
           >
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
-              <p className="text-white/60 text-sm">Loading your video...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+              <p className="text-muted-foreground text-sm">Loading your video...</p>
             </div>
           </motion.div>
         )}
@@ -1370,11 +1370,11 @@ function ProjectsContentInner() {
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
         <DialogContent className="sm:max-w-md bg-zinc-900/95 backdrop-blur-2xl border-white/10 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white text-lg">
+            <DialogTitle className="flex items-center gap-2 text-foreground text-lg">
               <Pencil className="w-5 h-5" />
               Rename Project
             </DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogDescription className="text-muted-foreground">
               Give your project a new name
             </DialogDescription>
           </DialogHeader>
@@ -1384,7 +1384,7 @@ function ProjectsContentInner() {
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="Enter project name"
-              className="h-12 bg-white/5 border-white/10 text-white placeholder:text-white/65 rounded-xl focus:border-white/30 focus:ring-0"
+              className="h-12 bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground rounded-xl focus:border-white/30 focus:ring-0"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newProjectName.trim()) {
@@ -1398,7 +1398,7 @@ function ProjectsContentInner() {
             <Button 
               variant="outline" 
               onClick={() => setRenameDialogOpen(false)}
-              className="border-white/10 text-white/70 hover:bg-white/5 rounded-xl"
+              className="border-white/10 text-muted-foreground hover:bg-white/5 rounded-xl"
             >
               Cancel
             </Button>
@@ -1417,7 +1417,7 @@ function ProjectsContentInner() {
       <Dialog open={showKeyboardHints} onOpenChange={setShowKeyboardHints}>
         <DialogContent className="sm:max-w-sm bg-zinc-900/95 backdrop-blur-2xl border-white/10 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
+            <DialogTitle className="flex items-center gap-2 text-foreground">
               <Command className="w-5 h-5" />
               Keyboard Shortcuts
             </DialogTitle>
@@ -1432,10 +1432,10 @@ function ProjectsContentInner() {
               { keys: ['?'], action: 'Show shortcuts' },
             ].map((shortcut, i) => (
               <div key={i} className="flex items-center justify-between">
-                <span className="text-sm text-white/60">{shortcut.action}</span>
+                <span className="text-sm text-muted-foreground">{shortcut.action}</span>
                 <div className="flex items-center gap-1">
                   {shortcut.keys.map((key, j) => (
-                    key && <kbd key={j} className="px-2 py-1 text-xs font-mono text-white/80 bg-white/10 rounded">{key}</kbd>
+                    key && <kbd key={j} className="px-2 py-1 text-xs font-mono text-foreground/85 bg-white/10 rounded">{key}</kbd>
                   ))}
                 </div>
               </div>
@@ -1453,7 +1453,7 @@ function ProjectsContentInner() {
           setSelectedProject(null);
         }
       }}>
-        <DialogContent className="!left-[50%] !top-[50%] !-translate-x-1/2 !-translate-y-1/2 !transform bg-black border-none w-[96vw] sm:w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
+        <DialogContent className="!left-[50%] !top-[50%] !-translate-x-1/2 !-translate-y-1/2 !transform bg-background border-none w-[96vw] sm:w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
           {/* Hidden header for accessibility - title floats over video via player controls */}
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedProject?.name || 'Video Player'}</DialogTitle>
@@ -1473,7 +1473,7 @@ function ProjectsContentInner() {
               <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10">
                 <div className="flex items-center gap-2">
                   <MonitorPlay className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-white text-sm sm:text-base font-medium truncate drop-shadow-lg">
+                  <span className="text-foreground text-sm sm:text-base font-medium truncate drop-shadow-lg">
                     {selectedProject?.name || 'Video Player'}
                   </span>
                 </div>

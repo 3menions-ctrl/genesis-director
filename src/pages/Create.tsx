@@ -105,7 +105,7 @@ function StudioTabs({
             onClick={() => onChange(tab.key)}
             className={cn(
               'relative z-10 flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
-              active ? 'text-white' : 'text-white/45 hover:text-white/80'
+              active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/85'
             )}
           >
             {active && (
@@ -373,7 +373,7 @@ function CreateContentInner() {
               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
-            <span className="text-[11px] uppercase tracking-[0.28em] text-white/50 font-medium">
+            <span className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
               Apex-Studio · Live
             </span>
           </div>
@@ -381,7 +381,7 @@ function CreateContentInner() {
           <div className="flex items-end justify-between gap-8 flex-wrap">
             <div className="min-w-0 max-w-3xl">
               <h1 className="font-display text-[clamp(2.75rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.035em] font-medium">
-                <span className="text-white/95">Create</span>{' '}
+                <span className="text-foreground/95">Create</span>{' '}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{
@@ -392,12 +392,12 @@ function CreateContentInner() {
                   cinema.
                 </span>
               </h1>
-              <p className="text-base sm:text-lg text-white/55 mt-5 leading-relaxed font-light max-w-xl">
+              <p className="text-base sm:text-lg text-muted-foreground mt-5 leading-relaxed font-light max-w-xl">
                 Compose a film, sculpt a scene, or refine a single still — every premium workflow lives in one studio.
               </p>
             </div>
 
-            <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.32em] text-white/75 font-medium">
+            <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.32em] text-foreground/80 font-medium">
               <span className="inline-flex items-center gap-2 mr-1">
                 <Wand2 className="w-3.5 h-3.5 text-primary/80" />
                 Director Mode
@@ -420,7 +420,7 @@ function CreateContentInner() {
           {/* Premium tabs */}
           <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
             <StudioTabs value={activeTab} onChange={setActiveTab} />
-            <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
               {STUDIO_TABS.find((t) => t.key === activeTab)?.sub}
             </div>
           </div>

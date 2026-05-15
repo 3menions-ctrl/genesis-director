@@ -140,7 +140,7 @@ export default function VideoDetailPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-white truncate flex-1">
+          <h1 className="text-xl font-bold text-foreground truncate flex-1">
             {video.title}
           </h1>
           <Button
@@ -183,7 +183,7 @@ export default function VideoDetailPage() {
 
             {/* Video Info */}
             <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/[0.06] space-y-4">
-              <h2 className="text-lg font-semibold text-white">{video.title}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{video.title}</h2>
               
               <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-300">
                 <span className="flex items-center gap-1.5">
@@ -213,7 +213,7 @@ export default function VideoDetailPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-medium text-white">{creatorDisplayName}</p>
+                  <p className="font-medium text-foreground">{creatorDisplayName}</p>
                   <p className="text-sm text-zinc-300">View profile</p>
                 </div>
                 <ExternalLink className="w-4 h-4 text-zinc-300" />

@@ -348,20 +348,20 @@ function EnvironmentCard({
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
           <div className="flex gap-1">
             {environment.is_trending && (
-              <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-amber-500/90 text-foreground border-0 text-[10px] px-1.5 py-0.5">
                 <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
                 Hot
               </Badge>
             )}
             {environment.is_popular && (
-              <Badge className="bg-rose-500/90 text-white border-0 text-[10px] px-1.5 py-0.5">
+              <Badge className="bg-rose-500/90 text-foreground border-0 text-[10px] px-1.5 py-0.5">
                 <Heart className="w-2.5 h-2.5 mr-0.5" />
                 Popular
               </Badge>
             )}
           </div>
-          <div className="w-6 h-6 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <IconComponent className="w-3 h-3 text-white" />
+          <div className="w-6 h-6 rounded-full bg-background/40 backdrop-blur-sm flex items-center justify-center">
+            <IconComponent className="w-3 h-3 text-foreground" />
           </div>
         </div>
 
@@ -382,7 +382,7 @@ function EnvironmentCard({
 
         {/* Content - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-sm font-semibold text-white mb-1 line-clamp-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1 line-clamp-1">
             {environment.name}
           </h3>
           
@@ -391,17 +391,17 @@ function EnvironmentCard({
             "transition-all duration-300 overflow-hidden",
             isHovered ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
           )}>
-            <p className="text-[11px] text-white/70 mb-2 line-clamp-2">
+            <p className="text-[11px] text-muted-foreground mb-2 line-clamp-2">
               {environment.description}
             </p>
           </div>
           
           {/* Tags */}
           <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90 text-[10px] px-1.5 py-0 capitalize">
+            <Badge variant="outline" className="bg-white/10 border-white/20 text-foreground/95 text-[10px] px-1.5 py-0 capitalize">
               {environment.category}
             </Badge>
-            <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90 text-[10px] px-1.5 py-0 capitalize">
+            <Badge variant="outline" className="bg-white/10 border-white/20 text-foreground/95 text-[10px] px-1.5 py-0 capitalize">
               {environment.mood}
             </Badge>
           </div>
@@ -465,19 +465,19 @@ export default function Environments() {
             titleSuffix="."
             description="Hand-crafted visual worlds with lighting, palette, and mood baked in. One click to set the stage."
             stats={[
-              { label: 'Worlds', value: ENVIRONMENT_PRESETS.length, accent: 'text-white' },
+              { label: 'Worlds', value: ENVIRONMENT_PRESETS.length, accent: 'text-foreground' },
               { label: 'Trending', value: ENVIRONMENT_PRESETS.filter(e => (e as any).is_trending).length, accent: 'text-[hsl(var(--primary))]' },
-              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-white/85' },
-              { label: 'Showing', value: filteredEnvironments.length, accent: 'text-white/85' },
+              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-foreground/90' },
+              { label: 'Showing', value: filteredEnvironments.length, accent: 'text-foreground/90' },
             ] as HeroStat[]}
             actions={
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/75" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/80" />
                 <Input
                   placeholder="Search environments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }

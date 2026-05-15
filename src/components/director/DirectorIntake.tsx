@@ -611,6 +611,16 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 
         {/* Footer / nav */}
         <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/[0.06] bg-black/60 backdrop-blur-xl">
+          {currentError && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-8 py-2.5 border-b border-white/[0.04] bg-[#0A84FF]/[0.04] flex items-center gap-2"
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-[#0A84FF]" />
+              <span className="text-[12px] text-white/80" style={SERIF}>{currentError}</span>
+            </motion.div>
+          )}
           <div className="px-8 py-5 flex items-center justify-between">
             <button
               onClick={prev}
@@ -624,18 +634,22 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
               <ChevronLeft className="h-4 w-4" /> BACK
             </button>
 
-            <div className="text-[10px] text-white/40 tracking-[0.3em]" style={MONO}>
-              {STEPS[step].label.toUpperCase()}
+            <div className="flex items-center gap-3 text-[10px] text-white/40 tracking-[0.3em]" style={MONO}>
+              {savedAt && !pendingDraft && (
+                <span className="hidden md:inline-flex items-center gap-1.5 text-white/30">
+                  <span className="h-1 w-1 rounded-full bg-emerald-400" /> SAVED
+                </span>
+              )}
+              <span>{STEPS[step].label.toUpperCase()}</span>
             </div>
 
             <Button
               onClick={next}
-              disabled={!canAdvance}
               className={cn(
                 "rounded-none h-11 px-6 gap-2 text-[11px] tracking-[0.28em] transition-all",
                 canAdvance
                   ? "bg-[#0A84FF] hover:bg-[#0A84FF] hover:shadow-[0_0_24px_rgba(10,132,255,0.55)] text-white"
-                  : "bg-white/10 text-white/30"
+                  : "bg-white/10 text-white/40 hover:bg-white/15"
               )}
               style={MONO}
             >

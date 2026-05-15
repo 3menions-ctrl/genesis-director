@@ -791,6 +791,19 @@ export default function StudioShell() {
                       })}
                       onMore={() => setDrawer("engines")}
                     />
+
+                    {/* ============= SCENE COUNT + DURATION CONTROLS ============= */}
+                    <SceneRuntimeControls
+                      engineId={draft.defaults.engine}
+                      sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
+                      duration={draft.defaults.duration}
+                      onSceneCountChange={(n) => setDraft(d => ({ ...d, defaults: { ...d.defaults, sceneCount: n } }))}
+                      onDurationChange={(s) => setDraft(d => ({
+                        ...d,
+                        defaults: { ...d.defaults, duration: s as 5 | 10 | 12 | 15 },
+                        scenes: d.scenes.map(scene => ({ ...scene, duration: s as 5 | 10 | 12 | 15 })),
+                      }))}
+                    />
                   </div>
 
                   <div className="space-y-3">

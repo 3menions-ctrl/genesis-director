@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import type React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,

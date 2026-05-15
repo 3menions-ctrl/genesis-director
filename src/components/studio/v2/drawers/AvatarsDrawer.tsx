@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function AvatarsDrawerContent({ onSelect, selectedIds, onClose }: Props) {
-  const { data: templates = [], isLoading } = useAvatarTemplatesQuery();
+  const { allTemplates: templates = [], isLoading } = useAvatarTemplatesQuery();
   const [q, setQ] = useState("");
   const [gender, setGender] = useState<"all" | "male" | "female">("all");
 

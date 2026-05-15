@@ -50,6 +50,8 @@ export interface StudioDefaults {
   duration: 5 | 10 | 15;
   voiceId?: string;
   mode: "auto" | "director";
+  /** Selected quality profile id (resolves to engine.qualityProfiles entry). */
+  qualityProfileId?: string;
 }
 
 export interface StudioAudio {

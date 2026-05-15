@@ -475,6 +475,39 @@ export function AdminMessageCenter() {
                       Save Notes
                     </Button>
                   </div>
+
+                  {/* Reply to user (in-app) */}
+                  <div className="space-y-2 border-t border-border pt-4">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Send className="w-4 h-4 text-primary" />
+                      Reply to user (in-app)
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Saved to the ticket and shown to the user inside their Profile › Help & Support.
+                    </p>
+                    <Textarea
+                      placeholder="Type a reply the user will see in-app..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={4}
+                      className="resize-none"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={sendReply}
+                        disabled={sendingReply || !replyText.trim() || replyText.trim() === (selectedMessage.admin_reply || '').trim()}
+                      >
+                        {sendingReply ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                        {selectedMessage.admin_reply ? 'Update reply' : 'Send reply'}
+                      </Button>
+                      {selectedMessage.replied_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Last sent {formatDistanceToNow(new Date(selectedMessage.replied_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </ScrollArea>
 

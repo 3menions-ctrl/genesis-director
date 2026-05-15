@@ -74,7 +74,7 @@ function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
     location: s.location || s.heading || `SCENE ${index + 1}`,
     beat: s.beat || s.action || s.description || draft.brief.logline || "",
     dialogue: s.dialogue || "",
-    duration: (s.duration && [5, 10, 15].includes(Number(s.duration)) ? Number(s.duration) : draft.defaults.duration) as 5 | 10 | 15,
+    duration: (s.duration && [5, 10, 15].includes(Number(s.duration)) ? Number(s.duration) : draft.defaults.duration) as 5 | 10 | 12 | 15,
     lens: s.lens || "medium",
     move: s.move || "dolly",
     speakerId: draft.cast[0]?.id,
@@ -116,7 +116,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
         location: shot.title || `SCENE ${index + 1}`,
         beat: shot.description || pick.logline,
         dialogue: shot.dialogue || "",
-        duration: ([5, 10, 15].includes(Number(shot.durationSeconds)) ? Number(shot.durationSeconds) : draft.defaults.duration) as 5 | 10 | 15,
+        duration: ([5, 10, 15].includes(Number(shot.durationSeconds)) ? Number(shot.durationSeconds) : draft.defaults.duration) as 5 | 10 | 12 | 15,
         lens: lensMap[cameraScale] || "medium",
         move: moveMap[movement] || "dolly",
         speakerId: draft.cast[0]?.id,
@@ -1092,7 +1092,7 @@ function SceneEditor({ scene, cast, active, onSelect, onPatch, onRemove, onRende
       <div className="mt-3 flex flex-wrap gap-2">
         <MiniSelect value={scene.lens} options={["wide", "medium", "close", "macro", "aerial"]} onChange={(v) => onPatch({ lens: v as SceneDraft["lens"] })} />
         <MiniSelect value={scene.move} options={["static", "dolly", "pan", "tilt", "handheld", "crane"]} onChange={(v) => onPatch({ move: v as SceneDraft["move"] })} />
-        <MiniSelect value={String(scene.duration)} options={["5", "10", "15"]} suffix="s" onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 15 })} />
+        <MiniSelect value={String(scene.duration)} options={["5", "10", "15"]} suffix="s" onChange={(v) => onPatch({ duration: Number(v) as 5 | 10 | 12 | 15 })} />
       </div>
     </div>
   );

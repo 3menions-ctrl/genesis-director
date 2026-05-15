@@ -58,17 +58,31 @@ export function useScenePipeline(
 
     patchScene(sceneId, { status: "queued" });
     try {
-      // ── Ensure backend project exists (engine lock, mutex, credits) ──
-      const projectId = await ensureProjectId();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sign in to render");
-
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
       const engineId = scene.engine || sourceDraft.defaults.engine;
       const engineSpec = ENGINES[engineId];
       const backendEngine = engineToBackend(engineId);
       const profile = getQualityProfile(engineId, sourceDraft.defaults.qualityProfileId);
       const isAvatarMode = !!cast?.imageUrl;
+
+      // ── Ensure backend project exists, then hard-sync its engine lock to
+      // the actual scene being rendered. The renderer intentionally trusts
+      // movie_projects.video_engine to prevent stale fallback loops, so this
+      // prevents avatar Seedance/Runway/Veo/Sora choices from reverting to Kling.
+      const projectId = await ensureProjectId();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in to render");
+      const { error: lockError } = await supabase
+        .from("movie_projects")
+        .update({
+          video_engine: backendEngine,
+          engine: engineId,
+          mode: isAvatarMode ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+          aspect_ratio: sourceDraft.defaults.aspect,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", projectId);
+      if (lockError) throw new Error(`Could not lock render to ${engineId}`);
 
       // ── Reserve credits server-side BEFORE invoking the renderer. The
       // reservation reduces the user's effective balance for any concurrent

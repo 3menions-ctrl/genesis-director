@@ -89,7 +89,7 @@ interface SmartScriptRequest {
     consistencyPrompt?: string;
   };
   // Mode flag to enforce strict adherence
-  mode?: 'text-to-video' | 'image-to-video' | 'b-roll';
+  mode?: 'text-to-video' | 'image-to-video' | 'avatar' | 'b-roll';
   
   // SCENE IDENTITY CONTEXT — rich DNA from extract-scene-identity (avatar-grade)
   // Passed from hollywood-pipeline after deep extraction, injected into script generation
@@ -114,8 +114,10 @@ interface SmartScriptRequest {
   // ENGINE TARGETING — tailors prompt structure & vocabulary to the underlying model
   // 'kling'    → Kling V3 (entertainment-first, action-dense, dialogue-aware)
   // 'seedance' → Seedance 2.0 1080p (physics-grade motion, end-frame chaining, lens-aware)
-  // 'veo'      → Veo (reserved)
-  videoEngine?: 'kling' | 'veo' | 'seedance';
+  // 'veo'      → Veo 3 Fast (native audio / physics)
+  // 'runway'   → Runway Gen-4 Turbo (character consistency / concise action)
+  // 'sora'     → Sora 2 (narrative coherence / longer cinematic beats)
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 }
 
 interface SceneClip {
@@ -464,9 +466,35 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     //   • Seedance 2.0 → physics-grade motion, lens & camera vocabulary IS interpreted,
     //                    end-frame chaining critical, native 1080p 24fps cinematic
     // ═══════════════════════════════════════════════════════════════════
-    const targetEngine: 'kling' | 'veo' | 'seedance' = request.videoEngine || 'kling';
+    const targetEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = request.videoEngine || 'kling';
     const isSeedance = targetEngine === 'seedance';
-    console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} ${isSeedance ? '(Seedance 2.0 cinematic mode)' : '(Kling V3 entertainment mode)'}`);
+    const enginePersona = isSeedance
+      ? 'Seedance 2.0 cinematic mode'
+      : targetEngine === 'veo'
+        ? 'Veo 3 native-audio physics mode'
+        : targetEngine === 'runway'
+          ? 'Runway Gen-4 character-consistency mode'
+          : targetEngine === 'sora'
+            ? 'Sora 2 narrative-coherence mode'
+            : 'Kling V3 entertainment mode';
+    const generationTargetLabel = targetEngine === 'kling'
+      ? 'Kling V3'
+      : targetEngine === 'seedance'
+        ? 'Seedance 2.0'
+        : targetEngine === 'veo'
+          ? 'Veo 3 Fast'
+          : targetEngine === 'runway'
+            ? 'Runway Gen-4 Turbo'
+            : 'Sora 2';
+    console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} (${enginePersona})`);
+
+    const modelBoundDirectives = targetEngine === 'veo'
+      ? `\n━━━ MODEL BOUNDS — VEO 3 FAST ━━━\nWrite single-shot beats with natural physics, clear cause/effect motion, and explicit diegetic audio. Favor coherent real-world action over fast cutting. Keep every clip within ${clipDuration}s and avoid unsupported aspect/scene complexity. Dialogue may exist, but audio cues and natural ambience must be specified.`
+      : targetEngine === 'runway'
+        ? `\n━━━ MODEL BOUNDS — RUNWAY GEN-4 TURBO ━━━\nWrite concise, visually anchored prompts that prioritize character consistency, wardrobe continuity, clean subject-background separation, and one deliberate camera intent per clip. No long dialogue reliance; use action, posture, silhouette, and end-frame continuity.`
+        : targetEngine === 'sora'
+          ? `\n━━━ MODEL BOUNDS — SORA 2 ━━━\nWrite narrative-causal beats: subject → action → consequence → final tableau. Sora rewards coherent story logic, spatial continuity, and grounded physical transformations. Use audio/ambient cues where helpful, but do not overload with lens jargon.`
+          : '';
 
     const systemPrompt = isSeedance ? `You are a master cinematographer writing for SEEDANCE 2.0 (Bytedance) — a physics-grade, 1080p, 24fps cinematic video model that REWARDS technical precision and PUNISHES vague description.
 
@@ -599,9 +627,10 @@ OUTPUT FORMAT (strict JSON):
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
-}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for Kling V3.
+}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for ${generationTargetLabel}.
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
+${modelBoundDirectives}
 
 ━━━ BANNED CONTENT (will break the pipeline) ━━━
 Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"
@@ -749,7 +778,7 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 
 REQUIREMENTS:
 - Extract the ${clipCount} sequential moments from this scene
-- Each clip = ${clipDuration} seconds of continuous action (Kling V3)
+- Each clip = ${clipDuration} seconds of continuous action (${generationTargetLabel})
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 - Each description: 80-150 words, vivid and action-dense
@@ -850,7 +879,7 @@ USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
 ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 ` : ''}
 
-Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on ${generationTargetLabel}.
 Total duration: ${targetSeconds} seconds.
 The IMAGE is the story origin. Clip 1 unfreezes the photograph. Every clip stays in this world.
 Each description: 80-150 words, vivid and action-dense. No generic adjectives.
@@ -900,7 +929,7 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
-Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on ${generationTargetLabel}.
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive story arc: hook → build → escalate → climax → resolve.
@@ -912,7 +941,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       }
     }
 
-    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${isSeedance ? 'Seedance 2.0 cinematic-grade' : 'Kling V3 entertainment-first'} scene breakdown...`);
+    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${generationTargetLabel} (${enginePersona}) scene breakdown...`);
 
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
@@ -1159,7 +1188,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     // in the prompt that reaches Kling V3, regardless of how the pipeline assembles it.
     // The block is structured so Kling reads it first (highest attention weight).
     // =====================================================
-    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video';
+    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video' || request.mode === 'avatar';
 
     if (shouldInjectDNA) {
       const lockedChar = lockFields.characterDescription;
@@ -1175,6 +1204,12 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         // Seedance reads technical directives — inject them at the very top, highest weight.
         if (isSeedance) {
           dnaParts.push(`[SEEDANCE_DIRECTIVES — TARGET ENGINE: Seedance 2.0 1080p 24fps. Honor all named camera moves, lens specs, aperture cues, and end-frame locks. Render with photographic 35mm film grain. Maintain physics-grade motion: inertia, gravity, follow-through, secondary motion on hair/fabric/particulate.]`);
+        } else if (targetEngine === 'veo') {
+          dnaParts.push(`[VEO_DIRECTIVES — TARGET ENGINE: Veo 3 Fast. Prioritize coherent real-world physics, natural native audio cues, diegetic sound, and single-shot causal motion inside ${clipDuration}s.]`);
+        } else if (targetEngine === 'runway') {
+          dnaParts.push(`[RUNWAY_DIRECTIVES — TARGET ENGINE: Runway Gen-4 Turbo. Prioritize character consistency, wardrobe continuity, clear subject silhouette, and one concise camera intent per clip.]`);
+        } else if (targetEngine === 'sora') {
+          dnaParts.push(`[SORA_DIRECTIVES — TARGET ENGINE: Sora 2. Prioritize narrative coherence, spatial continuity, grounded transformations, and a clear final tableau.]`);
         }
 
         if (lockedChar && lockedChar.length > 10) {
@@ -1195,7 +1230,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         }
       });
 
-      console.log(`[SmartScript] ✓ ${isSeedance ? 'Seedance 2.0' : 'Kling V3'} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
+      console.log(`[SmartScript] ✓ ${generationTargetLabel} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
     }
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);

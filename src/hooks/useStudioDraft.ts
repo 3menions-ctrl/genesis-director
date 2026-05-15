@@ -108,14 +108,32 @@ export function useStudioDraft() {
    * empty project.
    */
   const ensureProjectId = useCallback(async (): Promise<string> => {
-    // 1. Already bound — return immediately.
-    if (draft.projectId) return draft.projectId;
-
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Sign in to start a render");
 
     const backendEngine = engineToBackend(draft.defaults.engine);
     const title = (draft.brief.title || "Untitled film").slice(0, 120);
+
+    // 1. Already bound — keep the DB engine lock in sync with the live draft.
+    // generate-single-clip treats movie_projects.video_engine as source of truth;
+    // without this, switching Kling → Seedance after project creation silently
+    // reverts renders back to the stale persisted engine.
+    if (draft.projectId) {
+      const { error } = await supabase
+        .from("movie_projects")
+        .update({
+          title,
+          video_engine: backendEngine,
+          engine: draft.defaults.engine,
+          aspect_ratio: draft.defaults.aspect,
+          mode: draft.cast.length ? "avatar" : draft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+          synopsis: draft.brief.logline?.slice(0, 500) || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", draft.projectId);
+      if (error) throw new Error(`Could not lock project to ${draft.defaults.engine}`);
+      return draft.projectId;
+    }
 
     const { data: row, error } = await supabase
       .from("movie_projects")
@@ -125,7 +143,7 @@ export function useStudioDraft() {
         video_engine: backendEngine,
         engine: draft.defaults.engine,
         aspect_ratio: draft.defaults.aspect,
-        mode: draft.brief.refImageUrl ? "image-to-video" : "text-to-video",
+        mode: draft.cast.length ? "avatar" : draft.brief.refImageUrl ? "image-to-video" : "text-to-video",
         status: "draft",
         synopsis: draft.brief.logline?.slice(0, 500) || null,
       })
@@ -135,7 +153,7 @@ export function useStudioDraft() {
 
     update(d => ({ ...d, projectId: row.id }));
     return row.id;
-  }, [draft.projectId, draft.defaults.engine, draft.defaults.aspect, draft.brief.title, draft.brief.logline, draft.brief.refImageUrl, update]);
+  }, [draft.projectId, draft.defaults.engine, draft.defaults.aspect, draft.brief.title, draft.brief.logline, draft.brief.refImageUrl, draft.cast.length, update]);
 
   return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId };
 }

@@ -360,8 +360,8 @@ export default function StudioShell() {
 
       const engineSpec = ENGINES[draft.defaults.engine];
       const maxScenes = engineSpec?.maxScenesPerProject ?? 8;
-      const desired = draft.defaults.sceneCount ?? draft.scenes.length ?? engineSpec?.recommendedScenes ?? 4;
-      const sceneCount = Math.max(1, Math.min(maxScenes, draft.scenes.length || desired));
+      const desired = draft.defaults.sceneCount ?? engineSpec?.recommendedScenes ?? draft.scenes.length ?? 4;
+      const sceneCount = Math.max(1, Math.min(maxScenes, desired));
       const clipDuration = draft.defaults.duration;
 
       const { data, error } = await supabase.functions.invoke("smart-script-generator", {
@@ -778,11 +778,12 @@ export default function StudioShell() {
                       selected={draft.defaults.engine}
                       hasCinema={hasCinema}
                       onSelect={(id) => setDraft(d => {
+                        const spec = ENGINES[id];
                         const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
                         return {
                           ...d,
-                          defaults: { ...d.defaults, engine: id, duration: newDuration },
-                          scenes: d.scenes.map(scene => ({
+                          defaults: { ...d.defaults, engine: id, duration: newDuration, sceneCount: Math.min(d.defaults.sceneCount ?? spec.recommendedScenes, spec.maxScenesPerProject), qualityProfileId: defaultQualityProfile(id).id },
+                          scenes: d.scenes.slice(0, spec.maxScenesPerProject).map(scene => ({
                             ...scene,
                             engine: id,
                             duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
@@ -797,7 +798,11 @@ export default function StudioShell() {
                       engineId={draft.defaults.engine}
                       sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
                       duration={draft.defaults.duration}
-                      onSceneCountChange={(n) => setDraft(d => ({ ...d, defaults: { ...d.defaults, sceneCount: n } }))}
+                      onSceneCountChange={(n) => setDraft(d => {
+                        const maxScenes = ENGINES[d.defaults.engine].maxScenesPerProject;
+                        const sceneCount = Math.max(1, Math.min(maxScenes, n));
+                        return { ...d, defaults: { ...d.defaults, sceneCount }, scenes: d.scenes.slice(0, sceneCount) };
+                      })}
                       onDurationChange={(s) => setDraft(d => ({
                         ...d,
                         defaults: { ...d.defaults, duration: s as 5 | 10 | 12 | 15 },
@@ -1023,7 +1028,7 @@ export default function StudioShell() {
                 }));
               return {
                 ...d,
-                defaults: { ...d.defaults, engine: id, duration: newDuration, qualityProfileId: profile.id },
+                defaults: { ...d.defaults, engine: id, duration: newDuration, sceneCount: Math.min(d.defaults.sceneCount ?? spec.recommendedScenes, spec.maxScenesPerProject), qualityProfileId: profile.id },
                 scenes: clampedScenes,
               };
             });

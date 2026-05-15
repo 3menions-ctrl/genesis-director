@@ -73,12 +73,12 @@ export default function UserProfile() {
         <AppHeader />
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
           <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
-            <Users className="w-8 h-8 text-white/55" />
+            <Users className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-3 font-['Sora']">Creator Not Found</h1>
-          <p className="text-white/75 mb-8 max-w-sm mx-auto">This profile doesn't exist or hasn't been made public yet.</p>
+          <h1 className="text-3xl font-bold text-foreground mb-3">Creator Not Found</h1>
+          <p className="text-foreground/80 mb-8 max-w-sm mx-auto">This profile doesn't exist or hasn't been made public yet.</p>
           <Link to="/creators">
-            <Button variant="outline" className="gap-2 border-white/10 text-white/60 hover:text-white hover:bg-white/[0.05]">
+            <Button variant="outline" className="gap-2 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/[0.05]">
               <ArrowLeft className="w-4 h-4" />
               Browse Creators
             </Button>
@@ -93,7 +93,7 @@ export default function UserProfile() {
   const memberSince = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white">
+    <div className="min-h-screen bg-[#030303] text-foreground">
       <ProfileBackground />
       <AppHeader />
 
@@ -122,7 +122,7 @@ export default function UserProfile() {
                 <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-violet-500/50 to-fuchsia-500/50 blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
                 <Avatar className="relative w-28 h-28 sm:w-32 sm:h-32 ring-[3px] ring-white/10 shadow-2xl">
                   <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
-                  <AvatarFallback className="text-4xl font-bold bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white">
+                  <AvatarFallback className="text-4xl font-bold bg-gradient-to-br from-violet-600 to-fuchsia-600 text-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -133,7 +133,7 @@ export default function UserProfile() {
               {/* Info */}
               <div className="flex-1 text-center sm:text-left min-w-0">
                 <div className="flex items-center justify-center sm:justify-start gap-3 mb-2">
-                  <h1 className="text-3xl sm:text-4xl font-bold text-white font-['Sora'] tracking-tight truncate">
+                  <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight truncate">
                     {displayName}
                   </h1>
                   {profile.videos_count > 10 && (
@@ -144,7 +144,7 @@ export default function UserProfile() {
                   )}
                 </div>
 
-                <p className="text-sm text-white/65 mb-5 flex items-center justify-center sm:justify-start gap-1.5">
+                <p className="text-sm text-muted-foreground mb-5 flex items-center justify-center sm:justify-start gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
                   Joined {memberSince}
                 </p>
@@ -160,9 +160,9 @@ export default function UserProfile() {
                       key={stat.label}
                       className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]"
                     >
-                      <stat.icon className="w-3.5 h-3.5 text-white/65" />
-                      <span className="text-sm font-bold text-white">{stat.value}</span>
-                      <span className="text-xs text-white/65 hidden sm:inline">{stat.label}</span>
+                      <stat.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-sm font-bold text-foreground">{stat.value}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">{stat.label}</span>
                     </div>
                   ))}
                 </div>
@@ -177,8 +177,8 @@ export default function UserProfile() {
                         className={cn(
                           "gap-2 rounded-xl h-10 px-6 font-semibold text-sm transition-all duration-300",
                           profile.is_following
-                            ? "bg-white/[0.06] hover:bg-white/[0.1] text-white/70 border border-white/[0.1]"
-                            : "bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white shadow-[0_0_24px_rgba(124,58,237,0.25)]"
+                            ? "bg-white/[0.06] hover:bg-white/[0.1] text-muted-foreground border border-white/[0.1]"
+                            : "bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-foreground shadow-[0_0_24px_rgba(124,58,237,0.25)]"
                         )}
                       >
                         {profile.is_following ? (
@@ -196,7 +196,7 @@ export default function UserProfile() {
                   )}
                   {isOwnProfile && (
                     <Link to="/profile">
-                      <Button className="gap-2 rounded-xl h-10 px-6 bg-white/[0.06] hover:bg-white/[0.1] text-white/70 border border-white/[0.08]">
+                      <Button className="gap-2 rounded-xl h-10 px-6 bg-white/[0.06] hover:bg-white/[0.1] text-muted-foreground border border-white/[0.08]">
                         <ExternalLink className="w-4 h-4" />
                         Edit Profile
                       </Button>
@@ -222,8 +222,8 @@ export default function UserProfile() {
                 <Video className="w-4 h-4 text-violet-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white font-['Sora']">Showcase</h2>
-                <p className="text-xs text-white/65">{profile.videos_count} public video{profile.videos_count !== 1 ? 's' : ''}</p>
+                <h2 className="text-xl font-bold text-foreground">Showcase</h2>
+                <p className="text-xs text-muted-foreground">{profile.videos_count} public video{profile.videos_count !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
@@ -281,14 +281,14 @@ export default function UserProfile() {
                         />
                       ) : (
                         <div className="w-full h-full bg-white/[0.03] flex items-center justify-center">
-                          <Video className="w-8 h-8 text-white/10" />
+                          <Video className="w-8 h-8 text-foreground/10" />
                         </div>
                       )}
 
                       {/* Always-visible bottom gradient with title */}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-12 pb-3 px-4">
-                        <p className="text-white text-sm font-semibold truncate">{video.title}</p>
-                        <div className="flex items-center gap-3 mt-1 text-white/75 text-xs">
+                        <p className="text-foreground text-sm font-semibold truncate">{video.title}</p>
+                        <div className="flex items-center gap-3 mt-1 text-foreground/80 text-xs">
                           <span className="flex items-center gap-1">
                             <Heart className="w-3 h-3" /> {video.likes_count}
                           </span>
@@ -302,7 +302,7 @@ export default function UserProfile() {
                           isHovered ? "opacity-100" : "opacity-0"
                         )}>
                           <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110">
-                            <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                            <Play className="w-6 h-6 text-foreground fill-white ml-0.5" />
                           </div>
                         </div>
                       )}
@@ -322,10 +322,10 @@ export default function UserProfile() {
           ) : (
             <div className="rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] p-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
-                <Film className="w-7 h-7 text-white/15" />
+                <Film className="w-7 h-7 text-foreground/15" />
               </div>
-              <p className="text-white/75 text-sm mb-1">No public videos yet</p>
-              <p className="text-white/55 text-xs">This creator hasn't shared any videos publicly.</p>
+              <p className="text-foreground/80 text-sm mb-1">No public videos yet</p>
+              <p className="text-muted-foreground text-xs">This creator hasn't shared any videos publicly.</p>
             </div>
           )}
         </motion.section>
@@ -334,7 +334,7 @@ export default function UserProfile() {
         <div className="text-center pb-8">
           <Link 
             to="/creators" 
-            className="text-xs text-white/55 hover:text-white/75 transition-colors inline-flex items-center gap-1.5"
+            className="text-xs text-muted-foreground hover:text-foreground/80 transition-colors inline-flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3 h-3" />
             Browse all creators
@@ -352,7 +352,7 @@ export default function UserProfile() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-background/95 backdrop-blur-sm"
             onClick={() => setSelectedVideoProject(null)}
           >
             <motion.div
@@ -360,7 +360,7 @@ export default function UserProfile() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative max-w-5xl w-full aspect-video rounded-2xl overflow-hidden bg-black ring-1 ring-white/[0.06] shadow-2xl"
+              className="relative max-w-5xl w-full aspect-video rounded-2xl overflow-hidden bg-background ring-1 ring-white/[0.06] shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               <UniversalVideoPlayer
@@ -371,12 +371,12 @@ export default function UserProfile() {
               />
               <button
                 onClick={() => setSelectedVideoProject(null)}
-                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-foreground hover:bg-white/20 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
               <div className="absolute top-4 left-4 z-40">
-                <p className="text-white/80 text-sm font-medium bg-black/60 backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/[0.06]">
+                <p className="text-foreground/80 text-sm font-medium bg-background/60 backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/[0.06]">
                   {selectedVideoProject.title}
                 </p>
               </div>

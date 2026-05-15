@@ -128,8 +128,8 @@ const StatTile = memo(function StatTile({
       <div className="relative w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
         <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
       </div>
-      <p className="relative text-3xl font-bold text-white font-[Sora] tabular-nums">{animated.toLocaleString()}</p>
-      <p className="relative text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono mt-1">{label}</p>
+      <p className="relative text-3xl font-bold text-foreground tabular-nums">{animated.toLocaleString()}</p>
+      <p className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mt-1">{label}</p>
     </div>
   );
 });
@@ -262,8 +262,8 @@ const DiagnosticTicker = memo(function DiagnosticTicker() {
             className="w-1.5 h-1.5 rounded-full bg-[hsl(215,100%,60%)]"
             style={{ animation: `profileTick 2.4s ease-in-out infinite`, animationDelay: `${i * 0.4}s` }}
           />
-          <span className="text-[10px] uppercase tracking-[0.32em] text-white/55 font-mono">
-            {item.code} <span className="text-white/65">/</span> {item.label}
+          <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-mono">
+            {item.code} <span className="text-muted-foreground">/</span> {item.label}
           </span>
         </div>
       ))}
@@ -516,7 +516,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-[hsl(215,100%,60%)] to-[hsl(210,100%,55%)] opacity-80" />
               <Avatar className="relative w-28 h-28 ring-2 ring-[hsla(215,100%,60%,0.45)]">
                 <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-[hsl(220,14%,6%)] text-[hsl(215,100%,75%)] text-3xl font-bold font-[Sora]">
+                <AvatarFallback className="bg-[hsl(220,14%,6%)] text-[hsl(215,100%,75%)] text-3xl font-bold">
                   {profile?.display_name?.charAt(0) || user?.email?.charAt(0) || '?'}
                 </AvatarFallback>
               </Avatar>
@@ -546,7 +546,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </div>
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <h1
-                  className="text-4xl sm:text-5xl font-bold tracking-tight text-white"
+                  className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground"
                   style={{
                     fontFamily: 'Sora, sans-serif',
                     backgroundImage: 'linear-gradient(135deg, #ffffff 0%, hsl(215,100%,85%) 60%, hsl(215,100%,68%) 100%)',
@@ -583,25 +583,25 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                     }}
                   />
                 </div>
-                <span className="text-xs text-white/60 font-mono">{xpTotal.toLocaleString()} XP</span>
+                <span className="text-xs text-muted-foreground font-mono">{xpTotal.toLocaleString()} XP</span>
               </div>
 
               {/* Stats row */}
               <div className="flex flex-wrap items-center gap-5 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-white font-semibold tabular-nums">{animatedFollowers}</span>
-                  <span className="text-white/45 text-xs uppercase tracking-wider">Followers</span>
+                  <span className="text-foreground font-semibold tabular-nums">{animatedFollowers}</span>
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Followers</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Heart className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-white font-semibold tabular-nums">{animatedFollowing}</span>
-                  <span className="text-white/45 text-xs uppercase tracking-wider">Following</span>
+                  <span className="text-foreground font-semibold tabular-nums">{animatedFollowing}</span>
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Following</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  <span className="text-white font-semibold tabular-nums">{animatedStreak}</span>
-                  <span className="text-white/45 text-xs uppercase tracking-wider">Day streak</span>
+                  <span className="text-foreground font-semibold tabular-nums">{animatedStreak}</span>
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Day streak</span>
                 </div>
               </div>
             </div>
@@ -613,13 +613,13 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   style={{ background: 'radial-gradient(circle at 0% 0%, hsla(215,100%,60%,0.18), transparent 60%)' }}
                 />
                 <Coins className="relative w-5 h-5 text-[hsl(215,100%,72%)]" />
-                <span className="relative text-2xl font-bold text-white font-[Sora] tabular-nums">{animatedCredits.toLocaleString()}</span>
-                <span className="relative text-[10px] uppercase tracking-[0.3em] text-white/45">credits</span>
+                <span className="relative text-2xl font-bold text-foreground tabular-nums">{animatedCredits.toLocaleString()}</span>
+                <span className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground">credits</span>
               </div>
               <Button
                 onClick={() => setShowBuyModal(true)}
                 size="sm"
-                className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-white font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
+                className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
                 Buy Credits
@@ -629,7 +629,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full gap-1.5 border-[hsla(215,100%,60%,0.18)] text-white/65 hover:text-white hover:bg-[hsla(215,100%,60%,0.08)] hover:border-[hsla(215,100%,60%,0.35)] backdrop-blur"
+                    className="w-full gap-1.5 border-[hsla(215,100%,60%,0.18)] text-muted-foreground hover:text-foreground hover:bg-[hsla(215,100%,60%,0.08)] hover:border-[hsla(215,100%,60%,0.35)] backdrop-blur"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Public Profile
@@ -654,8 +654,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 className={cn(
                   "relative flex items-center gap-2 px-6 py-2.5 text-sm font-medium transition-all rounded-full uppercase tracking-[0.18em] text-[11px]",
                   activeTab === tab.id
-                    ? "text-white shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)]"
-                    : "text-white/45 hover:text-white/85 hover:bg-[hsla(215,100%,60%,0.06)]"
+                    ? "text-foreground shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)]"
+                    : "text-muted-foreground hover:text-foreground/90 hover:bg-[hsla(215,100%,60%,0.06)]"
                 )}
                 style={activeTab === tab.id ? {
                   background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -692,8 +692,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <div className="relative w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.28)] group-hover:bg-[hsla(215,100%,60%,0.2)] transition-all">
                     <action.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                   </div>
-                  <span className="relative text-sm font-medium text-white">{action.label}</span>
-                  <span className="block text-[10px] uppercase tracking-[0.3em] text-white/35 mt-1 font-mono">Open</span>
+                  <span className="relative text-sm font-medium text-foreground">{action.label}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-1 font-mono">Open</span>
                 </button>
               ))}
             </div>
@@ -709,8 +709,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                         <Trophy className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white font-[Sora]">Achievements</h3>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">{unlockedAchievements.length}/{ACHIEVEMENTS.length} Unlocked</p>
+                        <h3 className="font-semibold text-foreground">Achievements</h3>
+                        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">{unlockedAchievements.length}/{ACHIEVEMENTS.length} Unlocked</p>
                       </div>
                     </div>
                   </div>
@@ -740,10 +740,10 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                               ? "bg-[hsla(215,100%,60%,0.18)] border-[hsla(215,100%,60%,0.45)]"
                               : "bg-white/5 border-white/10"
                           )}>
-                            <achievement.icon className={cn("w-4 h-4", isUnlocked ? "text-[hsl(215,100%,75%)]" : "text-white/75")} />
+                            <achievement.icon className={cn("w-4 h-4", isUnlocked ? "text-[hsl(215,100%,75%)]" : "text-foreground/80")} />
                           </div>
-                          <p className="relative text-xs font-semibold text-white truncate">{achievement.name}</p>
-                          <p className="relative text-[10px] text-white/45 truncate">{achievement.desc}</p>
+                          <p className="relative text-xs font-semibold text-foreground truncate">{achievement.name}</p>
+                          <p className="relative text-[10px] text-muted-foreground truncate">{achievement.desc}</p>
                         </div>
                       );
                     })}
@@ -758,11 +758,11 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                         <Medal className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white font-[Sora]">Top Creators</h3>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">This Week · Live Ranking</p>
+                        <h3 className="font-semibold text-foreground">Top Creators</h3>
+                        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">This Week · Live Ranking</p>
                       </div>
                     </div>
-                    <button className="flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-white/45 hover:text-[hsl(215,100%,72%)] transition-colors font-mono">
+                    <button className="flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-[hsl(215,100%,72%)] transition-colors font-mono">
                       View all <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -774,8 +774,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       ))
                     ) : (leaderboard || []).length === 0 ? (
                       <div className="text-center py-10">
-                        <Trophy className="w-10 h-10 text-white/15 mx-auto mb-2" />
-                        <p className="text-sm text-white/75">No rankings yet — be the first.</p>
+                        <Trophy className="w-10 h-10 text-foreground/15 mx-auto mb-2" />
+                        <p className="text-sm text-foreground/80">No rankings yet — be the first.</p>
                       </div>
                     ) : (
                       (leaderboard || []).slice(0, 5).map((entry, i) => {
@@ -799,9 +799,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                             )}
                             <div className="relative w-7 text-center">
                               {i === 0 ? <Crown className="w-4 h-4 text-[hsl(215,100%,75%)] mx-auto" /> :
-                               i === 1 ? <Medal className="w-4 h-4 text-white/70 mx-auto" /> :
+                               i === 1 ? <Medal className="w-4 h-4 text-muted-foreground mx-auto" /> :
                                i === 2 ? <Medal className="w-4 h-4 text-[hsl(215,100%,55%)] mx-auto" /> :
-                               <span className="text-[10px] font-bold text-white/75 font-mono">#{i + 1}</span>}
+                               <span className="text-[10px] font-bold text-foreground/80 font-mono">#{i + 1}</span>}
                             </div>
 
                             <Avatar className={cn("relative h-9 w-9 border", i === 0 ? "border-[hsla(215,100%,60%,0.45)]" : "border-white/10")}>
@@ -812,8 +812,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                             </Avatar>
 
                             <div className="relative flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">{entry.display_name || 'Creator'}</p>
-                              <p className="text-[10px] text-white/45 font-mono uppercase tracking-wider">{entry.xp_total?.toLocaleString()} XP</p>
+                              <p className="text-sm font-medium text-foreground truncate">{entry.display_name || 'Creator'}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">{entry.xp_total?.toLocaleString()} XP</p>
                             </div>
 
                             <div className="relative flex items-center gap-1 text-[11px] text-[hsl(215,100%,72%)]">
@@ -838,8 +838,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       <Coins className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white font-[Sora]">Recent Activity</h3>
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">Credit Stream</p>
+                      <h3 className="font-semibold text-foreground">Recent Activity</h3>
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Credit Stream</p>
                     </div>
                   </div>
 
@@ -849,18 +849,18 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                         <Skeleton key={i} className="h-10 rounded-lg bg-white/[0.03]" />
                       ))
                     ) : transactions.length === 0 ? (
-                      <p className="text-sm text-white/45 text-center py-5">No transactions yet</p>
+                      <p className="text-sm text-muted-foreground text-center py-5">No transactions yet</p>
                     ) : (
                       transactions.slice(0, 4).map((tx) => (
                         <div key={tx.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[hsla(220,14%,5%,0.5)] border border-white/[0.04] hover:border-[hsla(215,100%,60%,0.18)] transition-colors">
                           {getTransactionIcon(tx.transaction_type, tx.amount)}
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-white truncate">{tx.description || tx.transaction_type}</p>
-                            <p className="text-[10px] text-white/75 font-mono">{formatRelativeTime(tx.created_at)}</p>
+                            <p className="text-xs text-foreground truncate">{tx.description || tx.transaction_type}</p>
+                            <p className="text-[10px] text-foreground/80 font-mono">{formatRelativeTime(tx.created_at)}</p>
                           </div>
                           <span className={cn(
                             "text-sm font-semibold font-mono",
-                            tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-white/65"
+                            tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-muted-foreground"
                           )}>
                             {tx.amount > 0 ? '+' : ''}{tx.amount}
                           </span>
@@ -896,8 +896,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <Clock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white font-[Sora]">Credit History</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">Recent Transactions</p>
+                  <h3 className="font-semibold text-foreground">Credit History</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Recent Transactions</p>
                 </div>
               </div>
 
@@ -907,18 +907,18 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                     <Skeleton key={i} className="h-12 rounded-lg bg-white/[0.03]" />
                   ))
                 ) : transactions.length === 0 ? (
-                  <p className="text-sm text-white/45 text-center py-8">No transactions yet</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
                 ) : (
                   transactions.map((tx) => (
                     <div key={tx.id} className="flex items-center gap-4 p-3 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05] hover:border-[hsla(215,100%,60%,0.18)] transition-colors">
                       {getTransactionIcon(tx.transaction_type, tx.amount)}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">{tx.description || tx.transaction_type}</p>
-                        <p className="text-[10px] text-white/45 font-mono">{formatRelativeTime(tx.created_at)}</p>
+                        <p className="text-sm text-foreground truncate">{tx.description || tx.transaction_type}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{formatRelativeTime(tx.created_at)}</p>
                       </div>
                       <span className={cn(
                         "text-lg font-semibold font-mono",
-                        tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-white/70"
+                        tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-muted-foreground"
                       )}>
                         {tx.amount > 0 ? '+' : ''}{tx.amount}
                       </span>
@@ -939,8 +939,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <User className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white font-[Sora]">Profile Settings</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">Account Identity</p>
+                  <h3 className="font-semibold text-foreground">Profile Settings</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Account Identity</p>
                 </div>
               </div>
 
@@ -955,13 +955,13 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium text-white">Profile Picture</p>
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-white/75 font-mono">JPG · PNG · 5MB MAX</p>
+                      <p className="text-sm font-medium text-foreground">Profile Picture</p>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">JPG · PNG · 5MB MAX</p>
                     </div>
                   </div>
                   <Button
                     variant="ghost" size="sm"
-                    className="text-white/65 hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]"
+                    className="text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={uploadingAvatar}
                   >
@@ -972,11 +972,11 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 {/* Display Name */}
                 <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
                   <div className="flex-1 mr-3">
-                    <p className="text-sm font-medium text-white">Display Name</p>
+                    <p className="text-sm font-medium text-foreground">Display Name</p>
                     {editingName ? (
                       <input
                         autoFocus
-                        className="mt-1 w-full bg-[hsla(220,14%,3%,0.8)] border border-[hsla(215,100%,60%,0.3)] rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-[hsl(215,100%,60%)] focus:ring-2 focus:ring-[hsla(215,100%,60%,0.2)] transition-all"
+                        className="mt-1 w-full bg-[hsla(220,14%,3%,0.8)] border border-[hsla(215,100%,60%,0.3)] rounded-lg px-3 py-1.5 text-sm text-foreground outline-none focus:border-[hsl(215,100%,60%)] focus:ring-2 focus:ring-[hsla(215,100%,60%,0.2)] transition-all"
                         value={nameValue}
                         onChange={(e) => setNameValue(e.target.value)}
                         onKeyDown={(e) => {
@@ -986,7 +986,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                         maxLength={50}
                       />
                     ) : (
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-white/75 font-mono">{profile?.display_name || 'Not set'}</p>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">{profile?.display_name || 'Not set'}</p>
                     )}
                   </div>
                   {editingName ? (
@@ -994,10 +994,10 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       <Button variant="ghost" size="sm" className="text-[hsl(150,80%,60%)] hover:text-[hsl(150,80%,70%)]" onClick={handleSaveName} disabled={savingName}>
                         {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : '✓'}
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-white/75 hover:text-white" onClick={() => setEditingName(false)}>✕</Button>
+                      <Button variant="ghost" size="sm" className="text-foreground/80 hover:text-foreground" onClick={() => setEditingName(false)}>✕</Button>
                     </div>
                   ) : (
-                    <Button variant="ghost" size="sm" className="text-white/65 hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]" onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)]" onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
                   )}
@@ -1005,15 +1005,15 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
                 <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
                   <div>
-                    <p className="text-sm font-medium text-white">Email</p>
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-white/75 font-mono">{user?.email}</p>
+                    <p className="text-sm font-medium text-foreground">Email</p>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">{user?.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
                   <div>
-                    <p className="text-sm font-medium text-white">Member Since</p>
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-white/75 font-mono">
+                    <p className="text-sm font-medium text-foreground">Member Since</p>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/80 font-mono">
                       {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}
                     </p>
                   </div>
@@ -1032,22 +1032,22 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   <Crown className="w-4 h-4 text-[hsl(215,100%,72%)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white font-[Sora]">Account Tier</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono">Current Plan</p>
+                  <h3 className="font-semibold text-foreground">Account Tier</h3>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Current Plan</p>
                 </div>
               </div>
 
               <div className="relative p-5 rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.25)]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-white capitalize font-[Sora]">Free</p>
-                    <p className="text-xs text-white/55 mt-1">
+                    <p className="text-2xl font-bold text-foreground capitalize">Free</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {profile?.credits_balance || 0} credits available
                     </p>
                   </div>
                   <Button
                     onClick={() => setShowBuyModal(true)}
-                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-white font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
+                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
                   >
                     Upgrade
                   </Button>
@@ -1060,7 +1060,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         {/* ─── Signature footer plate ─── */}
         <div className="relative pt-4 pb-2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="h-px w-32" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,68%,0.6), transparent)' }} />
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-white/35 font-mono">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-mono">
             <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
             APEX STUDIO · CREATOR MEMBRANE · ENC-{(user?.id || '').slice(0, 4).toUpperCase()}
             <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite', animationDelay: '0.6s' }} />

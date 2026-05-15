@@ -89,12 +89,21 @@ const buttonVariants = cva(
           "hover:shadow-[0_8px_32px_hsl(0_0%_0%/0.2)]",
           "hover:-translate-y-0.5",
         ].join(" "),
+        pill: [
+          // Landing-page "Enter Studio" white pill — the canonical primary CTA.
+          "relative overflow-hidden rounded-full",
+          "bg-primary text-primary-foreground font-semibold tracking-tight",
+          "shadow-[0_10px_40px_-8px_hsla(0,0%,100%,0.35),0_0_0_1px_hsla(0,0%,100%,0.08)_inset]",
+          "hover:shadow-[0_14px_48px_-8px_hsla(0,0%,100%,0.45),0_0_0_1px_hsla(0,0%,100%,0.12)_inset]",
+          "hover:-translate-y-0.5",
+        ].join(" "),
       },
       size: {
         default: "h-10 px-5 py-2",
         sm: "h-9 rounded-lg px-4 text-[13px]",
         lg: "h-11 rounded-xl px-6",
         xl: "h-12 rounded-xl px-8 text-base font-semibold",
+        pill: "h-11 rounded-full px-7 text-[13px] uppercase tracking-[0.18em]",
         icon: "h-10 w-10",
       },
     },

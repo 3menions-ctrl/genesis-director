@@ -281,7 +281,7 @@ const GalleryContent = memo(function GalleryContent() {
   // Early return AFTER all hooks are called
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-slate-500/30 border-t-blue-400 rounded-full animate-spin" />
       </div>
     );
@@ -420,7 +420,7 @@ const GalleryContent = memo(function GalleryContent() {
       {showAvatarSection && (
         <div 
           ref={avatarSectionRef}
-          className="min-h-screen bg-black relative"
+          className="min-h-screen bg-background relative"
         >
           <FamousAvatarsShowcase />
         </div>

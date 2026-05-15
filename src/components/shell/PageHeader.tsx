@@ -88,18 +88,52 @@ export function PageHeader({
 
       <div className="relative flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0">
-          {eyebrow && <div className="text-eyebrow-rule mb-4">{eyebrow}</div>}
-          <h1 className="text-display-luxe">{title}</h1>
+          {eyebrow && (
+            <div
+              className="text-eyebrow-rule mb-4 animate-fade-in"
+              style={{ animationDelay: '0ms', animationFillMode: 'both' }}
+            >
+              {eyebrow}
+            </div>
+          )}
+          <h1
+            className="text-display-luxe animate-fade-in"
+            style={{ animationDelay: '80ms', animationFillMode: 'both' }}
+          >
+            {title}
+          </h1>
           {subtitle && (
-            <p className="text-body-muted mt-4 max-w-xl">{subtitle}</p>
+            <p
+              className="text-body-muted mt-4 max-w-xl animate-fade-in"
+              style={{ animationDelay: '160ms', animationFillMode: 'both' }}
+            >
+              {subtitle}
+            </p>
           )}
         </div>
         {actions && (
-          <div className="flex items-center gap-2 shrink-0">{actions}</div>
+          <div
+            className="flex items-center gap-2 shrink-0 animate-fade-in"
+            style={{ animationDelay: '220ms', animationFillMode: 'both' }}
+          >
+            {actions}
+          </div>
         )}
       </div>
-      <div className="hairline-luxe mt-9" />
-      {toolbar && <div className="mt-6">{toolbar}</div>}
+      <div
+        className="hairline-luxe mt-9 origin-left"
+        style={{
+          animation: 'header-rule-draw 720ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both',
+        }}
+      />
+      {toolbar && (
+        <div
+          className="mt-6 animate-fade-in"
+          style={{ animationDelay: '360ms', animationFillMode: 'both' }}
+        >
+          {toolbar}
+        </div>
+      )}
     </header>
   );
 }

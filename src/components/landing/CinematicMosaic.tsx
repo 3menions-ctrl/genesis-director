@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
-import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import seedanceVideo from '@/assets/seedance-avatar-test.mp4.asset.json';
 import avatarWave from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
@@ -28,7 +27,7 @@ const PLAYLIST: Reel[] = [
   { src: G.beautifulDay, poster: poster2 },
   { src: G.sunsetDreams, poster: poster5 },
   { src: G.enchanted, poster: poster4 },
-  { src: hoppyVideo.url, poster: poster4 },
+  { src: G.silentVigil, poster: poster3 },
   { src: G.snowy, poster: poster1 },
   { src: G.fiery, poster: poster2 },
 ];

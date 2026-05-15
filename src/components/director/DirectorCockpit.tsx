@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Play, Pause, SkipBack, SkipForward, Maximize2, Settings2,
-  Sparkles, Wand2, Lock, Pin, RefreshCw, Image as ImageIcon,
+  Sparkles, Lock, Pin, RefreshCw,
   CheckCircle2, Circle, AlertTriangle, Loader2, Film, Mic2,
-  Music2, Camera, Aperture, Gauge, ChevronDown, Plus, Edit3,
-  Coins, Layers, Zap, Volume2,
+  Music2, Camera, Aperture, ChevronDown, Plus, Edit3,
+  Coins, Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -144,7 +144,7 @@ function CommandBar({
           <Coins className="h-3.5 w-3.5 text-[#0A84FF]" />
           <span className="text-white/85">847 credits</span>
           <span className="text-white/35">·</span>
-          <span className="text-white/55">${(scenes => scenes.toFixed(2))(4.20)} est.</span>
+          <span className="text-white/55">$4.20 est.</span>
         </div>
         <div className="h-6 w-px bg-white/10" />
         <div className="flex items-center gap-2">

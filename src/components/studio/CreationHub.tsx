@@ -533,44 +533,81 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
         </div>
 
-        {/* ─── Engine identity strip — always visible, premium reveal ──── */}
-        <motion.div
-          key={videoEngine}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-6 flex items-center gap-3 flex-wrap"
-        >
-          <div
-            className="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full"
-            style={{
-              background: 'linear-gradient(180deg, hsla(215,100%,60%,0.10), hsla(215,100%,55%,0.03))',
-              backdropFilter: 'blur(40px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-              boxShadow: '0 0 24px -6px hsla(215,100%,60%,0.35), inset 0 1px 0 hsla(0,0%,100%,0.08)',
-            }}
-          >
-            <span
-              className="relative flex h-6 w-6 items-center justify-center rounded-full"
-              style={{
-                background: 'hsla(215,100%,60%,0.20)',
-                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.10)',
-              }}
-            >
-              <Cpu className="w-3 h-3 text-[hsl(215,100%,80%)]" strokeWidth={1.5} />
-              <span className="absolute inset-0 rounded-full animate-ping opacity-40"
-                    style={{ boxShadow: '0 0 0 2px hsla(215,100%,60%,0.35)' }} />
-            </span>
-            <div className="leading-tight">
-              <div className="text-[9px] uppercase tracking-[0.24em] text-white/50 font-light">Engine</div>
-              <div className="text-[13px] font-light text-white tracking-[-0.01em]">{engineInfo.label}</div>
-            </div>
+        {/* ─── Engine rail — interactive, capability-gated ──────────────── */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2.5 text-[10px] uppercase tracking-[0.24em] text-white/40 font-light">
+            <Cpu className="w-3 h-3" strokeWidth={1.5} />
+            Render engine
           </div>
-          <div className="text-[11px] text-white/45 font-light tracking-[0.005em]">
-            {engineInfo.tagline} <span className="text-white/25 mx-1.5">·</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {(Object.keys(ENGINE_CAPS) as EngineKey[]).map((k) => {
+              const caps = ENGINE_CAPS[k];
+              const compatible = engineSupportsMode(k, selectedMode as CreationModeId);
+              const active = videoEngine === k && compatible;
+              return (
+                <button
+                  key={k}
+                  onClick={() => compatible && setVideoEngine(k)}
+                  disabled={!compatible}
+                  title={
+                    !compatible
+                      ? selectedMode === 'avatar'
+                        ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
+                        : `${caps.label} isn't compatible with this mode.`
+                      : caps.tagline
+                  }
+                  className={cn(
+                    'group relative inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full transition-all duration-400',
+                    active && 'scale-[1.02]',
+                    !compatible && 'opacity-35 cursor-not-allowed',
+                  )}
+                  style={{
+                    background: active
+                      ? 'linear-gradient(180deg, hsla(215,100%,60%,0.22), hsla(215,100%,55%,0.08))'
+                      : 'hsla(0,0%,100%,0.025)',
+                    boxShadow: active
+                      ? '0 0 24px -6px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.08)'
+                      : 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+                  }}
+                >
+                  <span
+                    className="relative flex h-5 w-5 items-center justify-center rounded-full"
+                    style={{
+                      background: active ? 'hsla(215,100%,60%,0.30)' : 'hsla(0,0%,100%,0.06)',
+                    }}
+                  >
+                    {compatible ? (
+                      <Cpu className={cn('w-2.5 h-2.5', active ? 'text-[hsl(215,100%,82%)]' : 'text-white/55')} strokeWidth={1.5} />
+                    ) : (
+                      <Lock className="w-2.5 h-2.5 text-white/40" strokeWidth={1.5} />
+                    )}
+                  </span>
+                  <span className={cn('text-[12px] font-light tracking-[-0.005em]', active ? 'text-white' : 'text-white/65')}>
+                    {caps.label}
+                  </span>
+                  {caps.badge && compatible && (
+                    <span
+                      className="px-1.5 py-0.5 rounded-full text-[9px] font-light tracking-[0.14em] leading-none"
+                      style={{ background: 'hsla(215,100%,60%,0.15)', color: 'hsl(215,100%,78%)' }}
+                    >
+                      {caps.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-white/45 font-light">
+            <Info className="w-3 h-3 opacity-60" strokeWidth={1.5} />
+            <span>{engineInfo.tagline}</span>
+            <span className="text-white/25">·</span>
             <span className="font-mono text-white/35">{engineInfo.model}</span>
+            <span className="text-white/25">·</span>
+            <span className="text-white/35">{engineCaps.aspectRatios.join(' / ')}</span>
+            <span className="text-white/25">·</span>
+            <span className="text-white/35">{engineCaps.durations.join(' / ')}s</span>
           </div>
-        </motion.div>
+        </div>
 
         {/* ─── Stage: prompt + (optional upload) ───────────────────────── */}
         <motion.div

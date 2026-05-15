@@ -15,7 +15,10 @@ export function useScenePipeline(
 
   const stopPoll = (id: string) => {
     const t = polling.current.get(id);
-    if (t) { clearInterval(t); polling.current.delete(id); }
+    if (t) {
+      clearInterval(t);
+      polling.current.delete(id);
+    }
   };
 
   const pollPrediction = useCallback((sceneId: string, predictionId: string) => {
@@ -36,33 +39,44 @@ export function useScenePipeline(
           toast.error("Generation failed");
           stopPoll(sceneId);
         }
-      } catch {/* keep polling */}
+      } catch {
+        // keep polling until the backend reports a terminal state
+      }
     }, 5000);
     polling.current.set(sceneId, t);
   }, [patchScene]);
 
-  const generateScene = useCallback(async (sceneId: string) => {
-    const scene = draft.scenes.find(s => s.id === sceneId);
+  const generateSceneFromDraft = useCallback(async (sceneId: string, sourceDraft: StudioDraft = draft) => {
+    const scene = sourceDraft.scenes.find(s => s.id === sceneId);
     if (!scene) return;
-    if (!scene.beat && !scene.dialogue) {
-      toast.error("Add a beat or dialogue first");
+    if (!scene.beat && !scene.dialogue && !sourceDraft.brief.logline) {
+      toast.error("Add a brief, beat, or dialogue first");
       return;
     }
+
     patchScene(sceneId, { status: "queued" });
     try {
-      const cast = scene.speakerId ? draft.cast.find(c => c.id === scene.speakerId) : draft.cast[0];
+      const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
+      const promptParts = [
+        scene.location,
+        scene.beat || sourceDraft.brief.logline,
+        sourceDraft.brief.style ? `Style: ${sourceDraft.brief.style}` : "",
+        scene.dialogue ? `Dialogue: "${scene.dialogue}"` : "",
+      ].filter(Boolean);
+
       const { data, error } = await supabase.functions.invoke("generate-single-clip", {
         body: {
-          prompt: `${scene.location}. ${scene.beat}${scene.dialogue ? `\nDialogue: "${scene.dialogue}"` : ""}`,
+          prompt: promptParts.join(". "),
           dialogue: scene.dialogue,
           duration: scene.duration,
-          aspect_ratio: draft.defaults.aspect,
-          engine: scene.engine || draft.defaults.engine,
-          startImageUrl: scene.refImageUrl || cast?.imageUrl,
-          voiceId: cast?.voiceId || draft.defaults.voiceId,
+          aspect_ratio: sourceDraft.defaults.aspect,
+          engine: scene.engine || sourceDraft.defaults.engine,
+          startImageUrl: scene.refImageUrl || sourceDraft.brief.refImageUrl || cast?.imageUrl,
+          voiceId: cast?.voiceId || sourceDraft.defaults.voiceId,
           characterName: cast?.name,
           lens: scene.lens,
           cameraMove: scene.move,
+          mode: cast?.imageUrl ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
         },
       });
       if (error) throw error;
@@ -82,5 +96,7 @@ export function useScenePipeline(
     }
   }, [draft, patchScene, pollPrediction]);
 
-  return { generateScene };
+  const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
+
+  return { generateScene, generateSceneFromDraft };
 }

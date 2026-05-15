@@ -4,6 +4,7 @@ import {
   checkContentSafety,
   getSafetyNegativePrompts,
 } from "../_shared/content-safety.ts";
+import { getEngine, submitToReplicate, type CanonicalVideoRequest } from "../_shared/video-engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

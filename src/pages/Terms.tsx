@@ -362,12 +362,109 @@ const Terms = () => {
             </section>
 
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">18. Contact Information</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">18. DMCA Copyright Policy</h2>
+              <p className="mb-4">
+                We respect the intellectual property rights of others and comply with the Digital
+                Millennium Copyright Act, 17 U.S.C. § 512 ("DMCA"). If you believe that content
+                accessible through the Service infringes a copyright you own or control, you may
+                submit a written notice to our designated agent containing all elements required by
+                17 U.S.C. § 512(c)(3), including:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li>Identification of the copyrighted work claimed to have been infringed;</li>
+                <li>Identification of the allegedly infringing material and its location on the Service;</li>
+                <li>Your contact information (name, address, telephone, email);</li>
+                <li>A statement of good-faith belief that the use is not authorized;</li>
+                <li>A statement, under penalty of perjury, that the information is accurate and that you are authorized to act on behalf of the rights holder;</li>
+                <li>Your physical or electronic signature.</li>
+              </ul>
+              <p className="mt-4">
+                Send notices to our DMCA Designated Agent at{' '}
+                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">cole@apex-studio.com</a>.
+                We may, in appropriate circumstances and at our discretion, terminate the accounts of
+                users who are repeat infringers. Knowingly submitting a materially false notice may
+                result in liability under 17 U.S.C. § 512(f).
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">19. Electronic Communications and Notices</h2>
+              <p>
+                You consent to receive communications from us electronically, including by email and
+                in-Service notices. Electronic communications satisfy any legal requirement that such
+                communications be in writing. Notices to us must be sent to{' '}
+                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">cole@apex-studio.com</a>{' '}
+                and are effective upon our confirmed receipt.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">20. Force Majeure</h2>
+              <p>
+                We shall not be liable for any failure or delay in performance caused by events
+                beyond our reasonable control, including but not limited to acts of God, natural
+                disasters, war, terrorism, civil unrest, government action, labor disputes, internet
+                or telecommunications failures, third-party service outages (including AI providers),
+                power failures, pandemics, or cyber-attacks.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">21. Assignment</h2>
+              <p>
+                You may not assign or transfer these Terms or any rights or obligations hereunder,
+                by operation of law or otherwise, without our prior written consent. Any attempted
+                assignment in violation of this section is void. We may freely assign or transfer
+                these Terms, in whole or in part, in connection with a merger, acquisition,
+                reorganization, sale of assets, or by operation of law.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">22. Severability and Waiver</h2>
+              <p className="mb-4">
+                If any provision of these Terms is held by a court of competent jurisdiction to be
+                invalid, illegal, or unenforceable, that provision shall be modified to the minimum
+                extent necessary to make it enforceable, and the remaining provisions shall remain
+                in full force and effect.
+              </p>
+              <p>
+                Our failure to enforce any right or provision of these Terms shall not constitute a
+                waiver of such right or provision. No waiver shall be effective unless in writing
+                and signed by an authorized representative of Apex-studio LLC.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">23. Export Controls and Sanctions</h2>
+              <p>
+                You represent that you are not located in, under the control of, or a national or
+                resident of any country subject to United States embargo, and that you are not on any
+                U.S. government list of prohibited or restricted parties. You agree to comply with all
+                applicable U.S. and international export control and sanctions laws.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">24. Entire Agreement</h2>
+              <p>
+                These Terms, together with our{' '}
+                <Link to="/privacy" className="text-white hover:underline">Privacy Policy</Link>{' '}
+                and any additional terms you agree to when using specific features, constitute the
+                entire agreement between you and Apex-studio LLC concerning the Service and supersede
+                all prior or contemporaneous agreements, communications, and proposals, whether oral
+                or written, between the parties.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">25. Contact Information</h2>
               <p className="mb-4">
                 For any questions about these Terms, please contact us:
               </p>
               <div className="space-y-2">
                 <p><strong className="text-white">Apex-studio LLC</strong></p>
+                <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
                   <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
                     cole@apex-studio.com

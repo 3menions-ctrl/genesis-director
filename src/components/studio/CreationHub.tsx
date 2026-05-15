@@ -9,7 +9,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { saveDraft, loadDraft } from '@/lib/sessionPersistence';
-import { calculateCreditsRequired } from '@/lib/creditSystem';
+import { calculateCreditsForDurations } from '@/lib/creditSystem';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { ActiveProjectBanner } from './ActiveProjectBanner';
 import { Button } from '@/components/ui/button';

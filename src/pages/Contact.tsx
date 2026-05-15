@@ -38,7 +38,28 @@ const Contact = () => {
         });
       
       if (error) throw error;
-      
+
+      // Notify admin inbox (fire-and-forget — failure must not block the user).
+      try {
+        await supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'admin_contact_message',
+            recipientEmail: 'cole@apex-studio.com',
+            templateData: {
+              fromName: formData.name,
+              fromEmail: formData.email,
+              subject: formData.subject,
+              message: formData.message,
+              source: 'contact',
+              userId: user?.id ?? null,
+              submittedAt: new Date().toISOString(),
+            },
+          },
+        });
+      } catch (notifyErr) {
+        console.warn('Admin notification failed (message still saved):', notifyErr);
+      }
+
       toast.success("Message sent! We'll get back to you within 24-48 hours.", {
         description: user ? "Track replies in your Profile › Help & Support." : undefined,
       });

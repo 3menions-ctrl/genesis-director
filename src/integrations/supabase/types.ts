@@ -1190,6 +1190,80 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_holds: {
+        Row: {
+          amount: number
+          consumed_at: string | null
+          created_at: string
+          description: string | null
+          expires_at: string
+          id: string
+          idempotency_key: string | null
+          project_id: string | null
+          released_at: string | null
+          status: Database["public"]["Enums"]["credit_hold_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          consumed_at?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          project_id?: string | null
+          released_at?: string | null
+          status?: Database["public"]["Enums"]["credit_hold_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          consumed_at?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          project_id?: string | null
+          released_at?: string | null
+          status?: Database["public"]["Enums"]["credit_hold_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_holds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_holds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_holds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_holds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_packages: {
         Row: {
           created_at: string
@@ -6890,6 +6964,14 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_signup_analytics: { Args: never; Returns: Json }
+      consume_credit_hold: {
+        Args: {
+          p_clip_duration?: number
+          p_description?: string
+          p_hold_id: string
+        }
+        Returns: Json
+      }
       consume_onboarding_intent: {
         Args: { p_intent_token: string }
         Returns: Json
@@ -6935,6 +7017,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_credit_holds: { Args: never; Returns: number }
       find_api_key_owner: {
         Args: { p_key_hash: string }
         Returns: {
@@ -7185,9 +7268,24 @@ export type Database = {
             }
             Returns: Json
           }
+      release_credit_hold: {
+        Args: { p_hold_id: string; p_reason?: string }
+        Returns: Json
+      }
       release_generation_lock: {
         Args: { p_lock_id: string; p_project_id: string }
         Returns: boolean
+      }
+      reserve_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_idempotency_key?: string
+          p_project_id?: string
+          p_ttl_seconds?: number
+          p_user_id: string
+        }
+        Returns: Json
       }
       resolve_sso_for_email: { Args: { p_email: string }; Returns: Json }
       revoke_org_seat: {
@@ -7298,6 +7396,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      credit_hold_status: "held" | "consumed" | "released" | "expired"
       lending_permission: "none" | "universe_only" | "specific_users" | "public"
       movie_genre:
         | "ad"
@@ -7472,6 +7571,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      credit_hold_status: ["held", "consumed", "released", "expired"],
       lending_permission: ["none", "universe_only", "specific_users", "public"],
       movie_genre: [
         "ad",

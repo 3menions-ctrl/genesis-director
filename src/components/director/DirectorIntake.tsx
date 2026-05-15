@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, FileText, ImageIcon, GitBranch, ChevronRight, ChevronLeft,
   Wand2, Clapperboard, Users, User, Film, Check, X, ArrowRight,
+  AlertCircle, RotateCcw, Save,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +14,41 @@ import { DEFAULT_INTAKE, type IntakeData, type IntakeFormat, type DirectorMode }
 
 const SERIF = { fontFamily: "'Fraunces', serif" };
 const MONO = { fontFamily: "'JetBrains Mono', monospace" };
+
+const DRAFT_KEY = "director-studio:intake-draft:v1";
+
+interface SavedDraft {
+  data: IntakeData;
+  step: number;
+  savedAt: number;
+}
+
+function loadDraft(): SavedDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedDraft;
+    if (!parsed?.data || typeof parsed.step !== "number") return null;
+    // Sanity-merge against defaults so older shapes still work
+    return { ...parsed, data: { ...DEFAULT_INTAKE, ...parsed.data } };
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+}
+
+function formatRelative(ts: number) {
+  const s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 const STEPS = [
   { id: "concept", label: "Concept" },
@@ -46,9 +82,38 @@ interface Props {
 export function DirectorIntake({ open, onComplete, onCancel }: Props) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<IntakeData>(DEFAULT_INTAKE);
+  const [pendingDraft, setPendingDraft] = useState<SavedDraft | null>(null);
+  const [showError, setShowError] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const dirtyRef = useRef(false);
+
+  // On open, surface any saved draft for resume
+  useEffect(() => {
+    if (!open) return;
+    const d = loadDraft();
+    if (d) setPendingDraft(d);
+  }, [open]);
+
+  // Auto-save (debounced) once user starts editing
+  useEffect(() => {
+    if (!open || pendingDraft) return; // don't overwrite while resume banner is showing
+    if (!dirtyRef.current) return;
+    const t = window.setTimeout(() => {
+      const payload: SavedDraft = { data, step, savedAt: Date.now() };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setSavedAt(payload.savedAt);
+      } catch { /* ignore quota errors */ }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [data, step, open, pendingDraft]);
 
   const update = <K extends keyof IntakeData>(k: K, v: IntakeData[K]) =>
-    setData((d) => ({ ...d, [k]: v }));
+    setData((d) => {
+      dirtyRef.current = true;
+      setShowError(false);
+      return { ...d, [k]: v };
+    });
 
   const canAdvance = useMemo(() => {
     switch (step) {
@@ -63,11 +128,62 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
   }, [step, data]);
 
   const next = () => {
-    if (!canAdvance) return;
-    if (step === STEPS.length - 1) onComplete(data);
-    else setStep((s) => s + 1);
+    if (!canAdvance) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
+    if (step === STEPS.length - 1) {
+      clearDraft();
+      onComplete(data);
+    } else {
+      setStep((s) => s + 1);
+    }
   };
-  const prev = () => setStep((s) => Math.max(0, s - 1));
+  const prev = () => { setShowError(false); setStep((s) => Math.max(0, s - 1)); };
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    setData(pendingDraft.data);
+    setStep(Math.min(pendingDraft.step, STEPS.length - 1));
+    setSavedAt(pendingDraft.savedAt);
+    dirtyRef.current = true;
+    setPendingDraft(null);
+  };
+  const discardDraft = () => {
+    clearDraft();
+    setPendingDraft(null);
+    setSavedAt(null);
+  };
+
+  const errorFor = (s: number): string | null => {
+    switch (s) {
+      case 0:
+        if (data.title.trim().length < 2) return "Add a working title (min 2 characters).";
+        if (data.logline.trim().length < 4) return "Add a logline (min 4 characters).";
+        return null;
+      case 1:
+        if (data.format !== "concept" && data.scriptOrIdea.trim().length === 0) return "Paste your script, reference, or remix source.";
+        return null;
+      case 2:
+        if (data.genres.length === 0) return "Pick at least one genre.";
+        if (!data.tone) return "Pick a tonal register.";
+        return null;
+      case 3:
+        if (!data.aspect) return "Pick an aspect ratio.";
+        if (data.sceneCount < 2) return "Scene count must be at least 2.";
+        return null;
+      case 4:
+        if (data.characterA.trim().length === 0) return "Name your lead character.";
+        if (data.castSize === 2 && data.characterB.trim().length === 0) return "Name the second character.";
+        return null;
+      case 5:
+        if (!data.mode) return "Choose Auto or Director.";
+        return null;
+      default: return null;
+    }
+  };
+  const currentError = showError ? errorFor(step) : null;
 
   if (!open) return null;
 
@@ -106,16 +222,66 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
             <Clapperboard className="h-4 w-4 text-[#0A84FF]" />
             <span className="text-[10px] tracking-[0.32em]" style={MONO}>DIRECTOR STUDIO / INTAKE</span>
           </div>
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-white/40 hover:text-white/80 transition-colors"
-              aria-label="Cancel"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {savedAt && !pendingDraft && (
+              <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/35 tracking-widest" style={MONO}>
+                <Save className="h-3 w-3" /> DRAFT SAVED · {formatRelative(savedAt).toUpperCase()}
+              </span>
+            )}
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                className="text-white/40 hover:text-white/80 transition-colors"
+                aria-label="Cancel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Resume draft banner */}
+        {pendingDraft && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-10 mx-8 mb-2 border border-[#0A84FF]/40 bg-[#0A84FF]/[0.06] backdrop-blur-sm"
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF] shadow-[0_0_10px_2px_rgba(10,132,255,0.7)]" />
+            <div className="flex items-center justify-between gap-4 px-5 py-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <RotateCcw className="h-4 w-4 text-[#0A84FF] shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-white text-sm" style={SERIF}>
+                    Resume your draft
+                    {pendingDraft.data.title && (
+                      <span className="text-white/55 italic"> — “{pendingDraft.data.title}”</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-white/45 tracking-widest" style={MONO}>
+                    SAVED {formatRelative(pendingDraft.savedAt).toUpperCase()} · STEP {String(pendingDraft.step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={discardDraft}
+                  className="h-9 px-4 text-[10px] tracking-[0.28em] text-white/60 hover:text-white border border-white/10 hover:border-white/30 transition-all"
+                  style={MONO}
+                >
+                  START OVER
+                </button>
+                <button
+                  onClick={resumeDraft}
+                  className="h-9 px-4 text-[10px] tracking-[0.28em] bg-[#0A84FF] text-white hover:shadow-[0_0_18px_rgba(10,132,255,0.55)] transition-all"
+                  style={MONO}
+                >
+                  RESUME
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Stepper */}
         <div className="relative z-10 px-8">
@@ -445,6 +611,16 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 
         {/* Footer / nav */}
         <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/[0.06] bg-black/60 backdrop-blur-xl">
+          {currentError && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-8 py-2.5 border-b border-white/[0.04] bg-[#0A84FF]/[0.04] flex items-center gap-2"
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-[#0A84FF]" />
+              <span className="text-[12px] text-white/80" style={SERIF}>{currentError}</span>
+            </motion.div>
+          )}
           <div className="px-8 py-5 flex items-center justify-between">
             <button
               onClick={prev}
@@ -458,18 +634,22 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
               <ChevronLeft className="h-4 w-4" /> BACK
             </button>
 
-            <div className="text-[10px] text-white/40 tracking-[0.3em]" style={MONO}>
-              {STEPS[step].label.toUpperCase()}
+            <div className="flex items-center gap-3 text-[10px] text-white/40 tracking-[0.3em]" style={MONO}>
+              {savedAt && !pendingDraft && (
+                <span className="hidden md:inline-flex items-center gap-1.5 text-white/30">
+                  <span className="h-1 w-1 rounded-full bg-emerald-400" /> SAVED
+                </span>
+              )}
+              <span>{STEPS[step].label.toUpperCase()}</span>
             </div>
 
             <Button
               onClick={next}
-              disabled={!canAdvance}
               className={cn(
                 "rounded-none h-11 px-6 gap-2 text-[11px] tracking-[0.28em] transition-all",
                 canAdvance
                   ? "bg-[#0A84FF] hover:bg-[#0A84FF] hover:shadow-[0_0_24px_rgba(10,132,255,0.55)] text-white"
-                  : "bg-white/10 text-white/30"
+                  : "bg-white/10 text-white/40 hover:bg-white/15"
               )}
               style={MONO}
             >

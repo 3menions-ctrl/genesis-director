@@ -391,6 +391,7 @@ export default function Studio() {
       <CursorSpotlight />
       <GrainOverlay />
       <Hero onEnter={handleEnter} />
+      <KineticCollage />
       <FilmstripTicker />
       <StatsBand />
       <EnginesSection />

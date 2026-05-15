@@ -662,6 +662,7 @@ export default function StudioShell() {
                     {/* ============= ENGINE PILL RAIL ============= */}
                     <EnginePillRail
                       selected={draft.defaults.engine}
+                      hasCinema={hasCinema}
                       onSelect={(id) => setDraft(d => ({ ...d, defaults: { ...d.defaults, engine: id }, scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })) }))}
                       onMore={() => setDrawer("engines")}
                     />
@@ -860,10 +861,19 @@ export default function StudioShell() {
         <EnginesDrawerContent
           selected={draft.defaults.engine}
           duration={draft.defaults.duration}
+          hasCinema={hasCinema}
           onSelect={(id) => {
+            const target = ENGINES[id];
+            if (target.requiresEntitlement === "studio_cinema" && !hasCinema) {
+              toast.error(`${target.shortLabel} requires Studio Cinema`, {
+                description: "Upgrade to unlock Veo, Runway and Sora.",
+                action: { label: "Upgrade", onClick: () => navigate("/credits") },
+              });
+              return;
+            }
             setDraft(d => {
               const spec = ENGINES[id];
-              const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 15;
+              const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
               const profile = defaultQualityProfile(id);
               // Clamp scenes to engine's per-project cap and re-clamp each scene's duration.
               const clampedScenes = d.scenes
@@ -871,7 +881,7 @@ export default function StudioShell() {
                 .map(scene => ({
                   ...scene,
                   engine: id,
-                  duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 15,
+                  duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
                 }));
               return {
                 ...d,

@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, type EngineId } from "@/lib/video/engines";
+import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, engineToBackend, type EngineId } from "@/lib/video/engines";
 import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
@@ -348,7 +348,7 @@ export default function StudioShell() {
       const characterCast = hasAvatar ? draft.cast.map((c) => ({
         id: c.id,
         name: c.name,
-        appearance: c.appearance || c.name,
+        appearance: c.name,
         voiceId: c.voiceId || draft.defaults.voiceId || "",
         role: "protagonist" as const,
         referenceImageUrl: c.imageUrl,

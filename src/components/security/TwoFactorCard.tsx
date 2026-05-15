@@ -56,7 +56,7 @@ export function TwoFactorCard({ glassCard }: Props) {
     try {
       // Defensive: drop any unverified factor before enrolling
       const list = await supabase.auth.mfa.listFactors();
-      for (const f of (list.data?.totp || []).filter(f => f.status === "unverified")) {
+      for (const f of (list.data?.totp || []).filter(f => (f.status as string) !== "verified")) {
         await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
       }
       const { data, error } = await supabase.auth.mfa.enroll({

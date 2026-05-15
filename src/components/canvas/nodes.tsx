@@ -5,6 +5,7 @@ import type {
   AvatarNodeData, AudioNodeData, DialogueNodeData,
   EnvironmentNodeData, ModelNodeData, RenderNodeData, SceneNodeData,
 } from '@/lib/canvas/types';
+import { capChips, capsFor } from '@/lib/canvas/modelCapabilities';
 
 const SHELL =
   'rounded-2xl border border-white/10 bg-gradient-to-br from-[hsl(220,14%,6%)] to-[hsl(220,14%,3%)] ' +
@@ -40,6 +41,7 @@ function NodeFrame({ children, accent = '#0A84FF' }: { children: React.ReactNode
 
 export function ModelNode({ data }: NodeProps) {
   const d = data as ModelNodeData;
+  const chips = capChips(capsFor(d.model));
   return (
     <NodeFrame>
       <H side="l" />
@@ -48,6 +50,15 @@ export function ModelNode({ data }: NodeProps) {
         <div className="font-medium">{d.model?.label ?? 'No model selected'}</div>
         {d.model && (
           <div className="font-mono text-[10px] text-white/40 mt-1">{d.model.owner}/{d.model.name}</div>
+        )}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {chips.map((c) => (
+              <span key={c} className="text-[9px] uppercase tracking-[0.16em] px-1.5 py-0.5 rounded bg-[#0A84FF]/12 text-[#9CC2FF] border border-[#0A84FF]/25">
+                {c}
+              </span>
+            ))}
+          </div>
         )}
       </div>
       <H side="r" />

@@ -1,5 +1,5 @@
-import { CanvasShell } from '@/components/canvas/CanvasShell';
+import StudioShell from '@/components/studio/v2/StudioShell';
 
 export default function CreateCanvas() {
-  return <CanvasShell />;
+  return <StudioShell />;
 }

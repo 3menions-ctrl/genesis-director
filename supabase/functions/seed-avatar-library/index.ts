@@ -157,6 +157,75 @@ const AVATAR_PRESETS = [
   { name: "Cowled Vigilante Nox", gender: "male", ageRange: "middle-aged", ethnicity: "fantasy", style: "hero", personality: "grim and methodical", clothing: "Matte-black armored suit with pointed cowl, glowing eye-lenses, gargoyle-perched skyline — original dark vigilante design" },
   { name: "Amazon Warrior Thalassa", gender: "female", ageRange: "young-adult", ethnicity: "fantasy", style: "hero", personality: "fierce and noble", clothing: "Bronze-plated armor with golden bracers, lasso at hip, windswept cliffs at dawn — original warrior design" },
   { name: "Space Marine Kael", gender: "male", ageRange: "middle-aged", ethnicity: "fantasy", style: "hero", personality: "stoic and lethal", clothing: "Heavy weathered powered armor, helmet under arm, war-torn alien battlefield — original sci-fi soldier design" },
+
+  // === CARTOON: 3D PIXAR-STYLE (original characters, not IP) ===
+  { name: "Pip the Inventor", gender: "male", ageRange: "child", ethnicity: "cartoon", style: "cartoon-3d", personality: "curious and brave", clothing: "Oversized round glasses, suspenders over striped tee, tool-belt of gizmos — 3D animated film styling, soft global illumination, original character design" },
+  { name: "Mira the Explorer", gender: "female", ageRange: "child", ageRange2: "child", ethnicity: "cartoon", style: "cartoon-3d", personality: "fearless and warm", clothing: "Bright yellow raincoat, frizzy red curls, tiny backpack with map sticking out — 3D animated film styling, original character design" },
+  { name: "Captain Whiskers", gender: "male", ageRange: "adult", ethnicity: "cartoon-animal", style: "cartoon-3d", personality: "swashbuckling and silly", clothing: "Anthropomorphic orange tabby in tiny pirate coat and tricorn hat, eye-patch, paw on cutlass — 3D animated film styling" },
+  { name: "Bella the Baker", gender: "female", ageRange: "young-adult", ethnicity: "cartoon", style: "cartoon-3d", personality: "joyful and clumsy", clothing: "Flour-dusted apron over polka-dot dress, rolling pin in hand, oversized eyes, rosy cheeks — 3D animated film styling" },
+  { name: "Granddad Oak", gender: "male", ageRange: "mature", ethnicity: "cartoon", style: "cartoon-3d", personality: "warm and storytelling", clothing: "Knit cardigan with elbow patches, bushy white moustache, twinkling eyes — 3D animated film styling, original character design" },
+  { name: "Boom the Robot", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon-robot", style: "cartoon-3d", personality: "earnest and clumsy", clothing: "Boxy tin-can robot with one wobbly antenna, glowing teal screen-face showing a smile — 3D animated film styling" },
+
+  // === CARTOON: CLASSIC 2D WESTERN ===
+  { name: "Ziggy Squiggle", gender: "male", ageRange: "child", ethnicity: "cartoon", style: "cartoon-2d", personality: "hyper and loud", clothing: "Spiky lime hair, oversized sneakers, baggy graphic tee — Saturday morning cartoon styling, thick black outlines, flat color fills" },
+  { name: "Daisy Doodle", gender: "female", ageRange: "child", ethnicity: "cartoon", style: "cartoon-2d", personality: "sunny and stubborn", clothing: "Pigtails with pink bows, denim overalls, scribbled flowers around her — Saturday morning cartoon styling, thick outlines" },
+  { name: "Mayor McMuffin", gender: "male", ageRange: "mature", ethnicity: "cartoon", style: "cartoon-2d", personality: "pompous and silly", clothing: "Tiny round mayor with handlebar moustache, top hat, sash, gold pocket watch — classic 2D cartoon styling" },
+  { name: "Bouncing Beans", gender: "non-binary", ageRange: "child", ethnicity: "cartoon", style: "cartoon-2d", personality: "chaotic and joyful", clothing: "Round bean-shaped body with stick limbs, huge grin, wearing a tiny cape — classic 2D cartoon styling" },
+  { name: "Vlad the Inventor", gender: "male", ageRange: "middle-aged", ethnicity: "cartoon", style: "cartoon-2d", personality: "mad-scientist gleeful", clothing: "Wild white hair, lab coat with scorch marks, swirly goggles, holding sparking gadget — classic 2D cartoon styling" },
+
+  // === CARTOON: ANIME CHIBI ===
+  { name: "Chibi Nyanko", gender: "female", ageRange: "child", ethnicity: "cartoon-anime", style: "chibi", personality: "shy and sweet", clothing: "Tiny chibi proportions, pastel-pink hair in twin buns, cat ears, oversized hoodie sleeves covering hands — chibi anime styling, sparkly eyes" },
+  { name: "Chibi Hero Sora", gender: "male", ageRange: "child", ethnicity: "cartoon-anime", style: "chibi", personality: "determined and tiny", clothing: "Chibi proportions, spiky blue hair, miniature sword bigger than him, headband — chibi anime styling" },
+  { name: "Chibi Witchling Mio", gender: "female", ageRange: "child", ethnicity: "cartoon-anime", style: "chibi", personality: "mischievous and bookish", clothing: "Chibi pointed witch hat almost as big as her, tiny black robe, glowing book floating beside her — chibi anime styling" },
+  { name: "Chibi Bun Mochi", gender: "non-binary", ageRange: "child", ethnicity: "cartoon-anime", style: "chibi", personality: "soft and quiet", clothing: "Round chibi bunny mascot, fluffy ears, pastel-mint scarf, blushing cheeks — chibi mascot styling" },
+
+  // === CARTOON: COMIC-BOOK / GRAPHIC NOVEL ===
+  { name: "Inkline Vega", gender: "female", ageRange: "young-adult", ethnicity: "cartoon", style: "comic", personality: "sharp and stylish", clothing: "Bold halftone dot shading, thick black ink lines, leather jacket, asymmetric haircut — graphic novel styling, dramatic Ben-Day dots" },
+  { name: "Crosshatch Knox", gender: "male", ageRange: "middle-aged", ethnicity: "cartoon", style: "comic", personality: "grim and weathered", clothing: "Trenchcoat noir antihero, cigarette smoke, heavy crosshatch shadows, rain-slick alley — black-and-white graphic novel styling" },
+  { name: "Halftone Jett", gender: "male", ageRange: "young-adult", ethnicity: "cartoon", style: "comic", personality: "swaggering and quick", clothing: "Pop-art superhero in primary colors, exaggerated muscles, action lines, BAM/POW energy — Silver Age comic styling" },
+  { name: "Ms. Mystery Lila", gender: "female", ageRange: "young-adult", ethnicity: "cartoon", style: "comic", personality: "secretive and clever", clothing: "Domino mask, bob haircut, vintage pulp-cover styling, dramatic spotlight — pulp comic cover art" },
+
+  // === CARTOON: CLAYMATION / STOP-MOTION ===
+  { name: "Clay Pip", gender: "male", ageRange: "child", ethnicity: "claymation", style: "claymation", personality: "wide-eyed and gentle", clothing: "Sculpted plasticine textures, visible thumbprints, lopsided wool sweater, button eyes — Aardman-style stop-motion claymation, warm key light" },
+  { name: "Clay Granny Fern", gender: "female", ageRange: "mature", ethnicity: "claymation", style: "claymation", personality: "spry and witty", clothing: "Plasticine grandma with rosy cheeks, knitted shawl, half-moon glasses, knitting needles in hand — stop-motion claymation styling" },
+  { name: "Clay Sir Hopalot", gender: "male", ageRange: "ageless", ethnicity: "claymation-animal", style: "claymation", personality: "noble and goofy", clothing: "Anthropomorphic claymation rabbit knight in tiny tinfoil armor, carrot-sword — stop-motion claymation styling" },
+
+  // === CARTOON: PAPER-CUTOUT / FLAT VECTOR ===
+  { name: "Paper Doll Nia", gender: "female", ageRange: "child", ethnicity: "cartoon", style: "paper-cutout", personality: "whimsical and quiet", clothing: "Layered construction-paper cutout style, visible scissor edges, simple geometric face, patterned dress — paper-cutout art direction" },
+  { name: "Origami Crane Sumi", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon", style: "paper-cutout", personality: "graceful and serene", clothing: "Folded-paper figure with crisp creases, kimono of patterned washi paper — origami paper-craft styling" },
+  { name: "Flat-Vector Theo", gender: "male", ageRange: "young-adult", ethnicity: "cartoon", style: "flat-vector", personality: "chill and modern", clothing: "Minimalist flat-design character, two-tone skin, no outlines, geometric shapes, mid-century palette — flat vector illustration styling" },
+  { name: "Flat-Vector Aya", gender: "female", ageRange: "young-adult", ethnicity: "cartoon", style: "flat-vector", personality: "bright and capable", clothing: "Minimalist flat-design character, bold blocks of teal and coral, no outlines, geometric face — flat vector illustration styling" },
+
+  // === CARTOON: LOW-POLY / VOXEL / GAME ===
+  { name: "Voxel Knight Bit", gender: "male", ageRange: "young-adult", ethnicity: "cartoon", style: "voxel", personality: "brave and blocky", clothing: "Minecraft-adjacent blocky voxel knight, pixel-armor, square sword, cube-shaped helmet — voxel game styling, NOT branded IP" },
+  { name: "Low-Poly Ranger Vex", gender: "non-binary", ageRange: "young-adult", ethnicity: "cartoon", style: "low-poly", personality: "quiet and watchful", clothing: "Faceted low-polygon character, hooded green cloak, longbow, flat-shaded triangles — PS1-era low-poly game styling" },
+  { name: "Pixel Hero Byte", gender: "male", ageRange: "young-adult", ethnicity: "cartoon", style: "pixel-art", personality: "heroic and retro", clothing: "16-bit pixel-art sprite, blocky pose, sword raised, exaggerated chunky pixels — retro JRPG sprite styling" },
+
+  // === CARTOON: KAWAII / MASCOT ===
+  { name: "Mochi the Mascot", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon", style: "kawaii", personality: "squishy and friendly", clothing: "Round white mochi blob with tiny limbs, blush dots on cheeks, dot eyes and smile — kawaii Sanrio-adjacent mascot styling, original design" },
+  { name: "Boba Buddy", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon", style: "kawaii", personality: "sweet and chill", clothing: "Anthropomorphic bubble-tea cup with stripey straw, smiling face, tiny pearl friends bouncing around — kawaii mascot styling" },
+  { name: "Cloudpup Nimbus", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon-animal", style: "kawaii", personality: "dreamy and gentle", clothing: "Fluffy cloud-shaped puppy with tiny rainbow tail, sparkles drifting around — kawaii mascot styling, pastel sky backdrop" },
+  { name: "Spicy Pepper Pip", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon", style: "kawaii", personality: "feisty and tiny", clothing: "Anthropomorphic red chili pepper with little arms on hips, tiny flame above head, sassy expression — kawaii mascot styling" },
+
+  // === CARTOON: WATERCOLOR / STORYBOOK ===
+  { name: "Storybook Ellie", gender: "female", ageRange: "child", ethnicity: "cartoon", style: "watercolor", personality: "curious and dreamy", clothing: "Soft watercolor washes, delicate ink linework, red mary-janes, butterfly perched on finger — picture-book illustration styling" },
+  { name: "Storybook Wolf Fenn", gender: "male", ageRange: "ageless", ethnicity: "cartoon-animal", style: "watercolor", personality: "wise and kind", clothing: "Anthropomorphic gentle wolf in scholar's vest and round glasses, watercolor textures, soft forest backdrop — picture-book styling" },
+  { name: "Storybook Mouse Marigold", gender: "female", ageRange: "ageless", ethnicity: "cartoon-animal", style: "watercolor", personality: "tiny and brave", clothing: "Field-mouse heroine in acorn-cap helmet, sewing-needle sword, watercolor meadow backdrop — picture-book illustration styling" },
+
+  // === CARTOON: SCI-FI / RETRO-FUTURE ===
+  { name: "Retro Rocketeer Zara", gender: "female", ageRange: "young-adult", ethnicity: "cartoon", style: "cartoon-retro", personality: "plucky and brave", clothing: "1950s atomic-age space heroine, finned silver helmet, ray gun on hip, pulp-magazine cover styling — original retro sci-fi cartoon" },
+  { name: "Robo-Buddy Tin-9", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon-robot", style: "cartoon-retro", personality: "cheerful and helpful", clothing: "Vintage tin robot, big bolts on shoulders, antenna with light bulb, dial-knobs on chest — retro Saturday-morning robot styling" },
+  { name: "Alien Splork", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon-alien", style: "cartoon-retro", personality: "confused and curious", clothing: "Wobbly green three-eyed cartoon alien, antenna with tiny ball, ray-gun, fishbowl helmet — 1950s pulp-cartoon alien styling" },
+
+  // === CARTOON: HALLOWEEN / SPOOKY-CUTE ===
+  { name: "Lil' Pumpkin Patch", gender: "non-binary", ageRange: "child", ethnicity: "cartoon", style: "cartoon-3d", personality: "bashful and sweet", clothing: "Tiny child in a full-body pumpkin onesie, oversized stem hat, holding plastic candy bucket — cute 3D animated styling" },
+  { name: "Vampling Vince", gender: "male", ageRange: "child", ethnicity: "cartoon", style: "cartoon-2d", personality: "polite and dramatic", clothing: "Cartoon vampire kid with tiny fangs, red-lined cape, hair gelled into a widow's peak — Saturday morning cartoon styling" },
+  { name: "Ghost Friend Boo", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon-ghost", style: "kawaii", personality: "shy and sweet", clothing: "Floating round white sheet-ghost with two dot eyes and tiny smile, blush spots — kawaii ghost mascot styling" },
+
+  // === CARTOON: CHRISTMAS / WINTER ===
+  { name: "Tiny Elf Tinsel", gender: "non-binary", ageRange: "child", ethnicity: "cartoon", style: "cartoon-3d", personality: "hyper and helpful", clothing: "Cartoon Christmas elf in red and green stripes, curled-toe boots, oversized bell-hat, holding tiny wrapped gift — 3D animated styling" },
+  { name: "Snowpal Frostie", gender: "non-binary", ageRange: "ageless", ethnicity: "cartoon", style: "cartoon-3d", personality: "warm-hearted and silly", clothing: "Three-tier snow-person, carrot nose, top hat at jaunty angle, knitted scarf, twig arms — original cartoon snowperson design" },
+  { name: "Reindeer Pal Rudy", gender: "male", ageRange: "ageless", ethnicity: "cartoon-animal", style: "cartoon-3d", personality: "earnest and bashful", clothing: "Cartoon reindeer with big shiny nose, fuzzy antlers, jingle-bell collar — original holiday cartoon character, NOT branded IP" },
 ];
 
 serve(async (req) => {

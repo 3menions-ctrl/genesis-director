@@ -924,6 +924,207 @@ CLIP 5: FACT 4 — Visual mnemonic overlay. Make it stick.
 CLIP 6: FACT 5 — Final fact with strongest visual emphasis. The killer point.
 CLIP 7: RECALL PAYOFF — Rapid montage of all five cards, then direct-to-camera "you've got this." Uplifting close.`,
   },
+  // ── Expansion Pack v3 — broader genres, more starting points ──
+  {
+    id: 'cyberpunk-chase',
+    name: 'Cyberpunk Chase',
+    description: 'Neon-drenched rooftop pursuit with anamorphic flares and holographic ads',
+    category: 'cinematic',
+    genre: 'action',
+    mood: 'intense',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'cinematic',
+    conceptPrompt: `CLIP 1: WIDE megacity rooftop, neon haze, hero turns as sirens rise. ANAMORPHIC flare across frame.
+CLIP 2: TRACKING sprint past holographic billboards. Magenta/cyan rim, slow-mo droplets.
+CLIP 3: LEAP across alley, drone follow, low-angle. Wind tears through coat.
+CLIP 4: WHIP-PAN to pursuer silhouette on opposite roof. Tension lock.
+CLIP 5: HANDHELD interior crash through window — glass freezes mid-air.
+CLIP 6: HERO LOW-ANGLE landing, neon rain, breath fog. Cut to black on a smirk.`,
+  },
+  {
+    id: 'noir-monologue',
+    name: 'Noir Monologue',
+    description: 'Smoke, venetian blinds, and a confession to camera in classic black and white',
+    category: 'cinematic',
+    genre: 'drama',
+    mood: 'somber',
+    clipCount: 5,
+    targetDurationMinutes: 2,
+    colorGrading: 'noir',
+    conceptPrompt: `CLIP 1: SLOW PUSH on shadowed face, blinds slicing light. Cigarette glow.
+CLIP 2: MEDIUM, hands clasped on desk, rain on window. Confession begins.
+CLIP 3: CLOSE-UP on eyes, single tear catches rim light.
+CLIP 4: PROFILE silhouette, smoke ribbons. Voiceover beat.
+CLIP 5: PULL BACK to empty room, chair turning. Final line lingers.`,
+  },
+  {
+    id: 'anime-opening',
+    name: 'Anime Opening Sequence',
+    description: 'Cel-shaded hero shots, wind-blown hair, dynamic title card energy',
+    category: 'entertainment',
+    genre: 'animation',
+    mood: 'epic',
+    clipCount: 6,
+    targetDurationMinutes: 1,
+    colorGrading: 'vivid',
+    conceptPrompt: `CLIP 1: SUNRISE over anime city skyline, cel-shaded clouds drifting.
+CLIP 2: HERO turns into wind, hair whipping, eye glint sparkle.
+CLIP 3: RIVAL silhouette on opposite rooftop, lightning flash.
+CLIP 4: ENSEMBLE cast strike pose, freeze frame with kanji burst.
+CLIP 5: ACTION beat — sword draw, speed lines, impact spark.
+CLIP 6: TITLE CARD reveal, hero salute, J-rock crescendo close.`,
+  },
+  {
+    id: 'nature-documentary',
+    name: 'Nature Documentary',
+    description: 'Sweeping wildlife vistas with whispered narration energy',
+    category: 'cinematic',
+    genre: 'documentary',
+    mood: 'epic',
+    clipCount: 6,
+    targetDurationMinutes: 3,
+    colorGrading: 'naturalistic',
+    conceptPrompt: `CLIP 1: AERIAL DRONE across mountain range at dawn. Mist rivers in valleys.
+CLIP 2: TELEPHOTO on predator stalking through grass, golden hour rim.
+CLIP 3: MACRO insect detail, dewdrops catching sun.
+CLIP 4: WIDE herd movement across plain. Dust trail, primal scale.
+CLIP 5: CLOSE-UP eyes of the hunted — patient, alert.
+CLIP 6: CRANE UP into sky, sunset bleed. Quiet awe.`,
+  },
+  {
+    id: 'fashion-runway',
+    name: 'Fashion Runway',
+    description: 'High-couture editorial walk with flashbulb pop and slow-mo fabric',
+    category: 'commercial',
+    genre: 'fashion',
+    mood: 'epic',
+    clipCount: 5,
+    targetDurationMinutes: 1,
+    colorGrading: 'high-fashion',
+    conceptPrompt: `CLIP 1: BACKSTAGE bustle, focus rack to model emerging.
+CLIP 2: SLOW-MO step onto runway, fabric blooms with motion.
+CLIP 3: TRACKING walk, flashbulbs strobe, shallow depth.
+CLIP 4: CLOSE-UP on couture detail, embroidery catching light.
+CLIP 5: HERO POSE at runway end, hard fashion light, sharp turn.`,
+  },
+  {
+    id: 'horror-cold-open',
+    name: 'Horror Cold Open',
+    description: 'A24-style creeping dread with candlelight and impossible angles',
+    category: 'cinematic',
+    genre: 'horror',
+    mood: 'tense',
+    clipCount: 5,
+    targetDurationMinutes: 2,
+    colorGrading: 'desaturated',
+    conceptPrompt: `CLIP 1: SLOW DOLLY down hallway, single candle wavering.
+CLIP 2: WIDE STATIC of figure standing in doorway — present in last frame, gone next cut.
+CLIP 3: CLOSE on protagonist hearing the sound. Pupil dilates.
+CLIP 4: HANDHELD turn, ceiling angle wrong. Whisper rises.
+CLIP 5: SMASH CUT to black. Title card emerges from silence.`,
+  },
+  {
+    id: 'sports-hype',
+    name: 'Sports Hype Reel',
+    description: 'Stadium-sized crescendo with slow-mo grit and roaring crowd energy',
+    category: 'commercial',
+    genre: 'sports',
+    mood: 'intense',
+    clipCount: 6,
+    targetDurationMinutes: 1,
+    colorGrading: 'high-contrast',
+    conceptPrompt: `CLIP 1: TUNNEL POV, athlete walks toward roaring stadium light.
+CLIP 2: SLOW-MO sweat drip, gloves tighten, breath in.
+CLIP 3: WHIP PAN to crowd erupt, flag wave, drum hit.
+CLIP 4: 120FPS pivotal play — ball flies, body extends impossibly.
+CLIP 5: HERO SHOT roar, tendons taut, victory scream.
+CLIP 6: STILL FRAME freeze with lower-third name. Cut to logo.`,
+  },
+  {
+    id: 'news-broadcast',
+    name: 'News Broadcast Open',
+    description: 'Authoritative network-style cold open with motion graphics energy',
+    category: 'corporate',
+    genre: 'news',
+    mood: 'serious',
+    clipCount: 5,
+    targetDurationMinutes: 1,
+    colorGrading: 'cool',
+    conceptPrompt: `CLIP 1: MOTION GRAPHIC sting — globe spins, headlines ticker.
+CLIP 2: ANCHOR DESK wide, blue key light, monitors behind.
+CLIP 3: PUSH IN to anchor, direct address, opening lede.
+CLIP 4: CUT to field reporter on location, lower-third snaps in.
+CLIP 5: BACK TO STUDIO, "more after the break" out-cue.`,
+  },
+  {
+    id: 'real-estate-tour',
+    name: 'Luxury Real Estate Tour',
+    description: 'Glide through a dream property with golden hour windows and steady drift',
+    category: 'commercial',
+    genre: 'real-estate',
+    mood: 'aspirational',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'warm-clean',
+    conceptPrompt: `CLIP 1: AERIAL approach to estate, sunset glow on facade.
+CLIP 2: GIMBAL through entry, ceiling reveal, chandelier shimmer.
+CLIP 3: SLIDE across kitchen island, marble glints under spots.
+CLIP 4: TRACK out to living room with floor-to-ceiling view.
+CLIP 5: STAIRS reveal, soft handrail finger-glide.
+CLIP 6: BACKYARD pool sunset, drone pull-back to skyline.`,
+  },
+  {
+    id: 'cooking-reel',
+    name: 'Cooking Reel',
+    description: 'Top-down ASMR cooking montage with crispy sizzles and steam plumes',
+    category: 'entertainment',
+    genre: 'lifestyle',
+    mood: 'satisfying',
+    clipCount: 6,
+    targetDurationMinutes: 1,
+    colorGrading: 'warm',
+    conceptPrompt: `CLIP 1: OVERHEAD ingredients laid out symmetrically. Hand enters frame.
+CLIP 2: MACRO knife chops onion, glassy slices fall.
+CLIP 3: PAN HITS heat, oil shimmers, garlic lands with sizzle.
+CLIP 4: STEAM rises, slow-mo toss of vegetables.
+CLIP 5: PLATING — sauce drizzle in slow arc.
+CLIP 6: HERO PLATE top-down, garnish drop, fork enters. End.`,
+  },
+  {
+    id: 'wedding-cinematic',
+    name: 'Wedding Cinematic',
+    description: 'Soft golden vows with handheld intimacy and sweeping reveal',
+    category: 'cinematic',
+    genre: 'event',
+    mood: 'emotional',
+    clipCount: 6,
+    targetDurationMinutes: 3,
+    colorGrading: 'romantic-warm',
+    conceptPrompt: `CLIP 1: AERIAL of venue at golden hour, bells echo.
+CLIP 2: BRIDE GETTING READY, lace detail, mother's hand.
+CLIP 3: GROOM AT ALTAR, deep breath, eyes scan aisle.
+CLIP 4: PROCESSIONAL slow-mo, petals drift, soft focus crowd.
+CLIP 5: CLOSE on vows — tears, smiles, ring slip.
+CLIP 6: FIRST DANCE, sparkler ring, drone lift away.`,
+  },
+  {
+    id: 'gaming-trailer',
+    name: 'Gaming Trailer',
+    description: 'High-octane reveal with title beats and gameplay punctuation',
+    category: 'entertainment',
+    genre: 'trailer',
+    mood: 'epic',
+    clipCount: 6,
+    targetDurationMinutes: 1,
+    colorGrading: 'vivid',
+    conceptPrompt: `CLIP 1: BLACK to logo emergence with bass hit.
+CLIP 2: WORLD ESTABLISH — sweeping vista, scale dwarfs hero.
+CLIP 3: GAMEPLAY MONTAGE — quick-cut combat, special abilities.
+CLIP 4: VILLAIN REVEAL, cinematic close-up, threat line.
+CLIP 5: HERO STAND with weapon draw, slow-mo charge.
+CLIP 6: TITLE CARD with release date, controller-hum sting.`,
+  },
 ];
 
 // Convert environment DNA to a comprehensive prompt string

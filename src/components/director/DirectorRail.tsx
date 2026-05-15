@@ -3,8 +3,7 @@ import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Sparkles, Film, Scissors, Layers, GraduationCap, User as UserIcon,
-  Code2, ArrowRight, ChevronLeft, ChevronRight, Zap, Settings, LogOut,
-  Clapperboard, Compass,
+  Code2, ArrowRight, ChevronLeft, ChevronRight, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";

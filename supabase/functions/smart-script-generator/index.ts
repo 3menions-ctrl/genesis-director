@@ -941,7 +941,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       }
     }
 
-    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${isSeedance ? 'Seedance 2.0 cinematic-grade' : 'Kling V3 entertainment-first'} scene breakdown...`);
+    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${generationTargetLabel} (${enginePersona}) scene breakdown...`);
 
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
@@ -1224,7 +1224,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         }
       });
 
-      console.log(`[SmartScript] ✓ ${isSeedance ? 'Seedance 2.0' : 'Kling V3'} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
+      console.log(`[SmartScript] ✓ ${generationTargetLabel} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
     }
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);

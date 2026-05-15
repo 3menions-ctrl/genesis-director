@@ -17,6 +17,7 @@ import { PremiumFullscreenPlayer } from '@/components/gallery/PremiumFullscreenP
 import { PremiumCarouselControls } from '@/components/gallery/PremiumCarouselControls';
 import { GalleryHeroSection } from '@/components/gallery/GalleryHeroSection';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Video category type
 type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
 
@@ -431,6 +432,8 @@ const GalleryContent = memo(function GalleryContent() {
 
 // Wrapper with error boundary
 export default function Gallery() {
+  usePageMeta({ title: "Gallery — Apex Studio", description: "A curated reel of cinematic AI-generated scenes, environments, and avatar performances." });
+
   return (
     <ErrorBoundary>
       <GalleryContent />

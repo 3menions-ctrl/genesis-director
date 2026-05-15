@@ -9,9 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Contact = () => {
+  usePageMeta({ title: "Contact — Apex Studio", description: "Get in touch with the Apex Studio team. We respond within one business day." });
+
   const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
     name: profile?.display_name || "",

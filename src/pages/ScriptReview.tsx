@@ -31,6 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface ScriptShot {
   id: string;
   index: number;
@@ -74,6 +75,8 @@ const TRANSITION_LABELS: Record<string, string> = {
 };
 
 export default function ScriptReview() {
+  usePageMeta({ title: "Script review — Apex Studio", description: "Review and approve your generated screenplay." });
+
   const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');

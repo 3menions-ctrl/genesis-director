@@ -18,6 +18,7 @@ import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
 import heroBusiness from '@/assets/onboarding/hero-business.jpg';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type AccountType = 'personal' | 'business' | 'enterprise';
 type PlanKind = 'credits' | 'subscription' | 'contact';
 
@@ -168,6 +169,8 @@ const companySchema = z.object({
  * ================================================================= */
 
 export default function StartOnboarding() {
+  usePageMeta({ title: "Get started — Apex Studio", description: "Begin your Apex Studio onboarding." });
+
   const { navigate } = useSafeNavigation();
   const [params] = useSearchParams();
   const { user, signUp, signIn, signInWithGoogle, signInWithApple } = useAuth();

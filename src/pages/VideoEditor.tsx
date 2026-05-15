@@ -6,6 +6,7 @@ import { CustomTimelineProvider } from "@/hooks/useCustomTimeline";
 import { EditorChrome } from "@/components/editor/EditorChrome";
 import { CinemaBackdrop } from "@/components/ui/CinemaBackdrop";
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Dynamic import — keep browser-render for WebCodecs export
 function useBrowserRenderModule() {
   const [mod, setMod] = useState<any>(null);
@@ -45,6 +46,8 @@ function useBrowserRenderModule() {
 }
 
 export default function VideoEditor() {
+  usePageMeta({ title: "Editor — Apex Studio", description: "Multi-track timeline editor with templates, transitions, and broadcast-quality export." });
+
   const navigate = useNavigate();
   const { mod: browserRender, loading } = useBrowserRenderModule();
 

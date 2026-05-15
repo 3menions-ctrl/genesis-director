@@ -18,6 +18,7 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { ReferralsSettings } from '@/components/settings/ReferralsSettings';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const SECTIONS = [
   { id: 'account', label: 'Account', icon: User, description: 'Profile & identity', code: '01' },
   { id: 'billing', label: 'Billing & Credits', icon: CreditCard, description: 'Credits & usage', code: '02' },
@@ -359,6 +360,8 @@ const SettingsContent = memo(function SettingsContent() {
 });
 
 export default function Settings() {
+  usePageMeta({ title: "Settings — Apex Studio", description: "Manage your account, plan, integrations, and creator preferences." });
+
   return (
     <ErrorBoundary>
       <SettingsContent />

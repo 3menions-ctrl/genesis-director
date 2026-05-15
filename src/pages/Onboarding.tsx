@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 /**
  * Onboarding (legacy redirect)
  *
@@ -20,6 +21,8 @@ import { CinemaLoader } from '@/components/ui/CinemaLoader';
  *      if no prior data exists, so they answer the questions exactly once).
  */
 export default function Onboarding() {
+  usePageMeta({ title: "Welcome to Apex Studio", description: "Three quick steps to set up your cinematic AI workspace." });
+
   const { user, profile, refreshProfile, loading, isSessionVerified } = useAuth();
   const { navigate } = useSafeNavigation();
 

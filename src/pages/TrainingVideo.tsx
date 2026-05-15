@@ -54,6 +54,7 @@ import spaceStationImg from '@/assets/environments/space-station.jpg';
 import cherryBlossomImg from '@/assets/environments/cherry-blossom.jpg';
 import cozyCabinImg from '@/assets/environments/cozy-cabin.jpg';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
   { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, professional', sample: 'Welcome to our training program. Today we will explore best practices for success.' },
@@ -1060,6 +1061,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
 // Wrapper with error boundary for fault isolation
 export default function TrainingVideo() {
+  usePageMeta({ title: "Training — Apex Studio", description: "Watch in-depth tutorials and creator masterclasses for Apex Studio." });
+
   return (
     <ErrorBoundary>
       <TrainingVideoContent />

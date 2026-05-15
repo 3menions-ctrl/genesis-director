@@ -18,6 +18,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface VideoDetails {
   id: string;
   title: string;
@@ -38,6 +39,8 @@ interface VideoDetails {
 }
 
 export default function VideoDetailPage() {
+  usePageMeta({ title: "Video — Apex Studio", description: "Watch a cinematic Apex Studio production in full quality." });
+
   const { videoId } = useParams<{ videoId: string }>();
   const { navigate } = useSafeNavigation();
   const { navigateTo } = useNavigationWithLoading();

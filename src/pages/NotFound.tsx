@@ -4,7 +4,10 @@ import { motion } from "framer-motion";
 import { Home, Search, ArrowLeft, Sparkles, Film, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const NotFound = () => {
+  usePageMeta({ title: "Page not found — Apex Studio", description: "We couldn't find that page. Head back to Apex Studio." });
+
   const location = useLocation();
 
   useEffect(() => {

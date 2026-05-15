@@ -10,12 +10,15 @@ import { useSafeNavigation } from '@/lib/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 /**
  * Post-signup checkout handoff. The pre-signup wizard captures plan choice
  * and routes here as `next=` after auth completes. We open Stripe Embedded
  * Checkout for the chosen price.
  */
 export default function WelcomeCheckout() {
+  usePageMeta({ title: "Welcome — Apex Studio", description: "Confirm your plan and step into Apex Studio." });
+
   const [params] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();

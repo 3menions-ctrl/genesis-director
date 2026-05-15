@@ -37,7 +37,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function Creators() {
+  usePageMeta({ title: "Creators — Apex Studio", description: "Discover featured creators, public showcases, and emerging directors in the Apex Studio community." });
+
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();
   const queryClient = useQueryClient();

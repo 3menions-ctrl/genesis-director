@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface Member {
   id: string;
   user_id: string;
@@ -44,6 +45,8 @@ const ROLE_META: Record<OrgRole, { label: string; icon: typeof Crown; descriptio
 };
 
 export default function WorkspaceSettings() {
+  usePageMeta({ title: "Workspace settings — Apex Studio", description: "Configure your team workspace, members, and roles." });
+
   const { currentOrg, hasPermission, refresh } = useWorkspace();
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);

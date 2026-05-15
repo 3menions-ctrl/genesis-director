@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCinemaEntitlement, useRefreshCinemaEntitlement } from '@/hooks/useCinemaEntitlement';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type Cadence = 'monthly' | 'yearly';
 
 interface CinemaTier {
@@ -76,6 +77,8 @@ type ReturnStatus =
   | { kind: 'cancelled'; reason: string; priceId: string | null };
 
 export default function Credits() {
+  usePageMeta({ title: "Credits — Apex Studio", description: "Top up credits, view balance history, and manage your Apex Studio billing." });
+
   const { user } = useAuth();
   const { data: entitlement } = useCinemaEntitlement();
   const refreshEntitlement = useRefreshCinemaEntitlement();

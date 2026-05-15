@@ -59,6 +59,7 @@ import { AdminAvatarSeeder } from '@/components/admin/AdminAvatarSeeder';
 import { AdminAvatarBatchV2 } from '@/components/admin/AdminAvatarBatchV2';
 import { AdminGalleryManager } from '@/components/admin/AdminGalleryManager';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface ProfitData {
   date: string;
   service: string;
@@ -161,6 +162,8 @@ function StatPill({ icon: Icon, label, value, sub, accent }: {
 }
 
 export default function AdminDashboard() {
+  usePageMeta({ title: "Admin — Apex Studio", description: "Internal Apex Studio administration." });
+
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();

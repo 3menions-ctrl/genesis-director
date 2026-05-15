@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logoImage from '@/assets/apex-studio-logo.webp';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 /**
  * Enterprise tier — coming-soon gate + lead-capture form.
  * Single entry point for any user landing on enterprise. No signup;
@@ -29,6 +30,8 @@ const COMPANY_SIZES = [
 ];
 
 export default function EnterpriseComingSoon() {
+  usePageMeta({ title: "Enterprise — Apex Studio", description: "Enterprise-grade cinematic AI for production studios. Coming soon." });
+
   useEffect(() => { document.title = 'Apex-Studio · Enterprise (Coming Soon)'; }, []);
 
   const [form, setForm] = useState({

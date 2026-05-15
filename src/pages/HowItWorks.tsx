@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Pipeline Layer Data ────────────────────────────────────────────
 const PIPELINE_LAYERS = [
   {
@@ -222,6 +223,8 @@ const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPE
 
 // ─── Main Page ──────────────────────────────────────────────────────
 export default function HowItWorks() {
+  usePageMeta({ title: "How It Works — Apex Studio", description: "From script to screen in minutes. See how Apex Studio's pipeline turns ideas into cinematic video." });
+
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);

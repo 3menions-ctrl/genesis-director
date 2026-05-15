@@ -16,6 +16,7 @@ import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer'
 import { SupportInbox } from '@/components/social/SupportInbox';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 function ContactSupportBlock() {
   const { user } = useAuth();
   if (user) {
@@ -1359,6 +1360,8 @@ const ArticleContent = forwardRef<HTMLDivElement, { article: typeof ALL_ARTICLES
 );
 
 export default function HelpCenter() {
+  usePageMeta({ title: "Help Center — Apex Studio", description: "Guides, FAQs, and troubleshooting for everything Apex Studio." });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<typeof ALL_ARTICLES[0] | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>('getting-started');

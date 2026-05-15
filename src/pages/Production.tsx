@@ -26,6 +26,7 @@ import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '
 import { SimpleVideoPlayer } from '@/components/player';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // Lazy load non-critical heavy components only
 const ProductionSidebar = lazy(() => import('@/components/production/ProductionSidebar').then(m => ({ default: m.ProductionSidebar })));
 const ProductionFinalVideo = lazy(() => import('@/components/production/ProductionFinalVideo').then(m => ({ default: m.ProductionFinalVideo })));
@@ -1695,6 +1696,8 @@ const ProductionContent = withSafePageRef(ProductionContentInner, 'ProductionCon
 
 // Wrapper with error boundary
 export default function Production() {
+  usePageMeta({ title: "Production — Apex Studio", description: "Track, recover, and resume every cinematic production stage in real time." });
+
   return (
     <ErrorBoundary>
       <ProductionContent />

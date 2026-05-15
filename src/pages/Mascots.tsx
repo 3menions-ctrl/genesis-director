@@ -13,6 +13,7 @@ import indieKnight from '@/assets/mascots/indie-knight.png';
 import indieFox from '@/assets/mascots/indie-fox-rogue.png';
 import indieRobot from '@/assets/mascots/indie-robot.png';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type Pack = 'all' | 'food-truck' | 'cereal-box' | 'indie-game';
 
 interface Mascot {
@@ -47,6 +48,8 @@ const PACK_FILTERS = [
 ] as const;
 
 export default function Mascots() {
+  usePageMeta({ title: "Mascots — Apex Studio", description: "Custom brand mascots and recurring characters for cinematic series." });
+
   const [filter, setFilter] = useState<Pack>('all');
 
   const visible = useMemo(

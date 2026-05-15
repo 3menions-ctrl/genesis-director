@@ -13,6 +13,7 @@ import { useSafeNavigation } from '@/lib/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 type Segment = 'personal' | 'business' | 'enterprise' | 'subscription';
@@ -678,6 +679,8 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 }
 
 export default function Pricing() {
+  usePageMeta({ title: "Pricing — Apex Studio", description: "Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand." });
+
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const [showBuyModal, setShowBuyModal] = useState(false);

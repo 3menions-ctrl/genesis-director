@@ -49,6 +49,7 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 // GATEKEEPER: Extract critical image URLs from templates
 function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
   // Guard against null/undefined templates
@@ -584,6 +585,8 @@ AvatarsContent.displayName = 'AvatarsContent';
 
 // Wrapper with error boundary - ref forwarding not needed as ErrorBoundary doesn't pass refs
 export default function Avatars() {
+  usePageMeta({ title: "Avatars — Apex Studio", description: "Cast, customize, and direct cinematic AI avatars for your scenes." });
+
   return (
     <ErrorBoundary>
       <AvatarsContent />

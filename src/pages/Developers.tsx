@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Code2, Copy, KeyRound, Trash2, Activity, Plus, Check } from 'lucide-react';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface ApiKey {
   id: string;
   name: string;
@@ -25,6 +26,8 @@ interface UsageLog {
 }
 
 export default function Developers() {
+  usePageMeta({ title: "Developers — Apex Studio API", description: "API keys, webhooks, and developer tools for embedding Apex Studio's video pipeline." });
+
   const { user } = useAuth();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [logs, setLogs] = useState<UsageLog[]>([]);

@@ -61,6 +61,7 @@ import billboardLeapImg from '@/assets/templates/billboard-leap.jpg';
 import pageBurstImg from '@/assets/templates/page-burst.jpg';
 import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface Template {
   id: string;
   name: string;
@@ -1209,6 +1210,8 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
 // Wrapper with error boundary for fault isolation
 export default function Templates() {
+  usePageMeta({ title: "Templates — Apex Studio", description: "Cinematic, animated, and breakout templates ready to launch your next scene." });
+
   return (
     <ErrorBoundary>
       <TemplatesContent />

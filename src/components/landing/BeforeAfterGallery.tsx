@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeftRight, Play, Sparkles } from 'lucide-react';
-import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import avatarWave from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import poster1 from '@/assets/hero/hero-poster-1.jpg';
@@ -83,12 +82,12 @@ const REELS: Reel[] = [
     after: G.enchanted,
   },
   {
-    title: 'Hoppy Intro',
-    tag: 'Character · Brand mascot',
+    title: 'Silent Vigil',
+    tag: 'Cinematic · Mood piece',
     prompt:
-      'Animated brand mascot enters frame with playful bounce, expressive eyes, soft studio backdrop, full lip-sync intro.',
-    before: poster4,
-    after: hoppyVideo.url,
+      'A lone figure stands at the edge of a misted lake at dawn, pale light catching on still water, slow contemplative push-in.',
+    before: poster3,
+    after: G.silentVigil,
   },
   {
     title: 'Snowfall',

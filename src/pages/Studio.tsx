@@ -18,7 +18,8 @@ const HERO_VIDEO = '/__l5e/assets-v1/2d6f0d1d-4ec0-4d3f-8819-fbb60f4cbaf2/landin
 const SEEDANCE_VIDEO = '/__l5e/assets-v1/db9b8c6e-776b-4292-b571-6f2aac699445/seedance-avatar-test.mp4';
 const KLING_VIDEO = '/__l5e/assets-v1/1fac204f-d8cc-4285-aee2-28065b1f7bb4/test-seedance-clip.mp4';
 const AVATAR_VIDEO = '/__l5e/assets-v1/ae9bd02b-cca0-4763-8fe7-39e9cbd2d56c/landing-avatar-wave-hello.mp4';
-const HOPPY_VIDEO = '/__l5e/assets-v1/4b8810b3-4a03-4ffb-9b67-c79a9bb59ecd/landing-hoppy-intro.mp4';
+// Reuse the avatar wave reel as a neutral substitute for the removed mascot intro.
+const HOPPY_VIDEO = AVATAR_VIDEO;
 
 /* ---------------- Asset imports (Vite bundles the URLs) ------------- */
 

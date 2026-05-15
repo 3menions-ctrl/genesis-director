@@ -50,7 +50,8 @@ function extractProtectedRoutes(): string[] {
     if (pathMatch) {
       // Check next ~5 lines for ProtectedRoute
       const block = lines.slice(i, i + 6).join('\n');
-      if (block.includes('<ProtectedRoute')) {
+      // RequireAccountType wraps ProtectedRoute internally — treat it as auth-gated.
+      if (block.includes('<ProtectedRoute') || block.includes('<RequireAccountType') || block.includes('<EnterpriseGate')) {
         routes.push(pathMatch[1]);
       }
     }
@@ -181,10 +182,10 @@ describe('3. Redirect Integrity', () => {
     expect(studioRedirect!.to).toBe('/create');
   });
 
-  it('legacy /social redirects to /creators', () => {
+  it('legacy /social redirects to /projects (creators page retired)', () => {
     const socialRedirect = REDIRECTS.find(r => r.from === '/social');
     expect(socialRedirect).toBeDefined();
-    expect(socialRedirect!.to).toBe('/creators');
+    expect(socialRedirect!.to).toBe('/projects');
   });
 
   it('no redirect creates a cycle', () => {

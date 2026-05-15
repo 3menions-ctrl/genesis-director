@@ -73,25 +73,25 @@ const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
     label: 'Kling V3', model: 'kwaivgi/kling-v3-video',
     tagline: 'Cinematic · Native lip-sync',
     supportsT2V: true, supportsI2V: true, supportsLipSync: true, supportsNativeAudio: true,
-    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 15],
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10],
   },
   seedance: {
     label: 'Seedance 1 Pro', model: 'bytedance/seedance-1-pro',
     tagline: 'Premium hyperreal motion', badge: 'NEW',
     supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
-    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 12],
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10],
   },
   veo: {
     label: 'Veo 3 Fast', model: 'google/veo-3-fast',
     tagline: 'Native audio · 1080p · 8s',
     supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
-    aspectRatios: ['16:9', '9:16'], durations: [4, 6, 8],
+    aspectRatios: ['16:9', '9:16'], durations: [8],
   },
   sora: {
     label: 'Sora 2', model: 'openai/sora-2',
     tagline: 'Narrative coherence · Long shots',
     supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
-    aspectRatios: ['16:9', '9:16'], durations: [4, 8, 12],
+    aspectRatios: ['16:9', '9:16'], durations: [8, 12],
   },
 };
 

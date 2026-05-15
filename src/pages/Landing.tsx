@@ -505,6 +505,9 @@ export default function Landing() {
         onClose={() => setChooserOpen(false)}
         onSelect={handleSelectCategory}
       />
+
+      {/* Cinematic title-card sequence — plays before entering /studio */}
+      <StudioIntro isPlaying={studioIntroPlaying} />
       </div>
     </>
   );

@@ -12,7 +12,7 @@ import { Lock, Loader2, Smartphone, Copy, Check, ShieldCheck, X } from "lucide-r
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Factor = { id: string; status: "verified" | "unverified"; friendly_name?: string | null };
+type Factor = { id: string; status: string; friendly_name?: string | null };
 
 interface Props { glassCard: string; }
 

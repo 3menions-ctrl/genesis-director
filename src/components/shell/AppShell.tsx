@@ -59,7 +59,15 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
+    // Default to expanded so every nav item shows its icon + label.
+    // Users can still collapse via the toggle; stored preference is honoured
+    // only after they explicitly choose the icon rail again.
+    try {
+      const stored = localStorage.getItem(SIDEBAR_KEY);
+      return stored === '1';
+    } catch {
+      return false;
+    }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
@@ -68,11 +76,8 @@ export function AppShell({ children }: AppShellProps) {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
 
-  // Auto-collapse the rail on the Create canvas so the workspace gets
-  // full width. User can still expand via the toggle.
-  useEffect(() => {
-    if (location.pathname.startsWith('/create')) setCollapsed(true);
-  }, [location.pathname]);
+  // Sidebar stays expanded across routes so icon + label are always visible.
+  // (Previously auto-collapsed on /create — removed per UX request.)
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);

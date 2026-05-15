@@ -38,7 +38,7 @@ interface PipelineRequest {
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
-  videoEngine?: 'kling' | 'veo' | 'seedance';
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedScript?: { shots: any[] };
@@ -319,7 +319,7 @@ const CREDIT_PRICING = {
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
-function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
+function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   const extended = clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
   // Seedance overrides avatar (avatar is force-rerouted to Kling in generate-single-clip)
   if (videoEngine === 'seedance') {
@@ -338,7 +338,7 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
     total += getCreditsForClip(i, clipDuration, isAvatarMode, videoEngine);
@@ -415,7 +415,7 @@ function calculatePipelineParams(
   // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
   // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
   // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'kling' | 'veo' | 'seedance' = (request as any).videoEngine || 'kling';
+  const videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
@@ -6431,7 +6431,7 @@ serve(async (req) => {
           .select('video_engine')
           .eq('id', (request as any).projectId)
           .maybeSingle();
-        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' | null) || null;
         if (persistedEngine) {
           const incoming = (request as any).videoEngine;
           if (incoming && incoming !== persistedEngine) {

@@ -33,13 +33,22 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const { projectId, userId, forceReconcile } = await req.json() as FinalAssemblyRequest;
+    const { projectId, userId: bodyUserId, forceReconcile } = await req.json() as FinalAssemblyRequest;
+    // SECURITY: trust JWT, never the body, for end-user calls
+    let userId: string | undefined;
+    try {
+      userId = bodyUserId !== undefined || !auth.isServiceRole
+        ? resolveEffectiveUserId(auth, bodyUserId)
+        : undefined;
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, (e as Error).message);
+    }
 
     if (!projectId) {
       throw new Error("projectId is required");

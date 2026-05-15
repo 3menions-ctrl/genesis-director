@@ -8,6 +8,7 @@ import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import MockupPreview from "./pages/MockupPreview";
 import { RequireAccountType } from "@/components/auth/RequireAccountType";
 import { EnterpriseGate } from "@/components/auth/EnterpriseGate";
 import { AppLoader } from "@/components/ui/app-loader";

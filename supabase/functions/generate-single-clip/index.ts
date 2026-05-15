@@ -476,9 +476,9 @@ async function createSora2Prediction(
   const mode = startImageUrl ? "I2V" : "T2V";
   console.log(`[SingleClip][Sora2] Creating ${mode} prediction:`, {
     model: `${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}`,
-    duration,
-    aspectRatio,
-    hasStartImage: !!input.input_image,
+    seconds,
+    aspectRatio: soraAspect,
+    hasStartImage: !!input.input_reference,
     promptLength: prompt.length,
   });
 

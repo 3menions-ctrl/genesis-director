@@ -475,11 +475,12 @@ serve(async (req) => {
             ethnicity: preset.ethnicity,
             style: preset.style,
             personality: preset.personality,
-            clothing: preset.clothing,
             face_image_url: generated.frontImageUrl,
             thumbnail_url: generated.frontImageUrl,
             front_image_url: generated.frontImageUrl,
             character_bible: generated.characterBible,
+            voice_id: "alloy",
+            voice_provider: "openai",
             is_active: true,
           }, { onConflict: "name" });
           tickResults.push({ name: preset.name, success: true, index: i });

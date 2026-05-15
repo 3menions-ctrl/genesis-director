@@ -778,7 +778,7 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 
 REQUIREMENTS:
 - Extract the ${clipCount} sequential moments from this scene
-- Each clip = ${clipDuration} seconds of continuous action (Kling V3)
+- Each clip = ${clipDuration} seconds of continuous action (${generationTargetLabel})
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 - Each description: 80-150 words, vivid and action-dense

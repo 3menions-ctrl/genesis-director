@@ -83,24 +83,33 @@ export function AdminAvatarSeeder() {
 
       if (data.nextIndex !== null) {
         setCurrentIndex(data.nextIndex);
-        // Continue with next avatar after a brief delay
-        setTimeout(() => generateNextBatch(), 2000);
+        // Skipped (already seeded) → no rate-limit needed; real gen → small delay
+        const wasSkipped = data.results?.[0]?.skipped === true;
+        setTimeout(() => generateNextBatch(), wasSkipped ? 50 : 1500);
       } else {
         setIsGenerating(false);
         toast.success('Avatar library generation complete!');
       }
     } catch (err) {
       console.error('Generation error:', err);
-      toast.error('Avatar generation failed. Please try again.');
-      setIsGenerating(false);
+      // Auto-resume: log failure, skip this preset, keep going
+      setResults(prev => [...prev, {
+        name: presets[currentIndex]?.name || `#${currentIndex}`,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      }]);
+      setCurrentIndex(prev => prev + 1);
+      setTimeout(() => generateNextBatch(), 3000);
     }
   };
 
-  const startGeneration = () => {
+  const startGeneration = (resumeFromIndex?: number) => {
     setIsGenerating(true);
     setIsPaused(false);
-    setResults([]);
-    setCurrentIndex(0);
+    if (resumeFromIndex === undefined) {
+      setResults([]);
+      setCurrentIndex(0);
+    }
     generateNextBatch();
   };
 
@@ -158,7 +167,7 @@ export function AdminAvatarSeeder() {
           </Button>
 
           {presets.length > 0 && !isGenerating && (
-            <Button onClick={startGeneration} className="gap-2">
+            <Button onClick={() => startGeneration()} className="gap-2">
               <Play className="w-4 h-4" />
               {currentIndex > 0 ? 'Restart Generation' : 'Start Generation'}
             </Button>

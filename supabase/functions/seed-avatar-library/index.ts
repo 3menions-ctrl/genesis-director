@@ -464,6 +464,20 @@ serve(async (req) => {
         console.log(`[Seed] Generating avatar ${i + 1}/${AVATAR_PRESETS.length}: ${preset.name}`);
 
         try {
+          // ⚡ SKIP if avatar already exists with a real (non-placeholder) image
+          const { data: existing } = await supabase
+            .from("avatar_templates")
+            .select("id, face_image_url")
+            .eq("name", preset.name)
+            .maybeSingle();
+          const existingUrl: string = existing?.face_image_url ?? "";
+          const isPlaceholder = !existingUrl || existingUrl.includes("placehold.co") || existingUrl.includes("placeholder");
+          if (existing && !isPlaceholder) {
+            console.log(`[Seed] Skipping ${preset.name} — already seeded`);
+            results.push({ name: preset.name, success: true, skipped: true, imageUrl: existingUrl });
+            continue;
+          }
+
           // Call generate-avatar-image function
           const genResponse = await fetch(
             `${supabaseUrl}/functions/v1/generate-avatar-image`,

@@ -467,7 +467,7 @@ const App = () => {
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Entering Director Studio...">
                     <ProtectedRoute>
-                      <DirectorStudio />
+                      <Create />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

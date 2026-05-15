@@ -1442,7 +1442,7 @@ serve(async (req) => {
     if (videoEngine === 'seedance') {
       console.log(`[SingleClip] ══ ROUTING TO SEEDANCE 2.0 (bytedance/seedance-2.0) ══`);
       const seedanceResult = await createSeedancePrediction(
-        enhancedPrompt,
+        tuneForEngine('seedance', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1452,7 +1452,7 @@ serve(async (req) => {
     } else if (videoEngine === 'runway') {
       console.log(`[SingleClip] ══ ROUTING TO RUNWAY GEN-4 TURBO (runwayml/gen4-turbo) ══`);
       const runwayResult = await createRunwayGen4Prediction(
-        enhancedPrompt,
+        tuneForEngine('runway', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1461,7 +1461,7 @@ serve(async (req) => {
     } else if (videoEngine === 'sora') {
       console.log(`[SingleClip] ══ ROUTING TO SORA 2 (openai/sora-2) ══`);
       const soraResult = await createSora2Prediction(
-        enhancedPrompt,
+        tuneForEngine('sora', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1470,7 +1470,7 @@ serve(async (req) => {
     } else if (videoEngine === 'veo') {
       console.log(`[SingleClip] ══ ROUTING TO VEO 3 FAST (google/veo-3-fast) ══`);
       const veoResult = await createVeo3FastPrediction(
-        enhancedPrompt,
+        tuneForEngine('veo', enhancedPrompt, { isAvatarMode, hasStartImage }),
         fullNegativePrompt,
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
@@ -1481,7 +1481,7 @@ serve(async (req) => {
     } else {
       // 'kling' renders via Kling V3 (default + avatar lip-sync).
       const klingResult = await createKlingV3Prediction(
-        enhancedPrompt,
+        tuneForEngine('kling', enhancedPrompt, { isAvatarMode, hasStartImage }),
         fullNegativePrompt,
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',

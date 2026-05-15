@@ -772,7 +772,18 @@ export default function StudioShell() {
                     <EnginePillRail
                       selected={draft.defaults.engine}
                       hasCinema={hasCinema}
-                      onSelect={(id) => setDraft(d => ({ ...d, defaults: { ...d.defaults, engine: id }, scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })) }))}
+                      onSelect={(id) => setDraft(d => {
+                        const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
+                        return {
+                          ...d,
+                          defaults: { ...d.defaults, engine: id, duration: newDuration },
+                          scenes: d.scenes.map(scene => ({
+                            ...scene,
+                            engine: id,
+                            duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
+                          })),
+                        };
+                      })}
                       onMore={() => setDrawer("engines")}
                     />
                   </div>

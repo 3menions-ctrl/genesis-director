@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageShell, PageHeader, Surface } from '@/components/shell';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Sparkles, Wand2, Search, X, Check } from 'lucide-react';
+import { Sparkles, Wand2, Search, X, Check, ImageIcon } from 'lucide-react';
 
 import chibiRanger from '@/assets/avatars/chibi-ranger.png';
 import chibiMage from '@/assets/avatars/chibi-mage.png';
@@ -95,7 +95,15 @@ export default function AvatarsGallery() {
 
   const generate = (a: Avatar) => {
     setPreview(null);
-    navigate(`/create?avatar=${encodeURIComponent(a.id)}&style=${a.style}`);
+    // Send the user into the real avatar creation flow with the style hint.
+    navigate(`/avatars?inspire=${encodeURIComponent(a.id)}&style=${a.style}`);
+  };
+
+  const remix = (a: Avatar) => {
+    setPreview(null);
+    // Open the Image Studio with a tailored prompt seeded from this character.
+    const seed = `${a.archetype} in ${a.styleLabel} style — ${a.bio}`;
+    navigate(`/create?tab=image&seed=${encodeURIComponent(seed)}&style=${encodeURIComponent(a.style)}`);
   };
 
   return (
@@ -309,13 +317,18 @@ export default function AvatarsGallery() {
                 </div>
 
                 {/* CTA */}
-                <div className="mt-auto pt-8 flex items-center gap-3">
-                  <Button variant="pill" size="pill" className="flex-1" onClick={() => generate(preview)}>
-                    <Wand2 className="w-4 h-4" /> Generate video
+                <div className="mt-auto pt-8 space-y-2">
+                  <Button variant="pill" size="pill" className="w-full" onClick={() => generate(preview)}>
+                    <Wand2 className="w-4 h-4" /> Use as avatar
                   </Button>
-                  <Button variant="ghost" onClick={() => setPreview(null)}>
-                    Close
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" className="flex-1" onClick={() => remix(preview)}>
+                      <ImageIcon className="w-4 h-4" /> Remix in Image Studio
+                    </Button>
+                    <Button variant="ghost" onClick={() => setPreview(null)}>
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

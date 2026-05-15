@@ -25,6 +25,22 @@ export interface QualityOptions {
   autoRetake?: boolean;
 }
 
+/**
+ * A named quality preset surfaced to the user (e.g. "HD", "4K Cinema").
+ * Each preset maps to a concrete QualityOptions bundle plus a credit surcharge
+ * already encoded in upscale4kCredits / fps60Credits on the spec.
+ */
+export interface QualityProfile {
+  id: string;
+  label: string;
+  description: string;
+  resolution: '720p' | '1080p' | '4K';
+  fps: 24 | 30 | 60;
+  options: QualityOptions;
+  /** Recommended for this engine (one per engine). */
+  recommended?: boolean;
+}
+
 export interface EngineSpec {
   id: EngineId;
   provider: EngineProvider;
@@ -47,6 +63,18 @@ export interface EngineSpec {
   upscale4kCredits: number;
   /** Surcharge per clip for 60fps interpolation (RIFE). */
   fps60Credits: number;
+  /** Backend pipeline routing — every engine maps to a concrete edge function. */
+  pipelineId: string;
+  /** Edge function name invoked to render this engine's clips. */
+  pipelineFunction: string;
+  /** Hard cap on scenes per project for this engine (provider/cost ceiling). */
+  maxScenesPerProject: number;
+  /** Default scene count when auto-scripting on this engine. */
+  recommendedScenes: number;
+  /** Default duration to pre-fill when this engine is selected. */
+  defaultDuration: number;
+  /** Quality presets exposed to the user for this engine. */
+  qualityProfiles: QualityProfile[];
   /** Base credit cost for `duration` seconds. Throws on unsupported duration. */
   baseCreditsFor(duration: number): number;
 }
@@ -92,6 +120,17 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
+    pipelineId: 'pipe.kling.v3',
+    pipelineFunction: 'hollywood-pipeline',
+    maxScenesPerProject: 12,
+    recommendedScenes: 6,
+    defaultDuration: 10,
+    qualityProfiles: [
+      { id: 'hd24',     label: 'HD 1080p',          description: 'Native Kling V3 output, 1080p · 24fps',                  resolution: '1080p', fps: 24, options: {},                                 recommended: true },
+      { id: 'hd60',     label: 'HD 1080p · 60fps',  description: 'Smooth motion via RIFE interpolation',                    resolution: '1080p', fps: 60, options: { fps60: true } },
+      { id: 'uhd24',    label: '4K Cinema',         description: 'Topaz Astra upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
+      { id: 'uhd60',    label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps + auto retake on failed shots',     resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
+    ],
     baseCreditsFor: (d) => tableCost({ 5: 25, 10: 50, 15: 75 }, d),
   },
 
@@ -113,6 +152,16 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
+    pipelineId: 'pipe.seedance.v2',
+    pipelineFunction: 'generate-video',
+    maxScenesPerProject: 10,
+    recommendedScenes: 6,
+    defaultDuration: 10,
+    qualityProfiles: [
+      { id: 'hd24',  label: 'HD 1080p',         description: 'Seedance 2.0 native, 1080p · 24fps',                resolution: '1080p', fps: 24, options: {},                                  recommended: true },
+      { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth slow-mo via RIFE interpolation',             resolution: '1080p', fps: 60, options: { fps60: true } },
+      { id: 'uhd24', label: '4K Pro',           description: 'Topaz upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
+    ],
     baseCreditsFor: (d) => tableCost({ 5: 35, 10: 65, 12: 95 }, d),
   },
 
@@ -135,6 +184,16 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
+    pipelineId: 'pipe.veo3.fast',
+    pipelineFunction: 'generate-video',
+    maxScenesPerProject: 8,
+    recommendedScenes: 5,
+    defaultDuration: 10,
+    qualityProfiles: [
+      { id: 'hd24',  label: 'HD 1080p',         description: 'Veo 3 Fast native, 1080p · 24fps + native audio',   resolution: '1080p', fps: 24, options: {},                                                  recommended: true },
+      { id: 'uhd24', label: '4K Cinema',        description: 'Topaz upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
+      { id: 'uhd60', label: '4K Cinema · 60fps',description: 'Topaz 4K + RIFE 60fps + auto retake',               resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
+    ],
     baseCreditsFor: (d) => tableCost({ 5: 200, 10: 400, 15: 600 }, d),
   },
 
@@ -156,6 +215,16 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
+    pipelineId: 'pipe.runway.gen4turbo',
+    pipelineFunction: 'generate-video',
+    maxScenesPerProject: 8,
+    recommendedScenes: 5,
+    defaultDuration: 10,
+    qualityProfiles: [
+      { id: 'hd24',  label: 'HD 1080p',          description: 'Runway Gen-4 Turbo native, 1080p · 24fps (no audio)', resolution: '1080p', fps: 24, options: {},                                  recommended: true },
+      { id: 'uhd24', label: '4K Cinema',         description: 'Topaz upscale to 4K · 24fps',                         resolution: '4K',    fps: 24, options: { upscale4k: true } },
+      { id: 'uhd60', label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps interpolation',                 resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true } },
+    ],
     baseCreditsFor: (d) => tableCost({ 5: 250, 10: 500 }, d),
   },
 
@@ -177,6 +246,16 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
+    pipelineId: 'pipe.sora.v2',
+    pipelineFunction: 'generate-video',
+    maxScenesPerProject: 6,
+    recommendedScenes: 4,
+    defaultDuration: 10,
+    qualityProfiles: [
+      { id: 'hd24',  label: 'HD 1080p',          description: 'Sora 2 native, 1080p · 24fps + native audio',         resolution: '1080p', fps: 24, options: {},                                                  recommended: true },
+      { id: 'uhd24', label: '4K Cinema',         description: 'Topaz upscale to 4K · 24fps',                         resolution: '4K',    fps: 24, options: { upscale4k: true } },
+      { id: 'uhd60', label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps + auto retake',                 resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
+    ],
     baseCreditsFor: (d) => tableCost({ 5: 300, 10: 600, 15: 900 }, d),
   },
 };
@@ -210,3 +289,22 @@ export const TIER_LABEL: Record<EngineTier, string> = {
   pro: 'Pro',
   cinema: 'Cinema',
 };
+
+/**
+ * Clamp a desired duration to the closest value the engine actually supports.
+ * Used by the studio when a user switches engines mid-flow.
+ */
+export function clampDurationForEngine(id: EngineId, desired: number): number {
+  const spec = ENGINES[id];
+  if (!spec) return desired;
+  if (spec.durations.includes(desired)) return desired;
+  return spec.durations.reduce((best, d) =>
+    Math.abs(d - desired) < Math.abs(best - desired) ? d : best,
+  spec.durations[0]);
+}
+
+/** Default quality profile for a given engine. */
+export function defaultQualityProfile(id: EngineId): QualityProfile {
+  const spec = ENGINES[id];
+  return spec.qualityProfiles.find(q => q.recommended) ?? spec.qualityProfiles[0];
+}

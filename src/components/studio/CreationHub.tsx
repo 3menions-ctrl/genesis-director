@@ -201,6 +201,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [clipDurations, setClipDurations] = useState<number[]>(() =>
     Array.from({ length: 5 }, () => 5),
   );
+  // Banner shown after the active engine changes the legal duration set and
+  // we had to auto-snap the user's previous picks. Cleared on dismiss or
+  // after the next engine switch that produces no clamps.
+  const [clampNotice, setClampNotice] = useState<{
+    engineLabel: string;
+    allowed: number[];
+    changes: Array<{ label: string; from: number; to: number }>;
+  } | null>(null);
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic] = useState(false);
 
@@ -306,10 +314,24 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // ── GUARDRAIL: snap default duration AND every per-scene duration into
   //               the new engine's legal range.
   useEffect(() => {
+    const changes: Array<{ label: string; from: number; to: number }> = [];
     if (!clipDurationOptions.includes(clipDuration)) {
-      setClipDuration(snapDuration(clipDuration, clipDurationOptions));
+      const snapped = snapDuration(clipDuration, clipDurationOptions);
+      changes.push({ label: 'Default', from: clipDuration, to: snapped });
+      setClipDuration(snapped);
     }
-    setClipDurations((prev) => prev.map((d) => snapDuration(d, clipDurationOptions)));
+    setClipDurations((prev) =>
+      prev.map((d, i) => {
+        const snapped = snapDuration(d, clipDurationOptions);
+        if (snapped !== d) changes.push({ label: `S${i + 1}`, from: d, to: snapped });
+        return snapped;
+      }),
+    );
+    setClampNotice(
+      changes.length
+        ? { engineLabel: engineCaps.label, allowed: clipDurationOptions, changes }
+        : null,
+    );
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Keep per-scene durations sized to clipCount. New scenes inherit the

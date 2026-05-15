@@ -14,6 +14,11 @@ import scrollGrabImg from '@/assets/templates/scroll-grab.jpg';
 import freezeWalkImg from '@/assets/templates/freeze-walk.jpg';
 import realityRipImg from '@/assets/templates/reality-rip.jpg';
 import aspectEscapeImg from '@/assets/templates/aspect-escape.jpg';
+import mirrorShatterImg from '@/assets/templates/mirror-shatter.jpg';
+import canvasEmergeImg from '@/assets/templates/canvas-emerge.jpg';
+import billboardLeapImg from '@/assets/templates/billboard-leap.jpg';
+import pageBurstImg from '@/assets/templates/page-burst.jpg';
+import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
 
 // Map breakout template IDs to their start images - Premium effects row
 const BREAKOUT_START_IMAGES: Record<string, string> = {
@@ -22,6 +27,11 @@ const BREAKOUT_START_IMAGES: Record<string, string> = {
   'freeze-walk': freezeWalkImg,
   'reality-rip': realityRipImg,
   'aspect-escape': aspectEscapeImg,
+  'mirror-shatter': mirrorShatterImg,
+  'canvas-emerge': canvasEmergeImg,
+  'billboard-leap': billboardLeapImg,
+  'page-burst': pageBurstImg,
+  'hologram-materialize': hologramMaterializeImg,
 };
 // Environment DNA structure matching Environments page
 interface EnvironmentDNA {

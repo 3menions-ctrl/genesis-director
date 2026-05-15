@@ -43,6 +43,9 @@ interface SupportMessage {
   created_at: string;
   updated_at: string;
   user_id: string | null;
+  admin_reply?: string | null;
+  replied_at?: string | null;
+  admin_reply_by?: string | null;
 }
 
 type StatusFilter = 'all' | 'new' | 'in_progress' | 'resolved';
@@ -55,6 +58,8 @@ export function AdminMessageCenter() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -117,6 +122,7 @@ export function AdminMessageCenter() {
   // Update admin notes when selecting a message
   useEffect(() => {
     setAdminNotes(selectedMessage?.admin_notes || '');
+    setReplyText(selectedMessage?.admin_reply || '');
   }, [selectedMessage]);
 
   const updateMessageStatus = async (messageId: string, status: string) => {
@@ -151,6 +157,31 @@ export function AdminMessageCenter() {
       toast.error('Failed to save notes');
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const sendReply = async () => {
+    if (!selectedMessage || !replyText.trim()) return;
+    setSendingReply(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('support_messages')
+        .update({
+          admin_reply: replyText.trim(),
+          replied_at: new Date().toISOString(),
+          admin_reply_by: user?.id ?? null,
+          status: 'resolved',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedMessage.id);
+      if (error) throw error;
+      toast.success('Reply sent — visible to user in their Profile');
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+      toast.error('Failed to send reply');
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -443,6 +474,39 @@ export function AdminMessageCenter() {
                       {savingNotes ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       Save Notes
                     </Button>
+                  </div>
+
+                  {/* Reply to user (in-app) */}
+                  <div className="space-y-2 border-t border-border pt-4">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Send className="w-4 h-4 text-primary" />
+                      Reply to user (in-app)
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Saved to the ticket and shown to the user inside their Profile › Help & Support.
+                    </p>
+                    <Textarea
+                      placeholder="Type a reply the user will see in-app..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={4}
+                      className="resize-none"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={sendReply}
+                        disabled={sendingReply || !replyText.trim() || replyText.trim() === (selectedMessage.admin_reply || '').trim()}
+                      >
+                        {sendingReply ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                        {selectedMessage.admin_reply ? 'Update reply' : 'Send reply'}
+                      </Button>
+                      {selectedMessage.replied_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Last sent {formatDistanceToNow(new Date(selectedMessage.replied_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </ScrollArea>

@@ -5208,12 +5208,15 @@ export type Database = {
       support_messages: {
         Row: {
           admin_notes: string | null
+          admin_reply: string | null
+          admin_reply_by: string | null
           client_ip: string | null
           created_at: string
           email: string
           id: string
           message: string
           name: string
+          replied_at: string | null
           source: string
           status: string
           subject: string
@@ -5223,12 +5226,15 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          admin_reply?: string | null
+          admin_reply_by?: string | null
           client_ip?: string | null
           created_at?: string
           email: string
           id?: string
           message: string
           name: string
+          replied_at?: string | null
           source?: string
           status?: string
           subject: string
@@ -5238,12 +5244,15 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          admin_reply?: string | null
+          admin_reply_by?: string | null
           client_ip?: string | null
           created_at?: string
           email?: string
           id?: string
           message?: string
           name?: string
+          replied_at?: string | null
           source?: string
           status?: string
           subject?: string

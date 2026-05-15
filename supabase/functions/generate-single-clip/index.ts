@@ -878,14 +878,15 @@ serve(async (req) => {
     //
     // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
     // The body param is only a hint and can never override the DB lock.
-    let videoEngine: 'kling' | 'veo' | 'seedance' = rawVideoEngine;
+    type BackendEngine = 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
         .select('video_engine')
         .eq('id', projectId)
         .maybeSingle();
-      const persistedEngine = (projRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+      const persistedEngine = (projRow?.video_engine as BackendEngine | null) || null;
       if (persistedEngine) {
         if (persistedEngine !== rawVideoEngine) {
           console.warn(
@@ -905,7 +906,14 @@ serve(async (req) => {
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
-    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
+    const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
+      kling:    'kwaivgi/kling-v3-video',
+      seedance: 'bytedance/seedance-2.0',
+      veo:      'kwaivgi/kling-v3-video (veo legacy → kling)',
+      runway:   'runwayml/gen4-turbo',
+      sora:     'openai/sora-2',
+    };
+    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${ENGINE_ROUTE_LABEL[videoEngine]}`);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - Final defense layer at clip generation

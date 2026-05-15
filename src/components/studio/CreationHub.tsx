@@ -434,7 +434,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       toast.error(`${engineCaps.label} doesn't support ${aspectRatio} — pick ${engineCaps.aspectRatios.join(' or ')}.`);
       return;
     }
-    if (!engineCaps.durations.includes(clipDuration)) {
+    const invalid = alignedDurations.find((d) => !engineCaps.durations.includes(d));
+    if (invalid !== undefined) {
       toast.error(`${engineCaps.label} only supports ${engineCaps.durations.join('/')}s clips.`);
       return;
     }
@@ -446,6 +447,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       return;
     }
 
+    // Dominant duration for legacy `clipDuration` field — most-frequent, ties favor max.
+    const counts = new Map<number, number>();
+    alignedDurations.forEach((d) => counts.set(d, (counts.get(d) ?? 0) + 1));
+    const dominantDuration = [...counts.entries()].sort((a, b) =>
+      b[1] - a[1] || b[0] - a[0],
+    )[0]?.[0] ?? clipDuration;
+
+    const finalDurations = isBreakoutTemplate
+      ? Array.from({ length: 3 }, () => dominantDuration)
+      : alignedDurations;
+
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
       mode: isBreakoutTemplate ? 'text-to-video' : selectedMode,
       prompt,
@@ -453,7 +465,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount: isBreakoutTemplate ? 3 : clipCount,
-      clipDuration: effectiveDuration,
+      clipDuration: dominantDuration,
+      clipDurations: finalDurations,
       enableNarration: true,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,

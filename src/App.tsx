@@ -464,11 +464,10 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Director Studio — full-bleed cinematic experience (no shell chrome) */}
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Entering Director Studio...">
                     <ProtectedRoute>
-                      <Create />
+                      <AppShell><Create /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

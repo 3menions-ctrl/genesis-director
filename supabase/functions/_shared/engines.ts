@@ -210,3 +210,21 @@ export const TIER_LABEL: Record<EngineTier, string> = {
   pro: 'Pro',
   cinema: 'Cinema',
 };
+
+/**
+ * Translate the kebab frontend EngineId to the backend token expected by
+ * `generate-single-clip` / `hollywood-pipeline`. All five engines have a
+ * dedicated native branch — no silent fallbacks.
+ */
+export type BackendEngine = 'kling' | 'seedance' | 'veo' | 'runway' | 'sora';
+
+export function engineToBackend(id: EngineId): BackendEngine {
+  switch (id) {
+    case 'seedance-2':  return 'seedance';
+    case 'veo-3':       return 'veo';
+    case 'runway-gen4': return 'runway';
+    case 'sora-2':      return 'sora';
+    case 'kling-v3':
+    default:            return 'kling';
+  }
+}

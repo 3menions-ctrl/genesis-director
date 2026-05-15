@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, type EngineId } from "@/lib/video/engines";
+import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, engineToBackend, type EngineId } from "@/lib/video/engines";
 import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
@@ -257,16 +257,127 @@ export default function StudioShell() {
 
     setAutoBusy(true);
     try {
+      // ── Resolve mode from current draft state ──
+      const hasAvatar = draft.cast.length > 0;
+      const hasImage = !!draft.brief.refImageUrl;
+      const mode: "avatar" | "image-to-video" | "text-to-video" =
+        hasAvatar ? "avatar" : hasImage ? "image-to-video" : "text-to-video";
+
+      // ── Image-to-video: extract Scene Identity DNA so the script ADHERES
+      //    to the uploaded frame (character + environment + lighting + color).
+      //    Cached on the project's pro_features_data so we only charge once.
+      let referenceImageAnalysis: any = undefined;
+      let sceneIdentityContext: any = undefined;
+      if (mode === "image-to-video" && draft.brief.refImageUrl) {
+        try {
+          const projectId = await ensureProjectId();
+          const { data: existing } = await supabase
+            .from("movie_projects")
+            .select("pro_features_data")
+            .eq("id", projectId)
+            .maybeSingle();
+          const cachedIdentity = (existing as any)?.pro_features_data?.sceneIdentity;
+          let identity = cachedIdentity;
+          if (!identity) {
+            toast.message("Reading the image…", { description: "Extracting character + scene DNA (5 cr)" });
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: idData, error: idErr } = await supabase.functions.invoke("extract-scene-identity", {
+              body: { imageUrl: draft.brief.refImageUrl, projectId, userId: user?.id },
+            });
+            if (idErr) console.warn("extract-scene-identity failed:", idErr);
+            if ((idData as any)?.success) {
+              identity = {
+                characterDNA: (idData as any).characterDNA,
+                environmentDNA: (idData as any).environmentDNA,
+                lightingProfile: (idData as any).lightingProfile,
+                colorScience: (idData as any).colorScience,
+                cinematicStyle: (idData as any).cinematicStyle,
+                masterConsistencyPrompt: (idData as any).masterConsistencyPrompt,
+                allNegatives: (idData as any).allNegatives,
+              };
+            }
+          }
+          if (identity?.characterDNA || identity?.environmentDNA) {
+            const c = identity.characterDNA || {};
+            const e = identity.environmentDNA || {};
+            const l = identity.lightingProfile || {};
+            referenceImageAnalysis = {
+              characterIdentity: c.facialFeatures ? {
+                description: c.description || c.identitySummary || "",
+                facialFeatures: [c.facialFeatures.faceShape, c.facialFeatures.eyes, c.facialFeatures.jawline].filter(Boolean).join(", "),
+                clothing: c.clothingSignature ? [c.clothingSignature.topwear, c.clothingSignature.bottomwear].filter(Boolean).join(", ") : "",
+                bodyType: c.bodyProfile?.build || "",
+                distinctiveMarkers: c.distinctiveMarkers || [],
+                hairColor: c.hairProfile?.color,
+                skinTone: c.facialFeatures?.skinTone,
+              } : undefined,
+              environment: e.setting ? {
+                setting: e.setting,
+                geometry: typeof e.geometry === "string" ? e.geometry : JSON.stringify(e.geometry || {}),
+                keyObjects: (e.keyProps || []).map((p: any) => p.object || p).filter(Boolean),
+                backgroundElements: e.backgroundElements || [],
+              } : undefined,
+              lighting: l.style ? {
+                style: l.style,
+                direction: l.shadows?.direction || "",
+                quality: l.mood || "",
+                timeOfDay: l.colorTemperature || "",
+              } : undefined,
+              consistencyPrompt: identity.masterConsistencyPrompt,
+            };
+            sceneIdentityContext = {
+              characterAnchor: c.identitySummary || "",
+              environmentAnchor: e.setting || "",
+              lightingAnchor: l.style || "",
+              colorAnchor: identity.colorScience?.gradingStyle || "",
+              cinematicAnchor: identity.cinematicStyle?.lensFeel || "",
+              masterConsistencyPrompt: identity.masterConsistencyPrompt || "",
+              allNegatives: identity.allNegatives || [],
+              environmentDNA: e,
+              lightingProfile: l,
+              colorScience: identity.colorScience,
+            };
+          }
+        } catch (visionErr) {
+          console.warn("[runAutoScript] vision pre-pass failed (continuing without DNA):", visionErr);
+        }
+      }
+
+      // ── Avatar mode: send the cast so the script writes lines for THEM,
+      //    keyed to the right speakerId per scene.
+      const characterCast = hasAvatar ? draft.cast.map((c) => ({
+        id: c.id,
+        name: c.name,
+        appearance: c.name,
+        voiceId: c.voiceId || draft.defaults.voiceId || "",
+        role: "protagonist" as const,
+        referenceImageUrl: c.imageUrl,
+      })) : undefined;
+      const sceneType: "monologue" | "dialogue" | "group" =
+        !hasAvatar ? "monologue" : draft.cast.length === 1 ? "monologue" : draft.cast.length === 2 ? "dialogue" : "group";
+
+      const sceneCount = Math.max(3, Math.min(6, draft.scenes.length || 4));
+      const clipDuration = draft.defaults.duration;
+
       const { data, error } = await supabase.functions.invoke("smart-script-generator", {
         body: {
-          title: draft.brief.title || "Untitled film",
-          logline: draft.brief.logline || "Create a cinematic sequence from the uploaded reference image.",
+          topic: draft.brief.logline || "Create a cinematic sequence from the uploaded reference image.",
+          synopsis: draft.brief.title,
           style: draft.brief.style,
-          sceneCount: Math.max(3, Math.min(6, draft.scenes.length || 4)),
+          targetDurationSeconds: sceneCount * clipDuration,
+          clipCount: sceneCount,
+          clipDuration,
+          mode,
+          videoEngine: engineToBackend(draft.defaults.engine),
           aspectRatio: draft.defaults.aspect,
-          characters: draft.cast.map(c => ({ name: c.name })),
           referenceImageUrl: draft.brief.refImageUrl,
-          engine: draft.defaults.engine,
+          referenceImageAnalysis,
+          sceneIdentityContext,
+          multiCharacterMode: hasAvatar && draft.cast.length > 1,
+          characterCast,
+          sceneType,
+          includeVoice: hasAvatar,
+          preserveUserContent: true,
         },
       });
       if (error) throw error;
@@ -439,17 +550,17 @@ export default function StudioShell() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving
             </span>
           )}
-          <button onClick={() => setDrawer("engines")} className="hidden h-10 items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 text-sm text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:flex">
+          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-3 text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
             <Cpu className="h-3.5 w-3.5 text-accent" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
           </button>
           <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
-            className="group relative inline-flex h-10 items-center gap-2 overflow-hidden rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground shadow-[0_0_36px_hsl(var(--accent)/0.45)] transition-all hover:shadow-[0_0_52px_hsl(var(--accent)/0.65)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-4 text-[13px] font-medium text-accent-foreground shadow-[0_0_28px_hsl(var(--accent)/0.4)] transition-all hover:shadow-[0_0_44px_hsl(var(--accent)/0.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
-            {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             <span className="relative">Auto create</span>
           </button>
         </div>
@@ -527,12 +638,12 @@ export default function StudioShell() {
 
                 {/* ===== Mode switcher — Text-to-Video is now first-class ===== */}
                 <div className="relative mb-8">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
+                  <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 p-1 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
                     {([
-                      { id: "text", label: "Text → Video", sub: "Pure prompt", Icon: Wand2 },
-                      { id: "image", label: "Image → Video", sub: "Reference frame", Icon: ImageIcon },
-                      { id: "template", label: "Template", sub: "Proven shots", Icon: Images },
-                    ] as const).map(({ id, label, sub, Icon }) => {
+                      { id: "text", label: "Text", Icon: Wand2 },
+                      { id: "image", label: "Image", Icon: ImageIcon },
+                      { id: "template", label: "Template", Icon: Images },
+                    ] as const).map(({ id, label, Icon }) => {
                       const active = createMode === id;
                       return (
                         <button
@@ -548,17 +659,14 @@ export default function StudioShell() {
                             }
                           }}
                           className={cn(
-                            "group relative flex items-center gap-3 rounded-full px-5 py-2.5 transition-all",
+                            "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] transition-all",
                             active
                               ? "bg-foreground text-background shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.55)]"
                               : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
                           )}
                         >
-                          <Icon className={cn("h-4 w-4", active ? "text-accent" : "")} />
-                          <span className="text-left">
-                            <span className={cn("block font-display text-[15px] italic leading-tight", active ? "text-background" : "")}>{label}</span>
-                            <span className={cn("block font-mono text-[8.5px] uppercase tracking-[0.28em]", active ? "text-background/55" : "text-muted-foreground/60")}>{sub}</span>
-                          </span>
+                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} />
+                          <span className={cn("font-medium", active ? "text-background" : "")}>{label}</span>
                         </button>
                       );
                     })}
@@ -641,17 +749,18 @@ export default function StudioShell() {
                           <div className="mt-6 flex flex-wrap items-center gap-2">
                             <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
                             {[
-                              "A vintage car drifts through Tokyo neon at 3am",
-                              "Slow-motion espresso pour, macro, golden light",
-                              "Drone over snow-capped peaks at dawn",
-                              "Streetwear model walks toward camera, rain, slow-mo",
-                            ].map((seed) => (
+                              { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
+                              { label: "Espresso macro", prompt: "Slow-motion espresso pour, macro, golden light" },
+                              { label: "Snow drone", prompt: "Drone over snow-capped peaks at dawn" },
+                              { label: "Rainy walk", prompt: "Streetwear model walks toward camera, rain, slow-mo" },
+                            ].map(({ label, prompt }) => (
                               <button
-                                key={seed}
-                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: seed } }))}
-                                className="rounded-full border border-border/50 bg-background/30 px-3 py-1.5 text-[12px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
+                                key={label}
+                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
+                                title={prompt}
+                                className="h-7 rounded-full border border-border/50 bg-background/30 px-2.5 text-[11.5px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
                               >
-                                {seed}
+                                {label}
                               </button>
                             ))}
                           </div>
@@ -691,14 +800,14 @@ export default function StudioShell() {
                     <button
                       onClick={() => setStep("cast")}
                       disabled={!canGenerateScript}
-                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-2xl bg-foreground px-5 py-5 text-left text-background transition-all hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.5),0_0_80px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
+                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-xl bg-foreground px-4 py-3 text-left text-background transition-all hover:shadow-[0_16px_48px_-15px_hsl(var(--foreground)/0.5),0_0_64px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
                     >
                       <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
                       <span className="relative">
-                        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-background/60">Phase 02</span>
-                        <span className="mt-0.5 block font-display text-lg italic">Cast the avatars</span>
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-background/60">Phase 02</span>
+                        <span className="mt-0.5 block font-display text-[15px] italic leading-tight">Cast the avatars</span>
                       </span>
-                      <ArrowRight className="relative h-5 w-5 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </button>
                   </div>
                 </div>

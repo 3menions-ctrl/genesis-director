@@ -42,7 +42,6 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
 
   const [trackingOptedOut, setTrackingOptedOut] = useState(false);
-  const [hideFromLeaderboard, setHideFromLeaderboard] = useState(false);
   const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
   const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
   
@@ -79,7 +78,10 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           .maybeSingle();
         if (data) {
           setTrackingOptedOut(data.tracking_opted_out ?? false);
-          setHideFromLeaderboard(data.hide_from_leaderboard ?? false);
+          // Leaderboards are removed product-wide; force-hide regardless of stored pref.
+          if (data.hide_from_leaderboard === false) {
+            await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
+          }
         }
       } catch (e) {
         console.error('Failed to load privacy prefs:', e);
@@ -90,12 +92,10 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     loadPrivacy();
   }, [user]);
 
-  const handlePrivacyToggle = async (field: 'tracking_opted_out' | 'hide_from_leaderboard', value: boolean) => {
+  const handlePrivacyToggle = async (field: 'tracking_opted_out', value: boolean) => {
     if (!user) return;
-    const prev = field === 'tracking_opted_out' ? trackingOptedOut : hideFromLeaderboard;
-    // Optimistic update
-    if (field === 'tracking_opted_out') setTrackingOptedOut(value);
-    else setHideFromLeaderboard(value);
+    const prev = trackingOptedOut;
+    setTrackingOptedOut(value);
 
     setIsSavingPrivacy(true);
     try {
@@ -106,9 +106,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       if (error) throw error;
       toast.success('Privacy preference updated');
     } catch (e) {
-      // Rollback
-      if (field === 'tracking_opted_out') setTrackingOptedOut(prev);
-      else setHideFromLeaderboard(prev);
+      setTrackingOptedOut(prev);
       toast.error('Failed to update preference');
     } finally {
       setIsSavingPrivacy(false);
@@ -531,7 +529,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
             <div className="pr-4">
               <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
-              <p className="text-xs text-white/35 mt-0.5">Disable tracking of your usage patterns for analytics and gamification</p>
+              <p className="text-xs text-white/35 mt-0.5">Stop usage-pattern analytics on your account. Your data stays private to you regardless.</p>
             </div>
             <Switch
               checked={trackingOptedOut}
@@ -540,16 +538,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <div className="pr-4">
-              <p className="text-sm font-medium text-white">Hide from leaderboards</p>
-              <p className="text-xs text-white/35 mt-0.5">Keep your profile hidden from public leaderboard rankings</p>
-            </div>
-            <Switch
-              checked={hideFromLeaderboard}
-              onCheckedChange={(v) => handlePrivacyToggle('hide_from_leaderboard', v)}
-              disabled={isLoadingPrivacy || isSavingPrivacy}
-            />
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <p className="text-sm font-medium text-white">No public ranking</p>
+            <p className="text-xs text-white/35 mt-0.5">
+              Leaderboards, XP and ranking points have been removed. Your credits, usage and activity are visible only to you.
+            </p>
           </div>
         </div>
       </motion.div>

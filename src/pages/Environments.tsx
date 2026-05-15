@@ -415,7 +415,7 @@ function EnvironmentCard({
               <div
                 key={i}
                 className="w-4 h-4 rounded-full border border-white/30"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: color as string }}
               />
             ))}
           </div>

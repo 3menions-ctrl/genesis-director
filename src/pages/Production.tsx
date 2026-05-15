@@ -1398,6 +1398,7 @@ const transitionsData = useMemo(() =>
     <div className="min-h-screen flex flex-col">
       {/* App Header */}
       <AppHeader />
+      <confirmDialog.Dialog />
 
       {/* Main Layout */}
       <div className="relative z-10 flex-1 flex overflow-hidden">

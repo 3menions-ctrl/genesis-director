@@ -581,7 +581,7 @@ export default function StudioShell() {
               },
               defaults: {
                 ...d.defaults,
-                duration: pick.settings?.targetDurationMinutes && pick.settings.targetDurationMinutes <= 1 ? 5 : d.defaults.duration,
+                duration: pick.targetDurationMinutes && pick.targetDurationMinutes <= 1 ? 5 : d.defaults.duration,
               },
               scenes,
               activeSceneId: scenes[0]?.id,

@@ -58,6 +58,7 @@ export interface TemplatePick {
   style: string;
   thumbnailUrl?: string;
   settings?: AppliedSettings | null;
+  targetDurationMinutes?: number | null;
 }
 
 interface TemplateCardItem {
@@ -160,10 +161,19 @@ export function TemplatesDrawerContent({ onPick }: Props) {
     return () => { cancel = true; };
   }, []);
 
-  const builtIn = (getBuiltInTemplates() as TemplateCardItem[]).map((template) => ({
-    ...template,
+  const builtIn = (getBuiltInTemplates() as any[]).map((template) => ({
+    id: template.id,
+    name: template.name,
+    description: template.description,
+    category: template.category,
     thumbnail_url: template.thumbnail_url || TEMPLATE_THUMBNAILS[template.id],
-  }));
+    use_count: template.use_count || template.useCount,
+    target_duration_minutes: template.target_duration_minutes || template.targetDurationMinutes,
+    clip_count: template.clip_count || template.clipCount,
+    mood: template.mood,
+    genre: template.genre,
+    is_breakout: template.is_breakout || template.isBreakout,
+  } satisfies TemplateCardItem));
 
   const templates = useMemo<TemplateCardItem[]>(() => {
     const dbTemplates = rows.map((row) => ({
@@ -202,6 +212,7 @@ export function TemplatesDrawerContent({ onPick }: Props) {
       style: [settings?.genre || template.genre, settings?.mood || template.mood, settings?.colorGrading].filter(Boolean).join(" · ") || "Cinematic",
       thumbnailUrl: template.thumbnail_url || settings?.startImageUrl,
       settings,
+      targetDurationMinutes: template.target_duration_minutes,
     });
     setActiveId(null);
   }, [loadTemplate, onPick]);

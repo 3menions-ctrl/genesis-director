@@ -977,7 +977,7 @@ serve(async (req) => {
           errorMessage: `Content policy violation: ${safetyCheck.category}`,
         });
       }
-      
+      await releaseHold('content_policy_violation');
       return new Response(
         JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

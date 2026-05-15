@@ -17,6 +17,7 @@ const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegment
 const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
 const SeedanceSection = lazy(() => import('@/components/landing/SeedanceSection').then(m => ({ default: m.SeedanceSection })));
 const B2BWorkflow = lazy(() => import('@/components/landing/B2BGlassFeatures').then(m => ({ default: m.B2BWorkflow })));
+const FrameChainingSection = lazy(() => import('@/components/landing/FrameChainingSection').then(m => ({ default: m.FrameChainingSection })));
 const B2BFinalCTA = lazy(() => import('@/components/landing/B2BFinalCTA').then(m => ({ default: m.B2BFinalCTA })));
 const HoppyImmersiveScrollSection = lazy(() =>
   import('@/components/landing/HoppyImmersiveScrollSection').then(m => ({ default: m.HoppyImmersiveScrollSection })),
@@ -349,6 +350,14 @@ export default function Landing() {
       <Chapter n="03" kicker="The Engine" size="lg">
         <Suspense fallback={<SectionLoader />}>
           <SeedanceSection onCta={handleStart} />
+        </Suspense>
+      </Chapter>
+      <Divider size="lg" />
+
+      {/* Frame Chaining — five-second clips chain into long-form films */}
+      <Chapter n="3.5" kicker="Frame Chaining" size="lg">
+        <Suspense fallback={<SectionLoader />}>
+          <FrameChainingSection />
         </Suspense>
       </Chapter>
       <Divider size="lg" />

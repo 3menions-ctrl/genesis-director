@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Play, Pause, SkipBack, SkipForward, Maximize2, Settings2,
   Sparkles, Lock, Pin, RefreshCw,

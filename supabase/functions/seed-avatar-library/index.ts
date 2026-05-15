@@ -425,9 +425,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ═══ AUTH GUARD: Admin-only via user_roles table ═══
+    // ═══ AUTH GUARD: Admin-only via user_roles table, OR seed-token bypass ═══
+    const seedToken = Deno.env.get("SEED_BYPASS_TOKEN");
+    const headerToken = req.headers.get("x-seed-token");
+    const tokenBypass = !!(seedToken && headerToken && headerToken === seedToken);
+
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
+    const auth = tokenBypass
+      ? { authenticated: true, userId: null, isServiceRole: true }
+      : await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }

@@ -4,7 +4,7 @@ import {
   Wand2, Image as ImageIcon, User, Film, Coins, Sparkles, Upload,
   ChevronRight, RectangleHorizontal, Square, RectangleVertical,
   Clock, Hash, Mic, ChevronDown, X, CheckCircle2, Loader2,
-  ArrowRight, Layers, Settings2, Zap, Cpu, Lock, Info,
+  ArrowRight, Layers, Settings2, Zap, Cpu, Lock, Info, Minus, Plus, Timer,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';

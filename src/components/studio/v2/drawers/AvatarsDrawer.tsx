@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Loader2, Mic2, Search, Sparkles, UserRound, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -306,8 +306,8 @@ function AvatarCard({
   imageUrl?: string;
   selected?: boolean;
   premium?: boolean;
-  fallbackIcon?: React.ReactNode;
-  voiceButton?: React.ReactNode;
+  fallbackIcon?: ReactNode;
+  voiceButton?: ReactNode;
   onClick: () => void;
 }) {
   return (

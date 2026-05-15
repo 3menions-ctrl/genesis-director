@@ -42,7 +42,7 @@ const Terms = () => {
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Terms of Service</h1>
-            <p className="text-white/75 mb-12">Last updated: February 5, 2026</p>
+            <p className="text-white/75 mb-12">Last updated: May 15, 2026</p>
           </motion.div>
           
           <motion.div 
@@ -326,7 +326,7 @@ const Terms = () => {
               </p>
               <p>
                 <strong className="text-white">Opt-Out Right:</strong> You may opt out of this arbitration 
-                provision by sending written notice to admincole@apex-studio.ai within 30 days of first 
+                provision by sending written notice to cole@apex-studio.com within 30 days of first 
                 accepting these Terms. Your notice must include your name, address, email, and a clear 
                 statement that you wish to opt out of arbitration.
               </p>
@@ -369,8 +369,8 @@ const Terms = () => {
               <div className="space-y-2">
                 <p><strong className="text-white">Apex-studio LLC</strong></p>
                 <p>Email:{' '}
-                  <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
-                    admincole@apex-studio.ai
+                  <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
+                    cole@apex-studio.com
                   </a>
                 </p>
               </div>

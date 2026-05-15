@@ -42,7 +42,7 @@ const Privacy = () => {
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Privacy Policy</h1>
-            <p className="text-white/75 mb-12">Last updated: February 5, 2026</p>
+            <p className="text-white/75 mb-12">Last updated: May 15, 2026</p>
           </motion.div>
           
           <motion.div 
@@ -256,8 +256,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise these rights, please contact us at{' '}
-                <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
-                  admincole@apex-studio.ai
+                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
+                  cole@apex-studio.com
                 </a>. We will respond to your request within 30 days (or as required by applicable law).
               </p>
             </section>
@@ -276,8 +276,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise your California privacy rights, contact us at{' '}
-                <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
-                  admincole@apex-studio.ai
+                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
+                  cole@apex-studio.com
                 </a>.
               </p>
             </section>
@@ -293,8 +293,8 @@ const Privacy = () => {
               <p className="mt-4">
                 If you are a parent or guardian and believe your child under 13 has provided us with 
                 personal information, please contact us at{' '}
-                <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
-                  admincole@apex-studio.ai
+                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
+                  cole@apex-studio.com
                 </a>.
               </p>
             </section>
@@ -345,8 +345,8 @@ const Privacy = () => {
               <div className="space-y-2">
                 <p><strong className="text-white">Apex-Studio LLC</strong></p>
                 <p>Email:{' '}
-                  <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
-                    admincole@apex-studio.ai
+                  <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
+                    cole@apex-studio.com
                   </a>
                 </p>
               </div>

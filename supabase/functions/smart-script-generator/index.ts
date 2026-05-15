@@ -477,6 +477,15 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
           : targetEngine === 'sora'
             ? 'Sora 2 narrative-coherence mode'
             : 'Kling V3 entertainment mode';
+    const generationTargetLabel = targetEngine === 'kling'
+      ? 'Kling V3'
+      : targetEngine === 'seedance'
+        ? 'Seedance 2.0'
+        : targetEngine === 'veo'
+          ? 'Veo 3 Fast'
+          : targetEngine === 'runway'
+            ? 'Runway Gen-4 Turbo'
+            : 'Sora 2';
     console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} (${enginePersona})`);
 
     const modelBoundDirectives = targetEngine === 'veo'
@@ -618,7 +627,7 @@ OUTPUT FORMAT (strict JSON):
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
-}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for ${targetEngine === 'kling' ? 'Kling V3' : targetEngine.toUpperCase()}.
+}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for ${generationTargetLabel}.
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
 ${modelBoundDirectives}

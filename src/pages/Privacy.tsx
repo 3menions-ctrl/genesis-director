@@ -327,7 +327,40 @@ const Privacy = () => {
             </section>
 
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">16. Changes to This Policy</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">16. Do Not Track and Global Privacy Control</h2>
+              <p>
+                Some browsers transmit "Do Not Track" (DNT) or Global Privacy Control (GPC) signals.
+                Because there is no industry-wide standard for interpreting DNT signals, we do not
+                currently respond to DNT browser signals. We do honor recognized GPC signals as a
+                valid opt-out of the "sale" or "sharing" of personal information for residents of
+                jurisdictions where such a right applies (including California under the CCPA/CPRA).
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">17. Automated Decision-Making</h2>
+              <p>
+                We do not engage in solely automated decision-making, including profiling, that
+                produces legal or similarly significant effects on you within the meaning of
+                Article 22 of the GDPR. AI-generated outputs produced through the Service are
+                tools provided to you and do not constitute decisions made about you.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">18. Data Breach Notification</h2>
+              <p>
+                In the event of a personal data breach that is likely to result in a risk to your
+                rights and freedoms, we will notify the relevant supervisory authority without undue
+                delay and, where feasible, no later than 72 hours after becoming aware of it, as
+                required by applicable law (including Article 33 of the GDPR). Where the breach is
+                likely to result in a high risk to your rights, we will also notify affected users
+                without undue delay.
+              </p>
+            </section>
+
+            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <h2 className="text-xl font-semibold text-white mb-4">19. Changes to This Policy</h2>
               <p>
                 We may update this Privacy Policy periodically. We will notify you of material changes 
                 by posting the new policy on this page, updating the "Last updated" date, and where 
@@ -337,17 +370,21 @@ const Privacy = () => {
             </section>
 
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">17. Contact Information</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">20. Contact Information</h2>
               <p className="mb-4">
                 For questions, concerns, or requests regarding this Privacy Policy or our data practices, 
                 please contact us:
               </p>
               <div className="space-y-2">
                 <p><strong className="text-white">Apex-Studio LLC</strong></p>
+                <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
                   <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
                     cole@apex-studio.com
                   </a>
+                </p>
+                <p className="text-white/70 text-sm mt-2">
+                  EU/UK data subjects may also lodge a complaint with their local supervisory authority.
                 </p>
               </div>
             </section>

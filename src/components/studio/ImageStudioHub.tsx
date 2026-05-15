@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -52,6 +52,18 @@ interface GeneratedImage {
 export function ImageStudioHub() {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<StyleKey>('cinematic');
+
+  // Hydrate from ?seed= and ?style= deep links (e.g. from Avatars Gallery)
+  useEffect(() => {
+    try {
+      const url = new URLSearchParams(window.location.search);
+      const seed = url.get('seed');
+      if (seed) setPrompt(seed);
+      const s = url.get('style');
+      if (s && STYLES.some(x => x.key === s)) setStyle(s as StyleKey);
+    } catch {}
+  }, []);
+
   const [aspect, setAspect] = useState<Aspect>('16:9');
   const [count, setCount] = useState<1 | 2 | 4>(2);
   const [hq, setHq] = useState(false);

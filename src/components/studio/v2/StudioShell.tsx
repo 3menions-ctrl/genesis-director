@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudioDraft } from "@/hooks/useStudioDraft";
 import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
-import { ENGINES } from "@/lib/video/engines";
+import { ENGINES, listEngines, type EngineId } from "@/lib/video/engines";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";
@@ -469,9 +469,13 @@ export default function StudioShell() {
         <section className="overflow-y-auto p-4 premium-scroll md:p-7">
           <AnimatePresence mode="wait">
             {step === "start" && (
-              <FlowPanel key="start" eyebrow="Step 1" title="Start with an image, a template, or a prompt" icon={Sparkles}>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                  <div className="space-y-4">
+              <FlowPanel key="start" eyebrow="Step 01 · Begin" title={<>The film starts <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>with a single frame.</em></>} icon={Sparkles}>
+                {/* Ambient cinematic orbs — landing-page key + fill */}
+                <div aria-hidden className="pointer-events-none absolute -left-24 top-10 h-[520px] w-[520px] rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.18), transparent 65%)" }} />
+                <div aria-hidden className="pointer-events-none absolute -right-32 top-1/2 h-[420px] w-[420px] rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, hsla(200,100%,60%,0.12), transparent 70%)" }} />
+
+                <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                  <div className="space-y-5">
                     <ReferenceUploader
                       imageUrl={draft.brief.refImageUrl}
                       uploading={uploading}
@@ -480,26 +484,32 @@ export default function StudioShell() {
                     />
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
 
-                    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 to-card/20 p-7 shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.3)]">
-                      <div className="pointer-events-none absolute right-6 top-6 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Logline</div>
-                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
-                        <span className="h-1 w-1 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
+                    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/70 via-card/30 to-background/40 p-8 shadow-[0_24px_80px_-30px_hsl(var(--accent)/0.4)] backdrop-blur-xl">
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+                      <div className="pointer-events-none absolute right-7 top-7 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Logline · 01</div>
+                      <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                        </span>
                         The brief
                       </div>
                       <textarea
                         value={draft.brief.logline}
                         onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
-                        placeholder="A luxury streetwear launch film in a rainy neon alley, featuring one avatar walking toward camera and delivering a short line."
+                        placeholder="A luxury streetwear launch in a rainy neon alley — one avatar walks toward camera and delivers a single line."
                         rows={5}
-                        className="mt-4 w-full resize-none bg-transparent font-display text-2xl italic leading-snug text-foreground outline-none placeholder:text-muted-foreground/40"
+                        className="mt-5 w-full resize-none bg-transparent font-display text-[28px] italic leading-[1.2] text-foreground outline-none placeholder:text-muted-foreground/40"
                       />
-                      <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border/40 pt-5">
+                        <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                         <input
                           value={draft.brief.style}
                           onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
-                          placeholder="Visual style"
-                          className="h-10 min-w-[220px] flex-1 rounded-lg border border-border bg-background/60 px-3 text-sm text-foreground outline-none focus:border-accent/50"
+                          placeholder="Anamorphic · neon · 35mm grain"
+                          className="h-9 min-w-[200px] flex-1 rounded-full border border-border/60 bg-background/40 px-4 text-sm text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
                         />
+                        <span className="ml-3 font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                         <SegmentedSelect
                           value={draft.defaults.aspect}
                           options={["16:9", "9:16", "1:1", "21:9"]}
@@ -507,19 +517,29 @@ export default function StudioShell() {
                         />
                       </div>
                     </div>
+
+                    {/* ============= ENGINE PILL RAIL — answers "where do I pick the engine" ============= */}
+                    <EnginePillRail
+                      selected={draft.defaults.engine}
+                      onSelect={(id) => setDraft(d => ({ ...d, defaults: { ...d.defaults, engine: id }, scenes: d.scenes.map(scene => ({ ...scene, engine: scene.engine || id })) }))}
+                      onMore={() => setDrawer("engines")}
+                    />
                   </div>
 
                   <div className="space-y-3">
-                    <ActionTile icon={Images} title="Open templates" body="Use a proven structure, then edit it." onClick={() => setDrawer("templates")} />
-                    <ActionTile icon={ImageIcon} title="Open environments" body="Pick a world or scene anchor." onClick={() => setDrawer("envs")} />
-                    <ActionTile icon={Cpu} title="Choose engine" body={ENGINES[draft.defaults.engine].label} onClick={() => setDrawer("engines")} />
+                    <ActionTile icon={Images} title="Templates" body="Proven structures, fully editable." onClick={() => setDrawer("templates")} />
+                    <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => setDrawer("envs")} />
                     <button
                       onClick={() => setStep("cast")}
-                      className="mt-2 flex w-full items-center justify-between rounded-xl bg-accent px-4 py-4 text-left text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-40"
                       disabled={!canGenerateScript}
+                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-2xl bg-foreground px-5 py-5 text-left text-background transition-all hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.5),0_0_80px_-20px_hsl(var(--accent)/0.5)] disabled:opacity-30 disabled:hover:shadow-none"
                     >
-                      <span className="font-medium">Continue to cast</span>
-                      <ArrowRight className="h-4 w-4" />
+                      <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
+                      <span className="relative">
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-background/60">Phase 02</span>
+                        <span className="mt-0.5 block font-display text-lg italic">Cast the avatars</span>
+                      </span>
+                      <ArrowRight className="relative h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </button>
                   </div>
                 </div>
@@ -719,18 +739,21 @@ export default function StudioShell() {
   );
 }
 
-function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: string; icon: typeof Sparkles; children: React.ReactNode }) {
+function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: React.ReactNode; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
-      <div className="mb-8 flex items-end justify-between gap-6 border-b border-border/40 pb-6">
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} className="relative">
+      <div className="relative mb-10 flex items-end justify-between gap-6 border-b border-border/40 pb-8">
         <div className="flex-1">
-          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-accent backdrop-blur">
-            <span className="h-1 w-1 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
+          <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
+            </span>
             <Icon className="h-3 w-3" /> {eyebrow}
           </div>
-          <h1 className="max-w-4xl font-display text-5xl italic leading-[0.98] tracking-tight text-foreground md:text-[64px]">{title}</h1>
+          <h1 className="max-w-5xl font-display text-[44px] font-light leading-[0.98] tracking-[-0.025em] text-foreground md:text-[68px] lg:text-[80px]">{title}</h1>
         </div>
-        <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 lg:flex">
+        <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60 lg:flex">
           <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>
           <span className="h-px w-12 bg-border" />
           <span>Take 01</span>
@@ -968,3 +991,67 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+// ============================================================================
+// EnginePillRail — Inline engine selector that exposes Kling, Seedance, Veo,
+// Runway and Sora directly on Step 1 so users never have to hunt for the
+// engine drawer. Each pill is glassmorphic with a tier dot and live cost.
+// ============================================================================
+function EnginePillRail({ selected, onSelect, onMore }: { selected: EngineId; onSelect: (id: EngineId) => void; onMore: () => void }) {
+  const engines = listEngines({ healthyOnly: false });
+  const tierColor: Record<string, string> = {
+    standard: "bg-foreground/40",
+    pro: "bg-accent shadow-[0_0_8px_hsl(var(--accent))]",
+    cinema: "bg-amber-400 shadow-[0_0_8px_hsl(45_90%_55%/0.7)]",
+  };
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
+          <Cpu className="h-3 w-3" />
+          Render engine
+        </div>
+        <button onClick={onMore} className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground transition-colors hover:text-foreground">
+          Compare all →
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2.5">
+        {engines.map((e) => {
+          const active = selected === e.id;
+          let cost: number | null = null;
+          try { cost = e.baseCreditsFor(e.durations[0]); } catch { cost = null; }
+          return (
+            <button
+              key={e.id}
+              onClick={() => onSelect(e.id)}
+              disabled={!e.healthy}
+              className={cn(
+                "group relative inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm transition-all",
+                active
+                  ? "border-accent bg-accent/[0.08] text-foreground shadow-[0_0_24px_hsl(var(--accent)/0.35)]"
+                  : "border-border/60 bg-background/30 text-muted-foreground hover:border-foreground/30 hover:bg-background/50 hover:text-foreground",
+                !e.healthy && "cursor-not-allowed opacity-30",
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", tierColor[e.tier] || "bg-foreground/40")} />
+              <span className="font-display text-[15px] italic">{e.shortLabel}</span>
+              {cost != null && (
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground/60">
+                  {cost}c
+                </span>
+              )}
+              {active && <Check className="h-3.5 w-3.5 text-accent" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex items-center gap-4 border-t border-border/40 pt-4 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+        <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-foreground/40" /> Standard</span>
+        <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-accent" /> Pro</span>
+        <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-amber-400" /> Cinema</span>
+      </div>
+    </div>
+  );
+}
+

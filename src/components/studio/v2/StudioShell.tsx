@@ -42,9 +42,10 @@ import { EnvironmentsDrawerContent } from "./drawers/EnvironmentsDrawer";
 import { MusicDrawerContent } from "./drawers/MusicDrawer";
 import { TemplatesDrawerContent, type TemplatePick } from "./drawers/TemplatesDrawer";
 import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
+import { StylesDrawerContent } from "./drawers/StylesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
 
-type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music";
+type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music" | "styles";
 type StepId = "start" | "cast" | "script" | "clips";
 
 const STEPS: Array<{ id: StepId; label: string; icon: LucideIcon }> = [
@@ -650,6 +651,7 @@ export default function StudioShell() {
 
                     {createMode !== "template" && <ActionTile icon={Images} title="Templates" body="Proven structures, fully editable." onClick={() => { setCreateMode("template"); setDrawer("templates"); }} />}
                     <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => setDrawer("envs")} />
+                    <ActionTile icon={Sparkles} title="Visual style" body={draft.brief.style || "Pick a look — noir, anime, neon, golden hour…"} onClick={() => setDrawer("styles")} />
                     <ActionTile icon={Music2} title="Score & voice" body="Pick the sonic palette early." onClick={() => setDrawer("music")} />
 
                     <button

@@ -115,12 +115,19 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  * Calculate credits for a single clip based on duration and engine.
  * 'kling' = Avatar mode (native audio), 'veo' = Standard T2V/I2V
  */
-export type VideoEngine = 'kling' | 'veo' | 'seedance';
+export type VideoEngine = 'kling' | 'veo' | 'seedance' | 'sora';
 
 export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'kling'): number {
   const extended = isExtendedPricing(clipIndex, clipDuration);
   if (videoEngine === 'seedance') {
     return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'sora') {
+    // Sora: clipDuration > 8 = extended (12s)
+    return clipDuration > 8 ? CREDIT_SYSTEM.SORA_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SORA_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'veo') {
+    return CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP;
   }
   if (videoEngine === 'kling') {
     return extended ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP;

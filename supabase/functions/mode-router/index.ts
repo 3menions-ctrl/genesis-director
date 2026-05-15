@@ -211,7 +211,9 @@ interface ModeRouterRequest {
   // Breakout template parameters - for platform UI shattering effect
   isBreakout?: boolean;
   breakoutStartImageUrl?: string; // Platform interface image (Facebook post, YouTube player, etc.)
-  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
+  // Loose string — premium breakout effect id (e.g. 'mirror-shatter', 'billboard-leap').
+  // Pipeline (hollywood-pipeline) owns the canonical union; mode-router just forwards.
+  breakoutPlatform?: string;
 
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
@@ -1088,7 +1090,7 @@ async function handleCinematicMode(params: {
   // Breakout template parameters
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
-  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
+  breakoutPlatform?: string;
   supabase: any;
 }) {
   const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;

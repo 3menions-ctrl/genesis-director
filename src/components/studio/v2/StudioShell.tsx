@@ -550,17 +550,17 @@ export default function StudioShell() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving
             </span>
           )}
-          <button onClick={() => setDrawer("engines")} className="hidden h-10 items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 text-sm text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:flex">
+          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-3 text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
             <Cpu className="h-3.5 w-3.5 text-accent" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
           </button>
           <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
-            className="group relative inline-flex h-10 items-center gap-2 overflow-hidden rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground shadow-[0_0_36px_hsl(var(--accent)/0.45)] transition-all hover:shadow-[0_0_52px_hsl(var(--accent)/0.65)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-4 text-[13px] font-medium text-accent-foreground shadow-[0_0_28px_hsl(var(--accent)/0.4)] transition-all hover:shadow-[0_0_44px_hsl(var(--accent)/0.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
-            {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             <span className="relative">Auto create</span>
           </button>
         </div>

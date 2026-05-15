@@ -153,7 +153,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-    videoEngine?: 'kling' | 'veo' | 'seedance';
+    videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
     breakoutPlatform?: string;

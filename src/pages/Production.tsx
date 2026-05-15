@@ -111,6 +111,7 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 function ProductionContentInner() {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
+  const confirmDialog = useConfirmDialog();
   const { getSignal, isMounted, abort: abortRequests } = useNavigationAbort();
   
   const [searchParams] = useSearchParams();

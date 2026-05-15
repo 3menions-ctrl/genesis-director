@@ -4,6 +4,7 @@ import {
   checkContentSafety,
   getSafetyNegativePrompts,
 } from "../_shared/content-safety.ts";
+import { getEngine, submitToReplicate, type CanonicalVideoRequest } from "../_shared/video-engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -982,35 +983,76 @@ serve(async (req) => {
     }
 
     // =====================================================================
-    // ENGINE ROUTING — ALL modes unified on Kling V3
-    // 'kling' = avatar mode with native audio; 'veo' = standard T2V/I2V
-    // Both route to kwaivgi/kling-v3-video
+    // ENGINE ROUTING — Multi-engine dispatch
+    // Supported engines: kling (Kling V3), seedance (Seedance 1 Pro),
+    //                    veo (Veo 3 Fast), sora (Sora 2)
+    // Each engine has its own input shape, duration constraints, and
+    // prompt optimizer (see _shared/video-engines.ts).
     // =====================================================================
-    const isAvatarMode = videoEngine === "kling";
+    const engine = getEngine(videoEngine);
+    // Avatar mode is signalled by the caller forcing engine=kling AND audio
+    const isAvatarMode = videoEngine === "kling" && enableAudio !== false;
     const audioEnabled = isAvatarMode ? true : enableAudio;
 
-    console.log("[generate-video] Routing to Kling V3:", {
+    console.log(`[generate-video] 🎬 Routing to ${engine.label} (${engine.modelId}):`, {
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
       avatarMode: isAvatarMode,
-      duration,
-      aspectRatio,
+      requestedDuration: duration,
+      requestedAspect: aspectRatio,
       audioEnabled,
       referenceImageCount: referenceImages.length,
       promptLength: enhancedPrompt.length,
     });
 
-    let result: { success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string };
+    // Validate I2V support for the chosen engine
+    if (isImageToVideo && !engine.supportsImageToVideo) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `${engine.label} does not support image-to-video. Pick Kling, Seedance, or Veo for I2V.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    result = await generateWithKlingV3(
-      prompt,
-      enhancedPrompt,
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      return new Response(
+        JSON.stringify({ success: false, error: "REPLICATE_API_KEY not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Build the canonical request once, then let the engine map it to its native shape
+    const canonical: CanonicalVideoRequest = {
+      prompt: enhancedPrompt,
+      rawPrompt: prompt,
       negativePrompt,
       duration,
       aspectRatio,
       startImageUrl,
       referenceImages,
-      audioEnabled
-    );
+      enableAudio: audioEnabled,
+      isAvatarMode,
+    };
+    const replicateInput = engine.buildInput(canonical);
+
+    const submitResult = await submitToReplicate(engine, replicateInput, REPLICATE_API_KEY);
+
+    let result: { success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string };
+    if (submitResult.success) {
+      result = { success: true, taskId: submitResult.taskId, provider: "replicate", model: submitResult.model };
+    } else {
+      // Special-case Sora 404 / 403 — model access not enabled
+      if (engine.key === "sora" && (submitResult.status === 404 || submitResult.status === 403)) {
+        result = {
+          success: false,
+          error: "Sora 2 access is not enabled on this Replicate account. Request access at replicate.com/openai/sora-2.",
+        };
+      } else {
+        result = { success: false, error: `${engine.label} error ${submitResult.status}: ${submitResult.error}` };
+      }
+    }
 
     if (result.success) {
       return new Response(
@@ -1021,11 +1063,12 @@ serve(async (req) => {
           mode: isImageToVideo ? "image-to-video" : "text-to-video",
           provider: result.provider,
           model: result.model,
-          engine: "kling-v3",
+          engine: engine.key,
+          engineLabel: engine.label,
           audioEnabled,
           referenceImagesUsed: referenceImages.length,
           promptRewritten: enhancedPrompt !== prompt,
-          message: `Video generation started with Kling V3. Poll status endpoint for updates.`,
+          message: `Video generation started with ${engine.label}. Poll status endpoint for updates.`,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

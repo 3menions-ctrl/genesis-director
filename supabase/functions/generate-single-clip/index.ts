@@ -60,6 +60,10 @@ const SORA_MODEL_OWNER = "openai";
 const SORA_MODEL_NAME = "sora-2";
 const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
 
+const VEO_MODEL_OWNER = "google";
+const VEO_MODEL_NAME = "veo-3-fast";
+const VEO_MODEL_URL = `https://api.replicate.com/v1/models/${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}/predictions`;
+
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
 // When enabled, include dialogue in prompt inside quotes for lip-sync
 const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio
@@ -396,17 +400,23 @@ async function createSora2Prediction(
   }
 
   // Sora 2: clamp to 4–15s.
-  const duration = Math.max(4, Math.min(15, durationSeconds));
+  // Sora 2 (Replicate openai/sora-2) supports seconds: 4, 8, 12. Snap to nearest.
+  const allowed = [4, 8, 12];
+  const seconds = allowed.reduce((best, d) =>
+    Math.abs(d - durationSeconds) < Math.abs(best - durationSeconds) ? d : best, 8);
+
+  // Sora 2 uses "portrait" / "landscape" — NOT "16:9" / "9:16"
+  const soraAspect = aspectRatio === "9:16" ? "portrait" : "landscape";
 
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
-    aspect_ratio: aspectRatio,
-    duration,
-    seed: Math.floor(Math.random() * 2147483647),
+    aspect_ratio: soraAspect,
+    seconds,
   };
 
   if (startImageUrl && startImageUrl.startsWith("http")) {
-    input.input_image = startImageUrl;
+    // Per Replicate docs: field is `input_reference`, not `input_image`
+    input.input_reference = startImageUrl;
   }
 
   const mode = startImageUrl ? "I2V" : "T2V";

@@ -1,140 +1,83 @@
-# Create — One Continuous Studio
 
-A single page at `/create` that flows like a conversation with the engine. Nothing opens in a new route. When you want a template, a Template Drawer slides in. When you want an avatar, the Avatar Gallery slides in. When you pick an engine, the Engine Picker slides in. Everything you choose lands in the same Reel below. The Reel is the project — clips, voice, script, music — all editable in place, with one button to push it into the Video Editor.
+## What's actually wired right now (audit)
 
-## The surface
+I checked `mode-router`, `generate-video`, `hollywood-pipeline`, `replicate-catalog`, and `CreationHub`. The truth:
+
+| Surface | Status |
+|---|---|
+| `mode-router` accepts modes: `text-to-video`, `image-to-video`, `avatar`, `video-to-video`, `motion-transfer`, `b-roll` | Wired |
+| Avatar pipeline (`handleAvatarDirectMode` → Kling V3 native audio) | Working |
+| Text-to-video (Kling V3) | Working |
+| Image-to-video (Kling V3 with `start_image`) | Working but not tuned per-model |
+| **Seedance 2.0** — UI offers it as an engine card | **Broken**: `generate-video.ts` hardcodes Kling V3 and silently ignores `videoEngine='seedance'` |
+| **Veo 3 Fast** — typed in `hollywood-pipeline`, listed in `replicate-catalog` | **Not implemented** — no actual call path |
+| **Sora 2** — listed in `replicate-catalog`, typed in `hollywood-pipeline` | **Not implemented** — no pipeline, no UI exposure |
+| `video-to-video` (style transfer) | Routed but uses fixed model, no engine choice |
+| `motion-transfer` | Routed but minimal |
+
+So when a user picks "Seedance" on the Create page, they pay Seedance pricing but get Kling output. And there is no Sora path at all. That is the gap you called out.
+
+## Plan — build the missing pipelines and optimize per model
+
+### 1. Generation router refactor (`generate-video/index.ts`)
+Replace the hardcoded Kling-only branch with a dispatcher:
 
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│  Top bar: project name · engine chip · credits · Render All    │
-├──────────────────────────┬─────────────────────────────────────┤
-│                          │                                     │
-│   COMPOSER (left 55%)    │   STAGE (right 45%)                 │
-│                          │                                     │
-│   • Idea / brief         │   Live preview of selected clip.    │
-│   • Script (editable)    │   When empty: pulse poster.         │
-│   • Cast chips           │   When generating: progress.        │
-│   • Style + music chips  │   When done: HLS player + waveform. │
-│   • Engine chip          │                                     │
-│                          │   Voice / SFX / Music tabs below.   │
-├──────────────────────────┴─────────────────────────────────────┤
-│  REEL — horizontal strip of scenes (drag to reorder)           │
-│  [01 ▣▣▣]  [02 ▣▣▣▣]  [03 ▣▣]  [+ add scene]   → Open Editor   │
-└────────────────────────────────────────────────────────────────┘
+videoEngine ──► dispatcher
+     ├─ kling     → kwaivgi/kling-v3-video       (T2V, I2V, Avatar w/ native audio)
+     ├─ seedance  → bytedance/seedance-1-pro     (hyperreal motion, 1080p, 5/10s)
+     ├─ veo       → google/veo-3-fast            (cinema, native audio, 8s)
+     └─ sora      → openai/sora-2                (cinema, narrative coherence)
 ```
 
-Drawers slide over the Stage from the right (templates, avatars, engines, environments, voices, music). Picking an item closes the drawer and writes into the Composer or the active scene.
+Each engine gets its own `generateWith<Engine>()` builder with model-specific input shape (e.g. Sora uses `prompt` + `aspect_ratio` + `duration`; Veo 3 uses `prompt` + `image` for I2V; Seedance uses `prompt` + `image` + `resolution`).
 
-## The flow (one path, no detours)
+### 2. Per-model prompt optimization (`_shared/prompt-optimizers.ts`, new)
+Each model rewards different prompt shapes. I'll add a small per-engine optimizer:
+- Kling V3 → camera + lens grammar, lip-sync hints for avatar
+- Seedance → motion verbs + lighting nouns, no camera jargon
+- Veo 3 → audio cues (it generates audio), 8s pacing
+- Sora 2 → narrative beats, character-action-camera triplet, longer-form coherent shots
 
-1. **Brief** — type a logline, or pick a Template (drawer). Template fills brief + style + suggested cast + suggested engine.
-2. **AUTO or DIRECTOR** — toggle at the top of the Composer.
-   - **AUTO** (default, restored): `smart-script-generator` streams a full scene-by-scene script; cast auto-resolves to existing avatars or generates new via `generate-avatar-direct`; environment auto-picks; engine auto-picks per scene; queue hands off to `hollywood-pipeline`. User can pause at any moment.
-   - **DIRECTOR**: same surface, all auto-fills become editable drafts. Nothing renders until the user hits Render.
-3. **Edit anything inline** — script is a real editor (per-scene cards). Tap a character chip → Avatar drawer. Tap engine chip → Engine drawer. Tap style chip → Style drawer. Tap a scene's "+ voice" → Voice drawer.
-4. **Render per scene or render all** — every scene card has its own ▶︎ Generate; the top bar has Render All. Status pills (Idle / Queued / Generating / Done / Failed) live on each card.
-5. **Watch in Stage** — clicking any scene loads the HLS clip into the Stage with full transport (scrub, loop, A/B). Per-scene Regenerate / Stylize / Motion-transfer / Translate live in the Stage tabs.
-6. **Hand off** — "Open in Editor" packages the reel and deep-links to `/editor` with IndexedDB pre-hydrated.
+The optimizer runs after `buildConsistentPrompt` and is engine-aware.
 
-## Drawers (every tool reachable in one tap)
+### 3. Engine-aware credit + duration tables
+Source of truth in `_shared/engine-config.ts`:
 
-| Drawer | Triggered by | Powered by |
-|---|---|---|
-| Templates | "Pick template" button, brief block | `templates` table + `Templates` assets |
-| Avatars | Cast chip / "+ character" | `avatar_templates` + `characters` + `useChunkedAvatars` |
-| Generate Avatar | Avatar drawer → "Create new" | `generate-avatar-direct` + `analyze-reference-image` |
-| Environments | Style chip → "Environment" | `environments` table |
-| Engines | Engine chip on scene or top bar | `lib/video/engines.ts` (Kling V3, Seedance, Veo, Runway, FLUX I2V) — schema-driven controls (duration, resolution, camera fixed, ref image) |
-| Voices | Per-character "voice" pill / scene "+ voice" | `useAvatarVoices` + `generate-voice` (ElevenLabs) |
-| Music | Top bar "Score" or scene "+ music" | `generate-music` + `sync-music-to-scenes` |
-| SFX | Scene "+ sfx" | `elevenlabs-sfx` |
-| Reference image | Brief block dropzone or per-scene | `analyze-reference-image` + FLUX Fill outpaint |
-| Translate | Scene menu | `translate-text` |
-| Stylize | Stage tab on rendered clip | `stylize-video` |
-| Motion transfer | Stage tab on rendered clip | `motion-transfer` |
-
-Drawers share one container (`<StudioDrawer/>`) with framer-motion slide; only one is open at a time; ESC or click-outside closes.
-
-## Script generation — restored in full
-
-- AUTO: `smart-script-generator` streams scene cards as they arrive (token-by-token in the Composer).
-- Each scene card: Location · Beat · Dialogue (verbatim-preserved) · Character chip · Lens · Move · Duration.
-- Inline edit any field — debounced save to draft; never overwrites verbatim dialogue.
-- "Regenerate scene" and "Add scene" buttons sit between cards.
-- "Surprise me" runs `generate-story` for one-line concepts.
-
-## Engine selection — actually exposed
-
-Engine chip on the top bar sets the project default; each scene can override. Engine drawer shows all engines from `lib/video/engines.ts` with capability badges (audio? duration? I2V? camera?), live cost preview, and a "Best for this scene" recommendation based on whether the scene has dialogue, motion, or a reference frame. Picking an engine swaps the per-scene controls in the Composer (e.g. Kling V3 reveals dialogue tracks; FLUX I2V reveals start-frame; Seedance reveals camera-fixed).
-
-## Voice + audio loop
-
-Each character chip has a tiny voice pill: tap to preview, hold to open Voice drawer (filter by language / age / style, sample on hover, "Generate custom" via cloning if the user uploaded one). The selected voice writes to `character_voice_assignments` and is consumed by Kling V3 native audio or ElevenLabs `generate-voice` depending on engine. Per-scene SFX and Music chips append into the audio manifest used by `final-assembly`.
-
-## Watch + iterate
-
-Stage is a real player (`<CinematicPlayer/>` reused) with:
-- Scrub, loop, A/B compare against the previous render.
-- Tabs under it: **Voice · Music · SFX · Stylize · Motion · Captions** — each tab is contextual and only enabled when the clip exists.
-- "Send to Editor" sends only this clip to `/editor` (existing IndexedDB hydration).
-
-## Reel + handoff
-
-Bottom strip is the source of truth for scene order. Drag to reorder (writes into draft + DB). "+ add scene" inserts a blank card. "Open in Editor" calls `final-assembly` + `auto-stitch-trigger` and navigates to `/editor` with the project ready to fine-cut.
-
-## Persistence
-
-Reuses the existing `creation_canvases` table from the prior plan but only stores the simple linear shape:
-
-```ts
-{
-  brief: { title, logline, style, refImage },
-  defaults: { engine, aspect, duration, voiceProfile },
-  cast: Avatar[],
-  scenes: SceneCard[],   // script + per-scene overrides + clip url + status
-  audio: { score?, sfx[] }
-}
+```text
+kling     5–10s  $0.10/s  audio:native
+seedance  5,10s  $0.15/s  audio:overlay
+veo       8s     $0.20/s  audio:native
+sora      4,8,12 $0.30/s  audio:overlay
 ```
 
-Auto-save debounced 600ms. One canvas per active project (matches single-project rule).
+`hollywood-pipeline` and `mode-router` both read from this table — no more drift.
 
-## Files
+### 4. CreationHub UI — expose all four engines honestly
+Engine selector becomes 4 cards with real model names, taglines, per-second cost, and supported durations. The duration picker reacts to engine. Selecting Sora/Veo gates on entitlement (cinema tier).
 
-**New**
-- `src/pages/CreateCanvas.tsx` — replaced by this single linear studio (rewrite)
-- `src/components/studio/StudioShell.tsx` — top bar + composer + stage + reel
-- `src/components/studio/Composer/` — `BriefBlock`, `ScriptEditor`, `SceneCard`, `CastRow`, `StyleRow`, `EngineChip`
-- `src/components/studio/Stage/` — `StagePlayer`, `StageTabs` (voice/music/sfx/stylize/motion/captions)
-- `src/components/studio/Reel/` — `ReelStrip`, `ReelCard`
-- `src/components/studio/drawers/` — `StudioDrawer` (shared) + `TemplatesDrawer`, `AvatarsDrawer`, `EnginesDrawer`, `EnvironmentsDrawer`, `VoicesDrawer`, `MusicDrawer`, `SfxDrawer`, `ReferenceDrawer`
-- `src/hooks/useStudioDraft.ts` — store + autosave
-- `src/hooks/useScenePipeline.ts` — per-scene generate / poll / refund / stylize / motion-transfer
+### 5. Image-to-video — model-aware
+- Kling: `start_image`
+- Seedance: `image`
+- Veo 3: `image` (first-frame conditioning)
+- Sora 2: `prompt` only (Sora 2 doesn't take image; UI disables I2V card when Sora selected, with explanation)
 
-**Edited**
-- `src/App.tsx` — `/create` → new `StudioShell`
-- Existing `DirectorRail` sidebar kept; phase chip removed (single surface now)
+### 6. Avatar pipeline — keep on Kling V3 (lip-sync king), but add Veo 3 fallback for non-dialogue avatar B-roll.
 
-**Removed**
-- `DirectorIntake.tsx`, `DirectorCockpit.tsx` (folded into the new shell)
-- The half-built node canvas pieces under `src/components/canvas/` — kept only `compileGraphToPipeline.ts` if reusable, otherwise deleted
+### 7. Replicate webhook + status polling — engine-tagged
+`check-video-status` and `replicate-webhook` already poll generic predictions. Add `engine` to the persisted task so the UI can show "Sora 2 rendering…" instead of generic "Rendering…".
 
-**Untouched**
-- Auth, billing, onboarding, Editor internals, `engines.ts` (read from), all edge functions (called only)
+### 8. Verification
+After build, I'll:
+- Curl `mode-router` for each (mode × engine) combo with a tiny test prompt and confirm correct model ID is logged on Replicate side via `kling-v3-audit-test` pattern (will add `seedance-audit-test`, `veo-audit-test`, `sora-audit-test`).
+- Confirm credits deducted match the `engine-config` table.
+- Confirm UI engine card → backend model ID is consistent.
 
-## Design
+## Open questions before I start
 
-Pro-Dark `hsl(220 14% 2%)`, single `#0A84FF` accent, Fraunces headings, JetBrains mono for labels and timecodes. Drawers are translucent panels with the same blue rail as the sidebar. No purple. Cinematic touches: subtle film-grain overlay on the Stage, soft motion blur on drawer transitions, monospaced timecode pills on every clip.
+1. **Sora 2 access** — Sora 2 on Replicate requires `openai/sora-2` model access on your Replicate account. Confirm `REPLICATE_API_KEY` already has it, or I'll detect 404 and surface a friendly "request access" message.
+2. **Pricing** — the per-second numbers above are placeholders matching Replicate's published rates × your $0.10/credit margin. Want me to use those, or set custom margins?
+3. **Scope cut** — this is ~6–10 hours of work. Want me to do all 4 engines, or start with **Sora 2 + fix Seedance** (the two you specifically called out) and follow up with Veo 3 in a second pass?
 
-## Validation gates
-
-- AUTO Render All: needs brief.title, brief.logline, scenes.length ≥ 1, credit balance ≥ estimate.
-- Per-scene Generate: needs scene.script + scene.engine + ≥1 cast OR refImage.
-- Open in Editor: needs ≥1 rendered scene.
-
-## Out of scope this pass
-
-- Real-time co-editing
-- Brand kit injection (later, ties into `brand_kits`)
-- Mobile authoring beyond view + light edits — Stage and Reel collapse to a single column under 768px; Composer becomes a sheet.
-
-Approve and I'll execute top to bottom: shell + drawers first, then composer + script streaming, then stage + reel + render wiring.
+Tell me which of (1), (2), (3) and I'll start immediately.
+</content>

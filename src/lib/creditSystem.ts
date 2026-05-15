@@ -44,10 +44,17 @@ export const CREDIT_SYSTEM = {
   SEEDANCE_BASE_CREDITS_PER_CLIP: 65,
   SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95,
 
-  // ── Legacy Veo aliases (backward compat — both route to Kling V3) ────
-  VEO_BASE_CREDITS_PER_CLIP: 50,
-  VEO_EXTENDED_CREDITS_PER_CLIP: 75,
+  // ── Veo 3 Fast (Google) — Native audio, 1080p, 8s max ───────────────
+  // Real cost ~$2.00–$3.20 / 8s clip; 8s base @ 55cr = $5.50 (38% margin)
+  VEO_BASE_CREDITS_PER_CLIP: 55,
+  VEO_EXTENDED_CREDITS_PER_CLIP: 55,   // Veo caps at 8s, no extended tier
   VEO_CLIP_DURATION: 10,
+
+  // ── Sora 2 (OpenAI) — Cinema-tier narrative coherence ────────────────
+  // Real cost ~$0.50/s; 8s clip = ~$4.00 → 80 credits = $8.00 (50% margin)
+  // 12s clip = $6.00 → 120 credits = $12.00 (50% margin)
+  SORA_BASE_CREDITS_PER_CLIP: 80,        // 8s clip
+  SORA_EXTENDED_CREDITS_PER_CLIP: 120,   // 12s clip
 
   // Threshold for base vs extended pricing
   BASE_CLIP_COUNT_THRESHOLD: 100,  // No clip-count-based surcharge anymore
@@ -108,12 +115,19 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  * Calculate credits for a single clip based on duration and engine.
  * 'kling' = Avatar mode (native audio), 'veo' = Standard T2V/I2V
  */
-export type VideoEngine = 'kling' | 'veo' | 'seedance';
+export type VideoEngine = 'kling' | 'veo' | 'seedance' | 'sora';
 
 export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'kling'): number {
   const extended = isExtendedPricing(clipIndex, clipDuration);
   if (videoEngine === 'seedance') {
     return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'sora') {
+    // Sora: clipDuration > 8 = extended (12s)
+    return clipDuration > 8 ? CREDIT_SYSTEM.SORA_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SORA_BASE_CREDITS_PER_CLIP;
+  }
+  if (videoEngine === 'veo') {
+    return CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP;
   }
   if (videoEngine === 'kling') {
     return extended ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP;

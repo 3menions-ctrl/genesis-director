@@ -839,6 +839,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             {/* Two-factor — full TOTP enroll/verify/disable */}
             <TwoFactorCard glassCard={glassCard} />
 
+            {/* Active sessions — device/IP, revoke, force sign-out */}
+            <SessionsCard glassCard={glassCard} />
+
             {/* Connected accounts */}
             <div className={cn("p-6", glassCard)}>
               <div className="flex items-center gap-3 mb-5">

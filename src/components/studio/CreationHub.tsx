@@ -469,13 +469,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           >
             {CREATION_MODES.map((m, idx) => {
               const Icon = m.icon;
-              const active = selectedModeIndex === idx;
+              const active = selectedMode === m.id;
               return (
                 <button
-                  key={`${m.id}-${m.engine}-${idx}`}
+                  key={`${m.id}-${idx}`}
                   onClick={() => {
                     if (m.id === 'avatar') navigate('/avatars');
-                    else { setSelectedMode(m.id); setSelectedModeIndex(idx); }
+                    else { setSelectedMode(m.id); }
                   }}
                   className={cn(
                     'relative z-10 flex items-center gap-2 px-4 sm:px-4 h-10 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
@@ -501,17 +501,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     strokeWidth={1.5}
                   />
                   <span>{m.name}</span>
-                  {m.badge && (
-                    <span
-                      className="ml-0.5 px-2 py-0.5 rounded-full text-[9px] font-light tracking-[0.14em] leading-none"
-                      style={{
-                        background: 'hsla(215,100%,60%,0.15)',
-                        color: 'hsl(215,100%,78%)',
-                      }}
-                    >
-                      {m.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}

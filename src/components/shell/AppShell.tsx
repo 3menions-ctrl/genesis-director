@@ -640,9 +640,31 @@ export function AppShell({ children }: AppShellProps) {
           {/* Page content with expressive transition */}
           <main
             key={location.pathname}
-            className="flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll"
+            className="relative flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll"
           >
+            {/* Cinematic ambient stage — landing-page deep-space vibe behind
+                every in-app surface. Pure CSS, fixed to viewport, GPU-light. */}
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 hidden md:block"
+              style={{
+                background:
+                  'radial-gradient(60% 50% at 18% 22%, hsla(215, 90%, 18%, 0.22), transparent 70%),' +
+                  'radial-gradient(50% 45% at 88% 78%, hsla(200, 80%, 18%, 0.18), transparent 70%),' +
+                  'radial-gradient(80% 60% at 50% 110%, hsla(215, 70%, 12%, 0.18), transparent 70%)',
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 opacity-[0.05] mix-blend-overlay hidden md:block"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+              }}
+            />
+            <div className="relative z-10">
             {children}
+            </div>
           </main>
         </div>
 

@@ -65,6 +65,12 @@ export function AppShell({ children }: AppShellProps) {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
 
+  // Auto-collapse the rail on the Create canvas so the workspace gets
+  // full width. User can still expand via the toggle.
+  useEffect(() => {
+    if (location.pathname.startsWith('/create')) setCollapsed(true);
+  }, [location.pathname]);
+
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 

@@ -201,6 +201,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [clipDurations, setClipDurations] = useState<number[]>(() =>
     Array.from({ length: 5 }, () => 5),
   );
+  // Banner shown after the active engine changes the legal duration set and
+  // we had to auto-snap the user's previous picks. Cleared on dismiss or
+  // after the next engine switch that produces no clamps.
+  const [clampNotice, setClampNotice] = useState<{
+    engineLabel: string;
+    allowed: number[];
+    changes: Array<{ label: string; from: number; to: number }>;
+  } | null>(null);
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic] = useState(false);
 
@@ -306,10 +314,24 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // ── GUARDRAIL: snap default duration AND every per-scene duration into
   //               the new engine's legal range.
   useEffect(() => {
+    const changes: Array<{ label: string; from: number; to: number }> = [];
     if (!clipDurationOptions.includes(clipDuration)) {
-      setClipDuration(snapDuration(clipDuration, clipDurationOptions));
+      const snapped = snapDuration(clipDuration, clipDurationOptions);
+      changes.push({ label: 'Default', from: clipDuration, to: snapped });
+      setClipDuration(snapped);
     }
-    setClipDurations((prev) => prev.map((d) => snapDuration(d, clipDurationOptions)));
+    setClipDurations((prev) =>
+      prev.map((d, i) => {
+        const snapped = snapDuration(d, clipDurationOptions);
+        if (snapped !== d) changes.push({ label: `S${i + 1}`, from: d, to: snapped });
+        return snapped;
+      }),
+    );
+    setClampNotice(
+      changes.length
+        ? { engineLabel: engineCaps.label, allowed: clipDurationOptions, changes }
+        : null,
+    );
   }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Keep per-scene durations sized to clipCount. New scenes inherit the
@@ -1056,6 +1078,40 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     when the user switches engines. */}
                 {!isBreakoutTemplate && clipCount > 1 && (
                   <div className="mt-4 -mx-1 px-1">
+                    {clampNotice && (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        className="mb-3 mx-1 flex items-start gap-3 rounded-2xl border border-[hsla(38,92%,60%,0.22)] bg-[hsla(38,92%,55%,0.06)] px-4 py-3 text-[11.5px] font-light text-white/80"
+                      >
+                        <span className="mt-[2px] inline-block h-1.5 w-1.5 rounded-full bg-[hsl(38,92%,60%)] shrink-0" />
+                        <div className="flex-1 leading-relaxed">
+                          <div className="text-white/90">
+                            <span className="font-normal">{clampNotice.engineLabel}</span>
+                            <span className="text-white/50"> only supports </span>
+                            <span className="tabular-nums">{clampNotice.allowed.join(' / ')}s</span>
+                            <span className="text-white/50">. Auto-adjusted:</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-white/55 tabular-nums">
+                            {clampNotice.changes.map((c, i) => (
+                              <span key={i}>
+                                <span className="text-white/40">{c.label}</span>{' '}
+                                {c.from}s <span className="text-white/30">→</span>{' '}
+                                <span className="text-white/85">{c.to}s</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setClampNotice(null)}
+                          className="text-white/40 hover:text-white/80 text-[11px] px-1 py-0.5 rounded transition-colors"
+                          aria-label="Dismiss notice"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mb-2 px-1">
                       <span className="text-[10.5px] uppercase tracking-[0.14em] text-white/35 font-light">
                         Per-scene length

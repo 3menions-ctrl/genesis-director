@@ -149,6 +149,13 @@ interface CreationHubProps {
     aspectRatio: string;
     clipCount: number;
     clipDuration: number;
+    /**
+     * Per-scene durations. Length === clipCount. Each value is one of
+     * the engine's supported durations. Backend may use this to render
+     * each scene at its own length; legacy `clipDuration` is kept as
+     * the dominant value for older code paths.
+     */
+    clipDurations?: number[];
     enableNarration: boolean;
     enableMusic: boolean;
     genre?: string;

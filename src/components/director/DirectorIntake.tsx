@@ -651,8 +651,21 @@ export function DirectorIntake({ open, onComplete, onCancel }: Props) {
 function StepHeader({ title, sub }: { title: string; sub: string }) {
   return (
     <>
-      <h1 className="text-white text-5xl leading-[1.05] tracking-tight" style={SERIF}>{title}</h1>
-      <p className="text-white/55 text-base mt-3 max-w-xl leading-relaxed" style={SERIF}>{sub}</p>
+      <h1
+        className="text-5xl md:text-6xl lg:text-[68px] font-semibold leading-[1.02] tracking-tight"
+        style={{
+          fontFamily: "'Fraunces', serif",
+          background: "linear-gradient(180deg, #ffffff 0%, #ECF4FF 45%, #9DCBFF 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        {title}
+      </h1>
+      <p className="text-white/60 text-base md:text-lg mt-4 max-w-xl leading-relaxed font-light" style={SERIF}>
+        {sub}
+      </p>
     </>
   );
 }
@@ -700,29 +713,75 @@ function ModeCard({
   bullets: string[];
 }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ y: -3 }}
       onClick={onClick}
-      className={cn(
-        "relative text-left p-7 border transition-all overflow-hidden group",
-        active
-          ? "border-[#0A84FF] bg-gradient-to-br from-[#0A84FF]/[0.10] to-transparent"
-          : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]"
-      )}
+      className="group relative text-left p-7 md:p-8 rounded-2xl overflow-hidden transition-all"
+      style={{
+        background: active
+          ? "linear-gradient(180deg, hsla(212,100%,55%,0.10) 0%, hsla(212,100%,40%,0.02) 100%)"
+          : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
+        border: active ? "1px solid hsla(212,100%,60%,0.45)" : "1px solid hsla(0,0%,100%,0.08)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        boxShadow: active
+          ? "inset 0 1px 0 hsla(0,0%,100%,0.10), 0 16px 40px -20px hsla(212,100%,55%,0.55)"
+          : "inset 0 1px 0 hsla(0,0%,100%,0.06)",
+      }}
     >
+      {/* Hover radial accent */}
+      <div
+        aria-hidden
+        className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{ background: "radial-gradient(circle at 50% 0%, hsla(212,100%,60%,0.30), transparent 60%)" }}
+      />
+      {/* Top hairline */}
+      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
       {active && (
-        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF] shadow-[0_0_14px_3px_rgba(10,132,255,0.7)]" />
+        <span
+          className="absolute top-5 right-5 text-[9px] tracking-[0.28em] uppercase font-semibold px-2 py-0.5 rounded-full text-white"
+          style={{
+            background: "linear-gradient(90deg, #0A84FF, #5AC8FA)",
+            boxShadow: "0 0 18px hsla(212,100%,55%,0.5)",
+          }}
+        >
+          Selected
+        </span>
       )}
-      <Icon className={cn("h-6 w-6 mb-5", active ? "text-[#0A84FF]" : "text-white/60")} />
-      <div className="text-white text-3xl mb-2" style={SERIF}>{title}</div>
-      <div className="text-white/55 text-sm mb-5" style={SERIF}>{tagline}</div>
-      <ul className="space-y-2">
+
+      <div
+        className="relative w-12 h-12 rounded-xl inline-flex items-center justify-center mb-5"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))",
+          border: "1px solid hsla(0,0%,100%,0.10)",
+          color: active ? "#9DCBFF" : "rgba(255,255,255,0.7)",
+        }}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <h3
+        className="relative font-semibold text-3xl tracking-tight mb-2"
+        style={{
+          fontFamily: "'Fraunces', serif",
+          background: "linear-gradient(180deg, #fff, #9DCBFF)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        {title}
+      </h3>
+      <p className="relative text-white/55 text-sm font-light leading-relaxed mb-5" style={SERIF}>{tagline}</p>
+      <ul className="relative space-y-2">
         {bullets.map((b) => (
-          <li key={b} className="flex items-start gap-2 text-white/65 text-sm">
-            <Check className={cn("h-3.5 w-3.5 mt-1 shrink-0", active ? "text-[#0A84FF]" : "text-white/40")} />
+          <li key={b} className="flex items-start gap-2 text-white/70 text-[13px]">
+            <Check className={cn("h-3.5 w-3.5 mt-[3px] shrink-0", active ? "text-[#9DCBFF]" : "text-white/40")} />
             <span style={SERIF}>{b}</span>
           </li>
         ))}
       </ul>
-    </button>
+    </motion.button>
   );
 }

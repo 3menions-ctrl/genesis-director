@@ -257,9 +257,11 @@ export default function Landing() {
   const [studioIntroPlaying, setStudioIntroPlaying] = useState(false);
   const handleEnterStudio = useCallback(() => {
     setStudioIntroPlaying(true);
-    // Navigate just before the intro finishes so the studio is painted
-    // underneath the dissolve — no black flash between scenes.
-    window.setTimeout(() => navigate('/studio'), 4150);
+    // Navigate during the iris-out reveal (intro total = 4500ms). Going slightly
+    // before completion lets /studio paint underneath the white-flash dissolve
+    // so there is no black flash between scenes — but late enough that the
+    // wordmark + monogram beats are fully visible first.
+    window.setTimeout(() => navigate('/studio'), 4300);
   }, [navigate]);
 
   // The cinema loader is a sibling of the page content. We render the page
@@ -505,10 +507,12 @@ export default function Landing() {
         onClose={() => setChooserOpen(false)}
         onSelect={handleSelectCategory}
       />
-
-      {/* Cinematic title-card sequence — plays before entering /studio */}
-      <StudioIntro isPlaying={studioIntroPlaying} />
       </div>
+
+      {/* Cinematic title-card sequence — rendered OUTSIDE the landing wrapper
+          so `overflow-hidden` / opacity transitions on the page shell can never
+          clip or hide it. This is the top-level overlay above all page chrome. */}
+      <StudioIntro isPlaying={studioIntroPlaying} />
     </>
   );
 }

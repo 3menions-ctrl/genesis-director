@@ -1028,7 +1028,7 @@ export default function StudioShell() {
                 }));
               return {
                 ...d,
-                defaults: { ...d.defaults, engine: id, duration: newDuration, qualityProfileId: profile.id },
+                defaults: { ...d.defaults, engine: id, duration: newDuration, sceneCount: Math.min(d.defaults.sceneCount ?? spec.recommendedScenes, spec.maxScenesPerProject), qualityProfileId: profile.id },
                 scenes: clampedScenes,
               };
             });

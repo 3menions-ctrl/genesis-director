@@ -47,7 +47,7 @@ export const template: TemplateEntry = {
   component: AdminCreditPurchase,
   displayName: 'Admin: Credit Purchase',
   subject: (d: Props) => `[Apex] +$${Number(d?.usd ?? 0).toFixed(2)} · ${d?.credits ?? 0} credits — ${d?.buyerEmail ?? ''}`,
-  to: 'admincole@apex-studio.ai',
+  to: 'apex-studio.ai@apex-studio.ai',
   previewData: {
     buyerEmail: 'frank@example.com',
     buyerUserId: '00000000-0000-0000-0000-000000000000',

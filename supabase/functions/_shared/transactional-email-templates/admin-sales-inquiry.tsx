@@ -67,7 +67,7 @@ export const template: TemplateEntry = {
   component: AdminSalesInquiry,
   displayName: 'Admin: Sales Inquiry',
   subject: (d: Props) => `[Apex Sales] ${d?.companyName ?? 'New inquiry'} — ${d?.tierInterest ?? 'enterprise'}`,
-  to: 'admincole@apex-studio.ai',
+  to: 'apex-studio.ai@apex-studio.ai',
   previewData: {
     fullName: 'Jane Doe',
     workEmail: 'jane@acme.com',

@@ -45,6 +45,6 @@ export const template: TemplateEntry = {
   component: AdminAlert,
   displayName: 'Admin: Generic Alert',
   subject: (d: Props) => `[Apex${d?.severity === 'critical' ? ' · CRITICAL' : d?.severity === 'warn' ? ' · WARN' : ''}] ${d?.title || 'Admin alert'}`,
-  to: 'admincole@apex-studio.ai',
+  to: 'apex-studio.ai@apex-studio.ai',
   previewData: { title: 'Stuck pipeline job', body: 'Project abc12345 stuck for 42 minutes.', severity: 'warn', href: '/admin/projects' },
 }

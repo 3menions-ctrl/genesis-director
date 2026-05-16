@@ -175,6 +175,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   const [selectedBackground, setSelectedBackground] = useState<string | null>('home_studio');
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
   const [scriptText, setScriptText] = useState('');
+  const [videoEngine, setVideoEngine] = useState<'kling' | 'seedance'>('kling');
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
   const [progress, setProgress] = useState(0);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
@@ -575,6 +576,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
           duration: Math.min(Math.ceil(scriptText.length / 15), 10),
           userId: user.id,
           mode: 'training_avatar',
+          videoEngine,
+          enableAudio: videoEngine === 'kling', // Seedance has no native audio — we mux generated voice in post
         },
       });
 

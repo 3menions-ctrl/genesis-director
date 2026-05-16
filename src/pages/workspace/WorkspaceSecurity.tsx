@@ -164,7 +164,7 @@ export default function WorkspaceSecurity() {
         </p>
         <div className="flex gap-2">
           <a
-            href="mailto:enterprise@apex-studio.ai?subject=SAML SSO setup"
+            href="mailto:apex-studio.ai@apex-studio.ai?subject=SAML SSO setup"
             target="_blank" rel="noreferrer"
           >
             <CmdButton variant="primary">

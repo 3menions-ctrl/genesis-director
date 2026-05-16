@@ -47,7 +47,7 @@ const Contact = () => {
         await supabase.functions.invoke('send-transactional-email', {
           body: {
             templateName: 'admin_contact_message',
-            recipientEmail: 'cole@apex-studio.com',
+            recipientEmail: 'apex-studio.ai@apex-studio.ai',
             templateData: {
               fromName: formData.name,
               fromEmail: formData.email,
@@ -225,10 +225,10 @@ const Contact = () => {
                       For general inquiries and support
                     </p>
                     <a 
-                      href="mailto:cole@apex-studio.com" 
+                      href="mailto:apex-studio.ai@apex-studio.ai" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      cole@apex-studio.com
+                      apex-studio.ai@apex-studio.ai
                     </a>
                   </div>
                 </div>
@@ -243,10 +243,10 @@ const Contact = () => {
                       For partnerships and enterprise
                     </p>
                     <a 
-                      href="mailto:cole@apex-studio.com" 
+                      href="mailto:apex-studio.ai@apex-studio.ai" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      cole@apex-studio.com
+                      apex-studio.ai@apex-studio.ai
                     </a>
                   </div>
                 </div>

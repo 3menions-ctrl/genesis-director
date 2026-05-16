@@ -326,7 +326,7 @@ const Terms = () => {
               </p>
               <p>
                 <strong className="text-white">Opt-Out Right:</strong> You may opt out of this arbitration 
-                provision by sending written notice to cole@apex-studio.com within 30 days of first 
+                provision by sending written notice to apex-studio.ai@apex-studio.ai within 30 days of first 
                 accepting these Terms. Your notice must include your name, address, email, and a clear 
                 statement that you wish to opt out of arbitration.
               </p>
@@ -380,7 +380,7 @@ const Terms = () => {
               </ul>
               <p className="mt-4">
                 Send notices to our DMCA Designated Agent at{' '}
-                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">cole@apex-studio.com</a>.
+                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">apex-studio.ai@apex-studio.ai</a>.
                 We may, in appropriate circumstances and at our discretion, terminate the accounts of
                 users who are repeat infringers. Knowingly submitting a materially false notice may
                 result in liability under 17 U.S.C. § 512(f).
@@ -393,7 +393,7 @@ const Terms = () => {
                 You consent to receive communications from us electronically, including by email and
                 in-Service notices. Electronic communications satisfy any legal requirement that such
                 communications be in writing. Notices to us must be sent to{' '}
-                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">cole@apex-studio.com</a>{' '}
+                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">apex-studio.ai@apex-studio.ai</a>{' '}
                 and are effective upon our confirmed receipt.
               </p>
             </section>
@@ -466,8 +466,8 @@ const Terms = () => {
                 <p><strong className="text-white">Apex-studio LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
-                    cole@apex-studio.com
+                  <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
+                    apex-studio.ai@apex-studio.ai
                   </a>
                 </p>
               </div>

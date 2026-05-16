@@ -68,7 +68,7 @@ export default function EnterpriseComingSoon() {
       });
       if (error) {
         console.warn('[enterprise-lead]', error);
-        toast.error('Could not submit. Please email enterprise@apex-studio.ai directly.');
+        toast.error('Could not submit. Please email apex-studio.ai@apex-studio.ai directly.');
         return;
       }
       setSubmitted(true);
@@ -161,8 +161,8 @@ export default function EnterpriseComingSoon() {
           <div className="mt-10 flex items-center gap-4 text-[11px] font-mono uppercase tracking-[0.28em] text-white/35">
             <span>Estimated launch · Q3 2026</span>
             <span aria-hidden>·</span>
-            <a href="mailto:enterprise@apex-studio.ai" className="hover:text-white/70 transition-colors">
-              enterprise@apex-studio.ai
+            <a href="mailto:apex-studio.ai@apex-studio.ai" className="hover:text-white/70 transition-colors">
+              apex-studio.ai@apex-studio.ai
             </a>
           </div>
         </div>

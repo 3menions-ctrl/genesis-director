@@ -113,7 +113,7 @@ async function dispatchSeedanceClip(
 
   const duration = Math.max(2, Math.min(12, input.durationSeconds));
   const body: Record<string, any> = {
-    prompt: input.prompt.slice(0, 2500),
+    prompt: seedanceTunePrompt(input.prompt, input.cameraFixed),
     duration,
     resolution: "1080p",
     aspect_ratio: input.aspectRatio,

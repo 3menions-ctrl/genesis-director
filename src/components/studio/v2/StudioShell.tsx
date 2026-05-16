@@ -1119,7 +1119,7 @@ function MiniSelect({ value, options, suffix, onChange }: { value: string; optio
   );
 }
 
-function StatusPill({ status }: { status: SceneDraft["status"] }) {
+function StatusPill({ status, waiting }: { status: SceneDraft["status"]; waiting?: boolean }) {
   const styles: Record<SceneDraft["status"], string> = {
     idle: "bg-muted text-muted-foreground",
     queued: "bg-warning/15 text-warning",
@@ -1127,7 +1127,9 @@ function StatusPill({ status }: { status: SceneDraft["status"] }) {
     done: "bg-success/15 text-success",
     failed: "bg-destructive/15 text-destructive",
   };
-  return <span className={cn("rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]", styles[status])}>{status}</span>;
+  const label = waiting ? "waiting" : status;
+  const cls = waiting ? "bg-warning/15 text-warning" : styles[status];
+  return <span className={cn("rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]", cls)}>{label}</span>;
 }
 
 function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; active: boolean; onSelect: () => void; onRender: () => void }) {

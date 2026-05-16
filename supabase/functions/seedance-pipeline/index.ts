@@ -78,6 +78,30 @@ interface SeedanceClipInput {
 }
 
 /**
+ * Seedance-tuned prompt rewriter. Seedance 2.0 responds best to:
+ *   • Concrete subject + action verbs (no abstract emotion words)
+ *   • Explicit camera motion ("slow dolly in", "static lock-off") since
+ *     camera_fixed param only forces stillness, it doesn't choreograph moves
+ *   • Motion descriptors at the END of the prompt
+ *   • No audio/dialogue cues (Seedance has no native audio — those are muxed)
+ * Strips dialogue lines and lip-sync hints, appends motion intent.
+ */
+function seedanceTunePrompt(raw: string, cameraFixed: boolean): string {
+  let p = (raw ?? "").toString();
+  // Strip dialogue lines (Seedance has no native audio)
+  p = p.replace(/"[^"]{0,200}"/g, "").replace(/'[^']{0,200}'/g, "");
+  // Strip lip-sync / audio cues
+  p = p.replace(/\b(lip[- ]?sync|voiceover|narration|says?|speaks?|whispers?|shouts?)\b[^.,;]*/gi, "");
+  // Collapse whitespace
+  p = p.replace(/\s+/g, " ").trim();
+  // Append motion intent
+  const motionTag = cameraFixed
+    ? "static camera lock-off, subject motion only"
+    : "smooth cinematic camera motion, natural parallax";
+  return `${p}. ${motionTag}, 24fps, photoreal, sharp focus`.slice(0, 2400);
+}
+
+/**
  * Dispatch a single Seedance prediction. Returns the prediction ID immediately.
  * Polling is delegated to poll-replicate-prediction / watchdog.
  */

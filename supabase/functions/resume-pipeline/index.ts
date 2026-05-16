@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import {
+  validateAuth,
+  unauthorizedResponse,
+  resolveEffectiveUserId,
+  forbiddenResponse,
+} from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,9 +70,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Use authenticated userId from JWT (never trust client payload)
-    if (auth.userId) {
-      request.userId = auth.userId;
+    // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
+    try {
+      request.userId = resolveEffectiveUserId(auth, request.userId ?? null);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      return unauthorizedResponse(corsHeaders, msg);
     }
 
     if (!request.projectId || !request.userId) {

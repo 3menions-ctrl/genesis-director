@@ -25,7 +25,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import {
+  validateAuth,
+  unauthorizedResponse,
+  resolveEffectiveUserId,
+  forbiddenResponse,
+} from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -329,10 +334,17 @@ serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  if (auth.userId) request.userId = auth.userId;
-  if (!request.userId) {
-    return new Response(JSON.stringify({ success: false, error: "userId required" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
+  try {
+    request.userId = resolveEffectiveUserId(auth, request.userId ?? null);
+  } catch (err) {
+    const msg = (err as Error).message;
+    if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+    if (msg === 'SERVICE_ROLE_REQUIRES_USER_ID') {
+      return new Response(JSON.stringify({ success: false, error: 'userId required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    return unauthorizedResponse(corsHeaders, msg);
   }
 
   // ═══ DB ENGINE LOCK (mirror of Hollywood) ═══

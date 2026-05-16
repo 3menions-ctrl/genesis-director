@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,9 +63,28 @@ serve(async (req) => {
     );
   }
 
-  // Auth: secured by REPLICATE_API_KEY env requirement (only service can call)
-
   const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // ═══ AUTH GUARD ═══
+  // This function returns cross-user Replicate prediction history (PII-leaking).
+  // Lock to service-role OR an authenticated admin user only.
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+  if (!auth.isServiceRole) {
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', auth.userId!);
+    const isAdmin = (roles || []).some((r: any) => r.role === 'admin');
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Admin or service-role required' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  }
 
   try {
     const body = await req.json().catch(() => ({}));

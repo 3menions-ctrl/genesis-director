@@ -6509,10 +6509,15 @@ serve(async (req) => {
       isServiceRoleCall = true;
     }
     
-    // Prioritize JWT identity; fall back to request.userId for service-role calls (e.g., watchdog)
+    // SECURITY: end-user JWT → JWT identity, mismatch is hard 403 (privilege-escalation attempt).
+    // Service-role internal calls → trust body.userId (watchdog, chained generations).
     if (authenticatedUserId) {
       if (request.userId && request.userId !== authenticatedUserId) {
-        console.warn(`[Hollywood] userId mismatch: JWT=${authenticatedUserId}, request=${request.userId}. Using JWT.`);
+        console.error(`[Hollywood] userId mismatch BLOCKED: JWT=${authenticatedUserId}, request=${request.userId}`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: user id does not match authenticated session' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
       request.userId = authenticatedUserId;
     }

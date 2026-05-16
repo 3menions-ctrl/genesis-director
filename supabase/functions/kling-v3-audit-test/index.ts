@@ -10,6 +10,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +54,18 @@ serve(async (req) => {
       JSON.stringify({ error: "REPLICATE_API_KEY not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+  }
+
+  // ═══ AUTH GUARD: admin-only diagnostic that burns Replicate credits ═══
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
+  if (!auth.isServiceRole) {
+    const sb = createClient(supabaseUrl, supabaseKey);
+    const { data: roles } = await sb.from('user_roles').select('role').eq('user_id', auth.userId!);
+    if (!(roles || []).some((r: any) => r.role === 'admin')) {
+      return new Response(JSON.stringify({ error: 'Admin required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);

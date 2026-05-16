@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  validateAuth,
+  unauthorizedResponse,
+  resolveEffectiveUserId,
+  forbiddenResponse,
+} from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -191,6 +197,14 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD ═══
+    // Previously: NO auth + body.userId trusted → any caller could charge any user's credits.
+    // Now: require valid JWT or service-role; ignore body.userId for end-user JWT callers.
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -203,7 +217,7 @@ serve(async (req) => {
     const {
       imageUrl,
       projectId,
-      userId,
+      userId: bodyUserId,
       skipCreditCharge = false,
     }: {
       imageUrl: string;
@@ -211,6 +225,25 @@ serve(async (req) => {
       userId?: string;
       skipCreditCharge?: boolean;
     } = await req.json();
+
+    // For end-user JWTs we ALWAYS use auth.userId. For service-role calls (e.g. pipeline
+    // chaining) we accept body.userId. Mismatch on end-user JWT → 403.
+    let userId: string | undefined;
+    try {
+      // skipCreditCharge=true without a userId is fine (vision-only call from internal services)
+      if (!skipCreditCharge || bodyUserId || auth.userId) {
+        userId = resolveEffectiveUserId(auth, bodyUserId ?? null);
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      if (msg === 'SERVICE_ROLE_REQUIRES_USER_ID') {
+        return new Response(JSON.stringify({ error: 'userId required for service-role call' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return unauthorizedResponse(corsHeaders, msg);
+    }
 
     if (!imageUrl) {
       return new Response(

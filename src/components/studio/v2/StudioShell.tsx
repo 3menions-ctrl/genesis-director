@@ -1108,38 +1108,28 @@ function ReferenceUploader({ imageUrl, uploading, onUploadClick, onClear }: { im
 
 function ActionTile({ icon: Icon, title, body, onClick }: { icon: typeof Sparkles; title: string; body: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-[linear-gradient(155deg,hsla(220,18%,7%,0.85)_0%,hsla(220,14%,4%,0.85)_100%)] p-5 text-left shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)] transition-all duration-500 hover:-translate-y-[1px] hover:border-accent/40 hover:shadow-[0_1px_0_hsla(0,0%,100%,0.06)_inset,0_30px_80px_-30px_hsl(var(--accent)/0.45)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_70%_at_100%_0%,hsl(var(--accent)/0.12),transparent_55%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-      <div className="relative">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,hsla(215,100%,72%,0.12),hsla(215,100%,55%,0.04))] text-accent shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)] transition-all group-hover:border-accent/40 group-hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10),0_0_24px_hsl(var(--accent)/0.35)]">
-            <Icon className="h-4 w-4 drop-shadow-[0_0_8px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} />
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-all group-hover:translate-x-1 group-hover:text-accent" />
+    <button onClick={onClick} className="group relative flex w-full items-center justify-between gap-4 border-b border-border/30 py-4 text-left transition-colors hover:border-accent/40">
+      <div className="flex items-start gap-4">
+        <Icon className="mt-0.5 h-4 w-4 text-accent/80 transition-colors group-hover:text-accent" strokeWidth={1.5} />
+        <div>
+          <div className="text-[13px] font-medium text-foreground/95">{title}</div>
+          <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground/75">{body}</p>
         </div>
-        <div className="font-display text-[17px] italic tracking-[-0.01em] text-foreground/95">{title}</div>
-        <p className="mt-1.5 text-[12.5px] leading-[1.55] text-muted-foreground/85 font-light">{body}</p>
       </div>
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-all group-hover:translate-x-1 group-hover:text-accent" />
     </button>
   );
 }
 
 function CommandCard({ icon: Icon, title, body, busy, disabled, onClick }: { icon: typeof Sparkles; title: string; body: string; busy?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-[linear-gradient(155deg,hsla(220,18%,7%,0.85)_0%,hsla(220,14%,4%,0.85)_100%)] p-5 text-left shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)] transition-all duration-500 hover:-translate-y-[1px] hover:border-accent/40 hover:shadow-[0_1px_0_hsla(0,0%,100%,0.06)_inset,0_30px_80px_-30px_hsl(var(--accent)/0.45)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:border-white/[0.06] disabled:hover:shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_70%_at_100%_0%,hsl(var(--accent)/0.12),transparent_55%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-      <div className="relative">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,hsla(215,100%,72%,0.12),hsla(215,100%,55%,0.04))] text-accent shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)] transition-all group-hover:border-accent/40 group-hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10),0_0_24px_hsl(var(--accent)/0.35)]">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4 drop-shadow-[0_0_8px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} />}
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-all group-hover:translate-x-1 group-hover:text-accent" />
-        </div>
-        <div className="font-display text-[17px] italic tracking-[-0.01em] text-foreground/95">{title}</div>
-        <p className="mt-1.5 text-[12.5px] leading-[1.55] text-muted-foreground/85 font-light">{body}</p>
+    <button onClick={onClick} disabled={disabled} className="group relative w-full rounded-xl border border-border/40 bg-card/30 p-5 text-left transition-all hover:border-accent/40 hover:bg-card/50 disabled:cursor-not-allowed disabled:opacity-30">
+      <div className="mb-3 flex items-center justify-between">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin text-accent" /> : <Icon className="h-4 w-4 text-accent/80" strokeWidth={1.5} />}
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-all group-hover:translate-x-1 group-hover:text-accent" />
       </div>
+      <div className="text-[14px] font-medium text-foreground/95">{title}</div>
+      <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground/75">{body}</p>
     </button>
   );
 }

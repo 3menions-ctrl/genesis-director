@@ -1480,6 +1480,21 @@ function StartHero({
 
           {/* ===== Composer card ===== */}
           <div className="group/composer mt-10 relative rounded-[20px] border border-border/40 bg-gradient-to-b from-background/60 to-background/20 p-6 backdrop-blur-xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.05),0_30px_80px_-40px_hsl(0_0%_0%/0.6)] transition-all focus-within:border-accent/40 focus-within:shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.05),0_0_0_1px_hsl(var(--accent)/0.25),0_40px_120px_-30px_hsl(var(--accent)/0.35)]">
+            {/* Project title — required (also editable in header, mirrored here for prominence) */}
+            <div className="mb-5 flex items-center gap-3 border-b border-border/30 pb-4">
+              <span className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/50">Title</span>
+              <input
+                value={draft.brief.title}
+                onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, title: e.target.value } }))}
+                placeholder="Name your film…"
+                className="flex-1 bg-transparent text-[18px] md:text-[22px] italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/35"
+                style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+              />
+              {draft.brief.title && (
+                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/70">✓ saved</span>
+              )}
+            </div>
+
             <div className="flex items-start gap-5">
               <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/5 ring-1 ring-inset ring-accent/30">
                 <Wand2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -1533,6 +1548,18 @@ function StartHero({
                   setDraft(d => ({ ...d, defaults: { ...d.defaults, aspect: next } }));
                 } },
                 { Icon: Cpu, label: engineSpec.shortLabel, onClick: () => onOpenDrawer("engines") },
+                { Icon: Timer, label: `${draft.defaults.duration}s/scene`, onClick: () => {
+                  const opts = [5, 10, 15] as const;
+                  const next = opts[(opts.indexOf(draft.defaults.duration as 5|10|15) + 1) % opts.length];
+                  const clamped = clampDurationForEngine(draft.defaults.engine, next) as 5 | 10 | 12 | 15;
+                  setDraft(d => ({ ...d, defaults: { ...d.defaults, duration: clamped }, scenes: d.scenes.map(s => ({ ...s, duration: clamped })) }));
+                } },
+                { Icon: Film, label: `${draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes} scenes`, onClick: () => {
+                  const max = ENGINES[draft.defaults.engine].maxScenesPerProject;
+                  const current = draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes;
+                  const next = current >= max ? 1 : current + 1;
+                  setDraft(d => ({ ...d, defaults: { ...d.defaults, sceneCount: next }, scenes: d.scenes.slice(0, next) }));
+                } },
               ].map(({ Icon, label, onClick }) => (
                 <button
                   key={label}

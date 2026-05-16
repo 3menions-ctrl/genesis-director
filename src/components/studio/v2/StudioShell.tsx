@@ -1146,6 +1146,12 @@ function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; ac
       <div className="p-4">
         <div className="truncate text-sm font-medium text-foreground">{scene.location}</div>
         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{scene.beat || scene.dialogue || "No description"}</p>
+        {scene.status === "failed" && scene.errorReason && (
+          <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[11px] leading-snug text-destructive">
+            <div className="mb-0.5 font-mono uppercase tracking-[0.16em] opacity-80">Render blocked</div>
+            <div className="text-destructive/90">{scene.errorReason}</div>
+          </div>
+        )}
         <button onClick={onRender} className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-sm text-foreground hover:bg-card">
           {scene.status === "generating" ? <Loader2 className="h-4 w-4 animate-spin text-accent" /> : <RefreshCw className="h-4 w-4 text-accent" />}
           {scene.clipUrl ? "Regenerate" : "Render"}

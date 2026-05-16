@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
+  Box,
   Bot,
   Check,
   ChevronRight,
@@ -11,8 +12,10 @@ import {
   Cpu,
   Edit3,
   Film,
+  Hash,
   Image as ImageIcon,
   Images,
+  Languages,
   Loader2,
   Minus,
   Mic2,
@@ -47,6 +50,27 @@ import { TemplatesDrawerContent, type TemplatePick } from "./drawers/TemplatesDr
 import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
 import { StylesDrawerContent } from "./drawers/StylesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
+
+// Fallback "preview" imagery for the editorial hero — used when the user
+// hasn't yet cast avatars or picked an environment so the canvas always
+// feels alive (mirrors the landing-page Studio preview).
+import avEmma from "@/assets/avatars/emma-thompson.png";
+import avMarcus from "@/assets/avatars/marcus-stone.png";
+import avZara from "@/assets/avatars/zara-okonkwo.png";
+import avHiroshi from "@/assets/avatars/hiroshi-tanaka.png";
+import avCamila from "@/assets/avatars/camila-santos.png";
+import envNeon from "@/assets/environments/neon-noir-city.jpg";
+import envCherry from "@/assets/environments/cherry-blossom.jpg";
+import envSpace from "@/assets/environments/space-station.jpg";
+import envGolden from "@/assets/environments/golden-hour-magic.jpg";
+
+const FALLBACK_CAST = [avEmma, avMarcus, avZara, avHiroshi, avCamila];
+const FALLBACK_WORLDS = [
+  { src: envNeon, label: "Neon Noir" },
+  { src: envCherry, label: "Cherry Blossom" },
+  { src: envSpace, label: "Space Station" },
+  { src: envGolden, label: "Golden Hour" },
+];
 
 type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music" | "styles";
 type StepId = "start" | "cast" | "script" | "clips";

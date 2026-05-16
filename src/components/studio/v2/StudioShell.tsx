@@ -761,6 +761,12 @@ export default function StudioShell() {
 
                 <div className="space-y-3">
                   {draft.scenes.length > 0 ? (
+                    <>
+                    <ContinuitySimulator
+                      scenes={draft.scenes}
+                      cast={draft.cast}
+                      brief={draft.brief}
+                    />
                     <ScriptBuilder
                       scenes={draft.scenes}
                       cast={draft.cast}
@@ -777,6 +783,7 @@ export default function StudioShell() {
                         assignments.forEach(a => patchScene(a.id, { speakerId: a.speakerId }));
                       }}
                     />
+                    </>
                   ) : (
                     <button onClick={() => runAutoScript()} disabled={!canGenerateScript || autoBusy} className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/35 p-8 text-center transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40">
                       {autoBusy ? <Loader2 className="mb-3 h-8 w-8 animate-spin text-accent" /> : <Wand2 className="mb-3 h-8 w-8 text-accent" />}

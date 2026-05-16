@@ -1,5 +1,6 @@
 // Studio Image — Lovable AI (Nano Banana / Nano Banana Pro) text-to-image and image edit.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,10 @@ interface Body {
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
+
+  // ═══ AUTH GUARD: prevent anonymous abuse of paid Lovable AI Gateway ═══
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

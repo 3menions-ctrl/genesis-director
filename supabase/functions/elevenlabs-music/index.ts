@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // ═══ AUTH GUARD: prevent anonymous abuse of paid ElevenLabs API ═══
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
 
   try {
     const { prompt, duration } = await req.json();

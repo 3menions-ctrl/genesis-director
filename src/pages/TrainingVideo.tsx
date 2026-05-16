@@ -565,6 +565,33 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
       const finalDuration = targetDuration ?? Math.min(Math.ceil(scriptText.length / 15), 10);
 
+      // Director-grade continuity manifest — gives both pipelines a shared
+      // identityBible + environment DNA so chained clips stay locked.
+      const envName = customBackground
+        ? 'custom background'
+        : (BACKGROUND_PRESETS.find((b) => b.id === selectedBackground)?.name || 'studio');
+      const characterDescription = 'The reference presenter — preserve exact face, hairstyle, wardrobe, skin tone, and proportions across every clip.';
+      const trainingIdentityBible = {
+        version: 'training-v1',
+        characterIdentity: {
+          description: characterDescription,
+          strict: characterLockStrict,
+        },
+        masterSceneAnchor: {
+          environmentDNA: `${envName} — locked environment, identical framing, identical lighting (${lightingMood}) across all clips`,
+          aspectRatio,
+        },
+        consistencyPrompt: `${characterDescription} ${envName}. ${lightingPhrase}. ${cameraPhrase}.`,
+        cameraGrammar: cameraFixed ? 'locked-off static' : 'subtle handheld',
+        continuityRules: [
+          'Identical character identity in every clip',
+          'Identical wardrobe and accessories',
+          'Identical environment and lighting',
+          'No scene change between clips',
+          'Maintain presenter eyeline and framing',
+        ],
+      };
+
       // Dispatch to mode-router (avatar mode → engine-aware pipeline w/ continuity, audio mux, stitching)
       const { data: routerData, error: routerError } = await supabase.functions.invoke('mode-router', {
         body: {
@@ -579,12 +606,12 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
           enableNarration: true,
           enableMusic: false,
           videoEngine,
-          characterLock: characterLockStrict
-            ? { strict: true, source: 'training_video', description: 'Reference person speaking to camera' }
-            : undefined,
-          identityBible: characterLockStrict
-            ? { characterIdentity: { description: 'Reference person speaking to camera' } }
-            : undefined,
+          characterLock: {
+            strict: characterLockStrict,
+            source: 'training_video',
+            description: characterDescription,
+          },
+          identityBible: trainingIdentityBible,
         },
       });
 
@@ -598,6 +625,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
       const maxAttempts = 90;       // up to ~7.5 minutes
       const pollInterval = 5000;
       let finalVideoUrl: string | null = null;
+      let stitchedUrl: string | null = null;
+      let manifestUrl: string | null = null;
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -605,7 +634,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
         const { data: proj, error: projErr } = await supabase
           .from('movie_projects')
-          .select('status, video_url, last_error, pipeline_state')
+          .select('status, video_url, last_error, pipeline_state, pro_features_data, video_clips')
           .eq('id', projectId)
           .maybeSingle();
 
@@ -616,6 +645,9 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
         if (proj?.status === 'completed' && proj.video_url) {
           finalVideoUrl = proj.video_url;
+          const pf = (proj.pro_features_data as any) || {};
+          stitchedUrl = pf.stitchedVideoUrl || pf.stitched_video_url || (clipCount > 1 ? proj.video_url : null);
+          manifestUrl = pf.manifestUrl || pf.stitchManifestUrl || null;
           break;
         }
         if (proj?.status === 'failed') {
@@ -650,6 +682,13 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
             video_url: finalVideoUrl,
             voice_id: selectedVoice,
             environment: selectedBackground,
+            project_id: projectId,
+            video_engine: videoEngine,
+            clip_count: clipCount,
+            aspect_ratio: aspectRatio,
+            stitched_video_url: stitchedUrl,
+            manifest_url: manifestUrl,
+            duration_seconds: finalDuration * clipCount,
           });
           
           if (saveError) {

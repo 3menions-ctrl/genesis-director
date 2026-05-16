@@ -28,7 +28,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { MessagesInbox } from '@/components/social/MessagesInbox';
-import { SupportInbox } from '@/components/social/SupportInbox';
 import { SupportInboxModal } from '@/components/social/SupportInboxModal';
 import { TwoFactorCard } from '@/components/security/TwoFactorCard';
 import { SessionsCard } from '@/components/security/SessionsCard';

@@ -1371,6 +1371,9 @@ function StartHero({
   const castPills = draft.cast.length ? `${draft.cast.length} avatar${draft.cast.length === 1 ? "" : "s"}` : "Auto-cast";
   const worldLabel = draft.brief.style || "Cinematic";
   const engineSpec = ENGINES[draft.defaults.engine];
+  const envLabel = draft.brief.environmentId || "Auto world";
+  const voiceLabel = draft.defaults.voiceId ? `Voice · ${draft.defaults.voiceId.slice(0, 12)}` : "Voice · auto";
+  const scoreLabel = draft.audio.scoreUrl ? "Score · ready" : "Score · auto";
 
   return (
     <motion.div
@@ -1539,9 +1542,9 @@ function StartHero({
               {[
                 { Icon: Sparkles, label: draft.brief.style || "Cinematic", onClick: () => onOpenDrawer("styles") },
                 { Icon: Users, label: castPills, onClick: () => onOpenDrawer("avatars") },
-                { Icon: Box, label: worldLabel, onClick: () => onOpenDrawer("envs") },
-                { Icon: Music2, label: draft.audio.scoreUrl ? "Score: ready" : "Score: tense", onClick: () => onOpenDrawer("music") },
-                { Icon: Languages, label: "EN · ES · JA", onClick: () => onOpenDrawer("voices") },
+                { Icon: Box, label: envLabel, onClick: () => onOpenDrawer("envs") },
+                { Icon: Music2, label: scoreLabel, onClick: () => onOpenDrawer("music") },
+                { Icon: Languages, label: voiceLabel, onClick: () => onOpenDrawer("voices") },
                 { Icon: Hash, label: draft.defaults.aspect, onClick: () => {
                   const order: StudioDraft["defaults"]["aspect"][] = ["16:9", "9:16", "1:1", "21:9"];
                   const next = order[(order.indexOf(draft.defaults.aspect) + 1) % order.length];
@@ -1652,19 +1655,22 @@ function StartHero({
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2">
-                {FALLBACK_WORLDS.map((w, i) => (
-                  <div
-                    key={w.label}
-                    className={cn(
-                      "relative aspect-square overflow-hidden rounded-lg border shadow-[0_8px_20px_-10px_hsl(0_0%_0%/0.5)] transition-all",
-                      i === 0 ? "border-accent/60" : "border-border/40 group-hover:border-border/70",
-                    )}
-                  >
-                    <img src={w.src} alt={w.label} className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-                    {i === 0 && <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-accent/70 shadow-[inset_0_0_20px_hsl(var(--accent)/0.4)]" />}
-                  </div>
-                ))}
+                {FALLBACK_WORLDS.map((w) => {
+                  const selected = (draft.brief.environmentId || "").toLowerCase() === w.label.toLowerCase();
+                  return (
+                    <div
+                      key={w.label}
+                      className={cn(
+                        "relative aspect-square overflow-hidden rounded-lg border shadow-[0_8px_20px_-10px_hsl(0_0%_0%/0.5)] transition-all",
+                        selected ? "border-accent/60" : "border-border/40 group-hover:border-border/70",
+                      )}
+                    >
+                      <img src={w.src} alt={w.label} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
+                      {selected && <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-accent/70 shadow-[inset_0_0_20px_hsl(var(--accent)/0.4)]" />}
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-5 font-light text-[12px] leading-relaxed text-muted-foreground/70" style={{ fontFamily: "'Fraunces', serif" }}>
                 <span className="italic">Anchor the room.</span> Neon, noir, pastoral, or the deep void — your call.

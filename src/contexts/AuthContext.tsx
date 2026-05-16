@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { resetQueryCache } from '@/lib/queryClient';
 
 interface UserProfile {
   id: string;
@@ -225,6 +226,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Track intentional sign-out to prevent session resurrection
   const signedOutRef = useRef(false);
+  // Track the last observed authenticated user id so we can detect identity
+  // transitions (login, logout, account-switch in another tab) and hard-reset
+  // the React Query cache. Without this, the previous user's profile / credits
+  // / projects rows remain in cache and can be returned to the next user.
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -260,6 +266,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.warn('[AuthContext] Security version mismatch — forcing sign-out');
               // Update stamp BEFORE sign-out so next login succeeds
               localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+              // Clear cached queries before the forced sign-out so the
+              // invalidated session cannot leak rows to whatever loads next.
+              lastUserIdRef.current = null;
+              resetQueryCache('security version invalidation');
               await supabase.auth.signOut({ scope: 'global' });
               if (mounted) {
                 setProfile(null);
@@ -334,7 +344,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
-        
+
+        // ── CROSS-USER CACHE ISOLATION ─────────────────────────────────────
+        // Detect any identity transition (login, logout, or account switch via
+        // another tab broadcasting SIGNED_IN with a different user id) and
+        // synchronously purge the React Query cache. Done BEFORE we update
+        // session state so no consumer effect can fire a query against the
+        // new identity while stale rows from the previous user are still
+        // resolvable from cache.
+        const previousUserId = lastUserIdRef.current;
+        const incomingUserId = newSession?.user?.id ?? null;
+        if (previousUserId !== incomingUserId && previousUserId !== null) {
+          resetQueryCache(`auth transition (${event}): ${previousUserId} → ${incomingUserId ?? 'none'}`);
+        }
+        lastUserIdRef.current = incomingUserId;
+        // ───────────────────────────────────────────────────────────────────
+
         // Update session state synchronously
         sessionRef.current = newSession;
         setSession(newSession);
@@ -645,6 +670,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set flag BEFORE calling signOut to prevent onAuthStateChange from resurrecting session
     signedOutRef.current = true;
     sessionRef.current = null;
+    lastUserIdRef.current = null;
     setSession(null);
     setUser(null);
     setProfile(null);
@@ -654,6 +680,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear workspace-scoped local state so next sign-in does not inherit
     // the previous user's selected org.
     try { localStorage.removeItem('apex.currentOrgId'); } catch {}
+    // Clear the cached security-version stamp so the next user on this
+    // device starts a fresh stamp on their first profile load.
+    try { localStorage.removeItem(SECURITY_VERSION_KEY); } catch {}
+
+    // Hard-reset React Query cache so no consumer can read the prior
+    // user's rows (profile, credits, projects, billing) between signOut
+    // and the next login. This is the primary cross-user isolation gate.
+    resetQueryCache('explicit signOut');
 
     // Use global scope to clear session across all tabs
     await supabase.auth.signOut({ scope: 'global' });

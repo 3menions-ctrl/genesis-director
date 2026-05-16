@@ -351,7 +351,6 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       const { data, error } = await supabase.functions.invoke('mode-router', {
         body: {
           mode: 'avatar',
-          userId: user.id,
           prompt: prompt.trim(),
           imageUrl: selectedAvatar.front_image_url || selectedAvatar.face_image_url,
           voiceId: selectedAvatar.voice_id,

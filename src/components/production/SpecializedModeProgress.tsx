@@ -453,7 +453,8 @@ export function SpecializedModeProgress({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      await supabase.functions.invoke('cancel-project', { body: { projectId, userId: user.id } });
+      // userId derived server-side from JWT; never trust the client body.
+      await supabase.functions.invoke('cancel-project', { body: { projectId } });
       toast.success('Project cancelled');
       onCancel?.();
       navigateTo('/projects');

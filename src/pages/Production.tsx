@@ -1005,7 +1005,7 @@ function ProductionContentInner() {
           }
           
           const { data, error } = await supabase.functions.invoke('auto-stitch-trigger', {
-            body: { projectId, userId: user?.id, forceStitch: false },
+            body: { projectId, forceStitch: false },
           });
 
           if (error) throw error;
@@ -1032,7 +1032,7 @@ function ProductionContentInner() {
     
     try {
       const { data, error } = await supabase.functions.invoke('retry-failed-clip', {
-        body: { userId: user.id, projectId, clipIndex },
+        body: { projectId, clipIndex },
       });
       
       if (error) throw error;
@@ -1116,7 +1116,6 @@ function ProductionContentInner() {
       
       const { data, error } = await supabase.functions.invoke('resume-pipeline', {
         body: { 
-          userId: user.id, 
           projectId, 
           resumeFrom,
           // Pass the current script if available for consistency
@@ -1169,7 +1168,6 @@ function ProductionContentInner() {
       const { data, error } = await supabase.functions.invoke('cancel-project', {
         body: {
           projectId,
-          userId: user.id,
         },
       });
       
@@ -1209,7 +1207,6 @@ function ProductionContentInner() {
       const { data, error } = await supabase.functions.invoke('resume-pipeline', {
         body: {
           projectId,
-          userId: user.id,
           resumeFrom: 'qualitygate',
           approvedShots: approvedShots.map(shot => ({
             id: shot.id,
@@ -1258,7 +1255,7 @@ function ProductionContentInner() {
       toast.info('Regenerating script...');
       
       const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
-        body: { userId: user.id, projectId, action: 'regenerate_script' },
+            body: { projectId, action: 'regenerate_script' },
       });
       
       if (error) throw error;
@@ -1471,7 +1468,7 @@ const transitionsData = useMemo(() =>
                         try {
                           toast.info('Retrying generation...');
                           const { data, error } = await supabase.functions.invoke('resume-avatar-pipeline', {
-                            body: { projectId, userId: user.id },
+                            body: { projectId },
                           });
                           if (error) throw error;
                           if (data?.success) {

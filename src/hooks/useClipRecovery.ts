@@ -78,7 +78,6 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
                 taskId: clip.veo_operation_name,
                 provider: 'replicate',
                 projectId,
-                userId,
                 shotIndex: clip.shot_index,
                 autoComplete: true,
               },
@@ -140,7 +139,6 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
           await supabase.functions.invoke('continue-production', {
             body: {
               projectId,
-              userId,
               completedClipIndex: lastCompleted,
               totalClips: (allClips || []).length,
             },

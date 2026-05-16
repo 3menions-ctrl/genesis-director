@@ -211,7 +211,6 @@ export default function ScriptReview() {
       const { data, error: funcError } = await supabase.functions.invoke('resume-pipeline', {
         body: {
           projectId,
-          userId: user.id,
           approvedShots: shots.map(shot => ({
             id: shot.id,
             title: shot.title,

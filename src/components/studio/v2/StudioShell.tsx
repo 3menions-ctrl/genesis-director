@@ -323,9 +323,8 @@ export default function StudioShell() {
           let identity = cachedIdentity;
           if (!identity) {
             toast.message("Reading the image…", { description: "Extracting character + scene DNA (5 cr)" });
-            const { data: { user } } = await supabase.auth.getUser();
             const { data: idData, error: idErr } = await supabase.functions.invoke("extract-scene-identity", {
-              body: { imageUrl: draft.brief.refImageUrl, projectId, userId: user?.id },
+              body: { imageUrl: draft.brief.refImageUrl, projectId },
             });
             if (idErr) console.warn("extract-scene-identity failed:", idErr);
             if ((idData as any)?.success) {

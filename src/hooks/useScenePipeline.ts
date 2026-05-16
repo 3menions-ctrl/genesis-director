@@ -260,7 +260,6 @@ export function useScenePipeline(
       const { data, error } = await supabase.functions.invoke("generate-single-clip", {
         body: {
           projectId,
-          userId: user.id,
           shotIndex: scene.index,
           totalClips: sourceDraft.scenes.length,
           prompt: promptParts.join(". "),

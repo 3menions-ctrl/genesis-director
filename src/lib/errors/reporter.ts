@@ -44,7 +44,7 @@ function getSessionId(): string {
 async function persist(err: AppError): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('error_reports').insert({
+    await supabase.from('error_reports').insert([{
       user_id: user?.id ?? null,
       category: err.category,
       severity: err.severity,
@@ -58,7 +58,7 @@ async function persist(err: AppError): Promise<void> {
       session_id: getSessionId(),
       app_version: APP_VERSION,
       retryable: err.retryable,
-    });
+    }]);
   } catch {
     // Silent — reporter must never throw.
   }

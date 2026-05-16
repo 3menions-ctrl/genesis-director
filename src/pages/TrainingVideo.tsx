@@ -16,7 +16,8 @@ import {
   Upload, User, Mic, Image, Play, Loader2, Check,
   Sparkles, ArrowRight, RefreshCw, Download,
   Video, AlertCircle, Trash2, Coins, Zap, Wand2,
-  ChevronRight, CircleDot, Pause, Film
+  ChevronRight, CircleDot, Pause, Film,
+  Settings2, Lock, Sun, Camera, Timer, Ratio
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
@@ -176,6 +177,13 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
   const [scriptText, setScriptText] = useState('');
   const [videoEngine, setVideoEngine] = useState<'kling' | 'seedance'>('kling');
+  // Training settings panel
+  const [targetDuration, setTargetDuration] = useState<number | null>(null); // null = auto (length-based)
+  const [characterLockStrict, setCharacterLockStrict] = useState<boolean>(true);
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
+  const [cameraFixed, setCameraFixed] = useState<boolean>(true);
+  const [lightingMood, setLightingMood] = useState<'soft' | 'cinematic' | 'high-key' | 'moody'>('soft');
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
   const [progress, setProgress] = useState(0);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);

@@ -666,6 +666,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set flag BEFORE calling signOut to prevent onAuthStateChange from resurrecting session
     signedOutRef.current = true;
     sessionRef.current = null;
+    lastUserIdRef.current = null;
     setSession(null);
     setUser(null);
     setProfile(null);
@@ -675,6 +676,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear workspace-scoped local state so next sign-in does not inherit
     // the previous user's selected org.
     try { localStorage.removeItem('apex.currentOrgId'); } catch {}
+    // Clear the cached security-version stamp so the next user on this
+    // device starts a fresh stamp on their first profile load.
+    try { localStorage.removeItem(SECURITY_VERSION_KEY); } catch {}
+
+    // Hard-reset React Query cache so no consumer can read the prior
+    // user's rows (profile, credits, projects, billing) between signOut
+    // and the next login. This is the primary cross-user isolation gate.
+    resetQueryCache('explicit signOut');
 
     // Use global scope to clear session across all tabs
     await supabase.auth.signOut({ scope: 'global' });

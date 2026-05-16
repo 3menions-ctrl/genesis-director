@@ -3,7 +3,6 @@ import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSp
 import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import seedanceVideo from '@/assets/seedance-avatar-test.mp4.asset.json';
-import avatarWave from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import poster1 from '@/assets/hero/hero-poster-1.jpg';
 import poster2 from '@/assets/hero/hero-poster-2.jpg';
 import poster3 from '@/assets/hero/hero-poster-3.jpg';
@@ -18,13 +17,14 @@ const G = {
   fiery: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
   silentVigil: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
   enchanted: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/6fb5c360-6b46-43b7-8d31-59c9ada01e9b/clip_6fb5c360-6b46-43b7-8d31-59c9ada01e9b_0_1770311441134.mp4',
+  avatarCameo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/6c28668e-2067-4b92-9fac-8f6ba70cb3a8/avatar_6c28668e-2067-4b92-9fac-8f6ba70cb3a8_clip1_lipsync_1770183667726.mp4',
 };
 
 // One curated, ordered playlist — 8 hand-picked reels. No dump.
 type Reel = { src: string; poster: string };
 const PLAYLIST: Reel[] = [
   { src: corporateVideo.url, poster: poster1 },
-  { src: avatarWave.url, poster: poster3 },
+  { src: G.avatarCameo, poster: poster3 },
   { src: G.beautifulDay, poster: poster2 },
   { src: G.sunsetDreams, poster: poster5 },
   { src: G.enchanted, poster: poster4 },

@@ -885,8 +885,8 @@ export default function StudioShell() {
           toast.success(`${style.name} style applied`);
         }} />
       </StudioDrawer>
+      <confirmDialog.Dialog />
     </div>
-    <confirmDialog.Dialog />
   );
 }
 

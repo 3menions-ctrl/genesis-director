@@ -144,11 +144,13 @@ serve(async (req) => {
   }
 
   // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+  // Capture auth result so we can also enforce body.userId === JWT.userId below.
+  let __auth: Awaited<ReturnType<typeof import("../_shared/auth-guard.ts").validateAuth>>;
   try {
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
-    if (!auth.authenticated) {
-      return unauthorizedResponse(corsHeaders, auth.error);
+    __auth = await validateAuth(req);
+    if (!__auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, __auth.error);
     }
   } catch (authErr) {
     return new Response(
@@ -178,7 +180,7 @@ serve(async (req) => {
       voiceId = 'bella',
       sceneDescription: rawSceneDescription,
       projectId,
-      userId,
+      userId: bodyUserId,
       aspectRatio = '16:9',
       clipCount = 1,
       clipDuration = 10,
@@ -187,6 +189,29 @@ serve(async (req) => {
       enableDualAvatar = false,
       avatarTemplateId,
     } = request;
+
+    // SECURITY: end-user JWT → ALWAYS use auth.userId; body.userId is ignored / 403 on mismatch.
+    // Service-role → trust body.userId (internal pipeline chaining).
+    let userId: string | undefined;
+    try {
+      const { resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
+      try {
+        userId = resolveEffectiveUserId(__auth, bodyUserId ?? null);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+        if (msg === 'SERVICE_ROLE_REQUIRES_USER_ID') {
+          return new Response(JSON.stringify({ success: false, error: 'userId required' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw err;
+      }
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: (e as Error).message }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // DEFAULT SCENE DESCRIPTION: Always provide a background so avatars aren't

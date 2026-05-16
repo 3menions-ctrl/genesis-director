@@ -834,7 +834,7 @@ serve(async (req) => {
           userId: request.userId,
           stage: 'preproduction',
           reason: err,
-          totalCredits: fallbackClipCount * seedanceCreditsForClip(Math.max(3, Math.min(12, request.clipDuration ?? 5))),
+          totalCredits: fallbackClipCount * seedanceCreditsForClip(Math.max(2, Math.min(12, request.clipDuration ?? 10))),
           expectedClipCount: fallbackClipCount,
           completedClipCount: 0, // terminal failure pre-dispatch
           source: 'seedance',

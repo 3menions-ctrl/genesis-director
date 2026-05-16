@@ -40,6 +40,7 @@ import mTaco from '@/assets/mascots/food-truck-taco.png';
 import mFox from '@/assets/mascots/indie-fox-rogue.png';
 import mKnight from '@/assets/mascots/indie-knight.png';
 import mRobot from '@/assets/mascots/indie-robot.png';
+import { LazyAutoVideo } from '@/components/video/LazyAutoVideo';
 
 // ── Avatar parade (a curated 24-strong cross-section) ───────────────────
 import aAaliya from '@/assets/avatars/aaliya-patel.png';

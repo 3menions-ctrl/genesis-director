@@ -20,6 +20,7 @@ import {
   Settings2, Lock, Sun, Camera, Timer, Ratio
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
+import { CreditLowInline } from '@/components/credits/CreditLowInline';
 import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { handleError } from '@/lib/errorHandler';
@@ -1310,6 +1311,15 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
             {/* Generate Button */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              {generationStep !== 'complete' && (
+                <div className="mb-2">
+                  <CreditLowInline
+                    balance={credits.remaining}
+                    required={ESTIMATED_CREDITS * clipCount}
+                    context="this training video"
+                  />
+                </div>
+              )}
               {generationStep === 'complete' ? (
                 <div className="space-y-2">
                   <Button className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-foreground" asChild>

@@ -84,6 +84,18 @@ import featStyle from '@/assets/features/style-transfer-premium.jpg';
 import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
+// Transparent-background 5s seedance loops, indexed to MASCOTS above.
+const MASCOT_LOOPS = [
+  '/mascots-anim/cereal-astronaut-bear.webm',
+  '/mascots-anim/indie-fox-rogue.webm',
+  '/mascots-anim/cereal-tiger.webm',
+  '/mascots-anim/indie-knight.webm',
+  '/mascots-anim/cereal-wizard-rabbit.webm',
+  '/mascots-anim/indie-robot.webm',
+  '/mascots-anim/food-truck-burger.webm',
+  '/mascots-anim/food-truck-icecream.webm',
+  '/mascots-anim/food-truck-taco.webm',
+];
 const AVATARS = [
   aAaliya, aAelindra, aAmina, aArctic, aAtlas, aBella, aBlitz, aCaptain,
   aChibi, aCoral, aCosmo, aDrake, aEmber, aFelix, aFrost, aGuardian,

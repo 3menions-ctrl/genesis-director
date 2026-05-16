@@ -563,15 +563,14 @@ export default function StudioShell() {
       </header>
 
       <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[220px_minmax(0,1fr)_340px]">
-        <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl xl:block">
-          <div className="mb-8">
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
-            <h2 className="mt-2 font-display text-2xl italic leading-tight text-foreground">One continuous flow.</h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">From a single image or sentence to rendered cinematic clips, ready for the editor.</p>
+        <aside className="hidden border-r border-border/30 bg-transparent p-7 xl:block">
+          <div className="mb-10">
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">Production</div>
+            <h2 className="mt-2 font-display text-[19px] italic leading-snug text-foreground/95">One continuous flow.</h2>
           </div>
           <div className="relative">
-            <div className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-accent/50 via-border to-border/30" />
-            <div className="space-y-1">
+            <div className="absolute bottom-2 left-[11px] top-2 w-px bg-border/60" />
+            <div className="space-y-7">
               {STEPS.map(({ id, label, icon: Icon }, index) => {
                 const active = step === id;
                 const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
@@ -580,35 +579,35 @@ export default function StudioShell() {
                     key={id}
                     onClick={() => setStep(id)}
                     className={cn(
-                      "group relative flex w-full items-center gap-4 rounded-xl px-2 py-3 text-left transition-all",
-                      active ? "bg-accent/[0.05]" : "hover:bg-card/40",
+                      "group relative flex w-full items-center gap-4 text-left transition-opacity",
+                      active ? "opacity-100" : "opacity-50 hover:opacity-90",
                     )}
                   >
                     <span className={cn(
-                      "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-[10px] transition-all",
-                      active ? "border-accent bg-background text-accent shadow-[0_0_20px_hsl(var(--accent)/0.55)]"
-                        : complete ? "border-success/60 bg-background text-success"
-                        : "border-border bg-background text-muted-foreground",
+                      "relative z-10 flex h-6 w-6 items-center justify-center rounded-full transition-all",
+                      active ? "bg-accent shadow-[0_0_18px_hsl(var(--accent)/0.55)]"
+                        : "border border-border bg-background",
                     )}>
-                      {complete && !active ? <Check className="h-4 w-4" /> : String(index + 1).padStart(2, "0")}
+                      {active ? <span className="h-1.5 w-1.5 rounded-full bg-background" />
+                        : complete ? <Check className="h-3 w-3 text-foreground/70" />
+                        : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {index + 1}</div>
-                      <div className={cn("mt-0.5 flex items-center gap-1.5 text-sm", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>
-                        <Icon className="h-3.5 w-3.5" /> {label}
+                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {String(index + 1).padStart(2, "0")}</div>
+                      <div className={cn("mt-0.5 text-sm font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+                        {label}
                       </div>
                     </div>
-                    {active && <span className="h-8 w-0.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="mt-8 border-t border-border/50 pt-5">
+          <div className="mt-16 opacity-50">
             <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Now playing</div>
-            <div className="mt-2 truncate text-sm italic text-foreground">{draft.brief.title || "Untitled film"}</div>
-            <div className="mt-1 font-mono text-[10px] text-muted-foreground">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
+            <div className="mt-2 truncate font-display text-[13px] italic text-foreground/90">{draft.brief.title || "Untitled film"}</div>
+            <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
           </div>
         </aside>
 

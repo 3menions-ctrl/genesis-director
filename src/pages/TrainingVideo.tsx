@@ -573,19 +573,35 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
       toast.info('Animating speaking presenter...');
       setProgress(45);
       
-      // Build prompt for natural speaking animation
-      const animationPrompt = `The person in the image is speaking naturally to camera with confident body language. Direct eye contact, subtle natural head movements, professional presenter demeanor. The presenter is delivering educational content with engaging expressions. No scene change, consistent lighting and environment.`;
+      // Build prompt for natural speaking animation (settings-aware)
+      const lightingPhrase = {
+        soft: 'soft diffused key light, gentle fill, flattering presenter lighting',
+        cinematic: 'cinematic chiaroscuro lighting, controlled shadows, filmic contrast',
+        'high-key': 'bright high-key broadcast lighting, evenly lit, low contrast',
+        moody: 'moody low-key lighting, deep shadows, dramatic single source',
+      }[lightingMood];
+      const cameraPhrase = cameraFixed
+        ? 'locked-off static camera, no camera movement, subject motion only'
+        : 'subtle handheld presenter framing, gentle parallax, no zoom';
+      const lockPhrase = characterLockStrict
+        ? 'identity locked: preserve exact facial features, hairstyle, clothing, and skin tone of the reference person without drift'
+        : 'preserve general likeness of the reference person';
+      const animationPrompt = `The person in the image is speaking naturally to camera with confident body language. Direct eye contact, subtle natural head movements, professional presenter demeanor. The presenter is delivering educational content with engaging expressions. No scene change, consistent environment. ${lightingPhrase}. ${cameraPhrase}. ${lockPhrase}.`;
+
+      const finalDuration = targetDuration ?? Math.min(Math.ceil(scriptText.length / 15), 10);
 
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: {
           prompt: animationPrompt,
           imageUrl: startImageUrl,
-          aspectRatio: '16:9',
-          duration: Math.min(Math.ceil(scriptText.length / 15), 10),
+          aspectRatio,
+          duration: finalDuration,
           userId: user.id,
           mode: 'training_avatar',
           videoEngine,
           enableAudio: videoEngine === 'kling', // Seedance has no native audio — we mux generated voice in post
+          cameraFixed,
+          characterLock: characterLockStrict ? { strict: true, source: 'training_video' } : undefined,
         },
       });
 

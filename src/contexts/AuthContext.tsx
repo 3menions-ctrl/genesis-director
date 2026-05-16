@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { resetQueryCache } from '@/lib/queryClient';
 
 interface UserProfile {
   id: string;
@@ -225,6 +226,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Track intentional sign-out to prevent session resurrection
   const signedOutRef = useRef(false);
+  // Track the last observed authenticated user id so we can detect identity
+  // transitions (login, logout, account-switch in another tab) and hard-reset
+  // the React Query cache. Without this, the previous user's profile / credits
+  // / projects rows remain in cache and can be returned to the next user.
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -334,7 +340,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
-        
+
+        // ── CROSS-USER CACHE ISOLATION ─────────────────────────────────────
+        // Detect any identity transition (login, logout, or account switch via
+        // another tab broadcasting SIGNED_IN with a different user id) and
+        // synchronously purge the React Query cache. Done BEFORE we update
+        // session state so no consumer effect can fire a query against the
+        // new identity while stale rows from the previous user are still
+        // resolvable from cache.
+        const previousUserId = lastUserIdRef.current;
+        const incomingUserId = newSession?.user?.id ?? null;
+        if (previousUserId !== incomingUserId && previousUserId !== null) {
+          resetQueryCache(`auth transition (${event}): ${previousUserId} → ${incomingUserId ?? 'none'}`);
+        }
+        lastUserIdRef.current = incomingUserId;
+        // ───────────────────────────────────────────────────────────────────
+
         // Update session state synchronously
         sessionRef.current = newSession;
         setSession(newSession);

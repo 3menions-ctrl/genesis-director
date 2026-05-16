@@ -128,6 +128,26 @@ export function useStudioDraft() {
   const setActive = useCallback((id?: string) => update(d => ({ ...d, activeSceneId: id })), [update]);
 
   /**
+   * Reset draft to factory-empty. Wipes localStorage and DB canvas.
+   */
+  const clearDraft = useCallback(async () => {
+    if (debRef.current) { clearTimeout(debRef.current); debRef.current = null; }
+    try { localStorage.removeItem(LS_KEY); } catch {}
+    setDraft(EMPTY_DRAFT);
+    if (canvasId) {
+      setSaving(true);
+      try {
+        await supabase
+          .from("creation_canvases")
+          .update({ nodes: EMPTY_DRAFT as any, updated_at: new Date().toISOString() })
+          .eq("id", canvasId);
+      } finally {
+        setSaving(false);
+      }
+    }
+  }, [canvasId]);
+
+  /**
    * Lazily ensure a `movie_projects` row exists for this draft and return its
    * id. Generation pipelines (`generate-single-clip`, `hollywood-pipeline`)
    * require a projectId; the engine lock, mutex, and credit accounting all

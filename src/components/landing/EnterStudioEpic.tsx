@@ -1191,24 +1191,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
         </motion.div>
 
-        {/* ── 8. Secondary CTA row (kept from the original) ────────────── */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <button
-            onClick={onEnter}
-            className="h-12 px-7 text-[13px] font-medium rounded-full text-white/85 hover:text-white border border-white/15 hover:border-white/30 bg-white/[0.03] hover:bg-white/[0.07] transition-all"
-          >
-            Take the studio tour
-          </button>
-          <button
-            onClick={onStart}
-            className="h-12 px-7 text-[13px] font-medium rounded-full text-white/55 hover:text-white/85 transition-all"
-          >
-            Skip the tour
-          </button>
-        </div>
-
-        {/* ── 9. GIANT glowing white GET STARTED button ────────────────── */}
-        <div className="relative flex flex-col items-center justify-center pt-10 pb-4">
+        {/* ── 9. GIANT circular star — Get Started ─────────────────────── */}
+        <div className="relative flex flex-col items-center justify-center pt-16 pb-4">
           {/* Stage glow */}
           <div
             aria-hidden
@@ -1304,10 +1288,11 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
-            className="relative group inline-flex items-center justify-center rounded-full bg-white text-black font-medium tracking-[-0.01em] select-none"
+            className="relative group inline-flex items-center justify-center rounded-full bg-white text-black font-medium tracking-[-0.02em] select-none aspect-square"
             style={{
-              padding: '34px 84px',
-              fontSize: 'clamp(22px, 2.6vw, 32px)',
+              width: 'clamp(220px, 24vw, 320px)',
+              height: 'clamp(220px, 24vw, 320px)',
+              fontSize: 'clamp(18px, 1.9vw, 24px)',
               fontFamily: "'Fraunces', serif",
               animation: 'ese-pulse-glow 3.4s ease-in-out infinite',
             }}
@@ -1316,12 +1301,12 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             {/* Rotating outer ring */}
             <span
               aria-hidden
-              className="absolute -inset-3 rounded-full pointer-events-none"
+              className="absolute -inset-4 rounded-full pointer-events-none"
               style={{
                 background:
                   'conic-gradient(from 0deg, rgba(255,255,255,0.55), rgba(10,132,255,0.35), rgba(255,255,255,0.55))',
-                filter: 'blur(8px)',
-                opacity: 0.55,
+                filter: 'blur(10px)',
+                opacity: 0.7,
                 animation: 'ese-orbit-cw 8s linear infinite',
               }}
             />
@@ -1329,15 +1314,10 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               aria-hidden
               className="absolute -inset-px rounded-full bg-white"
             />
-            <span className="relative flex items-center gap-3">
-              Get started
-              <span
-                aria-hidden
-                className="inline-block translate-y-[1px] transition-transform duration-500 group-hover:translate-x-1"
-                style={{ fontSize: '0.8em' }}
-              >
-                →
-              </span>
+            <span className="relative flex flex-col items-center justify-center leading-none">
+              <span className="italic" style={{ fontWeight: 300 }}>Get</span>
+              <span className="mt-1" style={{ fontWeight: 600 }}>started</span>
+              <span aria-hidden className="mt-3 h-px w-10 bg-black/35 transition-all duration-500 group-hover:w-16" />
             </span>
           </motion.button>
 

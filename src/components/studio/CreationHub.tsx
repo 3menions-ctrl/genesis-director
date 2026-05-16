@@ -911,7 +911,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 </div>
 
                 {/* Inline footer rail (controls + advanced trigger + CTA) */}
-                <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
+                <div className="mt-5 flex items-center justify-center sm:justify-between gap-3 flex-wrap">
                   {/* Compact icon controls */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Aspect popover-less inline cycle */}
@@ -1039,7 +1039,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   </div>
 
                   {/* Premium CTA with halo */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto flex justify-center sm:block">
                     {/* Halo glow */}
                     {!hasInsufficientCredits && isReadyToCreate() && (
                       <span

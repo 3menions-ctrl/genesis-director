@@ -53,6 +53,8 @@ import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
 import { StylesDrawerContent } from "./drawers/StylesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
 import { ScriptBuilder } from "./ScriptBuilder";
+import { ContinuitySimulator } from "./ContinuitySimulator";
+import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
 
 // Fallback "preview" imagery for the editorial hero — used when the user
 // hasn't yet cast avatars or picked an environment so the canvas always
@@ -185,6 +187,11 @@ export default function StudioShell() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const confirmDialog = useConfirmDialog();
   const navigate = useNavigate();
+
+  // Sequential gate + simulator need to read the FRESHEST scene state without
+  // re-binding renderAll on every patch. A draftRef mirrors the latest draft.
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
 
   const activeScene = useMemo(
     () => draft.scenes.find(s => s.id === draft.activeSceneId) || draft.scenes[0],
@@ -485,12 +492,62 @@ export default function StudioShell() {
       }
     } catch { /* non-fatal — server enforces final deduct */ }
     setStep("clips");
-    for (const scene of draft.scenes) {
-      if (!scene.clipUrl && scene.status !== "generating") {
-        await generateScene(scene.id);
+    // ── Sequential continuity gate ─────────────────────────────────────────
+    // For each scene we (a) wait for the prior continuous scene to finish,
+    // (b) extract its tail frame and stamp it onto this scene's refImageUrl
+    // so the renderer inherits a REAL last-frame anchor (not the static brief
+    // ref or cast image), and only then (c) kick off generation and await
+    // terminal state. Independent scenes skip the wait and the tail-stamp.
+    const projectId = await ensureProjectId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || "";
+
+    const waitForTerminal = (sceneId: string, timeoutMs = 8 * 60 * 1000) =>
+      new Promise<"done" | "failed">((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          const s = draftRef.current.scenes.find(x => x.id === sceneId);
+          if (s?.status === "done" && s.clipUrl) return resolve("done");
+          if (s?.status === "failed") return resolve("failed");
+          if (Date.now() - started > timeoutMs) return resolve("failed");
+          setTimeout(tick, 1000);
+        };
+        tick();
+      });
+
+    for (let i = 0; i < draftRef.current.scenes.length; i++) {
+      const scene = draftRef.current.scenes[i];
+      if (scene.clipUrl || scene.status === "generating") continue;
+
+      // Tail-frame chain for continuous scenes (skip for the first scene).
+      const chained = scene.chainFromPrevious !== false;
+      if (i > 0 && chained) {
+        const prev = draftRef.current.scenes[i - 1];
+        if (prev?.clipUrl) {
+          toast.message(`Extracting tail frame from scene ${prev.index + 1}…`, { duration: 1500 });
+          const tailUrl = await extractAndUploadTailFrame(prev.clipUrl, {
+            userId,
+            projectId,
+            sceneIndex: scene.index,
+          });
+          if (tailUrl) {
+            patchScene(scene.id, { refImageUrl: tailUrl });
+            // give state one tick so generateSceneFromDraft sees the update
+            await new Promise(r => setTimeout(r, 60));
+          }
+        }
+      }
+
+      // Always use the latest draft snapshot so the patched refImageUrl flows
+      // through to the edge function as startImageUrl.
+      await generateSceneFromDraft(scene.id, draftRef.current);
+      const outcome = await waitForTerminal(scene.id);
+      if (outcome === "failed") {
+        toast.error(`Scene ${scene.index + 1} failed — pausing batch render`);
+        break;
       }
     }
-  }, [canRender, draft.scenes, draft.defaults.engine, generateScene, hasCinema, navigate, totalCost]);
+  }, [canRender, draft.scenes, draft.defaults.engine, ensureProjectId, generateSceneFromDraft, hasCinema, navigate, patchScene, totalCost]);
 
   const autoCreate = useCallback(async () => {
     if (!draft.scenes.length) {
@@ -704,6 +761,12 @@ export default function StudioShell() {
 
                 <div className="space-y-3">
                   {draft.scenes.length > 0 ? (
+                    <>
+                    <ContinuitySimulator
+                      scenes={draft.scenes}
+                      cast={draft.cast}
+                      brief={draft.brief}
+                    />
                     <ScriptBuilder
                       scenes={draft.scenes}
                       cast={draft.cast}
@@ -720,6 +783,7 @@ export default function StudioShell() {
                         assignments.forEach(a => patchScene(a.id, { speakerId: a.speakerId }));
                       }}
                     />
+                    </>
                   ) : (
                     <button onClick={() => runAutoScript()} disabled={!canGenerateScript || autoBusy} className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/35 p-8 text-center transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40">
                       {autoBusy ? <Loader2 className="mb-3 h-8 w-8 animate-spin text-accent" /> : <Wand2 className="mb-3 h-8 w-8 text-accent" />}

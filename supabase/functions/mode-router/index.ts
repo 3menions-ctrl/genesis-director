@@ -215,6 +215,14 @@ interface ModeRouterRequest {
   // Pipeline (hollywood-pipeline) owns the canonical union; mode-router just forwards.
   breakoutPlatform?: string;
 
+  // Character identity handoff for breakout/cast/template flows
+  avatarImageUrl?: string;
+  avatarName?: string;
+  identityBible?: any;
+  characterLock?: any;
+  referenceImageUrl?: string;
+  breakoutDialogue?: string;
+
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
@@ -253,6 +261,7 @@ serve(async (req) => {
 
     const request: ModeRouterRequest = await req.json();
     const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine } = request;
+    const referenceImageUrl = request.referenceImageUrl || request.avatarImageUrl || imageUrl;
     
     // SECURITY: end-user calls MUST use JWT identity; service-role internal calls may pass request.userId
     if (authenticatedUserId && request.userId && request.userId !== authenticatedUserId) {

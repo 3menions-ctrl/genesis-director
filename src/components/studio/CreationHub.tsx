@@ -170,6 +170,12 @@ interface CreationHubProps {
     avatarName?: string;
     identityBible?: unknown;
     characterLock?: unknown;
+    useTemplateShots?: boolean;
+    templateShotSequence?: unknown[];
+    templateName?: string;
+    templateStyleAnchor?: unknown;
+    templateCharacters?: unknown[];
+    templateEnvironmentLock?: unknown;
   }) => void;
   onReady?: () => void;
   className?: string;
@@ -497,6 +503,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
       videoEngine: videoEngine as any,
+      useTemplateShots: !!appliedSettings?.shotSequence?.length,
+      templateShotSequence: appliedSettings?.shotSequence,
+      templateName: appliedSettings?.templateName,
+      templateStyleAnchor: appliedSettings?.styleAnchor,
+      templateCharacters: appliedSettings?.characterTemplates,
+      templateEnvironmentLock: appliedSettings?.environmentLock,
     };
 
     if (isBreakoutTemplate && appliedSettings?.startImageUrl && selectedAvatar) {

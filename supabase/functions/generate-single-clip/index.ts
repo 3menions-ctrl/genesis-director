@@ -1024,6 +1024,13 @@ serve(async (req) => {
       throw new Error("projectId and prompt are required");
     }
 
+    // ── Continuity payload (server-side ordering enforcement) ────────────
+    // The client may mark a scene as "Independent" (chainFromPrevious=false)
+    // — in which case we render it as a standalone shot, no predecessor
+    // dependency. Otherwise (the default) the scene is "Continuous" and we
+    // MUST inherit the previous shot's tail frame as startImageUrl.
+    const chainFromPrevious: boolean = body.chainFromPrevious !== false;
+
     // ── Credit hold helpers (no-op when holdId is missing). Idempotent —
     // the underlying RPCs short-circuit on already-consumed/released holds.
     let holdSettled = false;

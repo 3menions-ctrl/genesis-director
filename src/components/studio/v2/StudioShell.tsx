@@ -695,17 +695,21 @@ export default function StudioShell() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
                     )}
 
-                    {/* ===== HERO COMPOSER ===== */}
-                    <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_30px_90px_-40px_hsl(var(--accent)/0.5)] backdrop-blur-2xl">
-                      {/* Top hairline + bottom hairline */}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
-
+                    {/* ===== HERO COMPOSER — atelier glass, museum frame ===== */}
+                    <div className="group/composer relative overflow-hidden rounded-[24px] border border-white/[0.07] bg-[linear-gradient(155deg,hsla(220,18%,8%,0.92)_0%,hsla(220,16%,5%,0.88)_45%,hsla(220,14%,3%,0.92)_100%)] shadow-[0_50px_120px_-50px_hsl(215_100%_55%/0.55),0_0_0_1px_hsl(220_14%_2%),inset_0_1px_0_hsla(0,0%,100%,0.06)] backdrop-blur-2xl">
+                      {/* Inner glass sheen */}
+                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(120%_60%_at_50%_-10%,hsla(215,100%,72%,0.10),transparent_55%)]" />
+                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(80%_50%_at_100%_100%,hsla(215,100%,55%,0.08),transparent_60%)]" />
+                      {/* Film grain texture */}
+                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] opacity-[0.045] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+                      {/* Hairlines */}
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
                       {/* Cinema corner brackets */}
-                      <span className="pointer-events-none absolute left-2.5 top-2.5 z-10 h-3 w-3 border-l-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute right-2.5 top-2.5 z-10 h-3 w-3 border-r-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-2.5 left-2.5 z-10 h-3 w-3 border-b-2 border-l-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 h-3 w-3 border-b-2 border-r-2 border-accent/70" />
+                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-3.5 w-3.5 border-l border-t border-accent/80" />
+                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-3.5 w-3.5 border-r border-t border-accent/80" />
+                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-3.5 w-3.5 border-b border-l border-accent/80" />
+                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-3.5 w-3.5 border-b border-r border-accent/80" />
 
                       <div className="px-5 py-6 md:px-7 md:py-7">
                         <div className="flex items-center justify-between">
@@ -733,13 +737,13 @@ export default function StudioShell() {
                           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
 
-                        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-border/40 pt-4">
+                        <div className="relative mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-white/[0.05] pt-4">
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                           <input
                             value={draft.brief.style}
                             onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
                             placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-8 min-w-[180px] flex-1 rounded-full border border-border/60 bg-background/40 px-3.5 text-[13px] text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
+                            className="h-8 min-w-[180px] flex-1 rounded-full border border-white/[0.08] bg-white/[0.02] px-3.5 text-[13px] text-foreground/90 outline-none shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)] transition-all focus:border-accent/60 focus:bg-white/[0.04] focus:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),0_0_0_3px_hsl(var(--accent)/0.10)]"
                           />
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                           <SegmentedSelect

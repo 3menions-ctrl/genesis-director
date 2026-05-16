@@ -183,6 +183,7 @@ export default function StudioShell() {
     return "text";
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const confirmDialog = useConfirmDialog();
   const navigate = useNavigate();
 
   const activeScene = useMemo(

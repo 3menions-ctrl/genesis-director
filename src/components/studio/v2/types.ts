@@ -33,6 +33,15 @@ export interface SceneDraft {
   status: SceneStatus;
   predictionId?: string;
   costEstimate?: number;
+  /**
+   * Continuity link to the previous scene. When `true` (default), the renderer
+   * inherits the previous scene's last frame as this scene's start image and
+   * carries character/identity locks forward. When `false`, this scene is
+   * treated as a standalone shot — no frame chaining, no identity inheritance,
+   * no environment carry-over. Use for anthologies, cutaways, or hard cuts to
+   * an unrelated location/character.
+   */
+  chainFromPrevious?: boolean;
 }
 
 export interface StudioBrief {

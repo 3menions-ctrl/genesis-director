@@ -7362,6 +7362,15 @@ export type Database = {
         }
         Returns: number
       }
+      notify_admins: {
+        Args: {
+          _body: string
+          _data: Json
+          _title: string
+          _type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: undefined
+      }
       persist_pipeline_context: {
         Args: { p_context: Json; p_project_id: string }
         Returns: boolean
@@ -7565,6 +7574,9 @@ export type Database = {
         | "org_welcome"
         | "org_role_changed"
         | "org_credits_low"
+        | "admin_purchase"
+        | "admin_support_message"
+        | "admin_inquiry"
       org_role:
         | "owner"
         | "admin"
@@ -7741,6 +7753,9 @@ export const Constants = {
         "org_welcome",
         "org_role_changed",
         "org_credits_low",
+        "admin_purchase",
+        "admin_support_message",
+        "admin_inquiry",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

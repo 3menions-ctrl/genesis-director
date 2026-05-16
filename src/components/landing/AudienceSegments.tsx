@@ -34,16 +34,16 @@ interface Feature {
 }
 
 const FEATURES: Feature[] = [
-  { id: 't2v',        icon: Type,      eyebrow: 'Generate',  title: 'Text-to-Video',          blurb: 'Type the scene. Get the shot — cinematic, in seconds.', hue: 212 },
-  { id: 'i2v',        icon: ImageIcon, eyebrow: 'Animate',   title: 'Image-to-Video',         blurb: 'Drop a still. Direct it into a living, moving frame.',  hue: 200 },
-  { id: 'script',     icon: Wand2,     eyebrow: 'Write',     title: 'AI Screenwriter',        blurb: 'Idea to shot-ready screenplay — beats, dialogue, blocking.', hue: 218 },
-  { id: 'continuity', icon: Layers,    eyebrow: 'Lock-in',   title: 'Frame-Chained Continuity', blurb: 'Same character, every shot. Zero drift across the cut.', hue: 210 },
-  { id: 'stitch',     icon: Film,      eyebrow: 'Long-form', title: 'Cinematic Stitching',    blurb: 'Chain clips into 30s, 60s, multi-minute story arcs.',   hue: 205 },
-  { id: 'dialogue',   icon: Mic2,      eyebrow: 'Performance', title: 'Multi-Character Dialogue', blurb: 'Synced lip-sync and director-grade camera switches.',  hue: 215 },
-  { id: 'score',      icon: Music2,    eyebrow: 'Sound',     title: 'Native Score & Mix',     blurb: 'Original music with auto dialogue-ducking on export.', hue: 222 },
-  { id: 'facelock',   icon: ScanFace,  eyebrow: 'Identity',  title: 'Face-Lock Engine',       blurb: 'Feature-extraction lock keeps faces pristine, every frame.', hue: 208 },
-  { id: 'sceneDna',   icon: Sparkles,  eyebrow: 'Vision',    title: 'Scene-DNA Extraction',   blurb: 'Read any image, extend it into a directed sequence.',  hue: 220 },
-  { id: 'pipeline',   icon: Activity,  eyebrow: 'Engine',    title: 'Resilient Pipeline',     blurb: 'Watchdog recovery, frame-perfect joins, never lose a render.', hue: 212 },
+  { id: 't2v',        icon: Type,      eyebrow: 'Generate',    title: 'Text-to-Video',            blurb: 'Describe the shot in plain language. Apex renders it — framing, motion and lighting included.', hue: 212 },
+  { id: 'i2v',        icon: ImageIcon, eyebrow: 'Animate',     title: 'Image-to-Video',           blurb: 'Upload a frame. Apex extracts its scene DNA and extends it into directed motion.', hue: 200 },
+  { id: 'script',     icon: Wand2,     eyebrow: 'Write',       title: 'AI Screenwriter',          blurb: 'Turn a one-line idea into a shot list with beats, dialogue and camera blocking.', hue: 218 },
+  { id: 'continuity', icon: Layers,    eyebrow: 'Lock-in',     title: 'Frame-Chained Continuity', blurb: 'The last frame of each shot becomes the first of the next — characters and lighting persist.', hue: 210 },
+  { id: 'stitch',     icon: Film,      eyebrow: 'Long-form',   title: 'Cinematic Stitching',      blurb: 'Chain 5s clips into 30-second, 60-second and multi-minute cuts without seam artifacts.', hue: 205 },
+  { id: 'dialogue',   icon: Mic2,      eyebrow: 'Performance', title: 'Multi-Character Dialogue', blurb: 'Two avatars, six-clip arcs, native lip-sync. Cuts and reverse-shots are scheduled, not guessed.', hue: 215 },
+  { id: 'score',      icon: Music2,    eyebrow: 'Sound',       title: 'Score & Mix',              blurb: 'MusicGen scores the cut and ducks under dialogue automatically on export.', hue: 222 },
+  { id: 'facelock',   icon: ScanFace,  eyebrow: 'Identity',    title: 'Face-Lock Engine',         blurb: 'Feature-extraction holds the same face across every shot — no drift between cuts.', hue: 208 },
+  { id: 'sceneDna',   icon: Sparkles,  eyebrow: 'Vision',      title: 'Scene-DNA Extraction',     blurb: 'Read style, palette and composition from a reference image and apply it to every generated shot.', hue: 220 },
+  { id: 'pipeline',   icon: Activity,  eyebrow: 'Engine',      title: 'Resilient Pipeline',       blurb: 'Watchdog recovery resumes from the last completed shot — long renders survive timeouts.', hue: 212 },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
             </span>
           </div>
           <h2 className="font-display text-5xl md:text-7xl lg:text-[88px] font-semibold tracking-[-0.03em] text-white leading-[0.98]">
-            Every feature.<br className="md:hidden" />{' '}
+            One prompt.<br className="md:hidden" />{' '}
             <span
               className="inline-block bg-clip-text text-transparent"
               style={{
@@ -371,12 +371,13 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
                   color: 'transparent',
                 }}
               >
-                One cinematic loop.
+                The whole pipeline.
               </motion.span>
             </span>
           </h2>
           <p className="mt-6 text-white/55 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            From a single typed line to a stitched, scored, multi-character cut — Apex-Studio handles the entire pipeline.
+            Script, generation, character continuity, dialogue, scoring, stitching and export — every step
+            lives in one workspace, not ten tabs.
           </p>
         </motion.div>
 
@@ -447,14 +448,14 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1.4, repeat: Infinity }}
                 />
-                <span>STREAM · LIVE</span>
+                <span>Preview</span>
               </div>
-              <div className="mt-1">24.000 FPS</div>
+              <div className="mt-1">24 fps</div>
             </div>
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] font-mono tracking-[0.28em] uppercase text-white/75 z-20">
-              <span>HUE {String(active.hue).padStart(3, '0')}°</span>
-              <span className="text-white/65">APEX-STUDIO · ENGINE LOOP</span>
-              <span>SIG · {active.id.toUpperCase()}</span>
+              <span>{active.eyebrow}</span>
+              <span className="text-white/65">Apex Studio</span>
+              <span>{String(activeIdx + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}</span>
             </div>
           </div>
 

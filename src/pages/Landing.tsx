@@ -400,7 +400,7 @@ export default function Landing() {
               className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-7 leading-[1.02]"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
-              Four engines.{' '}
+              Two engines.{' '}
               <span
                 className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
                 style={{ fontFamily: "'Fraunces', serif" }}
@@ -409,8 +409,9 @@ export default function Landing() {
               </span>
             </h2>
             <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-14 max-w-2xl mx-auto">
-              Switch models per shot. Lip-sync, multi-character dialogue, native audio,
-              continuity locked across every cut — orchestrated by a single pipeline.
+              Kling V3 for cinematic dialogue and native audio. Seedance for
+              hyperreal motion. The pipeline routes each shot to the right
+              engine — or pin one for the whole project.
             </p>
           </div>
 
@@ -436,34 +437,18 @@ export default function Landing() {
                   {
                     name: 'Kling V3',
                     tag: 'Cinematic · Native lip-sync',
-                    durations: '5 / 10 / 15s',
+                    durations: '5 / 10s',
                     aspects: '16:9 · 9:16 · 1:1',
                     badges: ['T2V', 'I2V', 'Lip-sync', 'Native audio'],
                     accent: '#0A84FF',
                   },
                   {
-                    name: 'Seedance 1 Pro',
+                    name: 'Seedance 2.0',
                     tag: 'Hyperreal motion',
                     durations: '5 / 10 / 12s',
                     aspects: '16:9 · 9:16 · 1:1',
-                    badges: ['T2V', 'I2V', 'New'],
+                    badges: ['T2V', 'I2V', 'Last-frame carry'],
                     accent: '#7DD3FC',
-                  },
-                  {
-                    name: 'Veo 3 Fast',
-                    tag: 'Native audio · 1080p',
-                    durations: '4 / 6 / 8s',
-                    aspects: '16:9 · 9:16',
-                    badges: ['T2V', 'I2V', 'Native audio'],
-                    accent: '#A78BFA00',
-                  },
-                  {
-                    name: 'Sora 2',
-                    tag: 'Narrative coherence',
-                    durations: '4 / 8 / 12s',
-                    aspects: '16:9 · 9:16',
-                    badges: ['T2V', 'I2V', 'Native audio', 'Long shots'],
-                    accent: '#9DCBFF',
                   },
                 ].map((eng, i) => (
                   <motion.div
@@ -514,8 +499,8 @@ export default function Landing() {
 
               {/* Engine footer note */}
               <p className="mt-6 text-[11px] text-white/40 font-light leading-relaxed">
-                Each shot routes to the right engine automatically — or pin one model
-                for the whole project. Credits are gated per second, billed at $0.10 each.
+                Routing is automatic per shot. Pin a single engine for a project
+                when you need consistency. Credits bill at $0.10 each.
               </p>
             </div>
 

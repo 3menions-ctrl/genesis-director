@@ -37,32 +37,6 @@ export function useScenePipeline(
     }
   };
 
-  const pollPrediction = useCallback((sceneId: string, predictionId: string) => {
-    stopPoll(sceneId);
-    const t = setInterval(async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("poll-replicate-prediction", {
-          body: { predictionId },
-        });
-        if (error) return;
-        const status = (data as any)?.status;
-        const url = (data as any)?.output?.video || (data as any)?.output;
-        if (status === "succeeded" && url) {
-          patchScene(sceneId, { status: "done", clipUrl: typeof url === "string" ? url : url[0], errorReason: undefined });
-          stopPoll(sceneId);
-        } else if (status === "failed" || status === "canceled") {
-          const reason = (data as any)?.error || (data as any)?.detail || `Generation ${status}`;
-          patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
-          toast.error(String(reason).slice(0, 200));
-          stopPoll(sceneId);
-        }
-      } catch {
-        // keep polling until the backend reports a terminal state
-      }
-    }, 5000);
-    polling.current.set(sceneId, t);
-  }, [patchScene]);
-
   /**
    * Poll the `video_clips` row directly. Used when the server parks a
    * chained scene in the queue — we lose the predictionId hand-off, so we
@@ -98,6 +72,42 @@ export function useScenePipeline(
     }, 4000);
     polling.current.set(sceneId, t);
   }, [patchScene]);
+
+  const pollPrediction = useCallback((
+    sceneId: string,
+    predictionId: string,
+    projectId: string,
+    shotIndex: number,
+    totalClips: number,
+  ) => {
+    stopPoll(sceneId);
+    const t = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("poll-replicate-prediction", {
+          body: { predictionId, projectId, shotIndex, totalClips },
+        });
+        if (error) return;
+        const status = (data as any)?.status;
+        const url = (data as any)?.output?.video || (data as any)?.output;
+        if (status === "succeeded" && url) {
+          patchScene(sceneId, { status: "done", clipUrl: typeof url === "string" ? url : url[0], errorReason: undefined });
+          stopPoll(sceneId);
+        } else if (status === "failed" || status === "canceled") {
+          const reason = (data as any)?.error || (data as any)?.detail || `Generation ${status}`;
+          patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          toast.error(String(reason).slice(0, 200));
+          stopPoll(sceneId);
+        } else if ((data as any)?.alreadyCompleted) {
+          // Backend confirmed clip already completed — switch to row poll to fetch URL
+          stopPoll(sceneId);
+          pollClipRow(sceneId, projectId, shotIndex);
+        }
+      } catch {
+        // keep polling until the backend reports a terminal state
+      }
+    }, 5000);
+    polling.current.set(sceneId, t);
+  }, [patchScene, pollClipRow]);
 
   const generateSceneFromDraft = useCallback(async (sceneId: string, sourceDraft: StudioDraft = draft) => {
     const scene = sourceDraft.scenes.find(s => s.id === sceneId);
@@ -274,6 +284,10 @@ export function useScenePipeline(
           cameraMove: scene.move,
           mode: isAvatarMode ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
           source: "studio-v2",
+          // Return immediately after dispatch; poll-replicate-prediction handles
+          // completion durably. Avoids the 60s edge-function timeout that was
+          // surfacing "failed" in the UI even when Replicate succeeded.
+          skipPolling: true,
         },
       });
       if (error) {
@@ -300,7 +314,7 @@ export function useScenePipeline(
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
-        pollPrediction(sceneId, predictionId);
+        pollPrediction(sceneId, predictionId, projectId, scene.index, sourceDraft.scenes.length);
       } else {
         patchScene(sceneId, { status: "generating" });
         // Fallback: no predictionId and not queued — poll the row anyway in

@@ -329,6 +329,26 @@ serve(async (req) => {
       });
     }
 
+    // ==================== GLOBAL KILL SWITCH ====================
+    // After the Replicate credit-exhaustion incident, the watchdog defaults to
+    // DISABLED. It will NOT dispatch new Replicate predictions or resume stalled
+    // projects unless WATCHDOG_RESUME_ENABLED=true is explicitly set as a secret.
+    // Force-stitch above is allowed (no provider calls). Everything below this
+    // line can spawn billable provider work, so we hard-stop here by default.
+    const watchdogEnabled = Deno.env.get("WATCHDOG_RESUME_ENABLED") === "true";
+    if (!watchdogEnabled) {
+      console.warn("[Watchdog] DISABLED via kill switch (WATCHDOG_RESUME_ENABLED != 'true'). " +
+        "Skipping all resume/dispatch logic to prevent unbilled Replicate calls.");
+      return new Response(JSON.stringify({
+        success: true,
+        disabled: true,
+        reason: "WATCHDOG_RESUME_ENABLED is not set to 'true'. Set the secret to re-enable auto-resume.",
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     const result: WatchdogResult = {
       stalledProjects: 0,
       productionResumed: 0,

@@ -7577,6 +7577,7 @@ export type Database = {
         | "admin_purchase"
         | "admin_support_message"
         | "admin_inquiry"
+        | "admin_signup"
       org_role:
         | "owner"
         | "admin"
@@ -7756,6 +7757,7 @@ export const Constants = {
         "admin_purchase",
         "admin_support_message",
         "admin_inquiry",
+        "admin_signup",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

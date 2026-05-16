@@ -86,15 +86,15 @@ import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 // Transparent-background 5s seedance loops, indexed to MASCOTS above.
 const MASCOT_LOOPS = [
-  '/mascots-anim/cereal-astronaut-bear.webm',
-  '/mascots-anim/indie-fox-rogue.webm',
-  '/mascots-anim/cereal-tiger.webm',
-  '/mascots-anim/indie-knight.webm',
-  '/mascots-anim/cereal-wizard-rabbit.webm',
-  '/mascots-anim/indie-robot.webm',
-  '/mascots-anim/food-truck-burger.webm',
-  '/mascots-anim/food-truck-icecream.webm',
-  '/mascots-anim/food-truck-taco.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-astronaut-bear.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-fox-rogue.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-tiger.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-knight.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-wizard-rabbit.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-robot.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-burger.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-icecream.webm',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-taco.webm',
 ];
 const AVATARS = [
   aAaliya, aAelindra, aAmina, aArctic, aAtlas, aBella, aBlitz, aCaptain,

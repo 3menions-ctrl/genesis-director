@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  DollarSign, TrendingUp, BarChart3, ArrowDownRight, Activity, Coins, RefreshCw,
+  DollarSign, TrendingUp, BarChart3, ArrowDownRight, Activity, Coins, RefreshCw, ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,15 @@ interface ProfitData {
   date: string; service: string; total_operations: number;
   total_credits_charged: number; total_real_cost_cents: number;
   estimated_revenue_cents: number; profit_margin_percent: number;
+}
+
+interface PurchaseRow {
+  id: string;
+  user_id: string;
+  amount: number;
+  description: string | null;
+  stripe_payment_id: string | null;
+  created_at: string;
 }
 
 // No longer use hardcoded cost map — use real_cost_cents from DB
@@ -45,6 +54,10 @@ const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 export default function AdminFinancialsPage() {
   const [profitData, setProfitData] = useState<ProfitData[]>([]);
   const [revenue, setRevenue] = useState(0);
+  const [creditsSold, setCreditsSold] = useState(0);
+  const [purchaseCount, setPurchaseCount] = useState(0);
+  const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
+  const [emailById, setEmailById] = useState<Record<string, string>>({});
   const [apiCost, setApiCost] = useState(0);
   const [totalOps, setTotalOps] = useState(0);
 
@@ -58,12 +71,37 @@ export default function AdminFinancialsPage() {
 
   const fetchRevenue = async () => {
     try {
-      const { data: purchases } = await supabase.from("credit_transactions").select("amount, stripe_payment_id").eq("transaction_type", "purchase").not("stripe_payment_id", "is", null);
-      const { data: refunds } = await supabase.from("credit_transactions").select("amount").eq("transaction_type", "refund");
+      // Revenue = real Stripe purchases only. Credit-refunds from failed
+      // generations are internal credit grants, NOT cash refunds — they
+      // must never be subtracted from revenue. Cash refunds would arrive
+      // via Stripe webhooks as a separate transaction class.
+      const { data: rows } = await supabase
+        .from("credit_transactions")
+        .select("id, user_id, amount, description, stripe_payment_id, created_at")
+        .eq("transaction_type", "purchase")
+        .order("created_at", { ascending: false })
+        .limit(100);
       const CREDIT_PRICE_CENTS = 10.0;
-      const p = (purchases || []).reduce((s, r) => s + (r.amount || 0), 0);
-      const r = (refunds || []).reduce((s, r) => s + Math.abs(r.amount || 0), 0);
-      setRevenue(Math.max(0, Math.round((p - r) * CREDIT_PRICE_CENTS)));
+      const list = (rows || []) as PurchaseRow[];
+      const totalCredits = list.reduce((s, r) => s + (r.amount || 0), 0);
+      setCreditsSold(totalCredits);
+      setPurchaseCount(list.length);
+      setRevenue(Math.round(totalCredits * CREDIT_PRICE_CENTS));
+      setPurchases(list);
+
+      // Hydrate emails for buyer identification
+      const userIds = Array.from(new Set(list.map(r => r.user_id))).filter(Boolean);
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, email, display_name")
+          .in("id", userIds);
+        const map: Record<string, string> = {};
+        (profs || []).forEach((p: any) => {
+          map[p.id] = p.display_name || p.email || p.id.slice(0, 8);
+        });
+        setEmailById(map);
+      }
     } catch { /* silent */ }
   };
 
@@ -93,10 +131,51 @@ export default function AdminFinancialsPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatPill icon={DollarSign} label="Revenue" value={fmt(revenue)} sub={revenue === 0 ? "No purchases yet" : "Stripe purchases"} accent="success" />
+        <StatPill icon={DollarSign} label="Revenue" value={fmt(revenue)} sub={`${purchaseCount} purchase${purchaseCount === 1 ? "" : "s"} · ${creditsSold} credits sold`} accent="success" />
         <StatPill icon={ArrowDownRight} label="API Cost" value={fmt(apiCost)} sub={`${totalOps.toLocaleString()} operations`} accent="destructive" />
         <StatPill icon={TrendingUp} label="Net Profit" value={fmt(profit)} accent="primary" />
         <StatPill icon={BarChart3} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" accent={margin >= 70 ? "success" : margin >= 50 ? "warning" : "destructive"} />
+      </div>
+
+      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+        <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 text-white/40" /> Recent Stripe Purchases
+          </h3>
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30">
+            {purchases.length} shown
+          </span>
+        </div>
+        {purchases.length === 0 ? (
+          <div className="text-center py-16 text-white/30">
+            <ShoppingCart className="w-8 h-8 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No purchases yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  {["Date", "Buyer", "Credits", "USD", "Payment", "Description"].map((h, i) => (
+                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-white/30 uppercase tracking-wider", i >= 2 && i <= 3 ? "text-right" : "text-left")}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.map((p) => (
+                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 px-5 text-xs text-white/60">{new Date(p.created_at).toLocaleString()}</td>
+                    <td className="py-3 px-5 text-xs text-white/80">{emailById[p.user_id] || p.user_id.slice(0, 8)}</td>
+                    <td className="py-3 px-5 text-sm text-right text-success font-mono">+{p.amount}</td>
+                    <td className="py-3 px-5 text-sm text-right text-success font-mono">{fmt(p.amount * 10)}</td>
+                    <td className="py-3 px-5 text-[10px] text-white/40 font-mono">{p.stripe_payment_id?.slice(0, 18) || "—"}</td>
+                    <td className="py-3 px-5 text-xs text-white/40 max-w-xs truncate">{p.description || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden">

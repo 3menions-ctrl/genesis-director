@@ -886,6 +886,7 @@ export default function StudioShell() {
         }} />
       </StudioDrawer>
     </div>
+    <confirmDialog.Dialog />
   );
 }
 

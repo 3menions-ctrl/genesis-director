@@ -8,13 +8,13 @@ const silentVigilSource = '/images/silent-vigil-source.png';
 const SHOWCASE_PAIRS = [
   {
     prompt: 'A breathtaking aerial journey through pristine winter landscapes, soaring above snow-capped peaks…',
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ef39dd93-3216-4e76-88ff-69fb2d407914_1768476284014.mp4',
     label: 'Soaring Above Snowy Serenity',
     sourceImage: null as string | null,
   },
   {
     prompt: 'A cinematic journey through golden-hour landscapes, endless winding roads stretching to the horizon…',
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_e74a9703-db48-4e5f-bc91-107b08898d62_1768455703139.mp4',
     label: 'Sunset Dreams on Winding Roads',
     sourceImage: null as string | null,
   },
@@ -26,7 +26,7 @@ const SHOWCASE_PAIRS = [
   },
   {
     prompt: 'An epic tale of courage, a lone warrior standing vigil among ancient ruins, defying the test of time…',
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1bf24783-e03a-446a-bc65-2eca25644d1d_1768792154784.mp4',
     label: 'Silent Vigil in Ruined Valor',
     sourceImage: silentVigilSource,
   },

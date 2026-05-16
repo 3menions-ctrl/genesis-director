@@ -27,8 +27,8 @@ import hoppyIntroAsset from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import seedanceClipAsset from '@/assets/test-seedance-clip.mp4.asset.json';
 
 // Remote avatar reels — distinct cameos, no duplicate "wave hello" across the page.
-const ALT_AVATAR_CAMEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fb50fcdc-bed9-4423-a5cb-871a26f77ee1/avatar_fb50fcdc-bed9-4423-a5cb-871a26f77ee1_clip1_lipsync_1771727043052.mp4';
-const ALT_AVATAR_LIPSYNC = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
+const ALT_AVATAR_CAMEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/a1d2febd-5d8d-42f8-82d9-66cd1669f511/avatar_a1d2febd-5d8d-42f8-82d9-66cd1669f511_clip1_lipsync_1771729924910.mp4';
+const ALT_AVATAR_LIPSYNC = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/f27fc141-7f5c-48f1-ab0b-645f702df131/avatar_f27fc141-7f5c-48f1-ab0b-645f702df131_clip1_lipsync_1771731724210.mp4';
 
 // ── Mascot ring (PNG, transparent or framed) ─────────────────────────────
 import mAstroBear from '@/assets/mascots/cereal-astronaut-bear.png';
@@ -116,7 +116,7 @@ const SHOWREEL = [
   { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
   { src: ALT_AVATAR_LIPSYNC,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
   // Distinct gallery reel — avoids reusing the hero clip already on stage.
-  { src: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4',
+  { src: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ad10b35f-1a39-47c5-8323-3b57b97c9968_1768351244978.mp4',
     label: 'Beautiful Day · Vibes',  spec: 'Kling V3 · Stitched' },
 ];
 

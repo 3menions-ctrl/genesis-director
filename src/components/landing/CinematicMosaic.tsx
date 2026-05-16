@@ -17,7 +17,7 @@ const G = {
   fiery: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
   silentVigil: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
   enchanted: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/6fb5c360-6b46-43b7-8d31-59c9ada01e9b/clip_6fb5c360-6b46-43b7-8d31-59c9ada01e9b_0_1770311441134.mp4',
-  avatarCameo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/6c28668e-2067-4b92-9fac-8f6ba70cb3a8/avatar_6c28668e-2067-4b92-9fac-8f6ba70cb3a8_clip1_lipsync_1770183667726.mp4',
+  avatarCameo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/4879f3fe-7357-469f-a9a7-836acaea58bb/avatar_4879f3fe-7357-469f-a9a7-836acaea58bb_clip1_lipsync_1771703583733.mp4',
 };
 
 // One curated, ordered playlist — 8 hand-picked reels. No dump.

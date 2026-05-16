@@ -32,7 +32,7 @@ const G = {
   silentVigil:
     'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
   enchanted:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/6fb5c360-6b46-43b7-8d31-59c9ada01e9b/clip_6fb5c360-6b46-43b7-8d31-59c9ada01e9b_0_1770311441134.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_0_1770518760774.mp4',
   studioTalk:
     'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1bf24783-e03a-446a-bc65-2eca25644d1d_1768792154784.mp4',
   brandSpot:

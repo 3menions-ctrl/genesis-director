@@ -508,7 +508,19 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         <div className="absolute top-3 left-3 z-20">
           {visualStatus === 'ready' && <StatusPill color="emerald" label="Ready" glass />}
           {visualStatus === 'rendering' && <StatusPill color="white" label="Rendering" pulse glass />}
-          {visualStatus === 'archived' && <StatusPill color="white" label="Archived" glass />}
+          {visualStatus === 'archived' && (
+            isFailed && (project as { last_error?: string }).last_error ? (
+              <span
+                title={(project as { last_error?: string }).last_error || ''}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[hsla(0,72%,52%,0.18)] border border-[hsla(0,72%,62%,0.35)] px-2.5 py-1 text-[10px] font-light tracking-[0.08em] uppercase text-[hsl(0,72%,82%)] backdrop-blur-md max-w-[180px]"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(0,72%,62%)]" />
+                <span className="truncate">Failed · {(project as { last_error?: string }).last_error}</span>
+              </span>
+            ) : (
+              <StatusPill color="white" label="Archived" glass />
+            )
+          )}
         </div>
 
         {/* Top-right: Actions — appear on hover */}

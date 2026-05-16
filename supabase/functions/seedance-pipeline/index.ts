@@ -570,23 +570,39 @@ serve(async (req) => {
       })
       .eq("id", projectId);
 
-    // ═══ SCENE IMAGES (FLUX) ═══
-    let sceneImages: string[] = [];
-    try {
-      console.log(`[Seedance] Generating ${shots.length} scene images via generate-scene-images`);
-      const imgRes = await callEdgeFunction("generate-scene-images", {
-        projectId,
-        userId: request.userId,
-        shots: shots.map((s) => ({
-          id: s.id, description: s.description, mood: s.mood ?? request.mood,
-        })),
-        aspectRatio,
-        engine: "seedance",
-      });
-      sceneImages = imgRes?.imageUrls ?? imgRes?.images ?? [];
-      console.log(`[Seedance] ✓ Got ${sceneImages.length} scene images`);
-    } catch (e: any) {
-      console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
+    // ═══ SCENE IMAGES ═══
+    // Three modes:
+    //   1) referenceImageUrl provided (avatar / mascot / breakout) →
+    //      use the SAME reference as start image for every clip so identity
+    //      stays locked. Seedance's `last_frame_image` still chains motion.
+    //   2) Template flow with templateEnvironmentLock → use FLUX but seed
+    //      with environment lock + character anchor.
+    //   3) Pure concept → FLUX per-shot.
+    let sceneImages: Array<string | null> = [];
+    if (request.referenceImageUrl) {
+      console.log(`[Seedance] 🎭 Reference image present → locking identity across all ${shots.length} clips`);
+      sceneImages = Array.from({ length: shots.length }, () => request.referenceImageUrl!);
+    } else {
+      try {
+        console.log(`[Seedance] Generating ${shots.length} scene images via generate-scene-images`);
+        const imgRes = await callEdgeFunction("generate-scene-images", {
+          projectId,
+          userId: request.userId,
+          shots: shots.map((s) => ({
+            id: s.id, description: s.description, mood: s.mood ?? request.mood,
+          })),
+          aspectRatio,
+          engine: "seedance",
+          // Pass template style/env anchors so FLUX honors them
+          styleAnchor: request.templateStyleAnchor,
+          environmentLock: request.templateEnvironmentLock,
+          characterLock: request.characterLock,
+        });
+        sceneImages = imgRes?.imageUrls ?? imgRes?.images ?? [];
+        console.log(`[Seedance] ✓ Got ${sceneImages.length} scene images`);
+      } catch (e: any) {
+        console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
+      }
     }
 
     // ═══ AUDIO DISPATCH (parallel with video clips) ═══

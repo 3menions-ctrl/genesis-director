@@ -828,13 +828,14 @@ serve(async (req) => {
     if (request.projectId) {
       try {
         const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+        const fallbackClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
         await markProjectFailedAndRefund(supabase, {
           projectId: request.projectId,
           userId: request.userId,
           stage: 'preproduction',
           reason: err,
-          totalCredits: typeof totalCredits === 'number' ? totalCredits : null,
-          expectedClipCount: typeof clipCount === 'number' ? clipCount : null,
+          totalCredits: fallbackClipCount * seedanceCreditsForClip(Math.max(3, Math.min(12, request.clipDuration ?? 5))),
+          expectedClipCount: fallbackClipCount,
           completedClipCount: 0, // terminal failure pre-dispatch
           source: 'seedance',
         });

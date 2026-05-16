@@ -507,6 +507,30 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
+        // SEEDANCE LOCK: Seedance avatars MUST route through seedance-pipeline
+        // (generate-avatar-direct is Kling-only and would silently fall back).
+        // Use the cinematic avatar path which already engine-routes correctly.
+        if (videoEngine === 'seedance') {
+          console.log('[ModeRouter] Avatar + Seedance → routing through seedance-pipeline via cinematic avatar path');
+          return await handleAvatarCinematicMode({
+            projectId: projectId!,
+            userId,
+            concept: prompt,
+            sceneDescription: request.sceneDescription,
+            avatarImageUrl: imageUrl!,
+            voiceId: voiceId || 'bella',
+            aspectRatio,
+            clipCount,
+            clipDuration,
+            enableNarration: enableNarration ?? true,
+            enableMusic: enableMusic ?? false,
+            characterBible: request.characterBible,
+            avatarTemplateId: request.avatarTemplateId,
+            avatarCast: request.avatarCast,
+            videoEngine,
+            supabase,
+          });
+        }
         // AVATAR DIRECT PATH - Bypasses Hollywood complexity for avatar videos
         // User's exact script → Kling V3 with native audio
         // Scene description → Background generation (if provided)

@@ -48,6 +48,41 @@ export function useScenePipeline(
     polling.current.set(sceneId, t);
   }, [patchScene]);
 
+  /**
+   * Poll the `video_clips` row directly. Used when the server parks a
+   * chained scene in the queue — we lose the predictionId hand-off, so we
+   * watch the row's status/video_url instead. The drain step on the
+   * predecessor's completion re-fires the parked request, which writes its
+   * predictionId + eventual video_url into the same row.
+   */
+  const pollClipRow = useCallback((sceneId: string, projectId: string, shotIndex: number) => {
+    stopPoll(sceneId);
+    const t = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("video_clips")
+          .select("status, video_url, error_message")
+          .eq("project_id", projectId)
+          .eq("shot_index", shotIndex)
+          .maybeSingle();
+        if (error) return;
+        const status = (data as any)?.status;
+        const url = (data as any)?.video_url;
+        if (status === "completed" && url) {
+          patchScene(sceneId, { status: "done", clipUrl: url });
+          stopPoll(sceneId);
+        } else if (status === "failed") {
+          patchScene(sceneId, { status: "failed" });
+          toast.error((data as any)?.error_message || "Generation failed");
+          stopPoll(sceneId);
+        }
+      } catch {
+        // transient — keep polling
+      }
+    }, 4000);
+    polling.current.set(sceneId, t);
+  }, [patchScene]);
+
   const generateSceneFromDraft = useCallback(async (sceneId: string, sourceDraft: StudioDraft = draft) => {
     const scene = sourceDraft.scenes.find(s => s.id === sceneId);
     if (!scene) return;
@@ -170,19 +205,30 @@ export function useScenePipeline(
       }
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
       const directUrl = (data as any)?.videoUrl;
-      if (directUrl) {
+      const queued = (data as any)?.queued === true;
+      if (queued) {
+        // Server parked us behind the predecessor. Surface the wait in the
+        // UI and switch to row-polling — the drain will re-fire this scene
+        // and stamp its prediction onto the same video_clips row.
+        patchScene(sceneId, { status: "generating" });
+        toast.message(`Scene ${scene.index + 1} queued — waiting on scene ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`, { duration: 2500 });
+        pollClipRow(sceneId, projectId, scene.index);
+      } else if (directUrl) {
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
         pollPrediction(sceneId, predictionId);
       } else {
         patchScene(sceneId, { status: "generating" });
+        // Fallback: no predictionId and not queued — poll the row anyway in
+        // case the renderer wrote it asynchronously (defensive).
+        pollClipRow(sceneId, projectId, scene.index);
       }
     } catch (e: any) {
       patchScene(sceneId, { status: "failed" });
       toast.error(e?.message || "Failed to start generation");
     }
-  }, [draft, patchScene, pollPrediction, ensureProjectId]);
+  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
 
   const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
 

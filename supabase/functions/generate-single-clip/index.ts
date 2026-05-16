@@ -991,7 +991,8 @@ serve(async (req) => {
     const {
       prompt,
       negativePrompt = "",
-      startImageUrl,
+      // startImageUrl handled below as `let` so the chain-ordering gate
+      // can override it with the predecessor's persisted tail frame.
       aspectRatio = "16:9",
       durationSeconds = DEFAULT_CLIP_DURATION,
       sceneContext,
@@ -1019,10 +1020,18 @@ serve(async (req) => {
       // concurrent renders cannot drift past the pre-flight check.
       holdId,
     } = body;
+    let startImageUrl: string | null | undefined = body.startImageUrl;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
     }
+
+    // ── Continuity payload (server-side ordering enforcement) ────────────
+    // The client may mark a scene as "Independent" (chainFromPrevious=false)
+    // — in which case we render it as a standalone shot, no predecessor
+    // dependency. Otherwise (the default) the scene is "Continuous" and we
+    // MUST inherit the previous shot's tail frame as startImageUrl.
+    const chainFromPrevious: boolean = body.chainFromPrevious !== false;
 
     // ── Credit hold helpers (no-op when holdId is missing). Idempotent —
     // the underlying RPCs short-circuit on already-consumed/released holds.
@@ -1108,6 +1117,102 @@ serve(async (req) => {
       sora:     'openai/sora-2',
     };
     console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${ENGINE_ROUTE_LABEL[videoEngine]}`);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SERVER-SIDE ORDERING GATE for continuous (chained) scenes
+    // ═══════════════════════════════════════════════════════════════════════
+    // Even if the client fires every scene's request in parallel, the backend
+    // refuses to render a chained scene until its predecessor has produced a
+    // real last_frame_url. Behaviour:
+    //   • If predecessor.status !== 'completed' OR no last_frame_url:
+    //       - park the full payload in scene_chain_queue
+    //       - release any credit hold (we'll re-reserve when the queued
+    //         payload re-fires)
+    //       - return 202 { queued: true, waitingOnShot }
+    //   • Else override startImageUrl with predecessor.last_frame_url
+    //     (server is source of truth — defeats stale client payloads).
+    //
+    // Independent scenes (chainFromPrevious === false) bypass this entirely.
+    if (chainFromPrevious && shotIndex > 0 && projectId && userId) {
+      try {
+        const { data: prevClip } = await supabase
+          .from('video_clips')
+          .select('status, last_frame_url, video_url')
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex - 1)
+          .maybeSingle();
+
+        const predecessorReady =
+          prevClip?.status === 'completed' && !!prevClip?.last_frame_url;
+
+        if (!predecessorReady) {
+          // Park the request. UPSERT so duplicate parallel hits don't error.
+          const queuePayload = { ...body };
+          // Strip the holdId — we release it now and will re-reserve when
+          // the queued payload re-fires (otherwise the hold would expire
+          // while waiting and the re-fire would fail credit-check).
+          delete queuePayload.holdId;
+
+          const { error: queueErr } = await supabase
+            .from('scene_chain_queue')
+            .upsert({
+              project_id: projectId,
+              shot_index: shotIndex,
+              user_id: userId,
+              payload: queuePayload,
+              hold_id: holdId || null,
+              status: 'waiting',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'project_id,shot_index' });
+
+          if (queueErr) {
+            console.error(`[SingleClip] 🛑 Chain queue insert failed:`, queueErr);
+            await releaseHold('chain_queue_insert_failed');
+            return new Response(
+              JSON.stringify({ success: false, error: 'Could not queue chained scene' }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Ensure a 'pending' video_clips row exists so the UI can poll
+          // (status will flip to 'generating' when the drain re-fires this).
+          await upsertClipRecord(supabase, {
+            projectId,
+            userId,
+            shotIndex,
+            prompt,
+            status: 'pending',
+          });
+
+          await releaseHold('queued_waiting_predecessor');
+          console.log(`[SingleClip] ⏸ Chain gate: shot ${shotIndex} parked, waiting on shot ${shotIndex - 1} (predecessor status=${prevClip?.status ?? 'missing'})`);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              queued: true,
+              waitingOnShot: shotIndex - 1,
+              predecessorStatus: prevClip?.status ?? 'missing',
+              message: `Shot ${shotIndex + 1} queued — will auto-start when shot ${shotIndex} completes`,
+            }),
+            { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Predecessor ready → SERVER overrides client startImageUrl with the
+        // persisted last_frame_url. Client payloads can be stale (cached
+        // brief ref / cast image) so we always trust the DB here.
+        const persistedTail = prevClip!.last_frame_url as string;
+        if (startImageUrl !== persistedTail) {
+          console.log(`[SingleClip] 🔗 Chain gate: overriding client startImageUrl with predecessor tail frame (shot ${shotIndex - 1})`);
+          startImageUrl = persistedTail;
+        }
+      } catch (gateErr) {
+        // Fail-open: log and proceed with the client-provided startImageUrl
+        // rather than blocking the render entirely on a transient lookup error.
+        console.warn(`[SingleClip] ⚠️ Chain gate lookup failed (proceeding with client payload):`, gateErr);
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - Final defense layer at clip generation
@@ -1886,6 +1991,54 @@ serve(async (req) => {
     // =========================================================
     await releaseLock();
     console.log(`[SingleClip] ✓ Generation lock released`);
+
+    // =========================================================
+    // CHAIN QUEUE DRAIN — auto-resume the next chained shot if a
+    // parallel request had been parked waiting on THIS shot's tail
+    // frame. Server-side ordering enforcement: the next shot will
+    // re-enter generate-single-clip and the predecessor gate above
+    // will now find this clip 'completed' and inject the real tail.
+    // =========================================================
+    try {
+      const { data: queuedRow } = await supabase
+        .from('scene_chain_queue')
+        .select('payload, hold_id')
+        .eq('project_id', projectId)
+        .eq('shot_index', shotIndex + 1)
+        .maybeSingle();
+
+      if (queuedRow?.payload) {
+        console.log(`[SingleClip] ▶ Chain drain: re-firing parked shot ${shotIndex + 1} now that shot ${shotIndex} is complete`);
+
+        // Delete first so a duplicate completion can't double-fire.
+        await supabase
+          .from('scene_chain_queue')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex + 1);
+
+        // Re-fire with the freshly-extracted tail frame stamped in. The
+        // predecessor-gate on re-entry will also pick this up from DB, but
+        // we set it here so the very first prompt path sees it.
+        const replayBody = {
+          ...(queuedRow.payload as Record<string, unknown>),
+          startImageUrl: extractedLastFrameUrl || (queuedRow.payload as any).startImageUrl,
+          holdId: queuedRow.hold_id || undefined,
+        };
+
+        // Fire-and-forget. If this fails the watchdog will pick it up.
+        fetch(`${supabaseUrl}/functions/v1/generate-single-clip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify(replayBody),
+        }).catch(err => console.warn(`[SingleClip] Chain drain re-fire failed:`, err));
+      }
+    } catch (drainErr) {
+      console.warn(`[SingleClip] Chain queue drain error (non-fatal):`, drainErr);
+    }
 
     // =========================================================
     // Trigger next clip generation via continue-production

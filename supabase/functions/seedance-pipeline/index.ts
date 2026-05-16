@@ -474,7 +474,45 @@ serve(async (req) => {
 
     // ═══ SCRIPT ═══
     let shots: Array<Record<string, any>>;
-    if (request.approvedScript?.shots?.length) {
+
+    // ─── A) TEMPLATE flow — pre-defined shots used directly ──────────
+    if (request.useTemplateShots && request.templateShotSequence?.length) {
+      const seq = request.templateShotSequence;
+      console.log(`[Seedance] Using ${seq.length} template shots from "${request.templateName || 'template'}"`);
+      shots = seq.map((shot: any, i: number) => ({
+        id: shot.id ?? `tpl_${i + 1}`,
+        title: shot.title ?? `Shot ${i + 1}`,
+        description: shot.description ?? shot.prompt ?? `Scene ${i + 1}`,
+        durationSeconds: Math.min(12, shot.durationSeconds ?? clipDuration),
+        dialogue: shot.dialogue,
+        mood: shot.mood ?? request.mood,
+      }));
+      // Promote template character/env into identity for prompt injection
+      if (!request.characterLock && request.templateCharacters?.[0]) {
+        request.characterLock = {
+          description: request.templateCharacters[0].appearance ?? "",
+        };
+      }
+    }
+    // ─── B) BREAKOUT / FOURTH-WALL flow — 3-clip narrative ──────────
+    else if (request.isBreakout && request.breakoutPlatform) {
+      console.log(`[Seedance] 🔥 BREAKOUT EFFECT: ${request.breakoutPlatform}`);
+      const cfg = getSeedanceBreakoutConfig(request.breakoutPlatform);
+      const userLine = (request.breakoutDialogue ?? request.concept ?? "").trim();
+      const clip3WithLine = userLine
+        ? `${cfg.clip3} Speaking the line: "${userLine.slice(0, 280)}".`
+        : cfg.clip3;
+      shots = [
+        { id: "breakout_1", title: "The Trap",     description: cfg.clip1, durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_2", title: "The Break",    description: cfg.clip2, durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_3", title: "The Emerge",   description: clip3WithLine, durationSeconds: Math.min(12, clipDuration), dialogue: userLine || undefined },
+      ];
+      // Breakout start image becomes the reference for clip 1
+      if (request.breakoutStartImageUrl && !request.referenceImageUrl) {
+        request.referenceImageUrl = request.breakoutStartImageUrl;
+      }
+    }
+    else if (request.approvedScript?.shots?.length) {
       shots = request.approvedScript.shots;
       console.log(`[Seedance] Using approved script: ${shots.length} shots`);
     } else if (request.manualPrompts?.length) {
@@ -493,6 +531,14 @@ serve(async (req) => {
         genre: request.genre ?? "cinematic",
         mood: request.mood ?? "epic",
         engine: "seedance",
+        // Seedance-specific guidance for the script generator
+        engineHints: {
+          noNativeAudio: true,        // don't bake in lip-sync / SFX cues
+          maxClipSeconds: 12,
+          motionFirst: true,          // favor action verbs, camera intent
+          referenceImage: !!request.referenceImageUrl,
+          isAvatarMode: !!request.isAvatarMode,
+        },
       }).catch((e) => {
         console.warn(`[Seedance] generate-script failed, falling back to concept split:`, e?.message);
         return null;

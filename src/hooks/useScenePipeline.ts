@@ -48,11 +48,12 @@ export function useScenePipeline(
         const status = (data as any)?.status;
         const url = (data as any)?.output?.video || (data as any)?.output;
         if (status === "succeeded" && url) {
-          patchScene(sceneId, { status: "done", clipUrl: typeof url === "string" ? url : url[0] });
+          patchScene(sceneId, { status: "done", clipUrl: typeof url === "string" ? url : url[0], errorReason: undefined });
           stopPoll(sceneId);
         } else if (status === "failed" || status === "canceled") {
-          patchScene(sceneId, { status: "failed" });
-          toast.error("Generation failed");
+          const reason = (data as any)?.error || (data as any)?.detail || `Generation ${status}`;
+          patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
         }
       } catch {
@@ -83,11 +84,12 @@ export function useScenePipeline(
         const status = (data as any)?.status;
         const url = (data as any)?.video_url;
         if (status === "completed" && url) {
-          patchScene(sceneId, { status: "done", clipUrl: url });
+          patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
           stopPoll(sceneId);
         } else if (status === "failed") {
-          patchScene(sceneId, { status: "failed" });
-          toast.error((data as any)?.error_message || "Generation failed");
+          const reason = (data as any)?.error_message || "Generation failed";
+          patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
         }
       } catch {
@@ -101,7 +103,9 @@ export function useScenePipeline(
     const scene = sourceDraft.scenes.find(s => s.id === sceneId);
     if (!scene) return;
     if (!scene.beat && !scene.dialogue && !sourceDraft.brief.logline) {
-      toast.error("Add a brief, beat, or dialogue first");
+      const reason = "Add a brief, beat, or dialogue first";
+      patchScene(sceneId, { status: "failed", errorReason: reason });
+      toast.error(reason);
       return;
     }
 
@@ -125,7 +129,8 @@ export function useScenePipeline(
           if (!live) { stopGate(sceneId); return; }
           if (live.status === "failed") {
             stopGate(sceneId);
-            patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined });
+            const reason = `Skipped — scene ${predecessor.index + 1} failed (${predecessor.errorReason || "no detail"})`;
+            patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: reason });
             toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
             return;
           }
@@ -156,7 +161,7 @@ export function useScenePipeline(
                 };
                 await generateSceneFromDraft(sceneId, resumedDraft);
               } catch (err) {
-                patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined });
+                patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: (err as any)?.message || "Resume failed after predecessor completed" });
                 toast.error(`Scene ${scene.index + 1} resume failed`);
               }
             })();
@@ -167,7 +172,7 @@ export function useScenePipeline(
       }
     }
 
-    patchScene(sceneId, { status: "queued" });
+    patchScene(sceneId, { status: "queued", errorReason: undefined });
     try {
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
       const engineId = scene.engine || sourceDraft.defaults.engine;
@@ -220,13 +225,15 @@ export function useScenePipeline(
           const reserved = (hold as any)?.reserved ?? 0;
           const balance = (hold as any)?.balance ?? 0;
           const eff = (hold as any)?.effectiveBalance ?? balance - reserved;
-          patchScene(sceneId, { status: "failed" });
-          toast.error(`Insufficient credits — ${estimated} required, ${eff} available`);
+          const reason = `Insufficient credits — ${estimated} required, ${eff} available`;
+          patchScene(sceneId, { status: "failed", errorReason: reason });
+          toast.error(reason);
           return;
         }
         holdId = (hold as any).holdId as string;
       } catch (e) {
-        patchScene(sceneId, { status: "failed" });
+        const reason = (e as any)?.message || "Could not reserve credits";
+        patchScene(sceneId, { status: "failed", errorReason: reason });
         toast.error("Could not reserve credits");
         return;
       }
@@ -301,8 +308,9 @@ export function useScenePipeline(
         pollClipRow(sceneId, projectId, scene.index);
       }
     } catch (e: any) {
-      patchScene(sceneId, { status: "failed" });
-      toast.error(e?.message || "Failed to start generation");
+      const reason = e?.message || e?.error || "Failed to start generation";
+      patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+      toast.error(String(reason).slice(0, 200));
     }
   }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
 

@@ -41,6 +41,14 @@ export interface SceneDraft {
    */
   waitingOnSceneId?: string;
   /**
+   * Human-readable reason set whenever `status === "failed"`. Surfaced on
+   * the clip card and stage preview so users can see why a render was
+   * rejected (insufficient credits, engine lock error, predecessor failure,
+   * backend exception, etc.). Cleared whenever the scene re-enters a
+   * non-terminal state.
+   */
+  errorReason?: string;
+  /**
    * Continuity link to the previous scene. When `true` (default), the renderer
    * inherits the previous scene's last frame as this scene's start image and
    * carries character/identity locks forward. When `false`, this scene is

@@ -596,6 +596,25 @@ export default function StudioShell() {
             <span className="font-mono text-[10px] uppercase tracking-[0.22em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
           </button>
           <button
+            onClick={async () => {
+              if (await confirmDialog.confirm({
+                title: "Start fresh?",
+                description: "This clears your title, cast, script, and all scenes. It cannot be undone.",
+                confirmLabel: "Clear all",
+                destructive: true,
+              })) {
+                await clearDraft();
+                setStep("start");
+                toast.success("Draft cleared — ready for a new story");
+              }
+            }}
+            className="hidden h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background/40 px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive md:inline-flex"
+            title="Clear everything and start over"
+          >
+            <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden lg:inline">Start fresh</span>
+          </button>
+          <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
             className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-5 text-[12px] font-medium tracking-[0.04em] text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-30"

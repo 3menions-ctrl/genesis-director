@@ -1,8 +1,6 @@
 project_id = "ahlikyhgcqvrdvbtkghh"
 
 [functions]
-  [functions.agent-chat]
-    verify_jwt = false
   [functions.analyze-depth-consistency]
     verify_jwt = false
   [functions.analyze-lip-sync]

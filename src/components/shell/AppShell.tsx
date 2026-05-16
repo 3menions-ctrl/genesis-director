@@ -3,8 +3,8 @@ import { NavLink, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight, Code2,
-  Users as UsersIcon, Smile,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
+  Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';

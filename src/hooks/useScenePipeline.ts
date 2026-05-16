@@ -37,12 +37,18 @@ export function useScenePipeline(
     }
   };
 
-  const pollPrediction = useCallback((sceneId: string, predictionId: string) => {
+  const pollPrediction = useCallback((
+    sceneId: string,
+    predictionId: string,
+    projectId: string,
+    shotIndex: number,
+    totalClips: number,
+  ) => {
     stopPoll(sceneId);
     const t = setInterval(async () => {
       try {
         const { data, error } = await supabase.functions.invoke("poll-replicate-prediction", {
-          body: { predictionId },
+          body: { predictionId, projectId, shotIndex, totalClips },
         });
         if (error) return;
         const status = (data as any)?.status;
@@ -54,6 +60,10 @@ export function useScenePipeline(
           const reason = (data as any)?.error || (data as any)?.detail || `Generation ${status}`;
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
+          stopPoll(sceneId);
+        } else if ((data as any)?.alreadyCompleted) {
+          // Backend confirmed clip already completed — switch to row poll to fetch URL
+          pollClipRow(sceneId, projectId, shotIndex);
           stopPoll(sceneId);
         }
       } catch {
@@ -300,7 +310,7 @@ export function useScenePipeline(
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
-        pollPrediction(sceneId, predictionId);
+        pollPrediction(sceneId, predictionId, projectId, scene.index, sourceDraft.scenes.length);
       } else {
         patchScene(sceneId, { status: "generating" });
         // Fallback: no predictionId and not queued — poll the row anyway in

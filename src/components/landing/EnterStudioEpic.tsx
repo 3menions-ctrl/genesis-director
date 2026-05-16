@@ -24,6 +24,8 @@ import { motion } from 'framer-motion';
 import waveHelloAsset from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import seedanceTestAsset from '@/assets/seedance-avatar-test.mp4.asset.json';
 import immersiveHeroAsset from '@/assets/landing-immersive-hero.mp4.asset.json';
+import hoppyIntroAsset from '@/assets/landing-hoppy-intro.mp4.asset.json';
+import seedanceClipAsset from '@/assets/test-seedance-clip.mp4.asset.json';
 
 // ── Mascot ring (PNG, transparent or framed) ─────────────────────────────
 import mAstroBear from '@/assets/mascots/cereal-astronaut-bear.png';
@@ -72,6 +74,9 @@ import scene2 from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
 import scene3 from '@/assets/scenes/minimal-embed-preview.jpg';
 import feat1 from '@/assets/features/character-lock-premium.jpg';
 import feat2 from '@/assets/features/text-to-video-premium.jpg';
+import featMusic from '@/assets/features/music-premium.jpg';
+import featVoice from '@/assets/features/voiceover-premium.jpg';
+import featStyle from '@/assets/features/style-transfer-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 const AVATARS = [
@@ -87,6 +92,13 @@ const VIDEOS = [
   { src: waveHelloAsset.url,    label: 'Avatar · Wave Hello',  spec: 'Kling V3 · 10s · 16:9' },
   { src: seedanceTestAsset.url, label: 'Seedance · Hyperreal', spec: 'Seedance 2.0 · 12s'    },
   { src: immersiveHeroAsset.url,label: 'Cinematic · Hero',     spec: 'Kling V3 · Native audio'},
+];
+
+const SHOWREEL = [
+  { src: hoppyIntroAsset.url,   label: 'Hoppy · Mascot Reel',  spec: 'I2V · Stitched' },
+  { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
+  { src: waveHelloAsset.url,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
+  { src: immersiveHeroAsset.url,label: 'Hero · Wide Cinematic',spec: 'Kling V3 · 16:9' },
 ];
 
 interface Props {

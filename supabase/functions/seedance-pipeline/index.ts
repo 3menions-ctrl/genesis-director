@@ -66,6 +66,29 @@ interface SeedancePipelineRequest {
   skipCreditDeduction?: boolean;
   resumeFrom?: string;
   isAvatarMode?: boolean;
+
+  // ─── Avatars / Mascots / Reference identity ──────────────────────────
+  referenceImageUrl?: string;        // avatar/mascot/character ref
+  referenceImageAnalysis?: any;      // pre-extracted identity
+  identityBible?: any;               // continuity manifest from extractor
+  characterLock?: any;               // character lock object
+
+  // ─── Templates (rich template flow) ──────────────────────────────────
+  useTemplateShots?: boolean;
+  templateShotSequence?: any[];      // pre-defined shots
+  templateName?: string;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
+
+  // ─── Fourth-wall / Breakout effects (3-clip narrative) ───────────────
+  isBreakout?: boolean;
+  breakoutStartImageUrl?: string;
+  breakoutPlatform?:
+    | 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip'
+    | 'aspect-escape' | 'mirror-shatter' | 'canvas-emerge'
+    | 'billboard-leap' | 'page-burst' | 'hologram-materialize';
+  breakoutDialogue?: string;         // line spoken in clip 3
 }
 
 interface SeedanceClipInput {

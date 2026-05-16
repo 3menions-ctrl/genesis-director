@@ -525,7 +525,9 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
         // Fallback: Upload character image directly
         toast.info('Using character image directly for generation...');
         const imageBlob = await fetch(characterImage).then(r => r.blob());
-        const imageFileName = `training-avatar-${user.id}-${Date.now()}.jpg`;
+        // SECURITY: store under user folder so private-bucket RLS
+        // (`(storage.foldername(name))[1] = auth.uid()`) authorizes the owner.
+        const imageFileName = `${user.id}/training-avatar-${Date.now()}.jpg`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('character-references')
@@ -538,10 +540,18 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
           console.warn('Image upload failed:', uploadError);
           startImageUrl = characterImage; // Use base64 as last resort
         } else {
-          const { data: publicUrl } = supabase.storage
+          // character-references is a private bucket — face biometrics must
+          // not be reachable via public URL. Sign for 1h so downstream
+          // generation services (Replicate/Kling) can still fetch.
+          const { data: signed, error: signErr } = await supabase.storage
             .from('character-references')
-            .getPublicUrl(imageFileName);
-          startImageUrl = publicUrl.publicUrl;
+            .createSignedUrl(imageFileName, 3600);
+          if (signErr || !signed?.signedUrl) {
+            console.warn('Signed URL failed, falling back to base64:', signErr);
+            startImageUrl = characterImage;
+          } else {
+            startImageUrl = signed.signedUrl;
+          }
         }
       }
 

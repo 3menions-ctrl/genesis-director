@@ -42,6 +42,7 @@ import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
 import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, engineToBackend, type EngineId } from "@/lib/video/engines";
 import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
 import { EnginesDrawerContent } from "./drawers/EnginesDrawer";

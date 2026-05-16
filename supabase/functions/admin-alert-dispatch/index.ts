@@ -12,7 +12,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const ADMIN_EMAIL = 'admincole@apex-studio.ai'
+const ADMIN_EMAIL = 'apex-studio.ai@apex-studio.ai'
 
 type Kind =
   | 'signup' | 'purchase' | 'support' | 'inquiry'

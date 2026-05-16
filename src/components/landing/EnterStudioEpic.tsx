@@ -635,7 +635,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
 
           <div className="md:col-span-5 grid grid-cols-2 gap-3">
-            {[featMusic, featVoice, featStyle, feat1].map((src, i) => (
+            {[featMusic, featVoice, featStyle, featImageToVideo].map((src, i) => (
               <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-white/[0.06] group"
                 style={{ boxShadow: '0 20px 60px -30px rgba(10,132,255,0.5)' }}
               >
@@ -644,7 +644,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   style={{ background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.7) 100%)' }}
                 />
                 <div className="absolute bottom-2 left-2.5 text-[9.5px] font-mono uppercase tracking-[0.2em] text-white/85">
-                  {['Music','Voice','Style','Lock'][i]}
+                  {['Music','Voice','Style','I2V'][i]}
                 </div>
               </div>
             ))}

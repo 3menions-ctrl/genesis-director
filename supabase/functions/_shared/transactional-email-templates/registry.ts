@@ -6,6 +6,9 @@ import { template as orgMemberJoined } from './org-member-joined.tsx'
 import { template as orgRoleChanged } from './org-role-changed.tsx'
 import { template as orgCreditsLow } from './org-credits-low.tsx'
 import { template as adminContactMessage } from './admin-contact-message.tsx'
+import { template as adminNewSignup } from './admin-new-signup.tsx'
+import { template as adminCreditPurchase } from './admin-credit-purchase.tsx'
+import { template as adminSalesInquiry } from './admin-sales-inquiry.tsx'
 
 // Registry contract — used by send-transactional-email and preview-transactional-email.
 export interface TemplateEntry {
@@ -29,4 +32,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   org_role_changed: orgRoleChanged,
   org_credits_low: orgCreditsLow,
   admin_contact_message: adminContactMessage,
+  admin_new_signup: adminNewSignup,
+  admin_credit_purchase: adminCreditPurchase,
+  admin_sales_inquiry: adminSalesInquiry,
 }

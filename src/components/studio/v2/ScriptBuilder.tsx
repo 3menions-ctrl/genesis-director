@@ -29,7 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Circle, Clapperboard,
-  Copy, Download, Edit3, Filter, Link2, Link2Off, Loader2, Mic2, Play, RefreshCw, Scissors, Search,
+  Copy, Download, Edit3, Filter, Link2, Loader2, Mic2, Play, RefreshCw, Scissors, Search,
   Sparkles, Trash2, Users, X,
 } from "lucide-react";
 import { toast } from "sonner";

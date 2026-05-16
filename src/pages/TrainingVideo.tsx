@@ -460,34 +460,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
         throw new Error('No background selected');
       }
       
-      // Step 1: Generate audio from script (10%)
-      toast.info('Generating voice audio...');
-      setProgress(5);
-      
-      const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-voice', {
-        body: {
-          text: scriptText,
-          voiceId: selectedVoice,
-        },
-      });
-
-      if (audioError) throw audioError;
-      if (!audioData.success) throw new Error(audioData.error || 'Failed to generate audio');
-      
-      let audioUrl: string;
-      let audioStorageUrl: string | undefined;
-      
-      if (audioData.audioUrl) {
-        audioUrl = audioData.audioUrl;
-        audioStorageUrl = audioData.audioUrl;
-      } else if (audioData.audioBase64) {
-        audioUrl = `data:audio/mpeg;base64,${audioData.audioBase64}`;
-      } else {
-        throw new Error('No audio content received');
-      }
-      
-      setGeneratedAudioUrl(audioUrl);
-      setProgress(15);
+      // Step 1: Voice is generated inside the pipeline (mux for Seedance, native for Kling)
+      setProgress(8);
 
       // Step 2: Composite character onto background (15-40%)
       setGenerationStep('generating_video');
@@ -570,8 +544,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
         }
       }
 
-      // Step 3: Generate animated video with Kling (40-75%)
-      toast.info('Animating speaking presenter...');
+      // Step 3: Route through mode-router for full continuity pipeline (Kling/Seedance)
+      toast.info(`Dispatching to ${videoEngine === 'seedance' ? 'Seedance 2' : 'Kling V3'} pipeline...`);
       setProgress(45);
       
       // Build prompt for natural speaking animation (settings-aware)
@@ -591,70 +565,71 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
       const finalDuration = targetDuration ?? Math.min(Math.ceil(scriptText.length / 15), 10);
 
-      const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+      // Dispatch to mode-router (avatar mode → engine-aware pipeline w/ continuity, audio mux, stitching)
+      const { data: routerData, error: routerError } = await supabase.functions.invoke('mode-router', {
         body: {
-          prompt: animationPrompt,
+          mode: 'avatar',
+          prompt: `${scriptText}\n\nDirection: ${animationPrompt}`,
+          referenceImageUrl: startImageUrl,
           imageUrl: startImageUrl,
+          voiceId: selectedVoice,
           aspectRatio,
-          duration: finalDuration,
-          userId: user.id,
-          mode: 'training_avatar',
+          clipCount,
+          clipDuration: finalDuration,
+          enableNarration: true,
+          enableMusic: false,
           videoEngine,
-          enableAudio: videoEngine === 'kling', // Seedance has no native audio — we mux generated voice in post
-          cameraFixed,
-          characterLock: characterLockStrict ? { strict: true, source: 'training_video' } : undefined,
+          characterLock: characterLockStrict
+            ? { strict: true, source: 'training_video', description: 'Reference person speaking to camera' }
+            : undefined,
+          identityBible: characterLockStrict
+            ? { characterIdentity: { description: 'Reference person speaking to camera' } }
+            : undefined,
         },
       });
 
-      if (videoError) throw videoError;
-      
-      // Handle async video generation
-      let finalVideoUrl: string;
-      
-      if (videoData?.videoUrl) {
-        finalVideoUrl = videoData.videoUrl;
-      } else if (videoData?.taskId) {
-        toast.info('Video processing... This may take 1-3 minutes');
-        const taskId = videoData.taskId;
-        const provider = videoData.provider || 'replicate';
-        
-        const maxAttempts = 60;
-        const pollInterval = 5000;
-        
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          setProgress(45 + Math.min(30, attempt)); // 45% to 75%
-          
-          const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
-            body: { taskId, provider }
-          });
-          
-          if (statusError) {
-            console.warn('Status check error:', statusError);
-            continue;
-          }
-          
-          const isCompleted = statusData?.status === 'completed' || 
-                              statusData?.status === 'SUCCEEDED' || 
-                              statusData?.status === 'succeeded';
-          
-          if (isCompleted && statusData?.videoUrl) {
-            finalVideoUrl = statusData.videoUrl;
-            break;
-          } else if (statusData?.status === 'failed' || statusData?.status === 'FAILED') {
-            throw new Error(statusData?.error || 'Video generation failed');
-          }
-          
-          if (attempt % 6 === 0 && attempt > 0) {
-            toast.info(`Still processing... ${Math.ceil((maxAttempts - attempt) * pollInterval / 60000)} min remaining`);
-          }
+      if (routerError) throw routerError;
+      if (!routerData?.projectId) throw new Error(routerData?.error || 'Pipeline did not return a project id');
+
+      const projectId = routerData.projectId as string;
+      toast.info('Pipeline running — multi-clip continuity, voice mux, and stitching in progress...');
+
+      // Poll movie_projects for completion (handles multi-clip + stitching)
+      const maxAttempts = 90;       // up to ~7.5 minutes
+      const pollInterval = 5000;
+      let finalVideoUrl: string | null = null;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        setProgress(45 + Math.min(40, Math.floor((attempt / maxAttempts) * 40)));
+
+        const { data: proj, error: projErr } = await supabase
+          .from('movie_projects')
+          .select('status, video_url, last_error, pipeline_state')
+          .eq('id', projectId)
+          .maybeSingle();
+
+        if (projErr) {
+          console.warn('Project poll error:', projErr);
+          continue;
         }
-        
-        if (!finalVideoUrl!) {
-          throw new Error('Video generation timed out after 5 minutes');
+
+        if (proj?.status === 'completed' && proj.video_url) {
+          finalVideoUrl = proj.video_url;
+          break;
         }
-      } else {
-        throw new Error('No video URL or task ID received');
+        if (proj?.status === 'failed') {
+          throw new Error(proj.last_error || 'Pipeline failed');
+        }
+
+        if (attempt > 0 && attempt % 6 === 0) {
+          const stage = (proj?.pipeline_state as any)?.stage || 'processing';
+          toast.info(`Still rendering (${stage})...`);
+        }
+      }
+
+      if (!finalVideoUrl) {
+        throw new Error('Video generation timed out after 7 minutes');
       }
       
       setProgress(80);

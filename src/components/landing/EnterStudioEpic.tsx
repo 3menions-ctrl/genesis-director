@@ -433,7 +433,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               <div className="col-span-6 relative">
                 <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-white/10"
                   style={{ boxShadow: '0 40px 100px -40px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.06)' }}>
-                  <video src={immersiveHeroAsset.url} autoPlay loop muted playsInline preload="metadata"
+                  <LazyAutoVideo src={immersiveHeroAsset.url}
                     className="absolute inset-0 w-full h-full object-cover" />
                   {/* Scan line */}
                   <span aria-hidden className="absolute inset-x-0 h-[2px] pointer-events-none"
@@ -474,7 +474,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                     filter: 'blur(3px)',
                     opacity: 0.5,
                   }}>
-                  <video src={immersiveHeroAsset.url} autoPlay loop muted playsInline preload="metadata"
+                  <LazyAutoVideo src={immersiveHeroAsset.url} aria-hidden
                     className="w-full h-full object-cover" />
                 </div>
               </div>
@@ -530,9 +530,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04), 0 30px 80px -40px rgba(10,132,255,0.45)',
               }}
             >
-              <video
+              <LazyAutoVideo
                 src={v.src}
-                autoPlay loop muted playsInline preload="metadata"
                 className="absolute inset-0 w-full h-full object-cover"
               />
               {/* Gradient veil + crosshair frame */}
@@ -578,7 +577,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   opacity: 0.45,
                 }}
               >
-                <video src={v.src} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                <LazyAutoVideo src={v.src} aria-hidden className="w-full h-full object-cover" />
               </div>
             </motion.div>
           ))}
@@ -677,7 +676,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             <div key={i} className="group relative aspect-[9/12] rounded-2xl overflow-hidden border border-white/[0.06]"
               style={{ boxShadow: '0 30px 70px -40px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.04)' }}
             >
-              <video src={v.src} autoPlay loop muted playsInline preload="metadata"
+              <LazyAutoVideo src={v.src}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1600ms] group-hover:scale-[1.06]"
               />
               <div aria-hidden className="absolute inset-0"

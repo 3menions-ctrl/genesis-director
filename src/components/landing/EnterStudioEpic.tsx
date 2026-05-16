@@ -137,6 +137,30 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           0%,100% { transform: translateY(0)   scale(1);    filter: brightness(1); }
           50%     { transform: translateY(-6px) scale(1.03); filter: brightness(1.18); }
         }
+        @keyframes ese-twinkle {
+          0%,100% { opacity: 0.15; transform: scale(0.85); }
+          50%     { opacity: 0.95; transform: scale(1.15); }
+        }
+        @keyframes ese-aurora {
+          0%,100% { transform: translate3d(-4%, 0, 0) rotate(0deg); opacity: 0.55; }
+          50%     { transform: translate3d(4%, -2%, 0) rotate(8deg); opacity: 0.85; }
+        }
+        @keyframes ese-eq {
+          0%,100% { transform: scaleY(0.18); }
+          50%     { transform: scaleY(1); }
+        }
+        @keyframes ese-ring-expand {
+          0%   { transform: translate(-50%,-50%) scale(0.2); opacity: 0.9; }
+          100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; }
+        }
+        @keyframes ese-firework {
+          0%   { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--fx), var(--fy)) scale(0.2); opacity: 0; }
+        }
+        @keyframes ese-shimmer-x {
+          0%   { transform: translateX(-120%); }
+          100% { transform: translateX(220%); }
+        }
       `}</style>
 
       {/* Ambient radial wash */}
@@ -149,6 +173,59 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             'radial-gradient(40% 50% at 50% 100%, hsla(212,100%,40%,0.10), transparent 75%)',
         }}
       />
+
+      {/* Aurora veils — slow drifting color washes */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div
+          className="absolute -top-40 -left-20 w-[70vw] h-[70vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(212,100%,55%,0.22), transparent 70%)',
+            filter: 'blur(60px)',
+            animation: 'ese-aurora 18s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute top-1/3 -right-20 w-[60vw] h-[60vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(190,90%,60%,0.18), transparent 70%)',
+            filter: 'blur(70px)',
+            animation: 'ese-aurora 22s ease-in-out infinite reverse',
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-1/4 w-[55vw] h-[55vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(230,100%,65%,0.18), transparent 70%)',
+            filter: 'blur(70px)',
+            animation: 'ese-aurora 26s ease-in-out infinite',
+          }}
+        />
+      </div>
+
+      {/* Twinkling starfield */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        {Array.from({ length: 48 }).map((_, i) => {
+          const top = (i * 53) % 100;
+          const left = (i * 37) % 100;
+          const size = 1 + ((i * 7) % 3);
+          const dur = 2.5 + ((i * 13) % 40) / 10;
+          const delay = ((i * 11) % 30) / 10;
+          return (
+            <span
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                top: `${top}%`,
+                left: `${left}%`,
+                width: size,
+                height: size,
+                boxShadow: '0 0 6px rgba(255,255,255,0.85)',
+                animation: `ese-twinkle ${dur}s ease-in-out ${delay}s infinite`,
+              }}
+            />
+          );
+        })}
+      </div>
 
       <div className="max-w-7xl mx-auto">
         {/* ── 1. Minimal kicker + tight one-line headline ──────────────── */}

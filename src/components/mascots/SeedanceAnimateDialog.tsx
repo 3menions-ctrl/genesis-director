@@ -113,7 +113,7 @@ export function SeedanceAnimateDialog({ open, onOpenChange, mascot }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-background border-foreground/10">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] max-w-[min(100vw-1.5rem,48rem)] sm:max-w-3xl mx-auto bg-background border-foreground/10">
         <DialogHeader>
           <DialogTitle className="text-display-luxe text-3xl flex items-center gap-3">
             <Film className="w-6 h-6 text-primary" />

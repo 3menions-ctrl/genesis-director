@@ -19,8 +19,10 @@ export interface SceneDraft {
   index: number;
   location: string;       // INT/EXT — Location — Time
   beat: string;           // 1-line action description
+  parenthetical?: string; // (whispered), (off-screen), (V.O.)
   dialogue: string;       // verbatim dialogue (preserved)
   speakerId?: string;     // CastMember.id
+  notes?: string;         // director notes (not sent to renderer)
   lens: "wide" | "medium" | "close" | "macro" | "aerial";
   move: "static" | "dolly" | "pan" | "tilt" | "handheld" | "crane";
   duration: 5 | 10 | 12 | 15;

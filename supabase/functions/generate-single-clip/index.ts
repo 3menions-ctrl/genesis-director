@@ -991,7 +991,8 @@ serve(async (req) => {
     const {
       prompt,
       negativePrompt = "",
-      startImageUrl,
+      // startImageUrl handled below as `let` so the chain-ordering gate
+      // can override it with the predecessor's persisted tail frame.
       aspectRatio = "16:9",
       durationSeconds = DEFAULT_CLIP_DURATION,
       sceneContext,
@@ -1019,6 +1020,7 @@ serve(async (req) => {
       // concurrent renders cannot drift past the pre-flight check.
       holdId,
     } = body;
+    let startImageUrl: string | null | undefined = body.startImageUrl;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");

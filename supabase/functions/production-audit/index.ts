@@ -15,6 +15,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,6 +117,14 @@ async function callFunction(
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  // Admin-only audit hook — requires service-role bearer. Hardcoded
+  // ADMIN_USER_ID below is used as the project owner; allowing end-user
+  // callers would let any signed-in user spawn ADMIN-owned projects.
+  if (!requireServiceRole(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

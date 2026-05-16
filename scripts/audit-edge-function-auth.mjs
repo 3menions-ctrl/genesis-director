@@ -49,6 +49,12 @@ const GATE_PATTERNS = [
   /verifyWebhookSignature\s*\(/,
   /constructEvent\s*\(/,                  // Stripe webhook signature verify
   /LOVABLE_API_KEY/,                      // gateway-key gated server-to-server
+  /verifyStripeWebhook\s*\(/,             // shared Stripe webhook helper
+  /handleStripeWebhookRequest\s*\(/,      // shared Stripe webhook entrypoint
+  /verifyReplicateSignature\s*\(/,        // shared Replicate webhook helper
+  /requireCronSecret\s*\(/,               // cron trust boundary
+  /requireServiceRole\s*\(/,              // internal-only trust boundary
+  /extractApiKey\s*\(/,                   // public API gateway uses hashed api keys
 ];
 
 // A function source that contains this exact magic comment is treated as
@@ -57,20 +63,22 @@ const GATE_PATTERNS = [
 const PUBLIC_MARKER = /^\s*\/\/\s*@public-endpoint\b/m;
 const PUBLIC_RATIONALE = /^\s*\/\/\s*@public-endpoint\b[^\n]*\n\s*\/\/\s*\S/m;
 
-function parseFunctionsWithVerifyJwtFalse(toml) {
-  // We need every [functions.<name>] section whose body contains
-  // `verify_jwt = false`. The config.toml uses indented blocks.
-  const out = new Set();
+function parseVerifyJwtSections(toml) {
+  // Walk every [functions.<name>] section and classify each one as
+  // verify_jwt=false, verify_jwt=true, or unspecified. Unspecified defaults
+  // to false per Lovable docs.
+  const falseSet = new Set();
+  const trueSet = new Set();
   const sectionRe = /\[functions\.([A-Za-z0-9_-]+)\]([^\[]*)/g;
   let m;
   while ((m = sectionRe.exec(toml)) !== null) {
     const name = m[1];
     const body = m[2];
-    if (/verify_jwt\s*=\s*false/.test(body)) {
-      out.add(name);
-    }
+    if (/verify_jwt\s*=\s*false/.test(body)) falseSet.add(name);
+    else if (/verify_jwt\s*=\s*true/.test(body)) trueSet.add(name);
+    else falseSet.add(name); // explicit block without verify_jwt still defaults to false
   }
-  return out;
+  return { falseSet, trueSet };
 }
 
 function listEdgeFunctions() {
@@ -118,7 +126,7 @@ function auditFunction(name) {
 }
 
 const toml = readFileSync(configPath, "utf8");
-const verifyJwtFalse = parseFunctionsWithVerifyJwtFalse(toml);
+const { falseSet: verifyJwtFalse, trueSet: verifyJwtTrue } = parseVerifyJwtSections(toml);
 const allFunctions = listEdgeFunctions();
 
 const auditTargets = allFunctions.filter((n) => verifyJwtFalse.has(n));
@@ -129,7 +137,12 @@ const ok = results.filter((r) => r.status === "ok").length;
 const publicOk = results.filter((r) => r.status === "public-ok").length;
 
 // Surface functions that are deployed but have NO config block (default verify_jwt=false).
-const unconfigured = allFunctions.filter((n) => !verifyJwtFalse.has(n));
+// Anything NOT in a verify_jwt=false block AND NOT in a verify_jwt=true block
+// defaults to verify_jwt=false and must also pass the audit. Functions that
+// explicitly set verify_jwt=true are gateway-validated and exempt.
+const unconfigured = allFunctions.filter(
+  (n) => !verifyJwtFalse.has(n) && !verifyJwtTrue.has(n),
+);
 const unconfiguredFailures = [];
 for (const name of unconfigured) {
   // Anything not in config defaults to verify_jwt=false (per Lovable docs).

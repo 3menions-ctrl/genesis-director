@@ -43,6 +43,7 @@ import {
   RESILIENCE_CONFIG,
 } from "../_shared/network-resilience.ts";
 import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
+import { requireCronSecret } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -295,6 +296,14 @@ function buildAvatarActingPrompt(
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  // Trust boundary: pipeline-watchdog must only be invokable by pg_cron
+  // (with x-cron-secret) or by other edge functions (with the service-role
+  // bearer). End-user JWTs MUST NOT be able to trigger it.
+  if (!requireCronSecret(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const startTime = Date.now();

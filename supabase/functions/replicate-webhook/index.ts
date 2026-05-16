@@ -5,6 +5,7 @@ import {
   isValidImageUrl,
   GUARD_RAIL_CONFIG,
 } from "../_shared/pipeline-guard-rails.ts";
+import { verifyReplicateSignature } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,23 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const prediction = await req.json();
+    // Webhook signature verification — required. Read raw body first so
+    // the HMAC compare sees byte-identical input to what Replicate signed.
+    const rawBody = await req.text();
+    const sigOk = await verifyReplicateSignature(req, rawBody);
+    if (!sigOk) {
+      console.warn("[ReplicateWebhook] ❌ signature verification failed");
+      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let prediction: any;
+    try { prediction = JSON.parse(rawBody); }
+    catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     const predictionId = prediction.id;
     const status = prediction.status; // succeeded, failed, canceled

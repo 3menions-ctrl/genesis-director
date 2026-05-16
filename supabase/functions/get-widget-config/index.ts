@@ -1,5 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// @public-endpoint
+// Embeddable widget config fetch. Public by design — third-party sites
+// load this from a <script> tag with no Supabase JWT available. Protected
+// by per-IP rate limit (60 req/min) and an opaque widget key/slug lookup.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

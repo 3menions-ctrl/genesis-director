@@ -1,5 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// @public-endpoint
+// Widget telemetry sink. Public by design — embedded widgets POST analytics
+// events from third-party sites. Protected by per-visitor-session rate limit
+// (100 events/min) and a strict event-type allowlist; widget_id must exist.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

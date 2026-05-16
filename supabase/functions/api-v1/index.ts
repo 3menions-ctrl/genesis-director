@@ -1,5 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
+// @public-endpoint
+// Public Apex Studio API. Authentication is performed via `x-api-key`
+// (apx_live_...) which is sha256-hashed and looked up in api_keys; an
+// invalid key yields 401. Supabase-JWT auth is intentionally disabled
+// because this endpoint is consumed by third-party servers without a JWT.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-api-key, content-type',

@@ -1,5 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// @public-endpoint
+// Email unsubscribe endpoint (RFC 8058 one-click + GET link). Public by
+// design — the click comes from an email client with no JWT. Authentication
+// is performed via the cryptographically random 32-byte unsubscribe token
+// stored in the row; the token IS the bearer credential for this action.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':

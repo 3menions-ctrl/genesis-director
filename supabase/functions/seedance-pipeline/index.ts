@@ -412,6 +412,62 @@ serve(async (req) => {
       console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
     }
 
+    // ═══ AUDIO DISPATCH (parallel with video clips) ═══
+    // Seedance has NO native audio, so we generate voice/music NOW and the
+    // watchdog will mux them onto the stitched video. Fire-and-forget pattern:
+    // we kick off requests and persist whatever resolves; watchdog handles
+    // anything still pending.
+    const totalSeconds = shots.reduce(
+      (acc, s) => acc + (s.durationSeconds ?? clipDuration), 0,
+    );
+    const audioPromises: Record<string, Promise<any>> = {};
+
+    if (includeVoice) {
+      const voiceLines = shots
+        .map((s, i) => s.dialogue ?? s.voiceover ?? s.narration ?? null)
+        .filter((l): l is string => !!l && l.trim().length > 0);
+      if (voiceLines.length > 0) {
+        console.log(`[Seedance] Dispatching voice for ${voiceLines.length} lines`);
+        audioPromises.voice = callEdgeFunction("generate-voice", {
+          projectId,
+          userId: request.userId,
+          lines: voiceLines,
+          engine: "seedance",
+        }).catch((e) => {
+          console.warn(`[Seedance] generate-voice failed:`, e?.message);
+          return null;
+        });
+      }
+    }
+
+    if (includeMusic) {
+      console.log(`[Seedance] Dispatching music (${totalSeconds}s)`);
+      audioPromises.music = callEdgeFunction("generate-music", {
+        projectId,
+        userId: request.userId,
+        duration: totalSeconds,
+        mood: request.mood ?? "epic",
+        genre: request.genre ?? "cinematic",
+        engine: "seedance",
+      }).catch((e) => {
+        console.warn(`[Seedance] generate-music failed:`, e?.message);
+        return null;
+      });
+    }
+
+    // Don't block clip dispatch on audio — settle in parallel, harvest after
+    const audioSettled = await Promise.allSettled(
+      Object.entries(audioPromises).map(async ([k, p]) => [k, await p] as const),
+    );
+    const audioAssets: Record<string, any> = {};
+    for (const r of audioSettled) {
+      if (r.status === "fulfilled" && r.value) {
+        const [k, v] = r.value;
+        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v;
+      }
+    }
+    console.log(`[Seedance] Audio assets ready: ${Object.keys(audioAssets).join(",") || "(none)"}`);
+
     // ═══ DISPATCH SEEDANCE CLIPS (parallel) ═══
     await supabase
       .from("movie_projects")

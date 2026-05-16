@@ -52,7 +52,7 @@ async function persist(err: AppError): Promise<void> {
       user_message: err.userMessage,
       technical_message: err.technicalMessage.slice(0, 4000),
       stack: err.stack?.slice(0, 8000),
-      context: err.context as Record<string, unknown>,
+      context: JSON.parse(JSON.stringify(err.context ?? {})),
       page_url: typeof window !== 'undefined' ? window.location.href.slice(0, 1000) : null,
       user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
       session_id: getSessionId(),

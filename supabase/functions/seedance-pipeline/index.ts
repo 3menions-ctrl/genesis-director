@@ -544,6 +544,8 @@ serve(async (req) => {
           postProduction: {
             includeVoice, includeMusic,
             stitchFunction: "simple-stitch",
+            audioAssets, // pre-generated voice/music URLs for muxing
+            muxStrategy: "post-stitch", // Seedance: no native audio, mux after
           },
         },
       })

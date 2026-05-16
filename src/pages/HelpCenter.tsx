@@ -14,13 +14,14 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
 import { SupportInbox } from '@/components/social/SupportInbox';
+import { SupportInboxModal } from '@/components/social/SupportInboxModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 function ContactSupportBlock() {
   const { user } = useAuth();
   if (user) {
-    return <SupportInbox defaultExpanded />;
+    return <SupportInboxModal />;
   }
   return (
     <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] text-center">

@@ -694,7 +694,7 @@ serve(async (req) => {
     for (const r of audioSettled) {
       if (r.status === "fulfilled" && r.value) {
         const [k, v] = r.value;
-        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v;
+        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v?.musicUrl ?? v;
       }
     }
     console.log(`[Seedance] Audio assets ready: ${Object.keys(audioAssets).join(",") || "(none)"}`);

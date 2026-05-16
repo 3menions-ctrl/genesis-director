@@ -1058,8 +1058,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 aria-label="Video engine"
               >
                 {([
-                  { id: 'kling' as const, label: 'Kling V3', sub: 'Native audio' },
-                  { id: 'seedance' as const, label: 'Seedance 2', sub: 'Motion-first' },
+                  { id: 'kling' as const, label: 'Kling V3', sub: 'Single clip · fallback' },
+                  { id: 'seedance' as const, label: 'Seedance 2', sub: 'Multi-clip · alternate' },
                 ]).map((opt) => {
                   const active = videoEngine === opt.id;
                   return (
@@ -1069,7 +1069,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       role="radio"
                       aria-checked={active}
                       disabled={isGenerating}
-                      onClick={() => setVideoEngine(opt.id)}
+                      onClick={() => {
+                        setVideoEngine(opt.id);
+                        // Kling = safe single-clip fallback; Seedance unlocks multi-clip continuity
+                        if (opt.id === 'kling') setClipCount(1);
+                      }}
                       className={cn(
                         'flex flex-col items-start px-3 py-2 rounded-lg transition-all text-left',
                         active
@@ -1175,16 +1179,20 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                           <div className="grid grid-cols-3 gap-1">
                             {[1, 2, 3].map((c) => {
                               const active = clipCount === c;
+                              const locked = videoEngine === 'kling' && c > 1;
                               return (
                                 <button
                                   key={c}
                                   type="button"
-                                  onClick={() => setClipCount(c)}
+                                  onClick={() => !locked && setClipCount(c)}
+                                  disabled={locked}
+                                  title={locked ? 'Kling V3 runs single-clip only (fallback). Switch to Seedance 2 for multi-clip.' : undefined}
                                   className={cn(
                                     'h-7 rounded-md text-[10px] font-mono transition-all',
                                     active
                                       ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
                                       : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                    locked && 'opacity-40 cursor-not-allowed',
                                   )}
                                 >
                                   {c === 1 ? 'Single' : `${c} stitched`}
@@ -1192,6 +1200,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                               );
                             })}
                           </div>
+                          {videoEngine === 'kling' && (
+                            <p className="text-[10px] text-muted-foreground/70 leading-tight">
+                              Kling V3 fallback locks to a single clip with native audio. Pick Seedance 2 for stitched continuity.
+                            </p>
+                          )}
                         </div>
 
                         {/* Aspect Ratio */}

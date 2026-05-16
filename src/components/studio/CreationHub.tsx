@@ -251,6 +251,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       if (appliedSettings.mood) setMood(appliedSettings.mood);
       if (appliedSettings.genre) setGenre(appliedSettings.genre);
       if (appliedSettings.colorGrading || appliedSettings.environmentPrompt) setShowAdvanced(true);
+      if (appliedSettings.isBreakout) setVideoEngine('seedance');
     }
   }, [appliedSettings, maxClips]);
 

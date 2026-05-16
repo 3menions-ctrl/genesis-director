@@ -29,7 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Circle, Clapperboard,
-  Copy, Download, Edit3, Filter, Loader2, Mic2, Play, RefreshCw, Search,
+  Copy, Download, Edit3, Filter, Link2, Loader2, Mic2, Play, RefreshCw, Scissors, Search,
   Sparkles, Trash2, Users, X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -391,25 +391,32 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
       )}
 
       <div ref={stripRef} className="flex-1 space-y-1 overflow-y-auto p-2 premium-scroll">
-        {scenes.map((scene) => {
+        {scenes.map((scene, idx) => {
           const speaker = scene.speakerId ? castMap[scene.speakerId] : undefined;
           const resolvedId = resolved[scene.id];
           const display = speaker || (resolvedId ? castMap[resolvedId] : undefined);
           const st = statusChip(scene.status);
           const isActive = scene.id === activeId;
           const widthPct = Math.max(15, Math.min(100, (scene.duration / 15) * 100));
+          const broken = idx > 0 && scene.chainFromPrevious === false;
           return (
-            <button
-              key={scene.id}
-              data-scene={scene.id}
-              onClick={() => onSelect(scene.id)}
-              className={cn(
-                "group relative flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left transition-all",
-                isActive
-                  ? "border-accent/50 bg-accent/[0.06]"
-                  : "border-white/[0.05] bg-black/30 hover:border-white/15 hover:bg-black/50",
+            <div key={scene.id}>
+              {broken && (
+                <div className="my-1 flex items-center gap-1.5 px-1 text-amber-300/80" title="Independent scene — no chain from previous">
+                  <Scissors className="h-2.5 w-2.5" />
+                  <div className="h-px flex-1 bg-[repeating-linear-gradient(90deg,hsl(45,93%,58%,0.4)_0_4px,transparent_4px_8px)]" />
+                </div>
               )}
-            >
+              <button
+                data-scene={scene.id}
+                onClick={() => onSelect(scene.id)}
+                className={cn(
+                  "group relative flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left transition-all",
+                  isActive
+                    ? "border-accent/50 bg-accent/[0.06]"
+                    : "border-white/[0.05] bg-black/30 hover:border-white/15 hover:bg-black/50",
+                )}
+              >
               <span className="font-mono text-[10px] tabular-nums text-white/30">
                 {String(scene.index + 1).padStart(2, "0")}
               </span>
@@ -435,7 +442,8 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
                 </div>
               </div>
               <st.Icon className={cn("h-3.5 w-3.5 flex-shrink-0", st.color)} />
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -448,6 +456,38 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div>
       <div className="text-[20px] font-light text-white">{value}</div>
       <div className="text-[9px] uppercase tracking-[0.22em] text-white/40">{label}</div>
+    </div>
+  );
+}
+
+// ─── chain link / chain-break divider ─────────────────────────────────────
+//
+// Sits between scene N-1 and scene N. Reflects + toggles
+// `scenes[N].chainFromPrevious`. Default = chained (frame + identity carry).
+// When broken, scene N renders as a standalone shot — no last-frame inherit,
+// no character/environment carry-over. Use for anthologies & hard cuts.
+function ChainDivider({ chained, onToggle }: { chained: boolean; onToggle: () => void }) {
+  return (
+    <div className="relative flex items-center justify-center py-1" aria-label={chained ? "Continuous from previous scene" : "Independent scene — chain broken"}>
+      <div className={cn(
+        "absolute inset-x-8 top-1/2 h-px -translate-y-1/2",
+        chained ? "bg-gradient-to-r from-transparent via-accent/30 to-transparent"
+                : "bg-[repeating-linear-gradient(90deg,hsl(0,0%,100%,0.18)_0_6px,transparent_6px_12px)]",
+      )} />
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.22em] backdrop-blur transition-colors",
+          chained
+            ? "border-accent/30 bg-accent/[0.08] text-accent/90 hover:border-accent/60"
+            : "border-amber-400/30 bg-amber-400/[0.06] text-amber-300/90 hover:border-amber-400/60",
+        )}
+        title={chained ? "Click to break continuity — make next scene independent" : "Click to chain — inherit previous frame & identity"}
+      >
+        {chained ? <Link2 className="h-3 w-3" /> : <Scissors className="h-3 w-3" />}
+        {chained ? "Continuous" : "Independent scene"}
+      </button>
     </div>
   );
 }
@@ -715,23 +755,31 @@ export function ScriptBuilder({
             {filtered.map((scene, idx) => {
               const prev = idx > 0 ? filtered[idx - 1] : undefined;
               const warns = continuityWarnings(scene, cast, prev);
+              const chained = scene.chainFromPrevious !== false;
               return (
-                <ScreenplayBlock
-                  key={scene.id}
-                  scene={scene}
-                  cast={cast}
-                  speaker={cast.find(c => c.id === (scene.speakerId || resolved[scene.id]))}
-                  active={scene.id === activeId}
-                  warnings={warns}
-                  highlight={search}
-                  onSelect={() => onSelect(scene.id)}
-                  onPatch={(p) => onPatch(scene.id, p)}
-                  onRemove={() => onRemove(scene.id)}
-                  onRender={() => onRender(scene.id)}
-                  onReassign={(id) => onPatch(scene.id, { speakerId: id })}
-                  onMove={(dir) => onReorder?.(scene.id, dir)}
-                  onDuplicate={() => onDuplicate?.(scene.id)}
-                />
+                <div key={scene.id} className="space-y-2">
+                  {prev && (
+                    <ChainDivider
+                      chained={chained}
+                      onToggle={() => onPatch(scene.id, { chainFromPrevious: !chained })}
+                    />
+                  )}
+                  <ScreenplayBlock
+                    scene={scene}
+                    cast={cast}
+                    speaker={cast.find(c => c.id === (scene.speakerId || resolved[scene.id]))}
+                    active={scene.id === activeId}
+                    warnings={warns}
+                    highlight={search}
+                    onSelect={() => onSelect(scene.id)}
+                    onPatch={(p) => onPatch(scene.id, p)}
+                    onRemove={() => onRemove(scene.id)}
+                    onRender={() => onRender(scene.id)}
+                    onReassign={(id) => onPatch(scene.id, { speakerId: id })}
+                    onMove={(dir) => onReorder?.(scene.id, dir)}
+                    onDuplicate={() => onDuplicate?.(scene.id)}
+                  />
+                </div>
               );
             })}
           </AnimatePresence>

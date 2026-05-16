@@ -64,6 +64,11 @@ export function useScenePipeline(
       const backendEngine = engineToBackend(engineId);
       const profile = getQualityProfile(engineId, sourceDraft.defaults.qualityProfileId);
       const isAvatarMode = !!cast?.imageUrl;
+      // Continuity: independent scenes (chainFromPrevious === false) break the
+      // frame + identity chain. We omit the brief-level reference image so the
+      // renderer can't silently inherit the prior environment, and we signal
+      // the backend to disable last-frame/identity carry-over.
+      const chainFromPrevious = scene.chainFromPrevious !== false;
 
       // ── Ensure backend project exists, then hard-sync its engine lock to
       // the actual scene being rendered. The renderer intentionally trusts
@@ -121,6 +126,7 @@ export function useScenePipeline(
         sourceDraft.brief.style ? `Style: ${sourceDraft.brief.style}` : "",
         sourceDraft.brief.styleModifier ? sourceDraft.brief.styleModifier : "",
         scene.dialogue ? `Dialogue: "${scene.dialogue}"` : "",
+        chainFromPrevious ? "" : "Standalone shot — fresh scene, do not inherit prior frame, character, or environment.",
       ].filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("generate-single-clip", {
@@ -139,7 +145,11 @@ export function useScenePipeline(
           qualityProfileId: profile.id,
           estimatedCredits: (() => { try { return creditsForScene(engineId, scene.duration, profile.id); } catch { return engineSpec.baseCreditsFor(engineSpec.durations[0]); } })(),
           holdId,
-          startImageUrl: scene.refImageUrl || sourceDraft.brief.refImageUrl || cast?.imageUrl,
+          startImageUrl: chainFromPrevious
+            ? (scene.refImageUrl || sourceDraft.brief.refImageUrl || cast?.imageUrl)
+            : (scene.refImageUrl || cast?.imageUrl),
+          chainFromPrevious,
+          independentScene: !chainFromPrevious,
           voiceId: cast?.voiceId || sourceDraft.defaults.voiceId,
           characterName: cast?.name,
           lens: scene.lens,

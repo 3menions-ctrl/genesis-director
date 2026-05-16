@@ -7362,6 +7362,15 @@ export type Database = {
         }
         Returns: number
       }
+      notify_admins: {
+        Args: {
+          _body: string
+          _data: Json
+          _title: string
+          _type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: undefined
+      }
       persist_pipeline_context: {
         Args: { p_context: Json; p_project_id: string }
         Returns: boolean

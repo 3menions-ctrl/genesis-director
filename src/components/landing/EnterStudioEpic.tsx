@@ -717,6 +717,54 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             }}
           />
 
+          {/* Expanding sonar rings */}
+          <div aria-hidden className="absolute left-1/2 top-[55%] pointer-events-none -z-10" style={{ width: 1, height: 1 }}>
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="absolute left-0 top-0 rounded-full"
+                style={{
+                  width: 360,
+                  height: 360,
+                  marginLeft: -180,
+                  marginTop: -180,
+                  border: '1px solid hsla(212,100%,75%,0.45)',
+                  animation: `ese-ring-expand 4.5s ease-out ${i * 1.5}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Firework bursts */}
+          <div aria-hidden className="absolute left-1/2 top-[55%] pointer-events-none -z-10" style={{ width: 1, height: 1 }}>
+            {Array.from({ length: 18 }).map((_, i) => {
+              const angle = (i / 18) * Math.PI * 2;
+              const dist = 180 + ((i * 17) % 90);
+              const fx = Math.cos(angle) * dist;
+              const fy = Math.sin(angle) * dist;
+              const dur = 2.2 + ((i * 7) % 18) / 10;
+              const delay = ((i * 11) % 40) / 10;
+              const hue = i % 3 === 0 ? '#ffffff' : i % 3 === 1 ? '#9DCBFF' : '#0A84FF';
+              return (
+                <span
+                  key={i}
+                  className="absolute left-0 top-0 rounded-full"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    marginLeft: -3,
+                    marginTop: -3,
+                    background: hue,
+                    boxShadow: `0 0 14px ${hue}, 0 0 28px ${hue}`,
+                    ['--fx' as never]: `${fx}px`,
+                    ['--fy' as never]: `${fy}px`,
+                    animation: `ese-firework ${dur}s ease-out ${delay}s infinite`,
+                  }}
+                />
+              );
+            })}
+          </div>
+
           <motion.button
             onClick={onStart}
             initial={{ opacity: 0, y: 30, scale: 0.92 }}

@@ -176,14 +176,9 @@ const NextOnDeck = memo(function NextOnDeck({ index }: { index: number }) {
               }}
               className="absolute inset-0"
             >
-              <video
+              <LazyAutoVideo
                 src={reel.src}
                 poster={reel.poster}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
                 className="absolute inset-0 w-full h-full object-cover scale-[1.04] group-hover:scale-[1.10] transition-transform duration-[1400ms] ease-out"
               />
             </motion.div>

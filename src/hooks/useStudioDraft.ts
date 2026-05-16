@@ -98,6 +98,33 @@ export function useStudioDraft() {
     update(d => ({ ...d, scenes: d.scenes.map(s => s.id === id ? { ...s, ...patch } : s) })),
   [update]);
 
+  const reorderScene = useCallback((id: string, dir: -1 | 1) => update(d => {
+    const idx = d.scenes.findIndex(s => s.id === id);
+    if (idx < 0) return d;
+    const target = idx + dir;
+    if (target < 0 || target >= d.scenes.length) return d;
+    const next = d.scenes.slice();
+    [next[idx], next[target]] = [next[target], next[idx]];
+    return { ...d, scenes: next.map((s, i) => ({ ...s, index: i })) };
+  }), [update]);
+
+  const duplicateScene = useCallback((id: string) => update(d => {
+    const idx = d.scenes.findIndex(s => s.id === id);
+    if (idx < 0) return d;
+    const src = d.scenes[idx];
+    const copy = {
+      ...src,
+      id: crypto.randomUUID(),
+      status: "idle" as const,
+      clipUrl: undefined,
+      posterUrl: undefined,
+      predictionId: undefined,
+    };
+    const next = [...d.scenes.slice(0, idx + 1), copy, ...d.scenes.slice(idx + 1)]
+      .map((s, i) => ({ ...s, index: i }));
+    return { ...d, scenes: next, activeSceneId: copy.id };
+  }), [update]);
+
   const setActive = useCallback((id?: string) => update(d => ({ ...d, activeSceneId: id })), [update]);
 
   /**
@@ -155,5 +182,5 @@ export function useStudioDraft() {
     return row.id;
   }, [draft.projectId, draft.defaults.engine, draft.defaults.aspect, draft.brief.title, draft.brief.logline, draft.brief.refImageUrl, draft.cast.length, update]);
 
-  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId };
+  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, ensureProjectId };
 }

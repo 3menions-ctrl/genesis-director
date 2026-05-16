@@ -166,7 +166,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 }
 
 export default function StudioShell() {
-  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, setActive, ensureProjectId } = useStudioDraft();
+  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
   const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
   const { data: cinemaEntitlement } = useCinemaEntitlement();
@@ -685,11 +685,15 @@ export default function StudioShell() {
                     <ScriptBuilder
                       scenes={draft.scenes}
                       cast={draft.cast}
+                      title={draft.brief.title}
                       activeId={activeScene?.id}
                       onSelect={setActive}
                       onPatch={patchScene}
                       onRemove={removeScene}
                       onRender={generateScene}
+                      onReorder={reorderScene}
+                      onDuplicate={duplicateScene}
+                      onAddScene={addScene}
                       onAutoAssign={(assignments) => {
                         assignments.forEach(a => patchScene(a.id, { speakerId: a.speakerId }));
                       }}

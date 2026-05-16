@@ -447,6 +447,10 @@ export default function StudioShell() {
       return;
     }
     // ── Pre-flight credit check ──
+    // Scenes render one-at-a-time and each reserves credits server-side,
+    // so we only need enough credits for the NEXT unrendered scene to start.
+    // If the wallet can't cover the full project we warn but still allow
+    // partial generation (user can top up mid-run).
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -456,11 +460,23 @@ export default function StudioShell() {
           .eq("id", user.id)
           .maybeSingle();
         const balance = (profile as any)?.credits_balance ?? 0;
-        if (balance < totalCost) {
-          toast.error(`Insufficient credits — ${totalCost} required, ${balance} available`, {
+        const pending = draft.scenes.filter(s => !s.clipUrl);
+        const nextCost = pending.length
+          ? (() => {
+              const s = pending[0];
+              const eid = s.engine || draft.defaults.engine;
+              try { return creditsForScene(eid, s.duration, draft.defaults.qualityProfileId); }
+              catch { return ENGINES[eid].baseCreditsFor(ENGINES[eid].durations[0]); }
+            })()
+          : 0;
+        if (balance < nextCost) {
+          toast.error(`Insufficient credits — ${nextCost} required to render the next scene, ${balance} available`, {
             action: { label: "Buy credits", onClick: () => navigate("/credits") },
           });
           return;
+        }
+        if (balance < totalCost) {
+          toast.warning(`Heads up — full project costs ${totalCost} credits, you have ${balance}. Rendering will stop when the wallet runs out.`);
         }
       }
     } catch { /* non-fatal — server enforces final deduct */ }

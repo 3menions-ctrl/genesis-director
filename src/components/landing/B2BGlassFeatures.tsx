@@ -111,12 +111,12 @@ export const B2BGlassFeatures = memo(function B2BGlassFeatures() {
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] max-w-3xl mx-auto">
             One workspace.{' '}
-            <span className="text-white/75">A complete</span>{' '}
-            video production studio.
+            <span className="text-white/75">The whole</span>{' '}
+            video production stack.
           </h2>
           <p className="mt-6 max-w-2xl mx-auto text-white/55 text-lg font-light leading-relaxed">
-            Everything your marketing org needs to brief, generate, review and
-            ship video at the cadence of paid media.
+            Brief, generate, review and ship — at the cadence your paid media
+            team already runs.
           </p>
         </motion.div>
 

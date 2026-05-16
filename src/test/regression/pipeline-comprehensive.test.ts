@@ -769,7 +769,7 @@ describe('Pipeline — Critical Edge Functions', () => {
     'generate-music',
     'extract-video-frame',
     'generate-scene-images',
-    'stripe-webhook',
+    'payments-webhook',
     'mode-router',
     'kling-v3-audit-test',
     'production-audit',

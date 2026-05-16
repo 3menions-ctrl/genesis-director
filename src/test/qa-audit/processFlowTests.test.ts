@@ -159,8 +159,8 @@ describe('P018: Credit Purchase Flow', () => {
     expect(fs.existsSync(checkoutPath)).toBe(true);
   });
 
-  it('should have stripe-webhook edge function', () => {
-    const webhookPath = path.join(process.cwd(), 'supabase/functions/stripe-webhook');
+  it('should have payments-webhook edge function', () => {
+    const webhookPath = path.join(process.cwd(), 'supabase/functions/payments-webhook');
     expect(fs.existsSync(webhookPath)).toBe(true);
   });
 });

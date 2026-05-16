@@ -747,23 +747,31 @@ export function ScriptBuilder({
             {filtered.map((scene, idx) => {
               const prev = idx > 0 ? filtered[idx - 1] : undefined;
               const warns = continuityWarnings(scene, cast, prev);
+              const chained = scene.chainFromPrevious !== false;
               return (
-                <ScreenplayBlock
-                  key={scene.id}
-                  scene={scene}
-                  cast={cast}
-                  speaker={cast.find(c => c.id === (scene.speakerId || resolved[scene.id]))}
-                  active={scene.id === activeId}
-                  warnings={warns}
-                  highlight={search}
-                  onSelect={() => onSelect(scene.id)}
-                  onPatch={(p) => onPatch(scene.id, p)}
-                  onRemove={() => onRemove(scene.id)}
-                  onRender={() => onRender(scene.id)}
-                  onReassign={(id) => onPatch(scene.id, { speakerId: id })}
-                  onMove={(dir) => onReorder?.(scene.id, dir)}
-                  onDuplicate={() => onDuplicate?.(scene.id)}
-                />
+                <div key={scene.id} className="space-y-2">
+                  {prev && (
+                    <ChainDivider
+                      chained={chained}
+                      onToggle={() => onPatch(scene.id, { chainFromPrevious: !chained })}
+                    />
+                  )}
+                  <ScreenplayBlock
+                    scene={scene}
+                    cast={cast}
+                    speaker={cast.find(c => c.id === (scene.speakerId || resolved[scene.id]))}
+                    active={scene.id === activeId}
+                    warnings={warns}
+                    highlight={search}
+                    onSelect={() => onSelect(scene.id)}
+                    onPatch={(p) => onPatch(scene.id, p)}
+                    onRemove={() => onRemove(scene.id)}
+                    onRender={() => onRender(scene.id)}
+                    onReassign={(id) => onPatch(scene.id, { speakerId: id })}
+                    onMove={(dir) => onReorder?.(scene.id, dir)}
+                    onDuplicate={() => onDuplicate?.(scene.id)}
+                  />
+                </div>
               );
             })}
           </AnimatePresence>

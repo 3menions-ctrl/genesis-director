@@ -970,7 +970,8 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
-  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } =
+    await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
     return unauthorizedResponse(corsHeaders, auth.error);
@@ -984,8 +985,19 @@ serve(async (req) => {
   try {
     const body = await req.json();
     projectId = body.projectId;
-    // Use authenticated userId instead of trusting client payload
-    userId = auth.userId || body.userId;
+    // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
+    try {
+      userId = resolveEffectiveUserId(auth, body.userId ?? null);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      if (msg === 'SERVICE_ROLE_REQUIRES_USER_ID') {
+        return new Response(JSON.stringify({ success: false, error: 'userId required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return unauthorizedResponse(corsHeaders, msg);
+    }
     shotIndex = body.shotIndex || body.clipIndex || 0;
     
     const {

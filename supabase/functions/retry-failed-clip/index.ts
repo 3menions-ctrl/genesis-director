@@ -6,7 +6,12 @@ import {
   checkContinuityReady,
   loadPipelineContext,
 } from "../_shared/generation-mutex.ts";
-import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import {
+  validateAuth,
+  unauthorizedResponse,
+  resolveEffectiveUserId,
+  forbiddenResponse,
+} from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,9 +72,13 @@ serve(async (req) => {
   try {
     const request: RetryRequest = await req.json();
 
-    // Use authenticated userId from JWT (never trust client payload)
-    if (auth.userId) {
-      request.userId = auth.userId;
+    // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
+    try {
+      request.userId = resolveEffectiveUserId(auth, request.userId ?? null);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      return unauthorizedResponse(corsHeaders, msg);
     }
     
     if (!request.userId || !request.projectId || request.clipIndex === undefined) {

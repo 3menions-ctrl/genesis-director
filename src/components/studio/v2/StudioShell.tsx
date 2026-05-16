@@ -779,17 +779,16 @@ export default function StudioShell() {
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    {/* Mode-specific helper card */}
-                    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/[0.10] via-card/40 to-background/30 p-5 backdrop-blur-xl">
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+                  <div className="space-y-1">
+                    {/* Mode helper — quiet copy, no card */}
+                    <div className="pb-4">
                       <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">
                         {createMode === "text" ? "Text-to-video" : createMode === "image" ? "Image-to-video" : "Template"}
                       </div>
-                      <div className="mt-2 font-display text-xl italic leading-tight text-foreground">
+                      <div className="mt-2 font-display text-lg italic leading-tight text-foreground/95">
                         {createMode === "text" ? "No image required." : createMode === "image" ? "Drop a still, get a scene." : "Pick a structure."}
                       </div>
-                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground/80">
                         {createMode === "text" ? "Write the scene. The selected engine renders it from the prompt alone." : createMode === "image" ? "Your frame becomes the visual DNA — color, character, composition all carry through." : "Cinematic blueprints with shot lists you can edit before render."}
                       </p>
                     </div>
@@ -802,14 +801,13 @@ export default function StudioShell() {
                     <button
                       onClick={() => setStep("cast")}
                       disabled={!canGenerateScript}
-                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-xl bg-foreground px-4 py-3 text-left text-background transition-all hover:shadow-[0_16px_48px_-15px_hsl(var(--foreground)/0.5),0_0_64px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
+                      className="group relative mt-4 flex w-full items-center justify-between rounded-none border-t border-border/40 px-1 py-4 text-left transition-colors hover:text-foreground disabled:opacity-30"
                     >
-                      <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
-                      <span className="relative">
-                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-background/60">Phase 02</span>
-                        <span className="mt-0.5 block font-display text-[15px] italic leading-tight">Cast the avatars</span>
+                      <span>
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-accent">Phase 02</span>
+                        <span className="mt-1 block font-display text-[16px] italic leading-tight text-foreground/95">Cast the avatars</span>
                       </span>
-                      <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-accent" />
                     </button>
                   </div>
                 </div>

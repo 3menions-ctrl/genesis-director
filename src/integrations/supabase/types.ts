@@ -4851,6 +4851,54 @@ export type Database = {
         }
         Relationships: []
       }
+      scene_chain_queue: {
+        Row: {
+          created_at: string
+          hold_id: string | null
+          payload: Json
+          project_id: string
+          shot_index: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hold_id?: string | null
+          payload: Json
+          project_id: string
+          shot_index: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hold_id?: string | null
+          payload?: Json
+          project_id?: string
+          shot_index?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scene_chain_queue_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scene_chain_queue_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       script_templates: {
         Row: {
           created_at: string

@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { toast } from 'sonner';
+import { useProjectChannel } from '@/hooks/useProjectChannel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -442,9 +443,41 @@ export function SpecializedModeProgress({
   useEffect(() => {
     if (!isPolling) return;
     pollStatus();
-    const interval = setInterval(pollStatus, 3000);
+    // Realtime is the primary signal; this is a 15s safety belt for cases
+    // where the worker writes via service-role and the DB change is missed
+    // (rare) or the predictionId-driven status payload diverges from the row.
+    const interval = setInterval(pollStatus, 15000);
     return () => clearInterval(interval);
   }, [isPolling, pollStatus]);
+
+  // ── Realtime channel: react to video_clips + movie_projects changes ────
+  useProjectChannel(projectId, {
+    onClip: (clip) => {
+      if (clip.status === 'completed' && clip.video_url) {
+        setLocalClips((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex((c) => c.index === clip.shot_index);
+          if (idx >= 0) next[idx] = { ...next[idx], videoUrl: clip.video_url!, status: 'completed' };
+          else next.push({ index: clip.shot_index, videoUrl: clip.video_url!, status: 'completed' });
+          return next;
+        });
+      } else if (clip.status === 'failed') {
+        setLocalClips((prev) => prev.map((c) => (c.index === clip.shot_index ? { ...c, status: 'failed' } : c)));
+      }
+    },
+    onProject: (project) => {
+      const finalUrl = project.final_video_url || project.video_url;
+      if (finalUrl) setLocalVideoUrl(finalUrl);
+      if (project.status === 'completed') {
+        setLocalState((prev) => ({ ...prev, stage: 'completed', progress: 100 }));
+        setIsPolling(false);
+        onCompleteRef.current?.();
+      } else if (project.status === 'failed') {
+        setLocalState((prev) => ({ ...prev, stage: 'failed' }));
+        setIsPolling(false);
+      }
+    },
+  });
 
   // Cancel handler
   const handleCancel = async () => {

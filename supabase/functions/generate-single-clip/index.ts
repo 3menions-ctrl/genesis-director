@@ -1993,6 +1993,54 @@ serve(async (req) => {
     console.log(`[SingleClip] ✓ Generation lock released`);
 
     // =========================================================
+    // CHAIN QUEUE DRAIN — auto-resume the next chained shot if a
+    // parallel request had been parked waiting on THIS shot's tail
+    // frame. Server-side ordering enforcement: the next shot will
+    // re-enter generate-single-clip and the predecessor gate above
+    // will now find this clip 'completed' and inject the real tail.
+    // =========================================================
+    try {
+      const { data: queuedRow } = await supabase
+        .from('scene_chain_queue')
+        .select('payload, hold_id')
+        .eq('project_id', projectId)
+        .eq('shot_index', shotIndex + 1)
+        .maybeSingle();
+
+      if (queuedRow?.payload) {
+        console.log(`[SingleClip] ▶ Chain drain: re-firing parked shot ${shotIndex + 1} now that shot ${shotIndex} is complete`);
+
+        // Delete first so a duplicate completion can't double-fire.
+        await supabase
+          .from('scene_chain_queue')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex + 1);
+
+        // Re-fire with the freshly-extracted tail frame stamped in. The
+        // predecessor-gate on re-entry will also pick this up from DB, but
+        // we set it here so the very first prompt path sees it.
+        const replayBody = {
+          ...(queuedRow.payload as Record<string, unknown>),
+          startImageUrl: extractedLastFrameUrl || (queuedRow.payload as any).startImageUrl,
+          holdId: queuedRow.hold_id || undefined,
+        };
+
+        // Fire-and-forget. If this fails the watchdog will pick it up.
+        fetch(`${supabaseUrl}/functions/v1/generate-single-clip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify(replayBody),
+        }).catch(err => console.warn(`[SingleClip] Chain drain re-fire failed:`, err));
+      }
+    } catch (drainErr) {
+      console.warn(`[SingleClip] Chain queue drain error (non-fatal):`, drainErr);
+    }
+
+    // =========================================================
     // Trigger next clip generation via continue-production
     // CRITICAL FIX: Now passes REAL extracted data, not nulls!
     // =========================================================

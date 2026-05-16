@@ -678,7 +678,7 @@ export default function StudioShell() {
                   </div>
                 </div>
 
-                <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-5">
                     {createMode === "image" && (
                       <>
@@ -695,19 +695,19 @@ export default function StudioShell() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
                     )}
 
-                    {/* ===== HERO COMPOSER — bigger and more art-directed than the landing ===== */}
-                    <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_40px_120px_-40px_hsl(var(--accent)/0.55)] backdrop-blur-2xl">
+                    {/* ===== HERO COMPOSER ===== */}
+                    <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_30px_90px_-40px_hsl(var(--accent)/0.5)] backdrop-blur-2xl">
                       {/* Top hairline + bottom hairline */}
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
 
                       {/* Cinema corner brackets */}
-                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-4 w-4 border-l-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-4 w-4 border-r-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-4 w-4 border-b-2 border-l-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-4 w-4 border-b-2 border-r-2 border-accent/70" />
+                      <span className="pointer-events-none absolute left-2.5 top-2.5 z-10 h-3 w-3 border-l-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute right-2.5 top-2.5 z-10 h-3 w-3 border-r-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-2.5 left-2.5 z-10 h-3 w-3 border-b-2 border-l-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 h-3 w-3 border-b-2 border-r-2 border-accent/70" />
 
-                      <div className="px-9 py-9">
+                      <div className="px-5 py-6 md:px-7 md:py-7">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
                             <span className="relative flex h-1.5 w-1.5">
@@ -728,18 +728,18 @@ export default function StudioShell() {
                               ? "Animate the uploaded frame — the camera slowly dollies forward as light bends through the scene."
                               : "Describe the spin you want on the template — tone, era, hero moment."
                           }
-                          rows={5}
-                          className="mt-6 w-full resize-none bg-transparent font-display text-[34px] italic leading-[1.15] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
+                          rows={4}
+                          className="mt-4 w-full resize-none bg-transparent font-display text-[20px] md:text-[24px] xl:text-[28px] italic leading-[1.2] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
                           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
 
-                        <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-border/40 pt-6">
+                        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-border/40 pt-4">
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                           <input
                             value={draft.brief.style}
                             onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
                             placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-9 min-w-[220px] flex-1 rounded-full border border-border/60 bg-background/40 px-4 text-sm text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
+                            className="h-8 min-w-[180px] flex-1 rounded-full border border-border/60 bg-background/40 px-3.5 text-[13px] text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
                           />
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                           <SegmentedSelect
@@ -751,7 +751,7 @@ export default function StudioShell() {
 
                         {/* Quick prompt seeds — only shown when prompt is empty */}
                         {!draft.brief.logline && (
-                          <div className="mt-6 flex flex-wrap items-center gap-2">
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
                             <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
                             {[
                               { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },

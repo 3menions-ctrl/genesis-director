@@ -181,11 +181,44 @@
     --surface-1: 220 12% 5%;
     --surface-2: 220 12% 9%;
     --surface-3: 220 10% 14%;
+
+    /* ══════════════════════════════════════════════════════
+       MOTION SYSTEM — unified easing + duration vocabulary
+       Use via Tailwind arbitrary values or CSS:
+         transition-[transform] duration-[var(--dur-fast)]
+                                   ease-[var(--ease-out-quart)]
+       ══════════════════════════════════════════════════════ */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+    --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --dur-instant: 100ms;
+    --dur-fast:    160ms;
+    --dur-base:    220ms;
+    --dur-slow:    320ms;
   }
 
   /* Dark class mirrors root (app is always dark) */
   .dark {
     /* Inherits :root — no overrides needed */
+  }
+
+  /* ══════════════════════════════════════════════════════
+     RENDER STABILITY — reserve scrollbar gutter on the document
+     so opening a Radix Dialog / Sheet does not shift the page,
+     and stabilize text rendering across the whole app.
+     ══════════════════════════════════════════════════════ */
+  html {
+    scrollbar-gutter: stable;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    /* Prevent iOS overscroll chain hijacking modal scroll */
+    overscroll-behavior-y: none;
   }
 }
 

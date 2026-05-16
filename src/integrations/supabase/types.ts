@@ -1729,6 +1729,60 @@ export type Database = {
           },
         ]
       }
+      error_reports: {
+        Row: {
+          app_version: string | null
+          category: string
+          code: string
+          context: Json
+          id: string
+          occurred_at: string
+          page_url: string | null
+          retryable: boolean
+          session_id: string | null
+          severity: string
+          stack: string | null
+          technical_message: string | null
+          user_agent: string | null
+          user_id: string | null
+          user_message: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          category: string
+          code: string
+          context?: Json
+          id?: string
+          occurred_at?: string
+          page_url?: string | null
+          retryable?: boolean
+          session_id?: string | null
+          severity: string
+          stack?: string | null
+          technical_message?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          user_message?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          category?: string
+          code?: string
+          context?: Json
+          id?: string
+          occurred_at?: string
+          page_url?: string | null
+          retryable?: boolean
+          session_id?: string | null
+          severity?: string
+          stack?: string | null
+          technical_message?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          user_message?: string | null
+        }
+        Relationships: []
+      }
       feature_requests: {
         Row: {
           created_at: string

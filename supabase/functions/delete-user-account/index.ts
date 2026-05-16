@@ -35,6 +35,31 @@ Deno.serve(async (req) => {
 
     console.log(`[DeleteAccount] Starting full account deletion for user ${userId}`)
 
+    // Capture user email + fire admin alert BEFORE wiping data (best-effort, never blocks)
+    try {
+      const { data: userRec } = await supabaseAdmin.auth.admin.getUserById(userId)
+      const userEmail = userRec?.user?.email || null
+      await supabaseAdmin.rpc('admin_alert_account_deleted', {
+        p_user_email: userEmail,
+        p_user_id: userId,
+        p_reason: null,
+      })
+      await supabaseAdmin.functions.invoke('admin-alert-dispatch', {
+        body: {
+          kind: 'account_deleted',
+          eventId: userId,
+          data: {
+            title: `Account deleted — ${userEmail || userId}`,
+            body: `User permanently removed their account.`,
+            user_email: userEmail,
+            user_id: userId,
+          },
+        },
+      })
+    } catch (e) {
+      console.error('[DeleteAccount] admin alert failed (non-fatal)', e)
+    }
+
     // Delete user data in dependency order (children first, then parents)
     // ===== SOCIAL / ENGAGEMENT =====
     await supabaseAdmin.from('chat_message_reactions').delete().eq('user_id', userId)

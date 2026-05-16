@@ -3372,8 +3372,10 @@ export type Database = {
           body: string | null
           created_at: string
           data: Json | null
+          dedupe_key: string | null
           id: string
           read: boolean
+          severity: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -3382,8 +3384,10 @@ export type Database = {
           body?: string | null
           created_at?: string
           data?: Json | null
+          dedupe_key?: string | null
           id?: string
           read?: boolean
+          severity?: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -3392,8 +3396,10 @@ export type Database = {
           body?: string | null
           created_at?: string
           data?: Json | null
+          dedupe_key?: string | null
           id?: string
           read?: boolean
+          severity?: string | null
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
@@ -6898,6 +6904,20 @@ export type Database = {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
         Returns: Json
       }
+      admin_alert_account_deleted: {
+        Args: { p_reason?: string; p_user_email: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_alert_stripe_event: {
+        Args: {
+          p_amount_cents: number
+          p_buyer_email: string
+          p_kind: string
+          p_reason?: string
+          p_stripe_id: string
+        }
+        Returns: undefined
+      }
       admin_bump_security_versions_except: {
         Args: { p_except: string }
         Returns: Json
@@ -7149,6 +7169,7 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      detect_stuck_pipeline_jobs: { Args: never; Returns: number }
       dispatch_admin_alert: {
         Args: { _data: Json; _event_id: string; _kind: string }
         Returns: undefined
@@ -7372,6 +7393,18 @@ export type Database = {
           _data: Json
           _title: string
           _type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: undefined
+      }
+      notify_admins_v2: {
+        Args: {
+          p_body: string
+          p_data: Json
+          p_dedupe_key?: string
+          p_dedupe_window_seconds?: number
+          p_severity?: string
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
         }
         Returns: undefined
       }

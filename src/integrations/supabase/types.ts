@@ -5396,45 +5396,78 @@ export type Database = {
       }
       training_videos: {
         Row: {
+          aspect_ratio: string | null
+          clip_count: number | null
           created_at: string
           description: string | null
           duration_seconds: number | null
           environment: string | null
           id: string
+          manifest_url: string | null
+          project_id: string | null
+          stitched_video_url: string | null
           thumbnail_url: string | null
           title: string
           updated_at: string
           user_id: string
+          video_engine: string | null
           video_url: string
           voice_id: string | null
         }
         Insert: {
+          aspect_ratio?: string | null
+          clip_count?: number | null
           created_at?: string
           description?: string | null
           duration_seconds?: number | null
           environment?: string | null
           id?: string
+          manifest_url?: string | null
+          project_id?: string | null
+          stitched_video_url?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
           user_id: string
+          video_engine?: string | null
           video_url: string
           voice_id?: string | null
         }
         Update: {
+          aspect_ratio?: string | null
+          clip_count?: number | null
           created_at?: string
           description?: string | null
           duration_seconds?: number | null
           environment?: string | null
           id?: string
+          manifest_url?: string | null
+          project_id?: string | null
+          stitched_video_url?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
+          video_engine?: string | null
           video_url?: string
           voice_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_videos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_videos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       universe_activity: {
         Row: {

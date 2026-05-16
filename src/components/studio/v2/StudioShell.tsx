@@ -1319,11 +1319,10 @@ function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: E
     cinema: "bg-amber-400 shadow-[0_0_8px_hsl(45_90%_55%/0.7)]",
   };
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="mb-5 flex items-center justify-between">
+    <div className="relative pt-8">
+      <div className="mb-5 flex items-center justify-between border-t border-border/40 pt-6">
         <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-          <Cpu className="h-3 w-3" />
+          <Cpu className="h-3 w-3" strokeWidth={1.5} />
           Render engine
         </div>
         <button onClick={onMore} className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground transition-colors hover:text-foreground">
@@ -1343,28 +1342,28 @@ function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: E
               disabled={!e.healthy}
               title={locked ? `${e.shortLabel} requires Studio Cinema` : undefined}
               className={cn(
-                "group relative inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm transition-all",
+                "group relative inline-flex items-center gap-2.5 rounded-full border px-3.5 py-2 text-sm transition-all",
                 active
-                  ? "border-accent bg-accent/[0.08] text-foreground shadow-[0_0_24px_hsl(var(--accent)/0.35)]"
-                  : "border-border/60 bg-background/30 text-muted-foreground hover:border-foreground/30 hover:bg-background/50 hover:text-foreground",
+                  ? "border-accent/60 bg-accent/[0.06] text-foreground"
+                  : "border-border/50 bg-transparent text-muted-foreground hover:border-foreground/30 hover:text-foreground",
                 !e.healthy && "cursor-not-allowed opacity-30",
                 locked && "opacity-60",
               )}
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", tierColor[e.tier] || "bg-foreground/40")} />
-              <span className="font-display text-[15px] italic">{e.shortLabel}</span>
+              <span className="font-display text-[14px] italic">{e.shortLabel}</span>
               {locked && <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-amber-400/80">PRO</span>}
               {cost != null && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground/60">
+                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/60 group-hover:text-foreground/60">
                   {cost}c
                 </span>
               )}
-              {active && <Check className="h-3.5 w-3.5 text-accent" />}
+              {active && <Check className="h-3 w-3 text-accent" />}
             </button>
           );
         })}
       </div>
-      <div className="mt-4 flex items-center gap-4 border-t border-border/40 pt-4 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+      <div className="mt-4 flex items-center gap-4 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-foreground/40" /> Standard</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-accent" /> Pro</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-amber-400" /> Cinema</span>
@@ -1398,11 +1397,10 @@ function SceneRuntimeControls({
   const safeDuration = durations.includes(duration) ? duration : durations[0];
   const total = safeCount * safeDuration;
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="mb-5 flex items-center justify-between">
+    <div className="relative pt-8">
+      <div className="mb-5 flex items-center justify-between border-t border-border/40 pt-6">
         <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-          <Timer className="h-3 w-3" />
+          <Timer className="h-3 w-3" strokeWidth={1.5} />
           Scenes &amp; runtime
         </div>
         <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -1410,30 +1408,30 @@ function SceneRuntimeControls({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Scene count stepper */}
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Scene count</div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 p-1.5">
+          <div className="inline-flex items-center gap-2">
             <button
               onClick={() => onSceneCountChange(Math.max(1, safeCount - 1))}
               disabled={safeCount <= 1}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-foreground transition-all hover:border-accent hover:text-accent disabled:opacity-30"
               aria-label="Decrease scene count"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </button>
-            <div className="min-w-[80px] px-3 text-center">
+            <div className="min-w-[72px] px-3 text-center">
               <div className="font-display text-2xl italic leading-none text-foreground">{safeCount}</div>
-              <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">/ {maxScenes} max</div>
+              <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50">/ {maxScenes} max</div>
             </div>
             <button
               onClick={() => onSceneCountChange(Math.min(maxScenes, safeCount + 1))}
               disabled={safeCount >= maxScenes}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-foreground transition-all hover:border-accent hover:text-accent disabled:opacity-30"
               aria-label="Increase scene count"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -1441,7 +1439,7 @@ function SceneRuntimeControls({
         {/* Per-scene duration picker */}
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Seconds per scene</div>
-          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5">
+          <div className="inline-flex flex-wrap items-center gap-4">
             {durations.map((d) => {
               const active = d === safeDuration;
               return (
@@ -1449,18 +1447,17 @@ function SceneRuntimeControls({
                   key={d}
                   onClick={() => onDurationChange(d)}
                   className={cn(
-                    "inline-flex h-9 min-w-[56px] items-center justify-center rounded-full px-4 text-sm transition-all",
-                    active
-                      ? "bg-foreground text-background shadow-[0_8px_24px_-10px_hsl(var(--accent)/0.55)]"
-                      : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+                    "relative pb-1 text-sm transition-colors",
+                    active ? "text-accent" : "text-muted-foreground/70 hover:text-foreground",
                   )}
                 >
-                  <span className={cn("font-display italic", active ? "text-background" : "")}>{d}s</span>
+                  <span className="font-display italic">{d}s</span>
+                  {active && <span className="absolute -bottom-0.5 left-0 right-0 h-px bg-accent" />}
                 </button>
               );
             })}
           </div>
-          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">
             {engine.shortLabel} supports {durations.join(" / ")}s
           </div>
         </div>

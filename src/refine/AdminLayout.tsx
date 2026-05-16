@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OpsAccessProvider, useOpsAccess } from "./rbac/OpsAccessProvider";
 import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
 import { scopeForPath } from "./rbac/scopes";
+import { AdminNotificationBell } from "./components/AdminNotificationBell";
 import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };
@@ -366,6 +367,7 @@ function RefineAdminLayoutInner() {
               <span className="text-emerald-500/70 font-mono">Uptime 99.98%</span>
             </div>
             <Clock />
+            <AdminNotificationBell />
           </div>
         </header>
 

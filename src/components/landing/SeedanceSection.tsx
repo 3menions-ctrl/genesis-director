@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Zap, Film, Wand2, Sparkles } from 'lucide-react';
+import { ArrowRight, Clock, Film, ScanFace, Layers } from 'lucide-react';
 
 /**
  * Seedance 2.0 — short, dense, fully glassmorphic reveal.
@@ -11,11 +11,12 @@ export const SeedanceSection = memo(function SeedanceSection({
 }: { onCta?: () => void }) {
   const reduce = useReducedMotion();
 
+  // Verifiable capability claims — no fabricated benchmarks.
   const stats = [
-    { icon: Zap, label: 'Render', value: '3.4s' },
-    { icon: Film, label: 'Native', value: '4K HDR' },
-    { icon: Wand2, label: 'Identity lock', value: '99.2%' },
-    { icon: Sparkles, label: 'Throughput', value: '40+/min' },
+    { icon: Film,     label: 'Clip length',  value: 'Up to 12s' },
+    { icon: Clock,    label: 'Frame rate',   value: '24 fps' },
+    { icon: ScanFace, label: 'Identity',     value: 'Face-locked' },
+    { icon: Layers,   label: 'Chaining',     value: 'Last-frame carry' },
   ];
 
   return (
@@ -121,8 +122,9 @@ export const SeedanceSection = memo(function SeedanceSection({
               </h2>
 
               <p className="text-white/65 text-base md:text-lg font-light mt-6 max-w-md leading-relaxed">
-                A new motion engine. Cinematic in a single take, brand-locked
-                across every shot.
+                A dedicated motion engine for high-fidelity human and product
+                shots. Pin it to a project, or let the router choose Seedance
+                per shot when realism matters.
               </p>
 
               <div className="flex items-center gap-3 mt-8">
@@ -135,7 +137,7 @@ export const SeedanceSection = memo(function SeedanceSection({
                       '0 0 32px hsla(212,100%,55%,0.5), inset 0 1px 0 hsla(0,0%,100%,0.25)',
                   }}
                 >
-                  <span>Generate with 2.0</span>
+                  <span>Try Seedance</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </button>
                 <a

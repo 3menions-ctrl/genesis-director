@@ -945,7 +945,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 px-7 md:px-10 pt-6 pb-16">
-            {[mAstroBear, mWizRabbit, mRobot].map((src, i) => (
+            {/* Casting trio — unique mascots, never reused in the left column above. */}
+            {[mFox, mIcecream, mTaco].map((src, i) => (
               <div key={i} className="relative h-[340px] md:h-[400px] flex items-end justify-center">
                 {/* Cone of light from above */}
                 <div aria-hidden className="absolute inset-x-0 -top-6 h-full pointer-events-none"

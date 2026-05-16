@@ -312,7 +312,128 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                 style={{ boxShadow: 'inset 0 0 0 1px hsla(212,100%,70%,0.45), inset 0 0 80px hsla(212,100%,55%,0.20)' }}
               />
+              {/* Mirror reflection beneath card */}
+              <div
+                aria-hidden
+                className="absolute -bottom-24 left-2 right-2 h-24 rounded-3xl overflow-hidden pointer-events-none"
+                style={{
+                  transform: 'scaleY(-1)',
+                  maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+                  filter: 'blur(2px)',
+                  opacity: 0.45,
+                }}
+              >
+                <video src={v.src} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover" />
+              </div>
             </motion.div>
+          ))}
+        </motion.div>
+
+        {/* ── 2b. Sonic Engine — animated audio visualizer ─────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative grid grid-cols-1 md:grid-cols-12 gap-4 mb-20 md:mb-28"
+        >
+          <div className="md:col-span-7 relative rounded-3xl overflow-hidden p-7 md:p-9 backdrop-blur-2xl"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.03), hsla(0,0%,100%,0.005))',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 40px 100px -50px rgba(10,132,255,0.55)',
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-px"
+              style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.55), transparent)' }} />
+            <div className="flex items-baseline justify-between mb-5">
+              <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Sonic engine</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">MusicGen · Lip-sync</p>
+            </div>
+            <h3 className="text-white text-2xl md:text-3xl font-medium tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+              Score, voice, and duck — automatically.
+            </h3>
+            {/* Live waveform */}
+            <div className="relative h-32 md:h-40 flex items-end gap-[3px] md:gap-[4px]">
+              {Array.from({ length: 56 }).map((_, i) => {
+                const h = 18 + ((i * 53) % 82);
+                const dur = 0.8 + ((i * 11) % 22) / 10;
+                const delay = ((i * 7) % 30) / 30;
+                return (
+                  <span
+                    key={i}
+                    className="flex-1 rounded-t-sm origin-bottom"
+                    style={{
+                      height: `${h}%`,
+                      background: 'linear-gradient(180deg, #9DCBFF 0%, #0A84FF 60%, hsla(212,100%,40%,0.6) 100%)',
+                      boxShadow: '0 0 8px hsla(212,100%,60%,0.55)',
+                      animation: `ese-eq ${dur}s ease-in-out ${delay}s infinite`,
+                    }}
+                  />
+                );
+              })}
+              {/* shimmer overlay */}
+              <span aria-hidden className="absolute inset-y-0 w-1/3 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, hsla(0,0%,100%,0.18), transparent)',
+                  animation: 'ese-shimmer-x 4s linear infinite',
+                }}
+              />
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {[
+                { k: 'Score', v: 'Cinematic MusicGen' },
+                { k: 'Voice', v: '11 languages · clones' },
+                { k: 'Mix',   v: 'Auto-duck on dialogue' },
+              ].map((s) => (
+                <div key={s.k} className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">{s.k}</p>
+                  <p className="text-white/80 text-[12.5px] font-light mt-1">{s.v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-5 grid grid-cols-2 gap-3">
+            {[featMusic, featVoice, featStyle, feat1].map((src, i) => (
+              <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-white/[0.06] group"
+                style={{ boxShadow: '0 20px 60px -30px rgba(10,132,255,0.5)' }}
+              >
+                <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-[1400ms] group-hover:scale-110" loading="lazy" />
+                <div aria-hidden className="absolute inset-0"
+                  style={{ background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.7) 100%)' }}
+                />
+                <div className="absolute bottom-2 left-2.5 text-[9.5px] font-mono uppercase tracking-[0.2em] text-white/85">
+                  {['Music','Voice','Style','Lock'][i]}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── 2c. Showreel quartet (4 more living videos) ──────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-24 md:mb-32"
+        >
+          {SHOWREEL.map((v, i) => (
+            <div key={i} className="group relative aspect-[9/12] rounded-2xl overflow-hidden border border-white/[0.06]"
+              style={{ boxShadow: '0 30px 70px -40px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.04)' }}
+            >
+              <video src={v.src} autoPlay loop muted playsInline preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1600ms] group-hover:scale-[1.06]"
+              />
+              <div aria-hidden className="absolute inset-0"
+                style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.85))' }}
+              />
+              <div className="absolute bottom-3 left-3 right-3">
+                <div className="text-white text-[13px] font-medium tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>{v.label}</div>
+                <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-white/55 mt-0.5">{v.spec}</div>
+              </div>
+            </div>
           ))}
         </motion.div>
 

@@ -1121,9 +1121,12 @@ async function handleCinematicMode(params: {
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
   breakoutPlatform?: string;
+  breakoutDialogue?: string;
+  identityBible?: any;
+  characterLock?: any;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1168,6 +1171,9 @@ async function handleCinematicMode(params: {
       isBreakout,
       breakoutStartImageUrl,
       breakoutPlatform,
+      breakoutDialogue,
+      identityBible,
+      characterLock,
     }),
   });
 

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { PageShell, PageHeader, Surface, SegmentedControl } from '@/components/shell';
 import { Button } from '@/components/ui/button';
-import { Download, Sparkles } from 'lucide-react';
+import { Download, Sparkles, Film } from 'lucide-react';
+import { SeedanceAnimateDialog } from '@/components/mascots/SeedanceAnimateDialog';
 
 import foodTaco from '@/assets/mascots/food-truck-taco.png';
 import foodBurger from '@/assets/mascots/food-truck-burger.png';
@@ -51,18 +52,25 @@ export default function Mascots() {
   usePageMeta({ title: "Mascots — Apex Studio", description: "Custom brand mascots and recurring characters for cinematic series." });
 
   const [filter, setFilter] = useState<Pack>('all');
+  const [animateOpen, setAnimateOpen] = useState(false);
+  const [animateTarget, setAnimateTarget] = useState<Mascot | null>(null);
 
   const visible = useMemo(
     () => filter === 'all' ? MASCOTS : MASCOTS.filter(m => m.pack === filter),
     [filter],
   );
 
+  function openAnimate(m: Mascot) {
+    setAnimateTarget(m);
+    setAnimateOpen(true);
+  }
+
   return (
     <PageShell width="wide">
       <PageHeader
         eyebrow="Brand · Mascot Pack"
         title={<>Cast a character.<br/><span className="text-muted-foreground">Three worlds, nine heroes.</span></>}
-        subtitle="A curated set of brand mascots — food-truck personalities, vintage cereal-box icons, and indie-game protagonists. Drop them into pitches, decks, scenes, and storyboards."
+        subtitle="A curated set of brand mascots — food-truck personalities, vintage cereal-box icons, and indie-game protagonists. Animate any of them with Seedance — cinematic motion, chained shots, auto-stitched."
         actions={
           <Button variant="pill" size="pill" asChild>
             <a href="#gallery"><Sparkles className="w-4 h-4" /> Browse pack</a>
@@ -121,17 +129,28 @@ export default function Mascots() {
                   <h3 className="text-display-luxe text-2xl mt-2 truncate">{m.name}</h3>
                   <p className="text-body-muted text-sm mt-2 line-clamp-2">{m.tagline}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  asChild
-                  aria-label={`Download ${m.name}`}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <a href={m.src} download>
-                    <Download className="w-4 h-4" />
-                  </a>
-                </Button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    aria-label={`Download ${m.name}`}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <a href={m.src} download>
+                      <Download className="w-4 h-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    variant="pill"
+                    size="pill"
+                    onClick={() => openAnimate(m)}
+                    aria-label={`Animate ${m.name} with Seedance`}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Film className="w-4 h-4" /> Animate
+                  </Button>
+                </div>
               </div>
             </div>
           </Surface>
@@ -143,6 +162,12 @@ export default function Mascots() {
           <p className="text-body-muted">No mascots in this pack yet.</p>
         </Surface>
       )}
+
+      <SeedanceAnimateDialog
+        open={animateOpen}
+        onOpenChange={setAnimateOpen}
+        mascot={animateTarget}
+      />
     </PageShell>
   );
 }

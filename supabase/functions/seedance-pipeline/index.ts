@@ -523,26 +523,54 @@ serve(async (req) => {
         durationSeconds: clipDuration,
       }));
     } else {
-      console.log(`[Seedance] Generating script via generate-script`);
-      const scriptRes = await callEdgeFunction("generate-script", {
+      // ABOVE-CAMERON DIRECTOR — Seedance-tuned cinematographer LLM.
+      // Falls back to legacy generate-script if director is unavailable.
+      console.log(`[Seedance] 🎬 Running seedance-script-director (Cameron-tier)`);
+      const charDesc =
+        request.characterLock?.description ||
+        request.referenceImageAnalysis?.characterIdentity?.description ||
+        request.templateCharacters?.[0]?.appearance ||
+        undefined;
+      const envLock =
+        request.templateEnvironmentLock?.location ||
+        request.identityBible?.masterSceneAnchor?.environmentDNA ||
+        undefined;
+      let scriptRes: any = await callEdgeFunction("seedance-script-director", {
         concept: request.concept,
         clipCount,
         clipDuration,
+        aspectRatio,
         genre: request.genre ?? "cinematic",
         mood: request.mood ?? "epic",
-        engine: "seedance",
-        // Seedance-specific guidance for the script generator
-        engineHints: {
-          noNativeAudio: true,        // don't bake in lip-sync / SFX cues
-          maxClipSeconds: 12,
-          motionFirst: true,          // favor action verbs, camera intent
-          referenceImage: !!request.referenceImageUrl,
-          isAvatarMode: !!request.isAvatarMode,
-        },
+        isAvatarMode: !!request.isAvatarMode,
+        hasReferenceImage: !!request.referenceImageUrl,
+        characterDescription: charDesc,
+        environmentLock: envLock,
+        cameraFixed,
       }).catch((e) => {
-        console.warn(`[Seedance] generate-script failed, falling back to concept split:`, e?.message);
+        console.warn(`[Seedance] director failed, falling back to generate-script:`, e?.message);
         return null;
       });
+      if (!scriptRes?.shots?.length) {
+        scriptRes = await callEdgeFunction("generate-script", {
+          concept: request.concept,
+          clipCount,
+          clipDuration,
+          genre: request.genre ?? "cinematic",
+          mood: request.mood ?? "epic",
+          engine: "seedance",
+          engineHints: {
+            noNativeAudio: true,
+            maxClipSeconds: 12,
+            motionFirst: true,
+            referenceImage: !!request.referenceImageUrl,
+            isAvatarMode: !!request.isAvatarMode,
+          },
+        }).catch((e) => {
+          console.warn(`[Seedance] generate-script also failed:`, e?.message);
+          return null;
+        });
+      }
       if (scriptRes?.shots?.length) {
         shots = scriptRes.shots.slice(0, clipCount);
       } else {

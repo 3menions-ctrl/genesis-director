@@ -875,8 +875,15 @@ async function handleAvatarCinematicMode(params: {
   // It must be passed as userNarration to preserve it verbatim
   console.log(`[ModeRouter/AvatarCinematic] Routing to Hollywood Pipeline...`);
   console.log(`[ModeRouter/AvatarCinematic] User's speech text (${concept.length} chars): "${concept.substring(0, 100)}..."`);
-  
-  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
+
+  // ENGINE ROUTING: Seedance avatars go to seedance-pipeline (Kling-only Hollywood
+  // would hard-reject). All others route to hollywood-pipeline.
+  const targetPipeline = (videoEngine === 'seedance')
+    ? 'seedance-pipeline'
+    : 'hollywood-pipeline';
+  console.log(`[ModeRouter/AvatarCinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+
+  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -908,6 +915,7 @@ async function handleAvatarCinematicMode(params: {
       // This tells smart-script-generator to use this text VERBATIM for TTS
       userNarration: concept,
       preserveUserContent: true,
+      videoEngine, // forward engine for DB lock / guard
     }),
   });
 
@@ -1112,8 +1120,13 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] BREAKOUT TEMPLATE: ${breakoutPlatform}, using platform UI as first frame`);
   }
 
-  // Route to hollywood-pipeline with all parameters
-  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
+  // ENGINE ROUTING: Seedance → seedance-pipeline, all others → hollywood-pipeline
+  const targetPipeline = (videoEngine === 'seedance')
+    ? 'seedance-pipeline'
+    : 'hollywood-pipeline';
+  console.log(`[ModeRouter/Cinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+
+  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -24,6 +24,8 @@ import { motion } from 'framer-motion';
 import waveHelloAsset from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import seedanceTestAsset from '@/assets/seedance-avatar-test.mp4.asset.json';
 import immersiveHeroAsset from '@/assets/landing-immersive-hero.mp4.asset.json';
+import hoppyIntroAsset from '@/assets/landing-hoppy-intro.mp4.asset.json';
+import seedanceClipAsset from '@/assets/test-seedance-clip.mp4.asset.json';
 
 // ── Mascot ring (PNG, transparent or framed) ─────────────────────────────
 import mAstroBear from '@/assets/mascots/cereal-astronaut-bear.png';
@@ -72,6 +74,9 @@ import scene2 from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
 import scene3 from '@/assets/scenes/minimal-embed-preview.jpg';
 import feat1 from '@/assets/features/character-lock-premium.jpg';
 import feat2 from '@/assets/features/text-to-video-premium.jpg';
+import featMusic from '@/assets/features/music-premium.jpg';
+import featVoice from '@/assets/features/voiceover-premium.jpg';
+import featStyle from '@/assets/features/style-transfer-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 const AVATARS = [
@@ -87,6 +92,13 @@ const VIDEOS = [
   { src: waveHelloAsset.url,    label: 'Avatar · Wave Hello',  spec: 'Kling V3 · 10s · 16:9' },
   { src: seedanceTestAsset.url, label: 'Seedance · Hyperreal', spec: 'Seedance 2.0 · 12s'    },
   { src: immersiveHeroAsset.url,label: 'Cinematic · Hero',     spec: 'Kling V3 · Native audio'},
+];
+
+const SHOWREEL = [
+  { src: hoppyIntroAsset.url,   label: 'Hoppy · Mascot Reel',  spec: 'I2V · Stitched' },
+  { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
+  { src: waveHelloAsset.url,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
+  { src: immersiveHeroAsset.url,label: 'Hero · Wide Cinematic',spec: 'Kling V3 · 16:9' },
 ];
 
 interface Props {
@@ -125,6 +137,30 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           0%,100% { transform: translateY(0)   scale(1);    filter: brightness(1); }
           50%     { transform: translateY(-6px) scale(1.03); filter: brightness(1.18); }
         }
+        @keyframes ese-twinkle {
+          0%,100% { opacity: 0.15; transform: scale(0.85); }
+          50%     { opacity: 0.95; transform: scale(1.15); }
+        }
+        @keyframes ese-aurora {
+          0%,100% { transform: translate3d(-4%, 0, 0) rotate(0deg); opacity: 0.55; }
+          50%     { transform: translate3d(4%, -2%, 0) rotate(8deg); opacity: 0.85; }
+        }
+        @keyframes ese-eq {
+          0%,100% { transform: scaleY(0.18); }
+          50%     { transform: scaleY(1); }
+        }
+        @keyframes ese-ring-expand {
+          0%   { transform: translate(-50%,-50%) scale(0.2); opacity: 0.9; }
+          100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; }
+        }
+        @keyframes ese-firework {
+          0%   { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--fx), var(--fy)) scale(0.2); opacity: 0; }
+        }
+        @keyframes ese-shimmer-x {
+          0%   { transform: translateX(-120%); }
+          100% { transform: translateX(220%); }
+        }
       `}</style>
 
       {/* Ambient radial wash */}
@@ -137,6 +173,59 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             'radial-gradient(40% 50% at 50% 100%, hsla(212,100%,40%,0.10), transparent 75%)',
         }}
       />
+
+      {/* Aurora veils — slow drifting color washes */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div
+          className="absolute -top-40 -left-20 w-[70vw] h-[70vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(212,100%,55%,0.22), transparent 70%)',
+            filter: 'blur(60px)',
+            animation: 'ese-aurora 18s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute top-1/3 -right-20 w-[60vw] h-[60vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(190,90%,60%,0.18), transparent 70%)',
+            filter: 'blur(70px)',
+            animation: 'ese-aurora 22s ease-in-out infinite reverse',
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-1/4 w-[55vw] h-[55vw] rounded-full"
+          style={{
+            background: 'radial-gradient(closest-side, hsla(230,100%,65%,0.18), transparent 70%)',
+            filter: 'blur(70px)',
+            animation: 'ese-aurora 26s ease-in-out infinite',
+          }}
+        />
+      </div>
+
+      {/* Twinkling starfield */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        {Array.from({ length: 48 }).map((_, i) => {
+          const top = (i * 53) % 100;
+          const left = (i * 37) % 100;
+          const size = 1 + ((i * 7) % 3);
+          const dur = 2.5 + ((i * 13) % 40) / 10;
+          const delay = ((i * 11) % 30) / 10;
+          return (
+            <span
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                top: `${top}%`,
+                left: `${left}%`,
+                width: size,
+                height: size,
+                boxShadow: '0 0 6px rgba(255,255,255,0.85)',
+                animation: `ese-twinkle ${dur}s ease-in-out ${delay}s infinite`,
+              }}
+            />
+          );
+        })}
+      </div>
 
       <div className="max-w-7xl mx-auto">
         {/* ── 1. Minimal kicker + tight one-line headline ──────────────── */}
@@ -223,7 +312,128 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                 style={{ boxShadow: 'inset 0 0 0 1px hsla(212,100%,70%,0.45), inset 0 0 80px hsla(212,100%,55%,0.20)' }}
               />
+              {/* Mirror reflection beneath card */}
+              <div
+                aria-hidden
+                className="absolute -bottom-24 left-2 right-2 h-24 rounded-3xl overflow-hidden pointer-events-none"
+                style={{
+                  transform: 'scaleY(-1)',
+                  maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+                  filter: 'blur(2px)',
+                  opacity: 0.45,
+                }}
+              >
+                <video src={v.src} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover" />
+              </div>
             </motion.div>
+          ))}
+        </motion.div>
+
+        {/* ── 2b. Sonic Engine — animated audio visualizer ─────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative grid grid-cols-1 md:grid-cols-12 gap-4 mb-20 md:mb-28"
+        >
+          <div className="md:col-span-7 relative rounded-3xl overflow-hidden p-7 md:p-9 backdrop-blur-2xl"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.03), hsla(0,0%,100%,0.005))',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 40px 100px -50px rgba(10,132,255,0.55)',
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-px"
+              style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.55), transparent)' }} />
+            <div className="flex items-baseline justify-between mb-5">
+              <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Sonic engine</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">MusicGen · Lip-sync</p>
+            </div>
+            <h3 className="text-white text-2xl md:text-3xl font-medium tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+              Score, voice, and duck — automatically.
+            </h3>
+            {/* Live waveform */}
+            <div className="relative h-32 md:h-40 flex items-end gap-[3px] md:gap-[4px]">
+              {Array.from({ length: 56 }).map((_, i) => {
+                const h = 18 + ((i * 53) % 82);
+                const dur = 0.8 + ((i * 11) % 22) / 10;
+                const delay = ((i * 7) % 30) / 30;
+                return (
+                  <span
+                    key={i}
+                    className="flex-1 rounded-t-sm origin-bottom"
+                    style={{
+                      height: `${h}%`,
+                      background: 'linear-gradient(180deg, #9DCBFF 0%, #0A84FF 60%, hsla(212,100%,40%,0.6) 100%)',
+                      boxShadow: '0 0 8px hsla(212,100%,60%,0.55)',
+                      animation: `ese-eq ${dur}s ease-in-out ${delay}s infinite`,
+                    }}
+                  />
+                );
+              })}
+              {/* shimmer overlay */}
+              <span aria-hidden className="absolute inset-y-0 w-1/3 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, hsla(0,0%,100%,0.18), transparent)',
+                  animation: 'ese-shimmer-x 4s linear infinite',
+                }}
+              />
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {[
+                { k: 'Score', v: 'Cinematic MusicGen' },
+                { k: 'Voice', v: '11 languages · clones' },
+                { k: 'Mix',   v: 'Auto-duck on dialogue' },
+              ].map((s) => (
+                <div key={s.k} className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">{s.k}</p>
+                  <p className="text-white/80 text-[12.5px] font-light mt-1">{s.v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-5 grid grid-cols-2 gap-3">
+            {[featMusic, featVoice, featStyle, feat1].map((src, i) => (
+              <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-white/[0.06] group"
+                style={{ boxShadow: '0 20px 60px -30px rgba(10,132,255,0.5)' }}
+              >
+                <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-[1400ms] group-hover:scale-110" loading="lazy" />
+                <div aria-hidden className="absolute inset-0"
+                  style={{ background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.7) 100%)' }}
+                />
+                <div className="absolute bottom-2 left-2.5 text-[9.5px] font-mono uppercase tracking-[0.2em] text-white/85">
+                  {['Music','Voice','Style','Lock'][i]}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── 2c. Showreel quartet (4 more living videos) ──────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-24 md:mb-32"
+        >
+          {SHOWREEL.map((v, i) => (
+            <div key={i} className="group relative aspect-[9/12] rounded-2xl overflow-hidden border border-white/[0.06]"
+              style={{ boxShadow: '0 30px 70px -40px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.04)' }}
+            >
+              <video src={v.src} autoPlay loop muted playsInline preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1600ms] group-hover:scale-[1.06]"
+              />
+              <div aria-hidden className="absolute inset-0"
+                style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.85))' }}
+              />
+              <div className="absolute bottom-3 left-3 right-3">
+                <div className="text-white text-[13px] font-medium tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>{v.label}</div>
+                <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-white/55 mt-0.5">{v.spec}</div>
+              </div>
+            </div>
           ))}
         </motion.div>
 
@@ -506,6 +716,54 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               filter: 'blur(30px)',
             }}
           />
+
+          {/* Expanding sonar rings */}
+          <div aria-hidden className="absolute left-1/2 top-[55%] pointer-events-none -z-10" style={{ width: 1, height: 1 }}>
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="absolute left-0 top-0 rounded-full"
+                style={{
+                  width: 360,
+                  height: 360,
+                  marginLeft: -180,
+                  marginTop: -180,
+                  border: '1px solid hsla(212,100%,75%,0.45)',
+                  animation: `ese-ring-expand 4.5s ease-out ${i * 1.5}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Firework bursts */}
+          <div aria-hidden className="absolute left-1/2 top-[55%] pointer-events-none -z-10" style={{ width: 1, height: 1 }}>
+            {Array.from({ length: 18 }).map((_, i) => {
+              const angle = (i / 18) * Math.PI * 2;
+              const dist = 180 + ((i * 17) % 90);
+              const fx = Math.cos(angle) * dist;
+              const fy = Math.sin(angle) * dist;
+              const dur = 2.2 + ((i * 7) % 18) / 10;
+              const delay = ((i * 11) % 40) / 10;
+              const hue = i % 3 === 0 ? '#ffffff' : i % 3 === 1 ? '#9DCBFF' : '#0A84FF';
+              return (
+                <span
+                  key={i}
+                  className="absolute left-0 top-0 rounded-full"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    marginLeft: -3,
+                    marginTop: -3,
+                    background: hue,
+                    boxShadow: `0 0 14px ${hue}, 0 0 28px ${hue}`,
+                    ['--fx' as never]: `${fx}px`,
+                    ['--fy' as never]: `${fy}px`,
+                    animation: `ese-firework ${dur}s ease-out ${delay}s infinite`,
+                  }}
+                />
+              );
+            })}
+          </div>
 
           <motion.button
             onClick={onStart}

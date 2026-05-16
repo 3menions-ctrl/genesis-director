@@ -902,7 +902,7 @@ You **cannot** get a refund for:
 
 ### Questions?
 
-Contact **cole@apex-studio.com** BEFORE purchasing if you have concerns.
+Contact **apex-studio.ai@apex-studio.ai** BEFORE purchasing if you have concerns.
         `
       }
     ]
@@ -984,7 +984,7 @@ Control notifications:
 
 ### GDPR Compliance
 
-We're fully GDPR compliant. Contact **cole@apex-studio.com** for data requests.
+We're fully GDPR compliant. Contact **apex-studio.ai@apex-studio.ai** for data requests.
         `
       }
     ]
@@ -1092,7 +1092,7 @@ Attempts to bypass filters may result in account suspension.
 
 ### Reporting Violations
 
-Report inappropriate content: **cole@apex-studio.com**
+Report inappropriate content: **apex-studio.ai@apex-studio.ai**
         `
       },
       {
@@ -1274,7 +1274,7 @@ If you accidentally created multiple accounts:
 
 ### Email Support
 
-**cole@apex-studio.com**
+**apex-studio.ai@apex-studio.ai**
 
 Include in your message:
 - Your account email

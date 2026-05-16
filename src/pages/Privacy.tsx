@@ -256,8 +256,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise these rights, please contact us at{' '}
-                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
-                  cole@apex-studio.com
+                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
+                  apex-studio.ai@apex-studio.ai
                 </a>. We will respond to your request within 30 days (or as required by applicable law).
               </p>
             </section>
@@ -276,8 +276,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise your California privacy rights, contact us at{' '}
-                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
-                  cole@apex-studio.com
+                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
+                  apex-studio.ai@apex-studio.ai
                 </a>.
               </p>
             </section>
@@ -293,8 +293,8 @@ const Privacy = () => {
               <p className="mt-4">
                 If you are a parent or guardian and believe your child under 13 has provided us with 
                 personal information, please contact us at{' '}
-                <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
-                  cole@apex-studio.com
+                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
+                  apex-studio.ai@apex-studio.ai
                 </a>.
               </p>
             </section>
@@ -379,8 +379,8 @@ const Privacy = () => {
                 <p><strong className="text-white">Apex-Studio LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:cole@apex-studio.com" className="text-white hover:underline">
-                    cole@apex-studio.com
+                  <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
+                    apex-studio.ai@apex-studio.ai
                   </a>
                 </p>
                 <p className="text-white/70 text-sm mt-2">

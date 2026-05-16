@@ -1078,21 +1078,14 @@ export default function StudioShell() {
 function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: React.ReactNode; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} className="relative">
-      <div className="relative mb-6 flex items-end justify-between gap-6 border-b border-border/40 pb-5">
+      <div className="relative mb-12 flex items-end justify-between gap-6">
         <div className="flex-1">
-          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
-            </span>
-            <Icon className="h-3 w-3" /> {eyebrow}
+          <div className="mb-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
+            <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" }).toUpperCase()}</span>
+            <span className="h-px w-8 bg-border/60" />
+            <span>{eyebrow}</span>
           </div>
-          <h1 className="max-w-3xl font-display text-[28px] font-light leading-[1.02] tracking-[-0.02em] text-foreground sm:text-[34px] md:text-[40px] xl:text-[52px]">{title}</h1>
-        </div>
-        <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60 lg:flex">
-          <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>
-          <span className="h-px w-12 bg-border" />
-          <span>Take 01</span>
+          <h1 className="max-w-3xl font-display text-[34px] font-light leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[42px] md:text-[52px] xl:text-[60px]">{title}</h1>
         </div>
       </div>
       {children}

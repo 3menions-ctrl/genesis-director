@@ -66,6 +66,29 @@ interface SeedancePipelineRequest {
   skipCreditDeduction?: boolean;
   resumeFrom?: string;
   isAvatarMode?: boolean;
+
+  // ─── Avatars / Mascots / Reference identity ──────────────────────────
+  referenceImageUrl?: string;        // avatar/mascot/character ref
+  referenceImageAnalysis?: any;      // pre-extracted identity
+  identityBible?: any;               // continuity manifest from extractor
+  characterLock?: any;               // character lock object
+
+  // ─── Templates (rich template flow) ──────────────────────────────────
+  useTemplateShots?: boolean;
+  templateShotSequence?: any[];      // pre-defined shots
+  templateName?: string;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
+
+  // ─── Fourth-wall / Breakout effects (3-clip narrative) ───────────────
+  isBreakout?: boolean;
+  breakoutStartImageUrl?: string;
+  breakoutPlatform?:
+    | 'post-escape' | 'scroll-grab' | 'freeze-walk' | 'reality-rip'
+    | 'aspect-escape' | 'mirror-shatter' | 'canvas-emerge'
+    | 'billboard-leap' | 'page-burst' | 'hologram-materialize';
+  breakoutDialogue?: string;         // line spoken in clip 3
 }
 
 interface SeedanceClipInput {
@@ -99,6 +122,114 @@ function seedanceTunePrompt(raw: string, cameraFixed: boolean): string {
     ? "static camera lock-off, subject motion only"
     : "smooth cinematic camera motion, natural parallax";
   return `${p}. ${motionTag}, 24fps, photoreal, sharp focus`.slice(0, 2400);
+}
+
+/**
+ * Inject identity/character lock anchors into a Seedance prompt.
+ * Seedance doesn't have Kling-style multi-image identity lock, so we
+ * front-load identity into the text prompt and rely on `image` for visual.
+ */
+function injectIdentity(
+  base: string,
+  opts: {
+    identityBible?: any;
+    characterLock?: any;
+    referenceImageAnalysis?: any;
+    templateCharacters?: any[];
+  },
+): string {
+  const parts: string[] = [];
+  const ib = opts.identityBible;
+  const cl = opts.characterLock;
+  const ria = opts.referenceImageAnalysis;
+  const tc = opts.templateCharacters?.[0];
+
+  const charDesc =
+    cl?.description ||
+    ib?.characterIdentity?.description ||
+    ria?.characterIdentity?.description ||
+    ria?.consistencyPrompt ||
+    tc?.appearance ||
+    null;
+  if (charDesc) parts.push(`Character: ${String(charDesc).slice(0, 400)}`);
+
+  const env =
+    ib?.masterSceneAnchor?.environmentDNA ||
+    ib?.consistencyPrompt ||
+    null;
+  if (env) parts.push(`Continuity: ${String(env).slice(0, 300)}`);
+
+  parts.push("Same person across all shots — no face, body, hair, or wardrobe drift");
+
+  return `${base} | ${parts.join(" | ")}`.slice(0, 2400);
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// FOURTH-WALL / BREAKOUT EFFECT CONFIGS — Seedance-tuned (no audio cues)
+// 3-clip narrative: Trap → Break → Emerge (speaks user dialogue)
+// ───────────────────────────────────────────────────────────────────────
+interface BreakoutConfig {
+  clip1: string;
+  clip2: string;
+  clip3: string;
+}
+const ID_TAG = "[Same person throughout — no face/body/clothing changes]";
+const MO_TAG = "[Continuous motion: breathing, micro-expressions, fabric sway]";
+
+function getSeedanceBreakoutConfig(platform: string): BreakoutConfig {
+  const configs: Record<string, BreakoutConfig> = {
+    'post-escape': {
+      clip1: `${ID_TAG} Slow dolly push-in, claustrophobic. Person trapped inside social media post UI, palms pressed against glass barrier, breath fogging surface. Cyan UI glow rim light. ${MO_TAG}`,
+      clip2: `${ID_TAG} Tracking with dutch angle. Character smashes through screen, glass shards exploding toward viewer, UI buttons shattering into pixel fragments, volumetric dust burst, blue-white backlight. ${MO_TAG}`,
+      clip3: `${ID_TAG} Hero crane shot rising to eye level, powerful step forward, shattered UI debris settling, 45° key light, volumetric haze, confident eye contact. ${MO_TAG}`,
+    },
+    'scroll-grab': {
+      clip1: `${ID_TAG} Push-in with handheld energy. Person inside phone screen, hand reaching out creating 3D bulge in glass, neon pink/cyan dual-tone rim glow. ${MO_TAG}`,
+      clip2: `${ID_TAG} Whip pan following action. Fist smashing through glass burst, body pulling forward with parkour energy, neon fragments exploding. ${MO_TAG}`,
+      clip3: `${ID_TAG} Orbit right around subject. Athletic landing with crouch, rising with confident swagger, shattered phone behind, club-style pink key + cyan fill. ${MO_TAG}`,
+    },
+    'freeze-walk': {
+      clip1: `${ID_TAG} Slow push-in toward frozen figure. Video conference grid, one person frozen in greyscale while others move in color, body glowing at edges with white-gold light. ${MO_TAG}`,
+      clip2: `${ID_TAG} Tracking shot, perspective shifting 2D to 3D. Frozen person steps forward out of video box into real 3D space, color flooding back, portal glow at boundary. ${MO_TAG}`,
+      clip3: `${ID_TAG} Dolly back establishing composition. Confident stance in 3D space, video grid continuing behind, premium corporate lighting, subtle glow fading. ${MO_TAG}`,
+    },
+    'reality-rip': {
+      clip1: `${ID_TAG} Slow crane down into void. Pure darkness with glowing tear in reality fabric, silhouette backlit through rift, hands gripping tear edges. ${MO_TAG}`,
+      clip2: `${ID_TAG} Explosive push-in through chaos. Reality tears open, person surges through with godlike power, arms spreading wide, supernova light burst. ${MO_TAG}`,
+      clip3: `${ID_TAG} Heroic low angle with tilt up. Powerful stance as tear seals behind, energy wisps fading, dramatic hero lighting, world-changing presence. ${MO_TAG}`,
+    },
+    'aspect-escape': {
+      clip1: `${ID_TAG} Static then subtle push. Vertical 9:16 frame, person pushing against aspect-ratio edge, format bulging from pressure, distortion ripples. ${MO_TAG}`,
+      clip2: `${ID_TAG} Dramatic whip from vertical to horizontal. Person breaks through aspect-ratio boundary, vertical frame shattering like glass, dimensional light at boundary. ${MO_TAG}`,
+      clip3: `${ID_TAG} Cinematic tracking establishing widescreen composition. Arms sweeping to embrace full frame width, premium cinema lighting, liberated confidence. ${MO_TAG}`,
+    },
+    'mirror-shatter': {
+      clip1: `${ID_TAG} Slow dolly push-in. Person trapped behind ornate gilded baroque mirror, palms pressed against silvered glass, candlelit ballroom, warm chiaroscuro. ${MO_TAG}`,
+      clip2: `${ID_TAG} Cinematic tracking with dutch angle. Mirror shatters outward in halo of silvered shards and quicksilver droplets, person stepping forward through breaking plane. ${MO_TAG}`,
+      clip3: `${ID_TAG} Hero crane shot at eye level. Confident step onto polished marble floor, gilded frame splintered behind, chandelier rim, regal presence. ${MO_TAG}`,
+    },
+    'canvas-emerge': {
+      clip1: `${ID_TAG} Slow dolly push-in on enormous gilded baroque frame in white-cube gallery. Person in painterly oil-paint style stands inside canvas, brushstrokes trembling. ${MO_TAG}`,
+      clip2: `${ID_TAG} Tracking shot, perspective shifting painterly to photoreal. Person pushes through canvas cracking like wet membrane, glossy oil paint stretching then tearing. ${MO_TAG}`,
+      clip3: `${ID_TAG} Dolly back establishing gallery composition. Confident step onto polished concrete floor, oil paint pooling at feet, torn canvas in gilded frame behind, museum spotlights. ${MO_TAG}`,
+    },
+    'billboard-leap': {
+      clip1: `${ID_TAG} Slow crane up toward billboard. Person inside colossal Times Square LED billboard with faint RGB scanlines, neon-soaked rainy street below, hand pressing inside screen. ${MO_TAG}`,
+      clip2: `${ID_TAG} Explosive whip down with parallax. Person leaps off billboard, screen shattering into cascade of pixel sparks and LED panels, mid-air silhouette against magenta/cyan glow. ${MO_TAG}`,
+      clip3: `${ID_TAG} Low-angle tracking at eye level. Athletic landing on wet asphalt, neon reflections rippling outward, taxis braking around them, volumetric haze, magenta key + cyan rim. ${MO_TAG}`,
+    },
+    'page-burst': {
+      clip1: `${ID_TAG} Slow dolly push-in over spread of colossal open hardcover book on library lectern. Person inside page surrounded by towering walls of calligraphic typography, warm candlelight. ${MO_TAG}`,
+      clip2: `${ID_TAG} Explosive tracking with whip energy. Person bursts through page in tornado of paper shreds and swirling ink ribbons, candle flames bending in shockwave. ${MO_TAG}`,
+      clip3: `${ID_TAG} Dolly back establishing candlelit library. Confident step onto warm parquet floor, paper shreds settling, towering bookshelves in bokeh behind, warm hero key + moonlight fill. ${MO_TAG}`,
+    },
+    'hologram-materialize': {
+      clip1: `${ID_TAG} Slow dolly push-in through dark sci-fi corridor. Person compressed inside glitching cyan holographic cube on obsidian plinth, scanline distortion, particles drifting upward. ${MO_TAG}`,
+      clip2: `${ID_TAG} Explosive push-in through shockwave. Hologram solidifies — cube collapsing in burst of volumetric cyan light, person stepping forward as flesh stabilizes from wireframe to photoreal. ${MO_TAG}`,
+      clip3: `${ID_TAG} Low-angle tracking with slow tilt up. Confident step off obsidian plinth, last data particles fading from shoulders, sleek corridor stretching behind, cyan rim + cool fill. ${MO_TAG}`,
+    },
+  };
+  return configs[platform] ?? configs['post-escape'];
 }
 
 /**
@@ -343,7 +474,45 @@ serve(async (req) => {
 
     // ═══ SCRIPT ═══
     let shots: Array<Record<string, any>>;
-    if (request.approvedScript?.shots?.length) {
+
+    // ─── A) TEMPLATE flow — pre-defined shots used directly ──────────
+    if (request.useTemplateShots && request.templateShotSequence?.length) {
+      const seq = request.templateShotSequence;
+      console.log(`[Seedance] Using ${seq.length} template shots from "${request.templateName || 'template'}"`);
+      shots = seq.map((shot: any, i: number) => ({
+        id: shot.id ?? `tpl_${i + 1}`,
+        title: shot.title ?? `Shot ${i + 1}`,
+        description: shot.description ?? shot.prompt ?? `Scene ${i + 1}`,
+        durationSeconds: Math.min(12, shot.durationSeconds ?? clipDuration),
+        dialogue: shot.dialogue,
+        mood: shot.mood ?? request.mood,
+      }));
+      // Promote template character/env into identity for prompt injection
+      if (!request.characterLock && request.templateCharacters?.[0]) {
+        request.characterLock = {
+          description: request.templateCharacters[0].appearance ?? "",
+        };
+      }
+    }
+    // ─── B) BREAKOUT / FOURTH-WALL flow — 3-clip narrative ──────────
+    else if (request.isBreakout && request.breakoutPlatform) {
+      console.log(`[Seedance] 🔥 BREAKOUT EFFECT: ${request.breakoutPlatform}`);
+      const cfg = getSeedanceBreakoutConfig(request.breakoutPlatform);
+      const userLine = (request.breakoutDialogue ?? request.concept ?? "").trim();
+      const clip3WithLine = userLine
+        ? `${cfg.clip3} Speaking the line: "${userLine.slice(0, 280)}".`
+        : cfg.clip3;
+      shots = [
+        { id: "breakout_1", title: "The Trap",     description: cfg.clip1, durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_2", title: "The Break",    description: cfg.clip2, durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_3", title: "The Emerge",   description: clip3WithLine, durationSeconds: Math.min(12, clipDuration), dialogue: userLine || undefined },
+      ];
+      // Breakout start image becomes the reference for clip 1
+      if (request.breakoutStartImageUrl && !request.referenceImageUrl) {
+        request.referenceImageUrl = request.breakoutStartImageUrl;
+      }
+    }
+    else if (request.approvedScript?.shots?.length) {
       shots = request.approvedScript.shots;
       console.log(`[Seedance] Using approved script: ${shots.length} shots`);
     } else if (request.manualPrompts?.length) {
@@ -362,6 +531,14 @@ serve(async (req) => {
         genre: request.genre ?? "cinematic",
         mood: request.mood ?? "epic",
         engine: "seedance",
+        // Seedance-specific guidance for the script generator
+        engineHints: {
+          noNativeAudio: true,        // don't bake in lip-sync / SFX cues
+          maxClipSeconds: 12,
+          motionFirst: true,          // favor action verbs, camera intent
+          referenceImage: !!request.referenceImageUrl,
+          isAvatarMode: !!request.isAvatarMode,
+        },
       }).catch((e) => {
         console.warn(`[Seedance] generate-script failed, falling back to concept split:`, e?.message);
         return null;
@@ -393,23 +570,39 @@ serve(async (req) => {
       })
       .eq("id", projectId);
 
-    // ═══ SCENE IMAGES (FLUX) ═══
-    let sceneImages: string[] = [];
-    try {
-      console.log(`[Seedance] Generating ${shots.length} scene images via generate-scene-images`);
-      const imgRes = await callEdgeFunction("generate-scene-images", {
-        projectId,
-        userId: request.userId,
-        shots: shots.map((s) => ({
-          id: s.id, description: s.description, mood: s.mood ?? request.mood,
-        })),
-        aspectRatio,
-        engine: "seedance",
-      });
-      sceneImages = imgRes?.imageUrls ?? imgRes?.images ?? [];
-      console.log(`[Seedance] ✓ Got ${sceneImages.length} scene images`);
-    } catch (e: any) {
-      console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
+    // ═══ SCENE IMAGES ═══
+    // Three modes:
+    //   1) referenceImageUrl provided (avatar / mascot / breakout) →
+    //      use the SAME reference as start image for every clip so identity
+    //      stays locked. Seedance's `last_frame_image` still chains motion.
+    //   2) Template flow with templateEnvironmentLock → use FLUX but seed
+    //      with environment lock + character anchor.
+    //   3) Pure concept → FLUX per-shot.
+    let sceneImages: Array<string | null> = [];
+    if (request.referenceImageUrl) {
+      console.log(`[Seedance] 🎭 Reference image present → locking identity across all ${shots.length} clips`);
+      sceneImages = Array.from({ length: shots.length }, () => request.referenceImageUrl!);
+    } else {
+      try {
+        console.log(`[Seedance] Generating ${shots.length} scene images via generate-scene-images`);
+        const imgRes = await callEdgeFunction("generate-scene-images", {
+          projectId,
+          userId: request.userId,
+          shots: shots.map((s) => ({
+            id: s.id, description: s.description, mood: s.mood ?? request.mood,
+          })),
+          aspectRatio,
+          engine: "seedance",
+          // Pass template style/env anchors so FLUX honors them
+          styleAnchor: request.templateStyleAnchor,
+          environmentLock: request.templateEnvironmentLock,
+          characterLock: request.characterLock,
+        });
+        sceneImages = imgRes?.imageUrls ?? imgRes?.images ?? [];
+        console.log(`[Seedance] ✓ Got ${sceneImages.length} scene images`);
+      } catch (e: any) {
+        console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
+      }
     }
 
     // ═══ AUDIO DISPATCH (parallel with video clips) ═══
@@ -486,11 +679,26 @@ serve(async (req) => {
     const dispatchResults = await Promise.allSettled(
       shots.map(async (shot, i) => {
         const imageUrl = sceneImages[i] ?? null;
-        // Seedance unique: use NEXT scene image as last_frame_image for inter-scene continuity
-        const lastFrameImageUrl = sceneImages[i + 1] ?? null;
+        // Seedance unique: use NEXT scene image as last_frame_image for inter-scene continuity.
+        // When a reference image locks identity (avatar/mascot/breakout), don't set
+        // last_frame_image — would collapse motion to zero (same start+end frame).
+        const nextImg = sceneImages[i + 1] ?? null;
+        const lastFrameImageUrl =
+          nextImg && nextImg !== imageUrl ? nextImg : null;
+
+        // Inject identity / template anchors into the prompt
+        const enrichedPrompt = injectIdentity(
+          shot.description ?? shot.title ?? `Scene ${i + 1}`,
+          {
+            identityBible: request.identityBible,
+            characterLock: request.characterLock,
+            referenceImageAnalysis: request.referenceImageAnalysis,
+            templateCharacters: request.templateCharacters,
+          },
+        );
 
         const { predictionId } = await dispatchSeedanceClip({
-          prompt: shot.description ?? shot.title ?? `Scene ${i + 1}`,
+          prompt: enrichedPrompt,
           imageUrl,
           lastFrameImageUrl,
           durationSeconds: shot.durationSeconds ?? clipDuration,

@@ -7565,6 +7565,9 @@ export type Database = {
         | "org_welcome"
         | "org_role_changed"
         | "org_credits_low"
+        | "admin_purchase"
+        | "admin_support_message"
+        | "admin_inquiry"
       org_role:
         | "owner"
         | "admin"
@@ -7741,6 +7744,9 @@ export const Constants = {
         "org_welcome",
         "org_role_changed",
         "org_credits_low",
+        "admin_purchase",
+        "admin_support_message",
+        "admin_inquiry",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

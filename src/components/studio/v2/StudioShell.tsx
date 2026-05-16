@@ -197,8 +197,7 @@ export default function StudioShell() {
 
   // Sequential gate + simulator need to read the FRESHEST scene state without
   // re-binding renderAll on every patch. A draftRef mirrors the latest draft.
-  const draftRef = useRef(draft);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
+  // (draftRef declared above where the pipeline hook is constructed.)
 
   const activeScene = useMemo(
     () => draft.scenes.find(s => s.id === draft.activeSceneId) || draft.scenes[0],

@@ -82,7 +82,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Your digital presenter.',
     description: 'Create photorealistic talking avatars with synchronized lip movements. Choose from 50+ voices and languages for professional narration.',
     image: voiceoverPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4',
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/b50d6ab1-c49a-4e51-a435-0b0b0b9c7049/avatar_b50d6ab1-c49a-4e51-a435-0b0b0b9c7049_clip1_lipsync_1771735085809.mp4',
     icon: <Mic className="w-5 h-5" />,
     highlights: ['50+ Voices', 'Precision Lip-Sync', 'Multi-Language'],
     accentColor: 'from-emerald-400 to-teal-300',

@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Volume2, VolumeX } from 'lucide-react';
 
-// Pre-generated avatar video for CTA cameo
-const AVATAR_CTA_VIDEO = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4';
+// Pre-generated avatar video for CTA cameo — distinct from other landing cameos
+const AVATAR_CTA_VIDEO = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/c042deb9-3be5-41ef-9e63-acad0d064c6e/avatar_c042deb9-3be5-41ef-9e63-acad0d064c6e_clip1_lipsync_1771738208320.mp4';
 
 // Subtitle text matching the avatar speech
 const SUBTITLE_TEXT = "You've scrolled this far — clearly you're curious. Why not see what you can create?";

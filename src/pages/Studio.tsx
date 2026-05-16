@@ -17,9 +17,12 @@ import { CategoryChooserOverlay, type AudienceCategory } from '@/components/land
 const HERO_VIDEO = '/__l5e/assets-v1/2d6f0d1d-4ec0-4d3f-8819-fbb60f4cbaf2/landing-immersive-hero.mp4';
 const SEEDANCE_VIDEO = '/__l5e/assets-v1/db9b8c6e-776b-4292-b571-6f2aac699445/seedance-avatar-test.mp4';
 const KLING_VIDEO = '/__l5e/assets-v1/1fac204f-d8cc-4285-aee2-28065b1f7bb4/test-seedance-clip.mp4';
-const AVATAR_VIDEO = '/__l5e/assets-v1/ae9bd02b-cca0-4763-8fe7-39e9cbd2d56c/landing-avatar-wave-hello.mp4';
-// Reuse the avatar wave reel as a neutral substitute for the removed mascot intro.
-const HOPPY_VIDEO = AVATAR_VIDEO;
+// Distinct remote avatar reels — prevents the same "wave hello" loop from
+// appearing in multiple tiles across the Studio tour.
+const AVATAR_VIDEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
+const AVATAR_VIDEO_2 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/b50d6ab1-c49a-4e51-a435-0b0b0b9c7049/avatar_b50d6ab1-c49a-4e51-a435-0b0b0b9c7049_clip1_lipsync_1771735085809.mp4';
+const AVATAR_VIDEO_3 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fb50fcdc-bed9-4423-a5cb-871a26f77ee1/avatar_fb50fcdc-bed9-4423-a5cb-871a26f77ee1_clip1_lipsync_1771727043052.mp4';
+const HOPPY_VIDEO    = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/6c28668e-2067-4b92-9fac-8f6ba70cb3a8/avatar_6c28668e-2067-4b92-9fac-8f6ba70cb3a8_clip1_lipsync_1770183667726.mp4';
 
 /* ---------------- Asset imports (Vite bundles the URLs) ------------- */
 
@@ -682,7 +685,7 @@ const ENGINES = [
     ],
     icon: Music2,
     accent: '#7DD3FC',
-    video: AVATAR_VIDEO,
+    video: AVATAR_VIDEO_2,
   },
   {
     name: 'FLUX 1.1 Pro Ultra',
@@ -836,7 +839,7 @@ function CapabilitiesBento() {
 
         <BentoCard className="col-span-6 md:col-span-4">
           <div className="absolute inset-0">
-            <VideoTile src={AVATAR_VIDEO} className="brightness-[0.6]" />
+            <VideoTile src={AVATAR_VIDEO_3} className="brightness-[0.6]" />
           </div>
           <BentoBadge icon={Users} label="Cast" />
           <BentoCaption title="Multi-Character" sub="Two avatars, one scene. Cinematic switch protocols handle eyelines and beats." compact />
@@ -1127,7 +1130,7 @@ function TplRow({ items, dir }: { items: { img: string; label: string }[]; dir: 
 const SCENES = [
   { img: sceneCinematic, video: KLING_VIDEO, title: 'Cinematic Hero',
     body: 'Anamorphic frame, volumetric light, slow dolly. The opening minute of your brand film — generated, never stitched.' },
-  { img: sceneFourthWall, video: AVATAR_VIDEO, title: '4th-Wall Break',
+  { img: sceneFourthWall, video: AVATAR_VIDEO_2, title: '4th-Wall Break',
     body: 'Avatar steps out of the frame to address the viewer. Built for hook-first social — eyeline locked to camera.' },
   { img: sceneEmbed, video: HOPPY_VIDEO, title: 'Minimal Embed',
     body: 'Editorial restraint. A single subject, generous negative space, score breathing underneath dialogue.' },
@@ -1624,7 +1627,7 @@ const COLLAGE_TILES: CollageTile[] = [
   { kind: 'img', src: sceneCinematic,x: 52,  y: 44,  w: 24, rot:  2,  depth: 1.2, tag: 'Scenes' },
   { kind: 'img', src: avDarius,      x: 80,  y: 46,  w: 16, rot: -8,  depth: 1.4 },
   { kind: 'img', src: envCherry,     x: 10,  y: 72,  w: 18, rot: -3,  depth: 0.8 },
-  { kind: 'vid', src: AVATAR_VIDEO,   x: 32,  y: 76,  w: 20, rot:  6,  depth: 1.0, tag: 'Avatars' },
+  { kind: 'vid', src: AVATAR_VIDEO_3, x: 32,  y: 76,  w: 20, rot:  6,  depth: 1.0, tag: 'Avatars' },
   { kind: 'img', src: tplMusicVideo, x: 56,  y: 74,  w: 18, rot: -5,  depth: 1.1, tag: 'Music' },
   { kind: 'img', src: avSofia,       x: 78,  y: 78,  w: 14, rot:  8,  depth: 1.3 },
   { kind: 'img', src: envGolden,     x: 44,  y: 22,  w: 14, rot: -10, depth: 1.6 },

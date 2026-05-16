@@ -198,6 +198,61 @@ async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
     .eq("stripe_subscription_id", subscriptionId)
     .eq("environment", env);
   log("invoice.payment_failed → past_due", { subscriptionId, env });
+  await fireAdminAlert("payment_failed", {
+    buyer_email: invoice?.customer_email || null,
+    amount_cents: invoice?.amount_due ?? invoice?.amount_remaining ?? 0,
+    stripe_id: invoice?.id,
+    reason: invoice?.last_finalization_error?.message
+      || invoice?.billing_reason
+      || "subscription invoice failed",
+  });
+}
+
+async function handlePaymentIntentFailed(pi: any) {
+  await fireAdminAlert("payment_failed", {
+    buyer_email: pi?.receipt_email || pi?.charges?.data?.[0]?.billing_details?.email || null,
+    amount_cents: pi?.amount ?? 0,
+    stripe_id: pi?.id,
+    reason: pi?.last_payment_error?.message || "payment intent failed",
+  });
+}
+
+async function handleChargeRefunded(charge: any) {
+  await fireAdminAlert("refund", {
+    buyer_email: charge?.billing_details?.email || charge?.receipt_email || null,
+    amount_cents: charge?.amount_refunded ?? 0,
+    stripe_id: charge?.id,
+    reason: charge?.refunds?.data?.[0]?.reason || "refund",
+  });
+}
+
+async function handleDisputeCreated(dispute: any) {
+  await fireAdminAlert("dispute", {
+    buyer_email: dispute?.evidence?.customer_email_address || null,
+    amount_cents: dispute?.amount ?? 0,
+    stripe_id: dispute?.id,
+    reason: dispute?.reason || "chargeback",
+  });
+}
+
+async function fireAdminAlert(
+  kind: "payment_failed" | "refund" | "dispute",
+  payload: { buyer_email: string | null; amount_cents: number; stripe_id?: string | null; reason?: string | null },
+) {
+  try {
+    const sb = getSupabase();
+    const { error } = await sb.rpc("admin_alert_stripe_event", {
+      p_kind: kind,
+      p_buyer_email: payload.buyer_email,
+      p_amount_cents: payload.amount_cents,
+      p_stripe_id: payload.stripe_id ?? null,
+      p_reason: payload.reason ?? null,
+    });
+    if (error) log("admin_alert_stripe_event error", { kind, error: error.message });
+    else log("admin alert fired", { kind, ...payload });
+  } catch (e) {
+    log("admin alert exception", { kind, error: String(e) });
+  }
 }
 
 /**
@@ -262,6 +317,17 @@ export async function handleStripeWebhookRequest(
           break;
         case "invoice.payment_failed":
           await handleInvoicePaymentFailed(event.data.object, env);
+          break;
+        case "payment_intent.payment_failed":
+          await handlePaymentIntentFailed(event.data.object);
+          break;
+        case "charge.refunded":
+        case "refund.created":
+          await handleChargeRefunded(event.data.object);
+          break;
+        case "charge.dispute.created":
+        case "charge.dispute.funds_withdrawn":
+          await handleDisputeCreated(event.data.object);
           break;
         default:
           log("unhandled event", { type: event.type });

@@ -14,13 +14,72 @@ const corsHeaders = {
 
 const ADMIN_EMAIL = 'admincole@apex-studio.ai'
 
-type Kind = 'signup' | 'purchase' | 'support' | 'inquiry'
+type Kind =
+  | 'signup' | 'purchase' | 'support' | 'inquiry'
+  | 'payment_failed' | 'refund' | 'dispute' | 'high_value_purchase'
+  | 'stuck_job' | 'first_video' | 'account_deleted' | 'abuse_signal' | 'error_spike'
 
 const TEMPLATE_BY_KIND: Record<Kind, string> = {
   signup: 'admin_new_signup',
   purchase: 'admin_credit_purchase',
   support: 'admin_contact_message',
   inquiry: 'admin_sales_inquiry',
+  payment_failed: 'admin_payment_failed',
+  refund: 'admin_refund',
+  dispute: 'admin_dispute',
+  high_value_purchase: 'admin_credit_purchase',
+  stuck_job: 'admin_stuck_job',
+  first_video: 'admin_first_video',
+  account_deleted: 'admin_account_deleted',
+  abuse_signal: 'admin_abuse_signal',
+  error_spike: 'admin_error_spike',
+}
+
+const SEVERITY_BY_KIND: Record<Kind, 'info' | 'warn' | 'critical'> = {
+  signup: 'info', purchase: 'info', support: 'info', inquiry: 'info',
+  payment_failed: 'warn', refund: 'warn', dispute: 'critical',
+  high_value_purchase: 'warn', stuck_job: 'warn', first_video: 'info',
+  account_deleted: 'warn', abuse_signal: 'critical', error_spike: 'critical',
+}
+
+const EMOJI_BY_KIND: Record<Kind, string> = {
+  signup: '🟢', purchase: '💸', support: '💬', inquiry: '🏢',
+  payment_failed: '⚠️', refund: '↩️', dispute: '🚨',
+  high_value_purchase: '🔥', stuck_job: '⏱️', first_video: '🎬',
+  account_deleted: '👋', abuse_signal: '🛑', error_spike: '💥',
+}
+
+async function forwardToWebhooks(kind: Kind, data: Record<string, any>) {
+  const slack = Deno.env.get('ADMIN_SLACK_WEBHOOK_URL')
+  const discord = Deno.env.get('ADMIN_DISCORD_WEBHOOK_URL')
+  if (!slack && !discord) return
+
+  const sev = SEVERITY_BY_KIND[kind]
+  const emoji = EMOJI_BY_KIND[kind] || '🔔'
+  const title = (data.title as string) || `${kind} event`
+  const body = (data.body as string) || JSON.stringify(data).slice(0, 280)
+  const text = `${emoji} *${title}* _(severity: ${sev})_\n${body}`
+
+  const sends: Promise<unknown>[] = []
+  if (slack) {
+    sends.push(
+      fetch(slack, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).catch((e) => console.error('[slack] send failed', e)),
+    )
+  }
+  if (discord) {
+    sends.push(
+      fetch(discord, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text }),
+      }).catch((e) => console.error('[discord] send failed', e)),
+    )
+  }
+  await Promise.allSettled(sends)
 }
 
 Deno.serve(async (req) => {
@@ -54,10 +113,14 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('[admin-alert-dispatch] forward failed', error)
-      return new Response(JSON.stringify({ ok: false, error: String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    return new Response(JSON.stringify({ ok: true, result: res }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    // Fire-and-forget webhook fan-out (non-blocking on email outcome)
+    await forwardToWebhooks(kind, data)
+
+    return new Response(JSON.stringify({ ok: true, emailed: !error, result: res }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (e) {
     console.error('[admin-alert-dispatch] exception', e)
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

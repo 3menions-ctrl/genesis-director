@@ -1,0 +1,74 @@
+/**
+ * Training Video smoke — end-to-end engine routing contract.
+ *
+ * Pins the wiring that the Training Video page relies on:
+ *
+ *   1. The page invokes `mode-router` with `mode: 'avatar'` and an
+ *      explicit `videoEngine` of either 'kling' or 'seedance'.
+ *   2. Inside `mode-router`, an avatar request with `videoEngine: 'seedance'`
+ *      MUST route through `seedance-pipeline` (Seedance Lock). It must NOT
+ *      silently fall back to the Kling-only `generate-avatar-direct` path.
+ *   3. An avatar request with `videoEngine: 'kling'` (or unset) routes
+ *      through the direct Kling path.
+ *
+ * These are source-text assertions — they catch the silent-fallback class of
+ * regression without needing a live edge function.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const trainingPage = readFileSync(
+  resolve(__dirname, '../../pages/TrainingVideo.tsx'),
+  'utf8',
+);
+const modeRouter = readFileSync(
+  resolve(__dirname, '../../../supabase/functions/mode-router/index.ts'),
+  'utf8',
+);
+
+describe('TrainingVideo — engine dispatch wiring', () => {
+  it('invokes mode-router with avatar mode + an explicit videoEngine', () => {
+    expect(trainingPage).toMatch(/functions\.invoke\(['"]mode-router['"]/);
+    expect(trainingPage).toMatch(/mode:\s*['"]avatar['"]/);
+    expect(trainingPage).toMatch(/videoEngine/);
+  });
+
+  it('UI exposes both kling and seedance as engine options', () => {
+    expect(trainingPage).toMatch(/['"]kling['"]/);
+    expect(trainingPage).toMatch(/['"]seedance['"]/);
+  });
+
+  it('forwards a continuity identityBible (multi-clip chain context)', () => {
+    expect(trainingPage).toMatch(/identityBible/);
+    expect(trainingPage).toMatch(/clipCount/);
+  });
+});
+
+describe('mode-router — avatar engine routing (Seedance Lock)', () => {
+  it('avatar + seedance branches BEFORE calling generate-avatar-direct', () => {
+    const seedanceBranchIdx = modeRouter.indexOf("videoEngine === 'seedance'");
+    const directCallIdx = modeRouter.indexOf('handleAvatarDirectMode(');
+    expect(seedanceBranchIdx).toBeGreaterThan(-1);
+    expect(directCallIdx).toBeGreaterThan(-1);
+    expect(seedanceBranchIdx).toBeLessThan(directCallIdx);
+  });
+
+  it('routes avatar+seedance through a pipeline that targets seedance-pipeline', () => {
+    // The cinematic avatar path is the engine-aware dispatcher and resolves
+    // `targetPipeline = 'seedance-pipeline'` when engine === 'seedance'.
+    expect(modeRouter).toMatch(/handleAvatarCinematicMode\(/);
+    expect(modeRouter).toMatch(/seedance-pipeline/);
+  });
+
+  it('handleAvatarCinematicMode accepts videoEngine for engine-aware dispatch', () => {
+    expect(modeRouter).toMatch(
+      /handleAvatarCinematicMode[\s\S]{0,2000}videoEngine\?:\s*['"]kling['"]/,
+    );
+  });
+
+  it('kling path still uses generate-avatar-direct (native audio fast path)', () => {
+    expect(modeRouter).toMatch(/generate-avatar-direct/);
+  });
+});

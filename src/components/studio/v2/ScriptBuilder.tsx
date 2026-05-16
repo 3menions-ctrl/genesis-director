@@ -577,12 +577,16 @@ const STATUSES: Array<{ id: SceneStatus | "all"; label: string }> = [
 function Toolbar({
   search, setSearch, filter, setFilter, words, runtimeSec, pageCount,
   onReadThrough, onExportFountain, onCopyAll, onAddScene,
+  chainSummary, onSetAllChain,
 }: {
   search: string; setSearch: (v: string) => void;
   filter: SceneStatus | "all"; setFilter: (v: SceneStatus | "all") => void;
   words: number; runtimeSec: number; pageCount: number;
   onReadThrough: () => void; onExportFountain: () => void;
   onCopyAll: () => void; onAddScene: () => void;
+  /** "all-chained" | "all-independent" | "mixed" — drives bulk toggle visuals. */
+  chainSummary: "all-chained" | "all-independent" | "mixed";
+  onSetAllChain: (chained: boolean) => void;
 }) {
   return (
     <div className="sticky top-0 z-10 -mx-1 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[hsl(220,14%,3%)]/95 px-3 py-2 backdrop-blur">
@@ -619,6 +623,34 @@ function Toolbar({
       </div>
 
       <div className="flex items-center gap-1">
+        {/* Bulk continuity — applies to every scene after the first */}
+        <div className="flex items-center gap-0 overflow-hidden rounded-lg border border-white/[0.08] bg-black/40" title="Set continuity for every scene">
+          <button
+            onClick={() => onSetAllChain(true)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors",
+              chainSummary === "all-chained"
+                ? "bg-accent/15 text-accent"
+                : "text-white/60 hover:bg-white/[0.04] hover:text-white",
+            )}
+            title="Chain every scene — inherit previous frame & identity"
+          >
+            <Link2 className="h-3 w-3" /> All continuous
+          </button>
+          <div className="h-5 w-px bg-white/10" />
+          <button
+            onClick={() => onSetAllChain(false)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors",
+              chainSummary === "all-independent"
+                ? "bg-amber-400/15 text-amber-300"
+                : "text-white/60 hover:bg-white/[0.04] hover:text-white",
+            )}
+            title="Break every chain — render each scene as a standalone shot"
+          >
+            <Scissors className="h-3 w-3" /> All independent
+          </button>
+        </div>
         <button onClick={onReadThrough} className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-black/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:border-accent/50 hover:text-accent">
           <Play className="h-3 w-3" /> Read-through
         </button>
@@ -713,6 +745,28 @@ export function ScriptBuilder({
     toast.success("Exported .fountain — opens in Highland, Final Draft, WriterDuet");
   }, [scenes, cast, title]);
 
+  // Bulk continuity: only scenes 2..N participate (scene 1 has no predecessor).
+  const chainSummary: "all-chained" | "all-independent" | "mixed" = useMemo(() => {
+    const tail = scenes.slice(1);
+    if (!tail.length) return "all-chained";
+    const broken = tail.filter(s => s.chainFromPrevious === false).length;
+    if (broken === 0) return "all-chained";
+    if (broken === tail.length) return "all-independent";
+    return "mixed";
+  }, [scenes]);
+
+  const handleSetAllChain = useCallback((chained: boolean) => {
+    const targets = scenes.slice(1).filter(s => (s.chainFromPrevious !== false) !== chained);
+    if (!targets.length) {
+      toast.message(chained ? "All scenes already continuous" : "All scenes already independent");
+      return;
+    }
+    targets.forEach(s => onPatch(s.id, { chainFromPrevious: chained }));
+    toast.success(chained
+      ? `Chained ${targets.length} scene${targets.length === 1 ? "" : "s"} — frame & identity will carry across`
+      : `Broke ${targets.length} chain${targets.length === 1 ? "" : "s"} — each scene renders standalone`);
+  }, [scenes, onPatch]);
+
   if (!scenes.length) {
     return (
       <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-black/30 p-10 text-center">
@@ -736,6 +790,8 @@ export function ScriptBuilder({
         onExportFountain={handleExportFountain}
         onCopyAll={handleCopyAll}
         onAddScene={onAddScene || (() => {})}
+        chainSummary={chainSummary}
+        onSetAllChain={handleSetAllChain}
       />
 
       <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">

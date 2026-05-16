@@ -16,7 +16,8 @@ type: constraint
 **Owner-private** — `public:false`, use `useSignedAsset()` / `createSignedUrl()`:
 - `enterprise-brand-kits`, `genesis-castings`, `hoppy-uploads` (already private)
 - `character-references` (LOCKED PRIVATE 2026-05-16 — face/biometric data; folder convention `{userId}/...` enforced by RLS; reads via signed URLs only; admins can read via `has_role`)
-- `user-uploads`, `voice-tracks`, `brand-assets`, `photo-edits` (still public — flip when call sites are migrated)
+- `voice-tracks` (LOCKED PRIVATE 2026-05-16 — generated music/voice tracks; folder convention `{userId}/{projectId}/...`; 7-day signed URLs persisted to `movie_projects.music_url`; owner+admin RLS; anon denied)
+- `user-uploads`, `brand-assets`, `photo-edits` — still public, flip when call sites are migrated
 
 ## Rules
 - Folder convention: `{userId}/...` — required for owner RLS policy to work.

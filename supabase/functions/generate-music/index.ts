@@ -560,14 +560,20 @@ function analyzeSceneForMusic(request: MusicRequest): string {
 async function uploadToStorage(
   audioUrl: string,
   projectId: string,
-  supabase: any
+  supabase: any,
+  userId: string | null
 ): Promise<string | null> {
   try {
+    if (!userId) {
+      console.error("[Music] Upload aborted: missing userId for owner-scoped path");
+      return null;
+    }
     const audioResponse = await fetch(audioUrl);
     if (!audioResponse.ok) return null;
     
     const audioBuffer = await audioResponse.arrayBuffer();
-    const fileName = `${projectId}/world-class-music-${Date.now()}.mp3`;
+    // Owner-folder path: first segment = auth.uid() for RLS
+    const fileName = `${userId}/${projectId}/world-class-music-${Date.now()}.mp3`;
     
     const { error: uploadError } = await supabase.storage
       .from("voice-tracks")
@@ -581,12 +587,19 @@ async function uploadToStorage(
       return null;
     }
     
-    const { data: { publicUrl } } = supabase.storage
+    // Bucket is PRIVATE — return a long-lived signed URL (7 days) so
+    // downstream stitching/Replicate fetches keep working.
+    const { data: signed, error: signErr } = await supabase.storage
       .from("voice-tracks")
-      .getPublicUrl(fileName);
-    
-    console.log("[Music] ✅ Uploaded world-class track:", publicUrl);
-    return publicUrl;
+      .createSignedUrl(fileName, 60 * 60 * 24 * 7);
+
+    if (signErr || !signed?.signedUrl) {
+      console.error("[Music] Sign URL failed:", signErr);
+      return null;
+    }
+
+    console.log("[Music] ✅ Uploaded world-class track (signed):", fileName);
+    return signed.signedUrl;
     
   } catch (error) {
     console.error("[Music] Upload failed:", error);
@@ -649,7 +662,19 @@ serve(async (req) => {
     const musicUrl = await generateWorldClassMusic(finalPrompt, duration, generationSettings);
     
     if (musicUrl && supabase && projectId) {
-      const storedUrl = await uploadToStorage(musicUrl, projectId, supabase);
+      // Resolve project owner for owner-scoped storage path
+      let ownerId: string | null = null;
+      try {
+        const { data: proj } = await supabase
+          .from('movie_projects')
+          .select('user_id')
+          .eq('id', projectId)
+          .maybeSingle();
+        ownerId = proj?.user_id ?? null;
+      } catch (e) {
+        console.warn('[Music] Could not resolve project owner:', e);
+      }
+      const storedUrl = await uploadToStorage(musicUrl, projectId, supabase, ownerId);
       const finalUrl = storedUrl || musicUrl;
       
       if (storedUrl) {

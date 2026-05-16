@@ -377,7 +377,7 @@ serve(async (req) => {
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating', // Hold status if we need to charge
           mode: mode,
           video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
-          source_image_url: imageUrl || null,
+          source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
           // CRITICAL: Save the user's script to synopsis so it's not lost
@@ -404,7 +404,7 @@ serve(async (req) => {
         .update({
           mode: mode,
           video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
-          source_image_url: imageUrl || null,
+          source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating',
@@ -567,7 +567,7 @@ serve(async (req) => {
           projectId: projectId!,
           userId,
           concept: prompt,
-          referenceImageUrl: imageUrl,
+          referenceImageUrl,
           voiceId,
           aspectRatio,
           clipCount,
@@ -582,6 +582,9 @@ serve(async (req) => {
           isBreakout,
           breakoutStartImageUrl,
           breakoutPlatform,
+          breakoutDialogue: request.breakoutDialogue || prompt,
+          identityBible: request.identityBible,
+          characterLock: request.characterLock,
           supabase,
         });
       }

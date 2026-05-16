@@ -46,7 +46,31 @@ export function useScenePipeline(
    */
   const pollClipRow = useCallback((sceneId: string, projectId: string, shotIndex: number) => {
     stopPoll(sceneId);
-    const t = setInterval(async () => {
+    // Realtime channel: react to video_clips inserts/updates for this project
+    // and resolve immediately on terminal state. A 15s safety re-fetch covers
+    // the rare missed event (network blip, channel resubscribe gap).
+    const channelName = `clip:${projectId}:${shotIndex}:${sceneId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table: "video_clips", filter: `project_id=eq.${projectId}` },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.record) as any;
+          if (!row || row.shot_index !== shotIndex) return;
+          if (row.status === "completed" && row.video_url) {
+            patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            stopPoll(sceneId);
+          } else if (row.status === "failed") {
+            const reason = row.error_message || "Generation failed";
+            patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            toast.error(String(reason).slice(0, 200));
+            stopPoll(sceneId);
+          }
+        },
+      )
+      .subscribe();
+    const checkOnce = async () => {
       try {
         const { data, error } = await supabase
           .from("video_clips")
@@ -66,11 +90,18 @@ export function useScenePipeline(
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
         }
-      } catch {
-        // transient — keep polling
-      }
-    }, 4000);
-    polling.current.set(sceneId, t);
+      } catch { /* transient */ }
+    };
+    // Immediate fetch (race against the realtime event for already-completed rows)
+    void checkOnce();
+    const t = setInterval(checkOnce, 15000);
+    // Wrap interval handle so stopPoll() also tears down the realtime channel.
+    const composite = {
+      [Symbol.toPrimitive]: () => Number(t),
+      _clear: () => { clearInterval(t); try { supabase.removeChannel(channel); } catch { /* noop */ } },
+    } as unknown as ReturnType<typeof setInterval>;
+    (composite as any).unref = (t as any).unref?.bind(t);
+    polling.current.set(sceneId, composite);
   }, [patchScene]);
 
   const pollPrediction = useCallback((
@@ -81,6 +112,29 @@ export function useScenePipeline(
     totalClips: number,
   ) => {
     stopPoll(sceneId);
+    // Realtime path: terminal status is also written to video_clips by the
+    // worker / replicate-webhook. Subscribe so the UI resolves the moment the
+    // row updates, and back the predictionId-driven poll off to 10s.
+    const channel = supabase
+      .channel(`pred:${projectId}:${shotIndex}:${sceneId}`)
+      .on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table: "video_clips", filter: `project_id=eq.${projectId}` },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.record) as any;
+          if (!row || row.shot_index !== shotIndex) return;
+          if (row.status === "completed" && row.video_url) {
+            patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            stopPoll(sceneId);
+          } else if (row.status === "failed") {
+            const reason = row.error_message || "Generation failed";
+            patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            toast.error(String(reason).slice(0, 200));
+            stopPoll(sceneId);
+          }
+        },
+      )
+      .subscribe();
     const t = setInterval(async () => {
       try {
         const { data, error } = await supabase.functions.invoke("poll-replicate-prediction", {
@@ -105,8 +159,12 @@ export function useScenePipeline(
       } catch {
         // keep polling until the backend reports a terminal state
       }
-    }, 5000);
-    polling.current.set(sceneId, t);
+    }, 10000);
+    const composite = {
+      [Symbol.toPrimitive]: () => Number(t),
+      _clear: () => { clearInterval(t); try { supabase.removeChannel(channel); } catch { /* noop */ } },
+    } as unknown as ReturnType<typeof setInterval>;
+    polling.current.set(sceneId, composite);
   }, [patchScene, pollClipRow]);
 
   const generateSceneFromDraft = useCallback(async (sceneId: string, sourceDraft: StudioDraft = draft) => {

@@ -1095,7 +1095,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider">
-                              <Timer className="w-3 h-3" /> Duration
+                              <Timer className="w-3 h-3" /> Clip Duration
                             </span>
                             <span className="text-[11px] font-mono text-foreground">
                               {targetDuration ? `${targetDuration}s` : 'Auto'}
@@ -1117,6 +1117,38 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                                   )}
                                 >
                                   {d ? `${d}s` : 'Auto'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Clip Count — multi-clip continuity (mode-router stitches output) */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider">
+                              <Film className="w-3 h-3" /> Clips
+                            </span>
+                            <span className="text-[11px] font-mono text-foreground">
+                              {clipCount} × {targetDuration ?? 'auto'}s
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            {[1, 2, 3].map((c) => {
+                              const active = clipCount === c;
+                              return (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setClipCount(c)}
+                                  className={cn(
+                                    'h-7 rounded-md text-[10px] font-mono transition-all',
+                                    active
+                                      ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
+                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                  )}
+                                >
+                                  {c === 1 ? 'Single' : `${c} stitched`}
                                 </button>
                               );
                             })}

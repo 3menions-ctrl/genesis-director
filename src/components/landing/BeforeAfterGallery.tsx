@@ -1,13 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeftRight, Play, Sparkles } from 'lucide-react';
-import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
-import avatarWave from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import poster1 from '@/assets/hero/hero-poster-1.jpg';
 import poster2 from '@/assets/hero/hero-poster-2.jpg';
 import poster3 from '@/assets/hero/hero-poster-3.jpg';
 import poster4 from '@/assets/hero/hero-poster-4.jpg';
 import poster5 from '@/assets/hero/hero-poster-5.jpg';
+import sceneA from '@/assets/scenes/cinematic-hero-preview.jpg';
+import sceneB from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
+import sceneC from '@/assets/scenes/minimal-embed-preview.jpg';
 
 /**
  * BeforeAfterGallery
@@ -30,6 +31,10 @@ const G = {
     'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
   enchanted:
     'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/6fb5c360-6b46-43b7-8d31-59c9ada01e9b/clip_6fb5c360-6b46-43b7-8d31-59c9ada01e9b_0_1770311441134.mp4',
+  studioTalk:
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1bf24783-e03a-446a-bc65-2eca25644d1d_1768792154784.mp4',
+  brandSpot:
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4',
 };
 
 type Reel = {
@@ -62,16 +67,16 @@ const REELS: Reel[] = [
     tag: 'Internal comms · 28 sec',
     prompt:
       "Our COO to camera, talking through the Q3 roadmap. Plain backdrop, soft key from camera-left. Read the script verbatim — don't paraphrase, don't add filler.",
-    before: poster1,
-    after: corporateVideo.url,
+    before: sceneA,
+    after: G.studioTalk,
   },
   {
     title: 'Welcome screen — onboarding',
     tag: 'Product avatar · 6 sec',
     prompt:
       "Our brand avatar (locked from the bible) waves once, says 'hey — glad you're here.' Same face we used in last month's ad. Don't redesign her.",
-    before: poster3,
-    after: avatarWave.url,
+    before: sceneB,
+    after: G.brandSpot,
   },
   {
     title: 'Opener for the audiobook trailer',
@@ -102,7 +107,7 @@ const REELS: Reel[] = [
     tag: 'Pre-roll · 6 sec',
     prompt:
       "Car drifts the corner of 6th & Spring at night. Wet asphalt, neon reflections. Handheld, real motion blur, a few sparks off the rear tire. Cut on the apex.",
-    before: poster2,
+    before: sceneC,
     after: G.fiery,
   },
 ];

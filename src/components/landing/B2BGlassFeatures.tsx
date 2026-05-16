@@ -144,19 +144,19 @@ const STEPS = [
   {
     n: '02',
     title: 'Generate',
-    desc: 'Cinema-grade scenes are composed shot-by-shot with your locked brand kit, talent and voice.',
+    desc: 'Scenes are composed shot-by-shot using your locked brand kit, talent and voice.',
     icon: Rocket,
   },
   {
     n: '03',
     title: 'Review',
-    desc: 'Reviewers leave timestamped comments. Producers iterate in the editor with one-click re-renders.',
+    desc: 'Reviewers comment directly on the timeline. Producers iterate with one-click re-renders.',
     icon: Workflow,
   },
   {
     n: '04',
     title: 'Ship',
-    desc: 'Export to every platform aspect ratio, push to ad accounts, or hand off to your DAM.',
+    desc: 'Export the platform aspect ratios you need and download or hand off to your DAM.',
     icon: BarChart3,
   },
 ];

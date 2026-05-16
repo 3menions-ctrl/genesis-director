@@ -391,25 +391,32 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
       )}
 
       <div ref={stripRef} className="flex-1 space-y-1 overflow-y-auto p-2 premium-scroll">
-        {scenes.map((scene) => {
+        {scenes.map((scene, idx) => {
           const speaker = scene.speakerId ? castMap[scene.speakerId] : undefined;
           const resolvedId = resolved[scene.id];
           const display = speaker || (resolvedId ? castMap[resolvedId] : undefined);
           const st = statusChip(scene.status);
           const isActive = scene.id === activeId;
           const widthPct = Math.max(15, Math.min(100, (scene.duration / 15) * 100));
+          const broken = idx > 0 && scene.chainFromPrevious === false;
           return (
-            <button
-              key={scene.id}
-              data-scene={scene.id}
-              onClick={() => onSelect(scene.id)}
-              className={cn(
-                "group relative flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left transition-all",
-                isActive
-                  ? "border-accent/50 bg-accent/[0.06]"
-                  : "border-white/[0.05] bg-black/30 hover:border-white/15 hover:bg-black/50",
+            <div key={scene.id}>
+              {broken && (
+                <div className="my-1 flex items-center gap-1.5 px-1 text-amber-300/80" title="Independent scene — no chain from previous">
+                  <Scissors className="h-2.5 w-2.5" />
+                  <div className="h-px flex-1 bg-[repeating-linear-gradient(90deg,hsl(45,93%,58%,0.4)_0_4px,transparent_4px_8px)]" />
+                </div>
               )}
-            >
+              <button
+                data-scene={scene.id}
+                onClick={() => onSelect(scene.id)}
+                className={cn(
+                  "group relative flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left transition-all",
+                  isActive
+                    ? "border-accent/50 bg-accent/[0.06]"
+                    : "border-white/[0.05] bg-black/30 hover:border-white/15 hover:bg-black/50",
+                )}
+              >
               <span className="font-mono text-[10px] tabular-nums text-white/30">
                 {String(scene.index + 1).padStart(2, "0")}
               </span>
@@ -435,7 +442,8 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
                 </div>
               </div>
               <st.Icon className={cn("h-3.5 w-3.5 flex-shrink-0", st.color)} />
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>

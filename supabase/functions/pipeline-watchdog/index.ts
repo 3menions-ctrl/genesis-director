@@ -1475,6 +1475,7 @@ serve(async (req) => {
         console.log(`[Watchdog] ❌ TOTAL FAILURE: 0/${totalExpectedClipsForTimeout} clips completed`);
         await supabase.from('movie_projects').update({
           status: 'failed',
+          last_error: 'Avatar generation timed out — no clips completed',
           pipeline_state: {
             stage: 'error',
             error: 'Avatar generation timed out - no clips completed',
@@ -1775,6 +1776,7 @@ serve(async (req) => {
           .from('movie_projects')
           .update({
             status: 'failed',
+            last_error: 'Avatar generation failed after retries — no video produced',
             pipeline_state: {
               ...pipelineState,
               stage: 'error',

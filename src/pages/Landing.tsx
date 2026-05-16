@@ -26,6 +26,9 @@ const HoppyImmersiveScrollSection = lazy(() =>
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
+const EnterStudioEpic = lazy(() =>
+  import('@/components/landing/EnterStudioEpic').then(m => ({ default: m.EnterStudioEpic })),
+);
 
 const SectionLoader = () => (
   <div className="py-24 flex items-center justify-center">

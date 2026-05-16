@@ -3,8 +3,8 @@ import { NavLink, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight, Code2,
-  Users as UsersIcon, Smile,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
+  Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,17 +33,41 @@ interface NavItem {
   hue: number;
 }
 
-const PRIMARY_NAV: NavItem[] = [
-  // Unified loading-screen palette: deep cinematic blue (hsl 215, 100%, 60%)
-  { label: 'Library',   to: '/projects',       icon: Film,          hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
-  { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 215 },
-  { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 215 },
-  { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
-  { label: 'Cast',      to: '/avatars-gallery',icon: UsersIcon,     hue: 215 },
-  { label: 'Mascots',   to: '/mascots',        icon: Smile,         hue: 215 },
-  { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
-  { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
-  { label: 'Developers',to: '/developers',     icon: Code2,         hue: 215, match: (p) => p.startsWith('/developers') },
+/**
+ * Condensed, grouped primary navigation.
+ * Three editorial sections — Create, Library, Cast — keep the rail
+ * focused on the pages users actually need. Secondary destinations
+ * (avatars-gallery, developers) remain reachable from their parent
+ * pages but no longer clutter the sidebar.
+ */
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Create',
+    items: [
+      { label: 'Create', to: '/create', icon: Sparkles,  hue: 215 },
+      { label: 'Editor', to: '/editor', icon: Scissors,  hue: 215 },
+    ],
+  },
+  {
+    label: 'Library',
+    items: [
+      { label: 'Projects',  to: '/projects',  icon: Film,   hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
+      { label: 'Templates', to: '/templates', icon: Layers, hue: 215 },
+    ],
+  },
+  {
+    label: 'Cast',
+    items: [
+      { label: 'Avatars',  to: '/avatars',        icon: UserIcon,      hue: 215 },
+      { label: 'Mascots',  to: '/mascots',        icon: Smile,         hue: 215 },
+      { label: 'Training', to: '/training-video', icon: GraduationCap, hue: 215 },
+    ],
+  },
 ];
 
 interface AppShellProps {
@@ -242,18 +266,25 @@ export function AppShell({ children }: AppShellProps) {
             </button>
           </div>
 
-          {/* Section label */}
-          {!collapsed && (
-            <div className="px-5 mb-2 text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25">
-              Workspace
-            </div>
-          )}
-
-          {/* Nav */}
+          {/* Nav — grouped, editorial */}
           <nav className="flex-1 overflow-y-auto px-3 pb-3 scrollbar-hide">
-            <ul className="space-y-1">
-              {PRIMARY_NAV.map((item) => {
-                const active = isItemActive(item);
+            {NAV_GROUPS.map((group, gi) => (
+              <div key={group.label} className={cn(gi === 0 ? '' : 'mt-5')}>
+                {!collapsed ? (
+                  <div className="px-2 mb-1.5 flex items-center gap-2">
+                    <span className="text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25">
+                      {group.label}
+                    </span>
+                    <span aria-hidden className="flex-1 h-px bg-gradient-to-r from-white/[0.05] to-transparent" />
+                  </div>
+                ) : (
+                  gi > 0 && (
+                    <div aria-hidden className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+                  )
+                )}
+                <ul className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = isItemActive(item);
                 const Icon = item.icon;
                 const hue = item.hue;
                 const tint = (a: number) => `hsla(${hue}, 90%, 62%, ${a})`;
@@ -326,8 +357,10 @@ export function AppShell({ children }: AppShellProps) {
                     )}
                   </li>
                 );
-              })}
-            </ul>
+                  })}
+                </ul>
+              </div>
+            ))}
 
             {isAdmin && (
               <>

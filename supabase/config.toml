@@ -165,8 +165,6 @@ project_id = "ahlikyhgcqvrdvbtkghh"
     verify_jwt = false
   [functions.spatial-action-lock]
     verify_jwt = false
-  [functions.stripe-webhook]
-    verify_jwt = false
   [functions.payments-webhook]
     verify_jwt = false
   [functions.stylize-video]

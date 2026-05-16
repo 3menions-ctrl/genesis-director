@@ -32,7 +32,9 @@ export function useScenePipeline(
   const stopPoll = (id: string) => {
     const t = polling.current.get(id);
     if (t) {
-      clearInterval(t);
+      const clearFn = (t as any)._clear;
+      if (typeof clearFn === "function") clearFn();
+      else clearInterval(t);
       polling.current.delete(id);
     }
   };

@@ -266,6 +266,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.warn('[AuthContext] Security version mismatch — forcing sign-out');
               // Update stamp BEFORE sign-out so next login succeeds
               localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+              // Clear cached queries before the forced sign-out so the
+              // invalidated session cannot leak rows to whatever loads next.
+              lastUserIdRef.current = null;
+              resetQueryCache('security version invalidation');
               await supabase.auth.signOut({ scope: 'global' });
               if (mounted) {
                 setProfile(null);

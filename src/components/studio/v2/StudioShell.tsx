@@ -172,7 +172,14 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 export default function StudioShell() {
   const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
-  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  const { generateScene, generateSceneFromDraft } = useScenePipeline(
+    draft,
+    patchScene,
+    ensureProjectId,
+    () => draftRef.current,
+  );
   const { data: cinemaEntitlement } = useCinemaEntitlement();
   const hasCinema = !!cinemaEntitlement?.hasEntitlement;
   const [drawer, setDrawer] = useState<DrawerKey>(null);

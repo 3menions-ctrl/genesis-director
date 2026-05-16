@@ -360,13 +360,13 @@ describe('Security — Credit System', () => {
     expect(true).toBe(true); // Structural test - verified in DB function list
   });
 
-  it('stripe webhook edge function should exist', () => {
-    expect(fileExists('supabase/functions/stripe-webhook/index.ts')).toBe(true);
+  it('payments webhook edge function should exist', () => {
+    expect(fileExists('supabase/functions/payments-webhook/index.ts')).toBe(true);
   });
 
-  it('stripe webhook should verify signature', () => {
-    const webhook = readFile('supabase/functions/stripe-webhook/index.ts');
-    expect(webhook).toMatch(/stripe.*constructEvent|verify.*signature|STRIPE_WEBHOOK_SECRET/i);
+  it('payments webhook should verify signature', () => {
+    const shared = readFile('supabase/functions/_shared/stripe-webhook-handler.ts');
+    expect(shared).toMatch(/verifyStripeWebhook|PAYMENTS_(SANDBOX|LIVE)_WEBHOOK_SECRET/i);
   });
 
   it('create-credit-checkout should validate package ID', () => {

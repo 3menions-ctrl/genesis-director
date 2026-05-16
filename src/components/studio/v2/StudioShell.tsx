@@ -494,29 +494,24 @@ export default function StudioShell() {
 
   return (
     <div className="relative h-[calc(100dvh-56px)] overflow-hidden bg-background text-foreground">
-      {/* Cinematic background — vignette + accent halos + film grain */}
+      {/* Quiet editorial ground — single soft halo, no grain or scanlines */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--accent)/0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_85%_110%,hsl(var(--accent)/0.10),transparent_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_30%_30%_at_5%_5%,hsl(var(--accent)/0.06),transparent_70%)]" />
-        <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-        <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-20%,hsl(var(--accent)/0.07),transparent_70%)]" />
       </div>
 
-      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/50 bg-background/50 px-6 backdrop-blur-2xl">
+      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/40 bg-background/60 px-6 backdrop-blur-2xl">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 shadow-[0_0_32px_hsl(var(--accent)/0.4)]">
-            <Film className="h-4 w-4 text-accent" />
-            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent))]" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40">
+            <Film className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
           </div>
-          <div className="min-w-0 border-l border-border/50 pl-4">
+          <div className="min-w-0">
             <input
               value={draft.brief.title}
               onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, title: e.target.value } }))}
               placeholder="Untitled film"
-              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
+              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40"
             />
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">A Cinematic Workflow · est. 2026</div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Cinematic workflow</div>
           </div>
         </div>
 
@@ -526,23 +521,20 @@ export default function StudioShell() {
               const active = step === id;
               const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
               return (
-                <div key={id} className="flex items-center gap-1.5">
+                <div key={id} className="flex items-center gap-3">
                   <button
                     onClick={() => setStep(id)}
-                    className={cn(
-                      "group flex h-9 items-center gap-2.5 rounded-full px-4 transition-all",
-                      active ? "bg-accent/[0.08] ring-1 ring-accent/40 shadow-[0_0_24px_hsl(var(--accent)/0.25)]" : "hover:bg-card/50",
-                    )}
+                    className="group flex h-9 items-center gap-2 px-2 transition-colors"
                   >
                     <span className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full font-mono text-[9px] transition-colors",
-                      active ? "bg-accent text-accent-foreground" : complete ? "bg-success/20 text-success" : "border border-border text-muted-foreground",
+                      "font-mono text-[9px] tabular-nums transition-colors",
+                      active ? "text-accent" : complete ? "text-foreground/60" : "text-muted-foreground/50",
                     )}>
                       {complete && !active ? <Check className="h-3 w-3" /> : String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{label}</span>
+                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground/70 group-hover:text-foreground")}>{label}</span>
                   </button>
-                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/70" />}
+                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/40" />}
                 </div>
               );
             })}
@@ -555,32 +547,30 @@ export default function StudioShell() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving
             </span>
           )}
-          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-3 text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
-            <Cpu className="h-3.5 w-3.5 text-accent" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
+          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 px-2 text-foreground/80 transition-colors hover:text-foreground md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
+            <Cpu className="h-3.5 w-3.5 text-accent/80" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
           </button>
           <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
-            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-4 text-[13px] font-medium text-accent-foreground shadow-[0_0_28px_hsl(var(--accent)/0.4)] transition-all hover:shadow-[0_0_44px_hsl(var(--accent)/0.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-5 text-[12px] font-medium tracking-[0.04em] text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
             {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span className="relative">Auto create</span>
+            <span>Auto create</span>
           </button>
         </div>
       </header>
 
       <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[220px_minmax(0,1fr)_340px]">
-        <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl xl:block">
-          <div className="mb-8">
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
-            <h2 className="mt-2 font-display text-2xl italic leading-tight text-foreground">One continuous flow.</h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">From a single image or sentence to rendered cinematic clips, ready for the editor.</p>
+        <aside className="hidden border-r border-border/30 bg-transparent p-7 xl:block">
+          <div className="mb-10">
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">Production</div>
+            <h2 className="mt-2 font-display text-[19px] italic leading-snug text-foreground/95">One continuous flow.</h2>
           </div>
           <div className="relative">
-            <div className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-accent/50 via-border to-border/30" />
-            <div className="space-y-1">
+            <div className="absolute bottom-2 left-[11px] top-2 w-px bg-border/60" />
+            <div className="space-y-7">
               {STEPS.map(({ id, label, icon: Icon }, index) => {
                 const active = step === id;
                 const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
@@ -589,35 +579,35 @@ export default function StudioShell() {
                     key={id}
                     onClick={() => setStep(id)}
                     className={cn(
-                      "group relative flex w-full items-center gap-4 rounded-xl px-2 py-3 text-left transition-all",
-                      active ? "bg-accent/[0.05]" : "hover:bg-card/40",
+                      "group relative flex w-full items-center gap-4 text-left transition-opacity",
+                      active ? "opacity-100" : "opacity-50 hover:opacity-90",
                     )}
                   >
                     <span className={cn(
-                      "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-[10px] transition-all",
-                      active ? "border-accent bg-background text-accent shadow-[0_0_20px_hsl(var(--accent)/0.55)]"
-                        : complete ? "border-success/60 bg-background text-success"
-                        : "border-border bg-background text-muted-foreground",
+                      "relative z-10 flex h-6 w-6 items-center justify-center rounded-full transition-all",
+                      active ? "bg-accent shadow-[0_0_18px_hsl(var(--accent)/0.55)]"
+                        : "border border-border bg-background",
                     )}>
-                      {complete && !active ? <Check className="h-4 w-4" /> : String(index + 1).padStart(2, "0")}
+                      {active ? <span className="h-1.5 w-1.5 rounded-full bg-background" />
+                        : complete ? <Check className="h-3 w-3 text-foreground/70" />
+                        : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {index + 1}</div>
-                      <div className={cn("mt-0.5 flex items-center gap-1.5 text-sm", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>
-                        <Icon className="h-3.5 w-3.5" /> {label}
+                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {String(index + 1).padStart(2, "0")}</div>
+                      <div className={cn("mt-0.5 text-sm font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+                        {label}
                       </div>
                     </div>
-                    {active && <span className="h-8 w-0.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="mt-8 border-t border-border/50 pt-5">
+          <div className="mt-16 opacity-50">
             <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Now playing</div>
-            <div className="mt-2 truncate text-sm italic text-foreground">{draft.brief.title || "Untitled film"}</div>
-            <div className="mt-1 font-mono text-[10px] text-muted-foreground">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
+            <div className="mt-2 truncate font-display text-[13px] italic text-foreground/90">{draft.brief.title || "Untitled film"}</div>
+            <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
           </div>
         </aside>
 
@@ -635,15 +625,8 @@ export default function StudioShell() {
                 }
                 icon={Sparkles}
               >
-                {/* ===== Cinematic ambience: drifting orbs, scanlines, hairline crosshairs ===== */}
-                <div aria-hidden className="pointer-events-none absolute -left-32 top-0 h-[640px] w-[640px] rounded-full opacity-60 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.20), transparent 65%)", animationDuration: "9s" }} />
-                <div aria-hidden className="pointer-events-none absolute -right-40 top-1/3 h-[520px] w-[520px] rounded-full opacity-55 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(200,100%,60%,0.14), transparent 70%)", animationDuration: "11s", animationDelay: "1.4s" }} />
-                <div aria-hidden className="pointer-events-none absolute left-1/3 bottom-0 h-[360px] w-[360px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, hsla(220,100%,70%,0.10), transparent 70%)" }} />
-                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, hsl(var(--accent)/0.4) 2px, hsl(var(--accent)/0.4) 3px)" }} />
-
-                {/* ===== Mode switcher — Text-to-Video is now first-class ===== */}
-                <div className="relative mb-8">
-                  <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 p-1 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
+                {/* ===== Mode switcher — editorial tabs ===== */}
+                <div className="relative mb-10 flex items-center gap-8 border-b border-border/40 pb-4">
                     {([
                       { id: "text", label: "Text", Icon: Wand2 },
                       { id: "image", label: "Image", Icon: ImageIcon },
@@ -664,18 +647,16 @@ export default function StudioShell() {
                             }
                           }}
                           className={cn(
-                            "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] transition-all",
-                            active
-                              ? "bg-foreground text-background shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.55)]"
-                              : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
+                            "relative inline-flex items-center gap-2 pb-2 text-[13px] font-medium transition-colors",
+                            active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
                           )}
                         >
-                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} />
-                          <span className={cn("font-medium", active ? "text-background" : "")}>{label}</span>
+                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} strokeWidth={1.5} />
+                          <span>{label}</span>
+                          {active && <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-accent" />}
                         </button>
                       );
                     })}
-                  </div>
                 </div>
 
                 <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -695,35 +676,16 @@ export default function StudioShell() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
                     )}
 
-                    {/* ===== HERO COMPOSER — atelier glass, museum frame ===== */}
-                    <div className="group/composer relative overflow-hidden rounded-[24px] border border-white/[0.07] bg-[linear-gradient(155deg,hsla(220,18%,8%,0.92)_0%,hsla(220,16%,5%,0.88)_45%,hsla(220,14%,3%,0.92)_100%)] shadow-[0_50px_120px_-50px_hsl(215_100%_55%/0.55),0_0_0_1px_hsl(220_14%_2%),inset_0_1px_0_hsla(0,0%,100%,0.06)] backdrop-blur-2xl">
-                      {/* Inner glass sheen */}
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(120%_60%_at_50%_-10%,hsla(215,100%,72%,0.10),transparent_55%)]" />
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(80%_50%_at_100%_100%,hsla(215,100%,55%,0.08),transparent_60%)]" />
-                      {/* Film grain texture */}
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] opacity-[0.045] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
-                      {/* Hairlines */}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
-                      {/* Cinema corner brackets */}
-                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-3.5 w-3.5 border-l border-t border-accent/80" />
-                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-3.5 w-3.5 border-r border-t border-accent/80" />
-                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-3.5 w-3.5 border-b border-l border-accent/80" />
-                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-3.5 w-3.5 border-b border-r border-accent/80" />
-
-                      <div className="px-5 py-6 md:px-7 md:py-7">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                            </span>
-                            {createMode === "text" ? "Pure text prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
-                          </div>
-                          <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/60">SC. 01 · TAKE 01</div>
+                    {/* ===== HERO COMPOSER — open editorial canvas ===== */}
+                    <div className="relative">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
+                          {createMode === "text" ? "Scene prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
                         </div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/40">SC. 01 · TAKE 01</div>
+                      </div>
 
-                        <textarea
+                      <textarea
                           value={draft.brief.logline}
                           onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
                           placeholder={createMode === "text"
@@ -733,17 +695,20 @@ export default function StudioShell() {
                               : "Describe the spin you want on the template — tone, era, hero moment."
                           }
                           rows={4}
-                          className="mt-4 w-full resize-none bg-transparent font-display text-[20px] md:text-[24px] xl:text-[28px] italic leading-[1.2] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
+                          className="w-full resize-none bg-transparent font-display text-[22px] md:text-[26px] xl:text-[30px] italic leading-[1.25] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/30"
                           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
+                      <div className="relative h-px w-full bg-border/40">
+                        <div className="absolute left-0 top-0 h-px w-24 bg-gradient-to-r from-accent to-transparent" />
+                      </div>
 
-                        <div className="relative mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-white/[0.05] pt-4">
+                      <div className="relative mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                           <input
                             value={draft.brief.style}
                             onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
                             placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-8 min-w-[180px] flex-1 rounded-full border border-white/[0.08] bg-white/[0.02] px-3.5 text-[13px] text-foreground/90 outline-none shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)] transition-all focus:border-accent/60 focus:bg-white/[0.04] focus:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),0_0_0_3px_hsl(var(--accent)/0.10)]"
+                            className="h-8 min-w-[180px] max-w-[280px] flex-1 bg-transparent border-b border-border/50 px-1 text-[13px] text-foreground/90 outline-none transition-colors focus:border-accent"
                           />
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                           <SegmentedSelect
@@ -767,14 +732,13 @@ export default function StudioShell() {
                                 key={label}
                                 onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
                                 title={prompt}
-                                className="h-7 rounded-full border border-border/50 bg-background/30 px-2.5 text-[11.5px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
+                                className="h-7 rounded-full border border-border/40 bg-transparent px-3 text-[11.5px] text-muted-foreground/80 transition-all hover:border-accent/60 hover:text-foreground"
                               >
                                 {label}
                               </button>
                             ))}
                           </div>
                         )}
-                      </div>
                     </div>
 
                     {/* ============= ENGINE PILL RAIL ============= */}
@@ -815,17 +779,16 @@ export default function StudioShell() {
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    {/* Mode-specific helper card */}
-                    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/[0.10] via-card/40 to-background/30 p-5 backdrop-blur-xl">
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+                  <div className="space-y-1">
+                    {/* Mode helper — quiet copy, no card */}
+                    <div className="pb-4">
                       <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">
                         {createMode === "text" ? "Text-to-video" : createMode === "image" ? "Image-to-video" : "Template"}
                       </div>
-                      <div className="mt-2 font-display text-xl italic leading-tight text-foreground">
+                      <div className="mt-2 font-display text-lg italic leading-tight text-foreground/95">
                         {createMode === "text" ? "No image required." : createMode === "image" ? "Drop a still, get a scene." : "Pick a structure."}
                       </div>
-                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground/80">
                         {createMode === "text" ? "Write the scene. The selected engine renders it from the prompt alone." : createMode === "image" ? "Your frame becomes the visual DNA — color, character, composition all carry through." : "Cinematic blueprints with shot lists you can edit before render."}
                       </p>
                     </div>
@@ -838,14 +801,13 @@ export default function StudioShell() {
                     <button
                       onClick={() => setStep("cast")}
                       disabled={!canGenerateScript}
-                      className="group relative mt-2 flex w-full items-center justify-between overflow-hidden rounded-xl bg-foreground px-4 py-3 text-left text-background transition-all hover:shadow-[0_16px_48px_-15px_hsl(var(--foreground)/0.5),0_0_64px_-20px_hsl(var(--accent)/0.6)] disabled:opacity-30 disabled:hover:shadow-none"
+                      className="group relative mt-4 flex w-full items-center justify-between rounded-none border-t border-border/40 px-1 py-4 text-left transition-colors hover:text-foreground disabled:opacity-30"
                     >
-                      <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-accent/40 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
-                      <span className="relative">
-                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-background/60">Phase 02</span>
-                        <span className="mt-0.5 block font-display text-[15px] italic leading-tight">Cast the avatars</span>
+                      <span>
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-accent">Phase 02</span>
+                        <span className="mt-1 block font-display text-[16px] italic leading-tight text-foreground/95">Cast the avatars</span>
                       </span>
-                      <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-accent" />
                     </button>
                   </div>
                 </div>
@@ -967,8 +929,7 @@ export default function StudioShell() {
           </AnimatePresence>
         </section>
 
-        <aside className="relative hidden border-l border-white/[0.05] bg-[linear-gradient(180deg,hsla(220,16%,4%,0.7),hsla(220,14%,2%,0.85))] p-5 backdrop-blur-2xl lg:block">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-accent/30 to-transparent" />
+        <aside className="relative hidden border-l border-border/30 bg-transparent p-6 lg:block">
           <StagePreview scene={activeScene} draft={draft} renderedCount={renderedCount} totalCost={totalCost} onRender={() => activeScene && generateScene(activeScene.id)} onOpenEditor={openInEditor} />
         </aside>
       </main>
@@ -1088,21 +1049,14 @@ export default function StudioShell() {
 function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: React.ReactNode; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} className="relative">
-      <div className="relative mb-6 flex items-end justify-between gap-6 border-b border-border/40 pb-5">
+      <div className="relative mb-12 flex items-end justify-between gap-6">
         <div className="flex-1">
-          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
-            </span>
-            <Icon className="h-3 w-3" /> {eyebrow}
+          <div className="mb-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
+            <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" }).toUpperCase()}</span>
+            <span className="h-px w-8 bg-border/60" />
+            <span>{eyebrow}</span>
           </div>
-          <h1 className="max-w-3xl font-display text-[28px] font-light leading-[1.02] tracking-[-0.02em] text-foreground sm:text-[34px] md:text-[40px] xl:text-[52px]">{title}</h1>
-        </div>
-        <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60 lg:flex">
-          <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>
-          <span className="h-px w-12 bg-border" />
-          <span>Take 01</span>
+          <h1 className="max-w-3xl font-display text-[34px] font-light leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[42px] md:text-[52px] xl:text-[60px]">{title}</h1>
         </div>
       </div>
       {children}
@@ -1153,38 +1107,28 @@ function ReferenceUploader({ imageUrl, uploading, onUploadClick, onClear }: { im
 
 function ActionTile({ icon: Icon, title, body, onClick }: { icon: typeof Sparkles; title: string; body: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-[linear-gradient(155deg,hsla(220,18%,7%,0.85)_0%,hsla(220,14%,4%,0.85)_100%)] p-5 text-left shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)] transition-all duration-500 hover:-translate-y-[1px] hover:border-accent/40 hover:shadow-[0_1px_0_hsla(0,0%,100%,0.06)_inset,0_30px_80px_-30px_hsl(var(--accent)/0.45)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_70%_at_100%_0%,hsl(var(--accent)/0.12),transparent_55%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-      <div className="relative">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,hsla(215,100%,72%,0.12),hsla(215,100%,55%,0.04))] text-accent shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)] transition-all group-hover:border-accent/40 group-hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10),0_0_24px_hsl(var(--accent)/0.35)]">
-            <Icon className="h-4 w-4 drop-shadow-[0_0_8px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} />
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-all group-hover:translate-x-1 group-hover:text-accent" />
+    <button onClick={onClick} className="group relative flex w-full items-center justify-between gap-4 border-b border-border/30 py-4 text-left transition-colors hover:border-accent/40">
+      <div className="flex items-start gap-4">
+        <Icon className="mt-0.5 h-4 w-4 text-accent/80 transition-colors group-hover:text-accent" strokeWidth={1.5} />
+        <div>
+          <div className="text-[13px] font-medium text-foreground/95">{title}</div>
+          <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground/75">{body}</p>
         </div>
-        <div className="font-display text-[17px] italic tracking-[-0.01em] text-foreground/95">{title}</div>
-        <p className="mt-1.5 text-[12.5px] leading-[1.55] text-muted-foreground/85 font-light">{body}</p>
       </div>
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-all group-hover:translate-x-1 group-hover:text-accent" />
     </button>
   );
 }
 
 function CommandCard({ icon: Icon, title, body, busy, disabled, onClick }: { icon: typeof Sparkles; title: string; body: string; busy?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-[linear-gradient(155deg,hsla(220,18%,7%,0.85)_0%,hsla(220,14%,4%,0.85)_100%)] p-5 text-left shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)] transition-all duration-500 hover:-translate-y-[1px] hover:border-accent/40 hover:shadow-[0_1px_0_hsla(0,0%,100%,0.06)_inset,0_30px_80px_-30px_hsl(var(--accent)/0.45)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:border-white/[0.06] disabled:hover:shadow-[0_1px_0_hsla(0,0%,100%,0.04)_inset,0_20px_50px_-30px_rgba(0,0,0,0.7)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_70%_at_100%_0%,hsl(var(--accent)/0.12),transparent_55%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-      <div className="relative">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,hsla(215,100%,72%,0.12),hsla(215,100%,55%,0.04))] text-accent shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)] transition-all group-hover:border-accent/40 group-hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10),0_0_24px_hsl(var(--accent)/0.35)]">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4 drop-shadow-[0_0_8px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} />}
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-all group-hover:translate-x-1 group-hover:text-accent" />
-        </div>
-        <div className="font-display text-[17px] italic tracking-[-0.01em] text-foreground/95">{title}</div>
-        <p className="mt-1.5 text-[12.5px] leading-[1.55] text-muted-foreground/85 font-light">{body}</p>
+    <button onClick={onClick} disabled={disabled} className="group relative w-full rounded-xl border border-border/40 bg-card/30 p-5 text-left transition-all hover:border-accent/40 hover:bg-card/50 disabled:cursor-not-allowed disabled:opacity-30">
+      <div className="mb-3 flex items-center justify-between">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin text-accent" /> : <Icon className="h-4 w-4 text-accent/80" strokeWidth={1.5} />}
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-all group-hover:translate-x-1 group-hover:text-accent" />
       </div>
+      <div className="text-[14px] font-medium text-foreground/95">{title}</div>
+      <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground/75">{body}</p>
     </button>
   );
 }
@@ -1298,49 +1242,39 @@ function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; ac
 function StagePreview({ scene, draft, renderedCount, totalCost, onRender, onOpenEditor }: { scene?: SceneDraft; draft: StudioDraft; renderedCount: number; totalCost: number; onRender: () => void; onOpenEditor: () => void }) {
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(160deg,hsla(220,18%,7%,0.92),hsla(220,14%,3%,0.92))] p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_hsla(0,0%,100%,0.05)]">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+      <div className="relative">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             Preview
           </div>
           <StatusPill status={scene?.status || "idle"} />
         </div>
-        <div className="relative aspect-video overflow-hidden rounded-xl border border-white/[0.06] bg-[radial-gradient(circle_at_50%_50%,hsla(220,16%,8%,1),hsla(220,14%,2%,1))] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_40px_rgba(0,0,0,0.6)]">
-          {/* corner brackets */}
-          <span aria-hidden className="pointer-events-none absolute left-2 top-2 z-10 h-2.5 w-2.5 border-l border-t border-accent/60" />
-          <span aria-hidden className="pointer-events-none absolute right-2 top-2 z-10 h-2.5 w-2.5 border-r border-t border-accent/60" />
-          <span aria-hidden className="pointer-events-none absolute bottom-2 left-2 z-10 h-2.5 w-2.5 border-b border-l border-accent/60" />
-          <span aria-hidden className="pointer-events-none absolute bottom-2 right-2 z-10 h-2.5 w-2.5 border-b border-r border-accent/60" />
+        <div className="relative aspect-video overflow-hidden rounded-sm bg-[hsl(220_16%_5%)]">
           {scene?.clipUrl ? <video src={scene.clipUrl} controls playsInline className="h-full w-full object-cover" /> : scene?.refImageUrl || draft.brief.refImageUrl ? <img src={scene?.refImageUrl || draft.brief.refImageUrl} alt="Current reference" className="h-full w-full object-cover opacity-80" /> : <div className="flex h-full w-full items-center justify-center"><Film className="h-7 w-7 text-muted-foreground/40" strokeWidth={1.2} /></div>}
         </div>
-        <div className="mt-4 space-y-2.5">
-          <button onClick={onRender} disabled={!scene} className="group/btn relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-b from-accent to-[hsl(215_100%_48%)] px-4 py-3 text-[13px] font-medium text-accent-foreground shadow-[0_10px_30px_-10px_hsl(var(--accent)/0.6),inset_0_1px_0_hsla(0,0%,100%,0.18)] transition-all hover:shadow-[0_18px_46px_-12px_hsl(var(--accent)/0.75),inset_0_1px_0_hsla(0,0%,100%,0.22)] disabled:opacity-30 disabled:shadow-none">
-            <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover/btn:left-[110%] group-hover/btn:opacity-100" />
-            <Play className="relative h-3.5 w-3.5" /> <span className="relative">Render selected</span>
+        <div className="mt-4 space-y-2">
+          <button onClick={onRender} disabled={!scene} className="flex w-full items-center justify-center gap-2 rounded-none bg-accent px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-foreground transition-colors hover:bg-[hsl(215_100%_52%)] disabled:opacity-30">
+            <Play className="h-3.5 w-3.5" /> Render selected
           </button>
-          <button onClick={onOpenEditor} disabled={!renderedCount} className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[13px] font-light text-foreground/85 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)] transition-all hover:border-accent/30 hover:bg-white/[0.04] hover:text-foreground disabled:opacity-30">
+          <button onClick={onOpenEditor} disabled={!renderedCount} className="flex w-full items-center justify-center gap-2 px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30">
             <Send className="h-3.5 w-3.5 text-accent" /> Send to editor
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-y-8 gap-x-4 pt-4">
         <Metric label="Scenes" value={String(draft.scenes.length)} />
         <Metric label="Rendered" value={String(renderedCount)} />
         <Metric label="Cast" value={String(draft.cast.length)} />
         <Metric label="Credits est." value={String(totalCost)} />
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(160deg,hsla(220,18%,7%,0.85),hsla(220,14%,3%,0.85))] p-4 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)]">
-        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-light tracking-tight text-foreground/95">
+      <div className="relative border-t border-border/40 pt-4">
+        <div className="mb-3 flex items-center gap-2 text-[12px] font-medium tracking-tight text-foreground/95">
           <BadgeCheck className="h-3.5 w-3.5 text-accent drop-shadow-[0_0_6px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} /> Pipeline connected
         </div>
-        <div className="space-y-1.5 text-[12px] font-light text-muted-foreground/80">
+        <div className="space-y-2 text-[12px] font-light text-muted-foreground/80">
           <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Engine</span><span className="text-foreground/80 truncate">{ENGINES[draft.defaults.engine].label}</span></div>
           <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Aspect</span><span className="text-foreground/80">{draft.defaults.aspect}</span></div>
           <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Voice</span><span className="text-foreground/80 truncate">{draft.defaults.voiceId || "Auto / default"}</span></div>
@@ -1353,10 +1287,9 @@ function StagePreview({ scene, draft, renderedCount, totalCost, onRender, onOpen
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(160deg,hsla(220,16%,6%,0.85),hsla(220,14%,3%,0.85))] p-3 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)]">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
-      <div className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">{label}</div>
-      <div className="mt-1 font-display text-[26px] font-light leading-none tracking-[-0.02em] text-foreground/95">{value}</div>
+    <div className="space-y-1.5">
+      <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/55">{label}</div>
+      <div className="font-display text-[28px] font-light italic leading-none tracking-[-0.02em] text-foreground/95">{value}</div>
     </div>
   );
 }
@@ -1374,11 +1307,10 @@ function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: E
     cinema: "bg-amber-400 shadow-[0_0_8px_hsl(45_90%_55%/0.7)]",
   };
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="mb-5 flex items-center justify-between">
+    <div className="relative pt-8">
+      <div className="mb-5 flex items-center justify-between border-t border-border/40 pt-6">
         <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-          <Cpu className="h-3 w-3" />
+          <Cpu className="h-3 w-3" strokeWidth={1.5} />
           Render engine
         </div>
         <button onClick={onMore} className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground transition-colors hover:text-foreground">
@@ -1398,28 +1330,28 @@ function EnginePillRail({ selected, onSelect, onMore, hasCinema }: { selected: E
               disabled={!e.healthy}
               title={locked ? `${e.shortLabel} requires Studio Cinema` : undefined}
               className={cn(
-                "group relative inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm transition-all",
+                "group relative inline-flex items-center gap-2.5 rounded-full border px-3.5 py-2 text-sm transition-all",
                 active
-                  ? "border-accent bg-accent/[0.08] text-foreground shadow-[0_0_24px_hsl(var(--accent)/0.35)]"
-                  : "border-border/60 bg-background/30 text-muted-foreground hover:border-foreground/30 hover:bg-background/50 hover:text-foreground",
+                  ? "border-accent/60 bg-accent/[0.06] text-foreground"
+                  : "border-border/50 bg-transparent text-muted-foreground hover:border-foreground/30 hover:text-foreground",
                 !e.healthy && "cursor-not-allowed opacity-30",
                 locked && "opacity-60",
               )}
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", tierColor[e.tier] || "bg-foreground/40")} />
-              <span className="font-display text-[15px] italic">{e.shortLabel}</span>
+              <span className="font-display text-[14px] italic">{e.shortLabel}</span>
               {locked && <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-amber-400/80">PRO</span>}
               {cost != null && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-foreground/60">
+                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/60 group-hover:text-foreground/60">
                   {cost}c
                 </span>
               )}
-              {active && <Check className="h-3.5 w-3.5 text-accent" />}
+              {active && <Check className="h-3 w-3 text-accent" />}
             </button>
           );
         })}
       </div>
-      <div className="mt-4 flex items-center gap-4 border-t border-border/40 pt-4 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+      <div className="mt-4 flex items-center gap-4 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-foreground/40" /> Standard</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-accent" /> Pro</span>
         <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-amber-400" /> Cinema</span>
@@ -1453,11 +1385,10 @@ function SceneRuntimeControls({
   const safeDuration = durations.includes(duration) ? duration : durations[0];
   const total = safeCount * safeDuration;
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card/60 via-card/20 to-background/40 p-6 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="mb-5 flex items-center justify-between">
+    <div className="relative pt-8">
+      <div className="mb-5 flex items-center justify-between border-t border-border/40 pt-6">
         <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-          <Timer className="h-3 w-3" />
+          <Timer className="h-3 w-3" strokeWidth={1.5} />
           Scenes &amp; runtime
         </div>
         <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -1465,30 +1396,30 @@ function SceneRuntimeControls({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Scene count stepper */}
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Scene count</div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 p-1.5">
+          <div className="inline-flex items-center gap-2">
             <button
               onClick={() => onSceneCountChange(Math.max(1, safeCount - 1))}
               disabled={safeCount <= 1}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-foreground transition-all hover:border-accent hover:text-accent disabled:opacity-30"
               aria-label="Decrease scene count"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </button>
-            <div className="min-w-[80px] px-3 text-center">
+            <div className="min-w-[72px] px-3 text-center">
               <div className="font-display text-2xl italic leading-none text-foreground">{safeCount}</div>
-              <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">/ {maxScenes} max</div>
+              <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50">/ {maxScenes} max</div>
             </div>
             <button
               onClick={() => onSceneCountChange(Math.min(maxScenes, safeCount + 1))}
               disabled={safeCount >= maxScenes}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground transition-all hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-foreground transition-all hover:border-accent hover:text-accent disabled:opacity-30"
               aria-label="Increase scene count"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -1496,7 +1427,7 @@ function SceneRuntimeControls({
         {/* Per-scene duration picker */}
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Seconds per scene</div>
-          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-border/60 bg-background/40 p-1.5">
+          <div className="inline-flex flex-wrap items-center gap-4">
             {durations.map((d) => {
               const active = d === safeDuration;
               return (
@@ -1504,18 +1435,17 @@ function SceneRuntimeControls({
                   key={d}
                   onClick={() => onDurationChange(d)}
                   className={cn(
-                    "inline-flex h-9 min-w-[56px] items-center justify-center rounded-full px-4 text-sm transition-all",
-                    active
-                      ? "bg-foreground text-background shadow-[0_8px_24px_-10px_hsl(var(--accent)/0.55)]"
-                      : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+                    "relative pb-1 text-sm transition-colors",
+                    active ? "text-accent" : "text-muted-foreground/70 hover:text-foreground",
                   )}
                 >
-                  <span className={cn("font-display italic", active ? "text-background" : "")}>{d}s</span>
+                  <span className="font-display italic">{d}s</span>
+                  {active && <span className="absolute -bottom-0.5 left-0 right-0 h-px bg-accent" />}
                 </button>
               );
             })}
           </div>
-          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">
+          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">
             {engine.shortLabel} supports {durations.join(" / ")}s
           </div>
         </div>

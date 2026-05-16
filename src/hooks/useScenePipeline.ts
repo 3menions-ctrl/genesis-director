@@ -205,19 +205,30 @@ export function useScenePipeline(
       }
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
       const directUrl = (data as any)?.videoUrl;
-      if (directUrl) {
+      const queued = (data as any)?.queued === true;
+      if (queued) {
+        // Server parked us behind the predecessor. Surface the wait in the
+        // UI and switch to row-polling — the drain will re-fire this scene
+        // and stamp its prediction onto the same video_clips row.
+        patchScene(sceneId, { status: "generating" });
+        toast.message(`Scene ${scene.index + 1} queued — waiting on scene ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`, { duration: 2500 });
+        pollClipRow(sceneId, projectId, scene.index);
+      } else if (directUrl) {
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
         pollPrediction(sceneId, predictionId);
       } else {
         patchScene(sceneId, { status: "generating" });
+        // Fallback: no predictionId and not queued — poll the row anyway in
+        // case the renderer wrote it asynchronously (defensive).
+        pollClipRow(sceneId, projectId, scene.index);
       }
     } catch (e: any) {
       patchScene(sceneId, { status: "failed" });
       toast.error(e?.message || "Failed to start generation");
     }
-  }, [draft, patchScene, pollPrediction, ensureProjectId]);
+  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
 
   const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
 

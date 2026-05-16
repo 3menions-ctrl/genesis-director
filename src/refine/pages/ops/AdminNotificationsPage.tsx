@@ -8,13 +8,18 @@ import { useNavigate } from "react-router-dom";
 import {
   UserPlus, ShoppingBag, MessageSquare, Building2,
   Loader2, CheckCheck, Activity, Mail, Bell,
+  AlertTriangle, Undo2, ShieldAlert, Flame, Clock3, Clapperboard, UserMinus, ZapOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { cn } from "@/lib/utils";
 
-type Kind = "admin_signup" | "admin_purchase" | "admin_support_message" | "admin_inquiry";
+type Kind =
+  | "admin_signup" | "admin_purchase" | "admin_support_message" | "admin_inquiry"
+  | "admin_payment_failed" | "admin_refund" | "admin_dispute" | "admin_high_value_purchase"
+  | "admin_stuck_job" | "admin_first_video" | "admin_account_deleted"
+  | "admin_abuse_signal" | "admin_error_spike";
 
 interface Notif {
   id: string;
@@ -24,15 +29,31 @@ interface Notif {
   data: Record<string, any> | null;
   read: boolean;
   created_at: string;
+  severity?: "info" | "warn" | "critical" | null;
 }
 
-const KINDS: Kind[] = ["admin_signup", "admin_purchase", "admin_support_message", "admin_inquiry"];
+const KINDS: Kind[] = [
+  "admin_signup", "admin_purchase", "admin_support_message", "admin_inquiry",
+  "admin_payment_failed", "admin_refund", "admin_dispute", "admin_high_value_purchase",
+  "admin_stuck_job", "admin_first_video", "admin_account_deleted",
+  "admin_abuse_signal", "admin_error_spike",
+];
 
-const META: Record<Kind, { label: string; icon: any; tone: string; glow: string }> = {
-  admin_signup:          { label: "Signups",   icon: UserPlus,       tone: "#10B981", glow: "rgba(16,185,129,0.45)" },
-  admin_purchase:        { label: "Purchases", icon: ShoppingBag,    tone: "#0A84FF", glow: "rgba(10,132,255,0.55)" },
-  admin_support_message: { label: "Support",   icon: MessageSquare,  tone: "#F59E0B", glow: "rgba(245,158,11,0.45)" },
-  admin_inquiry:         { label: "Sales",     icon: Building2,      tone: "#A78BFA", glow: "rgba(167,139,250,0.45)" },
+// Tier-based palette. Critical = red, warn = amber, info = blue/teal/emerald accents.
+const META: Record<Kind, { label: string; icon: any; tone: string; glow: string; severity: "info" | "warn" | "critical" }> = {
+  admin_signup:               { label: "Signups",     icon: UserPlus,      tone: "#10B981", glow: "rgba(16,185,129,0.45)",  severity: "info" },
+  admin_purchase:             { label: "Purchases",   icon: ShoppingBag,   tone: "#0A84FF", glow: "rgba(10,132,255,0.55)",  severity: "info" },
+  admin_support_message:      { label: "Support",     icon: MessageSquare, tone: "#F59E0B", glow: "rgba(245,158,11,0.45)",  severity: "info" },
+  admin_inquiry:              { label: "Sales",       icon: Building2,     tone: "#22D3EE", glow: "rgba(34,211,238,0.45)",  severity: "info" },
+  admin_high_value_purchase:  { label: "Big Sale",    icon: Flame,         tone: "#FF6B00", glow: "rgba(255,107,0,0.55)",   severity: "warn" },
+  admin_first_video:          { label: "First Ship",  icon: Clapperboard,  tone: "#34D399", glow: "rgba(52,211,153,0.45)",  severity: "info" },
+  admin_payment_failed:       { label: "Pay Fail",    icon: AlertTriangle, tone: "#FFB020", glow: "rgba(255,176,32,0.55)",  severity: "warn" },
+  admin_refund:               { label: "Refund",      icon: Undo2,         tone: "#FFB020", glow: "rgba(255,176,32,0.45)",  severity: "warn" },
+  admin_stuck_job:            { label: "Stuck Job",   icon: Clock3,        tone: "#FFB020", glow: "rgba(255,176,32,0.45)",  severity: "warn" },
+  admin_account_deleted:      { label: "Deleted",     icon: UserMinus,     tone: "#FFB020", glow: "rgba(255,176,32,0.40)",  severity: "warn" },
+  admin_dispute:              { label: "Chargeback",  icon: ShieldAlert,   tone: "#FF3B30", glow: "rgba(255,59,48,0.65)",   severity: "critical" },
+  admin_abuse_signal:         { label: "Abuse",       icon: ShieldAlert,   tone: "#FF3B30", glow: "rgba(255,59,48,0.60)",   severity: "critical" },
+  admin_error_spike:          { label: "Err Spike",   icon: ZapOff,        tone: "#FF3B30", glow: "rgba(255,59,48,0.60)",   severity: "critical" },
 };
 
 function timeAgo(iso: string) {
@@ -54,7 +75,7 @@ export default function AdminNotificationsPage() {
     if (!user) return;
     const { data } = await supabase
       .from("notifications")
-      .select("id,type,title,body,data,read,created_at")
+      .select("id,type,title,body,data,read,created_at,severity")
       .eq("user_id", user.id)
       .in("type", KINDS)
       .order("created_at", { ascending: false })
@@ -83,13 +104,10 @@ export default function AdminNotificationsPage() {
   }, [user]);
 
   const counts = useMemo(() => {
-    const out: Record<Kind, { total: number; unread: number; last?: string }> = {
-      admin_signup:          { total: 0, unread: 0 },
-      admin_purchase:        { total: 0, unread: 0 },
-      admin_support_message: { total: 0, unread: 0 },
-      admin_inquiry:         { total: 0, unread: 0 },
-    };
+    const out = {} as Record<Kind, { total: number; unread: number; last?: string }>;
+    for (const k of KINDS) out[k] = { total: 0, unread: 0 };
     for (const n of items) {
+      if (!out[n.type]) continue;
       out[n.type].total++;
       if (!n.read) out[n.type].unread++;
       if (!out[n.type].last) out[n.type].last = n.created_at;

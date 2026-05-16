@@ -44,7 +44,7 @@ function shouldShow(): boolean {
     if (new URLSearchParams(window.location.search).get('diag') === '1') return true;
     if (window.localStorage?.getItem('landingDiag') === '1') return true;
   } catch {}
-  return Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
+  return false;
 }
 
 export function LandingDiagnosticsProvider({ children }: { children: ReactNode }) {

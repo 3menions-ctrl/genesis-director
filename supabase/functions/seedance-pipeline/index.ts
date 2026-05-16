@@ -826,14 +826,29 @@ serve(async (req) => {
   } catch (err: any) {
     console.error("[Seedance] Pipeline error:", err);
     if (request.projectId) {
-      await supabase
-        .from("movie_projects")
-        .update({
-          status: "failed",
-          last_error: err?.message?.slice(0, 500) ?? "Unknown error",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", request.projectId);
+      try {
+        const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+        await markProjectFailedAndRefund(supabase, {
+          projectId: request.projectId,
+          userId: request.userId,
+          stage: 'preproduction',
+          reason: err,
+          totalCredits: typeof totalCredits === 'number' ? totalCredits : null,
+          expectedClipCount: typeof clipCount === 'number' ? clipCount : null,
+          completedClipCount: 0, // terminal failure pre-dispatch
+          source: 'seedance',
+        });
+      } catch (failHandlerErr) {
+        console.error("[Seedance] failure handler error:", failHandlerErr);
+        await supabase
+          .from("movie_projects")
+          .update({
+            status: "failed",
+            last_error: err?.message?.slice(0, 500) ?? "Unknown error",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", request.projectId);
+      }
     }
     return new Response(
       JSON.stringify({ success: false, error: err?.message ?? "Unknown error" }),

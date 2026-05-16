@@ -778,7 +778,13 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   animation: `${row ? 'ese-marquee-r' : 'ese-marquee'} ${row ? 55 : 45}s linear infinite`,
                 }}
               >
-                {[...AVATARS, ...AVATARS].map((a, i) => (
+                {/* Marquee excludes the 8 avatars used as solo spotlight tiles
+                    elsewhere on the page — so no cast member appears twice. */}
+                {(() => {
+                  const SPOTLIGHT_INDICES = new Set([0, 2, 7, 10, 14, 18, 20, 25]);
+                  const pool = AVATARS.filter((_, i) => !SPOTLIGHT_INDICES.has(i));
+                  return [...pool, ...pool];
+                })().map((a, i) => (
                   <div
                     key={i}
                     className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-2xl overflow-hidden border border-white/[0.06]"

@@ -403,9 +403,9 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
 
             {/* Stage — mascot/avatar mosaic windows + center hero clip */}
             <div className="relative grid grid-cols-12 gap-2.5 md:gap-3 p-5 md:p-7 mt-6">
-              {/* Left column — 3 mascot windows */}
+              {/* Left column — 3 cast windows (mascots stay reserved for the orbital roster). */}
               <div className="col-span-3 grid grid-rows-3 gap-2.5 md:gap-3">
-                {[MASCOTS[0], MASCOTS[3], MASCOTS[6]].map((src, i) => (
+                {[AVATARS[4], AVATARS[12], AVATARS[17]].map((src, i) => (
                   <div key={i} className="relative rounded-2xl overflow-hidden aspect-square border border-white/[0.08]"
                     style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 20px 50px -30px rgba(255,200,90,0.4)' }}>
                     <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -951,8 +951,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 px-7 md:px-10 pt-6 pb-16">
-            {/* Casting trio — unique mascots, never reused in the left column above. */}
-            {[mFox, mIcecream, mTaco].map((src, i) => (
+            {/* Casting trio — unique avatars, never reused anywhere else on the page. */}
+            {[AVATARS[6], AVATARS[21], AVATARS[23]].map((src, i) => (
               <div key={i} className="relative h-[340px] md:h-[400px] flex items-end justify-center">
                 {/* Cone of light from above */}
                 <div aria-hidden className="absolute inset-x-0 -top-6 h-full pointer-events-none"

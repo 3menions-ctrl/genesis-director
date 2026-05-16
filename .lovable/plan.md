@@ -1,78 +1,76 @@
+## Scope
 
-# Deep Engineering Remediation — Phase 2
+Foundation-level polish across the entire authenticated app + targeted refinement on the 5 highest-traffic surfaces. Marketing landing (`/`) and locked surfaces (AppShell sidebar specs, Magazine Gallery, Legendary Player, Pricing Cards, Studio Pro editor, Cinematic Studio create page) are **skipped** — polish flows around them.
 
-Builds on Phase 1 (cache isolation, audit log tamper-proofing, CI auth gate, userId removal). Landing page and its components remain untouched.
+Hard constraints honored: no redesign, no workflow change, no business-logic change, no new experimental concepts. Existing tokens, fonts, colors, layouts preserved exactly.
 
-## Scope (4 verticals, in order)
+---
 
-### 1. Close the 12 CI Auth Gate Failures — Real Verification, Not Stubs
-For each failing function, implement the correct trust boundary:
+## Phase 1 — Foundation tokens & primitives (global lift)
 
-- **Webhooks** (Stripe, Replicate, ElevenLabs, Kling callbacks): HMAC-SHA256 signature verification using stored webhook secrets, constant-time comparison, 5-min timestamp tolerance, raw-body preservation. Reject on missing/invalid signature with 401 + structured log.
-- **Cron / scheduled functions**: require `x-cron-secret` header matched against `CRON_SHARED_SECRET` env var (added via secrets tool), OR validate service-role JWT via `auth.getClaims` and assert `role === 'service_role'`.
-- **Public widget endpoints**: scoped origin allowlist + per-IP rate limit table (lightweight, RLS-protected) + input validation via Zod.
+Edits live almost entirely in `src/index.css`, `tailwind.config.ts`, and 4-6 ui primitives. These cascade everywhere with zero per-page changes.
 
-Shared helper: `supabase/functions/_shared/auth-guard.ts` extended with `verifyWebhookSignature(secretEnvVar)`, `requireCronSecret()`, `requireServiceRole()`. CI gate updated to recognize these helpers as valid trust boundaries.
+**Motion system**
+- Standardize 3 easing curves (`--ease-out-quart`, `--ease-out-expo`, `--ease-in-out-quart`) and 4 duration tokens (instant 100ms / fast 160ms / base 220ms / slow 320ms).
+- Replace ad-hoc `transition-all duration-300` patterns inside primitive components with the new tokens (no functional change, just consistency).
+- Respect `prefers-reduced-motion` globally.
 
-Deliverable: `npm run audit:edge-auth` → 64/64 pass.
+**Interaction states (primitive level only)**
+- Button: tighten press-down scale (0.98), unify focus-visible ring (2px `--ring` w/ 2px offset), ensure 44px min touch target on mobile.
+- Input/Textarea/Select: consistent focus ring, no layout shift on focus, smoother placeholder transitions.
+- Dropdown/Popover/Tooltip/Dialog: unified open/close timing, consistent backdrop blur, kill the 200→300ms animation drift between Radix defaults.
 
-### 2. Dead Code Excision (H2/M9)
-Remove with codemod-level rigor, not just file deletion:
+**Stability fixes (CLS hotspots)**
+- Add `min-h-dvh` to PageShell to stop route-swap collapse.
+- Reserve scrollbar gutter on `<html>` to prevent layout shift when dialogs open.
+- Skeleton loaders: ensure same height as final content; add a single shimmer keyframe and apply uniformly.
+- Image components: enforce intrinsic `aspect-ratio` on cards to remove pop-in.
 
-- Delete `supabase/functions/agent-chat/`, `generate-video/`, `generate-single-clip/`, and any other functions confirmed unreferenced by grep across `src/` and other edge functions.
-- Rewire `mode-router` to drop removed branches; update `hollywood-pipeline` callsites that referenced the old single-clip path (verify against the Kling-Hollywood lock + Seedance lock memories).
-- Call `supabase--delete_edge_functions` so deployed functions are also removed.
-- Update `mode-router` tests and add a guard test that asserts the router rejects unknown engines.
+**Scroll & overflow polish**
+- Apply `premium-scroll` (already defined) to main scroll containers in PageShell.
+- Add `overscroll-behavior: contain` to modal bodies and side panels.
 
-### 3. Typed Error Architecture (H4)
-Replace the 993 silent `catch` blocks pattern with a real taxonomy:
+**Toast & feedback**
+- Confirm Sonner toast position is consistent (`bottom-right`, single Toaster), unify default duration to 4s, success/error icon sizing.
 
-- New module `src/lib/errors/AppError.ts`: discriminated union — `AuthError`, `ValidationError`, `NetworkError`, `PipelineError`, `BillingError`, `UnknownError`. Each carries `code`, `userMessage`, `cause`, `context`, `retryable: boolean`, `severity`.
-- `src/lib/errors/reporter.ts`: single sink. Routes to console (dev), to `error_reports` table (prod, RLS: user can insert own, only admins read), and to a toast for user-facing severities.
-- `src/lib/errors/withErrorBoundary.tsx`: route-level boundary using the typed reporter.
-- Codemod pass: convert top 30 highest-traffic catch blocks (auth, pipeline dispatch, credit operations, Stripe flows, video generation, project CRUD) from `catch (e) { console.error }` → `catch (e) { reportError(toAppError(e, { context })) }`. Document remainder for future passes — no fake "fixed all 993" claim.
-- Edge-function counterpart: `supabase/functions/_shared/errors.ts` with the same taxonomy, structured JSON error responses, and request-id propagation.
+---
 
-### 4. Pipeline Realtime — Replace Polling (H7)
-Polling against `pipeline_state` / `projects` tables is what causes the render-stability and credit-idempotency headaches. Move to Supabase Realtime:
+## Phase 2 — Top-5 surface refinement (per-page, light touch only)
 
-- Enable `REPLICA IDENTITY FULL` and `supabase_realtime` publication on: `projects`, `pipeline_state`, `pipeline_clips`, `pending_video_tasks`.
-- New hook `src/hooks/useProjectChannel.ts`: subscribes to `postgres_changes` filtered by `project_id`, with reconnect-on-visibility, exponential backoff, and a deterministic "last event wins" reducer.
-- Refactor `useScenePipeline`, `Production.tsx`, and `SpecializedModeProgress` to consume the channel instead of `setInterval` polls. Keep a 30s safety re-fetch as a belt-and-suspenders, not the primary mechanism.
-- Tear down channels on unmount AND on user identity change (ties into Phase 1 cache reset).
-- Verify by inspecting network panel: poll requests for active project drop to near-zero; UI still updates within ~500ms of edge function writes.
+Each surface gets: spacing audit, hover/focus consistency, empty/loading state stability, header alignment to `PageHeader` primitive. **No structural changes.**
 
-## Technical Notes
+1. **`/projects`** (Projects.tsx) — verify uses `PageShell`+`PageHeader`, debounce-driven render stability already exists; polish card hover states and grid rhythm, ensure skeleton matches final grid.
+2. **`/create`** (Create.tsx / CreateCanvas.tsx) — **Cinematic Studio locked**, only touch surrounding chrome (header, breadcrumbs, transitions in/out).
+3. **Video Editor shell** (Studio.tsx / DirectorStudio.tsx) — **Studio Pro aesthetic locked**, polish only the non-canvas chrome: panel headers, resize handles, tab transitions.
+4. **`/settings`** (Settings.tsx) — tab switching stability, form section spacing rhythm, save-state feedback.
+5. **`/pricing`** (Pricing.tsx) — **Circular glassmorphic cards locked**, polish only surrounding section spacing, headline alignment, FAQ accordion timing.
 
-### Migrations required
-- `error_reports` table + RLS (user inserts own; service_role + admin read).
-- `webhook_secrets` lookup table OR rely on existing env-var pattern (will decide after reading current webhook handlers).
-- `rate_limits` table for public widgets (rolling window, indexed on `(endpoint, ip_hash, window_start)`).
-- Publication membership for the 4 pipeline tables.
+---
 
-### Files touched (non-exhaustive)
-```text
-NEW:    supabase/functions/_shared/{auth-guard.ts extended, errors.ts, webhook-verify.ts}
-NEW:    src/lib/errors/{AppError.ts, reporter.ts, withErrorBoundary.tsx}
-NEW:    src/hooks/useProjectChannel.ts
-EDIT:   ~12 edge functions (webhook/cron/widget gating)
-EDIT:   useScenePipeline.ts, Production.tsx, SpecializedModeProgress.tsx
-EDIT:   scripts/audit-edge-function-auth.mjs (recognize new guards)
-DELETE: agent-chat/, generate-video/, generate-single-clip/ (+ deploy delete)
-```
+## Phase 3 — Verification
 
-### Out of scope (explicit)
-- Landing page and any component it imports — untouched.
-- Hollywood pipeline mega-file refactor (separate engagement; too risky to bundle).
-- Visual redesign.
-- Storage bucket privatization (Bundle 1 work tracked separately).
+- `tsc --noEmit` clean
+- Visual spot-check each touched page at 1440 / 1024 / 390 viewports
+- Console log scan for new warnings
+- Confirm no locked-surface tokens were modified (grep for sidebar widths, magazine grid classes, player borderless flag)
 
-### Verification gates before claiming done
-- `npm run audit:edge-auth` → 64/64.
-- Deno tests pass on touched edge functions.
-- Manual: trigger a generation, watch Realtime update Production page without polling requests in network tab.
-- Manual: hit a webhook endpoint with bad signature → 401; with valid signature → 200.
-- Manual: sign out → React Query cache empty, no project data accessible by next user.
+---
 
-## Sequencing
-1 → 2 → 3 → 4. Each vertical fully verified before moving on. No partial claims.
+## Out of scope (explicit)
+
+- Marketing landing (`/`) and all its components
+- Locked surfaces listed above
+- Any auth/onboarding flow changes
+- Any new pages, features, or removed capabilities
+- Edge functions / backend
+- Per-page redesigns
+
+---
+
+## Risk
+
+Low-medium. Token changes cascade widely — if a primitive's animation timing change makes one surface feel off, I revert that single token. No business logic touched.
+
+## Deliverable
+
+A measurably tighter app: consistent motion, no CLS on route swaps, unified focus rings, stable skeletons, and the 5 top surfaces feeling intentional instead of assembled. Estimated 1 long session.

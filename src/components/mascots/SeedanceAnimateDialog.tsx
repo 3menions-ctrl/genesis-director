@@ -24,6 +24,7 @@ interface Props {
     name: string;
     src: string;          // local asset path — used as reference image
     tagline?: string;
+    palette?: [string, string];
   } | null;
 }
 

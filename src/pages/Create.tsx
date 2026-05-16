@@ -246,6 +246,8 @@ function CreateContentInner() {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
+    identityBible?: unknown;
+    characterLock?: unknown;
     // Engine selection: 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
     videoEngine?: 'kling' | 'veo' | 'seedance';
   }) => {
@@ -306,6 +308,10 @@ function CreateContentInner() {
         requestBody.voiceId = config.avatarVoiceId;
         requestBody.avatarTemplateId = config.avatarTemplateId;
         requestBody.avatarName = config.avatarName;
+        requestBody.identityBible = config.identityBible;
+        requestBody.characterLock = config.characterLock;
+        requestBody.referenceImageUrl = config.avatarImageUrl;
+        requestBody.breakoutDialogue = config.prompt?.trim();
         // Use the avatar image as the reference for character consistency
         requestBody.imageUrl = config.avatarImageUrl;
       }

@@ -78,6 +78,8 @@ export function useNavigationWithLoading() {
   const { startNavigation, isHeavyRoute } = useNavigationLoading();
 
   const navigateTo = useCallback((to: string, options?: { replace?: boolean }) => {
+    // Warm the chunk just in case the caller didn't hover-prefetch.
+    prefetchRoute(to);
     if (isHeavyRoute(to)) {
       startNavigation(to);
     }
@@ -85,7 +87,7 @@ export function useNavigationWithLoading() {
     navigate(to, options);
   }, [navigate, startNavigation, isHeavyRoute]);
 
-  return { navigateTo };
+  return { navigateTo, prefetch: prefetchRoute };
 }
 
 export default NavigationLink;

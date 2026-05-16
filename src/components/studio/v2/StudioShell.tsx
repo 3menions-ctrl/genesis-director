@@ -571,7 +571,7 @@ export default function StudioShell() {
         </div>
       </header>
 
-      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[240px_minmax(0,1fr)_360px]">
+      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[220px_minmax(0,1fr)_340px]">
         <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl xl:block">
           <div className="mb-8">
             <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
@@ -621,7 +621,7 @@ export default function StudioShell() {
           </div>
         </aside>
 
-        <section className="overflow-y-auto p-4 premium-scroll md:p-7">
+        <section className="overflow-y-auto p-4 premium-scroll md:p-6 xl:p-8">
           <AnimatePresence mode="wait">
             {step === "start" && (
               <FlowPanel

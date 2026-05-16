@@ -625,15 +625,8 @@ export default function StudioShell() {
                 }
                 icon={Sparkles}
               >
-                {/* ===== Cinematic ambience: drifting orbs, scanlines, hairline crosshairs ===== */}
-                <div aria-hidden className="pointer-events-none absolute -left-32 top-0 h-[640px] w-[640px] rounded-full opacity-60 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(212,100%,50%,0.20), transparent 65%)", animationDuration: "9s" }} />
-                <div aria-hidden className="pointer-events-none absolute -right-40 top-1/3 h-[520px] w-[520px] rounded-full opacity-55 blur-3xl animate-pulse" style={{ background: "radial-gradient(circle, hsla(200,100%,60%,0.14), transparent 70%)", animationDuration: "11s", animationDelay: "1.4s" }} />
-                <div aria-hidden className="pointer-events-none absolute left-1/3 bottom-0 h-[360px] w-[360px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, hsla(220,100%,70%,0.10), transparent 70%)" }} />
-                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, hsl(var(--accent)/0.4) 2px, hsl(var(--accent)/0.4) 3px)" }} />
-
-                {/* ===== Mode switcher — Text-to-Video is now first-class ===== */}
-                <div className="relative mb-8">
-                  <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 p-1 backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.4)]">
+                {/* ===== Mode switcher — editorial tabs ===== */}
+                <div className="relative mb-10 flex items-center gap-8 border-b border-border/40 pb-4">
                     {([
                       { id: "text", label: "Text", Icon: Wand2 },
                       { id: "image", label: "Image", Icon: ImageIcon },
@@ -654,18 +647,16 @@ export default function StudioShell() {
                             }
                           }}
                           className={cn(
-                            "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] transition-all",
-                            active
-                              ? "bg-foreground text-background shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.55)]"
-                              : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
+                            "relative inline-flex items-center gap-2 pb-2 text-[13px] font-medium transition-colors",
+                            active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
                           )}
                         >
-                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} />
-                          <span className={cn("font-medium", active ? "text-background" : "")}>{label}</span>
+                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} strokeWidth={1.5} />
+                          <span>{label}</span>
+                          {active && <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-accent" />}
                         </button>
                       );
                     })}
-                  </div>
                 </div>
 
                 <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">

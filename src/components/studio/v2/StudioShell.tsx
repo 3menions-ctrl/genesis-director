@@ -571,8 +571,8 @@ export default function StudioShell() {
         </div>
       </header>
 
-      <main className="relative z-10 grid h-[calc(100vh-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)_380px]">
-        <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl lg:block">
+      <main className="relative z-10 grid h-[calc(100vh-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[240px_minmax(0,1fr)_360px]">
+        <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl xl:block">
           <div className="mb-8">
             <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
             <h2 className="mt-2 font-display text-2xl italic leading-tight text-foreground">One continuous flow.</h2>

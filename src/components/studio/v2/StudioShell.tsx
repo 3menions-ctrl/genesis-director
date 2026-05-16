@@ -1779,6 +1779,7 @@ function StartHero({
         </div>
       </div>
     </motion.div>
+    <confirmDialog.Dialog />
   );
 }
 

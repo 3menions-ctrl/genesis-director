@@ -115,7 +115,7 @@ export function useEditorClips() {
           .from("movie_projects")
           .select("id, title, source_image_url")
           .eq("id", projectId)
-          .single(),
+          .maybeSingle(),
       ]);
 
       if (clipsResult.error) throw clipsResult.error;

@@ -6,9 +6,11 @@ import poster2 from '@/assets/hero/hero-poster-2.jpg';
 import poster3 from '@/assets/hero/hero-poster-3.jpg';
 import poster4 from '@/assets/hero/hero-poster-4.jpg';
 import poster5 from '@/assets/hero/hero-poster-5.jpg';
-import sceneA from '@/assets/scenes/cinematic-hero-preview.jpg';
-import sceneB from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
-import sceneC from '@/assets/scenes/minimal-embed-preview.jpg';
+// Distinct environment plates — avoid reusing the scene previews that
+// appear in the EnterStudioEpic frame-chain showcase.
+import sceneA from '@/assets/environments/corporate-boardroom.jpg';
+import sceneB from '@/assets/environments/golden-hour-studio.jpg';
+import sceneC from '@/assets/environments/la-canyon-sunset.jpg';
 
 /**
  * BeforeAfterGallery

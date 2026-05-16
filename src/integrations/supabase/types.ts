@@ -7582,6 +7582,15 @@ export type Database = {
         | "admin_support_message"
         | "admin_inquiry"
         | "admin_signup"
+        | "admin_payment_failed"
+        | "admin_refund"
+        | "admin_dispute"
+        | "admin_high_value_purchase"
+        | "admin_stuck_job"
+        | "admin_first_video"
+        | "admin_account_deleted"
+        | "admin_abuse_signal"
+        | "admin_error_spike"
       org_role:
         | "owner"
         | "admin"
@@ -7762,6 +7771,15 @@ export const Constants = {
         "admin_support_message",
         "admin_inquiry",
         "admin_signup",
+        "admin_payment_failed",
+        "admin_refund",
+        "admin_dispute",
+        "admin_high_value_purchase",
+        "admin_stuck_job",
+        "admin_first_video",
+        "admin_account_deleted",
+        "admin_abuse_signal",
+        "admin_error_spike",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

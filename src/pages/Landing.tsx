@@ -13,6 +13,11 @@ import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import {
+  LandingDiagnosticsProvider,
+  TrackedSection,
+  useGate,
+} from '@/components/landing/LandingDiagnostics';
 // Heavy below-the-fold sections — lazy split to keep first paint snappy
 const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegments').then(m => ({ default: m.AudienceSegments })));
 const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
@@ -120,6 +125,14 @@ const Chapter = ({
 };
 
 export default function Landing() {
+  return (
+    <LandingDiagnosticsProvider>
+      <LandingInner />
+    </LandingDiagnosticsProvider>
+  );
+}
+
+function LandingInner() {
   usePageMeta({ title: "Apex Studio — Cinematic AI video creation", description: "Generate Hollywood-quality video scenes from a single prompt. Avatars, environments, and dialogue, all unified." });
 
   const { user, loading: authLoading } = useAuth();
@@ -277,6 +290,12 @@ export default function Landing() {
   // the crossfade reveals an already-painted hero, never a blank flash.
   const showLoader = authLoading || !presentationReady;
 
+  // Report each loader gate to the diagnostics panel.
+  useGate('auth', !authLoading);
+  useGate('presentationReady', presentationReady, phaseLabel);
+  useGate('contentVisible', contentVisible);
+  useGate('deferredMount', deferredMount);
+
   return (
     <>
       <CinemaLoader
@@ -299,11 +318,9 @@ export default function Landing() {
       <HoppyImmersiveIntro />
 
       {/* Abstract Background */}
-      <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
-        <Suspense fallback={<BackgroundFallback />}>
-          <AbstractBackground className="fixed inset-0 z-0" />
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      <TrackedSection name="AbstractBackground" fallback={<BackgroundFallback />}>
+        <AbstractBackground className="fixed inset-0 z-0" />
+      </TrackedSection>
 
       {/* Ambient aurora — subtle blue glow that drifts across the page */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
@@ -324,11 +341,9 @@ export default function Landing() {
       {/* Immersive scroll-locked full-video moment — deferred until after
           first paint so it never competes with the hero render. */}
       {deferredMount && (
-        <ErrorBoundaryWrapper fallback={null}>
-          <Suspense fallback={null}>
-            <HoppyImmersiveScrollSection onGetStarted={handleStart} />
-          </Suspense>
-        </ErrorBoundaryWrapper>
+        <TrackedSection name="HoppyImmersiveScrollSection" fallback={null}>
+          <HoppyImmersiveScrollSection onGetStarted={handleStart} />
+        </TrackedSection>
       )}
 
       {/* Foreground content column — stacks above the fixed video layer */}
@@ -340,44 +355,44 @@ export default function Landing() {
 
       {/* For everyone — Personal · Business · Enterprise tracks */}
       <Chapter n="01" kicker="For Everyone" size="md">
-        <Suspense fallback={<SectionLoader />}>
+        <TrackedSection name="AudienceSegments" fallback={<SectionLoader />}>
           <AudienceSegments onStart={handleStart} />
-        </Suspense>
+        </TrackedSection>
       </Chapter>
       <Divider size="lg" />
 
       {/* Before / After — drag-to-compare brief vs. final film */}
       <Chapter n="02" kicker="Before / After">
-        <Suspense fallback={<SectionLoader />}><BeforeAfterGallery /></Suspense>
+        <TrackedSection name="BeforeAfterGallery" fallback={<SectionLoader />}><BeforeAfterGallery /></TrackedSection>
       </Chapter>
       <Divider size="lg" />
 
       {/* The Engine — generation engine reveal (the "wow") */}
       <Chapter n="03" kicker="The Engine" size="lg">
-        <Suspense fallback={<SectionLoader />}>
+        <TrackedSection name="SeedanceSection" fallback={<SectionLoader />}>
           <SeedanceSection onCta={handleStart} />
-        </Suspense>
+        </TrackedSection>
       </Chapter>
       <Divider size="lg" />
 
       {/* Frame Chaining — five-second clips chain into long-form films */}
       <Chapter n="3.5" kicker="Frame Chaining" size="lg">
-        <Suspense fallback={<SectionLoader />}>
+        <TrackedSection name="FrameChainingSection" fallback={<SectionLoader />}>
           <FrameChainingSection />
-        </Suspense>
+        </TrackedSection>
       </Chapter>
       <Divider size="lg" />
 
       {/* The Workflow — prompt → film, in plain language */}
       <Chapter n="04" kicker="The Workflow">
-        <Suspense fallback={<SectionLoader />}><B2BWorkflow /></Suspense>
+        <TrackedSection name="B2BWorkflow" fallback={<SectionLoader />}><B2BWorkflow /></TrackedSection>
       </Chapter>
       <Divider size="lg" />
 
       {/* Enter the Studio — gateway to the full capability tour */}
-      <Suspense fallback={<SectionLoader />}>
+      <TrackedSection name="EnterStudioEpic" fallback={<SectionLoader />}>
         <EnterStudioEpic onStart={handleStart} onEnter={() => navigate('/studio')} />
-      </Suspense>
+      </TrackedSection>
 
       <Divider size="lg" />
 
@@ -439,30 +454,26 @@ export default function Landing() {
 
       {/* FAQ */}
       <div id="faq">
-        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
-          <Suspense fallback={<SectionLoader />}>
-            <Spaced><FAQSection /></Spaced>
-          </Suspense>
-        </ErrorBoundaryWrapper>
+        <TrackedSection name="FAQSection" fallback={<SectionLoader />}>
+          <Spaced><FAQSection /></Spaced>
+        </TrackedSection>
       </div>
 
       <Divider size="lg" />
 
       {/* Final CTA */}
       <Spaced size="lg">
-        <Suspense fallback={<SectionLoader />}>
+        <TrackedSection name="B2BFinalCTA" fallback={<SectionLoader />}>
           <B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} />
-        </Suspense>
+        </TrackedSection>
       </Spaced>
 
       <Divider size="md" />
 
       {/* Footer */}
-      <ErrorBoundaryWrapper fallback={<footer className="py-12 bg-black" />}>
-        <Suspense fallback={<SectionLoader />}>
-          <Footer />
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      <TrackedSection name="Footer" fallback={<SectionLoader />}>
+        <Footer />
+      </TrackedSection>
       </div>
 
       {/* Category chooser — appears after any "Get started" CTA */}

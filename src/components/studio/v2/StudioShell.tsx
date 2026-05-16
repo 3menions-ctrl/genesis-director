@@ -967,7 +967,8 @@ export default function StudioShell() {
           </AnimatePresence>
         </section>
 
-        <aside className="hidden border-l border-border bg-background/50 p-5 backdrop-blur-xl lg:block">
+        <aside className="relative hidden border-l border-white/[0.05] bg-[linear-gradient(180deg,hsla(220,16%,4%,0.7),hsla(220,14%,2%,0.85))] p-5 backdrop-blur-2xl lg:block">
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-accent/30 to-transparent" />
           <StagePreview scene={activeScene} draft={draft} renderedCount={renderedCount} totalCost={totalCost} onRender={() => activeScene && generateScene(activeScene.id)} onOpenEditor={openInEditor} />
         </aside>
       </main>

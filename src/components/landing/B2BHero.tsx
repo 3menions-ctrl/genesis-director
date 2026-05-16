@@ -27,10 +27,10 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           y: [0, -30, 20, 0],
         }}
         transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-        className="pointer-events-none absolute -top-40 left-1/4 -translate-x-1/2 w-[700px] h-[700px] opacity-25"
+        className="pointer-events-none absolute -top-40 left-1/4 -translate-x-1/2 w-[700px] h-[700px] opacity-70"
         style={{
           background:
-            'radial-gradient(circle, hsla(212, 100%, 50%, 0.18), transparent 65%)',
+            'radial-gradient(circle, hsla(212, 100%, 50%, 0.22), transparent 65%)',
           filter: 'blur(40px)',
         }}
       />
@@ -40,10 +40,10 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           y: [0, 40, -20, 0],
         }}
         transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="pointer-events-none absolute top-20 right-1/4 translate-x-1/2 w-[500px] h-[500px] opacity-20"
+        className="pointer-events-none absolute top-20 right-1/4 translate-x-1/2 w-[500px] h-[500px] opacity-60"
         style={{
           background:
-            'radial-gradient(circle, hsla(200, 100%, 60%, 0.12), transparent 70%)',
+            'radial-gradient(circle, hsla(200, 100%, 60%, 0.14), transparent 70%)',
           filter: 'blur(50px)',
         }}
       />

@@ -1083,16 +1083,16 @@ export default function StudioShell() {
 function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: React.ReactNode; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} className="relative">
-      <div className="relative mb-10 flex items-end justify-between gap-6 border-b border-border/40 pb-8">
+      <div className="relative mb-6 flex items-end justify-between gap-6 border-b border-border/40 pb-5">
         <div className="flex-1">
-          <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
+          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
             </span>
             <Icon className="h-3 w-3" /> {eyebrow}
           </div>
-          <h1 className="max-w-5xl font-display text-[44px] font-light leading-[0.98] tracking-[-0.025em] text-foreground md:text-[68px] lg:text-[80px]">{title}</h1>
+          <h1 className="max-w-3xl font-display text-[28px] font-light leading-[1.02] tracking-[-0.02em] text-foreground sm:text-[34px] md:text-[40px] xl:text-[52px]">{title}</h1>
         </div>
         <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60 lg:flex">
           <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>

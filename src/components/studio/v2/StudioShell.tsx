@@ -493,7 +493,7 @@ export default function StudioShell() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-background text-foreground">
+    <div className="relative h-[calc(100dvh-56px)] overflow-hidden bg-background text-foreground">
       {/* Cinematic background — vignette + accent halos + film grain */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--accent)/0.18),transparent_60%)]" />

@@ -781,8 +781,11 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 {/* Marquee excludes the 8 avatars used as solo spotlight tiles
                     elsewhere on the page — so no cast member appears twice. */}
                 {(() => {
-                  const SPOTLIGHT_INDICES = new Set([0, 2, 7, 10, 14, 18, 20, 25]);
-                  const pool = AVATARS.filter((_, i) => !SPOTLIGHT_INDICES.has(i));
+                  // Reserved indices: spotlight tiles + left column + casting hall.
+                  const RESERVED = new Set([
+                    0, 2, 4, 6, 7, 10, 12, 14, 17, 18, 20, 21, 23, 25,
+                  ]);
+                  const pool = AVATARS.filter((_, i) => !RESERVED.has(i));
                   return [...pool, ...pool];
                 })().map((a, i) => (
                   <div

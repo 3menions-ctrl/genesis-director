@@ -188,6 +188,11 @@ export default function StudioShell() {
   const confirmDialog = useConfirmDialog();
   const navigate = useNavigate();
 
+  // Sequential gate + simulator need to read the FRESHEST scene state without
+  // re-binding renderAll on every patch. A draftRef mirrors the latest draft.
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
   const activeScene = useMemo(
     () => draft.scenes.find(s => s.id === draft.activeSceneId) || draft.scenes[0],
     [draft.scenes, draft.activeSceneId],

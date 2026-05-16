@@ -168,7 +168,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 }
 
 export default function StudioShell() {
-  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, ensureProjectId } = useStudioDraft();
+  const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
   const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
   const { data: cinemaEntitlement } = useCinemaEntitlement();

@@ -120,7 +120,7 @@ export function SeedanceAnimateDialog({ open, onOpenChange, mascot }: Props) {
           <aside
             className="relative hidden md:flex flex-col justify-between overflow-hidden p-8 border-r border-foreground/[0.06]"
             style={{
-              background: mascot
+              background: mascot?.palette
                 ? `radial-gradient(120% 80% at 20% 10%, ${mascot.palette[0]}33, transparent 60%), radial-gradient(120% 80% at 80% 90%, ${mascot.palette[1]}33, transparent 60%), hsl(220 14% 3%)`
                 : 'hsl(220 14% 3%)',
             }}
@@ -143,13 +143,15 @@ export function SeedanceAnimateDialog({ open, onOpenChange, mascot }: Props) {
             {mascot && (
               <div className="relative z-10 flex flex-col items-center text-center my-6">
                 <div className="relative">
-                  <div
-                    aria-hidden
-                    className="absolute -inset-10 rounded-full blur-3xl opacity-70"
-                    style={{
-                      background: `radial-gradient(closest-side, ${mascot.palette[0]}aa, transparent 70%)`,
-                    }}
-                  />
+                  {mascot.palette && (
+                    <div
+                      aria-hidden
+                      className="absolute -inset-10 rounded-full blur-3xl opacity-70"
+                      style={{
+                        background: `radial-gradient(closest-side, ${mascot.palette[0]}aa, transparent 70%)`,
+                      }}
+                    />
+                  )}
                   <img
                     src={mascot.src}
                     alt={mascot.name}

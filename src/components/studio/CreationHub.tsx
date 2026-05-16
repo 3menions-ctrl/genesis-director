@@ -168,6 +168,8 @@ interface CreationHubProps {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
+    identityBible?: unknown;
+    characterLock?: unknown;
   }) => void;
   onReady?: () => void;
   className?: string;
@@ -497,14 +499,29 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     };
 
     if (isBreakoutTemplate && appliedSettings?.startImageUrl && selectedAvatar) {
+      const avatarRef = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
       (creationConfig as any).isBreakout = true;
       (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
       (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
-      (creationConfig as any).imageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
-      (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
+      (creationConfig as any).imageUrl = avatarRef;
+      (creationConfig as any).avatarImageUrl = avatarRef;
       (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
       (creationConfig as any).avatarTemplateId = selectedAvatar.id;
       (creationConfig as any).avatarName = selectedAvatar.name;
+      (creationConfig as any).identityBible = selectedAvatar.character_bible;
+      (creationConfig as any).characterLock = {
+        name: selectedAvatar.name,
+        description: [
+          selectedAvatar.description,
+          selectedAvatar.personality ? `Personality: ${selectedAvatar.personality}` : null,
+          selectedAvatar.style ? `Style: ${selectedAvatar.style}` : null,
+          selectedAvatar.character_bible?.hair_description ? `Hair: ${selectedAvatar.character_bible.hair_description}` : null,
+          selectedAvatar.character_bible?.clothing_description ? `Wardrobe: ${selectedAvatar.character_bible.clothing_description}` : null,
+          selectedAvatar.character_bible?.body_type ? `Body: ${selectedAvatar.character_bible.body_type}` : null,
+          selectedAvatar.character_bible?.distinguishing_features?.length ? `Distinctive features: ${selectedAvatar.character_bible.distinguishing_features.join(', ')}` : null,
+        ].filter(Boolean).join(' | '),
+        referenceImageUrl: avatarRef,
+      };
     } else if (selectedAvatar && supportsTemplateAvatar) {
       // Optional avatar attached to a learning / environment-driven template.
       // Use avatar face as the start image so Kling locks identity for every clip.

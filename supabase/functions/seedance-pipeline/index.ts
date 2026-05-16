@@ -679,11 +679,26 @@ serve(async (req) => {
     const dispatchResults = await Promise.allSettled(
       shots.map(async (shot, i) => {
         const imageUrl = sceneImages[i] ?? null;
-        // Seedance unique: use NEXT scene image as last_frame_image for inter-scene continuity
-        const lastFrameImageUrl = sceneImages[i + 1] ?? null;
+        // Seedance unique: use NEXT scene image as last_frame_image for inter-scene continuity.
+        // When a reference image locks identity (avatar/mascot/breakout), don't set
+        // last_frame_image — would collapse motion to zero (same start+end frame).
+        const nextImg = sceneImages[i + 1] ?? null;
+        const lastFrameImageUrl =
+          nextImg && nextImg !== imageUrl ? nextImg : null;
+
+        // Inject identity / template anchors into the prompt
+        const enrichedPrompt = injectIdentity(
+          shot.description ?? shot.title ?? `Scene ${i + 1}`,
+          {
+            identityBible: request.identityBible,
+            characterLock: request.characterLock,
+            referenceImageAnalysis: request.referenceImageAnalysis,
+            templateCharacters: request.templateCharacters,
+          },
+        );
 
         const { predictionId } = await dispatchSeedanceClip({
-          prompt: shot.description ?? shot.title ?? `Scene ${i + 1}`,
+          prompt: enrichedPrompt,
           imageUrl,
           lastFrameImageUrl,
           durationSeconds: shot.durationSeconds ?? clipDuration,

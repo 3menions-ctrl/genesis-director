@@ -4,6 +4,7 @@ import { persistVideoToStorage } from "../_shared/video-persistence.ts";
 import {
   isValidImageUrl,
 } from "../_shared/pipeline-guard-rails.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,14 @@ const MAX_CHAIN_DEPTH = 30; // Max self-chains (30 × 50s = 25 min max total)
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  // Trust boundary: this is an internal poller chained by other edge
+  // functions (hollywood-pipeline / generate-single-clip / itself).
+  // Only the service-role key is permitted.
+  if (!requireServiceRole(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

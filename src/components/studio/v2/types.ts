@@ -34,6 +34,13 @@ export interface SceneDraft {
   predictionId?: string;
   costEstimate?: number;
   /**
+   * When this scene is gated behind a predecessor (chain continuity), we
+   * stash the predecessor sceneId here so the UI can surface "waiting on
+   * scene N" and so the gate watcher can resume automatically when the
+   * predecessor reaches a terminal state.
+   */
+  waitingOnSceneId?: string;
+  /**
    * Continuity link to the previous scene. When `true` (default), the renderer
    * inherits the previous scene's last frame as this scene's start image and
    * carries character/identity locks forward. When `false`, this scene is

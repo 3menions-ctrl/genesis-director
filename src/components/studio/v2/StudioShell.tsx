@@ -172,7 +172,14 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 export default function StudioShell() {
   const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
-  const { generateScene, generateSceneFromDraft } = useScenePipeline(draft, patchScene, ensureProjectId);
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  const { generateScene, generateSceneFromDraft } = useScenePipeline(
+    draft,
+    patchScene,
+    ensureProjectId,
+    () => draftRef.current,
+  );
   const { data: cinemaEntitlement } = useCinemaEntitlement();
   const hasCinema = !!cinemaEntitlement?.hasEntitlement;
   const [drawer, setDrawer] = useState<DrawerKey>(null);
@@ -190,8 +197,7 @@ export default function StudioShell() {
 
   // Sequential gate + simulator need to read the FRESHEST scene state without
   // re-binding renderAll on every patch. A draftRef mirrors the latest draft.
-  const draftRef = useRef(draft);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
+  // (draftRef declared above where the pipeline hook is constructed.)
 
   const activeScene = useMemo(
     () => draft.scenes.find(s => s.id === draft.activeSceneId) || draft.scenes[0],
@@ -1073,12 +1079,12 @@ function SceneEditor({ scene, cast, active, onSelect, onPatch, onRemove, onRende
     <div onClick={onSelect} className={cn("rounded-2xl border bg-card/55 p-4 transition-all", active ? "border-accent/60 shadow-[0_0_24px_hsl(var(--accent)/0.14)]" : "border-border hover:border-accent/25")}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">Scene {String(scene.index + 1).padStart(2, "0")}</span>
-        <StatusPill status={scene.status} />
+        <StatusPill status={scene.status} waiting={!!scene.waitingOnSceneId} />
         <div className="flex-1" />
         <button onClick={(e) => { e.stopPropagation(); onPickEngine(); }} className="h-8 rounded-lg border border-border bg-background/50 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground">{ENGINES[scene.engine || "kling-v3"].shortLabel}</button>
         <button onClick={(e) => { e.stopPropagation(); onRender(); }} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-accent-foreground hover:bg-accent/90">
-          {scene.status === "generating" ? <Loader2 className="h-3 w-3 animate-spin" /> : scene.clipUrl ? <RefreshCw className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-          {scene.clipUrl ? "Regen" : "Render"}
+          {scene.status === "generating" || scene.waitingOnSceneId ? <Loader2 className="h-3 w-3 animate-spin" /> : scene.clipUrl ? <RefreshCw className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+          {scene.waitingOnSceneId ? "Waiting" : scene.clipUrl ? "Regen" : "Render"}
         </button>
         <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground" aria-label="Remove scene"><Trash2 className="h-4 w-4" /></button>
       </div>
@@ -1113,7 +1119,7 @@ function MiniSelect({ value, options, suffix, onChange }: { value: string; optio
   );
 }
 
-function StatusPill({ status }: { status: SceneDraft["status"] }) {
+function StatusPill({ status, waiting }: { status: SceneDraft["status"]; waiting?: boolean }) {
   const styles: Record<SceneDraft["status"], string> = {
     idle: "bg-muted text-muted-foreground",
     queued: "bg-warning/15 text-warning",
@@ -1121,7 +1127,9 @@ function StatusPill({ status }: { status: SceneDraft["status"] }) {
     done: "bg-success/15 text-success",
     failed: "bg-destructive/15 text-destructive",
   };
-  return <span className={cn("rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]", styles[status])}>{status}</span>;
+  const label = waiting ? "waiting" : status;
+  const cls = waiting ? "bg-warning/15 text-warning" : styles[status];
+  return <span className={cn("rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]", cls)}>{label}</span>;
 }
 
 function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; active: boolean; onSelect: () => void; onRender: () => void }) {
@@ -1132,7 +1140,7 @@ function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; ac
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">{String(scene.index + 1).padStart(2, "0")}</span>
-          <StatusPill status={scene.status} />
+          <StatusPill status={scene.status} waiting={!!scene.waitingOnSceneId} />
         </div>
       </button>
       <div className="p-4">

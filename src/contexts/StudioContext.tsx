@@ -351,9 +351,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // Use edge function for complete deletion (storage + clips + project)
+      // Use edge function for complete deletion (storage + clips + project).
+      // userId is derived server-side from the JWT (Vertical 1 contract);
+      // do NOT pass it from the client — body identity is ignored / 403'd.
       const { data, error } = await supabase.functions.invoke('delete-project', {
-        body: { projectId, userId: currentSession.user.id },
+        body: { projectId },
       });
 
       if (error || !data?.success) {

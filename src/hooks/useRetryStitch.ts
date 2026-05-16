@@ -40,7 +40,6 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
       const { data, error: stitchError } = await supabase.functions.invoke('simple-stitch', {
         body: {
           projectId,
-          userId,
         },
       });
 

@@ -1,7 +1,5 @@
-// Shared Stripe webhook handler used by both:
-//   - supabase/functions/stripe-webhook   (legacy custom endpoint)
-//   - supabase/functions/payments-webhook (Lovable-managed endpoint)
-// Verifies signatures against any of the configured webhook secrets and
+// Shared Stripe webhook handler for the Lovable-managed `payments-webhook`
+// endpoint. Verifies signatures against the configured webhook secret and
 // dispatches credit purchases + subscription lifecycle events.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { verifyStripeWebhook, type StripeEnv } from "./stripe.ts";
@@ -19,12 +17,11 @@ function getSupabase() {
   );
 }
 
-function pickWebhookSecrets(env: StripeEnv): string[] {
-  const specific = env === "sandbox"
+function pickWebhookSecret(env: StripeEnv): string | null {
+  const secret = env === "sandbox"
     ? Deno.env.get("PAYMENTS_SANDBOX_WEBHOOK_SECRET")
     : Deno.env.get("PAYMENTS_LIVE_WEBHOOK_SECRET");
-  const legacy = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-  return [specific, legacy].filter((s): s is string => !!s && s.length > 0);
+  return secret && secret.length > 0 ? secret : null;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -217,30 +214,19 @@ export async function handleStripeWebhookRequest(
     const rawEnv = url.searchParams.get("env");
     const env: StripeEnv = rawEnv === "sandbox" || rawEnv === "live" ? rawEnv : defaultEnv;
 
-    const secrets = pickWebhookSecrets(env);
-    if (secrets.length === 0) {
-      log("ERROR: no webhook secrets configured", { env });
+    const secret = pickWebhookSecret(env);
+    if (!secret) {
+      log("ERROR: no webhook secret configured", { env });
       return new Response(JSON.stringify({ error: "webhook not configured" }), { status: 500 });
     }
 
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
-    let event: { type: string; data: { object: any }; id: string } | null = null;
-    let lastErr: unknown = null;
-    for (const secret of secrets) {
-      try {
-        event = await verifyStripeWebhook(body, sig, secret);
-        break;
-      } catch (err) {
-        lastErr = err;
-      }
-    }
-    if (!event) {
-      log("ERROR: signature verification failed against all configured secrets", {
-        error: String(lastErr),
-        secretsTried: secrets.length,
-        env,
-      });
+    let event: { type: string; data: { object: any }; id: string };
+    try {
+      event = await verifyStripeWebhook(body, sig, secret);
+    } catch (err) {
+      log("ERROR: signature verification failed", { error: String(err), env });
       return new Response(JSON.stringify({ error: "invalid signature" }), { status: 401 });
     }
 

@@ -11,7 +11,8 @@ function Skeleton({
   shimmer = true,
   ...props 
 }: SkeletonProps) {
-  const baseClasses = "relative overflow-hidden bg-muted";
+  // Surface-tinted base so skeletons sit on dark surfaces without "glow"
+  const baseClasses = "relative overflow-hidden bg-white/[0.04] ring-1 ring-inset ring-white/[0.04]";
   
   const variantClasses = {
     default: "rounded-md",
@@ -21,8 +22,9 @@ function Skeleton({
     card: "rounded-2xl",
   };
 
+  // Brand-tinted shimmer — subtle, premium, never flashy
   const shimmerClasses = shimmer 
-    ? "after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent after:animate-[shimmer_2s_infinite]"
+    ? "after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-white/[0.07] after:to-transparent after:animate-[shimmer_2.2s_cubic-bezier(0.4,0,0.2,1)_infinite] after:will-change-transform"
     : "animate-pulse";
 
   return (

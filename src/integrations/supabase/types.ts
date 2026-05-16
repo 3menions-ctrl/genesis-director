@@ -7149,6 +7149,10 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      dispatch_admin_alert: {
+        Args: { _data: Json; _event_id: string; _kind: string }
+        Returns: undefined
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number

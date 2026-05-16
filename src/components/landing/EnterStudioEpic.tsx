@@ -84,6 +84,18 @@ import featStyle from '@/assets/features/style-transfer-premium.jpg';
 import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
+// Transparent-background 5s seedance loops, indexed to MASCOTS above.
+const MASCOT_LOOPS = [
+  '/mascots-anim/cereal-astronaut-bear.webm',
+  '/mascots-anim/indie-fox-rogue.webm',
+  '/mascots-anim/cereal-tiger.webm',
+  '/mascots-anim/indie-knight.webm',
+  '/mascots-anim/cereal-wizard-rabbit.webm',
+  '/mascots-anim/indie-robot.webm',
+  '/mascots-anim/food-truck-burger.webm',
+  '/mascots-anim/food-truck-icecream.webm',
+  '/mascots-anim/food-truck-taco.webm',
+];
 const AVATARS = [
   aAaliya, aAelindra, aAmina, aArctic, aAtlas, aBella, aBlitz, aCaptain,
   aChibi, aCoral, aCosmo, aDrake, aEmber, aFelix, aFrost, aGuardian,
@@ -121,6 +133,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
       const angle = (i / MASCOTS.length) * Math.PI * 2 - Math.PI / 2;
       return {
         src,
+        loop: MASCOT_LOOPS[i],
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
         delay: i * 0.12,
@@ -741,7 +754,17 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                     animation: 'ese-orbit-ccw 38s linear infinite',
                   }}
                 >
-                  <img src={m.src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  <video
+                    src={m.loop}
+                    poster={m.src}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-hidden
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </motion.div>
             ))}

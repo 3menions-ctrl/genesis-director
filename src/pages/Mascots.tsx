@@ -25,20 +25,21 @@ interface Mascot {
   tagline: string;
   palette: [string, string];
   src: string;
+  loop: string;
 }
 
 const MASCOTS: Mascot[] = [
-  { id: 'taco',   name: 'El Capitán', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Sunbaked. Spatula-armed. Sells out by noon.',  palette: ['hsl(38,95%,55%)', 'hsl(8,85%,55%)'],   src: foodTaco },
-  { id: 'burger', name: 'Patty Knox', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Wears the bandana. Rings the bell. Always running.',  palette: ['hsl(20,90%,55%)','hsl(0,75%,50%)'],    src: foodBurger },
-  { id: 'cone',   name: 'Mintsy',     pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Pastel diplomat of the Sunday queue.',                  palette: ['hsl(150,55%,75%)','hsl(340,75%,80%)'], src: foodIce },
+  { id: 'taco',   name: 'El Capitán', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Sunbaked. Spatula-armed. Sells out by noon.',  palette: ['hsl(38,95%,55%)', 'hsl(8,85%,55%)'],   src: foodTaco,    loop: '/mascots-anim/food-truck-taco.webm' },
+  { id: 'burger', name: 'Patty Knox', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Wears the bandana. Rings the bell. Always running.',  palette: ['hsl(20,90%,55%)','hsl(0,75%,50%)'],    src: foodBurger,  loop: '/mascots-anim/food-truck-burger.webm' },
+  { id: 'cone',   name: 'Mintsy',     pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Pastel diplomat of the Sunday queue.',                  palette: ['hsl(150,55%,75%)','hsl(340,75%,80%)'], src: foodIce,     loop: '/mascots-anim/food-truck-icecream.webm' },
 
-  { id: 'tiger',  name: 'Coach Striker', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Saturday-morning energy in a track jacket.',  palette: ['hsl(48,100%,55%)','hsl(0,80%,55%)'],   src: cerealTiger },
-  { id: 'rabbit', name: 'Hexley the Wise', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Star wand. Cape. Endless bowl of magic.',     palette: ['hsl(285,55%,65%)','hsl(330,75%,80%)'], src: cerealRabbit },
-  { id: 'bear',   name: 'Captain Astro Bear', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Helmet on. Thumb up. Cereal in zero-G.',       palette: ['hsl(22,95%,55%)','hsl(180,40%,75%)'], src: cerealBear },
+  { id: 'tiger',  name: 'Coach Striker', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Saturday-morning energy in a track jacket.',  palette: ['hsl(48,100%,55%)','hsl(0,80%,55%)'],   src: cerealTiger,  loop: '/mascots-anim/cereal-tiger.webm' },
+  { id: 'rabbit', name: 'Hexley the Wise', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Star wand. Cape. Endless bowl of magic.',     palette: ['hsl(285,55%,65%)','hsl(330,75%,80%)'], src: cerealRabbit, loop: '/mascots-anim/cereal-wizard-rabbit.webm' },
+  { id: 'bear',   name: 'Captain Astro Bear', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Helmet on. Thumb up. Cereal in zero-G.',       palette: ['hsl(22,95%,55%)','hsl(180,40%,75%)'], src: cerealBear,   loop: '/mascots-anim/cereal-astronaut-bear.webm' },
 
-  { id: 'knight', name: 'Aralt the Bold', pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Gilded helm. Glacier blade. Tutorial-boss energy.', palette: ['hsl(180,40%,30%)','hsl(45,90%,55%)'], src: indieKnight },
-  { id: 'fox',    name: 'Vesper Six',     pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Hooded. Twin daggers. Glows in the dark.',           palette: ['hsl(280,55%,30%)','hsl(320,95%,65%)'], src: indieFox },
-  { id: 'robot',  name: 'Ko-12',          pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'One blue eye. Three thrusters. Best companion AI.',   palette: ['hsl(215,15%,40%)','hsl(195,95%,60%)'], src: indieRobot },
+  { id: 'knight', name: 'Aralt the Bold', pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Gilded helm. Glacier blade. Tutorial-boss energy.', palette: ['hsl(180,40%,30%)','hsl(45,90%,55%)'], src: indieKnight, loop: '/mascots-anim/indie-knight.webm' },
+  { id: 'fox',    name: 'Vesper Six',     pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Hooded. Twin daggers. Glows in the dark.',           palette: ['hsl(280,55%,30%)','hsl(320,95%,65%)'], src: indieFox,    loop: '/mascots-anim/indie-fox-rogue.webm' },
+  { id: 'robot',  name: 'Ko-12',          pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'One blue eye. Three thrusters. Best companion AI.',   palette: ['hsl(215,15%,40%)','hsl(195,95%,60%)'], src: indieRobot,  loop: '/mascots-anim/indie-robot.webm' },
 ];
 
 const PACK_FILTERS = [
@@ -109,12 +110,15 @@ export default function Mascots() {
             {/* Stage — square aspect with a subtle inner ring */}
             <div className="relative aspect-square overflow-hidden">
               <div className="absolute inset-4 rounded-2xl border border-foreground/[0.06]" />
-              <img
-                src={m.src}
-                alt={`${m.name}, ${m.packLabel} mascot`}
-                width={1024}
-                height={1024}
-                loading="lazy"
+              <video
+                src={m.loop}
+                poster={m.src}
+                aria-label={`${m.name}, ${m.packLabel} mascot animated loop`}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
                 className="relative z-10 w-full h-full object-contain p-8 transition-transform duration-700 ease-out group-hover:scale-[1.04] group-hover:-translate-y-1"
               />
             </div>

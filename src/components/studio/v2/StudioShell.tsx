@@ -681,20 +681,20 @@ export default function StudioShell() {
                 </div>
 
                 <div className="space-y-3">
-                  {draft.scenes.map(scene => (
-                    <SceneEditor
-                      key={scene.id}
-                      scene={scene}
+                  {draft.scenes.length > 0 ? (
+                    <ScriptBuilder
+                      scenes={draft.scenes}
                       cast={draft.cast}
-                      active={activeScene?.id === scene.id}
-                      onSelect={() => setActive(scene.id)}
-                      onPatch={(patch) => patchScene(scene.id, patch)}
-                      onRemove={() => removeScene(scene.id)}
-                      onRender={() => generateScene(scene.id)}
-                      onPickEngine={() => setDrawer("engines")}
+                      activeId={activeScene?.id}
+                      onSelect={setActive}
+                      onPatch={patchScene}
+                      onRemove={removeScene}
+                      onRender={generateScene}
+                      onAutoAssign={(assignments) => {
+                        assignments.forEach(a => patchScene(a.id, { speakerId: a.speakerId }));
+                      }}
                     />
-                  ))}
-                  {!draft.scenes.length && (
+                  ) : (
                     <button onClick={() => runAutoScript()} disabled={!canGenerateScript || autoBusy} className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/35 p-8 text-center transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40">
                       {autoBusy ? <Loader2 className="mb-3 h-8 w-8 animate-spin text-accent" /> : <Wand2 className="mb-3 h-8 w-8 text-accent" />}
                       <div className="text-lg font-medium text-foreground">Generate the full script</div>

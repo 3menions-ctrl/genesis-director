@@ -202,5 +202,5 @@ export function useStudioDraft() {
     return row.id;
   }, [draft.projectId, draft.defaults.engine, draft.defaults.aspect, draft.brief.title, draft.brief.logline, draft.brief.refImageUrl, draft.cast.length, update]);
 
-  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, ensureProjectId };
+  return { draft, setDraft: update, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId };
 }

@@ -23,6 +23,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  RotateCcw,
   Send,
   Sparkles,
   Timer,

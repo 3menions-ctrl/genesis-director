@@ -1008,6 +1008,49 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               </div>
             </motion.div>
 
+            {/* Engine Toggle — Kling V3 (native audio) vs Seedance 2 (motion-first) */}
+            {generationStep !== 'complete' && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="rounded-xl border border-white/10 bg-white/[0.02] p-1 grid grid-cols-2 gap-1"
+                role="radiogroup"
+                aria-label="Video engine"
+              >
+                {([
+                  { id: 'kling' as const, label: 'Kling V3', sub: 'Native audio' },
+                  { id: 'seedance' as const, label: 'Seedance 2', sub: 'Motion-first' },
+                ]).map((opt) => {
+                  const active = videoEngine === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={isGenerating}
+                      onClick={() => setVideoEngine(opt.id)}
+                      className={cn(
+                        'flex flex-col items-start px-3 py-2 rounded-lg transition-all text-left',
+                        active
+                          ? 'bg-primary/15 ring-1 ring-primary/40 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.5)]'
+                          : 'hover:bg-white/[0.04] text-muted-foreground',
+                        isGenerating && 'opacity-50 cursor-not-allowed',
+                      )}
+                    >
+                      <span className={cn('text-xs font-medium', active ? 'text-foreground' : 'text-foreground/80')}>
+                        {opt.label}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
+                        {opt.sub}
+                      </span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+
             {/* Generate Button */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               {generationStep === 'complete' ? (

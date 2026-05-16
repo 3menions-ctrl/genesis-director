@@ -266,18 +266,25 @@ export function AppShell({ children }: AppShellProps) {
             </button>
           </div>
 
-          {/* Section label */}
-          {!collapsed && (
-            <div className="px-5 mb-2 text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25">
-              Workspace
-            </div>
-          )}
-
-          {/* Nav */}
+          {/* Nav — grouped, editorial */}
           <nav className="flex-1 overflow-y-auto px-3 pb-3 scrollbar-hide">
-            <ul className="space-y-1">
-              {PRIMARY_NAV.map((item) => {
-                const active = isItemActive(item);
+            {NAV_GROUPS.map((group, gi) => (
+              <div key={group.label} className={cn(gi === 0 ? '' : 'mt-5')}>
+                {!collapsed ? (
+                  <div className="px-2 mb-1.5 flex items-center gap-2">
+                    <span className="text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25">
+                      {group.label}
+                    </span>
+                    <span aria-hidden className="flex-1 h-px bg-gradient-to-r from-white/[0.05] to-transparent" />
+                  </div>
+                ) : (
+                  gi > 0 && (
+                    <div aria-hidden className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+                  )
+                )}
+                <ul className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = isItemActive(item);
                 const Icon = item.icon;
                 const hue = item.hue;
                 const tint = (a: number) => `hsla(${hue}, 90%, 62%, ${a})`;
@@ -350,8 +357,10 @@ export function AppShell({ children }: AppShellProps) {
                     )}
                   </li>
                 );
-              })}
-            </ul>
+                  })}
+                </ul>
+              </div>
+            ))}
 
             {isAdmin && (
               <>

@@ -571,7 +571,7 @@ export default function StudioShell() {
         </div>
       </header>
 
-      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[240px_minmax(0,1fr)_360px]">
+      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[220px_minmax(0,1fr)_340px]">
         <aside className="hidden border-r border-border/50 bg-background/30 p-6 backdrop-blur-xl xl:block">
           <div className="mb-8">
             <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent/80">Production</div>
@@ -621,7 +621,7 @@ export default function StudioShell() {
           </div>
         </aside>
 
-        <section className="overflow-y-auto p-4 premium-scroll md:p-7">
+        <section className="overflow-y-auto p-4 premium-scroll md:p-6 xl:p-8">
           <AnimatePresence mode="wait">
             {step === "start" && (
               <FlowPanel
@@ -678,7 +678,7 @@ export default function StudioShell() {
                   </div>
                 </div>
 
-                <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-5">
                     {createMode === "image" && (
                       <>
@@ -695,19 +695,19 @@ export default function StudioShell() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
                     )}
 
-                    {/* ===== HERO COMPOSER — bigger and more art-directed than the landing ===== */}
-                    <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_40px_120px_-40px_hsl(var(--accent)/0.55)] backdrop-blur-2xl">
+                    {/* ===== HERO COMPOSER ===== */}
+                    <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-gradient-to-br from-card/80 via-card/30 to-background/30 shadow-[0_30px_90px_-40px_hsl(var(--accent)/0.5)] backdrop-blur-2xl">
                       {/* Top hairline + bottom hairline */}
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
 
                       {/* Cinema corner brackets */}
-                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-4 w-4 border-l-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-4 w-4 border-r-2 border-t-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-4 w-4 border-b-2 border-l-2 border-accent/70" />
-                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-4 w-4 border-b-2 border-r-2 border-accent/70" />
+                      <span className="pointer-events-none absolute left-2.5 top-2.5 z-10 h-3 w-3 border-l-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute right-2.5 top-2.5 z-10 h-3 w-3 border-r-2 border-t-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-2.5 left-2.5 z-10 h-3 w-3 border-b-2 border-l-2 border-accent/70" />
+                      <span className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 h-3 w-3 border-b-2 border-r-2 border-accent/70" />
 
-                      <div className="px-9 py-9">
+                      <div className="px-5 py-6 md:px-7 md:py-7">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
                             <span className="relative flex h-1.5 w-1.5">
@@ -728,18 +728,18 @@ export default function StudioShell() {
                               ? "Animate the uploaded frame — the camera slowly dollies forward as light bends through the scene."
                               : "Describe the spin you want on the template — tone, era, hero moment."
                           }
-                          rows={5}
-                          className="mt-6 w-full resize-none bg-transparent font-display text-[34px] italic leading-[1.15] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
+                          rows={4}
+                          className="mt-4 w-full resize-none bg-transparent font-display text-[20px] md:text-[24px] xl:text-[28px] italic leading-[1.2] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
                           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
 
-                        <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-border/40 pt-6">
+                        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-border/40 pt-4">
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                           <input
                             value={draft.brief.style}
                             onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
                             placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-9 min-w-[220px] flex-1 rounded-full border border-border/60 bg-background/40 px-4 text-sm text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
+                            className="h-8 min-w-[180px] flex-1 rounded-full border border-border/60 bg-background/40 px-3.5 text-[13px] text-foreground outline-none transition-colors focus:border-accent/60 focus:bg-background/70"
                           />
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                           <SegmentedSelect
@@ -751,7 +751,7 @@ export default function StudioShell() {
 
                         {/* Quick prompt seeds — only shown when prompt is empty */}
                         {!draft.brief.logline && (
-                          <div className="mt-6 flex flex-wrap items-center gap-2">
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
                             <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
                             {[
                               { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
@@ -850,7 +850,7 @@ export default function StudioShell() {
 
             {step === "cast" && (
               <FlowPanel key="cast" eyebrow="Step 2" title="Pick the avatars that will appear" icon={Users}>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
                   <div className="rounded-2xl border border-border bg-card/55 p-5">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -927,7 +927,7 @@ export default function StudioShell() {
 
             {step === "clips" && (
               <FlowPanel key="clips" eyebrow="Step 4" title="Watch clips, regenerate, then send to editor" icon={Clapperboard}>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
                   <div className="grid gap-3 md:grid-cols-2">
                     {draft.scenes.map(scene => (
                       <ClipCard key={scene.id} scene={scene} active={activeScene?.id === scene.id} onSelect={() => setActive(scene.id)} onRender={() => generateScene(scene.id)} />
@@ -1083,16 +1083,16 @@ export default function StudioShell() {
 function FlowPanel({ eyebrow, title, icon: Icon, children }: { eyebrow: string; title: React.ReactNode; icon: typeof Sparkles; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} className="relative">
-      <div className="relative mb-10 flex items-end justify-between gap-6 border-b border-border/40 pb-8">
+      <div className="relative mb-6 flex items-end justify-between gap-6 border-b border-border/40 pb-5">
         <div className="flex-1">
-          <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
+          <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.08] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent backdrop-blur">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
             </span>
             <Icon className="h-3 w-3" /> {eyebrow}
           </div>
-          <h1 className="max-w-5xl font-display text-[44px] font-light leading-[0.98] tracking-[-0.025em] text-foreground md:text-[68px] lg:text-[80px]">{title}</h1>
+          <h1 className="max-w-3xl font-display text-[28px] font-light leading-[1.02] tracking-[-0.02em] text-foreground sm:text-[34px] md:text-[40px] xl:text-[52px]">{title}</h1>
         </div>
         <div className="hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60 lg:flex">
           <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}</span>

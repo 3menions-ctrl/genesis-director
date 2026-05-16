@@ -586,55 +586,7 @@ export default function StudioShell() {
         </div>
       </header>
 
-      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[220px_minmax(0,1fr)_340px]">
-        <aside className="hidden border-r border-border/30 bg-transparent p-7 xl:block">
-          <div className="mb-10">
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">Production</div>
-            <h2 className="mt-2 font-display text-[19px] italic leading-snug text-foreground/95">One continuous flow.</h2>
-          </div>
-          <div className="relative">
-            <div className="absolute bottom-2 left-[11px] top-2 w-px bg-border/60" />
-            <div className="space-y-7">
-              {STEPS.map(({ id, label, icon: Icon }, index) => {
-                const active = step === id;
-                const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setStep(id)}
-                    className={cn(
-                      "group relative flex w-full items-center gap-4 text-left transition-opacity",
-                      active ? "opacity-100" : "opacity-50 hover:opacity-90",
-                    )}
-                  >
-                    <span className={cn(
-                      "relative z-10 flex h-6 w-6 items-center justify-center rounded-full transition-all",
-                      active ? "bg-accent shadow-[0_0_18px_hsl(var(--accent)/0.55)]"
-                        : "border border-border bg-background",
-                    )}>
-                      {active ? <span className="h-1.5 w-1.5 rounded-full bg-background" />
-                        : complete ? <Check className="h-3 w-3 text-foreground/70" />
-                        : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className={cn("font-mono text-[9px] uppercase tracking-[0.28em]", active ? "text-accent" : "text-muted-foreground/70")}>Phase {String(index + 1).padStart(2, "0")}</div>
-                      <div className={cn("mt-0.5 text-sm font-medium", active ? "text-foreground" : "text-muted-foreground")}>
-                        {label}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-16 opacity-50">
-            <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70">Now playing</div>
-            <div className="mt-2 truncate font-display text-[13px] italic text-foreground/90">{draft.brief.title || "Untitled film"}</div>
-            <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">{draft.scenes.length.toString().padStart(2,"0")} scenes · {draft.cast.length.toString().padStart(2,"0")} cast</div>
-          </div>
-        </aside>
-
+      <main className="relative z-10 grid h-[calc(100dvh-56px-72px)] grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="overflow-y-auto p-4 premium-scroll md:p-6 xl:p-8">
           <AnimatePresence mode="wait">
             {step === "start" && (

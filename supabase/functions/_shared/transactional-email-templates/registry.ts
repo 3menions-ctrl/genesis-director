@@ -9,6 +9,7 @@ import { template as adminContactMessage } from './admin-contact-message.tsx'
 import { template as adminNewSignup } from './admin-new-signup.tsx'
 import { template as adminCreditPurchase } from './admin-credit-purchase.tsx'
 import { template as adminSalesInquiry } from './admin-sales-inquiry.tsx'
+import { template as adminAlert } from './admin-alert.tsx'
 
 // Registry contract — used by send-transactional-email and preview-transactional-email.
 export interface TemplateEntry {
@@ -35,4 +36,14 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   admin_new_signup: adminNewSignup,
   admin_credit_purchase: adminCreditPurchase,
   admin_sales_inquiry: adminSalesInquiry,
+  admin_alert: adminAlert,
+  admin_payment_failed: adminAlert,
+  admin_refund: adminAlert,
+  admin_dispute: adminAlert,
+  admin_stuck_job: adminAlert,
+  admin_account_deleted: adminAlert,
+  admin_first_video: adminAlert,
+  admin_abuse_signal: adminAlert,
+  admin_error_spike: adminAlert,
+  admin_high_value_purchase: adminCreditPurchase,
 }

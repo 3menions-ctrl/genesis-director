@@ -133,6 +133,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
       const angle = (i / MASCOTS.length) * Math.PI * 2 - Math.PI / 2;
       return {
         src,
+        loop: MASCOT_LOOPS[i],
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
         delay: i * 0.12,

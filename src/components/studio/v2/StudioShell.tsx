@@ -1382,25 +1382,46 @@ function StartHero({
     >
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
 
-      {/* Outer glow halo */}
-      <div aria-hidden className="pointer-events-none absolute -inset-10 -z-10 bg-[hsl(var(--accent)/0.18)] blur-[120px]" />
+      {/* Ambient cinematic atmosphere */}
+      <div aria-hidden className="pointer-events-none absolute -inset-16 -z-10">
+        <div className="absolute left-[8%] top-[10%] h-[420px] w-[420px] rounded-full bg-[hsl(215_100%_55%/0.18)] blur-[140px]" />
+        <div className="absolute right-[4%] bottom-[8%] h-[360px] w-[360px] rounded-full bg-[hsl(215_100%_60%/0.10)] blur-[160px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--foreground)/0.06),transparent_60%)]" />
+      </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-card/40 to-card/10 backdrop-blur-2xl shadow-[0_60px_160px_-40px_hsl(var(--accent)/0.40)]">
-        {/* ===== Mac-window chrome bar ===== */}
-        <div className="flex items-center gap-2 border-b border-border/40 bg-background/30 px-4 h-10">
-          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
-          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
-          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
-          <div className="mx-auto font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-            apex.studio <span className="text-muted-foreground/40">/</span> create <span className="text-muted-foreground/40">/</span> {projectSlug}
+      <div className="group/canvas relative overflow-hidden rounded-[28px] border border-border/40 bg-gradient-to-b from-card/50 via-card/20 to-card/5 backdrop-blur-2xl shadow-[0_80px_200px_-50px_hsl(0_0%_0%/0.7),0_30px_80px_-30px_hsl(215_100%_50%/0.18),inset_0_1px_0_0_hsl(var(--foreground)/0.06)]">
+        {/* Subtle grain */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.025] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")" }} />
+        {/* Inner luminous frame */}
+        <div aria-hidden className="pointer-events-none absolute inset-px rounded-[27px] ring-1 ring-inset ring-[hsl(var(--foreground)/0.04)]" />
+        {/* Corner registration marks */}
+        <div aria-hidden className="pointer-events-none absolute left-4 top-4 h-3 w-3 border-l border-t border-accent/40" />
+        <div aria-hidden className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r border-t border-accent/40" />
+        <div aria-hidden className="pointer-events-none absolute left-4 bottom-4 h-3 w-3 border-l border-b border-accent/40" />
+        <div aria-hidden className="pointer-events-none absolute right-4 bottom-4 h-3 w-3 border-r border-b border-accent/40" />
+
+        {/* ===== Title bar — editorial slate ===== */}
+        <div className="flex items-center gap-3 border-b border-border/30 bg-[hsl(var(--foreground)/0.015)] px-6 h-12">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">{draft.brief.title || "Untitled"}</div>
+          <div className="mx-auto flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/70">
+            <span className="text-accent/80">◆</span>
+            <span>apex</span>
+            <span className="text-muted-foreground/30">·</span>
+            <span>studio</span>
+            <span className="text-muted-foreground/30">·</span>
+            <span className="text-foreground/85">{projectSlug}</span>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">REC · 01:01</div>
         </div>
 
-        <div className="p-6 md:p-10 xl:p-12">
+        <div className="px-6 py-8 md:px-12 md:py-12 xl:px-16 xl:py-14">
           {/* ===== Mode switcher ===== */}
-          <div className="mb-8 flex items-center justify-between gap-6 border-b border-border/30 pb-4">
-            <div className="flex items-center gap-7">
+          <div className="mb-10 flex items-center justify-between gap-6 border-b border-border/30 pb-5">
+            <div className="flex items-center gap-8">
               {([
                 { id: "text", label: "Text", Icon: Wand2 },
                 { id: "image", label: "Image", Icon: ImageIcon },
@@ -1417,69 +1438,89 @@ function StartHero({
                       else setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined, templateId: undefined } }));
                     }}
                     className={cn(
-                      "relative inline-flex items-center gap-2 pb-3 text-[13px] transition-colors",
-                      active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+                      "relative inline-flex items-center gap-2 pb-4 text-[12px] uppercase tracking-[0.18em] transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground/60 hover:text-foreground/90",
                     )}
                   >
-                    <Icon className={cn("h-3.5 w-3.5", active && "text-accent")} strokeWidth={1.5} />
+                    <Icon className={cn("h-3.5 w-3.5 transition-colors", active ? "text-accent" : "text-muted-foreground/50")} strokeWidth={1.5} />
                     <span>{label}</span>
-                    {active && <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-accent" />}
+                    {active && (
+                      <motion.span
+                        layoutId="mode-underline"
+                        className="absolute -bottom-[21px] left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
+                      />
+                    )}
                   </button>
                 );
               })}
             </div>
-            <div className="hidden font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50 sm:block">SC. 01 · TAKE 01</div>
+            <div className="hidden items-center gap-3 font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/40 sm:flex">
+              <span>SC.01</span>
+              <span className="h-px w-6 bg-border/60" />
+              <span>TAKE.01</span>
+            </div>
           </div>
 
-          {/* ===== STEP 01 eyebrow + hero headline ===== */}
-          <div className="text-[11px] uppercase tracking-[0.32em] text-accent/80">Step 01 · {briefLabel}</div>
+          {/* ===== Eyebrow + hero headline ===== */}
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-accent/80">
+            <span className="h-px w-8 bg-accent/40" />
+            <span>Step 01 · {briefLabel}</span>
+          </div>
           <h1
-            className="mt-3 font-display text-[36px] md:text-[52px] xl:text-[60px] leading-[1.05] tracking-[-0.02em] text-foreground"
-            style={{ fontFamily: "'Fraunces', serif" }}
+            className="mt-5 font-display leading-[0.98] tracking-[-0.025em] text-foreground text-[42px] md:text-[64px] xl:text-[76px]"
+            style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
           >
-            {modeCopy}
+            <span className="italic font-light bg-gradient-to-b from-foreground to-foreground/65 bg-clip-text text-transparent">
+              {modeCopy}
+            </span>
           </h1>
+          <p className="mt-5 max-w-xl font-light text-[14px] leading-relaxed text-muted-foreground/70">
+            Direct from a single prompt. We&rsquo;ll cast the actors, build the world, score the room, and render to film-grade clips.
+          </p>
 
           {/* ===== Composer card ===== */}
-          <div className="mt-8 rounded-2xl border border-border/40 bg-background/40 p-5 backdrop-blur-xl">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/[0.15]">
-                <Wand2 className="h-4 w-4 text-accent" />
+          <div className="group/composer mt-10 relative rounded-[20px] border border-border/40 bg-gradient-to-b from-background/60 to-background/20 p-6 backdrop-blur-xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.05),0_30px_80px_-40px_hsl(0_0%_0%/0.6)] transition-all focus-within:border-accent/40 focus-within:shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.05),0_0_0_1px_hsl(var(--accent)/0.25),0_40px_120px_-30px_hsl(var(--accent)/0.35)]">
+            <div className="flex items-start gap-5">
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/5 ring-1 ring-inset ring-accent/30">
+                <Wand2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                <div className="absolute inset-0 rounded-xl bg-accent/20 blur-md -z-10" />
               </div>
               <textarea
                 value={draft.brief.logline}
                 onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
                 placeholder={placeholder}
                 rows={2}
-                className="flex-1 min-h-[60px] resize-none bg-transparent text-base md:text-lg font-light leading-relaxed text-foreground/95 outline-none placeholder:text-muted-foreground/50"
+                className="flex-1 min-h-[68px] resize-none bg-transparent text-[17px] md:text-[19px] font-light leading-[1.55] tracking-[-0.005em] text-foreground outline-none placeholder:text-muted-foreground/40"
+                style={{ fontFamily: "'Fraunces', serif" }}
               />
               <div className="hidden shrink-0 items-center gap-2 md:flex">
                 <button
                   onClick={() => onOpenDrawer("voices")}
                   title="Voices"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground/80 transition-all hover:border-accent/40 hover:text-foreground hover:bg-background/60"
                 >
-                  <Mic2 className="h-4 w-4" />
+                  <Mic2 className="h-4 w-4" strokeWidth={1.5} />
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   title="Reference image"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground/80 transition-all hover:border-accent/40 hover:text-foreground hover:bg-background/60"
                 >
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" strokeWidth={1.5} />}
                 </button>
                 <button
                   onClick={() => onRunScript()}
                   disabled={!canGenerateScript || autoBusy}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-[12px] font-medium tracking-wide text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="group/gen relative inline-flex h-11 items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-accent to-[hsl(215_100%_42%)] px-5 text-[12px] font-medium uppercase tracking-[0.12em] text-accent-foreground shadow-[0_8px_24px_-8px_hsl(var(--accent)/0.6),inset_0_1px_0_0_hsl(var(--foreground)/0.2)] transition-all hover:shadow-[0_12px_36px_-8px_hsl(var(--accent)/0.8),inset_0_1px_0_0_hsl(var(--foreground)/0.25)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Generate <Send className="h-3.5 w-3.5" /></>}
+                  {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Generate <Send className="h-3.5 w-3.5" strokeWidth={1.75} /></>}
                 </button>
               </div>
             </div>
 
             {/* Pill controls — live state */}
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-7 flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-5">
+              <span className="mr-1 font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/40">Set</span>
               {[
                 { Icon: Sparkles, label: draft.brief.style || "Cinematic", onClick: () => onOpenDrawer("styles") },
                 { Icon: Users, label: castPills, onClick: () => onOpenDrawer("avatars") },
@@ -1496,17 +1537,17 @@ function StartHero({
                 <button
                   key={label}
                   onClick={onClick}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 px-3 py-1.5 text-[11px] tracking-wide text-muted-foreground transition-colors hover:border-accent/40 hover:text-foreground"
+                  className="group/pill inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-background/30 px-3 py-1.5 text-[11px] tracking-wide text-muted-foreground/85 transition-all hover:border-accent/40 hover:bg-background/60 hover:text-foreground hover:shadow-[0_4px_12px_-4px_hsl(var(--accent)/0.3)]"
                 >
-                  <Icon className="h-3 w-3 text-accent" /> {label}
+                  <Icon className="h-3 w-3 text-accent/80 transition-colors group-hover/pill:text-accent" strokeWidth={1.75} /> {label}
                 </button>
               ))}
             </div>
 
             {/* Empty-state seeds */}
             {!draft.brief.logline && (
-              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/30 pt-4">
-                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-dashed border-border/30 pt-4">
+                <span className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/50">Try</span>
                 {[
                   { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
                   { label: "Espresso macro", prompt: "Slow-motion espresso pour, macro, golden light" },
@@ -1516,9 +1557,10 @@ function StartHero({
                   <button
                     key={label}
                     onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
-                    className="h-7 rounded-full border border-border/40 px-3 text-[11px] text-muted-foreground/80 transition-colors hover:border-accent/60 hover:text-foreground"
+                    className="h-7 rounded-full border border-border/30 px-3 text-[11px] italic text-muted-foreground/75 transition-all hover:border-accent/50 hover:bg-accent/[0.06] hover:text-foreground"
+                    style={{ fontFamily: "'Fraunces', serif" }}
                   >
-                    {label}
+                    "{label}"
                   </button>
                 ))}
               </div>
@@ -1527,49 +1569,58 @@ function StartHero({
 
           {/* ===== Image-mode preview slot ===== */}
           {createMode === "image" && draft.brief.refImageUrl && (
-            <div className="mt-6 relative overflow-hidden rounded-2xl border border-border/40">
+            <div className="mt-8 relative overflow-hidden rounded-2xl border border-border/40 shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.7)]">
               <img src={draft.brief.refImageUrl} alt="Reference" className="aspect-[21/9] w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-foreground/80">REF · 01</span>
+              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
+                <span className="font-mono text-[9px] uppercase tracking-[0.36em] text-foreground/80">◆ REF · 01</span>
                 <button onClick={onClearImage} className="h-8 rounded-full border border-border/60 bg-background/70 px-3 text-[11px] text-foreground backdrop-blur hover:bg-card">Remove</button>
               </div>
             </div>
           )}
 
           {/* ===== Cast + World preview row ===== */}
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
+          <div className="mt-12 grid gap-5 md:grid-cols-2">
             {/* Cast */}
             <button
               onClick={() => onOpenDrawer("avatars")}
-              className="group rounded-2xl border border-border/40 bg-background/30 p-5 text-left transition-colors hover:border-accent/40"
+              className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background/50 via-background/25 to-background/10 p-6 text-left backdrop-blur-xl transition-all hover:border-accent/40 hover:shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)]"
             >
-              <div className="mb-4 flex items-center justify-between">
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">Cast</div>
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-accent/80">
+              <div aria-hidden className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-accent/[0.07] blur-3xl transition-opacity group-hover:bg-accent/[0.14]" />
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.36em] text-muted-foreground/70">
+                  <span className="text-accent/70">◆</span> Cast
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent/80">
                   {draft.cast.length ? `${draft.cast.length} selected` : "Tap to cast"}
                 </div>
               </div>
-              <div className="flex -space-x-3">
+              <div className="flex -space-x-4">
                 {(draft.cast.length ? draft.cast.map(c => c.imageUrl || avEmma) : FALLBACK_CAST).slice(0, 5).map((src, i) => (
-                  <div key={i} className="h-12 w-12 overflow-hidden rounded-full border-2 border-background ring-1 ring-border/60">
+                  <div key={i} className="h-14 w-14 overflow-hidden rounded-full border-2 border-background shadow-[0_8px_24px_-8px_hsl(0_0%_0%/0.6)] ring-1 ring-border/60 transition-transform group-hover:scale-[1.03]">
                     <img src={src} alt="" className="h-full w-full object-cover" />
                   </div>
                 ))}
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-background bg-background/40 ring-1 ring-border/60 text-lg text-muted-foreground transition-colors group-hover:text-accent">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-background bg-background/40 ring-1 ring-border/60 text-xl text-muted-foreground transition-colors group-hover:text-accent">
                   +
                 </span>
+              </div>
+              <div className="mt-5 font-light text-[12px] leading-relaxed text-muted-foreground/70" style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="italic">An ensemble, your way.</span> Pick faces or let the studio cast for tone.
               </div>
             </button>
 
             {/* World */}
             <button
               onClick={() => onOpenDrawer("envs")}
-              className="group rounded-2xl border border-border/40 bg-background/30 p-5 text-left transition-colors hover:border-accent/40"
+              className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background/50 via-background/25 to-background/10 p-6 text-left backdrop-blur-xl transition-all hover:border-accent/40 hover:shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)]"
             >
-              <div className="mb-4 flex items-center justify-between">
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">World</div>
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-accent/80">
+              <div aria-hidden className="pointer-events-none absolute -left-12 -bottom-12 h-32 w-32 rounded-full bg-accent/[0.07] blur-3xl transition-opacity group-hover:bg-accent/[0.14]" />
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.36em] text-muted-foreground/70">
+                  <span className="text-accent/70">◆</span> World
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent/80">
                   {draft.brief.environmentId || "Neon Noir"}
                 </div>
               </div>
@@ -1578,20 +1629,28 @@ function StartHero({
                   <div
                     key={w.label}
                     className={cn(
-                      "relative aspect-square overflow-hidden rounded-md border transition-all",
+                      "relative aspect-square overflow-hidden rounded-lg border shadow-[0_8px_20px_-10px_hsl(0_0%_0%/0.5)] transition-all",
                       i === 0 ? "border-accent/60" : "border-border/40 group-hover:border-border/70",
                     )}
                   >
                     <img src={w.src} alt={w.label} className="h-full w-full object-cover" />
-                    {i === 0 && <div className="absolute inset-0 rounded-md ring-2 ring-inset ring-accent/60" />}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
+                    {i === 0 && <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-accent/70 shadow-[inset_0_0_20px_hsl(var(--accent)/0.4)]" />}
                   </div>
                 ))}
+              </div>
+              <div className="mt-5 font-light text-[12px] leading-relaxed text-muted-foreground/70" style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="italic">Anchor the room.</span> Neon, noir, pastoral, or the deep void — your call.
               </div>
             </button>
           </div>
 
           {/* ===== Engine pill rail ===== */}
-          <div className="mt-10">
+          <div className="mt-14 border-t border-border/30 pt-10">
+            <div className="mb-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-muted-foreground/60">
+              <span className="h-px w-8 bg-border" />
+              <span>Engine</span>
+            </div>
             <EnginePillRail
               selected={draft.defaults.engine}
               hasCinema={hasCinema}
@@ -1613,7 +1672,7 @@ function StartHero({
           </div>
 
           {/* ===== Scene / runtime controls ===== */}
-          <div className="mt-2">
+          <div className="mt-4">
             <SceneRuntimeControls
               engineId={draft.defaults.engine}
               sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
@@ -1632,41 +1691,61 @@ function StartHero({
           </div>
 
           {/* ===== Advanced action tiles ===== */}
-          <div className="mt-8 grid gap-x-8 md:grid-cols-2 border-t border-border/40 pt-2">
+          <div className="mt-12 border-t border-border/30 pt-10">
+            <div className="mb-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-muted-foreground/60">
+              <span className="h-px w-8 bg-border" />
+              <span>Craft</span>
+            </div>
+            <div className="grid gap-x-10 gap-y-1 md:grid-cols-2">
             <ActionTile icon={Images} title="Templates" body="Hand-crafted blueprints, fully editable." onClick={() => { setCreateMode("template"); onOpenDrawer("templates"); }} />
             <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => onOpenDrawer("envs")} />
             <ActionTile icon={Sparkles} title="Visual style" body={draft.brief.style || "Noir, anime, neon, golden hour…"} onClick={() => onOpenDrawer("styles")} />
             <ActionTile icon={Music2} title="Score & voice" body={draft.audio.scoreUrl ? "Score ready" : "Pick the sonic palette early."} onClick={() => onOpenDrawer("music")} />
+            </div>
           </div>
 
           {/* ===== CTA strip ===== */}
-          <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-border/40 bg-gradient-to-r from-[hsl(var(--accent)/0.10)] to-transparent p-6 md:flex-row">
-            <div>
-              <div className="font-display text-xl md:text-2xl tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
-                This is the room you walk into.
+          <div className="relative mt-14 overflow-hidden rounded-[20px] border border-border/40 bg-gradient-to-br from-[hsl(var(--accent)/0.14)] via-card/30 to-background/40 p-8 backdrop-blur-xl shadow-[0_40px_120px_-40px_hsl(var(--accent)/0.4),inset_0_1px_0_0_hsl(var(--foreground)/0.08)]">
+            <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/15 blur-[100px]" />
+            <div aria-hidden className="pointer-events-none absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+
+            <div className="relative flex flex-col items-start justify-between gap-7 md:flex-row md:items-end">
+              <div>
+                <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.42em] text-accent/80">
+                  <span>◆</span> Roll camera
+                </div>
+                <div
+                  className="mt-3 font-display text-[26px] md:text-[34px] leading-[1.05] tracking-[-0.02em] text-foreground"
+                  style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+                >
+                  <span className="italic">This is the room</span><br />you walk into.
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+                  <span><span className="text-foreground/85">{draft.scenes.length || (draft.defaults.sceneCount ?? "—")}</span> scenes</span>
+                  <span className="h-px w-4 bg-border" />
+                  <span><span className="text-foreground/85">{renderedCount}</span> rendered</span>
+                  <span className="h-px w-4 bg-border" />
+                  <span><span className="text-accent">{totalCost}</span> credits</span>
+                </div>
               </div>
-              <div className="mt-1 text-[13px] font-light text-muted-foreground">
-                {draft.scenes.length
-                  ? `${draft.scenes.length} scenes · ${renderedCount} rendered · ${totalCost} credits est.`
-                  : "Auto creates an editable script, then renders each scene through the selected engine."}
+              <div className="flex w-full items-center gap-3 md:w-auto">
+                <button
+                  onClick={() => onSetStep("cast")}
+                  className="h-13 flex-1 rounded-full border border-border/60 bg-background/40 px-6 py-3.5 text-[12px] uppercase tracking-[0.16em] text-foreground transition-all hover:border-accent/40 hover:bg-card md:flex-none"
+                >
+                  Cast &amp; script
+                </button>
+                <button
+                  onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
+                  disabled={(!canGenerateScript && !canRender) || autoBusy}
+                  className="group relative inline-flex flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-b from-foreground to-foreground/85 px-8 py-3.5 text-[12px] font-medium uppercase tracking-[0.16em] text-background shadow-[0_24px_60px_-20px_hsl(var(--foreground)/0.5),inset_0_1px_0_0_hsl(0_0%_100%/0.4)] transition-all hover:shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.6),inset_0_1px_0_0_hsl(0_0%_100%/0.5)] disabled:cursor-not-allowed disabled:opacity-40 md:flex-none"
+                >
+                  <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  {autoBusy ? <Loader2 className="relative h-4 w-4 animate-spin" /> : <Sparkles className="relative h-4 w-4" strokeWidth={1.5} />}
+                  <span className="relative">{draft.scenes.length ? "Render film" : "Auto create"}</span>
+                  <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.75} />
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onSetStep("cast")}
-                className="h-12 rounded-full border border-border/60 bg-background/40 px-5 text-[13px] text-foreground transition-colors hover:bg-card"
-              >
-                Cast & script
-              </button>
-              <button
-                onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
-                disabled={(!canGenerateScript && !canRender) || autoBusy}
-                className="group inline-flex h-12 items-center gap-2.5 rounded-full bg-foreground px-7 text-[13px] font-medium text-background shadow-[0_20px_50px_-20px_hsl(var(--foreground)/0.4)] transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {draft.scenes.length ? "Render film" : "Auto create"}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
             </div>
           </div>
         </div>

@@ -98,7 +98,8 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } =
+      await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -111,7 +112,7 @@ serve(async (req) => {
     const body: ValidationRequest = await req.json();
     const {
       projectId,
-      userId,
+      userId: bodyUserId,
       clipIndex,
       clipVideoUrl,
       clipFrameUrl,
@@ -123,6 +124,16 @@ serve(async (req) => {
       runAllValidations = true,
       validationsToRun = [],
     } = body;
+
+    // SECURITY: end-user JWT → JWT identity; service-role → body.userId allowed.
+    let userId: string;
+    try {
+      userId = resolveEffectiveUserId(auth, bodyUserId ?? null);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      return unauthorizedResponse(corsHeaders, msg);
+    }
 
     console.log(`[ValidationOrchestrator] Starting validation for clip ${clipIndex + 1}`);
     console.log(`[ValidationOrchestrator] Video URL: ${clipVideoUrl?.substring(0, 60)}...`);

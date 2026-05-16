@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
+  Box,
   Bot,
   Check,
   ChevronRight,
@@ -11,8 +12,10 @@ import {
   Cpu,
   Edit3,
   Film,
+  Hash,
   Image as ImageIcon,
   Images,
+  Languages,
   Loader2,
   Minus,
   Mic2,
@@ -47,6 +50,27 @@ import { TemplatesDrawerContent, type TemplatePick } from "./drawers/TemplatesDr
 import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
 import { StylesDrawerContent } from "./drawers/StylesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
+
+// Fallback "preview" imagery for the editorial hero — used when the user
+// hasn't yet cast avatars or picked an environment so the canvas always
+// feels alive (mirrors the landing-page Studio preview).
+import avEmma from "@/assets/avatars/emma-thompson.png";
+import avMarcus from "@/assets/avatars/marcus-stone.png";
+import avZara from "@/assets/avatars/zara-okonkwo.png";
+import avHiroshi from "@/assets/avatars/hiroshi-tanaka.png";
+import avCamila from "@/assets/avatars/camila-santos.png";
+import envNeon from "@/assets/environments/neon-noir-city.jpg";
+import envCherry from "@/assets/environments/cherry-blossom.jpg";
+import envSpace from "@/assets/environments/space-station.jpg";
+import envGolden from "@/assets/environments/golden-hour-magic.jpg";
+
+const FALLBACK_CAST = [avEmma, avMarcus, avZara, avHiroshi, avCamila];
+const FALLBACK_WORLDS = [
+  { src: envNeon, label: "Neon Noir" },
+  { src: envCherry, label: "Cherry Blossom" },
+  { src: envSpace, label: "Space Station" },
+  { src: envGolden, label: "Golden Hour" },
+];
 
 type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music" | "styles";
 type StepId = "start" | "cast" | "script" | "clips";
@@ -614,204 +638,28 @@ export default function StudioShell() {
         <section className="overflow-y-auto p-4 premium-scroll md:p-6 xl:p-8">
           <AnimatePresence mode="wait">
             {step === "start" && (
-              <FlowPanel
+              <StartHero
                 key="start"
-                eyebrow={createMode === "text" ? "Step 01 · Text → Video" : createMode === "image" ? "Step 01 · Image → Video" : "Step 01 · Template"}
-                title={createMode === "text"
-                  ? <>From a single sentence, <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>a finished film.</em></>
-                  : createMode === "image"
-                    ? <>One frame becomes <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>the entire scene.</em></>
-                    : <>Hand-crafted blueprints, <em className="not-italic bg-gradient-to-br from-foreground via-accent/80 to-accent bg-clip-text text-transparent" style={{ fontStyle: "italic" }}>made yours.</em></>
-                }
-                icon={Sparkles}
-              >
-                {/* ===== Mode switcher — editorial tabs ===== */}
-                <div className="relative mb-10 flex items-center gap-8 border-b border-border/40 pb-4">
-                    {([
-                      { id: "text", label: "Text", Icon: Wand2 },
-                      { id: "image", label: "Image", Icon: ImageIcon },
-                      { id: "template", label: "Template", Icon: Images },
-                    ] as const).map(({ id, label, Icon }) => {
-                      const active = createMode === id;
-                      return (
-                        <button
-                          key={id}
-                          onClick={() => {
-                            setCreateMode(id);
-                            if (id === "image") {
-                              setTimeout(() => fileInputRef.current?.click(), 80);
-                            } else if (id === "template") {
-                              setDrawer("templates");
-                            } else if (id === "text") {
-                              setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined, templateId: undefined } }));
-                            }
-                          }}
-                          className={cn(
-                            "relative inline-flex items-center gap-2 pb-2 text-[13px] font-medium transition-colors",
-                            active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
-                          )}
-                        >
-                          <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "")} strokeWidth={1.5} />
-                          <span>{label}</span>
-                          {active && <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-accent" />}
-                        </button>
-                      );
-                    })}
-                </div>
-
-                <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-                  <div className="space-y-5">
-                    {createMode === "image" && (
-                      <>
-                        <ReferenceUploader
-                          imageUrl={draft.brief.refImageUrl}
-                          uploading={uploading}
-                          onUploadClick={() => fileInputRef.current?.click()}
-                          onClear={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
-                        />
-                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-                      </>
-                    )}
-                    {createMode !== "image" && (
-                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-                    )}
-
-                    {/* ===== HERO COMPOSER — open editorial canvas ===== */}
-                    <div className="relative">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
-                          {createMode === "text" ? "Scene prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
-                        </div>
-                        <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/40">SC. 01 · TAKE 01</div>
-                      </div>
-
-                      <textarea
-                          value={draft.brief.logline}
-                          onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
-                          placeholder={createMode === "text"
-                            ? "A lone surfer paddles into a 30-foot wave at golden hour. Camera pushes in as the wave curls overhead. Anamorphic, 35mm grain, sun flares."
-                            : createMode === "image"
-                              ? "Animate the uploaded frame — the camera slowly dollies forward as light bends through the scene."
-                              : "Describe the spin you want on the template — tone, era, hero moment."
-                          }
-                          rows={4}
-                          className="w-full resize-none bg-transparent font-display text-[22px] md:text-[26px] xl:text-[30px] italic leading-[1.25] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/30"
-                          style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
-                        />
-                      <div className="relative h-px w-full bg-border/40">
-                        <div className="absolute left-0 top-0 h-px w-24 bg-gradient-to-r from-accent to-transparent" />
-                      </div>
-
-                      <div className="relative mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-                          <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
-                          <input
-                            value={draft.brief.style}
-                            onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
-                            placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-8 min-w-[180px] max-w-[280px] flex-1 bg-transparent border-b border-border/50 px-1 text-[13px] text-foreground/90 outline-none transition-colors focus:border-accent"
-                          />
-                          <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
-                          <SegmentedSelect
-                            value={draft.defaults.aspect}
-                            options={["16:9", "9:16", "1:1", "21:9"]}
-                            onChange={(value) => setDraft(d => ({ ...d, defaults: { ...d.defaults, aspect: value as StudioDraft["defaults"]["aspect"] } }))}
-                          />
-                        </div>
-
-                        {/* Quick prompt seeds — only shown when prompt is empty */}
-                        {!draft.brief.logline && (
-                          <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
-                            {[
-                              { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
-                              { label: "Espresso macro", prompt: "Slow-motion espresso pour, macro, golden light" },
-                              { label: "Snow drone", prompt: "Drone over snow-capped peaks at dawn" },
-                              { label: "Rainy walk", prompt: "Streetwear model walks toward camera, rain, slow-mo" },
-                            ].map(({ label, prompt }) => (
-                              <button
-                                key={label}
-                                onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
-                                title={prompt}
-                                className="h-7 rounded-full border border-border/40 bg-transparent px-3 text-[11.5px] text-muted-foreground/80 transition-all hover:border-accent/60 hover:text-foreground"
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                    </div>
-
-                    {/* ============= ENGINE PILL RAIL ============= */}
-                    <EnginePillRail
-                      selected={draft.defaults.engine}
-                      hasCinema={hasCinema}
-                      onSelect={(id) => setDraft(d => {
-                        const spec = ENGINES[id];
-                        const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
-                        return {
-                          ...d,
-                          defaults: { ...d.defaults, engine: id, duration: newDuration, sceneCount: Math.min(d.defaults.sceneCount ?? spec.recommendedScenes, spec.maxScenesPerProject), qualityProfileId: defaultQualityProfile(id).id },
-                          scenes: d.scenes.slice(0, spec.maxScenesPerProject).map(scene => ({
-                            ...scene,
-                            engine: id,
-                            duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
-                          })),
-                        };
-                      })}
-                      onMore={() => setDrawer("engines")}
-                    />
-
-                    {/* ============= SCENE COUNT + DURATION CONTROLS ============= */}
-                    <SceneRuntimeControls
-                      engineId={draft.defaults.engine}
-                      sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
-                      duration={draft.defaults.duration}
-                      onSceneCountChange={(n) => setDraft(d => {
-                        const maxScenes = ENGINES[d.defaults.engine].maxScenesPerProject;
-                        const sceneCount = Math.max(1, Math.min(maxScenes, n));
-                        return { ...d, defaults: { ...d.defaults, sceneCount }, scenes: d.scenes.slice(0, sceneCount) };
-                      })}
-                      onDurationChange={(s) => setDraft(d => ({
-                        ...d,
-                        defaults: { ...d.defaults, duration: s as 5 | 10 | 12 | 15 },
-                        scenes: d.scenes.map(scene => ({ ...scene, duration: s as 5 | 10 | 12 | 15 })),
-                      }))}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    {/* Mode helper — quiet copy, no card */}
-                    <div className="pb-4">
-                      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-accent">
-                        {createMode === "text" ? "Text-to-video" : createMode === "image" ? "Image-to-video" : "Template"}
-                      </div>
-                      <div className="mt-2 font-display text-lg italic leading-tight text-foreground/95">
-                        {createMode === "text" ? "No image required." : createMode === "image" ? "Drop a still, get a scene." : "Pick a structure."}
-                      </div>
-                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground/80">
-                        {createMode === "text" ? "Write the scene. The selected engine renders it from the prompt alone." : createMode === "image" ? "Your frame becomes the visual DNA — color, character, composition all carry through." : "Cinematic blueprints with shot lists you can edit before render."}
-                      </p>
-                    </div>
-
-                    {createMode !== "template" && <ActionTile icon={Images} title="Templates" body="Proven structures, fully editable." onClick={() => { setCreateMode("template"); setDrawer("templates"); }} />}
-                    <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => setDrawer("envs")} />
-                    <ActionTile icon={Sparkles} title="Visual style" body={draft.brief.style || "Pick a look — noir, anime, neon, golden hour…"} onClick={() => setDrawer("styles")} />
-                    <ActionTile icon={Music2} title="Score & voice" body="Pick the sonic palette early." onClick={() => setDrawer("music")} />
-
-                    <button
-                      onClick={() => setStep("cast")}
-                      disabled={!canGenerateScript}
-                      className="group relative mt-4 flex w-full items-center justify-between rounded-none border-t border-border/40 px-1 py-4 text-left transition-colors hover:text-foreground disabled:opacity-30"
-                    >
-                      <span>
-                        <span className="block font-mono text-[9px] uppercase tracking-[0.28em] text-accent">Phase 02</span>
-                        <span className="mt-1 block font-display text-[16px] italic leading-tight text-foreground/95">Cast the avatars</span>
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-accent" />
-                    </button>
-                  </div>
-                </div>
-              </FlowPanel>
+                draft={draft}
+                setDraft={setDraft}
+                createMode={createMode}
+                setCreateMode={setCreateMode}
+                fileInputRef={fileInputRef}
+                onFileChange={onFileChange}
+                uploading={uploading}
+                autoBusy={autoBusy}
+                canGenerateScript={Boolean(canGenerateScript)}
+                canRender={Boolean(canRender)}
+                totalCost={totalCost}
+                renderedCount={renderedCount}
+                hasCinema={hasCinema}
+                onAutoCreate={autoCreate}
+                onRunScript={runAutoScript}
+                onRenderAll={renderAll}
+                onSetStep={setStep}
+                onOpenDrawer={setDrawer}
+                onClearImage={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
+              />
             )}
 
             {step === "cast" && (
@@ -1451,6 +1299,379 @@ function SceneRuntimeControls({
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// StartHero — Cinematic editorial canvas modeled after the landing-page
+// Studio preview ("Tell me about your film"). Wraps the entire Step-01 flow
+// in a single mac-window surface with chrome bar, hero composer, live cast
+// + world preview, advanced engine/runtime controls and a CTA strip.
+// ============================================================================
+function StartHero({
+  draft,
+  setDraft,
+  createMode,
+  setCreateMode,
+  fileInputRef,
+  onFileChange,
+  uploading,
+  autoBusy,
+  canGenerateScript,
+  canRender,
+  totalCost,
+  renderedCount,
+  hasCinema,
+  onAutoCreate,
+  onRunScript,
+  onRenderAll,
+  onSetStep,
+  onOpenDrawer,
+  onClearImage,
+}: {
+  draft: StudioDraft;
+  setDraft: (mut: (d: StudioDraft) => StudioDraft) => void;
+  createMode: "text" | "image" | "template";
+  setCreateMode: (m: "text" | "image" | "template") => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploading: boolean;
+  autoBusy: boolean;
+  canGenerateScript: boolean;
+  canRender: boolean;
+  totalCost: number;
+  renderedCount: number;
+  hasCinema: boolean;
+  onAutoCreate: () => void;
+  onRunScript: (opts?: { renderAfter?: boolean }) => void;
+  onRenderAll: () => void;
+  onSetStep: (id: "start" | "cast" | "script" | "clips") => void;
+  onOpenDrawer: (key: DrawerKey) => void;
+  onClearImage: () => void;
+}) {
+  const projectSlug = (draft.brief.title || "new-project")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 32) || "new-project";
+
+  const briefLabel = createMode === "text" ? "Brief" : createMode === "image" ? "Image → Video" : "Template";
+  const modeCopy = createMode === "text"
+    ? "Tell me about your film."
+    : createMode === "image"
+      ? "One frame, the whole scene."
+      : "Pick a structure, make it yours.";
+
+  const placeholder = createMode === "text"
+    ? "4th-wall break — Emma turns to camera and addresses the viewer"
+    : createMode === "image"
+      ? "Animate the uploaded frame — slow dolly forward, light bends through the scene"
+      : "Describe the spin — tone, era, hero moment";
+
+  const castPills = draft.cast.length ? `${draft.cast.length} avatar${draft.cast.length === 1 ? "" : "s"}` : "Auto-cast";
+  const worldLabel = draft.brief.style || "Cinematic";
+  const engineSpec = ENGINES[draft.defaults.engine];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="relative mx-auto w-full max-w-[1180px]"
+    >
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+
+      {/* Outer glow halo */}
+      <div aria-hidden className="pointer-events-none absolute -inset-10 -z-10 bg-[hsl(var(--accent)/0.18)] blur-[120px]" />
+
+      <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-card/40 to-card/10 backdrop-blur-2xl shadow-[0_60px_160px_-40px_hsl(var(--accent)/0.40)]">
+        {/* ===== Mac-window chrome bar ===== */}
+        <div className="flex items-center gap-2 border-b border-border/40 bg-background/30 px-4 h-10">
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
+          <div className="mx-auto font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+            apex.studio <span className="text-muted-foreground/40">/</span> create <span className="text-muted-foreground/40">/</span> {projectSlug}
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">{draft.brief.title || "Untitled"}</div>
+        </div>
+
+        <div className="p-6 md:p-10 xl:p-12">
+          {/* ===== Mode switcher ===== */}
+          <div className="mb-8 flex items-center justify-between gap-6 border-b border-border/30 pb-4">
+            <div className="flex items-center gap-7">
+              {([
+                { id: "text", label: "Text", Icon: Wand2 },
+                { id: "image", label: "Image", Icon: ImageIcon },
+                { id: "template", label: "Template", Icon: Images },
+              ] as const).map(({ id, label, Icon }) => {
+                const active = createMode === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setCreateMode(id);
+                      if (id === "image") setTimeout(() => fileInputRef.current?.click(), 60);
+                      else if (id === "template") onOpenDrawer("templates");
+                      else setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined, templateId: undefined } }));
+                    }}
+                    className={cn(
+                      "relative inline-flex items-center gap-2 pb-3 text-[13px] transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+                    )}
+                  >
+                    <Icon className={cn("h-3.5 w-3.5", active && "text-accent")} strokeWidth={1.5} />
+                    <span>{label}</span>
+                    {active && <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-accent" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="hidden font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50 sm:block">SC. 01 · TAKE 01</div>
+          </div>
+
+          {/* ===== STEP 01 eyebrow + hero headline ===== */}
+          <div className="text-[11px] uppercase tracking-[0.32em] text-accent/80">Step 01 · {briefLabel}</div>
+          <h1
+            className="mt-3 font-display text-[36px] md:text-[52px] xl:text-[60px] leading-[1.05] tracking-[-0.02em] text-foreground"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {modeCopy}
+          </h1>
+
+          {/* ===== Composer card ===== */}
+          <div className="mt-8 rounded-2xl border border-border/40 bg-background/40 p-5 backdrop-blur-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/[0.15]">
+                <Wand2 className="h-4 w-4 text-accent" />
+              </div>
+              <textarea
+                value={draft.brief.logline}
+                onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
+                placeholder={placeholder}
+                rows={2}
+                className="flex-1 min-h-[60px] resize-none bg-transparent text-base md:text-lg font-light leading-relaxed text-foreground/95 outline-none placeholder:text-muted-foreground/50"
+              />
+              <div className="hidden shrink-0 items-center gap-2 md:flex">
+                <button
+                  onClick={() => onOpenDrawer("voices")}
+                  title="Voices"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Mic2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Reference image"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={() => onRunScript()}
+                  disabled={!canGenerateScript || autoBusy}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-[12px] font-medium tracking-wide text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Generate <Send className="h-3.5 w-3.5" /></>}
+                </button>
+              </div>
+            </div>
+
+            {/* Pill controls — live state */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {[
+                { Icon: Sparkles, label: draft.brief.style || "Cinematic", onClick: () => onOpenDrawer("styles") },
+                { Icon: Users, label: castPills, onClick: () => onOpenDrawer("avatars") },
+                { Icon: Box, label: worldLabel, onClick: () => onOpenDrawer("envs") },
+                { Icon: Music2, label: draft.audio.scoreUrl ? "Score: ready" : "Score: tense", onClick: () => onOpenDrawer("music") },
+                { Icon: Languages, label: "EN · ES · JA", onClick: () => onOpenDrawer("voices") },
+                { Icon: Hash, label: draft.defaults.aspect, onClick: () => {
+                  const order: StudioDraft["defaults"]["aspect"][] = ["16:9", "9:16", "1:1", "21:9"];
+                  const next = order[(order.indexOf(draft.defaults.aspect) + 1) % order.length];
+                  setDraft(d => ({ ...d, defaults: { ...d.defaults, aspect: next } }));
+                } },
+                { Icon: Cpu, label: engineSpec.shortLabel, onClick: () => onOpenDrawer("engines") },
+              ].map(({ Icon, label, onClick }) => (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 px-3 py-1.5 text-[11px] tracking-wide text-muted-foreground transition-colors hover:border-accent/40 hover:text-foreground"
+                >
+                  <Icon className="h-3 w-3 text-accent" /> {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Empty-state seeds */}
+            {!draft.brief.logline && (
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/30 pt-4">
+                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Try</span>
+                {[
+                  { label: "Tokyo neon", prompt: "A vintage car drifts through Tokyo neon at 3am" },
+                  { label: "Espresso macro", prompt: "Slow-motion espresso pour, macro, golden light" },
+                  { label: "Snow drone", prompt: "Drone over snow-capped peaks at dawn" },
+                  { label: "Rainy walk", prompt: "Streetwear model walks toward camera, rain, slow-mo" },
+                ].map(({ label, prompt }) => (
+                  <button
+                    key={label}
+                    onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
+                    className="h-7 rounded-full border border-border/40 px-3 text-[11px] text-muted-foreground/80 transition-colors hover:border-accent/60 hover:text-foreground"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ===== Image-mode preview slot ===== */}
+          {createMode === "image" && draft.brief.refImageUrl && (
+            <div className="mt-6 relative overflow-hidden rounded-2xl border border-border/40">
+              <img src={draft.brief.refImageUrl} alt="Reference" className="aspect-[21/9] w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-foreground/80">REF · 01</span>
+                <button onClick={onClearImage} className="h-8 rounded-full border border-border/60 bg-background/70 px-3 text-[11px] text-foreground backdrop-blur hover:bg-card">Remove</button>
+              </div>
+            </div>
+          )}
+
+          {/* ===== Cast + World preview row ===== */}
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            {/* Cast */}
+            <button
+              onClick={() => onOpenDrawer("avatars")}
+              className="group rounded-2xl border border-border/40 bg-background/30 p-5 text-left transition-colors hover:border-accent/40"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">Cast</div>
+                <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-accent/80">
+                  {draft.cast.length ? `${draft.cast.length} selected` : "Tap to cast"}
+                </div>
+              </div>
+              <div className="flex -space-x-3">
+                {(draft.cast.length ? draft.cast.map(c => c.imageUrl || avEmma) : FALLBACK_CAST).slice(0, 5).map((src, i) => (
+                  <div key={i} className="h-12 w-12 overflow-hidden rounded-full border-2 border-background ring-1 ring-border/60">
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </div>
+                ))}
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-background bg-background/40 ring-1 ring-border/60 text-lg text-muted-foreground transition-colors group-hover:text-accent">
+                  +
+                </span>
+              </div>
+            </button>
+
+            {/* World */}
+            <button
+              onClick={() => onOpenDrawer("envs")}
+              className="group rounded-2xl border border-border/40 bg-background/30 p-5 text-left transition-colors hover:border-accent/40"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">World</div>
+                <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-accent/80">
+                  {draft.brief.environmentId || "Neon Noir"}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {FALLBACK_WORLDS.map((w, i) => (
+                  <div
+                    key={w.label}
+                    className={cn(
+                      "relative aspect-square overflow-hidden rounded-md border transition-all",
+                      i === 0 ? "border-accent/60" : "border-border/40 group-hover:border-border/70",
+                    )}
+                  >
+                    <img src={w.src} alt={w.label} className="h-full w-full object-cover" />
+                    {i === 0 && <div className="absolute inset-0 rounded-md ring-2 ring-inset ring-accent/60" />}
+                  </div>
+                ))}
+              </div>
+            </button>
+          </div>
+
+          {/* ===== Engine pill rail ===== */}
+          <div className="mt-10">
+            <EnginePillRail
+              selected={draft.defaults.engine}
+              hasCinema={hasCinema}
+              onSelect={(id) => setDraft(d => {
+                const spec = ENGINES[id];
+                const newDuration = clampDurationForEngine(id, d.defaults.duration) as 5 | 10 | 12 | 15;
+                return {
+                  ...d,
+                  defaults: { ...d.defaults, engine: id, duration: newDuration, sceneCount: Math.min(d.defaults.sceneCount ?? spec.recommendedScenes, spec.maxScenesPerProject), qualityProfileId: defaultQualityProfile(id).id },
+                  scenes: d.scenes.slice(0, spec.maxScenesPerProject).map(scene => ({
+                    ...scene,
+                    engine: id,
+                    duration: clampDurationForEngine(id, scene.duration) as 5 | 10 | 12 | 15,
+                  })),
+                };
+              })}
+              onMore={() => onOpenDrawer("engines")}
+            />
+          </div>
+
+          {/* ===== Scene / runtime controls ===== */}
+          <div className="mt-2">
+            <SceneRuntimeControls
+              engineId={draft.defaults.engine}
+              sceneCount={draft.defaults.sceneCount ?? ENGINES[draft.defaults.engine].recommendedScenes}
+              duration={draft.defaults.duration}
+              onSceneCountChange={(n) => setDraft(d => {
+                const maxScenes = ENGINES[d.defaults.engine].maxScenesPerProject;
+                const sceneCount = Math.max(1, Math.min(maxScenes, n));
+                return { ...d, defaults: { ...d.defaults, sceneCount }, scenes: d.scenes.slice(0, sceneCount) };
+              })}
+              onDurationChange={(s) => setDraft(d => ({
+                ...d,
+                defaults: { ...d.defaults, duration: s as 5 | 10 | 12 | 15 },
+                scenes: d.scenes.map(scene => ({ ...scene, duration: s as 5 | 10 | 12 | 15 })),
+              }))}
+            />
+          </div>
+
+          {/* ===== Advanced action tiles ===== */}
+          <div className="mt-8 grid gap-x-8 md:grid-cols-2 border-t border-border/40 pt-2">
+            <ActionTile icon={Images} title="Templates" body="Hand-crafted blueprints, fully editable." onClick={() => { setCreateMode("template"); onOpenDrawer("templates"); }} />
+            <ActionTile icon={ImageIcon} title="Environments" body="Anchor a world or location." onClick={() => onOpenDrawer("envs")} />
+            <ActionTile icon={Sparkles} title="Visual style" body={draft.brief.style || "Noir, anime, neon, golden hour…"} onClick={() => onOpenDrawer("styles")} />
+            <ActionTile icon={Music2} title="Score & voice" body={draft.audio.scoreUrl ? "Score ready" : "Pick the sonic palette early."} onClick={() => onOpenDrawer("music")} />
+          </div>
+
+          {/* ===== CTA strip ===== */}
+          <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-border/40 bg-gradient-to-r from-[hsl(var(--accent)/0.10)] to-transparent p-6 md:flex-row">
+            <div>
+              <div className="font-display text-xl md:text-2xl tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                This is the room you walk into.
+              </div>
+              <div className="mt-1 text-[13px] font-light text-muted-foreground">
+                {draft.scenes.length
+                  ? `${draft.scenes.length} scenes · ${renderedCount} rendered · ${totalCost} credits est.`
+                  : "Auto creates an editable script, then renders each scene through the selected engine."}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onSetStep("cast")}
+                className="h-12 rounded-full border border-border/60 bg-background/40 px-5 text-[13px] text-foreground transition-colors hover:bg-card"
+              >
+                Cast & script
+              </button>
+              <button
+                onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
+                disabled={(!canGenerateScript && !canRender) || autoBusy}
+                className="group inline-flex h-12 items-center gap-2.5 rounded-full bg-foreground px-7 text-[13px] font-medium text-background shadow-[0_20px_50px_-20px_hsl(var(--foreground)/0.4)] transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {autoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {draft.scenes.length ? "Render film" : "Auto create"}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

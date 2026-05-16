@@ -1,59 +1,78 @@
-# Comprehensive Account/Permission Hardening Plan
 
-## What's already correct ✅
-- All **118 public tables have RLS enabled** (zero unprotected tables).
-- Auth = mandatory OTP + Google OAuth, single‑project enforcement in place.
-- `user_roles` + `has_role()` SECURITY DEFINER pattern is implemented.
-- Most admin RPCs are wrapped behind `has_role(..., 'admin')` checks internally.
+# Deep Engineering Remediation — Phase 2
 
-## What needs fixing — grouped into 5 bundles
+Builds on Phase 1 (cache isolation, audit log tamper-proofing, CI auth gate, userId removal). Landing page and its components remain untouched.
 
-### Bundle 1 — Critical write‑side RLS (highest risk)
-Four policies use `USING (true)` / `WITH CHECK (true)` for INSERT/UPDATE/ALL. Anyone (anon or any logged‑in user) can write.
+## Scope (4 verticals, in order)
 
-| Table | Policy | Fix |
-|---|---|---|
-| `org_credit_refills` | `org_credit_refills_service` (ALL) | Restrict to `auth.role() = 'service_role'` |
-| `subscriptions` | `subscriptions_service_all` (ALL) | Restrict to `auth.role() = 'service_role'` |
-| `onboarding_intents` | `Anyone can create onboarding intent` (INSERT) | Keep public but rate‑limit + add column constraints (this is pre‑signup, intentional) |
-| `sales_inquiries` | `Anyone can submit a sales inquiry` (INSERT) | Keep public (lead form), but tighten WITH CHECK to require non‑empty email + length caps |
+### 1. Close the 12 CI Auth Gate Failures — Real Verification, Not Stubs
+For each failing function, implement the correct trust boundary:
 
-### Bundle 2 — Anon‑callable SECURITY DEFINER functions
-~25 functions (mostly `admin_*`, plus `accept_organization_invite`, `add_org_creator_as_owner`, `add_org_domain`, `assign_org_seat`, `admin_force_tier`, `admin_change_account_type`, `admin_create_impersonation_token`, `admin_delete_org`, `admin_suspend_account`, `admin_unsuspend_account`, `admin_transfer_org_owner`, `admin_get_email_log`, `admin_bump_security_versions_except`, `admin_activate_enterprise_org`) currently grant EXECUTE to `anon`.
+- **Webhooks** (Stripe, Replicate, ElevenLabs, Kling callbacks): HMAC-SHA256 signature verification using stored webhook secrets, constant-time comparison, 5-min timestamp tolerance, raw-body preservation. Reject on missing/invalid signature with 401 + structured log.
+- **Cron / scheduled functions**: require `x-cron-secret` header matched against `CRON_SHARED_SECRET` env var (added via secrets tool), OR validate service-role JWT via `auth.getClaims` and assert `role === 'service_role'`.
+- **Public widget endpoints**: scoped origin allowlist + per-IP rate limit table (lightweight, RLS-protected) + input validation via Zod.
 
-Internal `has_role(...)` guard means they reject anon at runtime, but defense‑in‑depth says: `REVOKE EXECUTE … FROM anon, public; GRANT EXECUTE … TO authenticated;`. Org‑invite functions stay callable by `authenticated` only.
+Shared helper: `supabase/functions/_shared/auth-guard.ts` extended with `verifyWebhookSignature(secretEnvVar)`, `requireCronSecret()`, `requireServiceRole()`. CI gate updated to recognize these helpers as valid trust boundaries.
 
-### Bundle 3 — Storage buckets
-All **16 buckets are public** with broad listing. Reclassify:
+Deliverable: `npm run audit:edge-auth` → 64/64 pass.
 
-| Bucket | Decision |
-|---|---|
-| `final-videos`, `thumbnails`, `video-thumbnails`, `scene-images`, `genesis-castings` | Stay public read (showcase). Disallow listing — restrict SELECT to `name = requested object`. |
-| `user-uploads`, `hoppy-uploads`, `brand-assets`, `enterprise-brand-kits`, `voice-tracks`, `character-references`, `photo-edits`, `temp-frames`, `avatars`, `video-clips`, `videos` | Convert to **private**, gate SELECT/INSERT/DELETE by `auth.uid()::text = (storage.foldername(name))[1]`. Use signed URLs in client where playback needs it. |
+### 2. Dead Code Excision (H2/M9)
+Remove with codemod-level rigor, not just file deletion:
 
-This is the single biggest exposure — today anyone with a bucket name can list every other user's uploaded reference images, voice tracks, and brand kits.
+- Delete `supabase/functions/agent-chat/`, `generate-video/`, `generate-single-clip/`, and any other functions confirmed unreferenced by grep across `src/` and other edge functions.
+- Rewire `mode-router` to drop removed branches; update `hollywood-pipeline` callsites that referenced the old single-clip path (verify against the Kling-Hollywood lock + Seedance lock memories).
+- Call `supabase--delete_edge_functions` so deployed functions are also removed.
+- Update `mode-router` tests and add a guard test that asserts the router rejects unknown engines.
 
-### Bundle 4 — Function search_path & duplicates
-- 5 functions are missing `SET search_path = public`. Add it.
-- Three duplicate signatures of `charge_preproduction_credits` / `charge_production_credits` exist. Drop the unused overloads to remove ambiguity.
+### 3. Typed Error Architecture (H4)
+Replace the 993 silent `catch` blocks pattern with a real taxonomy:
 
-### Bundle 5 — Client‑side account scoping
-Sweep `src/` for queries that don't filter by `auth.uid()` (RLS protects us, but explicit scoping prevents accidental cross‑user cache hits in React Query and cuts payload size). Also:
-- Verify every `useQuery` key includes `userId`/`session.user.id` so logout invalidates all caches.
-- Ensure `supabase.auth.signOut()` is followed by `queryClient.clear()` everywhere (not just one path).
-- Audit edge functions for any that accept `userId` from the request body instead of deriving it from `getClaims(token).sub` — those are privilege‑escalation vectors.
+- New module `src/lib/errors/AppError.ts`: discriminated union — `AuthError`, `ValidationError`, `NetworkError`, `PipelineError`, `BillingError`, `UnknownError`. Each carries `code`, `userMessage`, `cause`, `context`, `retryable: boolean`, `severity`.
+- `src/lib/errors/reporter.ts`: single sink. Routes to console (dev), to `error_reports` table (prod, RLS: user can insert own, only admins read), and to a toast for user-facing severities.
+- `src/lib/errors/withErrorBoundary.tsx`: route-level boundary using the typed reporter.
+- Codemod pass: convert top 30 highest-traffic catch blocks (auth, pipeline dispatch, credit operations, Stripe flows, video generation, project CRUD) from `catch (e) { console.error }` → `catch (e) { reportError(toAppError(e, { context })) }`. Document remainder for future passes — no fake "fixed all 993" claim.
+- Edge-function counterpart: `supabase/functions/_shared/errors.ts` with the same taxonomy, structured JSON error responses, and request-id propagation.
 
----
+### 4. Pipeline Realtime — Replace Polling (H7)
+Polling against `pipeline_state` / `projects` tables is what causes the render-stability and credit-idempotency headaches. Move to Supabase Realtime:
 
-## Execution order
-1. **Bundle 1** (4 policies) — single migration, instant lockdown of write paths.
-2. **Bundle 3** (storage) — single migration, biggest user‑visible privacy win.
-3. **Bundle 2** (REVOKE EXECUTE) — single migration, no behavior change for legit callers.
-4. **Bundle 4** (search_path + dupes) — cleanup migration.
-5. **Bundle 5** (client + edge sweep) — code‑only PR, no DB changes.
+- Enable `REPLICA IDENTITY FULL` and `supabase_realtime` publication on: `projects`, `pipeline_state`, `pipeline_clips`, `pending_video_tasks`.
+- New hook `src/hooks/useProjectChannel.ts`: subscribes to `postgres_changes` filtered by `project_id`, with reconnect-on-visibility, exponential backoff, and a deterministic "last event wins" reducer.
+- Refactor `useScenePipeline`, `Production.tsx`, and `SpecializedModeProgress` to consume the channel instead of `setInterval` polls. Keep a 30s safety re-fetch as a belt-and-suspenders, not the primary mechanism.
+- Tear down channels on unmount AND on user identity change (ties into Phase 1 cache reset).
+- Verify by inspecting network panel: poll requests for active project drop to near-zero; UI still updates within ~500ms of edge function writes.
 
-Each bundle = one migration + verification (rerun scanner). I'll pause between bundles so you can review.
+## Technical Notes
 
-## What I'm NOT touching
-- The 24 `USING (true)` SELECT policies on showcase tables (achievements, tier_limits, world chat, public profiles, follows, etc.) — these are intentional public‑read and will be documented in `@security-memory`.
-- The `extension in public` warning — moving pgcrypto/uuid out of public is breaking; accepting the risk and noting it.
+### Migrations required
+- `error_reports` table + RLS (user inserts own; service_role + admin read).
+- `webhook_secrets` lookup table OR rely on existing env-var pattern (will decide after reading current webhook handlers).
+- `rate_limits` table for public widgets (rolling window, indexed on `(endpoint, ip_hash, window_start)`).
+- Publication membership for the 4 pipeline tables.
+
+### Files touched (non-exhaustive)
+```text
+NEW:    supabase/functions/_shared/{auth-guard.ts extended, errors.ts, webhook-verify.ts}
+NEW:    src/lib/errors/{AppError.ts, reporter.ts, withErrorBoundary.tsx}
+NEW:    src/hooks/useProjectChannel.ts
+EDIT:   ~12 edge functions (webhook/cron/widget gating)
+EDIT:   useScenePipeline.ts, Production.tsx, SpecializedModeProgress.tsx
+EDIT:   scripts/audit-edge-function-auth.mjs (recognize new guards)
+DELETE: agent-chat/, generate-video/, generate-single-clip/ (+ deploy delete)
+```
+
+### Out of scope (explicit)
+- Landing page and any component it imports — untouched.
+- Hollywood pipeline mega-file refactor (separate engagement; too risky to bundle).
+- Visual redesign.
+- Storage bucket privatization (Bundle 1 work tracked separately).
+
+### Verification gates before claiming done
+- `npm run audit:edge-auth` → 64/64.
+- Deno tests pass on touched edge functions.
+- Manual: trigger a generation, watch Realtime update Production page without polling requests in network tab.
+- Manual: hit a webhook endpoint with bad signature → 401; with valid signature → 200.
+- Manual: sign out → React Query cache empty, no project data accessible by next user.
+
+## Sequencing
+1 → 2 → 3 → 4. Each vertical fully verified before moving on. No partial claims.

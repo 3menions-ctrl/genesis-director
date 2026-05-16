@@ -30,13 +30,7 @@ const OPTIONS: {
     desc: 'Ship ads, product films and campaigns at the speed of your roadmap.',
     Icon: Briefcase,
   },
-  {
-    id: 'enterprise',
-    title: 'Enterprise',
-    tagline: 'Scale, security, contracts',
-    desc: 'Volume credits, SSO, dedicated support and custom production pipelines.',
-    Icon: Building2,
-  },
+  // Enterprise track temporarily hidden from signup.
 ];
 
 export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
@@ -95,7 +89,7 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
               {OPTIONS.map(({ id, title, tagline, desc, Icon }, idx) => (
                 <motion.button
                   key={id}

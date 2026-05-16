@@ -163,8 +163,8 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
               Tell us how you'll be using the studio so we can tailor the experience.
             </motion.p>
 
-            {/* Two paths */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+            {/* Single path — Enterprise temporarily hidden */}
+            <div className="grid grid-cols-1 gap-5 max-w-md mx-auto">
               <PathCard
                 delay={0.65}
                 onClick={goBusiness}
@@ -173,16 +173,6 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
                 title="Business"
                 copy="Start instantly with credits. Solo, indie studios, and growing teams."
                 accent="hsla(212,100%,60%,0.55)"
-              />
-              <PathCard
-                delay={0.75}
-                onClick={goEnterprise}
-                icon={<Building2 className="w-6 h-6" />}
-                kicker="For Brands & Studios"
-                title="Enterprise"
-                copy="Bespoke onboarding with brand kits, SSO, DPA, and dedicated support."
-                accent="hsla(195,100%,65%,0.6)"
-                premium
               />
             </div>
 

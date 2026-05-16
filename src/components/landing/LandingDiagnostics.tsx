@@ -44,8 +44,7 @@ function shouldShow(): boolean {
     if (new URLSearchParams(window.location.search).get('diag') === '1') return true;
     if (window.localStorage?.getItem('landingDiag') === '1') return true;
   } catch {}
-  // @ts-expect-error vite env
-  return Boolean(import.meta?.env?.DEV);
+  return Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
 }
 
 export function LandingDiagnosticsProvider({ children }: { children: ReactNode }) {

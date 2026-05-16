@@ -8,6 +8,7 @@ import poster2 from '@/assets/hero/hero-poster-2.jpg';
 import poster3 from '@/assets/hero/hero-poster-3.jpg';
 import poster4 from '@/assets/hero/hero-poster-4.jpg';
 import poster5 from '@/assets/hero/hero-poster-5.jpg';
+import { LazyAutoVideo } from '@/components/video/LazyAutoVideo';
 
 // ── Curated reels (admin gallery) ─────────────────────────────────────────────
 const G = {

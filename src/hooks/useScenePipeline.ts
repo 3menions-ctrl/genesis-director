@@ -284,6 +284,10 @@ export function useScenePipeline(
           cameraMove: scene.move,
           mode: isAvatarMode ? "avatar" : sourceDraft.brief.refImageUrl ? "image-to-video" : "text-to-video",
           source: "studio-v2",
+          // Return immediately after dispatch; poll-replicate-prediction handles
+          // completion durably. Avoids the 60s edge-function timeout that was
+          // surfacing "failed" in the UI even when Replicate succeeded.
+          skipPolling: true,
         },
       });
       if (error) {

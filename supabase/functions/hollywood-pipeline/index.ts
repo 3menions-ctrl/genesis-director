@@ -6313,6 +6313,28 @@ async function executePipelineInBackground(
     const lastCompletedStage = determineLastCompletedStage(state);
     
     console.log(`[Hollywood] Saving resumable state: lastStage=${lastCompletedStage}, progress=${state.progress}%`);
+
+    // STANDARDIZED AUTO-REFUND for undelivered clips on terminal failure.
+    // Idempotency key = projectId+stage, so retries never double-refund.
+    try {
+      const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+      const completed = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+      const expected = state.clipCount || (state.production?.clipResults?.length ?? 0);
+      if (!request.skipCreditDeduction && state.totalCredits && expected > 0) {
+        await markProjectFailedAndRefund(supabase, {
+          projectId,
+          userId: request.userId,
+          stage: lastCompletedStage,
+          reason: error,
+          totalCredits: state.totalCredits,
+          expectedClipCount: expected,
+          completedClipCount: completed,
+          source: 'hollywood',
+        });
+      }
+    } catch (refundErr) {
+      console.error('[Hollywood] auto-refund handler error (continuing to legacy save):', refundErr);
+    }
     
     // Get existing pro_features_data to preserve identity data
     const { data: existingProject } = await supabase

@@ -1776,6 +1776,7 @@ serve(async (req) => {
           .from('movie_projects')
           .update({
             status: 'failed',
+            last_error: 'Avatar generation failed after retries — no video produced',
             pipeline_state: {
               ...pipelineState,
               stage: 'error',

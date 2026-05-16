@@ -742,12 +742,13 @@ async function handleAvatarCinematicMode(params: {
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
   avatarCast?: AvatarCastMember[];
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
   supabase: any;
 }) {
   const { 
     projectId, userId, concept, sceneDescription, avatarImageUrl, voiceId, 
     aspectRatio, clipCount, clipDuration, enableNarration, enableMusic,
-    characterBible, avatarTemplateId, avatarCast, supabase 
+    characterBible, avatarTemplateId, avatarCast, videoEngine, supabase 
   } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

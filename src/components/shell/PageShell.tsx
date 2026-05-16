@@ -26,7 +26,10 @@ export function PageShell({ children, width = 'wide', className, pad = true }: P
   return (
     <main
       className={cn(
-        'relative z-10 mx-auto w-full px-6 sm:px-8 lg:px-10',
+        // min-h-dvh holds the layout open during route swaps so the
+        // sidebar/header stay anchored and content does not collapse
+        // to 0 height between data fetches.
+        'relative z-10 mx-auto w-full min-h-dvh px-6 sm:px-8 lg:px-10',
         // The global AppShell already provides a sticky 56px topbar, so we only
         // add a small breathing-room top padding here.
         'pt-6 sm:pt-8',

@@ -850,7 +850,7 @@ export default function StudioShell() {
 
             {step === "cast" && (
               <FlowPanel key="cast" eyebrow="Step 2" title="Pick the avatars that will appear" icon={Users}>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_300px]">
                   <div className="rounded-2xl border border-border bg-card/55 p-5">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -927,7 +927,7 @@ export default function StudioShell() {
 
             {step === "clips" && (
               <FlowPanel key="clips" eyebrow="Step 4" title="Watch clips, regenerate, then send to editor" icon={Clapperboard}>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_300px]">
                   <div className="grid gap-3 md:grid-cols-2">
                     {draft.scenes.map(scene => (
                       <ClipCard key={scene.id} scene={scene} active={activeScene?.id === scene.id} onSelect={() => setActive(scene.id)} onRender={() => generateScene(scene.id)} />

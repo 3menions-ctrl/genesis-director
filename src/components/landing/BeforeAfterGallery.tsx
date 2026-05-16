@@ -22,19 +22,19 @@ import sceneC from '@/assets/environments/la-canyon-sunset.jpg';
 
 const G = {
   beautifulDay:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
   sunsetDreams:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4',
   snowy:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2b6fb5c2-ca02-4c06-8341-ec32286c9e60_1768303542610.mp4',
   fiery:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_41698610-96e3-4cb5-95a0-aacfaee56d40_1768299043866.mp4',
   silentVigil:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_bc47c878-24ae-42b5-96b8-3f0eda090302_1768276458728.mp4',
   enchanted:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/6fb5c360-6b46-43b7-8d31-59c9ada01e9b/clip_6fb5c360-6b46-43b7-8d31-59c9ada01e9b_0_1770311441134.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_0_1770518760774.mp4',
   studioTalk:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1bf24783-e03a-446a-bc65-2eca25644d1d_1768792154784.mp4',
+    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5a66288c-cb24-420e-ae65-7c531967de70_1768273917429.mp4',
   brandSpot:
     'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4',
 };

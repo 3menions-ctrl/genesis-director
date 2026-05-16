@@ -19,7 +19,7 @@ const SEEDANCE_VIDEO = '/__l5e/assets-v1/db9b8c6e-776b-4292-b571-6f2aac699445/se
 const KLING_VIDEO = '/__l5e/assets-v1/1fac204f-d8cc-4285-aee2-28065b1f7bb4/test-seedance-clip.mp4';
 // Distinct remote avatar reels — prevents the same "wave hello" loop from
 // appearing in multiple tiles across the Studio tour.
-const AVATAR_VIDEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
+const AVATAR_VIDEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/2bf9822a-95e4-43cc-afb5-fe8b707bf5f4/avatar_2bf9822a-95e4-43cc-afb5-fe8b707bf5f4_clip1_lipsync_1771556343051.mp4';
 const AVATAR_VIDEO_2 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/b50d6ab1-c49a-4e51-a435-0b0b0b9c7049/avatar_b50d6ab1-c49a-4e51-a435-0b0b0b9c7049_clip1_lipsync_1771735085809.mp4';
 const AVATAR_VIDEO_3 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fb50fcdc-bed9-4423-a5cb-871a26f77ee1/avatar_fb50fcdc-bed9-4423-a5cb-871a26f77ee1_clip1_lipsync_1771727043052.mp4';
 const HOPPY_VIDEO    = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/6c28668e-2067-4b92-9fac-8f6ba70cb3a8/avatar_6c28668e-2067-4b92-9fac-8f6ba70cb3a8_clip1_lipsync_1770183667726.mp4';

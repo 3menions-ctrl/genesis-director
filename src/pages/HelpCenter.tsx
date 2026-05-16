@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
-import { SupportInbox } from '@/components/social/SupportInbox';
 import { SupportInboxModal } from '@/components/social/SupportInboxModal';
 import { useAuth } from '@/contexts/AuthContext';
 

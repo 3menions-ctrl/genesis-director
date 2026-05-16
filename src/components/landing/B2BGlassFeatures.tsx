@@ -8,38 +8,38 @@ import {
 const FEATURES = [
   {
     icon: Wand2,
-    title: 'Brief → Cinema in minutes',
-    desc: 'Drop a creative brief, get a fully-rendered cinematic ad with on-brand voice, motion and pacing — ready for paid social.',
+    title: 'Brief to first cut in minutes',
+    desc: 'Paste a creative brief or product URL. The director model writes the script, picks shots and renders a first cut you can actually review.',
     accent: '#0A84FF',
   },
   {
     icon: Palette,
-    title: 'Locked brand kits',
-    desc: 'Workspace-wide colors, fonts, logos and tone-of-voice baked into every render. No more off-brand creative.',
+    title: 'Brand kits at the workspace level',
+    desc: 'Pin colors, fonts, logos and tone-of-voice once. Every render in the workspace inherits them — no per-asset policing.',
     accent: '#7DD3FC',
   },
   {
     icon: Workflow,
-    title: 'Approval workflows',
-    desc: 'Draft → Review → Approved with role-based gates. Reviewers comment on the timeline. Producers ship the cleared cut.',
+    title: 'Review on the timeline',
+    desc: 'Reviewers leave timestamped comments. Approvals are role-gated and versioned, so you always know which cut shipped.',
     accent: '#22D3EE',
   },
   {
     icon: Globe2,
-    title: 'Localize at scale',
-    desc: 'Translate dialogue, swap on-screen text and re-voice in 30+ languages from a single master video.',
+    title: 'Localize from one master',
+    desc: 'Translate dialogue, swap on-screen text and re-voice avatars in 30+ languages without re-shooting the source cut.',
     accent: '#0A84FF',
   },
   {
     icon: GitBranch,
-    title: 'Variant engine',
-    desc: 'Spin a hero ad into 50 platform-perfect cuts — 9:16, 1:1, 16:9 — with hooks, captions and CTAs auto-tailored.',
+    title: 'Variants for every placement',
+    desc: 'Resize one hero into 9:16, 1:1 and 16:9 cuts with hooks, captions and CTAs adjusted per surface.',
     accent: '#60A5FA',
   },
   {
     icon: ShieldCheck,
-    title: 'Enterprise-grade security',
-    desc: 'SSO, SCIM, audit logs, region pinning and SOC-2 controls. Your creative never leaves your workspace.',
+    title: 'Built for security reviews',
+    desc: 'SSO, SCIM, audit logs and row-level isolation per workspace. Private projects stay inside your tenant.',
     accent: '#34D399',
   },
 ];
@@ -111,12 +111,12 @@ export const B2BGlassFeatures = memo(function B2BGlassFeatures() {
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] max-w-3xl mx-auto">
             One workspace.{' '}
-            <span className="text-white/75">A complete</span>{' '}
-            video production studio.
+            <span className="text-white/75">The whole</span>{' '}
+            video production stack.
           </h2>
           <p className="mt-6 max-w-2xl mx-auto text-white/55 text-lg font-light leading-relaxed">
-            Everything your marketing org needs to brief, generate, review and
-            ship video at the cadence of paid media.
+            Brief, generate, review and ship — at the cadence your paid media
+            team already runs.
           </p>
         </motion.div>
 
@@ -144,19 +144,19 @@ const STEPS = [
   {
     n: '02',
     title: 'Generate',
-    desc: 'Cinema-grade scenes are composed shot-by-shot with your locked brand kit, talent and voice.',
+    desc: 'Scenes are composed shot-by-shot using your locked brand kit, talent and voice.',
     icon: Rocket,
   },
   {
     n: '03',
     title: 'Review',
-    desc: 'Reviewers leave timestamped comments. Producers iterate in the editor with one-click re-renders.',
+    desc: 'Reviewers comment directly on the timeline. Producers iterate with one-click re-renders.',
     icon: Workflow,
   },
   {
     n: '04',
     title: 'Ship',
-    desc: 'Export to every platform aspect ratio, push to ad accounts, or hand off to your DAM.',
+    desc: 'Export the platform aspect ratios you need and download or hand off to your DAM.',
     icon: BarChart3,
   },
 ];
@@ -176,7 +176,7 @@ export const B2BWorkflow = memo(function B2BWorkflow() {
             Workflow
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
-            From brief to broadcast in four steps.
+            From brief to final cut in four steps.
           </h2>
         </motion.div>
 

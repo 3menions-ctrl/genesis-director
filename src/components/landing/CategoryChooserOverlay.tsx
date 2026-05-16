@@ -34,7 +34,7 @@ const OPTIONS: {
     id: 'enterprise',
     title: 'Enterprise',
     tagline: 'Scale, security, contracts',
-    desc: 'Volume credits, SSO, dedicated support and bespoke production pipelines.',
+    desc: 'Volume credits, SSO, dedicated support and custom production pipelines.',
     Icon: Building2,
   },
 ];
@@ -91,7 +91,7 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
                 </span>
               </h2>
               <p className="mt-4 text-white/55 text-base md:text-lg font-light max-w-xl mx-auto">
-                Pick the path that fits — we'll tailor your studio from the first frame.
+                Pick the path that fits — we'll set up the right defaults for you.
               </p>
             </div>
 

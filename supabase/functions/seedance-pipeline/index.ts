@@ -659,7 +659,10 @@ serve(async (req) => {
         audioPromises.voice = callEdgeFunction("generate-voice", {
           projectId,
           userId: request.userId,
-          lines: voiceLines,
+          text: voiceLines.join("\n\n"),
+          voiceId: request.voiceId,
+          shotId: request.isBreakout ? "breakout_voice" : "seedance_voice",
+          characterName: request.characterLock?.name,
           engine: "seedance",
         }).catch((e) => {
           console.warn(`[Seedance] generate-voice failed:`, e?.message);
@@ -695,6 +698,17 @@ serve(async (req) => {
       }
     }
     console.log(`[Seedance] Audio assets ready: ${Object.keys(audioAssets).join(",") || "(none)"}`);
+    const voiceAudioUrl = audioAssets.voice || null;
+    const musicAudioUrl = audioAssets.music || null;
+    if (voiceAudioUrl || musicAudioUrl) {
+      await supabase
+        .from("movie_projects")
+        .update({
+          voice_audio_url: voiceAudioUrl,
+          music_url: musicAudioUrl,
+        })
+        .eq("id", projectId);
+    }
 
     // ═══ DISPATCH SEEDANCE CLIPS (parallel) ═══
     await supabase

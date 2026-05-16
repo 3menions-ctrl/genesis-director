@@ -148,7 +148,7 @@ function detectImageOrientation(base64Data: string): ImageOrientation {
 /**
  * Upload base64 image to Supabase Storage and return public URL
  */
-async function uploadToStorage(base64Data: string): Promise<string> {
+async function uploadToStorage(base64Data: string, userId: string): Promise<string> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   
@@ -165,22 +165,13 @@ async function uploadToStorage(base64Data: string): Promise<string> {
     bytes[i] = binaryString.charCodeAt(i);
   }
   
-  // Generate unique filename
-  const fileName = `ref_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+  // SECURITY: face/biometric reference images are owner-private. Store under
+  // the owner's folder so RLS (folder == auth.uid()) authorizes the owner,
+  // and serve via signed URLs only (bucket is `public:false`).
+  const fileName = `${userId}/ref_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
   const bucketName = 'character-references';
-  
-  // Check if bucket exists, create if not
-  const { data: buckets } = await supabase.storage.listBuckets();
-  const bucketExists = buckets?.some(b => b.name === bucketName);
-  
-  if (!bucketExists) {
-    console.log(`Creating storage bucket: ${bucketName}`);
-    await supabase.storage.createBucket(bucketName, {
-      public: true,
-      fileSizeLimit: 10485760, // 10MB
-    });
-  }
-  
+  // Bucket is provisioned by migration; do NOT recreate as public.
+
   // Upload file
   const { error: uploadError } = await supabase.storage
     .from(bucketName)
@@ -194,14 +185,19 @@ async function uploadToStorage(base64Data: string): Promise<string> {
     throw new Error(`Failed to upload image: ${uploadError.message}`);
   }
   
-  // Get public URL
-  const { data: publicUrlData } = supabase.storage
+  // Sign with a 1h TTL — long enough for downstream Replicate/Kling fetch,
+  // short enough that a leaked URL stops working quickly.
+  const { data: signed, error: signErr } = await supabase.storage
     .from(bucketName)
-    .getPublicUrl(fileName);
-  
-  console.log('[analyze-reference-image] Uploaded to storage:', publicUrlData.publicUrl);
-  
-  return publicUrlData.publicUrl;
+    .createSignedUrl(fileName, 3600);
+
+  if (signErr || !signed?.signedUrl) {
+    console.error("Storage sign error:", signErr);
+    throw new Error(`Failed to sign image URL: ${signErr?.message ?? 'unknown'}`);
+  }
+
+  console.log('[analyze-reference-image] Uploaded + signed (private):', fileName);
+  return signed.signedUrl;
 }
 
 /**
@@ -426,7 +422,13 @@ Return ONLY valid JSON in this exact format:
     let storedImageUrl = imageUrl;
     if (imageBase64 && !imageUrl) {
       console.log('[analyze-reference-image] Uploading base64 image to storage...');
-      storedImageUrl = await uploadToStorage(imageBase64);
+      if (!auth.userId) {
+        return new Response(
+          JSON.stringify({ error: 'Authenticated user id required for upload' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      storedImageUrl = await uploadToStorage(imageBase64, auth.userId);
     }
 
     // CRITICAL: Detect image orientation for correct Veo API aspect ratio

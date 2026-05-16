@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
 
 // The Studio Storytelling Journey video URL
-const WELCOME_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4';
+const WELCOME_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
 export function WelcomeVideoModal() {
   const { user, profile, refreshProfile } = useAuth();

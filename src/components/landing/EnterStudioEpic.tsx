@@ -754,14 +754,9 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                     animation: 'ese-orbit-ccw 38s linear infinite',
                   }}
                 >
-                  <video
+                  <LazyAutoVideo
                     src={m.loop}
                     poster={m.src}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
                     aria-hidden
                     className="w-full h-full object-cover"
                   />

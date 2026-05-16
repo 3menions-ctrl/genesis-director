@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SceneDraft, StudioDraft } from "@/components/studio/v2/types";
 import { engineToBackend, getQualityProfile, creditsForScene, ENGINES } from "@/lib/video/engines";
+import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
 
 /**
  * Per-scene generate / poll. Server-side does the actual credit deduction
@@ -12,8 +13,21 @@ export function useScenePipeline(
   draft: StudioDraft,
   patchScene: (id: string, patch: Partial<SceneDraft>) => void,
   ensureProjectId: () => Promise<string>,
+  getLatestDraft?: () => StudioDraft,
 ) {
   const polling = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  // Tracks scenes parked client-side waiting on a predecessor. Keyed by
+  // sceneId so we can cancel the watcher if the user manually retries /
+  // edits / removes the scene.
+  const gateWatchers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  const stopGate = (id: string) => {
+    const t = gateWatchers.current.get(id);
+    if (t) {
+      clearInterval(t);
+      gateWatchers.current.delete(id);
+    }
+  };
 
   const stopPoll = (id: string) => {
     const t = polling.current.get(id);

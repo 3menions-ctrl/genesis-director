@@ -429,6 +429,16 @@ function Hero({ onEnter }: { onEnter: () => void }) {
 
   return (
     <section ref={ref} className="relative min-h-[110vh] flex items-end overflow-hidden">
+      {/* Local cinematic keyframes */}
+      <style>{`
+        @keyframes studio-twinkle { 0%,100%{opacity:.15;transform:scale(.85)} 50%{opacity:.95;transform:scale(1.15)} }
+        @keyframes studio-spot-sweep { 0%,100%{transform:translateX(-10%) rotate(-6deg);opacity:.55} 50%{transform:translateX(10%) rotate(6deg);opacity:.95} }
+        @keyframes studio-bulb { 0%,100%{opacity:.3;box-shadow:0 0 6px rgba(255,220,140,.5),0 0 14px rgba(255,200,90,.3)} 50%{opacity:1;box-shadow:0 0 14px rgba(255,235,180,.95),0 0 32px rgba(255,200,90,.7),0 0 60px rgba(255,180,60,.4)} }
+        @keyframes studio-bulb-chase { 0%,100%{opacity:.25} 15%{opacity:1} 40%{opacity:.25} }
+        @keyframes studio-float { 0%,100%{transform:translateY(0) rotate(var(--rr,-3deg))} 50%{transform:translateY(-12px) rotate(calc(var(--rr,-3deg) + 1.4deg))} }
+        @keyframes studio-scan { 0%{transform:translateY(-100%)} 100%{transform:translateY(100%)} }
+      `}</style>
+
       {/* Video bed */}
       <motion.div style={{ y, scale, opacity }} className="absolute inset-0 -z-10">
         <VideoTile src={HERO_VIDEO} className="brightness-[0.55]" />
@@ -449,6 +459,92 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           className="absolute -top-1/3 left-1/4 w-[60vw] h-[60vw] rounded-full bg-[#0A84FF]/[0.18] blur-[160px]" />
         <motion.div animate={{ x: ['6%', '-6%', '6%'], y: ['3%', '-3%', '3%'] }} transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-[#5AC8FA]/[0.10] blur-[180px]" />
+      </div>
+
+      {/* Twinkling starfield */}
+      <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none">
+        {Array.from({ length: 60 }).map((_, i) => {
+          const top = (i * 53) % 100;
+          const left = (i * 37) % 100;
+          const size = 1 + ((i * 7) % 3);
+          const dur = 2.5 + ((i * 13) % 40) / 10;
+          const delay = ((i * 11) % 30) / 10;
+          return (
+            <span key={i} className="absolute rounded-full bg-white"
+              style={{
+                top: `${top}%`, left: `${left}%`, width: size, height: size,
+                boxShadow: '0 0 6px rgba(255,255,255,0.85)',
+                animation: `studio-twinkle ${dur}s ease-in-out ${delay}s infinite`,
+              }} />
+          );
+        })}
+      </div>
+
+      {/* Sweeping spotlight cones */}
+      <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div className="absolute -top-32 left-[14%] w-[34%] h-[160%] origin-top"
+          style={{
+            background: 'linear-gradient(180deg, hsla(48,100%,75%,0.22), transparent 70%)',
+            filter: 'blur(34px)',
+            clipPath: 'polygon(46% 0, 54% 0, 100% 100%, 0 100%)',
+            animation: 'studio-spot-sweep 11s ease-in-out infinite',
+          }} />
+        <div className="absolute -top-32 right-[14%] w-[34%] h-[160%] origin-top"
+          style={{
+            background: 'linear-gradient(180deg, hsla(212,100%,75%,0.22), transparent 70%)',
+            filter: 'blur(36px)',
+            clipPath: 'polygon(46% 0, 54% 0, 100% 100%, 0 100%)',
+            animation: 'studio-spot-sweep 13s ease-in-out infinite reverse',
+          }} />
+      </div>
+
+      {/* Marquee bulb arc — top crown */}
+      <div aria-hidden className="absolute top-0 left-0 right-0 h-24 pointer-events-none">
+        {Array.from({ length: 48 }).map((_, i) => {
+          const left = (i / 47) * 100;
+          const dip = Math.sin((i / 47) * Math.PI) * 28;
+          return (
+            <span key={i} className="absolute rounded-full"
+              style={{
+                left: `${left}%`, top: 14 + dip,
+                width: 6, height: 6, marginLeft: -3, marginTop: -3,
+                background: 'radial-gradient(circle, #fff6d8 0%, #ffcf72 60%, transparent 75%)',
+                animation: `studio-bulb-chase 2.2s linear ${(i / 48) * 2.2}s infinite`,
+              }} />
+          );
+        })}
+      </div>
+
+      {/* Floating film stills — depth around the headline */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none -z-[5] hidden lg:block">
+        {[
+          { src: SEEDANCE_VIDEO, top: '18%', left: '6%',  w: 180, h: 260, rr: -7 },
+          { src: KLING_VIDEO,    top: '12%', right: '7%', w: 200, h: 280, rr: 6 },
+          { src: AVATAR_VIDEO,   top: '62%', left: '4%',  w: 160, h: 220, rr: 5 },
+          { src: HOPPY_VIDEO,    top: '58%', right: '5%', w: 170, h: 240, rr: -6 },
+        ].map((t, i) => (
+          <div key={i} className="absolute rounded-2xl overflow-hidden border border-white/[0.08]"
+            style={{
+              top: t.top,
+              ...(t.left ? { left: t.left } : { right: t.right }),
+              width: t.w, height: t.h,
+              boxShadow: '0 30px 70px -30px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.06)',
+              animation: `studio-float ${6 + i * 0.6}s ease-in-out ${i * 0.4}s infinite`,
+              ['--rr' as never]: `${t.rr}deg`,
+              opacity: 0.85,
+            }}>
+            <video src={t.src} autoPlay loop muted playsInline preload="metadata"
+              className="w-full h-full object-cover" />
+            <div aria-hidden className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.65) 100%)' }} />
+            <span aria-hidden className="absolute inset-x-0 h-[2px] pointer-events-none"
+              style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,80%,0.55), transparent)',
+                       animation: `studio-scan ${4 + i}s linear infinite` }} />
+            <div className="absolute bottom-2 left-2.5 text-[9px] font-mono uppercase tracking-[0.22em] text-white/85">
+              Reel · {String(i + 1).padStart(2, '0')}
+            </div>
+          </div>
+        ))}
       </div>
 
       <motion.div style={{ y: titleY }} className="relative w-full max-w-7xl mx-auto px-6 pb-32 pt-44">

@@ -218,33 +218,25 @@ describe('PAYMENT: BuyCreditsModal completeness', () => {
 // ---------------------------------------------------------------------------
 // 7. STRIPE WEBHOOK
 // ---------------------------------------------------------------------------
-describe('PAYMENT: stripe-webhook edge function', () => {
+describe('PAYMENT: payments-webhook edge function', () => {
   let src: string;
-  beforeAll(() => { src = readFile('supabase/functions/stripe-webhook/index.ts'); });
+  beforeAll(() => { src = readFile('supabase/functions/payments-webhook/index.ts'); });
 
   it('exists as a deployed edge function', () => {
-    expect(fileExists('supabase/functions/stripe-webhook/index.ts')).toBe(true);
+    expect(fileExists('supabase/functions/payments-webhook/index.ts')).toBe(true);
   });
 
-  it('requires STRIPE_WEBHOOK_SECRET', () => {
-    expect(src).toContain('STRIPE_WEBHOOK_SECRET');
+  it('delegates to the shared Stripe webhook handler', () => {
+    expect(src).toContain('handleStripeWebhookRequest');
   });
 
-  it('verifies webhook signature cryptographically', () => {
-    // Webhook signature verification was moved to the shared verifyStripeWebhook helper.
-    expect(src).toMatch(/verifyStripeWebhook|constructEvent/);
-  });
-
-  it('handles checkout.session.completed event', () => {
-    expect(src).toContain('checkout.session.completed');
-  });
-
-  it('uses add_credits RPC for idempotent credit fulfillment', () => {
-    expect(src).toMatch(/add_credits/);
-  });
-
-  it('uses SUPABASE_SERVICE_ROLE_KEY for admin operations', () => {
-    expect(src).toContain('SUPABASE_SERVICE_ROLE_KEY');
+  it('shared handler verifies signatures and grants credits', () => {
+    const shared = readFile('supabase/functions/_shared/stripe-webhook-handler.ts');
+    expect(shared).toMatch(/verifyStripeWebhook/);
+    expect(shared).toContain('checkout.session.completed');
+    expect(shared).toMatch(/add_credits/);
+    expect(shared).toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(shared).toMatch(/PAYMENTS_(SANDBOX|LIVE)_WEBHOOK_SECRET/);
   });
 });
 
@@ -322,7 +314,7 @@ describe('INFRASTRUCTURE: Edge function deployment readiness', () => {
   });
 
   it('stripe-webhook function directory exists', () => {
-    expect(fileExists('supabase/functions/stripe-webhook/index.ts')).toBe(true);
+    expect(fileExists('supabase/functions/payments-webhook/index.ts')).toBe(true);
   });
 });
 
@@ -336,8 +328,8 @@ describe('SECURITY: Payment flow hardening', () => {
   });
 
   it('webhook requires signature verification (no bypass)', () => {
-    const src = readFile('supabase/functions/stripe-webhook/index.ts');
-    expect(src).toContain('STRIPE_WEBHOOK_SECRET');
+    const src = readFile('supabase/functions/_shared/stripe-webhook-handler.ts');
+    expect(src).toMatch(/PAYMENTS_(SANDBOX|LIVE)_WEBHOOK_SECRET/);
     expect(src).not.toContain('// Skip signature verification');
   });
 

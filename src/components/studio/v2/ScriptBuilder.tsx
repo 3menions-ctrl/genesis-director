@@ -98,6 +98,22 @@ function continuityWarnings(scene: SceneDraft, cast: CastMember[], prev?: SceneD
   if (prev && prev.location && prev.location === scene.location) w.push("Same location as previous scene — vary the staging");
   if (scene.duration >= 12 && !scene.move) w.push("Long beat with static camera — consider movement");
   if (scene.dialogue.length > 280) w.push("Dialogue is dense (>280 chars) — Kling may truncate");
+  // Independent scenes lose all carry-over from the prior shot — they MUST
+  // provide their own anchors (reference image, assigned character, or a
+  // descriptive location/beat) or Kling has nothing to lock the render to.
+  if (scene.chainFromPrevious === false) {
+    const hasRefImage = !!scene.refImageUrl;
+    const hasCharacter = !!scene.speakerId && cast.some(c => c.id === scene.speakerId && c.imageUrl);
+    const locationSpecific = scene.location.trim().length > 0
+      && !/^(int\.?|ext\.?)\s*(scene|untitled|location)?\s*(—|-)?\s*(day|night)?$/i.test(scene.location.trim());
+    const hasEnvironmentPrompt = locationSpecific || scene.beat.trim().length >= 20;
+    if (!hasRefImage && !hasCharacter && !hasEnvironmentPrompt) {
+      w.push("Independent scene has no anchor — add a reference image, assign a character, or describe the location/action before rendering");
+    } else {
+      if (!hasRefImage && !hasCharacter) w.push("Independent scene has no visual anchor — attach a reference image or character for consistent framing");
+      if (!hasEnvironmentPrompt) w.push("Independent scene needs a specific location or richer action beat — generic slugline alone won't ground the shot");
+    }
+  }
   return w;
 }
 

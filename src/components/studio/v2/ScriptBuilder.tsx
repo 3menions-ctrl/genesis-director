@@ -452,6 +452,38 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+// ─── chain link / chain-break divider ─────────────────────────────────────
+//
+// Sits between scene N-1 and scene N. Reflects + toggles
+// `scenes[N].chainFromPrevious`. Default = chained (frame + identity carry).
+// When broken, scene N renders as a standalone shot — no last-frame inherit,
+// no character/environment carry-over. Use for anthologies & hard cuts.
+function ChainDivider({ chained, onToggle }: { chained: boolean; onToggle: () => void }) {
+  return (
+    <div className="relative flex items-center justify-center py-1" aria-label={chained ? "Continuous from previous scene" : "Independent scene — chain broken"}>
+      <div className={cn(
+        "absolute inset-x-8 top-1/2 h-px -translate-y-1/2",
+        chained ? "bg-gradient-to-r from-transparent via-accent/30 to-transparent"
+                : "bg-[repeating-linear-gradient(90deg,hsl(0,0%,100%,0.18)_0_6px,transparent_6px_12px)]",
+      )} />
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.22em] backdrop-blur transition-colors",
+          chained
+            ? "border-accent/30 bg-accent/[0.08] text-accent/90 hover:border-accent/60"
+            : "border-amber-400/30 bg-amber-400/[0.06] text-amber-300/90 hover:border-amber-400/60",
+        )}
+        title={chained ? "Click to break continuity — make next scene independent" : "Click to chain — inherit previous frame & identity"}
+      >
+        {chained ? <Link2 className="h-3 w-3" /> : <Scissors className="h-3 w-3" />}
+        {chained ? "Continuous" : "Independent scene"}
+      </button>
+    </div>
+  );
+}
+
 // ─── read-through teleprompter ─────────────────────────────────────────────
 
 function ReadThrough({ scenes, cast, onClose }: { scenes: SceneDraft[]; cast: CastMember[]; onClose: () => void }) {

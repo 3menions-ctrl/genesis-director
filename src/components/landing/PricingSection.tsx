@@ -13,8 +13,11 @@ const PRICING_STATS = [
   { value: '✗', label: 'no subscriptions' },
 ] as const;
 
+// Unique stitched final (does not duplicate Hoppy or any other landing asset).
+// HLS is unavailable, so we point hlsUrl at the mp4 — the player gracefully
+// falls back to direct mp4 playback after HLS init fails.
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4';
-const STORYTELLING_MP4_FALLBACK = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4';
+const STORYTELLING_MP4_FALLBACK = STORYTELLING_HLS_URL;
 
 export const INACTIVITY_TIMEOUT_MS = 15_000;
 

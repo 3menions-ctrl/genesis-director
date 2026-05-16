@@ -246,6 +246,14 @@ function CreateContentInner() {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
+    identityBible?: unknown;
+    characterLock?: unknown;
+    useTemplateShots?: boolean;
+    templateShotSequence?: unknown[];
+    templateName?: string;
+    templateStyleAnchor?: unknown;
+    templateCharacters?: unknown[];
+    templateEnvironmentLock?: unknown;
     // Engine selection: 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
     videoEngine?: 'kling' | 'veo' | 'seedance';
   }) => {
@@ -298,6 +306,12 @@ function CreateContentInner() {
         isBreakout: config.isBreakout,
         breakoutStartImageUrl: config.breakoutStartImageUrl,
         breakoutPlatform: config.breakoutPlatform,
+        useTemplateShots: config.useTemplateShots,
+        templateShotSequence: config.templateShotSequence,
+        templateName: config.templateName,
+        templateStyleAnchor: config.templateStyleAnchor,
+        templateCharacters: config.templateCharacters,
+        templateEnvironmentLock: config.templateEnvironmentLock,
       };
       
       // Add avatar parameters if this is a breakout template with avatar
@@ -306,6 +320,10 @@ function CreateContentInner() {
         requestBody.voiceId = config.avatarVoiceId;
         requestBody.avatarTemplateId = config.avatarTemplateId;
         requestBody.avatarName = config.avatarName;
+        requestBody.identityBible = config.identityBible;
+        requestBody.characterLock = config.characterLock;
+        requestBody.referenceImageUrl = config.avatarImageUrl;
+        requestBody.breakoutDialogue = config.prompt?.trim();
         // Use the avatar image as the reference for character consistency
         requestBody.imageUrl = config.avatarImageUrl;
       }

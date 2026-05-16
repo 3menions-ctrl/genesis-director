@@ -166,6 +166,11 @@ serve(async (req) => {
 
     // Extract music sync plan for dialogue ducking and volume automation
     const proFeatures = project?.pro_features_data as Record<string, unknown> | null;
+    const postProduction = existingTasks?.postProduction as Record<string, unknown> | undefined;
+    const taskAudioAssets = postProduction?.audioAssets as Record<string, unknown> | undefined;
+    const masterAudioUrl = (project?.voice_audio_url as string | null) || (taskAudioAssets?.voice as string | null) || null;
+    const musicUrl = (project?.music_url as string | null) || (taskAudioAssets?.music as string | null) || null;
+    const hasExternalAudio = !!masterAudioUrl || !!musicUrl;
     const musicSyncPlan = proFeatures?.musicSyncPlan as {
       timingMarkers?: Array<{ timestamp: number; shotId: string; hasDialogue: boolean; recommendedVolume: number }>;
       musicCues?: Array<{ timestamp: number; type: string; description: string; targetMood?: string }>;
@@ -330,12 +335,10 @@ serve(async (req) => {
         };
       }),
       totalDuration,
-      // KLING NATIVE AUDIO: All clips use Kling V3's embedded audio for consistency
-      // No TTS overlay — native lip-sync audio is the final audio
-      voiceUrl: null,
-      masterAudioUrl: null,
+      voiceUrl: masterAudioUrl,
+      masterAudioUrl,
       isAvatarProject,
-      musicUrl: project?.music_url || null,
+      musicUrl,
       // Volume automation keyframes for real-time ducking
       volumeAutomation,
       // Music cue markers for visual sync
@@ -347,14 +350,13 @@ serve(async (req) => {
         cueCount: musicCueMarkers.length,
       } : null,
       audioConfig: {
-        includeNarration: false,
-        // KLING NATIVE AUDIO: Never mute — embedded audio IS the final audio
-        muteClipAudio: false,
+        includeNarration: !!masterAudioUrl,
+        muteClipAudio: hasExternalAudio,
         musicVolume: isAvatarProject ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,
         enableDialogueDucking: volumeAutomation.length > 0,
-        embeddedAudioOnly: true,
+        embeddedAudioOnly: !hasExternalAudio,
       },
     };
 

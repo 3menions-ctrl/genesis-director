@@ -168,6 +168,14 @@ interface CreationHubProps {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
+    identityBible?: unknown;
+    characterLock?: unknown;
+    useTemplateShots?: boolean;
+    templateShotSequence?: unknown[];
+    templateName?: string;
+    templateStyleAnchor?: unknown;
+    templateCharacters?: unknown[];
+    templateEnvironmentLock?: unknown;
   }) => void;
   onReady?: () => void;
   className?: string;
@@ -249,6 +257,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       if (appliedSettings.mood) setMood(appliedSettings.mood);
       if (appliedSettings.genre) setGenre(appliedSettings.genre);
       if (appliedSettings.colorGrading || appliedSettings.environmentPrompt) setShowAdvanced(true);
+      if (appliedSettings.isBreakout) setVideoEngine('seedance');
     }
   }, [appliedSettings, maxClips]);
 
@@ -494,17 +503,38 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
       videoEngine: videoEngine as any,
+      useTemplateShots: !!appliedSettings?.shotSequence?.length,
+      templateShotSequence: appliedSettings?.shotSequence,
+      templateName: appliedSettings?.templateName,
+      templateStyleAnchor: appliedSettings?.styleAnchor,
+      templateCharacters: appliedSettings?.characterTemplates,
+      templateEnvironmentLock: appliedSettings?.environmentLock,
     };
 
     if (isBreakoutTemplate && appliedSettings?.startImageUrl && selectedAvatar) {
-      (creationConfig as any).isBreakout = true;
-      (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
-      (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
-      (creationConfig as any).imageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
-      (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
-      (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
-      (creationConfig as any).avatarTemplateId = selectedAvatar.id;
-      (creationConfig as any).avatarName = selectedAvatar.name;
+      const avatarRef = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
+      creationConfig.isBreakout = true;
+      creationConfig.breakoutStartImageUrl = appliedSettings.startImageUrl;
+      creationConfig.breakoutPlatform = appliedSettings.breakoutPlatform;
+      creationConfig.imageUrl = avatarRef;
+      creationConfig.avatarImageUrl = avatarRef;
+      creationConfig.avatarVoiceId = selectedAvatar.voice_id;
+      creationConfig.avatarTemplateId = selectedAvatar.id;
+      creationConfig.avatarName = selectedAvatar.name;
+      creationConfig.identityBible = selectedAvatar.character_bible;
+      creationConfig.characterLock = {
+        name: selectedAvatar.name,
+        description: [
+          selectedAvatar.description,
+          selectedAvatar.personality ? `Personality: ${selectedAvatar.personality}` : null,
+          selectedAvatar.style ? `Style: ${selectedAvatar.style}` : null,
+          selectedAvatar.character_bible?.hair_description ? `Hair: ${selectedAvatar.character_bible.hair_description}` : null,
+          selectedAvatar.character_bible?.clothing_description ? `Wardrobe: ${selectedAvatar.character_bible.clothing_description}` : null,
+          selectedAvatar.character_bible?.body_type ? `Body: ${selectedAvatar.character_bible.body_type}` : null,
+          selectedAvatar.character_bible?.distinguishing_features?.length ? `Distinctive features: ${selectedAvatar.character_bible.distinguishing_features.join(', ')}` : null,
+        ].filter(Boolean).join(' | '),
+        referenceImageUrl: avatarRef,
+      };
     } else if (selectedAvatar && supportsTemplateAvatar) {
       // Optional avatar attached to a learning / environment-driven template.
       // Use avatar face as the start image so Kling locks identity for every clip.

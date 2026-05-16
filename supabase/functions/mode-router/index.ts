@@ -215,6 +215,20 @@ interface ModeRouterRequest {
   // Pipeline (hollywood-pipeline) owns the canonical union; mode-router just forwards.
   breakoutPlatform?: string;
 
+  // Character identity handoff for breakout/cast/template flows
+  avatarImageUrl?: string;
+  avatarName?: string;
+  identityBible?: any;
+  characterLock?: any;
+  referenceImageUrl?: string;
+  breakoutDialogue?: string;
+  useTemplateShots?: boolean;
+  templateShotSequence?: any[];
+  templateName?: string;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
+
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
@@ -253,6 +267,7 @@ serve(async (req) => {
 
     const request: ModeRouterRequest = await req.json();
     const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine } = request;
+    const referenceImageUrl = request.referenceImageUrl || request.avatarImageUrl || imageUrl;
     
     // SECURITY: end-user calls MUST use JWT identity; service-role internal calls may pass request.userId
     if (authenticatedUserId && request.userId && request.userId !== authenticatedUserId) {
@@ -368,7 +383,7 @@ serve(async (req) => {
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating', // Hold status if we need to charge
           mode: mode,
           video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
-          source_image_url: imageUrl || null,
+          source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
           // CRITICAL: Save the user's script to synopsis so it's not lost
@@ -395,7 +410,7 @@ serve(async (req) => {
         .update({
           mode: mode,
           video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
-          source_image_url: imageUrl || null,
+          source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating',
@@ -558,7 +573,7 @@ serve(async (req) => {
           projectId: projectId!,
           userId,
           concept: prompt,
-          referenceImageUrl: imageUrl,
+          referenceImageUrl,
           voiceId,
           aspectRatio,
           clipCount,
@@ -573,6 +588,15 @@ serve(async (req) => {
           isBreakout,
           breakoutStartImageUrl,
           breakoutPlatform,
+          breakoutDialogue: request.breakoutDialogue || prompt,
+          identityBible: request.identityBible,
+          characterLock: request.characterLock,
+          useTemplateShots: request.useTemplateShots,
+          templateShotSequence: request.templateShotSequence,
+          templateName: request.templateName,
+          templateStyleAnchor: request.templateStyleAnchor,
+          templateCharacters: request.templateCharacters,
+          templateEnvironmentLock: request.templateEnvironmentLock,
           supabase,
         });
       }
@@ -718,12 +742,13 @@ async function handleAvatarCinematicMode(params: {
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
   avatarCast?: AvatarCastMember[];
+  videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
   supabase: any;
 }) {
   const { 
     projectId, userId, concept, sceneDescription, avatarImageUrl, voiceId, 
     aspectRatio, clipCount, clipDuration, enableNarration, enableMusic,
-    characterBible, avatarTemplateId, avatarCast, supabase 
+    characterBible, avatarTemplateId, avatarCast, videoEngine, supabase 
   } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1109,9 +1134,18 @@ async function handleCinematicMode(params: {
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
   breakoutPlatform?: string;
+  breakoutDialogue?: string;
+  identityBible?: any;
+  characterLock?: any;
+  useTemplateShots?: boolean;
+  templateShotSequence?: any[];
+  templateName?: string;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1156,6 +1190,15 @@ async function handleCinematicMode(params: {
       isBreakout,
       breakoutStartImageUrl,
       breakoutPlatform,
+      breakoutDialogue,
+      identityBible,
+      characterLock,
+      useTemplateShots,
+      templateShotSequence,
+      templateName,
+      templateStyleAnchor,
+      templateCharacters,
+      templateEnvironmentLock,
     }),
   });
 

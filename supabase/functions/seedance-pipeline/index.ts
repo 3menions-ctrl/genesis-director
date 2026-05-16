@@ -59,6 +59,7 @@ interface SeedancePipelineRequest {
   aspectRatio?: '16:9' | '9:16' | '1:1';
   includeVoice?: boolean;
   includeMusic?: boolean;
+  voiceId?: string;
   cameraFixed?: boolean; // Seedance native param
   genre?: string;
   mood?: string;
@@ -398,9 +399,9 @@ serve(async (req) => {
     // ═══ CREDIT CHECK + DEDUCT ═══
     if (!request.skipCreditDeduction && !isResuming) {
       const { data: balanceRow } = await supabase
-        .from("user_credits")
+        .from("profiles")
         .select("credits_balance")
-        .eq("user_id", request.userId)
+        .eq("id", request.userId)
         .maybeSingle();
       const balance = balanceRow?.credits_balance ?? 0;
       if (balance < totalCredits) {
@@ -607,9 +608,15 @@ serve(async (req) => {
     //      with environment lock + character anchor.
     //   3) Pure concept → FLUX per-shot.
     let sceneImages: Array<string | null> = [];
-    if (request.referenceImageUrl) {
+    if (request.isBreakout && request.breakoutStartImageUrl && request.referenceImageUrl) {
+      console.log(`[Seedance] 🧨 Breakout start frame + cast reference → platform first, identity locked after breach`);
+      sceneImages = shots.map((_, i) => i === 0 ? request.breakoutStartImageUrl! : request.referenceImageUrl!);
+    } else if (request.referenceImageUrl) {
       console.log(`[Seedance] 🎭 Reference image present → locking identity across all ${shots.length} clips`);
       sceneImages = Array.from({ length: shots.length }, () => request.referenceImageUrl!);
+    } else if (request.isBreakout && request.breakoutStartImageUrl) {
+      console.log(`[Seedance] 🧨 Breakout platform start image present → anchoring all clips to interface frame`);
+      sceneImages = Array.from({ length: shots.length }, () => request.breakoutStartImageUrl!);
     } else {
       try {
         console.log(`[Seedance] Generating ${shots.length} scene images via generate-scene-images`);
@@ -652,7 +659,10 @@ serve(async (req) => {
         audioPromises.voice = callEdgeFunction("generate-voice", {
           projectId,
           userId: request.userId,
-          lines: voiceLines,
+          text: voiceLines.join("\n\n"),
+          voiceId: request.voiceId,
+          shotId: request.isBreakout ? "breakout_voice" : "seedance_voice",
+          characterName: request.characterLock?.name,
           engine: "seedance",
         }).catch((e) => {
           console.warn(`[Seedance] generate-voice failed:`, e?.message);
@@ -684,10 +694,21 @@ serve(async (req) => {
     for (const r of audioSettled) {
       if (r.status === "fulfilled" && r.value) {
         const [k, v] = r.value;
-        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v;
+        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v?.musicUrl ?? v;
       }
     }
     console.log(`[Seedance] Audio assets ready: ${Object.keys(audioAssets).join(",") || "(none)"}`);
+    const voiceAudioUrl = audioAssets.voice || null;
+    const musicAudioUrl = audioAssets.music || null;
+    if (voiceAudioUrl || musicAudioUrl) {
+      await supabase
+        .from("movie_projects")
+        .update({
+          voice_audio_url: voiceAudioUrl,
+          music_url: musicAudioUrl,
+        })
+        .eq("id", projectId);
+    }
 
     // ═══ DISPATCH SEEDANCE CLIPS (parallel) ═══
     await supabase

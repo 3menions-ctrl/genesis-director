@@ -176,7 +176,7 @@ export const B2BWorkflow = memo(function B2BWorkflow() {
             Workflow
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
-            From brief to broadcast in four steps.
+            From brief to final cut in four steps.
           </h2>
         </motion.div>
 

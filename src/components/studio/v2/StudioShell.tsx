@@ -1297,38 +1297,53 @@ function ClipCard({ scene, active, onSelect, onRender }: { scene: SceneDraft; ac
 function StagePreview({ scene, draft, renderedCount, totalCost, onRender, onOpenEditor }: { scene?: SceneDraft; draft: StudioDraft; renderedCount: number; totalCost: number; onRender: () => void; onOpenEditor: () => void }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card/55 p-4">
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(160deg,hsla(220,18%,7%,0.92),hsla(220,14%,3%,0.92))] p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_hsla(0,0%,100%,0.05)]">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
         <div className="mb-3 flex items-center justify-between">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">Preview</div>
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+            </span>
+            Preview
+          </div>
           <StatusPill status={scene?.status || "idle"} />
         </div>
-        <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-          {scene?.clipUrl ? <video src={scene.clipUrl} controls playsInline className="h-full w-full object-cover" /> : scene?.refImageUrl || draft.brief.refImageUrl ? <img src={scene?.refImageUrl || draft.brief.refImageUrl} alt="Current reference" className="h-full w-full object-cover opacity-80" /> : <div className="flex h-full w-full items-center justify-center"><Film className="h-8 w-8 text-muted-foreground" /></div>}
+        <div className="relative aspect-video overflow-hidden rounded-xl border border-white/[0.06] bg-[radial-gradient(circle_at_50%_50%,hsla(220,16%,8%,1),hsla(220,14%,2%,1))] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_40px_rgba(0,0,0,0.6)]">
+          {/* corner brackets */}
+          <span aria-hidden className="pointer-events-none absolute left-2 top-2 z-10 h-2.5 w-2.5 border-l border-t border-accent/60" />
+          <span aria-hidden className="pointer-events-none absolute right-2 top-2 z-10 h-2.5 w-2.5 border-r border-t border-accent/60" />
+          <span aria-hidden className="pointer-events-none absolute bottom-2 left-2 z-10 h-2.5 w-2.5 border-b border-l border-accent/60" />
+          <span aria-hidden className="pointer-events-none absolute bottom-2 right-2 z-10 h-2.5 w-2.5 border-b border-r border-accent/60" />
+          {scene?.clipUrl ? <video src={scene.clipUrl} controls playsInline className="h-full w-full object-cover" /> : scene?.refImageUrl || draft.brief.refImageUrl ? <img src={scene?.refImageUrl || draft.brief.refImageUrl} alt="Current reference" className="h-full w-full object-cover opacity-80" /> : <div className="flex h-full w-full items-center justify-center"><Film className="h-7 w-7 text-muted-foreground/40" strokeWidth={1.2} /></div>}
         </div>
-        <div className="mt-4 space-y-3">
-          <button onClick={onRender} disabled={!scene} className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground hover:bg-accent/90 disabled:opacity-40">
-            <Play className="h-4 w-4" /> Render selected
+        <div className="mt-4 space-y-2.5">
+          <button onClick={onRender} disabled={!scene} className="group/btn relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-b from-accent to-[hsl(215_100%_48%)] px-4 py-3 text-[13px] font-medium text-accent-foreground shadow-[0_10px_30px_-10px_hsl(var(--accent)/0.6),inset_0_1px_0_hsla(0,0%,100%,0.18)] transition-all hover:shadow-[0_18px_46px_-12px_hsl(var(--accent)/0.75),inset_0_1px_0_hsla(0,0%,100%,0.22)] disabled:opacity-30 disabled:shadow-none">
+            <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover/btn:left-[110%] group-hover/btn:opacity-100" />
+            <Play className="relative h-3.5 w-3.5" /> <span className="relative">Render selected</span>
           </button>
-          <button onClick={onOpenEditor} disabled={!renderedCount} className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background/60 px-4 py-3 text-sm font-medium text-foreground hover:bg-card disabled:opacity-40">
-            <Send className="h-4 w-4 text-accent" /> Send to editor
+          <button onClick={onOpenEditor} disabled={!renderedCount} className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[13px] font-light text-foreground/85 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)] transition-all hover:border-accent/30 hover:bg-white/[0.04] hover:text-foreground disabled:opacity-30">
+            <Send className="h-3.5 w-3.5 text-accent" /> Send to editor
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         <Metric label="Scenes" value={String(draft.scenes.length)} />
         <Metric label="Rendered" value={String(renderedCount)} />
         <Metric label="Cast" value={String(draft.cast.length)} />
         <Metric label="Credits est." value={String(totalCost)} />
       </div>
 
-      <div className="rounded-2xl border border-border bg-card/55 p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground"><BadgeCheck className="h-4 w-4 text-accent" /> Pipeline connected</div>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <div>Engine: {ENGINES[draft.defaults.engine].label}</div>
-          <div>Aspect: {draft.defaults.aspect}</div>
-          <div>Voice: {draft.defaults.voiceId || "Auto/default"}</div>
-          <div>Music: {draft.audio.scoreUrl ? "Generated" : "Optional"}</div>
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(160deg,hsla(220,18%,7%,0.85),hsla(220,14%,3%,0.85))] p-4 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)]">
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-light tracking-tight text-foreground/95">
+          <BadgeCheck className="h-3.5 w-3.5 text-accent drop-shadow-[0_0_6px_hsl(var(--accent)/0.6)]" strokeWidth={1.5} /> Pipeline connected
+        </div>
+        <div className="space-y-1.5 text-[12px] font-light text-muted-foreground/80">
+          <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Engine</span><span className="text-foreground/80 truncate">{ENGINES[draft.defaults.engine].label}</span></div>
+          <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Aspect</span><span className="text-foreground/80">{draft.defaults.aspect}</span></div>
+          <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Voice</span><span className="text-foreground/80 truncate">{draft.defaults.voiceId || "Auto / default"}</span></div>
+          <div className="flex justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">Music</span><span className="text-foreground/80">{draft.audio.scoreUrl ? "Generated" : "Optional"}</span></div>
         </div>
       </div>
     </div>
@@ -1337,9 +1352,10 @@ function StagePreview({ scene, draft, renderedCount, totalCost, onRender, onOpen
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card/45 p-3">
-      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-semibold text-foreground">{value}</div>
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(160deg,hsla(220,16%,6%,0.85),hsla(220,14%,3%,0.85))] p-3 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)]">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
+      <div className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/55">{label}</div>
+      <div className="mt-1 font-display text-[26px] font-light leading-none tracking-[-0.02em] text-foreground/95">{value}</div>
     </div>
   );
 }

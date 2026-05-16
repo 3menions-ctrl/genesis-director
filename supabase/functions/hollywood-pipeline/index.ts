@@ -6533,6 +6533,33 @@ serve(async (req) => {
       }
     }
 
+    // ═══ KLING-ONLY HARD GUARD ═══
+    // hollywood-pipeline is the full-movie orchestrator and is wired end-to-end
+    // around Kling V3 (start_image/end_image, native audio, identity bible,
+    // continuity engine, dialogue chaining). Non-Kling engines (Seedance, Veo,
+    // Runway, Sora) MUST route through `generate-video` / `generate-single-clip`
+    // and never enter this orchestrator. We reject early to prevent silent
+    // capability loss (no continuity, no audio, no stitching) and wasted credits.
+    const incomingEngine = ((request as any).videoEngine ?? 'kling') as string;
+    if (incomingEngine !== 'kling') {
+      console.error(
+        `[Hollywood] ❌ ENGINE REJECTED: hollywood-pipeline is Kling-only, got "${incomingEngine}". ` +
+        `Route non-Kling engines through generate-video instead.`
+      );
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_NOT_SUPPORTED',
+          message: `hollywood-pipeline only supports Kling V3. Received engine "${incomingEngine}". Use generate-video for Seedance/Veo/Runway/Sora.`,
+          engine: incomingEngine,
+          supportedEngines: ['kling'],
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    // Force-coerce to 'kling' so all downstream code paths see a single value.
+    (request as any).videoEngine = 'kling';
+
     // For resume requests, we need approvedScript instead of concept/manualPrompts
     const isResuming = !!request.resumeFrom && !!request.approvedScript;
     

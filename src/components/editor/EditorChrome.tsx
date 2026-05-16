@@ -199,8 +199,8 @@ export function EditorChrome({
           .select("timeline_data, title")
           .eq("id", sessionId)
           .eq("user_id", user.id)
-          .single();
-        if (err || cancelled) return;
+          .maybeSingle();
+        if (err || cancelled || !data) return;
         if (data.title) setSessionTitle(data.title);
 
         const parsed = fromProjectJSON(data.timeline_data);
@@ -1358,7 +1358,7 @@ function EditorCreditsBadge({ userId }: { userId: string }) {
         .from("profiles")
         .select("credits_balance")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       if (!cancelled && data) setBalance(data.credits_balance);
     })();
     return () => { cancelled = true; };

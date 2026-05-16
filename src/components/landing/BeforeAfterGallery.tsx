@@ -42,66 +42,66 @@ type Reel = {
 
 const REELS: Reel[] = [
   {
-    title: 'Beautiful Day',
-    tag: 'Lifestyle · Outdoor',
+    title: 'Saturday, 7:42am',
+    tag: 'Lifestyle reel · 11 sec',
     prompt:
-      'A woman walks through a sun-drenched meadow at golden hour, lens flares dancing, hair lit from behind, slow cinematic dolly.',
+      "Maya walks the trail behind her house with a coffee. Golden hour. Wind in her hair. Hold on her face for two beats, then she smiles at the camera.",
     before: poster2,
     after: G.beautifulDay,
   },
   {
-    title: 'Sunset Dreams',
-    tag: 'Cinematic · Atmosphere',
+    title: 'Campaign cover — Issue 04',
+    tag: 'Editorial · 9 sec',
     prompt:
-      'Editorial portrait against a burning sunset sky, soft rim light, anamorphic flare, 35mm film grain, slow push-in.',
+      "Cover shot for the fall issue. Subject against an orange sky just after sunset. Anamorphic lens, a little grain, slow push-in. No movement from her — let the light do the work.",
     before: poster5,
     after: G.sunsetDreams,
   },
   {
-    title: 'Corporate Brief',
-    tag: 'Business · Talking head',
+    title: 'Q3 update to the team',
+    tag: 'Internal comms · 28 sec',
     prompt:
-      'Polished executive on a minimalist set, natural studio lighting, native lip-sync delivery of a 30-second product brief.',
+      "Our COO to camera, talking through the Q3 roadmap. Plain backdrop, soft key from camera-left. Read the script verbatim — don't paraphrase, don't add filler.",
     before: poster1,
     after: corporateVideo.url,
   },
   {
-    title: 'Wave Hello',
-    tag: 'Avatar · Identity-locked',
+    title: 'Welcome screen — onboarding',
+    tag: 'Product avatar · 6 sec',
     prompt:
-      'Brand avatar greets the viewer with a confident wave, identity-locked across every frame, soft key light, 4K HDR.',
+      "Our brand avatar (locked from the bible) waves once, says 'hey — glad you're here.' Same face we used in last month's ad. Don't redesign her.",
     before: poster3,
     after: avatarWave.url,
   },
   {
-    title: 'Enchanted Forest',
-    tag: 'Nature · Magical realism',
+    title: 'Opener for the audiobook trailer',
+    tag: 'Book trailer · 8 sec',
     prompt:
-      'Bioluminescent forest at twilight, drifting fireflies, low fog, slow tracking shot through the underbrush.',
+      "Forest at blue hour. Fireflies. Low fog around the roots. Tracking shot through the underbrush — like the reader is walking in. Hold the last frame so the title card lands.",
     before: poster4,
     after: G.enchanted,
   },
   {
-    title: 'Silent Vigil',
-    tag: 'Cinematic · Mood piece',
+    title: 'For the grief campaign',
+    tag: 'Nonprofit spot · 10 sec',
     prompt:
-      'A lone figure stands at the edge of a misted lake at dawn, pale light catching on still water, slow contemplative push-in.',
+      "One person at the edge of a still lake, before sunrise. Mist on the water. No music in the picture — we'll score it. Slow push-in. Let it breathe.",
     before: poster3,
     after: G.silentVigil,
   },
   {
-    title: 'Snowfall',
-    tag: 'Seasonal · Slow motion',
+    title: 'Holiday card to clients',
+    tag: 'Seasonal · 7 sec',
     prompt:
-      'Slow-motion snowfall across a quiet alpine cabin, breath visible in the cold air, blue-hour grading, 120 fps.',
+      "Same cabin we shot last December. Snow falling, smoke from the chimney. 120fps so it feels quiet. Cold blue grade. Title plate lands at the end: 'Thank you. — The team.'",
     before: poster1,
     after: G.snowy,
   },
   {
-    title: 'Fiery Drift',
-    tag: 'Action · High energy',
+    title: 'Launch teaser — :06',
+    tag: 'Pre-roll · 6 sec',
     prompt:
-      'Sports car drifts through neon-lit downtown at night, sparks trailing the rear tires, hand-held energy, motion blur.',
+      "Car drifts the corner of 6th & Spring at night. Wet asphalt, neon reflections. Handheld, real motion blur, a few sparks off the rear tire. Cut on the apex.",
     before: poster2,
     after: G.fiery,
   },
@@ -520,9 +520,9 @@ export const BeforeAfterGallery = memo(function BeforeAfterGallery() {
               className="text-white/55 text-[17px] md:text-lg font-light leading-[1.7] max-w-md"
               style={{ fontFamily: "'Instrument Sans', sans-serif" }}
             >
-              Drag to reveal the same shot before and after Apex-Studio.
-              On the left — the brief and source frame. On the right — the
-              final film, generated end-to-end. No edits.
+              Real briefs from real customers. Drag the divider to see what
+              they typed on the left, and the exact clip we returned on the
+              right. Nothing trimmed, nothing recut.
             </p>
             <div className="mt-8 flex items-center gap-5 text-[10px] tracking-[0.32em] uppercase text-white/35">
               <span>Drag to compare</span>
@@ -560,7 +560,7 @@ export const BeforeAfterGallery = memo(function BeforeAfterGallery() {
           className="mt-16 flex items-center justify-center gap-3 text-[10px] tracking-[0.4em] uppercase text-white/65"
         >
           <span className="w-12 h-px bg-white/15" />
-          <span>Generated by Apex-Studio · Unedited</span>
+            <span>Customer projects · Shown as delivered</span>
           <span className="w-12 h-px bg-white/15" />
         </motion.div>
       </div>

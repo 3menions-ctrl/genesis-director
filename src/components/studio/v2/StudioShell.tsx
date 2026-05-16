@@ -648,8 +648,8 @@ export default function StudioShell() {
                 onFileChange={onFileChange}
                 uploading={uploading}
                 autoBusy={autoBusy}
-                canGenerateScript={canGenerateScript}
-                canRender={canRender}
+                canGenerateScript={Boolean(canGenerateScript)}
+                canRender={Boolean(canRender)}
                 totalCost={totalCost}
                 renderedCount={renderedCount}
                 hasCinema={hasCinema}

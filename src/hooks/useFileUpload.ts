@@ -12,13 +12,22 @@ interface UseFileUploadOptions {
   bucket?: string;
   maxSizeMB?: number;
   allowedTypes?: string[];
+  /**
+   * If true (default), the returned `url` is a long-lived signed URL valid for
+   * `signedUrlExpiresIn` seconds. Works for both public and private buckets,
+   * so callers don't need to change when a bucket is flipped private.
+   */
+  signed?: boolean;
+  signedUrlExpiresIn?: number;
 }
 
 export function useFileUpload(options: UseFileUploadOptions = {}) {
   const { 
     bucket = 'user-uploads',
     maxSizeMB = 100,
-    allowedTypes = ['image/*', 'video/*']
+    allowedTypes = ['image/*', 'video/*'],
+    signed = true,
+    signedUrlExpiresIn = 60 * 60 * 24 * 7, // 7 days
   } = options;
   
   const { user } = useAuth();
@@ -120,20 +129,30 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      // Resolve URL — prefer a signed URL so private buckets (e.g. user-uploads,
+      // which contains user PII) work without the caller needing to change.
+      let resolvedUrl: string;
+      if (signed) {
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(filePath, signedUrlExpiresIn);
+        if (signErr || !signedData?.signedUrl) {
+          throw signErr ?? new Error('Failed to sign uploaded asset URL');
+        }
+        resolvedUrl = signedData.signedUrl;
+      } else {
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        resolvedUrl = urlData.publicUrl;
+      }
 
       if (isMountedRef.current) {
         setProgress(100);
       }
-      
-      console.log(`[useFileUpload] Upload complete: ${urlData.publicUrl}`);
+
       toast.success('File uploaded successfully');
 
       return {
-        url: urlData.publicUrl,
+        url: resolvedUrl,
         path: filePath,
       };
 

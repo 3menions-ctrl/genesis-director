@@ -161,6 +161,49 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           0%   { transform: translateX(-120%); }
           100% { transform: translateX(220%); }
         }
+        @keyframes ese-bulb {
+          0%,100% { opacity: 0.35; box-shadow: 0 0 6px rgba(255,220,140,0.55), 0 0 14px rgba(255,200,90,0.35); }
+          50%     { opacity: 1;    box-shadow: 0 0 14px rgba(255,235,180,0.95), 0 0 32px rgba(255,200,90,0.75), 0 0 60px rgba(255,180,60,0.45); }
+        }
+        @keyframes ese-bulb-chase {
+          0%,100% { opacity: 0.25; }
+          15%     { opacity: 1; }
+          40%     { opacity: 0.25; }
+        }
+        @keyframes ese-spot-sweep {
+          0%,100% { transform: translateX(-12%) rotate(-6deg); opacity: 0.55; }
+          50%     { transform: translateX(12%)  rotate( 6deg); opacity: 0.95; }
+        }
+        @keyframes ese-dust {
+          0%   { transform: translate3d(0,0,0); opacity: 0; }
+          20%  { opacity: 0.85; }
+          100% { transform: translate3d(var(--dx,0px), -180px, 0); opacity: 0; }
+        }
+        @keyframes ese-reel-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes ese-pedestal-spin {
+          0%   { transform: rotateY(0deg); }
+          100% { transform: rotateY(360deg); }
+        }
+        @keyframes ese-curtain-breathe {
+          0%,100% { transform: scaleX(1) translateY(0); }
+          50%     { transform: scaleX(1.012) translateY(-2px); }
+        }
+        @keyframes ese-confetti-fall {
+          0%   { transform: translate3d(0,-40px,0) rotate(0deg); opacity: 0; }
+          10%  { opacity: 1; }
+          100% { transform: translate3d(var(--cx,30px), 520px, 0) rotate(var(--cr,540deg)); opacity: 0; }
+        }
+        @keyframes ese-ticket-float {
+          0%,100% { transform: translateY(0) rotate(var(--tr,-3deg)); }
+          50%     { transform: translateY(-10px) rotate(calc(var(--tr,-3deg) + 1.2deg)); }
+        }
+        @keyframes ese-scan-line {
+          0%   { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
       `}</style>
 
       {/* Ambient radial wash */}
@@ -254,6 +297,196 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               Studio.
             </span>
           </h2>
+          <p className="mt-6 text-white/55 text-[14.5px] md:text-base font-light max-w-xl mx-auto leading-[1.7]"
+             style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+            Step past the curtain. The marquee is lit, the reels are spinning, the
+            score is warming up. This is the room every film leaves from.
+          </p>
+        </motion.div>
+
+        {/* ── 1b. THEATER MARQUEE — bulb-lit hero stage ───────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mx-auto mb-20 md:mb-28"
+        >
+          {/* Curtain top — velvet drape */}
+          <div aria-hidden className="absolute -top-6 left-0 right-0 h-10 pointer-events-none"
+            style={{
+              background:
+                'repeating-linear-gradient(90deg, #2a0810 0 22px, #4a0e1c 22px 44px, #2a0810 44px 66px)',
+              clipPath: 'polygon(0 0, 100% 0, 100% 30%, 96% 80%, 92% 30%, 88% 80%, 84% 30%, 80% 80%, 76% 30%, 72% 80%, 68% 30%, 64% 80%, 60% 30%, 56% 80%, 52% 30%, 48% 80%, 44% 30%, 40% 80%, 36% 30%, 32% 80%, 28% 30%, 24% 80%, 20% 30%, 16% 80%, 12% 30%, 8% 80%, 4% 30%, 0 80%)',
+              filter: 'drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
+              animation: 'ese-curtain-breathe 7s ease-in-out infinite',
+            }}
+          />
+
+          <div className="relative rounded-[36px] overflow-hidden"
+            style={{
+              background:
+                'radial-gradient(120% 80% at 50% 0%, hsla(212,80%,16%,0.55), transparent 60%),' +
+                'linear-gradient(180deg, #050810 0%, #02040a 100%)',
+              boxShadow:
+                'inset 0 0 0 1px hsla(0,0%,100%,0.08), 0 60px 120px -60px rgba(10,132,255,0.55), 0 0 220px -40px rgba(255,200,90,0.18)',
+            }}
+          >
+            {/* Marquee bulb border (running lights) */}
+            <div aria-hidden className="absolute inset-0 pointer-events-none">
+              {Array.from({ length: 64 }).map((_, i) => {
+                const total = 64;
+                const side = i < 22 ? 'top' : i < 32 ? 'right' : i < 54 ? 'bottom' : 'left';
+                let top = 0, left = 0;
+                if (side === 'top')    { top = 10; left = 12 + (i / 21) * 76; }
+                if (side === 'right')  { left = 92; top = 10 + ((i - 22) / 9) * 80; }
+                if (side === 'bottom') { top = 92; left = 88 - ((i - 32) / 21) * 76; }
+                if (side === 'left')   { left = 8;  top = 92 - ((i - 54) / 9) * 80; }
+                return (
+                  <span key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      top: `${top}%`, left: `${left}%`,
+                      width: 6, height: 6, marginLeft: -3, marginTop: -3,
+                      background: 'radial-gradient(circle, #fff6d8 0%, #ffcf72 60%, transparent 75%)',
+                      animation: `ese-bulb-chase 1.8s linear ${(i / total) * 1.8}s infinite`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Spotlight cones */}
+            <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute -top-32 left-[18%] w-[36%] h-[160%] origin-top"
+                style={{
+                  background: 'linear-gradient(180deg, hsla(48,100%,75%,0.35), transparent 70%)',
+                  filter: 'blur(28px)',
+                  clipPath: 'polygon(46% 0, 54% 0, 100% 100%, 0 100%)',
+                  animation: 'ese-spot-sweep 9s ease-in-out infinite',
+                }} />
+              <div className="absolute -top-32 right-[18%] w-[36%] h-[160%] origin-top"
+                style={{
+                  background: 'linear-gradient(180deg, hsla(212,100%,70%,0.30), transparent 70%)',
+                  filter: 'blur(30px)',
+                  clipPath: 'polygon(46% 0, 54% 0, 100% 100%, 0 100%)',
+                  animation: 'ese-spot-sweep 11s ease-in-out infinite reverse',
+                }} />
+            </div>
+
+            {/* NOW SHOWING plaque */}
+            <div className="relative pt-12 md:pt-14 flex flex-col items-center text-center px-6">
+              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full"
+                style={{
+                  background: 'linear-gradient(180deg, #ffe9a8, #f3b347)',
+                  color: '#2a1604',
+                  boxShadow: '0 0 24px rgba(255,200,90,0.6), inset 0 0 0 1px rgba(255,255,255,0.6)',
+                }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7a2a00]" />
+                <span className="text-[11px] font-mono uppercase tracking-[0.4em] font-semibold">Now showing</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7a2a00]" />
+              </div>
+              <h3 className="mt-5 text-white text-3xl md:text-5xl font-light tracking-[-0.02em]"
+                style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="italic">The Apex Premiere</span>
+                <span className="opacity-50"> · </span>
+                <span className="font-mono text-base md:text-xl tracking-[0.18em] align-middle text-[#ffd98a]">Reel 01</span>
+              </h3>
+            </div>
+
+            {/* Stage — mascot/avatar mosaic windows + center hero clip */}
+            <div className="relative grid grid-cols-12 gap-2.5 md:gap-3 p-5 md:p-7 mt-6">
+              {/* Left column — 3 mascot windows */}
+              <div className="col-span-3 grid grid-rows-3 gap-2.5 md:gap-3">
+                {[MASCOTS[0], MASCOTS[3], MASCOTS[6]].map((src, i) => (
+                  <div key={i} className="relative rounded-2xl overflow-hidden aspect-square border border-white/[0.08]"
+                    style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 20px 50px -30px rgba(255,200,90,0.4)' }}>
+                    <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div aria-hidden className="absolute inset-0"
+                      style={{ background: 'radial-gradient(80% 80% at 50% 0%, transparent 50%, rgba(0,0,0,0.55) 100%)' }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Center — hero video with film perforations */}
+              <div className="col-span-6 relative">
+                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-white/10"
+                  style={{ boxShadow: '0 40px 100px -40px rgba(10,132,255,0.55), inset 0 0 0 1px hsla(0,0%,100%,0.06)' }}>
+                  <video src={immersiveHeroAsset.url} autoPlay loop muted playsInline preload="metadata"
+                    className="absolute inset-0 w-full h-full object-cover" />
+                  {/* Scan line */}
+                  <span aria-hidden className="absolute inset-x-0 h-[2px] pointer-events-none"
+                    style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,80%,0.55), transparent)',
+                             animation: 'ese-scan-line 4.5s linear infinite' }} />
+                  {/* Film perforation strips */}
+                  <div aria-hidden className="absolute inset-y-0 left-0 w-3 flex flex-col items-center justify-around py-2"
+                    style={{ background: 'rgba(0,0,0,0.55)' }}>
+                    {Array.from({ length: 14 }).map((_, k) => (
+                      <span key={k} className="block w-1.5 h-2 rounded-sm bg-white/85" />
+                    ))}
+                  </div>
+                  <div aria-hidden className="absolute inset-y-0 right-0 w-3 flex flex-col items-center justify-around py-2"
+                    style={{ background: 'rgba(0,0,0,0.55)' }}>
+                    {Array.from({ length: 14 }).map((_, k) => (
+                      <span key={k} className="block w-1.5 h-2 rounded-sm bg-white/85" />
+                    ))}
+                  </div>
+                  {/* Stat readout */}
+                  <div className="absolute top-3 left-6 right-6 flex items-center justify-between">
+                    <span className="text-[9.5px] font-mono uppercase tracking-[0.24em] text-white/90 px-2 py-1 rounded-full bg-black/55 border border-white/15">● Rolling</span>
+                    <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-white/75 px-2 py-1 rounded-full bg-black/55 border border-white/10">24fps · 2.39:1</span>
+                  </div>
+                  <div className="absolute bottom-4 left-6 right-6">
+                    <div className="text-white text-lg md:text-2xl font-light tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>
+                      Opening sequence
+                    </div>
+                    <div className="mt-1 h-px w-16 bg-gradient-to-r from-[#ffd98a] via-[#0A84FF] to-transparent" />
+                  </div>
+                </div>
+
+                {/* Mirror floor reflection */}
+                <div aria-hidden className="absolute -bottom-24 left-1 right-1 h-24 rounded-2xl overflow-hidden pointer-events-none"
+                  style={{
+                    transform: 'scaleY(-1)',
+                    maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 90%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 90%)',
+                    filter: 'blur(3px)',
+                    opacity: 0.5,
+                  }}>
+                  <video src={immersiveHeroAsset.url} autoPlay loop muted playsInline preload="metadata"
+                    className="w-full h-full object-cover" />
+                </div>
+              </div>
+
+              {/* Right column — 3 avatar windows */}
+              <div className="col-span-3 grid grid-rows-3 gap-2.5 md:gap-3">
+                {[AVATARS[0], AVATARS[10], AVATARS[18]].map((src, i) => (
+                  <div key={i} className="relative rounded-2xl overflow-hidden aspect-square border border-white/[0.08]"
+                    style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 20px 50px -30px rgba(10,132,255,0.5)' }}>
+                    <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div aria-hidden className="absolute inset-0"
+                      style={{ background: 'radial-gradient(80% 80% at 50% 0%, transparent 50%, rgba(0,0,0,0.55) 100%)' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Marquee ticker (running text) */}
+            <div className="relative mt-2 mb-5 mx-5 md:mx-7 rounded-full overflow-hidden border border-white/[0.08]"
+              style={{ background: 'linear-gradient(180deg, hsla(48,90%,55%,0.10), hsla(212,100%,55%,0.08))' }}>
+              <div className="flex whitespace-nowrap py-2"
+                style={{ animation: 'ese-marquee 38s linear infinite' }}>
+                {Array.from({ length: 2 }).flatMap((_, dup) => (
+                  ['Kling V3','Seedance 2.0','Native lip-sync','Face-lock identity','Cinematic scoring','Multi-character dialogue','12-second clips','Continuity engine','Stitch-ready exports','Verbatim scripts','MusicGen scores','Two-engine routing']
+                    .map((w, i) => (
+                      <span key={`${dup}-${i}`} className="inline-flex items-center gap-3 px-5 text-[11px] font-mono uppercase tracking-[0.32em] text-white/75">
+                        <span className="text-[#ffd98a]">★</span> {w}
+                      </span>
+                    ))
+                ))}
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* ── 2. Cinematic video triptych ──────────────────────────────── */}
@@ -687,6 +920,277 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
         </motion.div>
 
+        {/* ── 4b. SPOTLIGHT PEDESTALS — 3 hero mascots under stage lights ─ */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-24 md:mb-32 rounded-[32px] overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, #06080f 0%, #02040a 100%)',
+            boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 50px 120px -60px rgba(10,132,255,0.45)',
+          }}
+        >
+          <div className="px-7 md:px-10 pt-8 md:pt-10 flex items-baseline justify-between">
+            <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Casting hall</p>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[#ffd98a]/80 font-mono">Three under the light</p>
+          </div>
+
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 px-7 md:px-10 pt-6 pb-16">
+            {[mAstroBear, mWizRabbit, mRobot].map((src, i) => (
+              <div key={i} className="relative h-[340px] md:h-[400px] flex items-end justify-center">
+                {/* Cone of light from above */}
+                <div aria-hidden className="absolute inset-x-0 -top-6 h-full pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(180deg, hsla(48,100%,80%,0.32) 0%, hsla(48,100%,70%,0.10) 35%, transparent 70%)',
+                    filter: 'blur(20px)',
+                    clipPath: 'polygon(42% 0, 58% 0, 90% 100%, 10% 100%)',
+                    animation: `ese-spot-sweep ${8 + i * 1.6}s ease-in-out ${i * 0.6}s infinite`,
+                  }} />
+                {/* Dust motes */}
+                <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {Array.from({ length: 14 }).map((_, k) => {
+                    const left = 20 + ((k * 17) % 60);
+                    const dx = -20 + ((k * 13) % 40);
+                    const dur = 5 + ((k * 7) % 40) / 10;
+                    const delay = ((k * 11) % 50) / 10;
+                    return (
+                      <span key={k} className="absolute rounded-full bg-white/85"
+                        style={{
+                          left: `${left}%`, bottom: '0%',
+                          width: 2, height: 2,
+                          boxShadow: '0 0 6px rgba(255,235,180,0.85)',
+                          ['--dx' as never]: `${dx}px`,
+                          animation: `ese-dust ${dur}s linear ${delay}s infinite`,
+                        }} />
+                    );
+                  })}
+                </div>
+
+                {/* Pedestal */}
+                <div className="absolute bottom-3 w-44 h-3 rounded-full"
+                  style={{
+                    background: 'radial-gradient(closest-side, rgba(255,210,120,0.55), transparent 70%)',
+                    filter: 'blur(4px)',
+                  }} />
+                <div className="absolute bottom-0 w-40 h-6 rounded-[14px]"
+                  style={{
+                    background: 'linear-gradient(180deg, #1a1d28 0%, #06070b 100%)',
+                    boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.12), 0 12px 30px -10px rgba(0,0,0,0.7)',
+                  }} />
+
+                {/* The mascot — slow 3D rotation feel via subtle skew + floating */}
+                <div className="relative z-10 w-44 h-44 md:w-52 md:h-52 rounded-3xl overflow-hidden"
+                  style={{
+                    boxShadow:
+                      '0 30px 80px -20px rgba(255,200,90,0.45), 0 0 0 1px hsla(0,0%,100%,0.06), inset 0 0 60px hsla(48,100%,70%,0.18)',
+                    animation: `ese-ticket-float ${4 + i * 0.4}s ease-in-out ${i * 0.3}s infinite`,
+                    ['--tr' as never]: `${(i - 1) * 2.4}deg`,
+                  }}>
+                  <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  <div aria-hidden className="absolute inset-0"
+                    style={{ background: 'radial-gradient(120% 60% at 50% 0%, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
+                </div>
+
+                {/* Reflection */}
+                <div aria-hidden className="absolute -bottom-10 w-44 h-16 rounded-3xl overflow-hidden pointer-events-none"
+                  style={{
+                    transform: 'scaleY(-1)',
+                    maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 90%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 90%)',
+                    filter: 'blur(3px)',
+                    opacity: 0.45,
+                  }}>
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </div>
+
+                {/* Label */}
+                <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 text-center">
+                  <div className="text-[9.5px] font-mono uppercase tracking-[0.3em] text-white/55">
+                    {['Hoppy','Sage','V-01'][i]}
+                  </div>
+                  <div className="text-[10px] text-white/35">{['Series mascot','Wizard rabbit','Hero robot'][i]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Floor reflection wash */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24"
+            style={{
+              background: 'linear-gradient(180deg, transparent, hsla(212,100%,55%,0.08))',
+            }} />
+        </motion.div>
+
+        {/* ── 4c. SPINNING FILM REEL + VINYL — premium audio module ───── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-24 md:mb-32 grid grid-cols-1 md:grid-cols-2 gap-5"
+        >
+          {/* Film reel */}
+          <div className="relative rounded-3xl overflow-hidden p-8 md:p-10 backdrop-blur-xl"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.03), hsla(0,0%,100%,0.005))',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 30px 80px -40px rgba(10,132,255,0.4)',
+            }}>
+            <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono mb-2">Reel · 01</p>
+            <h3 className="text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+              Film keeps rolling.
+            </h3>
+            <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
+              <div className="absolute inset-0 rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, #1c2030 0%, #06080f 70%)',
+                  boxShadow: 'inset 0 0 0 6px #0c1019, 0 0 60px hsla(212,100%,55%,0.25)',
+                  animation: 'ese-reel-spin 14s linear infinite',
+                }}>
+                {/* Reel holes */}
+                {Array.from({ length: 6 }).map((_, k) => {
+                  const a = (k / 6) * Math.PI * 2;
+                  return (
+                    <span key={k} className="absolute rounded-full"
+                      style={{
+                        left: '50%', top: '50%',
+                        width: 28, height: 28,
+                        marginLeft: -14, marginTop: -14,
+                        transform: `translate(${Math.cos(a) * 60}px, ${Math.sin(a) * 60}px)`,
+                        background: '#02040a',
+                        boxShadow: 'inset 0 0 0 2px hsla(0,0%,100%,0.12)',
+                      }} />
+                  );
+                })}
+                <span className="absolute left-1/2 top-1/2 rounded-full"
+                  style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12,
+                           background: 'radial-gradient(circle, #9DCBFF, #0A84FF 70%)',
+                           boxShadow: '0 0 24px #0A84FF' }} />
+              </div>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3 text-[11px] font-mono uppercase tracking-[0.18em]">
+              <div className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                <p className="text-white/40">Format</p>
+                <p className="text-white/85 mt-1">ProRes · H.264 · MP4</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                <p className="text-white/40">Aspect</p>
+                <p className="text-white/85 mt-1">16:9 · 9:16 · 1:1</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vinyl + EQ orbit */}
+          <div className="relative rounded-3xl overflow-hidden p-8 md:p-10 backdrop-blur-xl"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.03), hsla(0,0%,100%,0.005))',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 30px 80px -40px rgba(255,200,90,0.35)',
+            }}>
+            <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono mb-2">Side A · Score</p>
+            <h3 className="text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+              The score writes itself.
+            </h3>
+            <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
+              <div className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    'repeating-radial-gradient(circle at center, #0a0c12 0 2px, #15181f 2px 4px)',
+                  boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.08), 0 0 60px hsla(48,100%,60%,0.22)',
+                  animation: 'ese-reel-spin 9s linear infinite',
+                }}>
+                <span className="absolute left-1/2 top-1/2 rounded-full"
+                  style={{ width: 70, height: 70, marginLeft: -35, marginTop: -35,
+                           background: 'radial-gradient(circle, #ffd98a, #f3a93b 70%)',
+                           boxShadow: '0 0 30px rgba(255,210,120,0.55)' }} />
+                <span className="absolute left-1/2 top-1/2 rounded-full"
+                  style={{ width: 10, height: 10, marginLeft: -5, marginTop: -5, background: '#02040a' }} />
+              </div>
+              {/* EQ ring around the vinyl */}
+              {Array.from({ length: 36 }).map((_, k) => {
+                const a = (k / 36) * Math.PI * 2;
+                const r = 128;
+                const x = 110 + Math.cos(a) * r;
+                const y = 110 + Math.sin(a) * r;
+                const len = 10 + ((k * 11) % 22);
+                const dur = 0.9 + ((k * 7) % 22) / 10;
+                return (
+                  <span key={k} className="absolute origin-center rounded-sm"
+                    style={{
+                      left: x, top: y,
+                      width: 3, height: len,
+                      transform: `translate(-50%,-50%) rotate(${(a * 180) / Math.PI + 90}deg)`,
+                      background: 'linear-gradient(180deg, #9DCBFF, #0A84FF)',
+                      boxShadow: '0 0 6px hsla(212,100%,60%,0.6)',
+                      animation: `ese-eq ${dur}s ease-in-out ${(k % 9) * 0.1}s infinite`,
+                    }} />
+                );
+              })}
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3 text-[10.5px] font-mono uppercase tracking-[0.18em]">
+              <div className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                <p className="text-white/40">Score</p>
+                <p className="text-white/85 mt-1">MusicGen</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                <p className="text-white/40">Voice</p>
+                <p className="text-white/85 mt-1">11 langs</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
+                <p className="text-white/40">Duck</p>
+                <p className="text-white/85 mt-1">Auto</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── 7b. PREMIERE TICKETS — floating numbered passes ─────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-5%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-24 md:mb-32"
+        >
+          <div className="text-center mb-6">
+            <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45">Your premiere · Five seats reserved</div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-5">
+            {[AVATARS[2], AVATARS[7], AVATARS[14], AVATARS[20], AVATARS[25]].map((src, i) => (
+              <div key={i}
+                className="relative w-[200px] h-[110px] rounded-[14px] overflow-hidden flex"
+                style={{
+                  background: 'linear-gradient(135deg, #fff8e0 0%, #ffd98a 60%, #f3a93b 100%)',
+                  color: '#2a1604',
+                  boxShadow: '0 18px 50px -20px rgba(255,200,90,0.6), inset 0 0 0 1px rgba(255,255,255,0.5)',
+                  ['--tr' as never]: `${(i - 2) * 2.5}deg`,
+                  animation: `ese-ticket-float ${5 + i * 0.3}s ease-in-out ${i * 0.25}s infinite`,
+                }}>
+                {/* Avatar stub */}
+                <div className="relative w-[78px] h-full overflow-hidden"
+                  style={{ borderRight: '2px dashed rgba(42,22,4,0.35)' }}>
+                  <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                {/* Punch hole */}
+                <span className="absolute left-[78px] top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#02040a]" />
+                {/* Right side info */}
+                <div className="flex-1 px-3 py-2 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[8.5px] font-mono uppercase tracking-[0.28em] opacity-70">Apex Studio</div>
+                    <div className="text-[14px] font-semibold tracking-[-0.01em] mt-0.5" style={{ fontFamily: "'Fraunces', serif" }}>
+                      Premiere Pass
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <div className="text-[8.5px] font-mono uppercase tracking-[0.22em] opacity-70">Seat</div>
+                    <div className="text-[22px] font-mono leading-none tabular-nums">A-{String(i + 1).padStart(2, '0')}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* ── 8. Secondary CTA row (kept from the original) ────────────── */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <button
@@ -716,6 +1220,33 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               filter: 'blur(30px)',
             }}
           />
+
+          {/* Confetti rain behind CTA */}
+          <div aria-hidden className="absolute inset-x-0 -top-16 h-[560px] pointer-events-none -z-10 overflow-hidden">
+            {Array.from({ length: 36 }).map((_, k) => {
+              const left = (k * 53) % 100;
+              const dx = -60 + ((k * 19) % 120);
+              const rot = 240 + ((k * 41) % 600);
+              const dur = 6 + ((k * 13) % 50) / 10;
+              const delay = ((k * 7) % 80) / 10;
+              const colors = ['#ffd98a', '#9DCBFF', '#ffffff', '#0A84FF', '#f3a93b'];
+              const c = colors[k % colors.length];
+              const w = 4 + (k % 4);
+              const h = 8 + ((k * 5) % 10);
+              return (
+                <span key={k} className="absolute top-0 rounded-[2px]"
+                  style={{
+                    left: `${left}%`,
+                    width: w, height: h,
+                    background: c,
+                    boxShadow: `0 0 6px ${c}`,
+                    ['--cx' as never]: `${dx}px`,
+                    ['--cr' as never]: `${rot}deg`,
+                    animation: `ese-confetti-fall ${dur}s linear ${delay}s infinite`,
+                  }} />
+              );
+            })}
+          </div>
 
           {/* Expanding sonar rings */}
           <div aria-hidden className="absolute left-1/2 top-[55%] pointer-events-none -z-10" style={{ width: 1, height: 1 }}>

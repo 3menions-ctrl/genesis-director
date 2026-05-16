@@ -1058,8 +1058,8 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 aria-label="Video engine"
               >
                 {([
-                  { id: 'kling' as const, label: 'Kling V3', sub: 'Native audio' },
-                  { id: 'seedance' as const, label: 'Seedance 2', sub: 'Motion-first' },
+                  { id: 'kling' as const, label: 'Kling V3', sub: 'Single clip · fallback' },
+                  { id: 'seedance' as const, label: 'Seedance 2', sub: 'Multi-clip · alternate' },
                 ]).map((opt) => {
                   const active = videoEngine === opt.id;
                   return (
@@ -1069,7 +1069,11 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       role="radio"
                       aria-checked={active}
                       disabled={isGenerating}
-                      onClick={() => setVideoEngine(opt.id)}
+                      onClick={() => {
+                        setVideoEngine(opt.id);
+                        // Kling = safe single-clip fallback; Seedance unlocks multi-clip continuity
+                        if (opt.id === 'kling') setClipCount(1);
+                      }}
                       className={cn(
                         'flex flex-col items-start px-3 py-2 rounded-lg transition-all text-left',
                         active

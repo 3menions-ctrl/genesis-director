@@ -154,7 +154,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
           playsInline
           muted={muted}
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover bg-black"
+          className="absolute inset-0 w-full h-full object-contain md:object-cover bg-black"
         />
 
         {/* Scrim — keeps foreground content readable. Stronger at edges. */}

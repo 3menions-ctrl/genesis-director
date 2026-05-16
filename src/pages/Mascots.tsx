@@ -3,6 +3,7 @@ import { PageShell, PageHeader, Surface, SegmentedControl } from '@/components/s
 import { Button } from '@/components/ui/button';
 import { Download, Sparkles, Film } from 'lucide-react';
 import { SeedanceAnimateDialog } from '@/components/mascots/SeedanceAnimateDialog';
+import { LazyAutoVideo } from '@/components/video/LazyAutoVideo';
 
 import foodTaco from '@/assets/mascots/food-truck-taco.png';
 import foodBurger from '@/assets/mascots/food-truck-burger.png';
@@ -110,15 +111,10 @@ export default function Mascots() {
             {/* Stage — square aspect with a subtle inner ring */}
             <div className="relative aspect-square overflow-hidden">
               <div className="absolute inset-4 rounded-2xl border border-foreground/[0.06]" />
-              <video
+              <LazyAutoVideo
                 src={m.loop}
                 poster={m.src}
                 aria-label={`${m.name}, ${m.packLabel} mascot animated loop`}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
                 className="relative z-10 w-full h-full object-contain p-8 transition-transform duration-700 ease-out group-hover:scale-[1.04] group-hover:-translate-y-1"
               />
             </div>

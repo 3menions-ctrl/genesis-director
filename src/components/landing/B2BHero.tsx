@@ -8,7 +8,7 @@ interface Props {
   onSecondary: () => void;
 }
 
-const ROTATING_WORDS = ['the film', 'the campaign', 'the launch', 'the moment'];
+const ROTATING_WORDS = ['the ad', 'the launch', 'the pitch', 'the story'];
 
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -60,7 +60,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-          Apex Studio · The Cinema Engine
+          Apex Studio
         </span>
       </motion.div>
 
@@ -122,14 +122,14 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
         style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        One prompt becomes a{' '}
+        Write a scene. Apex generates the{' '}
         <span
           className="text-white/85 italic"
           style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}
         >
-          finished film
+          finished shot
         </span>
-        . No crew. No edit bay. No compromise.
+        {' '}— with characters, dialogue, sound and continuity locked across every cut.
       </motion.p>
 
       <motion.div

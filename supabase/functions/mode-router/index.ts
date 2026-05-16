@@ -1120,8 +1120,13 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] BREAKOUT TEMPLATE: ${breakoutPlatform}, using platform UI as first frame`);
   }
 
-  // Route to hollywood-pipeline with all parameters
-  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
+  // ENGINE ROUTING: Seedance → seedance-pipeline, all others → hollywood-pipeline
+  const targetPipeline = (videoEngine === 'seedance')
+    ? 'seedance-pipeline'
+    : 'hollywood-pipeline';
+  console.log(`[ModeRouter/Cinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+
+  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

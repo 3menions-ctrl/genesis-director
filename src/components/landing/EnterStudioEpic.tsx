@@ -80,6 +80,8 @@ import feat2 from '@/assets/features/text-to-video-premium.jpg';
 import featMusic from '@/assets/features/music-premium.jpg';
 import featVoice from '@/assets/features/voiceover-premium.jpg';
 import featStyle from '@/assets/features/style-transfer-premium.jpg';
+// Unique fill for the feature-grid tile — never reused elsewhere on landing.
+import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 const AVATARS = [
@@ -101,7 +103,9 @@ const SHOWREEL = [
   { src: hoppyIntroAsset.url,   label: 'Hoppy · Mascot Reel',  spec: 'I2V · Stitched' },
   { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
   { src: ALT_AVATAR_LIPSYNC,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
-  { src: immersiveHeroAsset.url,label: 'Hero · Wide Cinematic',spec: 'Kling V3 · 16:9' },
+  // Distinct gallery reel — avoids reusing the hero clip already on stage.
+  { src: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4',
+    label: 'Beautiful Day · Vibes',  spec: 'Kling V3 · Stitched' },
 ];
 
 interface Props {
@@ -399,9 +403,9 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
 
             {/* Stage — mascot/avatar mosaic windows + center hero clip */}
             <div className="relative grid grid-cols-12 gap-2.5 md:gap-3 p-5 md:p-7 mt-6">
-              {/* Left column — 3 mascot windows */}
+              {/* Left column — 3 cast windows (mascots stay reserved for the orbital roster). */}
               <div className="col-span-3 grid grid-rows-3 gap-2.5 md:gap-3">
-                {[MASCOTS[0], MASCOTS[3], MASCOTS[6]].map((src, i) => (
+                {[AVATARS[4], AVATARS[12], AVATARS[17]].map((src, i) => (
                   <div key={i} className="relative rounded-2xl overflow-hidden aspect-square border border-white/[0.08]"
                     style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 20px 50px -30px rgba(255,200,90,0.4)' }}>
                     <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -631,7 +635,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
 
           <div className="md:col-span-5 grid grid-cols-2 gap-3">
-            {[featMusic, featVoice, featStyle, feat1].map((src, i) => (
+            {[featMusic, featVoice, featStyle, featImageToVideo].map((src, i) => (
               <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-white/[0.06] group"
                 style={{ boxShadow: '0 20px 60px -30px rgba(10,132,255,0.5)' }}
               >
@@ -640,7 +644,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   style={{ background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.7) 100%)' }}
                 />
                 <div className="absolute bottom-2 left-2.5 text-[9.5px] font-mono uppercase tracking-[0.2em] text-white/85">
-                  {['Music','Voice','Style','Lock'][i]}
+                  {['Music','Voice','Style','I2V'][i]}
                 </div>
               </div>
             ))}
@@ -774,7 +778,16 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   animation: `${row ? 'ese-marquee-r' : 'ese-marquee'} ${row ? 55 : 45}s linear infinite`,
                 }}
               >
-                {[...AVATARS, ...AVATARS].map((a, i) => (
+                {/* Marquee excludes the 8 avatars used as solo spotlight tiles
+                    elsewhere on the page — so no cast member appears twice. */}
+                {(() => {
+                  // Reserved indices: spotlight tiles + left column + casting hall.
+                  const RESERVED = new Set([
+                    0, 2, 4, 6, 7, 10, 12, 14, 17, 18, 20, 21, 23, 25,
+                  ]);
+                  const pool = AVATARS.filter((_, i) => !RESERVED.has(i));
+                  return [...pool, ...pool];
+                })().map((a, i) => (
                   <div
                     key={i}
                     className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-2xl overflow-hidden border border-white/[0.06]"
@@ -941,7 +954,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 px-7 md:px-10 pt-6 pb-16">
-            {[mAstroBear, mWizRabbit, mRobot].map((src, i) => (
+            {/* Casting trio — unique avatars, never reused anywhere else on the page. */}
+            {[AVATARS[6], AVATARS[21], AVATARS[23]].map((src, i) => (
               <div key={i} className="relative h-[340px] md:h-[400px] flex items-end justify-center">
                 {/* Cone of light from above */}
                 <div aria-hidden className="absolute inset-x-0 -top-6 h-full pointer-events-none"

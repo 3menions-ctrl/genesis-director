@@ -33,17 +33,41 @@ interface NavItem {
   hue: number;
 }
 
-const PRIMARY_NAV: NavItem[] = [
-  // Unified loading-screen palette: deep cinematic blue (hsl 215, 100%, 60%)
-  { label: 'Library',   to: '/projects',       icon: Film,          hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
-  { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 215 },
-  { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 215 },
-  { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
-  { label: 'Cast',      to: '/avatars-gallery',icon: UsersIcon,     hue: 215 },
-  { label: 'Mascots',   to: '/mascots',        icon: Smile,         hue: 215 },
-  { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
-  { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
-  { label: 'Developers',to: '/developers',     icon: Code2,         hue: 215, match: (p) => p.startsWith('/developers') },
+/**
+ * Condensed, grouped primary navigation.
+ * Three editorial sections — Create, Library, Cast — keep the rail
+ * focused on the pages users actually need. Secondary destinations
+ * (avatars-gallery, developers) remain reachable from their parent
+ * pages but no longer clutter the sidebar.
+ */
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Create',
+    items: [
+      { label: 'Create', to: '/create', icon: Sparkles,  hue: 215 },
+      { label: 'Editor', to: '/editor', icon: Scissors,  hue: 215 },
+    ],
+  },
+  {
+    label: 'Library',
+    items: [
+      { label: 'Projects',  to: '/projects',  icon: Film,   hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
+      { label: 'Templates', to: '/templates', icon: Layers, hue: 215 },
+    ],
+  },
+  {
+    label: 'Cast',
+    items: [
+      { label: 'Avatars',  to: '/avatars',        icon: UserIcon,      hue: 215 },
+      { label: 'Mascots',  to: '/mascots',        icon: Smile,         hue: 215 },
+      { label: 'Training', to: '/training-video', icon: GraduationCap, hue: 215 },
+    ],
+  },
 ];
 
 interface AppShellProps {

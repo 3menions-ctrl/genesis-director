@@ -78,6 +78,30 @@ interface SeedanceClipInput {
 }
 
 /**
+ * Seedance-tuned prompt rewriter. Seedance 2.0 responds best to:
+ *   • Concrete subject + action verbs (no abstract emotion words)
+ *   • Explicit camera motion ("slow dolly in", "static lock-off") since
+ *     camera_fixed param only forces stillness, it doesn't choreograph moves
+ *   • Motion descriptors at the END of the prompt
+ *   • No audio/dialogue cues (Seedance has no native audio — those are muxed)
+ * Strips dialogue lines and lip-sync hints, appends motion intent.
+ */
+function seedanceTunePrompt(raw: string, cameraFixed: boolean): string {
+  let p = (raw ?? "").toString();
+  // Strip dialogue lines (Seedance has no native audio)
+  p = p.replace(/"[^"]{0,200}"/g, "").replace(/'[^']{0,200}'/g, "");
+  // Strip lip-sync / audio cues
+  p = p.replace(/\b(lip[- ]?sync|voiceover|narration|says?|speaks?|whispers?|shouts?)\b[^.,;]*/gi, "");
+  // Collapse whitespace
+  p = p.replace(/\s+/g, " ").trim();
+  // Append motion intent
+  const motionTag = cameraFixed
+    ? "static camera lock-off, subject motion only"
+    : "smooth cinematic camera motion, natural parallax";
+  return `${p}. ${motionTag}, 24fps, photoreal, sharp focus`.slice(0, 2400);
+}
+
+/**
  * Dispatch a single Seedance prediction. Returns the prediction ID immediately.
  * Polling is delegated to poll-replicate-prediction / watchdog.
  */
@@ -89,7 +113,7 @@ async function dispatchSeedanceClip(
 
   const duration = Math.max(2, Math.min(12, input.durationSeconds));
   const body: Record<string, any> = {
-    prompt: input.prompt.slice(0, 2500),
+    prompt: seedanceTunePrompt(input.prompt, input.cameraFixed),
     duration,
     resolution: "1080p",
     aspect_ratio: input.aspectRatio,
@@ -388,6 +412,62 @@ serve(async (req) => {
       console.warn(`[Seedance] Scene-image generation failed (continuing T2V):`, e?.message);
     }
 
+    // ═══ AUDIO DISPATCH (parallel with video clips) ═══
+    // Seedance has NO native audio, so we generate voice/music NOW and the
+    // watchdog will mux them onto the stitched video. Fire-and-forget pattern:
+    // we kick off requests and persist whatever resolves; watchdog handles
+    // anything still pending.
+    const totalSeconds = shots.reduce(
+      (acc, s) => acc + (s.durationSeconds ?? clipDuration), 0,
+    );
+    const audioPromises: Record<string, Promise<any>> = {};
+
+    if (includeVoice) {
+      const voiceLines = shots
+        .map((s, i) => s.dialogue ?? s.voiceover ?? s.narration ?? null)
+        .filter((l): l is string => !!l && l.trim().length > 0);
+      if (voiceLines.length > 0) {
+        console.log(`[Seedance] Dispatching voice for ${voiceLines.length} lines`);
+        audioPromises.voice = callEdgeFunction("generate-voice", {
+          projectId,
+          userId: request.userId,
+          lines: voiceLines,
+          engine: "seedance",
+        }).catch((e) => {
+          console.warn(`[Seedance] generate-voice failed:`, e?.message);
+          return null;
+        });
+      }
+    }
+
+    if (includeMusic) {
+      console.log(`[Seedance] Dispatching music (${totalSeconds}s)`);
+      audioPromises.music = callEdgeFunction("generate-music", {
+        projectId,
+        userId: request.userId,
+        duration: totalSeconds,
+        mood: request.mood ?? "epic",
+        genre: request.genre ?? "cinematic",
+        engine: "seedance",
+      }).catch((e) => {
+        console.warn(`[Seedance] generate-music failed:`, e?.message);
+        return null;
+      });
+    }
+
+    // Don't block clip dispatch on audio — settle in parallel, harvest after
+    const audioSettled = await Promise.allSettled(
+      Object.entries(audioPromises).map(async ([k, p]) => [k, await p] as const),
+    );
+    const audioAssets: Record<string, any> = {};
+    for (const r of audioSettled) {
+      if (r.status === "fulfilled" && r.value) {
+        const [k, v] = r.value;
+        if (v) audioAssets[k] = v?.url ?? v?.audioUrl ?? v;
+      }
+    }
+    console.log(`[Seedance] Audio assets ready: ${Object.keys(audioAssets).join(",") || "(none)"}`);
+
     // ═══ DISPATCH SEEDANCE CLIPS (parallel) ═══
     await supabase
       .from("movie_projects")
@@ -464,6 +544,8 @@ serve(async (req) => {
           postProduction: {
             includeVoice, includeMusic,
             stitchFunction: "simple-stitch",
+            audioAssets, // pre-generated voice/music URLs for muxing
+            muxStrategy: "post-stitch", // Seedance: no native audio, mux after
           },
         },
       })

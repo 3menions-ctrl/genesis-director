@@ -183,6 +183,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   const [cameraFixed, setCameraFixed] = useState<boolean>(true);
   const [lightingMood, setLightingMood] = useState<'soft' | 'cinematic' | 'high-key' | 'moody'>('soft');
+  const [clipCount, setClipCount] = useState<number>(1);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
   const [progress, setProgress] = useState(0);

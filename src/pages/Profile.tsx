@@ -296,8 +296,44 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     const creditsAdded = searchParams.get('credits');
     const buy = searchParams.get('buy');
     if (paymentStatus === 'success') {
-      toast.success(`Payment successful! ${creditsAdded ? `${creditsAdded} credits` : 'Credits'} added.`);
-      refreshProfile(); fetchTransactions(); fetchMetrics(); setSearchParams({});
+      const expected = parseInt(creditsAdded || '0', 10) || 0;
+      const baseline = profile?.credits_balance ?? 0;
+      const target = expected > 0 ? baseline + expected : baseline + 1;
+      const toastId = toast.loading('Finalizing payment…');
+      setSearchParams({});
+
+      let attempts = 0;
+      const maxAttempts = 10; // ~15s total
+      const poll = async () => {
+        attempts++;
+        await refreshProfile();
+        const { data } = await supabase
+          .from('profiles')
+          .select('credits_balance')
+          .eq('id', user?.id)
+          .maybeSingle();
+        const current = data?.credits_balance ?? 0;
+        if (current >= target) {
+          toast.success(
+            `Payment confirmed! ${expected > 0 ? `${expected} credits` : 'Credits'} added.`,
+            { id: toastId },
+          );
+          fetchTransactions();
+          fetchMetrics();
+          return;
+        }
+        if (attempts >= maxAttempts) {
+          toast.success(
+            'Payment received. Credits will appear momentarily — refresh if not visible.',
+            { id: toastId },
+          );
+          fetchTransactions();
+          fetchMetrics();
+          return;
+        }
+        setTimeout(poll, 1500);
+      };
+      poll();
     } else if (paymentStatus === 'canceled') {
       toast.info('Payment was canceled'); setSearchParams({});
     } else if (buy) {

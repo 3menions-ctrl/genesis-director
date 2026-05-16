@@ -7021,10 +7021,6 @@ export type Database = {
             }
             Returns: Json
           }
-        | {
-            Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
-            Returns: Json
-          }
       charge_production_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
         | {
@@ -7033,10 +7029,6 @@ export type Database = {
               p_project_id: string
               p_shot_id: string
             }
-            Returns: Json
-          }
-        | {
-            Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
             Returns: Json
           }
       check_clip_continuity_ready: {

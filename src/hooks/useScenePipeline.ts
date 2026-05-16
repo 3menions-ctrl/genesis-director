@@ -105,6 +105,68 @@ export function useScenePipeline(
       return;
     }
 
+    // ── Predecessor gate ──────────────────────────────────────────────────
+    // If this scene chains from the previous one and the predecessor is not
+    // yet completed, park this scene client-side and watch the predecessor.
+    // The watcher resumes generation automatically the moment the prior
+    // scene reaches a terminal state, inheriting its tail frame.
+    const sceneIdx = sourceDraft.scenes.findIndex(s => s.id === sceneId);
+    const wantsChain = scene.chainFromPrevious !== false;
+    if (sceneIdx > 0 && wantsChain) {
+      const predecessor = sourceDraft.scenes[sceneIdx - 1];
+      const predReady = predecessor?.status === "done" && !!predecessor.clipUrl;
+      if (predecessor && !predReady && predecessor.status !== "failed") {
+        stopGate(sceneId);
+        patchScene(sceneId, { status: "queued", waitingOnSceneId: predecessor.id });
+        toast.message(`Scene ${scene.index + 1} waiting on scene ${predecessor.index + 1}`, { duration: 2500 });
+        const t = setInterval(() => {
+          const latest = getLatestDraft ? getLatestDraft() : sourceDraft;
+          const live = latest.scenes.find(s => s.id === predecessor.id);
+          if (!live) { stopGate(sceneId); return; }
+          if (live.status === "failed") {
+            stopGate(sceneId);
+            patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined });
+            toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
+            return;
+          }
+          if (live.status === "done" && live.clipUrl) {
+            stopGate(sceneId);
+            patchScene(sceneId, { waitingOnSceneId: undefined });
+            // Extract the predecessor's actual tail frame so the resumed
+            // render anchors on a real last-frame, not the static brief ref.
+            (async () => {
+              try {
+                const projectId = await ensureProjectId();
+                const { data: { user } } = await supabase.auth.getUser();
+                const tailUrl = await extractAndUploadTailFrame(live.clipUrl!, {
+                  userId: user?.id || "",
+                  projectId,
+                  sceneIndex: scene.index,
+                }).catch(() => null);
+                const fresh = getLatestDraft ? getLatestDraft() : sourceDraft;
+                const me = fresh.scenes.find(s => s.id === sceneId);
+                if (me && tailUrl) {
+                  patchScene(sceneId, { refImageUrl: tailUrl });
+                }
+                const resumedDraft: StudioDraft = {
+                  ...fresh,
+                  scenes: fresh.scenes.map(s =>
+                    s.id === sceneId && tailUrl ? { ...s, refImageUrl: tailUrl } : s,
+                  ),
+                };
+                await generateSceneFromDraft(sceneId, resumedDraft);
+              } catch (err) {
+                patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined });
+                toast.error(`Scene ${scene.index + 1} resume failed`);
+              }
+            })();
+          }
+        }, 2000);
+        gateWatchers.current.set(sceneId, t);
+        return;
+      }
+    }
+
     patchScene(sceneId, { status: "queued" });
     try {
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];

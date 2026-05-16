@@ -6,12 +6,12 @@
  */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ShoppingBag, MessageSquare, Building2, Check, Loader2 } from "lucide-react";
+import { Bell, ShoppingBag, MessageSquare, Building2, Check, Loader2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
-type AdminNotifType = "admin_purchase" | "admin_support_message" | "admin_inquiry";
+type AdminNotifType = "admin_purchase" | "admin_support_message" | "admin_inquiry" | "admin_signup";
 
 interface AdminNotif {
   id: string;
@@ -27,11 +27,13 @@ const ADMIN_TYPES: AdminNotifType[] = [
   "admin_purchase",
   "admin_support_message",
   "admin_inquiry",
+  "admin_signup",
 ];
 
 function iconFor(type: AdminNotifType) {
   if (type === "admin_purchase") return ShoppingBag;
   if (type === "admin_inquiry") return Building2;
+  if (type === "admin_signup") return UserPlus;
   return MessageSquare;
 }
 

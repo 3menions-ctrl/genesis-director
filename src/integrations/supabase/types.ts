@@ -7149,6 +7149,10 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      dispatch_admin_alert: {
+        Args: { _data: Json; _event_id: string; _kind: string }
+        Returns: undefined
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -7577,6 +7581,7 @@ export type Database = {
         | "admin_purchase"
         | "admin_support_message"
         | "admin_inquiry"
+        | "admin_signup"
       org_role:
         | "owner"
         | "admin"
@@ -7756,6 +7761,7 @@ export const Constants = {
         "admin_purchase",
         "admin_support_message",
         "admin_inquiry",
+        "admin_signup",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

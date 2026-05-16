@@ -50,6 +50,7 @@ import { TemplatesDrawerContent, type TemplatePick } from "./drawers/TemplatesDr
 import { VoicesDrawerContent } from "./drawers/VoicesDrawer";
 import { StylesDrawerContent } from "./drawers/StylesDrawer";
 import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./types";
+import { ScriptBuilder } from "./ScriptBuilder";
 
 // Fallback "preview" imagery for the editorial hero — used when the user
 // hasn't yet cast avatars or picked an environment so the canvas always

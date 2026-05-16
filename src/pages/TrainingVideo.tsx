@@ -16,7 +16,8 @@ import {
   Upload, User, Mic, Image, Play, Loader2, Check,
   Sparkles, ArrowRight, RefreshCw, Download,
   Video, AlertCircle, Trash2, Coins, Zap, Wand2,
-  ChevronRight, CircleDot, Pause, Film
+  ChevronRight, CircleDot, Pause, Film,
+  Settings2, Lock, Sun, Camera, Timer, Ratio
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
@@ -176,6 +177,13 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
   const [scriptText, setScriptText] = useState('');
   const [videoEngine, setVideoEngine] = useState<'kling' | 'seedance'>('kling');
+  // Training settings panel
+  const [targetDuration, setTargetDuration] = useState<number | null>(null); // null = auto (length-based)
+  const [characterLockStrict, setCharacterLockStrict] = useState<boolean>(true);
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
+  const [cameraFixed, setCameraFixed] = useState<boolean>(true);
+  const [lightingMood, setLightingMood] = useState<'soft' | 'cinematic' | 'high-key' | 'moody'>('soft');
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
   const [progress, setProgress] = useState(0);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
@@ -565,19 +573,35 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
       toast.info('Animating speaking presenter...');
       setProgress(45);
       
-      // Build prompt for natural speaking animation
-      const animationPrompt = `The person in the image is speaking naturally to camera with confident body language. Direct eye contact, subtle natural head movements, professional presenter demeanor. The presenter is delivering educational content with engaging expressions. No scene change, consistent lighting and environment.`;
+      // Build prompt for natural speaking animation (settings-aware)
+      const lightingPhrase = {
+        soft: 'soft diffused key light, gentle fill, flattering presenter lighting',
+        cinematic: 'cinematic chiaroscuro lighting, controlled shadows, filmic contrast',
+        'high-key': 'bright high-key broadcast lighting, evenly lit, low contrast',
+        moody: 'moody low-key lighting, deep shadows, dramatic single source',
+      }[lightingMood];
+      const cameraPhrase = cameraFixed
+        ? 'locked-off static camera, no camera movement, subject motion only'
+        : 'subtle handheld presenter framing, gentle parallax, no zoom';
+      const lockPhrase = characterLockStrict
+        ? 'identity locked: preserve exact facial features, hairstyle, clothing, and skin tone of the reference person without drift'
+        : 'preserve general likeness of the reference person';
+      const animationPrompt = `The person in the image is speaking naturally to camera with confident body language. Direct eye contact, subtle natural head movements, professional presenter demeanor. The presenter is delivering educational content with engaging expressions. No scene change, consistent environment. ${lightingPhrase}. ${cameraPhrase}. ${lockPhrase}.`;
+
+      const finalDuration = targetDuration ?? Math.min(Math.ceil(scriptText.length / 15), 10);
 
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: {
           prompt: animationPrompt,
           imageUrl: startImageUrl,
-          aspectRatio: '16:9',
-          duration: Math.min(Math.ceil(scriptText.length / 15), 10),
+          aspectRatio,
+          duration: finalDuration,
           userId: user.id,
           mode: 'training_avatar',
           videoEngine,
           enableAudio: videoEngine === 'kling', // Seedance has no native audio — we mux generated voice in post
+          cameraFixed,
+          characterLock: characterLockStrict ? { strict: true, source: 'training_video' } : undefined,
         },
       });
 
@@ -1048,6 +1072,179 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                     </button>
                   );
                 })}
+              </motion.div>
+            )}
+
+            {/* Training Settings Panel — duration · voice · character lock · environment */}
+            {generationStep !== 'complete' && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.17 }}
+                className="rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.03] transition-colors"
+                  aria-expanded={settingsOpen}
+                >
+                  <span className="flex items-center gap-2">
+                    <Settings2 className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground tracking-wide">Training Settings</span>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+                      {targetDuration ?? 'auto'}s · {aspectRatio} · {lightingMood}
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className={cn(
+                      'w-3.5 h-3.5 text-muted-foreground transition-transform',
+                      settingsOpen && 'rotate-90',
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {settingsOpen && (
+                    <motion.div
+                      key="settings-body"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-3 pb-3 pt-1 space-y-3 border-t border-white/[0.06]">
+                        {/* Script Duration */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider">
+                              <Timer className="w-3 h-3" /> Duration
+                            </span>
+                            <span className="text-[11px] font-mono text-foreground">
+                              {targetDuration ? `${targetDuration}s` : 'Auto'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-5 gap-1">
+                            {[null, 4, 6, 8, 10].map((d) => {
+                              const active = targetDuration === d;
+                              return (
+                                <button
+                                  key={d ?? 'auto'}
+                                  type="button"
+                                  onClick={() => setTargetDuration(d)}
+                                  className={cn(
+                                    'h-7 rounded-md text-[10px] font-mono transition-all',
+                                    active
+                                      ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
+                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                  )}
+                                >
+                                  {d ? `${d}s` : 'Auto'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Aspect Ratio */}
+                        <div className="space-y-1.5">
+                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider">
+                            <Ratio className="w-3 h-3" /> Aspect
+                          </span>
+                          <div className="grid grid-cols-3 gap-1">
+                            {(['16:9', '9:16', '1:1'] as const).map((ar) => {
+                              const active = aspectRatio === ar;
+                              return (
+                                <button
+                                  key={ar}
+                                  type="button"
+                                  onClick={() => setAspectRatio(ar)}
+                                  className={cn(
+                                    'h-7 rounded-md text-[10px] font-mono transition-all',
+                                    active
+                                      ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
+                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                  )}
+                                >
+                                  {ar}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Environment: Lighting Mood */}
+                        <div className="space-y-1.5">
+                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider">
+                            <Sun className="w-3 h-3" /> Lighting
+                          </span>
+                          <div className="grid grid-cols-4 gap-1">
+                            {(['soft', 'cinematic', 'high-key', 'moody'] as const).map((m) => {
+                              const active = lightingMood === m;
+                              return (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setLightingMood(m)}
+                                  className={cn(
+                                    'h-7 rounded-md text-[10px] capitalize transition-all',
+                                    active
+                                      ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
+                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                  )}
+                                >
+                                  {m}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Toggles: Character Lock + Camera Fixed */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setCharacterLockStrict((v) => !v)}
+                            className={cn(
+                              'flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all',
+                              characterLockStrict
+                                ? 'bg-primary/15 ring-1 ring-primary/40'
+                                : 'bg-white/[0.03] hover:bg-white/[0.06]',
+                            )}
+                          >
+                            <Lock className={cn('w-3.5 h-3.5', characterLockStrict ? 'text-primary' : 'text-muted-foreground')} />
+                            <span className="flex-1">
+                              <span className="block text-[11px] font-medium text-foreground">Character Lock</span>
+                              <span className="block text-[9px] uppercase tracking-wider text-muted-foreground">
+                                {characterLockStrict ? 'Strict identity' : 'Loose likeness'}
+                              </span>
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setCameraFixed((v) => !v)}
+                            className={cn(
+                              'flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all',
+                              cameraFixed
+                                ? 'bg-primary/15 ring-1 ring-primary/40'
+                                : 'bg-white/[0.03] hover:bg-white/[0.06]',
+                            )}
+                          >
+                            <Camera className={cn('w-3.5 h-3.5', cameraFixed ? 'text-primary' : 'text-muted-foreground')} />
+                            <span className="flex-1">
+                              <span className="block text-[11px] font-medium text-foreground">Camera</span>
+                              <span className="block text-[9px] uppercase tracking-wider text-muted-foreground">
+                                {cameraFixed ? 'Locked off' : 'Subtle motion'}
+                              </span>
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 

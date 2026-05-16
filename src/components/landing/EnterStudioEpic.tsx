@@ -21,11 +21,14 @@ import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 // ── Video assets (looping showcase clips) ────────────────────────────────
-import waveHelloAsset from '@/assets/landing-avatar-wave-hello.mp4.asset.json';
 import seedanceTestAsset from '@/assets/seedance-avatar-test.mp4.asset.json';
 import immersiveHeroAsset from '@/assets/landing-immersive-hero.mp4.asset.json';
 import hoppyIntroAsset from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import seedanceClipAsset from '@/assets/test-seedance-clip.mp4.asset.json';
+
+// Remote avatar reels — distinct cameos, no duplicate "wave hello" across the page.
+const ALT_AVATAR_CAMEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fb50fcdc-bed9-4423-a5cb-871a26f77ee1/avatar_fb50fcdc-bed9-4423-a5cb-871a26f77ee1_clip1_lipsync_1771727043052.mp4';
+const ALT_AVATAR_LIPSYNC = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
 // ── Mascot ring (PNG, transparent or framed) ─────────────────────────────
 import mAstroBear from '@/assets/mascots/cereal-astronaut-bear.png';
@@ -89,7 +92,7 @@ const AVATARS = [
 const FRAME_CHAIN = [scene1, feat1, scene2, feat2, scene3];
 
 const VIDEOS = [
-  { src: waveHelloAsset.url,    label: 'Avatar · Wave Hello',  spec: 'Kling V3 · 10s · 16:9' },
+  { src: ALT_AVATAR_CAMEO,      label: 'Avatar · Cinematic Cameo', spec: 'Kling V3 · 10s · 16:9' },
   { src: seedanceTestAsset.url, label: 'Seedance · Hyperreal', spec: 'Seedance 2.0 · 12s'    },
   { src: immersiveHeroAsset.url,label: 'Cinematic · Hero',     spec: 'Kling V3 · Native audio'},
 ];
@@ -97,7 +100,7 @@ const VIDEOS = [
 const SHOWREEL = [
   { src: hoppyIntroAsset.url,   label: 'Hoppy · Mascot Reel',  spec: 'I2V · Stitched' },
   { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
-  { src: waveHelloAsset.url,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
+  { src: ALT_AVATAR_LIPSYNC,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
   { src: immersiveHeroAsset.url,label: 'Hero · Wide Cinematic',spec: 'Kling V3 · 16:9' },
 ];
 

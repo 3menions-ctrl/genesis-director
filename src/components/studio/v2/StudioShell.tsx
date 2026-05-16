@@ -676,35 +676,16 @@ export default function StudioShell() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
                     )}
 
-                    {/* ===== HERO COMPOSER — atelier glass, museum frame ===== */}
-                    <div className="group/composer relative overflow-hidden rounded-[24px] border border-white/[0.07] bg-[linear-gradient(155deg,hsla(220,18%,8%,0.92)_0%,hsla(220,16%,5%,0.88)_45%,hsla(220,14%,3%,0.92)_100%)] shadow-[0_50px_120px_-50px_hsl(215_100%_55%/0.55),0_0_0_1px_hsl(220_14%_2%),inset_0_1px_0_hsla(0,0%,100%,0.06)] backdrop-blur-2xl">
-                      {/* Inner glass sheen */}
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(120%_60%_at_50%_-10%,hsla(215,100%,72%,0.10),transparent_55%)]" />
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] bg-[radial-gradient(80%_50%_at_100%_100%,hsla(215,100%,55%,0.08),transparent_60%)]" />
-                      {/* Film grain texture */}
-                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[24px] opacity-[0.045] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
-                      {/* Hairlines */}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
-                      {/* Cinema corner brackets */}
-                      <span className="pointer-events-none absolute left-3 top-3 z-10 h-3.5 w-3.5 border-l border-t border-accent/80" />
-                      <span className="pointer-events-none absolute right-3 top-3 z-10 h-3.5 w-3.5 border-r border-t border-accent/80" />
-                      <span className="pointer-events-none absolute bottom-3 left-3 z-10 h-3.5 w-3.5 border-b border-l border-accent/80" />
-                      <span className="pointer-events-none absolute bottom-3 right-3 z-10 h-3.5 w-3.5 border-b border-r border-accent/80" />
-
-                      <div className="px-5 py-6 md:px-7 md:py-7">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.32em] text-accent">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-60" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                            </span>
-                            {createMode === "text" ? "Pure text prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
-                          </div>
-                          <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/60">SC. 01 · TAKE 01</div>
+                    {/* ===== HERO COMPOSER — open editorial canvas ===== */}
+                    <div className="relative">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
+                          {createMode === "text" ? "Scene prompt" : createMode === "image" ? "Image-anchored brief" : "Template brief"}
                         </div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/40">SC. 01 · TAKE 01</div>
+                      </div>
 
-                        <textarea
+                      <textarea
                           value={draft.brief.logline}
                           onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, logline: e.target.value } }))}
                           placeholder={createMode === "text"
@@ -714,17 +695,20 @@ export default function StudioShell() {
                               : "Describe the spin you want on the template — tone, era, hero moment."
                           }
                           rows={4}
-                          className="mt-4 w-full resize-none bg-transparent font-display text-[20px] md:text-[24px] xl:text-[28px] italic leading-[1.2] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/35"
+                          className="w-full resize-none bg-transparent font-display text-[22px] md:text-[26px] xl:text-[30px] italic leading-[1.25] tracking-[-0.015em] text-foreground outline-none placeholder:text-muted-foreground/30"
                           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 50" }}
                         />
+                      <div className="relative h-px w-full bg-border/40">
+                        <div className="absolute left-0 top-0 h-px w-24 bg-gradient-to-r from-accent to-transparent" />
+                      </div>
 
-                        <div className="relative mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 border-t border-white/[0.05] pt-4">
+                      <div className="relative mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Style</span>
                           <input
                             value={draft.brief.style}
                             onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, style: e.target.value } }))}
                             placeholder="Anamorphic · neon · 35mm grain"
-                            className="h-8 min-w-[180px] flex-1 rounded-full border border-white/[0.08] bg-white/[0.02] px-3.5 text-[13px] text-foreground/90 outline-none shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04)] transition-all focus:border-accent/60 focus:bg-white/[0.04] focus:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),0_0_0_3px_hsl(var(--accent)/0.10)]"
+                            className="h-8 min-w-[180px] max-w-[280px] flex-1 bg-transparent border-b border-border/50 px-1 text-[13px] text-foreground/90 outline-none transition-colors focus:border-accent"
                           />
                           <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/60">Aspect</span>
                           <SegmentedSelect
@@ -748,14 +732,13 @@ export default function StudioShell() {
                                 key={label}
                                 onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
                                 title={prompt}
-                                className="h-7 rounded-full border border-border/50 bg-background/30 px-2.5 text-[11.5px] text-muted-foreground transition-all hover:border-accent/50 hover:bg-accent/[0.08] hover:text-foreground"
+                                className="h-7 rounded-full border border-border/40 bg-transparent px-3 text-[11.5px] text-muted-foreground/80 transition-all hover:border-accent/60 hover:text-foreground"
                               >
                                 {label}
                               </button>
                             ))}
                           </div>
                         )}
-                      </div>
                     </div>
 
                     {/* ============= ENGINE PILL RAIL ============= */}

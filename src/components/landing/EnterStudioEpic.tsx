@@ -80,6 +80,8 @@ import feat2 from '@/assets/features/text-to-video-premium.jpg';
 import featMusic from '@/assets/features/music-premium.jpg';
 import featVoice from '@/assets/features/voiceover-premium.jpg';
 import featStyle from '@/assets/features/style-transfer-premium.jpg';
+// Unique fill for the feature-grid tile — never reused elsewhere on landing.
+import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 const AVATARS = [
@@ -101,7 +103,9 @@ const SHOWREEL = [
   { src: hoppyIntroAsset.url,   label: 'Hoppy · Mascot Reel',  spec: 'I2V · Stitched' },
   { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
   { src: ALT_AVATAR_LIPSYNC,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
-  { src: immersiveHeroAsset.url,label: 'Hero · Wide Cinematic',spec: 'Kling V3 · 16:9' },
+  // Distinct gallery reel — avoids reusing the hero clip already on stage.
+  { src: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4',
+    label: 'Beautiful Day · Vibes',  spec: 'Kling V3 · Stitched' },
 ];
 
 interface Props {

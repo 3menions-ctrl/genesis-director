@@ -494,29 +494,24 @@ export default function StudioShell() {
 
   return (
     <div className="relative h-[calc(100dvh-56px)] overflow-hidden bg-background text-foreground">
-      {/* Cinematic background — vignette + accent halos + film grain */}
+      {/* Quiet editorial ground — single soft halo, no grain or scanlines */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--accent)/0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_85%_110%,hsl(var(--accent)/0.10),transparent_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_30%_30%_at_5%_5%,hsl(var(--accent)/0.06),transparent_70%)]" />
-        <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-        <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-20%,hsl(var(--accent)/0.07),transparent_70%)]" />
       </div>
 
-      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/50 bg-background/50 px-6 backdrop-blur-2xl">
+      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/40 bg-background/60 px-6 backdrop-blur-2xl">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 shadow-[0_0_32px_hsl(var(--accent)/0.4)]">
-            <Film className="h-4 w-4 text-accent" />
-            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent))]" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40">
+            <Film className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
           </div>
-          <div className="min-w-0 border-l border-border/50 pl-4">
+          <div className="min-w-0">
             <input
               value={draft.brief.title}
               onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, title: e.target.value } }))}
               placeholder="Untitled film"
-              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
+              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40"
             />
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">A Cinematic Workflow · est. 2026</div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Cinematic workflow</div>
           </div>
         </div>
 
@@ -526,23 +521,20 @@ export default function StudioShell() {
               const active = step === id;
               const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
               return (
-                <div key={id} className="flex items-center gap-1.5">
+                <div key={id} className="flex items-center gap-3">
                   <button
                     onClick={() => setStep(id)}
-                    className={cn(
-                      "group flex h-9 items-center gap-2.5 rounded-full px-4 transition-all",
-                      active ? "bg-accent/[0.08] ring-1 ring-accent/40 shadow-[0_0_24px_hsl(var(--accent)/0.25)]" : "hover:bg-card/50",
-                    )}
+                    className="group flex h-9 items-center gap-2 px-2 transition-colors"
                   >
                     <span className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full font-mono text-[9px] transition-colors",
-                      active ? "bg-accent text-accent-foreground" : complete ? "bg-success/20 text-success" : "border border-border text-muted-foreground",
+                      "font-mono text-[9px] tabular-nums transition-colors",
+                      active ? "text-accent" : complete ? "text-foreground/60" : "text-muted-foreground/50",
                     )}>
                       {complete && !active ? <Check className="h-3 w-3" /> : String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{label}</span>
+                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground/70 group-hover:text-foreground")}>{label}</span>
                   </button>
-                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/70" />}
+                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/40" />}
                 </div>
               );
             })}
@@ -555,18 +547,17 @@ export default function StudioShell() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving
             </span>
           )}
-          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-3 text-foreground/90 transition-all hover:border-accent/40 hover:bg-card md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
-            <Cpu className="h-3.5 w-3.5 text-accent" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
+          <button onClick={() => setDrawer("engines")} className="hidden h-9 items-center gap-1.5 px-2 text-foreground/80 transition-colors hover:text-foreground md:inline-flex" title={ENGINES[draft.defaults.engine].label}>
+            <Cpu className="h-3.5 w-3.5 text-accent/80" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em]">{ENGINES[draft.defaults.engine].shortLabel}</span>
           </button>
           <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
-            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-4 text-[13px] font-medium text-accent-foreground shadow-[0_0_28px_hsl(var(--accent)/0.4)] transition-all hover:shadow-[0_0_44px_hsl(var(--accent)/0.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-5 text-[12px] font-medium tracking-[0.04em] text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <span className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100" />
             {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span className="relative">Auto create</span>
+            <span>Auto create</span>
           </button>
         </div>
       </header>

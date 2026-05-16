@@ -46,14 +46,6 @@ input[type="button"], input[type="reset"] {
   touch-action: manipulation;
 }
 
-/* Image / video stability — prevents white flash before pixels arrive
-   and reserves a dark surface so layout never "pops". */
-img, video, canvas, svg, iframe {
-  background-color: hsl(var(--surface-1, 220 12% 5%));
-}
-img, video, canvas, iframe { display: block; max-width: 100%; }
-img { height: auto; }
-
 /* Selection — branded, never garish */
 ::selection {
   background: hsl(211 100% 52% / 0.35);

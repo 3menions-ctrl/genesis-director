@@ -222,6 +222,12 @@ interface ModeRouterRequest {
   characterLock?: any;
   referenceImageUrl?: string;
   breakoutDialogue?: string;
+  useTemplateShots?: boolean;
+  templateShotSequence?: any[];
+  templateName?: string;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
 
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
@@ -585,6 +591,12 @@ serve(async (req) => {
           breakoutDialogue: request.breakoutDialogue || prompt,
           identityBible: request.identityBible,
           characterLock: request.characterLock,
+          useTemplateShots: request.useTemplateShots,
+          templateShotSequence: request.templateShotSequence,
+          templateName: request.templateName,
+          templateStyleAnchor: request.templateStyleAnchor,
+          templateCharacters: request.templateCharacters,
+          templateEnvironmentLock: request.templateEnvironmentLock,
           supabase,
         });
       }

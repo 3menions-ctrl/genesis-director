@@ -185,6 +185,9 @@ export default function StudioShell() {
   const [step, setStep] = useState<StepId>("start");
   const [autoBusy, setAutoBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [approvalBalance, setApprovalBalance] = useState<number | null>(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
   const [createMode, setCreateMode] = useState<"text" | "image" | "template">(() => {
     if (draft.brief.templateId) return "template";
     if (draft.brief.refImageUrl) return "image";

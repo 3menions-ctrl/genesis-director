@@ -6254,14 +6254,29 @@ async function executePipelineInBackground(
     console.log(`  - extractedCharacters: ${mergedProFeatures.extractedCharacters?.length || 0}`);
     
     // Update project as completed
+    let durableFinalVideoUrl = state.finalVideoUrl;
+    if (durableFinalVideoUrl && isTemporaryReplicateUrl(durableFinalVideoUrl)) {
+      const persistedFinal = await persistVideoToStorage(
+        supabase,
+        durableFinalVideoUrl,
+        projectId,
+        { prefix: 'final_video' }
+      );
+      if (!persistedFinal) {
+        throw new Error('Final video completed but permanent storage failed');
+      }
+      durableFinalVideoUrl = persistedFinal;
+      state.finalVideoUrl = persistedFinal;
+    }
+
     await supabase
       .from('movie_projects')
       .update({
-        video_url: state.finalVideoUrl,
+        video_url: durableFinalVideoUrl,
         music_url: state.assets?.musicUrl,
         quality_tier: request.qualityTier || 'standard',
         pro_features_data: mergedProFeatures,
-        status: state.finalVideoUrl ? 'completed' : 'failed',
+        status: durableFinalVideoUrl ? 'completed' : 'failed',
         generated_script: state.script ? JSON.stringify(state.script) : null,
         scene_images: state.assets?.sceneImages || null,
         pending_video_tasks: {
@@ -6269,7 +6284,7 @@ async function executePipelineInBackground(
           progress: 100,
           clipCount: state.clipCount,
           clipDuration: state.clipDuration,
-          finalVideoUrl: state.finalVideoUrl,
+          finalVideoUrl: durableFinalVideoUrl,
           stages: {
             preproduction: {
               shotCount: state.script?.shots?.length || 0,
@@ -6290,7 +6305,7 @@ async function executePipelineInBackground(
             },
           },
           proFeaturesUsed: proFeaturesUpdate,
-          creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
+          creditsCharged: durableFinalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
         },
         updated_at: new Date().toISOString(),
       })

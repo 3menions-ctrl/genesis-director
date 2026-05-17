@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SceneDraft, StudioDraft } from "@/components/studio/v2/types";
+import type { SceneDraft, SceneEvent, SceneEventKind, StudioDraft } from "@/components/studio/v2/types";
 import { engineToBackend, getQualityProfile, creditsForScene, ENGINES } from "@/lib/video/engines";
 import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
 
@@ -20,6 +20,22 @@ export function useScenePipeline(
   // sceneId so we can cancel the watcher if the user manually retries /
   // edits / removes the scene.
   const gateWatchers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  // Append an event to a scene's timeline. Keeps the last 40 entries so the
+  // monitor stays responsive even for long-running renders that retry.
+  const logEvent = useCallback((sceneId: string, kind: SceneEventKind, message: string, extra: Partial<SceneEvent> = {}) => {
+    const latest = getLatestDraft ? getLatestDraft() : draft;
+    const me = latest.scenes.find(s => s.id === sceneId);
+    const prev = me?.events ?? [];
+    const next: SceneEvent[] = [
+      ...prev,
+      { ts: new Date().toISOString(), kind, message, ...extra },
+    ].slice(-40);
+    patchScene(sceneId, { events: next });
+    // Best-effort console breadcrumb for forensics — suppressed by
+    // production-console-shield in builds.
+    try { console.info(`[pipeline][${kind}] scene=${me?.index ?? "?"} ${message}`, extra); } catch { /* noop */ }
+  }, [draft, getLatestDraft, patchScene]);
 
   const stopGate = (id: string) => {
     const t = gateWatchers.current.get(id);
@@ -54,6 +70,7 @@ export function useScenePipeline(
       await supabase.functions.invoke("reserve-credits", {
         body: { action: "release", holdId, reason },
       });
+      logEvent(sceneId, "released", `Credit hold released (${reason})`);
     } catch { /* best-effort */ }
     patchScene(sceneId, { creditHoldId: undefined });
   };

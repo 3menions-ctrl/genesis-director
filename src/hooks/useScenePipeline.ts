@@ -98,10 +98,12 @@ export function useScenePipeline(
           if (!row || row.shot_index !== shotIndex) return;
           if (row.status === "completed" && row.video_url) {
             patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            logEvent(sceneId, "completed", "Clip ready (realtime)", { detail: row.video_url });
             stopPoll(sceneId);
           } else if (row.status === "failed") {
             const reason = row.error_message || "Generation failed";
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            logEvent(sceneId, "failed", `Terminal failure (realtime): ${String(reason).slice(0, 160)}`);
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
             void releaseSceneHold(sceneId, "clip_row_failed");
@@ -122,10 +124,12 @@ export function useScenePipeline(
         const url = (data as any)?.video_url;
         if (status === "completed" && url) {
           patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
+          logEvent(sceneId, "completed", "Clip ready (poll)", { detail: url });
           stopPoll(sceneId);
         } else if (status === "failed") {
           const reason = (data as any)?.error_message || "Generation failed";
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          logEvent(sceneId, "failed", `Terminal failure (poll): ${String(reason).slice(0, 160)}`);
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
           void releaseSceneHold(sceneId, "clip_row_failed");
@@ -152,6 +156,7 @@ export function useScenePipeline(
     totalClips: number,
   ) => {
     stopPoll(sceneId);
+    logEvent(sceneId, "polling", `Polling Replicate prediction every 10s`, { predictionId });
     // Realtime path: terminal status is also written to video_clips by the
     // worker / replicate-webhook. Subscribe so the UI resolves the moment the
     // row updates, and back the predictionId-driven poll off to 10s.
@@ -165,10 +170,12 @@ export function useScenePipeline(
           if (!row || row.shot_index !== shotIndex) return;
           if (row.status === "completed" && row.video_url) {
             patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            logEvent(sceneId, "completed", "Replicate returned clip", { predictionId, detail: row.video_url });
             stopPoll(sceneId);
           } else if (row.status === "failed") {
             const reason = row.error_message || "Generation failed";
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            logEvent(sceneId, "failed", `Replicate failure: ${String(reason).slice(0, 160)}`, { predictionId });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
             void releaseSceneHold(sceneId, "prediction_row_failed");
@@ -189,10 +196,12 @@ export function useScenePipeline(
         const url = (data as any)?.video_url;
         if (status === "completed" && url) {
           patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
+          logEvent(sceneId, "completed", "Replicate returned clip (poll)", { predictionId, detail: url });
           stopPoll(sceneId);
         } else if (status === "failed") {
           const reason = (data as any)?.error_message || "Generation failed";
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          logEvent(sceneId, "failed", `Replicate failure (poll): ${String(reason).slice(0, 160)}`, { predictionId });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
           void releaseSceneHold(sceneId, "prediction_row_failed");

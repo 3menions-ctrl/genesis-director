@@ -746,6 +746,17 @@ export default function StudioShell() {
             <span className="hidden lg:inline">Start fresh</span>
           </button>
           <button
+            onClick={() => { setDiagnosticsFocusId(undefined); setDiagnosticsOpen(true); }}
+            className="hidden h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background/40 px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:border-accent/60 hover:text-foreground md:inline-flex"
+            title="Open pipeline diagnostics"
+          >
+            <Activity className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden lg:inline">Diagnostics</span>
+            {draft.scenes.some(s => s.status === "failed") && (
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+            )}
+          </button>
+          <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
             className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-5 text-[12px] font-medium tracking-[0.04em] text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-30"

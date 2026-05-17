@@ -335,8 +335,7 @@ export function useScenePipeline(
       // movie_projects.video_engine to prevent stale fallback loops, so this
       // prevents avatar Seedance/Runway/Veo/Sora choices from reverting to Kling.
       const projectId = await ensureProjectId();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sign in to render");
+      const { user, headers: authHeaders } = await getAuthHeader();
       const { error: lockError } = await supabase
         .from("movie_projects")
         .update({
@@ -366,12 +365,10 @@ export function useScenePipeline(
             idempotencyKey: `scene:${projectId}:${scene.index}:${Date.now()}`,
             ttlSeconds: 900,
           },
+          headers: authHeaders,
         });
         if (holdErr || (hold as any)?.success !== true) {
-          const reserved = (hold as any)?.reserved ?? 0;
-          const balance = (hold as any)?.balance ?? 0;
-          const eff = (hold as any)?.effectiveBalance ?? balance - reserved;
-          const reason = `Insufficient credits — ${estimated} required, ${eff} available`;
+          const reason = reserveFailureReason(estimated, hold, holdErr);
           patchScene(sceneId, { status: "failed", errorReason: reason });
           logEvent(sceneId, "failed", reason);
           toast.error(reason);
@@ -428,6 +425,7 @@ export function useScenePipeline(
           // surfacing "failed" in the UI even when Replicate succeeded.
           skipPolling: true,
         },
+        headers: authHeaders,
       });
       if (error) {
         // Renderer errored before consume_credit_hold ran — release the hold
@@ -435,6 +433,7 @@ export function useScenePipeline(
         if (holdId) {
           await supabase.functions.invoke("reserve-credits", {
             body: { action: "release", holdId, reason: "invoke_error" },
+            headers: authHeaders,
           }).catch(() => {});
           patchScene(sceneId, { creditHoldId: undefined });
         }

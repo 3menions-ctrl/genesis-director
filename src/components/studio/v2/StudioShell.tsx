@@ -494,7 +494,7 @@ export default function StudioShell() {
     }
   }, [canGenerateScript, draft, generateSceneFromDraft, setDraft]);
 
-  const renderAll = useCallback(async () => {
+  const renderAllDispatch = useCallback(async () => {
     if (!canRender) {
       toast.error("Create or write scenes first");
       return;
@@ -603,13 +603,29 @@ export default function StudioShell() {
     }
   }, [canRender, draft.scenes, draft.defaults.engine, ensureProjectId, generateSceneFromDraft, hasCinema, navigate, patchScene, totalCost]);
 
+  // Render entry point — enforces the approval gate. Opens the dialog when
+  // approval is missing or stale; otherwise dispatches directly.
+  const renderAll = useCallback(async () => {
+    if (!canRender) {
+      toast.error("Create or write scenes first");
+      return;
+    }
+    if (!isApprovalCurrent) {
+      void openApprovalGate();
+      return;
+    }
+    await renderAllDispatch();
+  }, [canRender, isApprovalCurrent, openApprovalGate, renderAllDispatch]);
+
   const autoCreate = useCallback(async () => {
     if (!draft.scenes.length) {
-      await runAutoScript({ renderAfter: true });
+      // Generate script first, then require explicit approval before rendering.
+      await runAutoScript({ renderAfter: false });
+      setTimeout(() => { void openApprovalGate(); }, 80);
       return;
     }
     await renderAll();
-  }, [draft.scenes.length, renderAll, runAutoScript]);
+  }, [draft.scenes.length, renderAll, runAutoScript, openApprovalGate]);
 
   const addCastMember = useCallback((member: CastMember) => {
     setDraft(d => d.cast.find(c => c.id === member.id) ? d : ({

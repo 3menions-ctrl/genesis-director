@@ -792,6 +792,7 @@ export default function StudioShell() {
                 onSetStep={setStep}
                 onOpenDrawer={setDrawer}
                 onClearImage={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
+                onInspectScene={(id) => { setDiagnosticsFocusId(id); setDiagnosticsOpen(true); }}
               />
             )}
 

@@ -154,6 +154,7 @@ export function useScenePipeline(
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
+            void releaseSceneHold(sceneId, "prediction_row_failed");
           }
         },
       )
@@ -174,6 +175,7 @@ export function useScenePipeline(
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
+          void releaseSceneHold(sceneId, `prediction_${status}`);
         } else if ((data as any)?.alreadyCompleted) {
           // Backend confirmed clip already completed — switch to row poll to fetch URL
           stopPoll(sceneId);

@@ -7575,6 +7575,7 @@ export type Database = {
         Args: { p_client_version: number; p_user_id: string }
         Returns: boolean
       }
+      video_url_is_temporary: { Args: { _url: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

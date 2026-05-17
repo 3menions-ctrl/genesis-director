@@ -94,6 +94,25 @@ function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
   }));
 }
 
+function sceneCost(scene: SceneDraft, fallbackEngine: EngineId, qualityProfileId?: string): number {
+  const engineId = scene.engine || fallbackEngine;
+  try { return creditsForScene(engineId, scene.duration, qualityProfileId); }
+  catch { return ENGINES[engineId].baseCreditsFor(ENGINES[engineId].durations[0]); }
+}
+
+function sceneApprovalSignature(draft: StudioDraft): string {
+  return JSON.stringify({
+    engine: draft.defaults.engine,
+    aspect: draft.defaults.aspect,
+    quality: draft.defaults.qualityProfileId || "hd24",
+    scenes: draft.scenes.map(s => ({
+      i: s.index, loc: s.location, beat: s.beat, dialogue: s.dialogue,
+      lens: s.lens, move: s.move, duration: s.duration, engine: s.engine || draft.defaults.engine,
+      chain: s.chainFromPrevious !== false,
+    })),
+  });
+}
+
 function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDraft[] {
   const shotSequence = pick.settings?.shotSequence || [];
   const lensMap: Record<string, SceneDraft["lens"]> = {

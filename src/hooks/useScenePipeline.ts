@@ -40,6 +40,25 @@ export function useScenePipeline(
   };
 
   /**
+   * Release a server-side credit hold and clear it from the scene draft.
+   * Safe to call repeatedly — server is idempotent and we no-op without an id.
+   * Always call this on terminal failure paths so failed retries don't leave
+   * phantom holds that drain effective balance until they expire.
+   */
+  const releaseSceneHold = async (sceneId: string, reason: string) => {
+    const latest = getLatestDraft ? getLatestDraft() : draft;
+    const me = latest.scenes.find(s => s.id === sceneId);
+    const holdId = me?.creditHoldId;
+    if (!holdId) return;
+    try {
+      await supabase.functions.invoke("reserve-credits", {
+        body: { action: "release", holdId, reason },
+      });
+    } catch { /* best-effort */ }
+    patchScene(sceneId, { creditHoldId: undefined });
+  };
+
+  /**
    * Poll the `video_clips` row directly. Used when the server parks a
    * chained scene in the queue — we lose the predictionId hand-off, so we
    * watch the row's status/video_url instead. The drain step on the
@@ -68,6 +87,7 @@ export function useScenePipeline(
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
+            void releaseSceneHold(sceneId, "clip_row_failed");
           }
         },
       )
@@ -91,6 +111,7 @@ export function useScenePipeline(
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
+          void releaseSceneHold(sceneId, "clip_row_failed");
         }
       } catch { /* transient */ }
     };
@@ -133,6 +154,7 @@ export function useScenePipeline(
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
+            void releaseSceneHold(sceneId, "prediction_row_failed");
           }
         },
       )
@@ -153,6 +175,7 @@ export function useScenePipeline(
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
+          void releaseSceneHold(sceneId, `prediction_${status}`);
         } else if ((data as any)?.alreadyCompleted) {
           // Backend confirmed clip already completed — switch to row poll to fetch URL
           stopPoll(sceneId);
@@ -202,6 +225,7 @@ export function useScenePipeline(
             const reason = `Skipped — scene ${predecessor.index + 1} failed (${predecessor.errorReason || "no detail"})`;
             patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: reason });
             toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
+            void releaseSceneHold(sceneId, "predecessor_failed");
             return;
           }
           if (live.status === "done" && live.clipUrl) {
@@ -301,6 +325,7 @@ export function useScenePipeline(
           return;
         }
         holdId = (hold as any).holdId as string;
+        patchScene(sceneId, { creditHoldId: holdId });
       } catch (e) {
         const reason = (e as any)?.message || "Could not reserve credits";
         patchScene(sceneId, { status: "failed", errorReason: reason });
@@ -356,6 +381,7 @@ export function useScenePipeline(
           await supabase.functions.invoke("reserve-credits", {
             body: { action: "release", holdId, reason: "invoke_error" },
           }).catch(() => {});
+          patchScene(sceneId, { creditHoldId: undefined });
         }
         throw error;
       }
@@ -384,6 +410,7 @@ export function useScenePipeline(
       const reason = e?.message || e?.error || "Failed to start generation";
       patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
       toast.error(String(reason).slice(0, 200));
+      void releaseSceneHold(sceneId, "dispatch_threw");
     }
   }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
 

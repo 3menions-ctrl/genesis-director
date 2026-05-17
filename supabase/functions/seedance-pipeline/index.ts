@@ -614,10 +614,17 @@ serve(async (req) => {
         pipeline_stage: "assets",
         pending_video_tasks: {
           stage: "assets", progress: 25, engine: "seedance",
+            lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
         },
+          pipeline_state: {
+            stage: "assets",
+            progress: 25,
+            lastProgressAt: new Date().toISOString(),
+            engine: "seedance",
+          },
       })
       .eq("id", projectId);
 
@@ -739,10 +746,17 @@ serve(async (req) => {
         pipeline_stage: "production",
         pending_video_tasks: {
           stage: "production", progress: 50, engine: "seedance",
+          lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
           sceneImages,
+        },
+        pipeline_state: {
+          stage: "production",
+          progress: 50,
+          lastProgressAt: new Date().toISOString(),
+          engine: "seedance",
         },
       })
       .eq("id", projectId);

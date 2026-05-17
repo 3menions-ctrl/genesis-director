@@ -335,7 +335,7 @@ export function useScenePipeline(
       // movie_projects.video_engine to prevent stale fallback loops, so this
       // prevents avatar Seedance/Runway/Veo/Sora choices from reverting to Kling.
       const projectId = await ensureProjectId();
-      const { user, headers: authHeaders } = await getAuthHeader();
+      const { headers: authHeaders } = await getAuthHeader();
       const { error: lockError } = await supabase
         .from("movie_projects")
         .update({

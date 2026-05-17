@@ -79,7 +79,7 @@ export function DiagnosticsDrawer({ open, onClose, scenes, projectId, focusScene
     if (!open) return;
     setLoading(true);
     try {
-      const tasks: Array<Promise<unknown>> = [];
+      const tasks: Array<PromiseLike<unknown>> = [];
       if (projectId) {
         tasks.push(
           supabase.from("video_clips")

@@ -8,9 +8,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 Deno.serve(async (_req) => {
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      supabaseUrl,
+      serviceRoleKey,
     );
     const { data, error } = await sb.rpc("detect_stuck_pipeline_jobs");
     if (error) {
@@ -18,6 +20,20 @@ Deno.serve(async (_req) => {
       return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 500 });
     }
     console.log("[stuck-jobs] flagged", data);
+    const recoveryResponse = await fetch(`${supabaseUrl}/functions/v1/pipeline-watchdog`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ triggeredBy: "admin-stuck-jobs-watchdog", flagged: data, triggeredAt: new Date().toISOString() }),
+    });
+    const recoveryText = await recoveryResponse.text().catch(() => "");
+    if (!recoveryResponse.ok) {
+      console.error("[stuck-jobs] pipeline-watchdog failed", recoveryResponse.status, recoveryText.slice(0, 500));
+    } else {
+      console.log("[stuck-jobs] pipeline-watchdog invoked", recoveryText.slice(0, 500));
+    }
     return new Response(JSON.stringify({ ok: true, flagged: data }), {
       headers: { "Content-Type": "application/json" },
     });

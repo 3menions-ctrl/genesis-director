@@ -1062,7 +1062,7 @@ export default function StudioShell() {
         cast={draft.cast}
         defaults={draft.defaults}
         totalCost={totalCost}
-        balance={approvalBalance}
+        creditState={approvalCreditState}
         onClose={() => setApprovalOpen(false)}
         onApprove={async () => {
           approveAndStamp();

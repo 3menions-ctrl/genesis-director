@@ -7253,6 +7253,7 @@ export type Database = {
           used_seconds: number
         }[]
       }
+      get_credit_state: { Args: { p_user_id: string }; Returns: Json }
       get_generation_checkpoint: {
         Args: { p_project_id: string }
         Returns: {

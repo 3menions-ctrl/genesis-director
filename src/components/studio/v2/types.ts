@@ -6,6 +6,36 @@ import type { EngineId } from "@/lib/video/engines";
 
 export type SceneStatus = "idle" | "queued" | "generating" | "done" | "failed";
 
+/**
+ * Event emitted by the pipeline as a scene moves through dispatch, polling,
+ * Replicate completion, retries and terminal states. Surfaced in the Roll
+ * Camera monitor panel so the user can see exactly where a render is — or
+ * why it failed — without opening the network tab.
+ */
+export type SceneEventKind =
+  | "waiting"        // gated behind predecessor
+  | "queued"         // server parked behind sibling
+  | "reserving"      // credit hold being placed
+  | "reserved"       // credit hold confirmed
+  | "dispatching"    // invoking renderer edge function
+  | "dispatched"     // renderer accepted, predictionId in flight
+  | "polling"        // active poll cycle against video_clips
+  | "replicate_ack"  // first signal observed from Replicate worker
+  | "retry"          // recoverable error, will retry
+  | "completed"      // terminal success — clipUrl available
+  | "failed"         // terminal failure
+  | "released";      // credit hold released
+
+export interface SceneEvent {
+  ts: string;             // ISO timestamp
+  kind: SceneEventKind;
+  message: string;        // short human-readable summary
+  engine?: string;        // engine id at time of event
+  predictionId?: string;  // Replicate prediction id when known
+  attempt?: number;       // retry counter (1-based)
+  detail?: string;        // verbose detail (error stack, raw reason)
+}
+
 export interface CastMember {
   id: string;            // avatar_template id or local uuid
   name: string;
@@ -66,6 +96,11 @@ export interface SceneDraft {
    * reservations that make the user appear out of credits.
    */
   creditHoldId?: string;
+  /**
+   * Append-only timeline of pipeline events for this scene. Capped at the
+   * most recent 40 entries by the producer. Powers the Roll Camera monitor.
+   */
+  events?: SceneEvent[];
 }
 
 export interface StudioBrief {

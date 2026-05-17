@@ -16,6 +16,7 @@ import {
   ErrorCategory, 
   getRecoverySuggestion 
 } from '@/lib/stabilityMonitor';
+import { isChunkLoadError, recoverFromChunkError } from '@/lib/chunkLoadRecovery';
 
 interface Props {
   children: ReactNode;
@@ -76,6 +77,9 @@ export class StabilityBoundary extends Component<Props, State> {
     'ChunkLoadError',
     'Loading chunk',
     'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'error loading dynamically imported module',
+    'Unable to preload CSS',
     
     // React state updates on unmounted
     "Can't perform a React state update on an unmounted component",
@@ -95,6 +99,12 @@ export class StabilityBoundary extends Component<Props, State> {
     // Check if this error should be suppressed
     const errorMessage = error?.message || '';
     const errorName = error?.name || '';
+
+    // Chunk-load errors: never show the error UI — recovery system will reload.
+    if (isChunkLoadError(error)) {
+      console.debug('[StabilityBoundary] Suppressed chunk-load error:', errorMessage.substring(0, 100));
+      return { hasError: false, error: null, isRetrying: false };
+    }
     
     // Check by error name first - DOMException types
     const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError', 'HierarchyRequestError'];
@@ -124,6 +134,20 @@ export class StabilityBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const { name, onError, autoRetry, maxRetries } = this.props;
     const { retryCount } = this.state;
+
+    // Chunk-load errors: trigger recovery (preload + reload) instead of showing UI
+    if (isChunkLoadError(error)) {
+      this.setState({ hasError: false, error: null, isRetrying: false });
+      recoverFromChunkError(error).then((recovered) => {
+        if (!recovered) {
+          // Last-resort: full page reload so the user lands on the requested route cleanly
+          setTimeout(() => window.location.reload(), 250);
+        }
+      }).catch(() => {
+        setTimeout(() => window.location.reload(), 250);
+      });
+      return;
+    }
 
     // Check if this error should be suppressed - if so, auto-recover
     const errorMessage = error?.message || '';

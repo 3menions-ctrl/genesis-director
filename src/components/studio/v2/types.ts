@@ -105,6 +105,12 @@ export interface StudioDraft {
   scenes: SceneDraft[];
   audio: StudioAudio;
   activeSceneId?: string;
+  /** Customer must explicitly approve the generated/edited script and the
+   *  current credit estimate before any render can reserve or deduct credits. */
+  scriptApprovedAt?: string;
+  creditEstimateApprovedAt?: string;
+  approvedCreditTotal?: number;
+  approvedSceneSignature?: string;
   /** Lazy-bound `movie_projects.id` — created on first generate so backend
    *  pipelines (engine lock, mutex, credits, watchdog) can attach. */
   projectId?: string;

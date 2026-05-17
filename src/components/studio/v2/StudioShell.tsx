@@ -1055,6 +1055,15 @@ export default function StudioShell() {
         onEditScript={() => { setApprovalOpen(false); setStep("script"); }}
         onBuyCredits={() => { setApprovalOpen(false); navigate("/credits"); }}
       />
+
+      {/* ===== Pipeline diagnostics — scene_id × prediction_id × hold_id ===== */}
+      <DiagnosticsDrawer
+        open={diagnosticsOpen}
+        onClose={() => setDiagnosticsOpen(false)}
+        scenes={draft.scenes}
+        projectId={draft.projectId}
+        focusSceneId={diagnosticsFocusId}
+      />
     </div>
   );
 }

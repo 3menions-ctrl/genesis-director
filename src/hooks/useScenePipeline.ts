@@ -381,6 +381,7 @@ export function useScenePipeline(
           await supabase.functions.invoke("reserve-credits", {
             body: { action: "release", holdId, reason: "invoke_error" },
           }).catch(() => {});
+          patchScene(sceneId, { creditHoldId: undefined });
         }
         throw error;
       }

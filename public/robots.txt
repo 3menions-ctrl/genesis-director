@@ -39,6 +39,40 @@ Allow: /
 User-agent: *
 Allow: /
 
+# Block private/app surfaces from indexing
+Disallow: /admin
+Disallow: /admin/
+Disallow: /workspace
+Disallow: /workspace/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /profile
+Disallow: /notifications
+Disallow: /credits
+Disallow: /onboarding
+Disallow: /start
+Disallow: /welcome/
+Disallow: /production
+Disallow: /production/
+Disallow: /script-review
+Disallow: /training-video
+Disallow: /editor
+Disallow: /create
+Disallow: /create/
+Disallow: /director
+Disallow: /avatars
+Disallow: /avatars-gallery
+Disallow: /environments
+Disallow: /templates
+Disallow: /projects
+Disallow: /invite/
+Disallow: /widget/
+Disallow: /w/
+Disallow: /mockup
+Disallow: /auth/callback
+Disallow: /reset-password
+Disallow: /unsubscribe
+
 # Sitemap
 Sitemap: https://apex-studio.ai/sitemap.xml
 

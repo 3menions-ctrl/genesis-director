@@ -325,6 +325,7 @@ export function useScenePipeline(
           return;
         }
         holdId = (hold as any).holdId as string;
+        patchScene(sceneId, { creditHoldId: holdId });
       } catch (e) {
         const reason = (e as any)?.message || "Could not reserve credits";
         patchScene(sceneId, { status: "failed", errorReason: reason });

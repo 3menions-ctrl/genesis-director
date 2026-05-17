@@ -847,18 +847,26 @@ serve(async (req) => {
     );
   } catch (err: any) {
     console.error("[Seedance] Pipeline error:", err);
-    if (request.projectId) {
+    if (activeProjectId) {
       try {
-        const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
-        const fallbackClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
+        let completedClipCount = 0;
+        try {
+          const { count } = await supabase
+            .from("video_clips")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", activeProjectId)
+            .eq("status", "completed");
+          completedClipCount = count || 0;
+        } catch (_) { /* non-fatal */ }
         await markProjectFailedAndRefund(supabase, {
-          projectId: request.projectId,
+          projectId: activeProjectId,
           userId: request.userId,
           stage: 'preproduction',
           reason: err,
-          totalCredits: fallbackClipCount * seedanceCreditsForClip(Math.max(2, Math.min(12, request.clipDuration ?? 10))),
-          expectedClipCount: fallbackClipCount,
-          completedClipCount: 0, // terminal failure pre-dispatch
+          totalCredits: chargedCredits ? plannedCredits : 0,
+          expectedClipCount: plannedClipCount,
+          completedClipCount,
+          skipRefund: !chargedCredits,
           source: 'seedance',
         });
       } catch (failHandlerErr) {
@@ -870,7 +878,7 @@ serve(async (req) => {
             last_error: err?.message?.slice(0, 500) ?? "Unknown error",
             updated_at: new Date().toISOString(),
           })
-          .eq("id", request.projectId);
+          .eq("id", activeProjectId);
       }
     }
     return new Response(

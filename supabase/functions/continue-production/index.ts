@@ -1137,11 +1137,12 @@ serve(async (req: Request) => {
           // Read current tasks to preserve data
           const { data: currentProject } = await supabase
             .from('movie_projects')
-            .select('pending_video_tasks')
+            .select('pending_video_tasks, pipeline_state')
             .eq('id', request.projectId)
             .maybeSingle();
           
           const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+          const currentPipelineState = (currentProject?.pipeline_state || {}) as Record<string, any>;
           
           await supabase
             .from('movie_projects')
@@ -1183,9 +1184,31 @@ serve(async (req: Request) => {
                 lastFatalError: errorMsg.substring(0, 200),
                 lastErrorAt: new Date().toISOString(),
               },
+              pipeline_state: {
+                ...currentPipelineState,
+                error: errorMsg.substring(0, 500),
+                errorStage: 'continue-production',
+                failedAt: new Date().toISOString(),
+              },
               updated_at: new Date().toISOString(),
             })
             .eq('id', request.projectId);
+
+          try {
+            const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+            await markProjectFailedAndRefund(supabase, {
+              projectId: request.projectId,
+              userId,
+              stage: 'continue-production',
+              reason: errorMsg,
+              totalCredits: Number(currentTasks.totalCredits || currentPipelineState.totalCredits || 0),
+              expectedClipCount: totalClips,
+              completedClipCount: Math.max(0, (request.completedClipIndex ?? -1) + 1),
+              source: 'continue-production',
+            });
+          } catch (refundErr) {
+            console.error('[ContinueProduction] failure handler error:', refundErr);
+          }
         }
       }
     } catch (e) {

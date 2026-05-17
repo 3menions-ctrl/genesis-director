@@ -31,6 +31,7 @@ import {
   resolveEffectiveUserId,
   forbiddenResponse,
 } from "../_shared/auth-guard.ts";
+import { markProjectFailedAndRefund } from "../_shared/pipeline-failure.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -333,6 +334,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: "Invalid JSON body" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+  let activeProjectId: string | undefined = request.projectId;
+  let plannedCredits = 0;
+  let plannedClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
+  let chargedCredits = false;
 
   // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
   try {
@@ -406,6 +411,8 @@ serve(async (req) => {
     }
 
     const totalCredits = clipCount * seedanceCreditsForClip(clipDuration);
+    plannedClipCount = clipCount;
+    plannedCredits = totalCredits;
     console.log(`[Seedance] params: ${clipCount} clips × ${clipDuration}s, AR=${aspectRatio}, credits=${totalCredits}`);
 
     // ═══ CREDIT CHECK + DEDUCT ═══
@@ -440,6 +447,7 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+      chargedCredits = true;
       console.log(`[Seedance] ✓ Deducted ${totalCredits} credits`);
     }
 
@@ -471,8 +479,10 @@ serve(async (req) => {
         .single();
       if (projErr || !proj) throw new Error(`Failed to create project: ${projErr?.message}`);
       projectId = proj.id;
+      activeProjectId = projectId;
       console.log(`[Seedance] ✓ Created project ${projectId}`);
     } else {
+      activeProjectId = projectId;
       await supabase
         .from("movie_projects")
         .update({

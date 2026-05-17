@@ -161,28 +161,27 @@ export function useScenePipeline(
       .subscribe();
     const t = setInterval(async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("poll-replicate-prediction", {
-          body: { predictionId, projectId, shotIndex, totalClips },
-        });
+        const { data, error } = await supabase
+          .from("video_clips")
+          .select("status, video_url, error_message")
+          .eq("project_id", projectId)
+          .eq("shot_index", shotIndex)
+          .maybeSingle();
         if (error) return;
         const status = (data as any)?.status;
-        const url = (data as any)?.output?.video || (data as any)?.output;
-        if (status === "succeeded" && url) {
-          patchScene(sceneId, { status: "done", clipUrl: typeof url === "string" ? url : url[0], errorReason: undefined });
+        const url = (data as any)?.video_url;
+        if (status === "completed" && url) {
+          patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
           stopPoll(sceneId);
-        } else if (status === "failed" || status === "canceled") {
-          const reason = (data as any)?.error || (data as any)?.detail || `Generation ${status}`;
+        } else if (status === "failed") {
+          const reason = (data as any)?.error_message || "Generation failed";
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
-          void releaseSceneHold(sceneId, `prediction_${status}`);
-        } else if ((data as any)?.alreadyCompleted) {
-          // Backend confirmed clip already completed — switch to row poll to fetch URL
-          stopPoll(sceneId);
-          pollClipRow(sceneId, projectId, shotIndex);
+          void releaseSceneHold(sceneId, "prediction_row_failed");
         }
       } catch {
-        // keep polling until the backend reports a terminal state
+        // keep polling until the backend writes a terminal video_clips state
       }
     }, 10000);
     const composite = {

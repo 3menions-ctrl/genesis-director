@@ -4971,9 +4971,22 @@ async function runProduction(
     
     if (videoUrlToSave) {
       try {
+        let durableVideoUrl = videoUrlToSave;
+        if (isTemporaryReplicateUrl(videoUrlToSave)) {
+          const persistedUrl = await persistVideoToStorage(
+            supabase,
+            videoUrlToSave,
+            state.projectId,
+            { prefix: `hollywood_clip${i}`, clipIndex: i }
+          );
+          if (!persistedUrl) {
+            throw new Error(`Clip ${i + 1} completed but permanent storage failed`);
+          }
+          durableVideoUrl = persistedUrl;
+        }
         // Update BOTH video_url and last_frame_url together
         const updateData: Record<string, any> = {
-          video_url: videoUrlToSave,
+          video_url: durableVideoUrl,
           status: 'completed',
           updated_at: new Date().toISOString(),
         };
@@ -4999,12 +5012,12 @@ async function runProduction(
             .eq('shot_index', i)
             .maybeSingle();
           
-          const videoUrlMatch = verifyData?.video_url === videoUrlToSave;
+          const videoUrlMatch = verifyData?.video_url === durableVideoUrl;
           const frameUrlMatch = !frameToSave || verifyData?.last_frame_url === frameToSave;
           
           if (videoUrlMatch && frameUrlMatch) {
             console.log(`[Hollywood] ✓ VERIFIED final clip ${i + 1} persisted:`);
-            console.log(`[Hollywood]   video_url: ${videoUrlToSave.substring(0, 60)}...`);
+            console.log(`[Hollywood]   video_url: ${durableVideoUrl.substring(0, 60)}...`);
             if (frameToSave) {
               console.log(`[Hollywood]   last_frame_url: ${frameToSave.substring(0, 50)}...`);
             }

@@ -443,6 +443,7 @@ export function useScenePipeline(
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
       const directUrl = (data as any)?.videoUrl;
       const queued = (data as any)?.queued === true;
+      try { window.dispatchEvent(new CustomEvent("credits-updated")); } catch { /* non-browser/noop */ }
       if (queued) {
         // Server parked us behind the predecessor. Surface the wait in the
         // UI and switch to row-polling — the drain will re-fire this scene

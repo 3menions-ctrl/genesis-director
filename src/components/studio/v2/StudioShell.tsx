@@ -2223,7 +2223,7 @@ function ApprovalGate({
 // terminal failure with reason). This is the user's window into what the
 // renderer is actually doing — so a stuck or out-of-sync render is obvious.
 // ============================================================================
-function PipelineMonitor({ scenes }: { scenes: SceneDraft[] }) {
+function PipelineMonitor({ scenes, onInspect }: { scenes: SceneDraft[]; onInspect?: (sceneId: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   // Re-render every 5s so "last activity 12s ago" stays honest while polling.
@@ -2285,6 +2285,16 @@ function PipelineMonitor({ scenes }: { scenes: SceneDraft[] }) {
                 </span>
                 <ChevronRight className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform", isOpen && "rotate-90")} />
               </button>
+              {onInspect && (
+                <div className="flex items-center justify-end gap-2 border-t border-border/20 bg-foreground/[0.01] px-3 py-1.5">
+                  <button
+                    onClick={() => onInspect(s.id)}
+                    className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/70 transition-colors hover:text-accent"
+                  >
+                    Inspect in diagnostics →
+                  </button>
+                </div>
+              )}
 
               {s.status === "failed" && s.errorReason && (
                 <div className="border-t border-destructive/20 bg-destructive/[0.04] px-3 py-2 font-mono text-[10px] leading-relaxed text-destructive/90">

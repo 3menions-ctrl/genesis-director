@@ -2012,7 +2012,7 @@ function ApprovalGate({
   cast,
   defaults,
   totalCost,
-  balance,
+  creditState,
   onClose,
   onApprove,
   onEditScript,
@@ -2024,14 +2024,15 @@ function ApprovalGate({
   cast: CastMember[];
   defaults: StudioDraft["defaults"];
   totalCost: number;
-  balance: number | null;
+  creditState: CreditState | null;
   onClose: () => void;
   onApprove: () => void;
   onEditScript: () => void;
   onBuyCredits: () => void;
 }) {
   if (!open) return null;
-  const insufficient = balance !== null && balance < totalCost;
+  const available = creditState?.available ?? null;
+  const insufficient = available !== null && available < totalCost;
   const speakerName = (id?: string) => cast.find(c => c.id === id)?.name || "—";
 
   // ── Pre-flight cost analysis ──────────────────────────────────────────────

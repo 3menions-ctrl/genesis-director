@@ -826,6 +826,7 @@ serve(async (req) => {
           stage: "production",
           progress: 60,
           engine: "seedance",
+          lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
@@ -840,6 +841,14 @@ serve(async (req) => {
             audioAssets, // pre-generated voice/music URLs for muxing
             muxStrategy: "post-stitch", // Seedance: no native audio, mux after
           },
+        },
+        pipeline_state: {
+          stage: "production",
+          progress: 60,
+          lastProgressAt: new Date().toISOString(),
+          engine: "seedance",
+          predictionIds: dispatched,
+          failedDispatches: failed,
         },
       })
       .eq("id", projectId);

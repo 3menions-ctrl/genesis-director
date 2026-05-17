@@ -210,7 +210,7 @@ export default function StudioShell() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [approvalOpen, setApprovalOpen] = useState(false);
-  const [approvalBalance, setApprovalBalance] = useState<number | null>(null);
+  const [approvalCreditState, setApprovalCreditState] = useState<CreditState | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnosticsFocusId, setDiagnosticsFocusId] = useState<string | undefined>(undefined);
@@ -262,18 +262,13 @@ export default function StudioShell() {
   const openApprovalGate = useCallback(async () => {
     setApprovalOpen(true);
     setApprovalLoading(true);
-    setApprovalBalance(null);
+    setApprovalCreditState(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", user.id)
-          .maybeSingle();
-        setApprovalBalance((profile as any)?.credits_balance ?? 0);
+        setApprovalCreditState(await readCreditState(user.id));
       }
-    } catch { setApprovalBalance(null); }
+    } catch { setApprovalCreditState(null); }
     finally { setApprovalLoading(false); }
   }, []);
 

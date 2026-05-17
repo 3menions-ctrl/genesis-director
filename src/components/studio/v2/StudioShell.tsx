@@ -219,6 +219,53 @@ export default function StudioShell() {
   const canGenerateScript = Boolean(draft.brief.logline.trim() || draft.brief.refImageUrl || draft.brief.templateId);
   const canRender = draft.scenes.length > 0 && (draft.brief.logline.trim() || draft.scenes.some(s => s.beat || s.dialogue));
 
+  // ── Script + Credit approval gate ────────────────────────────────────────
+  // Customer must explicitly approve BOTH the current script AND the credit
+  // estimate before any render dispatches. The signature is recomputed every
+  // render and compared against the stored approvedSceneSignature — any edit
+  // (scene order, dialogue, duration, engine, aspect) invalidates approval
+  // and forces a fresh confirmation.
+  const currentApprovalSignature = useMemo(() => sceneApprovalSignature(draft), [draft]);
+  const isApprovalCurrent = Boolean(
+    draft.scriptApprovedAt &&
+    draft.creditEstimateApprovedAt &&
+    draft.approvedSceneSignature === currentApprovalSignature &&
+    draft.approvedCreditTotal === totalCost,
+  );
+
+  const openApprovalGate = useCallback(async () => {
+    setApprovalOpen(true);
+    setApprovalLoading(true);
+    setApprovalBalance(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("credits_balance")
+          .eq("id", user.id)
+          .maybeSingle();
+        setApprovalBalance((profile as any)?.credits_balance ?? 0);
+      }
+    } catch { setApprovalBalance(null); }
+    finally { setApprovalLoading(false); }
+  }, []);
+
+  const approveAndStamp = useCallback(() => {
+    const stamp = new Date().toISOString();
+    setDraft(d => ({
+      ...d,
+      scriptApprovedAt: stamp,
+      creditEstimateApprovedAt: stamp,
+      approvedSceneSignature: sceneApprovalSignature(d),
+      approvedCreditTotal: d.scenes.reduce((acc, s) => {
+        const eid = s.engine || d.defaults.engine;
+        try { return acc + creditsForScene(eid, s.duration, d.defaults.qualityProfileId); }
+        catch { return acc; }
+      }, 0),
+    }));
+  }, [setDraft]);
+
   useEffect(() => {
     if (!appliedSettings) return;
 

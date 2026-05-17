@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
+  Activity,
   Box,
   Bot,
   Check,
@@ -55,6 +56,7 @@ import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./
 import { ScriptBuilder } from "./ScriptBuilder";
 import { ContinuitySimulator } from "./ContinuitySimulator";
 import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
+import { DiagnosticsDrawer } from "./DiagnosticsDrawer";
 
 
 type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music" | "styles";
@@ -188,6 +190,8 @@ export default function StudioShell() {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalBalance, setApprovalBalance] = useState<number | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [diagnosticsFocusId, setDiagnosticsFocusId] = useState<string | undefined>(undefined);
   const [createMode, setCreateMode] = useState<"text" | "image" | "template">(() => {
     if (draft.brief.templateId) return "template";
     if (draft.brief.refImageUrl) return "image";

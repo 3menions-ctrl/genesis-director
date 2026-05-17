@@ -203,14 +203,19 @@ serve(async (req) => {
             clip.video_url = permanentUrl;
             console.log(`[SimpleStitch] ✅ Clip ${clip.shot_index} persisted to permanent storage`);
           } else {
-            console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence failed — using original URL (may expire!)`);
+            throw new Error(`Clip ${clip.shot_index} permanent storage failed; refusing expiring provider URL`);
           }
         } catch (err) {
-          console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence error:`, err);
+          console.error(`[SimpleStitch] ❌ Clip ${clip.shot_index} persistence error:`, err);
+          throw err;
         }
       });
 
-    await Promise.allSettled(persistPromises);
+    const persistenceResults = await Promise.allSettled(persistPromises);
+    const persistenceFailures = persistenceResults.filter(r => r.status === 'rejected');
+    if (persistenceFailures.length > 0) {
+      throw new Error(`${persistenceFailures.length} clip(s) could not be saved to permanent storage`);
+    }
 
     // Prepare clip data
     const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({

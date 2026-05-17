@@ -1300,6 +1300,7 @@ export type Database = {
       credit_transactions: {
         Row: {
           amount: number
+          balance_after: number | null
           clip_duration_seconds: number | null
           created_at: string
           description: string | null
@@ -1312,6 +1313,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          balance_after?: number | null
           clip_duration_seconds?: number | null
           created_at?: string
           description?: string | null
@@ -1324,6 +1326,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          balance_after?: number | null
           clip_duration_seconds?: number | null
           created_at?: string
           description?: string | null

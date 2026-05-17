@@ -40,6 +40,25 @@ export function useScenePipeline(
   };
 
   /**
+   * Release a server-side credit hold and clear it from the scene draft.
+   * Safe to call repeatedly — server is idempotent and we no-op without an id.
+   * Always call this on terminal failure paths so failed retries don't leave
+   * phantom holds that drain effective balance until they expire.
+   */
+  const releaseSceneHold = async (sceneId: string, reason: string) => {
+    const latest = getLatestDraft ? getLatestDraft() : draft;
+    const me = latest.scenes.find(s => s.id === sceneId);
+    const holdId = me?.creditHoldId;
+    if (!holdId) return;
+    try {
+      await supabase.functions.invoke("reserve-credits", {
+        body: { action: "release", holdId, reason },
+      });
+    } catch { /* best-effort */ }
+    patchScene(sceneId, { creditHoldId: undefined });
+  };
+
+  /**
    * Poll the `video_clips` row directly. Used when the server parks a
    * chained scene in the queue — we lose the predictionId hand-off, so we
    * watch the row's status/video_url instead. The drain step on the

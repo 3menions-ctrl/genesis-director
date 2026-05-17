@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
+  Activity,
   Box,
   Bot,
   Check,
@@ -55,6 +56,7 @@ import { newScene, type CastMember, type SceneDraft, type StudioDraft } from "./
 import { ScriptBuilder } from "./ScriptBuilder";
 import { ContinuitySimulator } from "./ContinuitySimulator";
 import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
+import { DiagnosticsDrawer } from "./DiagnosticsDrawer";
 
 
 type DrawerKey = null | "templates" | "avatars" | "engines" | "envs" | "voices" | "music" | "styles";
@@ -188,6 +190,8 @@ export default function StudioShell() {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalBalance, setApprovalBalance] = useState<number | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [diagnosticsFocusId, setDiagnosticsFocusId] = useState<string | undefined>(undefined);
   const [createMode, setCreateMode] = useState<"text" | "image" | "template">(() => {
     if (draft.brief.templateId) return "template";
     if (draft.brief.refImageUrl) return "image";
@@ -742,6 +746,17 @@ export default function StudioShell() {
             <span className="hidden lg:inline">Start fresh</span>
           </button>
           <button
+            onClick={() => { setDiagnosticsFocusId(undefined); setDiagnosticsOpen(true); }}
+            className="hidden h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background/40 px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:border-accent/60 hover:text-foreground md:inline-flex"
+            title="Open pipeline diagnostics"
+          >
+            <Activity className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden lg:inline">Diagnostics</span>
+            {draft.scenes.some(s => s.status === "failed") && (
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+            )}
+          </button>
+          <button
             onClick={autoCreate}
             disabled={autoBusy || uploading || !canGenerateScript}
             className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full bg-accent px-5 text-[12px] font-medium tracking-[0.04em] text-accent-foreground transition-all hover:bg-[hsl(215_100%_52%)] disabled:cursor-not-allowed disabled:opacity-30"
@@ -777,6 +792,7 @@ export default function StudioShell() {
                 onSetStep={setStep}
                 onOpenDrawer={setDrawer}
                 onClearImage={() => setDraft(d => ({ ...d, brief: { ...d.brief, refImageUrl: undefined } }))}
+                onInspectScene={(id) => { setDiagnosticsFocusId(id); setDiagnosticsOpen(true); }}
               />
             )}
 
@@ -1039,6 +1055,15 @@ export default function StudioShell() {
         }}
         onEditScript={() => { setApprovalOpen(false); setStep("script"); }}
         onBuyCredits={() => { setApprovalOpen(false); navigate("/credits"); }}
+      />
+
+      {/* ===== Pipeline diagnostics — scene_id × prediction_id × hold_id ===== */}
+      <DiagnosticsDrawer
+        open={diagnosticsOpen}
+        onClose={() => setDiagnosticsOpen(false)}
+        scenes={draft.scenes}
+        projectId={draft.projectId}
+        focusSceneId={diagnosticsFocusId}
       />
     </div>
   );
@@ -1486,6 +1511,7 @@ function StartHero({
   onSetStep,
   onOpenDrawer,
   onClearImage,
+  onInspectScene,
 }: {
   draft: StudioDraft;
   setDraft: (mut: (d: StudioDraft) => StudioDraft) => void;
@@ -1506,6 +1532,7 @@ function StartHero({
   onSetStep: (id: "start" | "cast" | "script" | "clips") => void;
   onOpenDrawer: (key: DrawerKey) => void;
   onClearImage: () => void;
+  onInspectScene: (sceneId: string) => void;
 }) {
   const projectSlug = (draft.brief.title || "new-project")
     .toLowerCase()
@@ -1925,7 +1952,10 @@ function StartHero({
             </div>
 
             {/* Pipeline monitor — live status, retries, terminal reasons */}
-            <PipelineMonitor scenes={draft.scenes} />
+            <PipelineMonitor
+              scenes={draft.scenes}
+              onInspect={(id) => { onInspectScene(id); }}
+            />
 
             {/* Action row — render button sized to text, never overflowing */}
             <div className="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -2193,7 +2223,7 @@ function ApprovalGate({
 // terminal failure with reason). This is the user's window into what the
 // renderer is actually doing — so a stuck or out-of-sync render is obvious.
 // ============================================================================
-function PipelineMonitor({ scenes }: { scenes: SceneDraft[] }) {
+function PipelineMonitor({ scenes, onInspect }: { scenes: SceneDraft[]; onInspect?: (sceneId: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   // Re-render every 5s so "last activity 12s ago" stays honest while polling.
@@ -2255,6 +2285,16 @@ function PipelineMonitor({ scenes }: { scenes: SceneDraft[] }) {
                 </span>
                 <ChevronRight className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform", isOpen && "rotate-90")} />
               </button>
+              {onInspect && (
+                <div className="flex items-center justify-end gap-2 border-t border-border/20 bg-foreground/[0.01] px-3 py-1.5">
+                  <button
+                    onClick={() => onInspect(s.id)}
+                    className="font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/70 transition-colors hover:text-accent"
+                  >
+                    Inspect in diagnostics →
+                  </button>
+                </div>
+              )}
 
               {s.status === "failed" && s.errorReason && (
                 <div className="border-t border-destructive/20 bg-destructive/[0.04] px-3 py-2 font-mono text-[10px] leading-relaxed text-destructive/90">

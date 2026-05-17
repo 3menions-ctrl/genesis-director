@@ -1775,68 +1775,66 @@ function StartHero({
             </div>
           </div>
 
-          {/* ===== Roll Camera — primary action surface ===== */}
-          <section
-            aria-label="Roll camera"
-            className="relative mt-14 overflow-hidden rounded-[24px] border border-border/50 bg-[radial-gradient(120%_120%_at_0%_0%,hsl(var(--accent)/0.18)_0%,transparent_55%),linear-gradient(180deg,hsl(var(--card)/0.55)_0%,hsl(var(--background)/0.55)_100%)] backdrop-blur-xl"
-          >
-            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-            <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-[110px]" />
-
-            <div className="relative flex flex-col gap-8 p-6 sm:p-8 md:p-10">
-              {/* Eyebrow + title */}
-              <div>
-                <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.42em] text-accent">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
-                  Roll camera
-                </div>
-                <h2
-                  className="mt-3 font-display text-[28px] sm:text-[34px] md:text-[40px] leading-[1.05] tracking-[-0.02em] text-foreground"
-                  style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
-                >
-                  <span className="italic">This is the room</span><br />you walk into.
-                </h2>
+          {/* ===== Roll Camera — editorial slate ===== */}
+          <section aria-label="Roll camera" className="mt-16 border-t border-border/40 pt-10">
+            {/* Slate header — director's marker, not a marketing card */}
+            <div className="flex items-baseline justify-between gap-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.42em] text-muted-foreground/70">
+                Scene · 001 / Take · 01
               </div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/50">
+                {new Date().toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase()}
+              </div>
+            </div>
 
-              {/* Metric rail */}
-              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/30">
-                {[
-                  { label: "Scenes", value: draft.scenes.length || (draft.defaults.sceneCount ?? "—") },
-                  { label: "Rendered", value: renderedCount },
-                  { label: "Credits", value: totalCost, accent: true },
-                ].map((m) => (
-                  <div key={m.label} className="flex flex-col items-start gap-1 bg-background/70 px-4 py-3 sm:px-5 sm:py-4">
-                    <dt className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">{m.label}</dt>
-                    <dd
-                      className={`font-display text-[22px] sm:text-[26px] leading-none ${m.accent ? "text-accent" : "text-foreground"}`}
-                      style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
-                    >
-                      {m.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+            <h2
+              className="mt-5 font-display text-[30px] sm:text-[38px] md:text-[44px] leading-[0.98] tracking-[-0.025em] text-foreground"
+              style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+            >
+              <span className="italic">Roll</span> camera.
+            </h2>
+            <p className="mt-3 max-w-md font-light text-[13px] leading-relaxed text-muted-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              When you're ready, we shoot what you've written — nothing more, nothing less.
+            </p>
 
-              {/* Primary action — full-width on mobile, prominent on desktop */}
+            {/* Ledger — three honest numbers, no glass, no glow */}
+            <div className="mt-8 flex flex-wrap items-end gap-x-10 gap-y-6 border-y border-border/40 py-6">
+              {[
+                { label: "Scenes", value: String(draft.scenes.length || (draft.defaults.sceneCount ?? 0)) },
+                { label: "Rendered", value: `${renderedCount}` },
+                { label: "Credits", value: String(totalCost), accent: true },
+              ].map((m) => (
+                <div key={m.label} className="flex flex-col">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.36em] text-muted-foreground/60">{m.label}</span>
+                  <span
+                    className={cn(
+                      "mt-1 font-display text-[28px] leading-none tabular-nums",
+                      m.accent ? "text-accent" : "text-foreground",
+                    )}
+                    style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
+                  >
+                    {m.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Action row — render button sized to text, never overflowing */}
+            <div className="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                onClick={() => onSetStep("cast")}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-border/60 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+              >
+                Edit cast &amp; script
+              </button>
               <button
                 onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
                 disabled={(!canGenerateScript && !canRender) || autoBusy}
-                className="group relative inline-flex h-14 w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-b from-foreground to-foreground/85 px-8 text-[12px] font-medium uppercase tracking-[0.18em] text-background shadow-[0_30px_80px_-24px_hsl(var(--foreground)/0.55),inset_0_1px_0_0_hsl(0_0%_100%/0.45)] transition-all hover:shadow-[0_40px_100px_-24px_hsl(var(--foreground)/0.65),inset_0_1px_0_0_hsl(0_0%_100%/0.55)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-foreground px-6 text-[11px] font-medium uppercase tracking-[0.22em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
               >
-                <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                {autoBusy ? <Loader2 className="relative h-4 w-4 animate-spin" /> : <Sparkles className="relative h-4 w-4" strokeWidth={1.5} />}
-                <span className="relative">{draft.scenes.length ? "Render film" : "Auto create"}</span>
-                <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.75} />
-              </button>
-
-              {/* Secondary action — separated, lower visual weight */}
-              <button
-                onClick={() => onSetStep("cast")}
-                className="-mt-3 inline-flex items-center justify-center gap-2 self-center rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <span className="h-px w-6 bg-border" />
-                Cast &amp; script
-                <span className="h-px w-6 bg-border" />
+                {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                <span>{draft.scenes.length ? "Render" : "Auto create"}</span>
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
             </div>
           </section>

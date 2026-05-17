@@ -6796,9 +6796,18 @@ serve(async (req) => {
       totalCredits,
     };
 
-    // Start pipeline in background using waitUntil
-    // @ts-ignore - EdgeRuntime is available in Deno edge functions
-    EdgeRuntime.waitUntil(executePipelineInBackground(request, projectId!, state, supabase));
+    const backgroundRun = executePipelineInBackground(request, projectId!, state, supabase);
+    backgroundRun.catch((error) => {
+      console.error("[Hollywood] Background waitUntil rejected after internal handler:", error);
+    });
+
+    // Start pipeline in background using waitUntil when available; await in tests/local runtimes.
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(backgroundRun);
+    } else {
+      await backgroundRun;
+    }
 
     // Return immediately with project ID
     return new Response(

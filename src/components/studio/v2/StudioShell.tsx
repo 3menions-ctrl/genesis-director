@@ -1924,6 +1924,9 @@ function StartHero({
               ))}
             </div>
 
+            {/* Pipeline monitor — live status, retries, terminal reasons */}
+            <PipelineMonitor scenes={draft.scenes} />
+
             {/* Action row — render button sized to text, never overflowing */}
             <div className="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button

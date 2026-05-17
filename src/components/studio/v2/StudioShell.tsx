@@ -1935,10 +1935,10 @@ function StartHero({
               <button
                 onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
                 disabled={(!canGenerateScript && !canRender) || autoBusy}
-                className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-foreground px-6 text-[11px] font-medium uppercase tracking-[0.22em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-[10px] font-medium uppercase tracking-[0.16em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-6 sm:text-[11px] sm:tracking-[0.22em] sm:gap-2.5"
               >
                 {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />}
-                <span>{draft.scenes.length ? "Render" : "Auto create"}</span>
+                <span className="truncate">{draft.scenes.length ? "Approve & render" : "Auto create"}</span>
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
             </div>

@@ -1810,50 +1810,71 @@ function StartHero({
             </div>
           </div>
 
-          {/* ===== CTA strip ===== */}
-          <div className="relative mt-14 overflow-hidden rounded-[20px] border border-border/40 bg-gradient-to-br from-[hsl(var(--accent)/0.14)] via-card/30 to-background/40 p-8 backdrop-blur-xl shadow-[0_40px_120px_-40px_hsl(var(--accent)/0.4),inset_0_1px_0_0_hsl(var(--foreground)/0.08)]">
-            <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/15 blur-[100px]" />
-            <div aria-hidden className="pointer-events-none absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+          {/* ===== Roll Camera — primary action surface ===== */}
+          <section
+            aria-label="Roll camera"
+            className="relative mt-14 overflow-hidden rounded-[24px] border border-border/50 bg-[radial-gradient(120%_120%_at_0%_0%,hsl(var(--accent)/0.18)_0%,transparent_55%),linear-gradient(180deg,hsl(var(--card)/0.55)_0%,hsl(var(--background)/0.55)_100%)] backdrop-blur-xl"
+          >
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+            <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-[110px]" />
 
-            <div className="relative flex flex-col items-start justify-between gap-7 md:flex-row md:items-end">
+            <div className="relative flex flex-col gap-8 p-6 sm:p-8 md:p-10">
+              {/* Eyebrow + title */}
               <div>
-                <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.42em] text-accent/80">
-                  <span>◆</span> Roll camera
+                <div className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.42em] text-accent">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
+                  Roll camera
                 </div>
-                <div
-                  className="mt-3 font-display text-[26px] md:text-[34px] leading-[1.05] tracking-[-0.02em] text-foreground"
+                <h2
+                  className="mt-3 font-display text-[28px] sm:text-[34px] md:text-[40px] leading-[1.05] tracking-[-0.02em] text-foreground"
                   style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
                 >
                   <span className="italic">This is the room</span><br />you walk into.
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
-                  <span><span className="text-foreground/85">{draft.scenes.length || (draft.defaults.sceneCount ?? "—")}</span> scenes</span>
-                  <span className="h-px w-4 bg-border" />
-                  <span><span className="text-foreground/85">{renderedCount}</span> rendered</span>
-                  <span className="h-px w-4 bg-border" />
-                  <span><span className="text-accent">{totalCost}</span> credits</span>
-                </div>
+                </h2>
               </div>
-              <div className="flex w-full items-center gap-3 md:w-auto">
-                <button
-                  onClick={() => onSetStep("cast")}
-                  className="h-13 flex-1 rounded-full border border-border/60 bg-background/40 px-6 py-3.5 text-[12px] uppercase tracking-[0.16em] text-foreground transition-all hover:border-accent/40 hover:bg-card md:flex-none"
-                >
-                  Cast &amp; script
-                </button>
-                <button
-                  onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
-                  disabled={(!canGenerateScript && !canRender) || autoBusy}
-                  className="group relative inline-flex flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-b from-foreground to-foreground/85 px-8 py-3.5 text-[12px] font-medium uppercase tracking-[0.16em] text-background shadow-[0_24px_60px_-20px_hsl(var(--foreground)/0.5),inset_0_1px_0_0_hsl(0_0%_100%/0.4)] transition-all hover:shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.6),inset_0_1px_0_0_hsl(0_0%_100%/0.5)] disabled:cursor-not-allowed disabled:opacity-40 md:flex-none"
-                >
-                  <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  {autoBusy ? <Loader2 className="relative h-4 w-4 animate-spin" /> : <Sparkles className="relative h-4 w-4" strokeWidth={1.5} />}
-                  <span className="relative">{draft.scenes.length ? "Render film" : "Auto create"}</span>
-                  <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.75} />
-                </button>
-              </div>
+
+              {/* Metric rail */}
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/30">
+                {[
+                  { label: "Scenes", value: draft.scenes.length || (draft.defaults.sceneCount ?? "—") },
+                  { label: "Rendered", value: renderedCount },
+                  { label: "Credits", value: totalCost, accent: true },
+                ].map((m) => (
+                  <div key={m.label} className="flex flex-col items-start gap-1 bg-background/70 px-4 py-3 sm:px-5 sm:py-4">
+                    <dt className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">{m.label}</dt>
+                    <dd
+                      className={`font-display text-[22px] sm:text-[26px] leading-none ${m.accent ? "text-accent" : "text-foreground"}`}
+                      style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
+                    >
+                      {m.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              {/* Primary action — full-width on mobile, prominent on desktop */}
+              <button
+                onClick={() => (draft.scenes.length ? onRenderAll() : onAutoCreate())}
+                disabled={(!canGenerateScript && !canRender) || autoBusy}
+                className="group relative inline-flex h-14 w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-b from-foreground to-foreground/85 px-8 text-[12px] font-medium uppercase tracking-[0.18em] text-background shadow-[0_30px_80px_-24px_hsl(var(--foreground)/0.55),inset_0_1px_0_0_hsl(0_0%_100%/0.45)] transition-all hover:shadow-[0_40px_100px_-24px_hsl(var(--foreground)/0.65),inset_0_1px_0_0_hsl(0_0%_100%/0.55)] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                {autoBusy ? <Loader2 className="relative h-4 w-4 animate-spin" /> : <Sparkles className="relative h-4 w-4" strokeWidth={1.5} />}
+                <span className="relative">{draft.scenes.length ? "Render film" : "Auto create"}</span>
+                <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.75} />
+              </button>
+
+              {/* Secondary action — separated, lower visual weight */}
+              <button
+                onClick={() => onSetStep("cast")}
+                className="-mt-3 inline-flex items-center justify-center gap-2 self-center rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <span className="h-px w-6 bg-border" />
+                Cast &amp; script
+                <span className="h-px w-6 bg-border" />
+              </button>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </motion.div>

@@ -31,6 +31,7 @@ import {
   resolveEffectiveUserId,
   forbiddenResponse,
 } from "../_shared/auth-guard.ts";
+import { markProjectFailedAndRefund } from "../_shared/pipeline-failure.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -333,6 +334,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: "Invalid JSON body" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+  let activeProjectId: string | undefined = request.projectId;
+  let plannedCredits = 0;
+  let plannedClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
+  let chargedCredits = false;
 
   // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
   try {
@@ -406,6 +411,8 @@ serve(async (req) => {
     }
 
     const totalCredits = clipCount * seedanceCreditsForClip(clipDuration);
+    plannedClipCount = clipCount;
+    plannedCredits = totalCredits;
     console.log(`[Seedance] params: ${clipCount} clips × ${clipDuration}s, AR=${aspectRatio}, credits=${totalCredits}`);
 
     // ═══ CREDIT CHECK + DEDUCT ═══
@@ -440,6 +447,7 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+      chargedCredits = true;
       console.log(`[Seedance] ✓ Deducted ${totalCredits} credits`);
     }
 
@@ -471,8 +479,10 @@ serve(async (req) => {
         .single();
       if (projErr || !proj) throw new Error(`Failed to create project: ${projErr?.message}`);
       projectId = proj.id;
+      activeProjectId = projectId;
       console.log(`[Seedance] ✓ Created project ${projectId}`);
     } else {
+      activeProjectId = projectId;
       await supabase
         .from("movie_projects")
         .update({
@@ -604,10 +614,17 @@ serve(async (req) => {
         pipeline_stage: "assets",
         pending_video_tasks: {
           stage: "assets", progress: 25, engine: "seedance",
+            lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
         },
+          pipeline_state: {
+            stage: "assets",
+            progress: 25,
+            lastProgressAt: new Date().toISOString(),
+            engine: "seedance",
+          },
       })
       .eq("id", projectId);
 
@@ -729,10 +746,17 @@ serve(async (req) => {
         pipeline_stage: "production",
         pending_video_tasks: {
           stage: "production", progress: 50, engine: "seedance",
+          lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
           sceneImages,
+        },
+        pipeline_state: {
+          stage: "production",
+          progress: 50,
+          lastProgressAt: new Date().toISOString(),
+          engine: "seedance",
         },
       })
       .eq("id", projectId);
@@ -802,6 +826,7 @@ serve(async (req) => {
           stage: "production",
           progress: 60,
           engine: "seedance",
+          lastProgressAt: new Date().toISOString(),
           clipCount, clipDuration, aspectRatio, cameraFixed,
           includeVoice, includeMusic,
           script: { shots },
@@ -816,6 +841,14 @@ serve(async (req) => {
             audioAssets, // pre-generated voice/music URLs for muxing
             muxStrategy: "post-stitch", // Seedance: no native audio, mux after
           },
+        },
+        pipeline_state: {
+          stage: "production",
+          progress: 60,
+          lastProgressAt: new Date().toISOString(),
+          engine: "seedance",
+          predictionIds: dispatched,
+          failedDispatches: failed,
         },
       })
       .eq("id", projectId);
@@ -837,18 +870,26 @@ serve(async (req) => {
     );
   } catch (err: any) {
     console.error("[Seedance] Pipeline error:", err);
-    if (request.projectId) {
+    if (activeProjectId) {
       try {
-        const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
-        const fallbackClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
+        let completedClipCount = 0;
+        try {
+          const { count } = await supabase
+            .from("video_clips")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", activeProjectId)
+            .eq("status", "completed");
+          completedClipCount = count || 0;
+        } catch (_) { /* non-fatal */ }
         await markProjectFailedAndRefund(supabase, {
-          projectId: request.projectId,
+          projectId: activeProjectId,
           userId: request.userId,
           stage: 'preproduction',
           reason: err,
-          totalCredits: fallbackClipCount * seedanceCreditsForClip(Math.max(2, Math.min(12, request.clipDuration ?? 10))),
-          expectedClipCount: fallbackClipCount,
-          completedClipCount: 0, // terminal failure pre-dispatch
+          totalCredits: chargedCredits ? plannedCredits : 0,
+          expectedClipCount: plannedClipCount,
+          completedClipCount,
+          skipRefund: !chargedCredits,
           source: 'seedance',
         });
       } catch (failHandlerErr) {
@@ -860,7 +901,7 @@ serve(async (req) => {
             last_error: err?.message?.slice(0, 500) ?? "Unknown error",
             updated_at: new Date().toISOString(),
           })
-          .eq("id", request.projectId);
+          .eq("id", activeProjectId);
       }
     }
     return new Response(

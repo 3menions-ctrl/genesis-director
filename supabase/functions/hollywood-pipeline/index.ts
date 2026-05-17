@@ -728,11 +728,13 @@ async function updateProjectProgress(
   // Read existing pending_video_tasks to preserve clipDuration, clipCount, etc.
   const { data: existing } = await supabase
     .from('movie_projects')
-    .select('pending_video_tasks')
+    .select('pending_video_tasks, pipeline_state')
     .eq('id', projectId)
     .maybeSingle();
   
   const existingTasks = existing?.pending_video_tasks || {};
+  const existingPipelineState = existing?.pipeline_state || {};
+  const nowIso = new Date().toISOString();
   
   const pendingTasks = {
     // Preserve critical pipeline params that must survive across stage transitions
@@ -741,7 +743,8 @@ async function updateProjectProgress(
     // Apply new stage/progress
     stage,
     progress,
-    updatedAt: new Date().toISOString(),
+    updatedAt: nowIso,
+    lastProgressAt: nowIso,
     ...details,
     // SAFEGUARD: Include degradation flags for UI notifications
     ...(degradation && Object.keys(degradation).length > 0 ? { degradation } : {}),
@@ -751,7 +754,14 @@ async function updateProjectProgress(
     .from('movie_projects')
     .update({
       pending_video_tasks: pendingTasks,
-      updated_at: new Date().toISOString(),
+      pipeline_state: {
+        ...existingPipelineState,
+        stage,
+        progress,
+        lastProgressAt: nowIso,
+        lastCheckpointAt: nowIso,
+      },
+      updated_at: nowIso,
     })
     .eq('id', projectId);
 }
@@ -4961,9 +4971,22 @@ async function runProduction(
     
     if (videoUrlToSave) {
       try {
+        let durableVideoUrl = videoUrlToSave;
+        if (isTemporaryReplicateUrl(videoUrlToSave)) {
+          const persistedUrl = await persistVideoToStorage(
+            supabase,
+            videoUrlToSave,
+            state.projectId,
+            { prefix: `hollywood_clip${i}`, clipIndex: i }
+          );
+          if (!persistedUrl) {
+            throw new Error(`Clip ${i + 1} completed but permanent storage failed`);
+          }
+          durableVideoUrl = persistedUrl;
+        }
         // Update BOTH video_url and last_frame_url together
         const updateData: Record<string, any> = {
-          video_url: videoUrlToSave,
+          video_url: durableVideoUrl,
           status: 'completed',
           updated_at: new Date().toISOString(),
         };
@@ -4989,12 +5012,12 @@ async function runProduction(
             .eq('shot_index', i)
             .maybeSingle();
           
-          const videoUrlMatch = verifyData?.video_url === videoUrlToSave;
+          const videoUrlMatch = verifyData?.video_url === durableVideoUrl;
           const frameUrlMatch = !frameToSave || verifyData?.last_frame_url === frameToSave;
           
           if (videoUrlMatch && frameUrlMatch) {
             console.log(`[Hollywood] ✓ VERIFIED final clip ${i + 1} persisted:`);
-            console.log(`[Hollywood]   video_url: ${videoUrlToSave.substring(0, 60)}...`);
+            console.log(`[Hollywood]   video_url: ${durableVideoUrl.substring(0, 60)}...`);
             if (frameToSave) {
               console.log(`[Hollywood]   last_frame_url: ${frameToSave.substring(0, 50)}...`);
             }
@@ -6231,14 +6254,29 @@ async function executePipelineInBackground(
     console.log(`  - extractedCharacters: ${mergedProFeatures.extractedCharacters?.length || 0}`);
     
     // Update project as completed
+    let durableFinalVideoUrl = state.finalVideoUrl;
+    if (durableFinalVideoUrl && isTemporaryReplicateUrl(durableFinalVideoUrl)) {
+      const persistedFinal = await persistVideoToStorage(
+        supabase,
+        durableFinalVideoUrl,
+        projectId,
+        { prefix: 'final_video' }
+      );
+      if (!persistedFinal) {
+        throw new Error('Final video completed but permanent storage failed');
+      }
+      durableFinalVideoUrl = persistedFinal;
+      state.finalVideoUrl = persistedFinal;
+    }
+
     await supabase
       .from('movie_projects')
       .update({
-        video_url: state.finalVideoUrl,
+        video_url: durableFinalVideoUrl,
         music_url: state.assets?.musicUrl,
         quality_tier: request.qualityTier || 'standard',
         pro_features_data: mergedProFeatures,
-        status: state.finalVideoUrl ? 'completed' : 'failed',
+        status: durableFinalVideoUrl ? 'completed' : 'failed',
         generated_script: state.script ? JSON.stringify(state.script) : null,
         scene_images: state.assets?.sceneImages || null,
         pending_video_tasks: {
@@ -6246,7 +6284,7 @@ async function executePipelineInBackground(
           progress: 100,
           clipCount: state.clipCount,
           clipDuration: state.clipDuration,
-          finalVideoUrl: state.finalVideoUrl,
+          finalVideoUrl: durableFinalVideoUrl,
           stages: {
             preproduction: {
               shotCount: state.script?.shots?.length || 0,
@@ -6267,7 +6305,7 @@ async function executePipelineInBackground(
             },
           },
           proFeaturesUsed: proFeaturesUpdate,
-          creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
+          creditsCharged: durableFinalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
         },
         updated_at: new Date().toISOString(),
       })
@@ -6786,9 +6824,18 @@ serve(async (req) => {
       totalCredits,
     };
 
-    // Start pipeline in background using waitUntil
-    // @ts-ignore - EdgeRuntime is available in Deno edge functions
-    EdgeRuntime.waitUntil(executePipelineInBackground(request, projectId!, state, supabase));
+    const backgroundRun = executePipelineInBackground(request, projectId!, state, supabase);
+    backgroundRun.catch((error) => {
+      console.error("[Hollywood] Background waitUntil rejected after internal handler:", error);
+    });
+
+    // Start pipeline in background using waitUntil when available; await in tests/local runtimes.
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(backgroundRun);
+    } else {
+      await backgroundRun;
+    }
 
     // Return immediately with project ID
     return new Response(

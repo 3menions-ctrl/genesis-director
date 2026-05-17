@@ -115,6 +115,28 @@ function sceneApprovalSignature(draft: StudioDraft): string {
   });
 }
 
+type CreditState = { balance: number; held: number; available: number };
+
+async function readCreditState(userId: string): Promise<CreditState> {
+  const { data, error } = await (supabase.rpc as any)("get_credit_state", { p_user_id: userId });
+  const payload = (data || {}) as any;
+  if (!error && payload?.success) {
+    return {
+      balance: Number(payload.balance || 0),
+      held: Number(payload.held || 0),
+      available: Number(payload.available || 0),
+    };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("credits_balance")
+    .eq("id", userId)
+    .maybeSingle();
+  const balance = Number((profile as any)?.credits_balance || 0);
+  return { balance, held: 0, available: balance };
+}
+
 function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDraft[] {
   const shotSequence = pick.settings?.shotSequence || [];
   const lensMap: Record<string, SceneDraft["lens"]> = {
@@ -188,7 +210,7 @@ export default function StudioShell() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [approvalOpen, setApprovalOpen] = useState(false);
-  const [approvalBalance, setApprovalBalance] = useState<number | null>(null);
+  const [approvalCreditState, setApprovalCreditState] = useState<CreditState | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnosticsFocusId, setDiagnosticsFocusId] = useState<string | undefined>(undefined);
@@ -240,18 +262,13 @@ export default function StudioShell() {
   const openApprovalGate = useCallback(async () => {
     setApprovalOpen(true);
     setApprovalLoading(true);
-    setApprovalBalance(null);
+    setApprovalCreditState(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", user.id)
-          .maybeSingle();
-        setApprovalBalance((profile as any)?.credits_balance ?? 0);
+        setApprovalCreditState(await readCreditState(user.id));
       }
-    } catch { setApprovalBalance(null); }
+    } catch { setApprovalCreditState(null); }
     finally { setApprovalLoading(false); }
   }, []);
 
@@ -523,12 +540,8 @@ export default function StudioShell() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", user.id)
-          .maybeSingle();
-        const balance = (profile as any)?.credits_balance ?? 0;
+        const creditState = await readCreditState(user.id);
+        const balance = creditState.available;
         const pending = draft.scenes.filter(s => !s.clipUrl);
         const nextCost = pending.length
           ? (() => {
@@ -1045,7 +1058,7 @@ export default function StudioShell() {
         cast={draft.cast}
         defaults={draft.defaults}
         totalCost={totalCost}
-        balance={approvalBalance}
+        creditState={approvalCreditState}
         onClose={() => setApprovalOpen(false)}
         onApprove={async () => {
           approveAndStamp();
@@ -1995,7 +2008,7 @@ function ApprovalGate({
   cast,
   defaults,
   totalCost,
-  balance,
+  creditState,
   onClose,
   onApprove,
   onEditScript,
@@ -2007,14 +2020,15 @@ function ApprovalGate({
   cast: CastMember[];
   defaults: StudioDraft["defaults"];
   totalCost: number;
-  balance: number | null;
+  creditState: CreditState | null;
   onClose: () => void;
   onApprove: () => void;
   onEditScript: () => void;
   onBuyCredits: () => void;
 }) {
   if (!open) return null;
-  const insufficient = balance !== null && balance < totalCost;
+  const available = creditState?.available ?? null;
+  const insufficient = available !== null && available < totalCost;
   const speakerName = (id?: string) => cast.find(c => c.id === id)?.name || "—";
 
   // ── Pre-flight cost analysis ──────────────────────────────────────────────
@@ -2170,16 +2184,21 @@ function ApprovalGate({
               <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground/70">≈ ${usd} USD</div>
             </div>
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Your balance</div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Spendable</div>
               <div className={cn("mt-1 font-display text-2xl tabular-nums", insufficient ? "text-destructive" : "text-foreground")}>
-                {loading ? "—" : (balance ?? "—")}
+                {loading ? "—" : (available ?? "—")}
               </div>
+              {creditState && creditState.held > 0 && (
+                <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                  {creditState.balance} raw · {creditState.held} held
+                </div>
+              )}
             </div>
           </div>
 
           {insufficient && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-[12px] text-destructive">
-              Not enough credits. You need {totalCost - (balance ?? 0)} more to render every scene.
+              Not enough spendable credits. You need {totalCost - (available ?? 0)} more to render every scene.
             </div>
           )}
 

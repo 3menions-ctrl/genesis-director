@@ -240,6 +240,7 @@ export function useScenePipeline(
       if (predecessor && !predReady && predecessor.status !== "failed") {
         stopGate(sceneId);
         patchScene(sceneId, { status: "queued", waitingOnSceneId: predecessor.id });
+        logEvent(sceneId, "waiting", `Waiting on scene ${predecessor.index + 1} (continuity chain)`);
         toast.message(`Scene ${scene.index + 1} waiting on scene ${predecessor.index + 1}`, { duration: 2500 });
         const t = setInterval(() => {
           const latest = getLatestDraft ? getLatestDraft() : sourceDraft;
@@ -249,6 +250,7 @@ export function useScenePipeline(
             stopGate(sceneId);
             const reason = `Skipped — scene ${predecessor.index + 1} failed (${predecessor.errorReason || "no detail"})`;
             patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: reason });
+            logEvent(sceneId, "failed", reason);
             toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
             void releaseSceneHold(sceneId, "predecessor_failed");
             return;
@@ -292,6 +294,7 @@ export function useScenePipeline(
     }
 
     patchScene(sceneId, { status: "queued", errorReason: undefined });
+    logEvent(sceneId, "queued", `Preparing render`, { engine: scene.engine || sourceDraft.defaults.engine });
     try {
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
       const engineId = scene.engine || sourceDraft.defaults.engine;
@@ -323,6 +326,7 @@ export function useScenePipeline(
         })
         .eq("id", projectId);
       if (lockError) throw new Error(`Could not lock render to ${engineId}`);
+      logEvent(sceneId, "dispatching", `Engine locked to ${engineId} on project ${projectId.slice(0, 8)}`, { engine: engineId });
 
       // ── Reserve credits server-side BEFORE invoking the renderer. The
       // reservation reduces the user's effective balance for any concurrent
@@ -330,6 +334,7 @@ export function useScenePipeline(
       let holdId: string | null = null;
       try {
         const estimated = creditsForScene(engineId, scene.duration, profile.id);
+        logEvent(sceneId, "reserving", `Reserving ${estimated} credits`);
         const { data: hold, error: holdErr } = await supabase.functions.invoke("reserve-credits", {
           body: {
             action: "reserve",
@@ -346,14 +351,17 @@ export function useScenePipeline(
           const eff = (hold as any)?.effectiveBalance ?? balance - reserved;
           const reason = `Insufficient credits — ${estimated} required, ${eff} available`;
           patchScene(sceneId, { status: "failed", errorReason: reason });
+          logEvent(sceneId, "failed", reason);
           toast.error(reason);
           return;
         }
         holdId = (hold as any).holdId as string;
         patchScene(sceneId, { creditHoldId: holdId });
+        logEvent(sceneId, "reserved", `Hold ${holdId?.slice(0, 8)} placed for ${estimated} cr`);
       } catch (e) {
         const reason = (e as any)?.message || "Could not reserve credits";
         patchScene(sceneId, { status: "failed", errorReason: reason });
+        logEvent(sceneId, "failed", `Reserve threw: ${reason}`);
         toast.error("Could not reserve credits");
         return;
       }
@@ -408,6 +416,7 @@ export function useScenePipeline(
           }).catch(() => {});
           patchScene(sceneId, { creditHoldId: undefined });
         }
+        logEvent(sceneId, "failed", `Edge function rejected: ${(error as any)?.message || "unknown"}`, { detail: JSON.stringify(error).slice(0, 240) });
         throw error;
       }
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
@@ -418,15 +427,19 @@ export function useScenePipeline(
         // UI and switch to row-polling — the drain will re-fire this scene
         // and stamp its prediction onto the same video_clips row.
         patchScene(sceneId, { status: "generating" });
+        logEvent(sceneId, "queued", `Server parked behind shot ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`);
         toast.message(`Scene ${scene.index + 1} queued — waiting on scene ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`, { duration: 2500 });
         pollClipRow(sceneId, projectId, scene.index);
       } else if (directUrl) {
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
+        logEvent(sceneId, "completed", `Direct return from renderer`, { detail: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
+        logEvent(sceneId, "dispatched", `Replicate prediction accepted`, { predictionId, engine: engineId });
         pollPrediction(sceneId, predictionId, projectId, scene.index, sourceDraft.scenes.length);
       } else {
         patchScene(sceneId, { status: "generating" });
+        logEvent(sceneId, "dispatched", `Renderer accepted (no predictionId — row polling)`);
         // Fallback: no predictionId and not queued — poll the row anyway in
         // case the renderer wrote it asynchronously (defensive).
         pollClipRow(sceneId, projectId, scene.index);
@@ -434,10 +447,11 @@ export function useScenePipeline(
     } catch (e: any) {
       const reason = e?.message || e?.error || "Failed to start generation";
       patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+      logEvent(sceneId, "failed", `Dispatch threw: ${String(reason).slice(0, 160)}`);
       toast.error(String(reason).slice(0, 200));
       void releaseSceneHold(sceneId, "dispatch_threw");
     }
-  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
+  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId, logEvent]);
 
   const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
 

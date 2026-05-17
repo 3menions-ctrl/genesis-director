@@ -540,12 +540,8 @@ export default function StudioShell() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", user.id)
-          .maybeSingle();
-        const balance = (profile as any)?.credits_balance ?? 0;
+        const creditState = await readCreditState(user.id);
+        const balance = creditState.available;
         const pending = draft.scenes.filter(s => !s.clipUrl);
         const nextCost = pending.length
           ? (() => {
@@ -2188,16 +2184,21 @@ function ApprovalGate({
               <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground/70">≈ ${usd} USD</div>
             </div>
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Your balance</div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Spendable</div>
               <div className={cn("mt-1 font-display text-2xl tabular-nums", insufficient ? "text-destructive" : "text-foreground")}>
-                {loading ? "—" : (balance ?? "—")}
+                {loading ? "—" : (available ?? "—")}
               </div>
+              {creditState && creditState.held > 0 && (
+                <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                  {creditState.balance} raw · {creditState.held} held
+                </div>
+              )}
             </div>
           </div>
 
           {insufficient && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-[12px] text-destructive">
-              Not enough credits. You need {totalCost - (balance ?? 0)} more to render every scene.
+              Not enough spendable credits. You need {totalCost - (available ?? 0)} more to render every scene.
             </div>
           )}
 

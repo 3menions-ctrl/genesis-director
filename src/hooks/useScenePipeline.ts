@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SceneDraft, StudioDraft } from "@/components/studio/v2/types";
+import type { SceneDraft, SceneEvent, SceneEventKind, StudioDraft } from "@/components/studio/v2/types";
 import { engineToBackend, getQualityProfile, creditsForScene, ENGINES } from "@/lib/video/engines";
 import { extractAndUploadTailFrame } from "@/lib/video/extractTailFrame";
 
@@ -20,6 +20,22 @@ export function useScenePipeline(
   // sceneId so we can cancel the watcher if the user manually retries /
   // edits / removes the scene.
   const gateWatchers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  // Append an event to a scene's timeline. Keeps the last 40 entries so the
+  // monitor stays responsive even for long-running renders that retry.
+  const logEvent = useCallback((sceneId: string, kind: SceneEventKind, message: string, extra: Partial<SceneEvent> = {}) => {
+    const latest = getLatestDraft ? getLatestDraft() : draft;
+    const me = latest.scenes.find(s => s.id === sceneId);
+    const prev = me?.events ?? [];
+    const next: SceneEvent[] = [
+      ...prev,
+      { ts: new Date().toISOString(), kind, message, ...extra },
+    ].slice(-40);
+    patchScene(sceneId, { events: next });
+    // Best-effort console breadcrumb for forensics — suppressed by
+    // production-console-shield in builds.
+    try { console.info(`[pipeline][${kind}] scene=${me?.index ?? "?"} ${message}`, extra); } catch { /* noop */ }
+  }, [draft, getLatestDraft, patchScene]);
 
   const stopGate = (id: string) => {
     const t = gateWatchers.current.get(id);
@@ -54,6 +70,7 @@ export function useScenePipeline(
       await supabase.functions.invoke("reserve-credits", {
         body: { action: "release", holdId, reason },
       });
+      logEvent(sceneId, "released", `Credit hold released (${reason})`);
     } catch { /* best-effort */ }
     patchScene(sceneId, { creditHoldId: undefined });
   };
@@ -81,10 +98,12 @@ export function useScenePipeline(
           if (!row || row.shot_index !== shotIndex) return;
           if (row.status === "completed" && row.video_url) {
             patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            logEvent(sceneId, "completed", "Clip ready (realtime)", { detail: row.video_url });
             stopPoll(sceneId);
           } else if (row.status === "failed") {
             const reason = row.error_message || "Generation failed";
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            logEvent(sceneId, "failed", `Terminal failure (realtime): ${String(reason).slice(0, 160)}`);
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
             void releaseSceneHold(sceneId, "clip_row_failed");
@@ -105,10 +124,12 @@ export function useScenePipeline(
         const url = (data as any)?.video_url;
         if (status === "completed" && url) {
           patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
+          logEvent(sceneId, "completed", "Clip ready (poll)", { detail: url });
           stopPoll(sceneId);
         } else if (status === "failed") {
           const reason = (data as any)?.error_message || "Generation failed";
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          logEvent(sceneId, "failed", `Terminal failure (poll): ${String(reason).slice(0, 160)}`);
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
           void releaseSceneHold(sceneId, "clip_row_failed");
@@ -135,6 +156,7 @@ export function useScenePipeline(
     totalClips: number,
   ) => {
     stopPoll(sceneId);
+    logEvent(sceneId, "polling", `Polling Replicate prediction every 10s`, { predictionId });
     // Realtime path: terminal status is also written to video_clips by the
     // worker / replicate-webhook. Subscribe so the UI resolves the moment the
     // row updates, and back the predictionId-driven poll off to 10s.
@@ -148,10 +170,12 @@ export function useScenePipeline(
           if (!row || row.shot_index !== shotIndex) return;
           if (row.status === "completed" && row.video_url) {
             patchScene(sceneId, { status: "done", clipUrl: row.video_url, errorReason: undefined });
+            logEvent(sceneId, "completed", "Replicate returned clip", { predictionId, detail: row.video_url });
             stopPoll(sceneId);
           } else if (row.status === "failed") {
             const reason = row.error_message || "Generation failed";
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+            logEvent(sceneId, "failed", `Replicate failure: ${String(reason).slice(0, 160)}`, { predictionId });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
             void releaseSceneHold(sceneId, "prediction_row_failed");
@@ -172,10 +196,12 @@ export function useScenePipeline(
         const url = (data as any)?.video_url;
         if (status === "completed" && url) {
           patchScene(sceneId, { status: "done", clipUrl: url, errorReason: undefined });
+          logEvent(sceneId, "completed", "Replicate returned clip (poll)", { predictionId, detail: url });
           stopPoll(sceneId);
         } else if (status === "failed") {
           const reason = (data as any)?.error_message || "Generation failed";
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+          logEvent(sceneId, "failed", `Replicate failure (poll): ${String(reason).slice(0, 160)}`, { predictionId });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
           void releaseSceneHold(sceneId, "prediction_row_failed");
@@ -214,6 +240,7 @@ export function useScenePipeline(
       if (predecessor && !predReady && predecessor.status !== "failed") {
         stopGate(sceneId);
         patchScene(sceneId, { status: "queued", waitingOnSceneId: predecessor.id });
+        logEvent(sceneId, "waiting", `Waiting on scene ${predecessor.index + 1} (continuity chain)`);
         toast.message(`Scene ${scene.index + 1} waiting on scene ${predecessor.index + 1}`, { duration: 2500 });
         const t = setInterval(() => {
           const latest = getLatestDraft ? getLatestDraft() : sourceDraft;
@@ -223,6 +250,7 @@ export function useScenePipeline(
             stopGate(sceneId);
             const reason = `Skipped — scene ${predecessor.index + 1} failed (${predecessor.errorReason || "no detail"})`;
             patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: reason });
+            logEvent(sceneId, "failed", reason);
             toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
             void releaseSceneHold(sceneId, "predecessor_failed");
             return;
@@ -266,6 +294,7 @@ export function useScenePipeline(
     }
 
     patchScene(sceneId, { status: "queued", errorReason: undefined });
+    logEvent(sceneId, "queued", `Preparing render`, { engine: scene.engine || sourceDraft.defaults.engine });
     try {
       const cast = scene.speakerId ? sourceDraft.cast.find(c => c.id === scene.speakerId) : sourceDraft.cast[0];
       const engineId = scene.engine || sourceDraft.defaults.engine;
@@ -297,6 +326,7 @@ export function useScenePipeline(
         })
         .eq("id", projectId);
       if (lockError) throw new Error(`Could not lock render to ${engineId}`);
+      logEvent(sceneId, "dispatching", `Engine locked to ${engineId} on project ${projectId.slice(0, 8)}`, { engine: engineId });
 
       // ── Reserve credits server-side BEFORE invoking the renderer. The
       // reservation reduces the user's effective balance for any concurrent
@@ -304,6 +334,7 @@ export function useScenePipeline(
       let holdId: string | null = null;
       try {
         const estimated = creditsForScene(engineId, scene.duration, profile.id);
+        logEvent(sceneId, "reserving", `Reserving ${estimated} credits`);
         const { data: hold, error: holdErr } = await supabase.functions.invoke("reserve-credits", {
           body: {
             action: "reserve",
@@ -320,14 +351,17 @@ export function useScenePipeline(
           const eff = (hold as any)?.effectiveBalance ?? balance - reserved;
           const reason = `Insufficient credits — ${estimated} required, ${eff} available`;
           patchScene(sceneId, { status: "failed", errorReason: reason });
+          logEvent(sceneId, "failed", reason);
           toast.error(reason);
           return;
         }
         holdId = (hold as any).holdId as string;
         patchScene(sceneId, { creditHoldId: holdId });
+        logEvent(sceneId, "reserved", `Hold ${holdId?.slice(0, 8)} placed for ${estimated} cr`);
       } catch (e) {
         const reason = (e as any)?.message || "Could not reserve credits";
         patchScene(sceneId, { status: "failed", errorReason: reason });
+        logEvent(sceneId, "failed", `Reserve threw: ${reason}`);
         toast.error("Could not reserve credits");
         return;
       }
@@ -382,6 +416,7 @@ export function useScenePipeline(
           }).catch(() => {});
           patchScene(sceneId, { creditHoldId: undefined });
         }
+        logEvent(sceneId, "failed", `Edge function rejected: ${(error as any)?.message || "unknown"}`, { detail: JSON.stringify(error).slice(0, 240) });
         throw error;
       }
       const predictionId = (data as any)?.predictionId || (data as any)?.id;
@@ -392,15 +427,19 @@ export function useScenePipeline(
         // UI and switch to row-polling — the drain will re-fire this scene
         // and stamp its prediction onto the same video_clips row.
         patchScene(sceneId, { status: "generating" });
+        logEvent(sceneId, "queued", `Server parked behind shot ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`);
         toast.message(`Scene ${scene.index + 1} queued — waiting on scene ${((data as any)?.waitingOnShot ?? scene.index - 1) + 1}`, { duration: 2500 });
         pollClipRow(sceneId, projectId, scene.index);
       } else if (directUrl) {
         patchScene(sceneId, { status: "done", clipUrl: directUrl });
+        logEvent(sceneId, "completed", `Direct return from renderer`, { detail: directUrl });
       } else if (predictionId) {
         patchScene(sceneId, { status: "generating", predictionId });
+        logEvent(sceneId, "dispatched", `Replicate prediction accepted`, { predictionId, engine: engineId });
         pollPrediction(sceneId, predictionId, projectId, scene.index, sourceDraft.scenes.length);
       } else {
         patchScene(sceneId, { status: "generating" });
+        logEvent(sceneId, "dispatched", `Renderer accepted (no predictionId — row polling)`);
         // Fallback: no predictionId and not queued — poll the row anyway in
         // case the renderer wrote it asynchronously (defensive).
         pollClipRow(sceneId, projectId, scene.index);
@@ -408,10 +447,11 @@ export function useScenePipeline(
     } catch (e: any) {
       const reason = e?.message || e?.error || "Failed to start generation";
       patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
+      logEvent(sceneId, "failed", `Dispatch threw: ${String(reason).slice(0, 160)}`);
       toast.error(String(reason).slice(0, 200));
       void releaseSceneHold(sceneId, "dispatch_threw");
     }
-  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
+  }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId, logEvent]);
 
   const generateScene = useCallback((sceneId: string) => generateSceneFromDraft(sceneId, draft), [draft, generateSceneFromDraft]);
 

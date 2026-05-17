@@ -1924,6 +1924,9 @@ function StartHero({
               ))}
             </div>
 
+            {/* Pipeline monitor — live status, retries, terminal reasons */}
+            <PipelineMonitor scenes={draft.scenes} />
+
             {/* Action row — render button sized to text, never overflowing */}
             <div className="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
@@ -2181,5 +2184,165 @@ function ApprovalGate({
       </div>
     </div>
   );
+}
+
+// ============================================================================
+// PipelineMonitor — live status timeline for every scene. Renders the current
+// state badge, last activity timestamp, and a collapsible timeline of every
+// pipeline event (waiting, reserve, dispatch, Replicate ack, polling, retry,
+// terminal failure with reason). This is the user's window into what the
+// renderer is actually doing — so a stuck or out-of-sync render is obvious.
+// ============================================================================
+function PipelineMonitor({ scenes }: { scenes: SceneDraft[] }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  // Re-render every 5s so "last activity 12s ago" stays honest while polling.
+  useEffect(() => {
+    const active = scenes.some(s => s.status === "queued" || s.status === "generating");
+    if (!active) return;
+    const t = setInterval(() => setTick(x => x + 1), 5000);
+    return () => clearInterval(t);
+  }, [scenes]);
+
+  const recent = useMemo(() => {
+    const all: Array<{ sceneIndex: number; ev: NonNullable<SceneDraft["events"]>[number] }> = [];
+    scenes.forEach(s => (s.events || []).forEach(ev => all.push({ sceneIndex: s.index, ev })));
+    return all.sort((a, b) => (a.ev.ts < b.ev.ts ? 1 : -1)).slice(0, 8);
+  }, [scenes, tick]);
+
+  if (!scenes.length) return null;
+
+  return (
+    <div className="mt-8 border-t border-border/30 pt-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/70">
+          Pipeline monitor · live
+        </div>
+        <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground/50">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+          replicate · supabase · webhook
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {scenes.map(s => {
+          const events = s.events || [];
+          const last = events[events.length - 1];
+          const isOpen = openId === s.id;
+          return (
+            <div key={s.id} className="rounded-lg border border-border/40 bg-background/40">
+              <button
+                onClick={() => setOpenId(isOpen ? null : s.id)}
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.02]"
+              >
+                <StatusDot status={s.status} />
+                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+                  {String(s.index + 1).padStart(2, "0")}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-light text-[13px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                  {s.location || `Scene ${s.index + 1}`}
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
+                  {s.status}
+                </span>
+                {s.predictionId && (
+                  <span className="hidden font-mono text-[9px] text-muted-foreground/40 sm:inline">
+                    pred {s.predictionId.slice(0, 6)}
+                  </span>
+                )}
+                <span className="font-mono text-[9px] tabular-nums text-muted-foreground/40">
+                  {last ? timeAgo(last.ts) : "—"}
+                </span>
+                <ChevronRight className={cn("h-3.5 w-3.5 text-muted-foreground/50 transition-transform", isOpen && "rotate-90")} />
+              </button>
+
+              {s.status === "failed" && s.errorReason && (
+                <div className="border-t border-destructive/20 bg-destructive/[0.04] px-3 py-2 font-mono text-[10px] leading-relaxed text-destructive/90">
+                  Reason · {s.errorReason}
+                </div>
+              )}
+
+              {isOpen && (
+                <div className="border-t border-border/30 bg-foreground/[0.015] px-3 py-3">
+                  {events.length === 0 ? (
+                    <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground/50">
+                      No events yet — render hasn't dispatched
+                    </div>
+                  ) : (
+                    <ol className="space-y-1.5">
+                      {events.slice().reverse().map((ev, i) => (
+                        <li key={`${ev.ts}-${i}`} className="flex items-start gap-3 font-mono text-[10px] leading-relaxed">
+                          <span className="w-14 shrink-0 tabular-nums text-muted-foreground/50">
+                            {new Date(ev.ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                          </span>
+                          <span className={cn("w-20 shrink-0 uppercase tracking-[0.18em]", kindColor(ev.kind))}>
+                            {ev.kind}
+                          </span>
+                          <span className="min-w-0 flex-1 text-foreground/80">{ev.message}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {recent.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 hover:text-foreground">
+            Recent activity ({recent.length})
+          </summary>
+          <ol className="mt-3 space-y-1.5">
+            {recent.map((r, i) => (
+              <li key={`${r.ev.ts}-${i}`} className="flex items-start gap-3 font-mono text-[10px] leading-relaxed">
+                <span className="w-14 shrink-0 tabular-nums text-muted-foreground/50">
+                  {new Date(r.ev.ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                </span>
+                <span className="w-8 shrink-0 text-muted-foreground/60">S{r.sceneIndex + 1}</span>
+                <span className={cn("w-20 shrink-0 uppercase tracking-[0.18em]", kindColor(r.ev.kind))}>{r.ev.kind}</span>
+                <span className="min-w-0 flex-1 text-foreground/80">{r.ev.message}</span>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: SceneDraft["status"] }) {
+  const cls =
+    status === "done" ? "bg-emerald-400" :
+    status === "failed" ? "bg-destructive" :
+    status === "generating" ? "bg-accent animate-pulse" :
+    status === "queued" ? "bg-amber-400 animate-pulse" :
+    "bg-muted-foreground/40";
+  return <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", cls)} />;
+}
+
+function kindColor(kind: string) {
+  switch (kind) {
+    case "completed": return "text-emerald-400";
+    case "failed": return "text-destructive";
+    case "retry":
+    case "waiting":
+    case "queued": return "text-amber-400";
+    case "dispatched":
+    case "replicate_ack": return "text-accent";
+    default: return "text-muted-foreground/70";
+  }
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
 }
 

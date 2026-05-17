@@ -1511,6 +1511,7 @@ function StartHero({
   onSetStep,
   onOpenDrawer,
   onClearImage,
+  onInspectScene,
 }: {
   draft: StudioDraft;
   setDraft: (mut: (d: StudioDraft) => StudioDraft) => void;
@@ -1531,6 +1532,7 @@ function StartHero({
   onSetStep: (id: "start" | "cast" | "script" | "clips") => void;
   onOpenDrawer: (key: DrawerKey) => void;
   onClearImage: () => void;
+  onInspectScene: (sceneId: string) => void;
 }) {
   const projectSlug = (draft.brief.title || "new-project")
     .toLowerCase()

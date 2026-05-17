@@ -225,6 +225,7 @@ export function useScenePipeline(
             const reason = `Skipped — scene ${predecessor.index + 1} failed (${predecessor.errorReason || "no detail"})`;
             patchScene(sceneId, { status: "failed", waitingOnSceneId: undefined, errorReason: reason });
             toast.error(`Scene ${scene.index + 1} skipped — predecessor failed`);
+            void releaseSceneHold(sceneId, "predecessor_failed");
             return;
           }
           if (live.status === "done" && live.clipUrl) {

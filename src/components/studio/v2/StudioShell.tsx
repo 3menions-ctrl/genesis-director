@@ -1662,71 +1662,56 @@ function StartHero({
             </div>
           )}
 
-          {/* ===== Cast + World preview row ===== */}
-          <div className="mt-12 grid gap-5 md:grid-cols-2">
+          {/* ===== Cast + World — blank slate, user fills in ===== */}
+          <div className="mt-12 grid gap-4 md:grid-cols-2">
             {/* Cast */}
             <button
               onClick={() => onOpenDrawer("avatars")}
-              className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background/50 via-background/25 to-background/10 p-6 text-left backdrop-blur-xl transition-all hover:border-accent/40 hover:shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)]"
+              className="group relative flex min-h-[160px] items-center gap-5 rounded-2xl border border-border/40 bg-card/30 p-5 text-left transition-colors hover:border-accent/50 hover:bg-card/50"
             >
-              <div aria-hidden className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-accent/[0.07] blur-3xl transition-opacity group-hover:bg-accent/[0.14]" />
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.36em] text-muted-foreground/70">
-                  <span className="text-accent/70">◆</span> Cast
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-dashed border-border/70 text-muted-foreground/70 transition-colors group-hover:border-accent group-hover:text-accent">
+                <Users className="h-5 w-5" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">Cast</div>
+                <div className="mt-1.5 font-display text-[18px] leading-tight text-foreground" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>
+                  {draft.cast.length
+                    ? `${draft.cast.length} ${draft.cast.length === 1 ? "actor" : "actors"} cast`
+                    : "Add an actor"}
                 </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent/80">
-                  {draft.cast.length ? `${draft.cast.length} selected` : "Tap to cast"}
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+                  {draft.cast.length ? draft.cast.map(c => c.name).filter(Boolean).slice(0, 3).join(" · ") || "Cast set" : "Library, upload, or generate"}
                 </div>
               </div>
-              <div className="flex -space-x-4">
-                {(draft.cast.length ? draft.cast.map(c => c.imageUrl || avEmma) : FALLBACK_CAST).slice(0, 5).map((src, i) => (
-                  <div key={i} className="h-14 w-14 overflow-hidden rounded-full border-2 border-background shadow-[0_8px_24px_-8px_hsl(0_0%_0%/0.6)] ring-1 ring-border/60 transition-transform group-hover:scale-[1.03]">
-                    <img src={src} alt="" className="h-full w-full object-cover" />
-                  </div>
-                ))}
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-background bg-background/40 ring-1 ring-border/60 text-xl text-muted-foreground transition-colors group-hover:text-accent">
-                  +
-                </span>
-              </div>
-              <div className="mt-5 font-light text-[12px] leading-relaxed text-muted-foreground/70" style={{ fontFamily: "'Fraunces', serif" }}>
-                <span className="italic">An ensemble, your way.</span> Pick faces or let the studio cast for tone.
-              </div>
+              {draft.cast.length > 0 && (
+                <div className="flex -space-x-2">
+                  {draft.cast.slice(0, 3).map((c, i) => (
+                    <div key={i} className="h-9 w-9 overflow-hidden rounded-full border-2 border-card ring-1 ring-border/60">
+                      {c.imageUrl
+                        ? <img src={c.imageUrl} alt="" className="h-full w-full object-cover" />
+                        : <div className="h-full w-full bg-muted" />}
+                    </div>
+                  ))}
+                </div>
+              )}
             </button>
 
             {/* World */}
             <button
               onClick={() => onOpenDrawer("envs")}
-              className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background/50 via-background/25 to-background/10 p-6 text-left backdrop-blur-xl transition-all hover:border-accent/40 hover:shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)]"
+              className="group relative flex min-h-[160px] items-center gap-5 rounded-2xl border border-border/40 bg-card/30 p-5 text-left transition-colors hover:border-accent/50 hover:bg-card/50"
             >
-              <div aria-hidden className="pointer-events-none absolute -left-12 -bottom-12 h-32 w-32 rounded-full bg-accent/[0.07] blur-3xl transition-opacity group-hover:bg-accent/[0.14]" />
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.36em] text-muted-foreground/70">
-                  <span className="text-accent/70">◆</span> World
-                </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent/80">
-                  {draft.brief.environmentId || "Neon Noir"}
-                </div>
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-dashed border-border/70 text-muted-foreground/70 transition-colors group-hover:border-accent group-hover:text-accent">
+                <ImageIcon className="h-5 w-5" strokeWidth={1.5} />
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                {FALLBACK_WORLDS.map((w) => {
-                  const selected = (draft.brief.environmentId || "").toLowerCase() === w.label.toLowerCase();
-                  return (
-                    <div
-                      key={w.label}
-                      className={cn(
-                        "relative aspect-square overflow-hidden rounded-lg border shadow-[0_8px_20px_-10px_hsl(0_0%_0%/0.5)] transition-all",
-                        selected ? "border-accent/60" : "border-border/40 group-hover:border-border/70",
-                      )}
-                    >
-                      <img src={w.src} alt={w.label} className="h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-                      {selected && <div className="absolute inset-0 rounded-lg ring-2 ring-inset ring-accent/70 shadow-[inset_0_0_20px_hsl(var(--accent)/0.4)]" />}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-5 font-light text-[12px] leading-relaxed text-muted-foreground/70" style={{ fontFamily: "'Fraunces', serif" }}>
-                <span className="italic">Anchor the room.</span> Neon, noir, pastoral, or the deep void — your call.
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">World</div>
+                <div className="mt-1.5 font-display text-[18px] leading-tight text-foreground" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>
+                  {draft.brief.environmentId || "Set the location"}
+                </div>
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+                  {draft.brief.environmentId ? "Tap to change" : "Pick a world or upload a still"}
+                </div>
               </div>
             </button>
           </div>

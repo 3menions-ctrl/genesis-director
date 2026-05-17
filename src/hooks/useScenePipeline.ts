@@ -409,6 +409,7 @@ export function useScenePipeline(
       const reason = e?.message || e?.error || "Failed to start generation";
       patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
       toast.error(String(reason).slice(0, 200));
+      void releaseSceneHold(sceneId, "dispatch_threw");
     }
   }, [draft, patchScene, pollPrediction, pollClipRow, ensureProjectId]);
 

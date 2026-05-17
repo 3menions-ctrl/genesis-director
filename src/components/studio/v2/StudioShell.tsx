@@ -1020,6 +1020,26 @@ export default function StudioShell() {
         }} />
       </StudioDrawer>
       <confirmDialog.Dialog />
+
+      {/* ===== Script + Credit Approval Gate ===== */}
+      <ApprovalGate
+        open={approvalOpen}
+        loading={approvalLoading}
+        scenes={draft.scenes}
+        cast={draft.cast}
+        defaults={draft.defaults}
+        totalCost={totalCost}
+        balance={approvalBalance}
+        onClose={() => setApprovalOpen(false)}
+        onApprove={async () => {
+          approveAndStamp();
+          setApprovalOpen(false);
+          // Defer to next tick so the stamped draft is committed before dispatch.
+          setTimeout(() => { void renderAllDispatch(); }, 60);
+        }}
+        onEditScript={() => { setApprovalOpen(false); setStep("script"); }}
+        onBuyCredits={() => { setApprovalOpen(false); navigate("/credits"); }}
+      />
     </div>
   );
 }

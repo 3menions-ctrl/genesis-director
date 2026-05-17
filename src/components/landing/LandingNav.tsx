@@ -1,7 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
-import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 const SCROLL_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
 const ROUTE_ITEMS = [{ label: 'Studio', path: '/studio' }] as const;
@@ -46,7 +45,6 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
           </div>
 
           <div className="flex items-center gap-2">
-            <LanguageSwitcher />
             <Button
               variant="ghost"
               onClick={() => onNavigate('/auth')}

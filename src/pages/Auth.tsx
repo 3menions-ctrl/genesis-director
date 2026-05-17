@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero-mittens.webp';
-import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Floating Particles ─────────────────────────────────────────────
@@ -336,15 +336,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       <div ref={mergedRef} className="min-h-screen flex relative overflow-hidden">
         {/* Pro-Dark cinematic background */}
         <div className="fixed inset-0 bg-[hsl(220,14%,2%)]" />
-        {/* Language switcher — top right */}
-        <div className="fixed top-5 right-5 z-50">
-          <LanguageSwitcher
-            variant="ghost"
-            size="sm"
-            showLabel
-            className="h-9 px-3 text-white/65 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] backdrop-blur-xl rounded-full"
-          />
-        </div>
+
         <div
           className="fixed inset-0 pointer-events-none"
           style={{

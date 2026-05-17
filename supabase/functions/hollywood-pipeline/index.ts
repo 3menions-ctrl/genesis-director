@@ -728,11 +728,13 @@ async function updateProjectProgress(
   // Read existing pending_video_tasks to preserve clipDuration, clipCount, etc.
   const { data: existing } = await supabase
     .from('movie_projects')
-    .select('pending_video_tasks')
+    .select('pending_video_tasks, pipeline_state')
     .eq('id', projectId)
     .maybeSingle();
   
   const existingTasks = existing?.pending_video_tasks || {};
+  const existingPipelineState = existing?.pipeline_state || {};
+  const nowIso = new Date().toISOString();
   
   const pendingTasks = {
     // Preserve critical pipeline params that must survive across stage transitions
@@ -741,7 +743,8 @@ async function updateProjectProgress(
     // Apply new stage/progress
     stage,
     progress,
-    updatedAt: new Date().toISOString(),
+    updatedAt: nowIso,
+    lastProgressAt: nowIso,
     ...details,
     // SAFEGUARD: Include degradation flags for UI notifications
     ...(degradation && Object.keys(degradation).length > 0 ? { degradation } : {}),
@@ -751,7 +754,14 @@ async function updateProjectProgress(
     .from('movie_projects')
     .update({
       pending_video_tasks: pendingTasks,
-      updated_at: new Date().toISOString(),
+      pipeline_state: {
+        ...existingPipelineState,
+        stage,
+        progress,
+        lastProgressAt: nowIso,
+        lastCheckpointAt: nowIso,
+      },
+      updated_at: nowIso,
     })
     .eq('id', projectId);
 }

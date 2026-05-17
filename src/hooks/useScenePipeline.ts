@@ -55,6 +55,26 @@ export function useScenePipeline(
     }
   };
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token || !session.user?.id) {
+      throw new Error("Sign in to generate video");
+    }
+    return { user: session.user, headers: { Authorization: `Bearer ${session.access_token}` } };
+  };
+
+  const reserveFailureReason = (estimated: number, hold: unknown, err?: unknown) => {
+    const payload = (hold || {}) as any;
+    const raw = String((err as any)?.message || payload?.error || payload?.detail || "");
+    if (/authorization|invalid_token|jwt|401|sign/i.test(raw)) return "Your session expired — sign in again before generating";
+    if (payload?.error === "profile_not_found") return "Your credit profile is not ready yet — refresh after onboarding";
+    if (payload?.error && payload.error !== "insufficient_credits") return `Credit reservation failed — ${payload.error}`;
+    const reserved = payload?.reserved ?? 0;
+    const balance = payload?.balance ?? 0;
+    const eff = payload?.effectiveBalance ?? balance - reserved;
+    return `Insufficient credits — ${estimated} required, ${eff} available`;
+  };
+
   /**
    * Release a server-side credit hold and clear it from the scene draft.
    * Safe to call repeatedly — server is idempotent and we no-op without an id.
@@ -67,8 +87,10 @@ export function useScenePipeline(
     const holdId = me?.creditHoldId;
     if (!holdId) return;
     try {
+      const { headers } = await getAuthHeader();
       await supabase.functions.invoke("reserve-credits", {
         body: { action: "release", holdId, reason },
+        headers,
       });
       logEvent(sceneId, "released", `Credit hold released (${reason})`);
     } catch { /* best-effort */ }

@@ -1949,3 +1949,156 @@ function StartHero({
   );
 }
 
+// ============================================================================
+// ApprovalGate — mandatory script + credit estimate confirmation. Renders a
+// centered modal listing every scene the customer is about to pay to render,
+// the per-scene credit cost, the total, and their current balance. No render
+// dispatches until this is explicitly approved.
+// ============================================================================
+function ApprovalGate({
+  open,
+  loading,
+  scenes,
+  cast,
+  defaults,
+  totalCost,
+  balance,
+  onClose,
+  onApprove,
+  onEditScript,
+  onBuyCredits,
+}: {
+  open: boolean;
+  loading: boolean;
+  scenes: SceneDraft[];
+  cast: CastMember[];
+  defaults: StudioDraft["defaults"];
+  totalCost: number;
+  balance: number | null;
+  onClose: () => void;
+  onApprove: () => void;
+  onEditScript: () => void;
+  onBuyCredits: () => void;
+}) {
+  if (!open) return null;
+  const insufficient = balance !== null && balance < totalCost;
+  const speakerName = (id?: string) => cast.find(c => c.id === id)?.name || "—";
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/85 p-4 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Confirm script and credit cost"
+        className="relative flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-[0_60px_140px_-30px_hsl(0_0%_0%/0.8)]"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-border/40 px-6 py-5">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-accent">Approve & roll</div>
+            <h2 className="mt-1 font-display text-xl text-foreground" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>
+              Confirm the script and the spend
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Nothing renders and no credits are deducted until you approve. Edits invalidate this approval.
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">✕</button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            <span>Engine · <span className="text-foreground">{ENGINES[defaults.engine].shortLabel}</span></span>
+            <span>Aspect · <span className="text-foreground">{defaults.aspect}</span></span>
+            <span>Scenes · <span className="text-foreground">{scenes.length}</span></span>
+          </div>
+
+          {scenes.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+              No scenes to render. Generate or write a script first.
+            </div>
+          ) : (
+            <ol className="space-y-2">
+              {scenes.map((s, i) => {
+                const eid = s.engine || defaults.engine;
+                let cost = 0;
+                try { cost = creditsForScene(eid, s.duration, defaults.qualityProfileId); } catch { cost = 0; }
+                return (
+                  <li key={s.id} className="rounded-lg border border-border/40 bg-background/40 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                          Scene {String(i + 1).padStart(2, "0")} · {s.duration}s · {s.lens}/{s.move}
+                        </div>
+                        <div className="mt-1 truncate text-[13px] text-foreground">{s.location || "—"}</div>
+                        {s.beat && <div className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">{s.beat}</div>}
+                        {s.dialogue && (
+                          <div className="mt-1 line-clamp-2 text-[12px] italic text-foreground/85">
+                            <span className="not-italic text-muted-foreground">{speakerName(s.speakerId)}: </span>"{s.dialogue}"
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Credits</div>
+                        <div className="font-display text-base tabular-nums text-accent">{cost}</div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+
+        <footer className="border-t border-border/40 px-6 py-5">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Total to reserve</div>
+              <div className="mt-1 font-display text-3xl tabular-nums text-foreground">{totalCost} <span className="text-base text-muted-foreground">credits</span></div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Your balance</div>
+              <div className={cn("mt-1 font-display text-2xl tabular-nums", insufficient ? "text-destructive" : "text-foreground")}>
+                {loading ? "—" : (balance ?? "—")}
+              </div>
+            </div>
+          </div>
+
+          {insufficient && (
+            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-[12px] text-destructive">
+              Not enough credits. You need {totalCost - (balance ?? 0)} more to render every scene.
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              onClick={onEditScript}
+              className="inline-flex h-10 items-center justify-center rounded-full border border-border/60 px-4 font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+            >
+              Edit script
+            </button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
+              {insufficient ? (
+                <button
+                  onClick={onBuyCredits}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground hover:bg-accent/90"
+                >
+                  Buy credits
+                </button>
+              ) : (
+                <button
+                  onClick={onApprove}
+                  disabled={scenes.length === 0 || loading}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-foreground px-5 text-[11px] font-medium uppercase tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Approve & render
+                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </button>
+              )}
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+

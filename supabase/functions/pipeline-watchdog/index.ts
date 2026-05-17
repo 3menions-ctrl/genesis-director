@@ -2823,42 +2823,20 @@ serve(async (req) => {
           
           // AUTO-REFUND: Refund all credits when zero clips were generated
           try {
-            const { data: existingRefund } = await supabase
-              .from('credit_transactions')
-              .select('id')
-              .eq('project_id', project.id)
-              .eq('transaction_type', 'refund')
-              .limit(1);
-            
-            if (!existingRefund || existingRefund.length === 0) {
-              const { data: usageCharge } = await supabase
-                .from('credit_transactions')
-                .select('amount')
-                .eq('project_id', project.id)
-                .eq('transaction_type', 'usage')
-                .limit(1);
-              
-              const chargeAmount = usageCharge?.[0]?.amount 
-                ? Math.abs(usageCharge[0].amount) 
-                : ((tasks as Record<string, unknown>).clipCount as number || 5) * 10;
-              
-              if (chargeAmount > 0) {
-                await supabase.rpc('increment_credits', {
-                  user_id_param: project.user_id,
-                  amount_param: chargeAmount,
-                });
-                
-                await supabase.from('credit_transactions').insert({
-                  user_id: project.user_id,
-                  amount: chargeAmount,
-                  transaction_type: 'refund',
-                  description: `Auto-refund: ${failError}`,
-                  project_id: project.id,
-                });
-                
-                console.log(`[Watchdog] 💰 Auto-refunded ${chargeAmount} credits for failed project ${project.id}`);
-              }
-            }
+            const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+            const expectedClipCount = ((tasks as Record<string, unknown>).clipCount as number) || 5;
+            const totalCredits = ((tasks as Record<string, unknown>).totalCredits as number) || expectedClipCount * 10;
+            const outcome = await markProjectFailedAndRefund(supabase, {
+              projectId: project.id,
+              userId: project.user_id,
+              stage: 'watchdog-timeout',
+              reason: failError,
+              totalCredits,
+              expectedClipCount,
+              completedClipCount: 0,
+              source: 'watchdog',
+            });
+            console.log(`[Watchdog] 💰 Refund handler outcome for ${project.id}:`, outcome);
           } catch (refundError) {
             console.error(`[Watchdog] Auto-refund failed for ${project.id}:`, refundError);
           }

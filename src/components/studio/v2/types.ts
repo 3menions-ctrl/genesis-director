@@ -57,6 +57,15 @@ export interface SceneDraft {
    * an unrelated location/character.
    */
   chainFromPrevious?: boolean;
+  /**
+   * Server-side credit reservation id. Set when the scene successfully
+   * reserves credits via `reserve-credits` and cleared once the hold is
+   * consumed (on success) or released (on failure). Persisting this on
+   * the scene lets every terminal-state code path — poll failure, gate
+   * skip, abort — release the hold so retries don't pile up phantom
+   * reservations that make the user appear out of credits.
+   */
+  creditHoldId?: string;
 }
 
 export interface StudioBrief {

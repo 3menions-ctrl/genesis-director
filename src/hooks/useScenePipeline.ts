@@ -87,6 +87,7 @@ export function useScenePipeline(
             patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
             toast.error(String(reason).slice(0, 200));
             stopPoll(sceneId);
+            void releaseSceneHold(sceneId, "clip_row_failed");
           }
         },
       )
@@ -110,6 +111,7 @@ export function useScenePipeline(
           patchScene(sceneId, { status: "failed", errorReason: String(reason).slice(0, 240) });
           toast.error(String(reason).slice(0, 200));
           stopPoll(sceneId);
+          void releaseSceneHold(sceneId, "clip_row_failed");
         }
       } catch { /* transient */ }
     };

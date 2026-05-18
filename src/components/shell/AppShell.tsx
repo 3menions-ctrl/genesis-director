@@ -23,6 +23,7 @@ import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import logoImage from '@/assets/apex-studio-logo.webp';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
+import { usePendingVideoRecovery } from '@/hooks/usePendingVideoRecovery';
 
 interface NavItem {
   label: string;
@@ -82,6 +83,11 @@ export function AppShell({ children }: AppShellProps) {
   const { navigateTo } = useNavigationWithLoading();
   const { startNavigation, isHeavyRoute } = useNavigationLoading();
   const location = useLocation();
+
+  // Global safety net: continuously reconcile any 'processing' video clips
+  // with Replicate, so the UI flips to 'completed' even if both the
+  // webhook and the server-side poller miss a callback.
+  usePendingVideoRecovery();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     // Default to expanded so every nav item shows its icon + label.

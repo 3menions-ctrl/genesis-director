@@ -733,14 +733,23 @@ serve(async (req) => {
         : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching",
     };
     console.log(`[AvatarDirect] 🎬 Kling V3 input: duration=${clip1Input.duration}s, generateAudio=${clip1Input.generate_audio}, hasStartImage=true`);
-    
+
+    // Register webhook so completion is delivered the instant Replicate finishes.
+    // poll-replicate-prediction (below) is a redundant fallback.
+    const supabaseUrlForWebhook = Deno.env.get("SUPABASE_URL");
+    const klingRequestBody: Record<string, any> = { input: clip1Input };
+    if (supabaseUrlForWebhook) {
+      klingRequestBody.webhook = `${supabaseUrlForWebhook}/functions/v1/replicate-webhook`;
+      klingRequestBody.webhook_events_filter = ["completed"];
+    }
+
     const klingResponse = await fetch(KLING_V3_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ input: clip1Input }),
+      body: JSON.stringify(klingRequestBody),
     });
 
     if (!klingResponse.ok) {
@@ -803,6 +812,44 @@ serve(async (req) => {
         }, { onConflict: 'project_id,shot_index' });
       } catch (e) {
         console.warn('[AvatarDirect] video_clips upsert (clip 0) non-fatal:', (e as Error).message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FIRE poll-replicate-prediction (fallback to webhook)
+    // Webhook is the primary completion path; this poller guarantees the
+    // clip is still picked up even if the webhook never reaches us.
+    // ═══════════════════════════════════════════════════════════════════════
+    if (projectId) {
+      try {
+        const supabaseUrlForPoller = Deno.env.get("SUPABASE_URL");
+        const supabaseKeyForPoller = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (supabaseUrlForPoller && supabaseKeyForPoller) {
+          fetch(`${supabaseUrlForPoller}/functions/v1/poll-replicate-prediction`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseKeyForPoller}`,
+            },
+            body: JSON.stringify({
+              predictionId: klingPrediction.id,
+              projectId,
+              userId,
+              shotIndex: 0,
+              totalClips: allSegmentData.length,
+              chainDepth: 0,
+              pipelineContext: {
+                videoEngine: 'kling',
+                isAvatarMode: true,
+                clipDuration,
+                aspectRatio,
+              },
+            }),
+          }).catch((err) => console.warn('[AvatarDirect] poll-replicate fire failed (non-fatal):', err));
+          console.log(`[AvatarDirect] 🚀 Fired poll-replicate-prediction for clip 0 (${klingPrediction.id})`);
+        }
+      } catch (e) {
+        console.warn('[AvatarDirect] poll-replicate fire exception (non-fatal):', (e as Error).message);
       }
     }
 

@@ -811,6 +811,35 @@ serve(async (req) => {
           end_image_url: lastFrameImageUrl,
         });
 
+        // FALLBACK: fire poll-replicate-prediction so completion is captured
+        // even if the Replicate webhook never reaches us.
+        try {
+          const supabaseUrlForPoller = Deno.env.get("SUPABASE_URL");
+          const supabaseKeyForPoller = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+          if (supabaseUrlForPoller && supabaseKeyForPoller) {
+            fetch(`${supabaseUrlForPoller}/functions/v1/poll-replicate-prediction`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKeyForPoller}`,
+              },
+              body: JSON.stringify({
+                predictionId,
+                projectId,
+                userId: request.userId,
+                shotIndex: i,
+                totalClips: shots.length,
+                chainDepth: 0,
+                pipelineContext: {
+                  videoEngine: 'seedance',
+                  clipDuration: shot.durationSeconds ?? clipDuration,
+                  aspectRatio,
+                },
+              }),
+            }).catch((err) => console.warn('[Seedance] poll-replicate fire failed (non-fatal):', err));
+          }
+        } catch (_) { /* non-fatal */ }
+
         return { shotIndex: i, predictionId };
       }),
     );

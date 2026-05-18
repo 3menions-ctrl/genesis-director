@@ -502,6 +502,7 @@ serve(async (req) => {
         clipData.map(c => c.videoUrl),
         projectId,
         replicateKey,
+        supabaseUrl,
       );
       stitchPredictionId = stitchResult.predictionId;
       stitchMode = stitchResult.mode;
@@ -524,8 +525,50 @@ serve(async (req) => {
       }
     }
 
-    // Primary video_url: stitched MP4 if available, otherwise manifest URL (legacy player fallback)
-    const finalVideoUrl = stitchedMp4Url || manifestUrl;
+    if (!stitchedMp4Url && clipData.length > 1) {
+      const stillProcessing = !!stitchPredictionId && stitchMode !== "single_clip";
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: stillProcessing ? 'stitching' : 'stitching_failed',
+          video_url: null,
+          pending_video_tasks: {
+            ...(existingTasks || {}),
+            stage: 'stitching',
+            progress: stillProcessing ? 96 : 90,
+            mode: stillProcessing ? 'server_stitching' : 'server_stitch_failed',
+            stitchPredictionId,
+            stitchMode,
+            manifestUrl,
+            hlsPlaylistUrl,
+            mseClipUrls: clipData.map(c => c.videoUrl),
+            clipCount: clips.length,
+            totalDuration,
+            stitchingStartedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      console.log(`[SimpleStitch] ${stillProcessing ? '⏳ Still stitching' : '❌ Stitch failed'} — not completing with gapped HLS fallback`);
+      return new Response(
+        JSON.stringify({
+          success: stillProcessing,
+          mode: stillProcessing ? 'server_stitching' : 'server_stitch_failed',
+          finalVideoUrl: null,
+          stitchedVideoUrl: null,
+          manifestUrl,
+          hlsPlaylistUrl,
+          stitchPredictionId,
+          clipsProcessed: clips.length,
+          totalDuration,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: stillProcessing ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const finalVideoUrl = stitchedMp4Url || clipData[0]?.videoUrl || manifestUrl;
 
     // Update project to completed
     await supabase
@@ -536,7 +579,7 @@ serve(async (req) => {
       pending_video_tasks: {
           stage: 'complete',
           progress: 100,
-          mode: stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback',
+          mode: stitchedMp4Url ? 'server_stitched_mp4' : 'single_clip',
           stitchedVideoUrl: stitchedMp4Url,
           stitchPredictionId,
           stitchMode,

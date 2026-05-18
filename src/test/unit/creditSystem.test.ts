@@ -82,15 +82,15 @@ describe('Credit System — Source of Truth', () => {
 
   describe('calculateCreditsRequired', () => {
     it('calculates correctly for 5 clips at 10s (kling)', () => {
-      expect(calculateCreditsRequired(5, 10, 'kling')).toBe(300);
+      expect(calculateCreditsRequired(5, 10, 'kling')).toBe(250);
     });
 
     it('calculates correctly for 5 clips at 15s (kling)', () => {
-      expect(calculateCreditsRequired(5, 15, 'kling')).toBe(450);
+      expect(calculateCreditsRequired(5, 15, 'kling')).toBe(375);
     });
 
-    it('calculates correctly for 3 clips at 10s (veo, flat 55/clip)', () => {
-      expect(calculateCreditsRequired(3, 10, 'veo')).toBe(165);
+    it('calculates correctly for 3 clips at 10s (veo)', () => {
+      expect(calculateCreditsRequired(3, 10, 'veo')).toBe(1200);
     });
 
     it('returns 0 for 0 clips', () => {
@@ -103,7 +103,7 @@ describe('Credit System — Source of Truth', () => {
       const breakdown = getCreditBreakdown(3, 10, 'kling');
       expect(breakdown.baseClipCount).toBe(3);
       expect(breakdown.extendedClipCount).toBe(0);
-      expect(breakdown.totalCredits).toBe(180);
+      expect(breakdown.totalCredits).toBe(150);
       expect(breakdown.isExtended).toBe(false);
     });
 
@@ -111,7 +111,7 @@ describe('Credit System — Source of Truth', () => {
       const breakdown = getCreditBreakdown(3, 15, 'veo');
       expect(breakdown.baseClipCount).toBe(0);
       expect(breakdown.extendedClipCount).toBe(3);
-      expect(breakdown.totalCredits).toBe(225);
+      expect(breakdown.totalCredits).toBe(1800);
       expect(breakdown.isExtended).toBe(true);
     });
 
@@ -132,7 +132,7 @@ describe('Credit System — Source of Truth', () => {
     });
 
     it('partial remainder does not count', () => {
-      expect(calculateAffordableClips(100, 10)).toBe(1); // 60 + 40 remaining
+      expect(calculateAffordableClips(100, 10)).toBe(2); // 50 + 50 remaining
     });
   });
 
@@ -146,8 +146,8 @@ describe('Credit System — Source of Truth', () => {
     it('returns canAfford false with shortfall', () => {
       const result = canAffordGeneration(100, 5, 10);
       expect(result.canAfford).toBe(false);
-      expect(result.required).toBe(300);
-      expect(result.shortfall).toBe(200);
+      expect(result.required).toBe(250);
+      expect(result.shortfall).toBe(150);
     });
   });
 

@@ -7376,6 +7376,7 @@ export type Database = {
           pending_count: number
         }[]
       }
+      get_ledger_balance: { Args: { p_user_id?: string }; Returns: Json }
       get_or_assign_character_voice: {
         Args: {
           p_character_id?: string

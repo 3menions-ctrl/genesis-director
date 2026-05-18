@@ -43,10 +43,11 @@ serve(async (req) => {
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return json(401, { error: "missing_authorization" });
   }
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
+  const token = authHeader.replace(/^bearer\s+/i, "").trim();
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userRes, error: userErr } = await userClient.auth.getUser();
+  const { data: userRes, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userRes?.user) return json(401, { error: "invalid_token" });
   const userId = userRes.user.id;
 
@@ -54,10 +55,6 @@ serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return json(400, { error: "bad_json" }); }
   const action = String(body?.action || "");
-
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   try {
     if (action === "state") {

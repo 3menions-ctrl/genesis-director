@@ -62,38 +62,9 @@ serve(async (req) => {
   try {
     if (action === "state") {
       const { data, error } = await admin.rpc("get_credit_state", { p_user_id: userId });
-      if (!error && (data as any)?.success === true) {
-        return json(200, data as Record<string, unknown>);
-      }
-
-      console.warn("[reserve-credits] get_credit_state fallback:", error?.message || data);
-      const { data: profile, error: profileErr } = await admin
-        .from("profiles")
-        .select("credits_balance,total_credits_purchased,total_credits_used")
-        .eq("id", userId)
-        .maybeSingle();
-      if (profileErr) return json(500, { success: false, error: "state_lookup_failed", detail: profileErr.message });
-      if (!profile) return json(404, { success: false, error: "profile_not_found" });
-
-      const { data: holds, error: holdsErr } = await admin
-        .from("credit_holds")
-        .select("amount")
-        .eq("user_id", userId)
-        .eq("status", "held")
-        .gt("expires_at", new Date().toISOString());
-      if (holdsErr) return json(500, { success: false, error: "holds_lookup_failed", detail: holdsErr.message });
-
-      const balance = Number((profile as any).credits_balance || 0);
-      const held = (holds || []).reduce((sum: number, h: any) => sum + Number(h.amount || 0), 0);
-      return json(200, {
-        success: true,
-        balance,
-        held,
-        available: Math.max(balance - held, 0),
-        totalPurchased: Number((profile as any).total_credits_purchased || 0),
-        totalUsed: Number((profile as any).total_credits_used || 0),
-        source: "edge_fallback",
-      });
+      if (error) return json(500, { success: false, error: "state_lookup_failed", detail: error.message });
+      const payload = (data || {}) as Record<string, unknown>;
+      return json(payload.success === true ? 200 : 404, payload);
     }
 
     if (action === "reserve") {

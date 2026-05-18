@@ -3,6 +3,7 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, parseP
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { calculateCreditsRequired } from '@/lib/creditSystem';
 import type { QualityTier } from '@/types/quality-tiers';
 // Default credits for unauthenticated state
@@ -90,6 +91,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // FIX: useAuth now returns a safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  const ledgerCredits = useCredits();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
@@ -268,30 +270,29 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [authLoading, user?.id]); // Only depend on authLoading and user?.id, not session
 
-  // Sync credits from auth profile
+  // Sync legacy studio credit shape from the ledger-backed credit context.
   useEffect(() => {
-    if (profile) {
+    if (user) {
       setCredits({
-        total: profile.total_credits_purchased,
-        used: profile.total_credits_used,
-        remaining: profile.credits_balance,
+        total: ledgerCredits.balance,
+        used: profile?.total_credits_used ?? 0,
+        remaining: ledgerCredits.available,
       });
     } else {
       setCredits(DEFAULT_CREDITS);
     }
-  }, [profile]);
+  }, [user, profile?.total_credits_used, ledgerCredits.balance, ledgerCredits.available]);
 
   // Direct credits sync from agent chat responses (instant, no refetch needed)
   useEffect(() => {
     const handleCreditsUpdated = (e: Event) => {
-      const balance = (e as CustomEvent).detail?.balance;
-      if (typeof balance === 'number') {
-        setCredits(prev => ({ ...prev, remaining: balance }));
-      }
+      void ledgerCredits.refresh().then(next => {
+        setCredits(prev => ({ ...prev, total: next.balance, remaining: next.available }));
+      });
     };
     window.addEventListener('credits-updated', handleCreditsUpdated);
     return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
-  }, []);
+  }, [ledgerCredits]);
 
   const createProject = async (): Promise<string | null> => {
     // Verify we have a valid session before creating

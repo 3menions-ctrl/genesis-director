@@ -5,10 +5,10 @@
  * profile, and the create page all show the exact same numbers at all times.
  *
  * Authoritative pipeline:
- *   1. On mount + on auth change, call `reconcile_user_credits()` which
- *      recomputes the balance from the credit_transactions ledger and
- *      corrects any drift on `profiles.credits_balance`.
- *   2. Then read live state via `get_credit_state` RPC (balance/held/available).
+ *   1. Every read calls `get_credit_state()`, which derives balance directly
+ *      from the credit_transactions ledger and subtracts active credit_holds.
+ *   2. `profiles.credits_balance` is only a synced display cache, never the
+ *      source used for spending decisions.
  *   3. Subscribe to realtime postgres_changes on profiles + credit_holds +
  *      credit_transactions for this user and refetch whenever anything moves.
  */
@@ -51,14 +51,14 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const readState = useCallback(async (uid: string) => {
-    const { data, error: rpcErr } = await supabase.rpc('get_credit_state', { p_user_id: uid });
+    const { data, error: rpcErr } = await supabase.rpc('get_credit_state' as never, { p_user_id: uid } as never);
     if (rpcErr) throw rpcErr;
-    const payload = (data as { success?: boolean; balance?: number; held?: number }) || {};
+    const payload = (data as { success?: boolean; balance?: number; held?: number; available?: number }) || {};
     if (payload.success === false) throw new Error('get_credit_state failed');
     const b = Number(payload.balance ?? 0);
     const h = Number(payload.held ?? 0);
     setBalance(b); setHeld(h);
-    return { balance: b, held: h, available: Math.max(b - h, 0) };
+    return { balance: b, held: h, available: Number(payload.available ?? Math.max(b - h, 0)) };
   }, []);
 
   const refresh = useCallback(async () => {
@@ -84,15 +84,13 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error: rpcErr } = await supabase.rpc('reconcile_user_credits' as never);
       if (rpcErr) throw rpcErr;
-      const payload = (data as { success?: boolean; balance?: number; held?: number; drift_corrected?: number }) || {};
+      const payload = (data as { success?: boolean; balance?: number; held?: number; available?: number }) || {};
       if (payload.success) {
         const b = Number(payload.balance ?? 0);
         const h = Number(payload.held ?? 0);
         setBalance(b); setHeld(h);
-        if (Number(payload.drift_corrected ?? 0) !== 0) {
-          void refreshProfile();
-        }
-        return { balance: b, held: h, available: Math.max(b - h, 0) };
+        void refreshProfile();
+        return { balance: b, held: h, available: Number(payload.available ?? Math.max(b - h, 0)) };
       } else {
         return await refresh();
       }

@@ -69,9 +69,9 @@ export function useScenePipeline(
     if (/authorization|invalid_token|jwt|401|sign/i.test(raw)) return "Your session expired — sign in again before generating";
     if (payload?.error === "profile_not_found") return "Your credit profile is not ready yet — refresh after onboarding";
     if (payload?.error && payload.error !== "insufficient_credits") return `Credit reservation failed — ${payload.error}`;
-    const reserved = payload?.reserved ?? 0;
-    const balance = payload?.balance ?? 0;
-    const eff = payload?.effectiveBalance ?? balance - reserved;
+    const reserved = Number(payload?.reserved ?? payload?.held ?? 0);
+    const balance = Number(payload?.balance ?? 0);
+    const eff = Math.max(Number(payload?.available ?? payload?.effectiveBalance ?? balance - reserved), 0);
     return `Insufficient credits — ${estimated} required, ${eff} available`;
   };
 

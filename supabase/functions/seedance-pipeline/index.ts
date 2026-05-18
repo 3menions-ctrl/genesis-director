@@ -436,22 +436,29 @@ serve(async (req) => {
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
-        p_user_id: request.userId,
-        p_amount: totalCredits,
-        p_description: `Seedance 2.0 generation: ${clipCount} clips × ${clipDuration}s`,
-        p_project_id: request.projectId ?? null,
-        p_clip_duration: clipCount * clipDuration,
-        p_idempotency_key: request.projectId ? `seedance:${request.projectId}` : null,
+      // HOLD via reserve_credits (idempotent). Consumed on completion, released on failure.
+      const { holdCreditsForPipeline } = await import("../_shared/pipeline-credits.ts");
+      const holdResult = await holdCreditsForPipeline({
+        supabase,
+        userId: request.userId,
+        projectId: request.projectId ?? null,
+        amount: totalCredits,
+        pipeline: "seedance",
+        description: `Seedance 2.0 generation: ${clipCount} clips × ${clipDuration}s`,
       });
-      if (deductErr || deductOk !== true) {
+      if (!holdResult.success) {
+        const insufficient = holdResult.error === "insufficient_credits" || holdResult.error === "reserve_failed";
         return new Response(
-          JSON.stringify({ success: false, error: "Credit deduction failed" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({
+            success: false,
+            error: insufficient ? "INSUFFICIENT_CREDITS" : "Credit reservation failed",
+            detail: holdResult.detail || holdResult.error,
+          }),
+          { status: insufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       chargedCredits = true;
-      console.log(`[Seedance] ✓ Deducted ${totalCredits} credits`);
+      console.log(`[Seedance] ✓ Held ${totalCredits} credits (holdId=${holdResult.holdId}, reused=${holdResult.reused})`);
     }
 
     // ═══ PROJECT CREATE / UPDATE ═══

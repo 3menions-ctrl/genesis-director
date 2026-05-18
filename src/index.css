@@ -112,9 +112,9 @@
     --muted: 220 12% 9%;
     --muted-foreground: 240 5% 55%;
 
-    /* Accent — Cool blue highlight (sibling of primary) */
-    --accent: 211 100% 60%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent — White (was blue). All `bg-accent` buttons render white. */
+    --accent: 0 0% 100%;
+    --accent-foreground: 220 14% 4%;
 
     /* Semantic colors */
     --success: 160 84% 45%;

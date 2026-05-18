@@ -217,6 +217,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [creditState, setCreditState] = useState<CreditState | null>(null);
+  const [isVerifyingCredits, setIsVerifyingCredits] = useState(false);
 
   const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
 
@@ -425,8 +427,21 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     [alignedDurations, videoEngine]
   );
 
-  const userCredits = profile?.credits_balance ?? 0;
-  const hasInsufficientCredits = userCredits < estimatedCredits;
+  const displayedCredits = creditState?.available ?? profile?.credits_balance ?? 0;
+  const hasKnownInsufficientCredits = creditState !== null && creditState.available < estimatedCredits;
+  const refreshCreditState = useCallback(async () => {
+    const state = await readAuthoritativeCreditState();
+    setCreditState(state);
+    return state;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    readAuthoritativeCreditState()
+      .then((state) => { if (!cancelled) setCreditState(state); })
+      .catch(() => { if (!cancelled) setCreditState(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Upload handlers
   const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

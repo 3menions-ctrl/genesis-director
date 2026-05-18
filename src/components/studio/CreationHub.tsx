@@ -31,28 +31,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { useCredits } from '@/contexts/CreditsContext';
 
 type CreditState = { balance: number; held: number; available: number };
-
-async function readAuthoritativeCreditState(): Promise<CreditState> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('Please sign in to verify your credits');
-
-  const { data, error } = await supabase.functions.invoke('reserve-credits', {
-    body: { action: 'state' },
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (error) throw error;
-
-  const payload = (data || {}) as any;
-  if (!payload?.success) throw new Error(payload?.error || 'Unable to verify credit balance');
-
-  return {
-    balance: Number(payload.balance || 0),
-    held: Number(payload.held || 0),
-    available: Number(payload.available || 0),
-  };
-}
 
 // ─── Creation modes ───────────────────────────────────────────────────────────
 // A "mode" is the *intent* (text→video, image→video, avatar). The "engine" is
@@ -207,6 +188,7 @@ interface CreationHubProps {
 export const CreationHub = memo(function CreationHub({ onStartCreation, onReady, className }: CreationHubProps) {
   const { navigateTo: navigate } = useNavigationWithLoading();
   const { profile } = useAuth();
+  const credits = useCredits();
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   // Engine is now an INDEPENDENT axis from mode. The capability matrix
@@ -217,7 +199,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-  const [creditState, setCreditState] = useState<CreditState | null>(null);
   const [isVerifyingCredits, setIsVerifyingCredits] = useState(false);
 
   const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
@@ -427,21 +408,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     [alignedDurations, videoEngine]
   );
 
-  const displayedCredits = creditState?.available ?? profile?.credits_balance ?? 0;
-  const hasKnownInsufficientCredits = creditState !== null && creditState.available < estimatedCredits;
-  const refreshCreditState = useCallback(async () => {
-    const state = await readAuthoritativeCreditState();
-    setCreditState(state);
-    return state;
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    readAuthoritativeCreditState()
-      .then((state) => { if (!cancelled) setCreditState(state); })
-      .catch(() => { if (!cancelled) setCreditState(null); });
-    return () => { cancelled = true; };
-  }, []);
+  const displayedCredits = credits.available;
+  const hasKnownInsufficientCredits = !credits.loading && credits.available < estimatedCredits;
+  const refreshCreditState = useCallback(async (): Promise<CreditState> => {
+    // Force-reconcile so the displayed balance always matches the ledger
+    // before we gate-check a generation submission.
+    const s = await credits.reconcile();
+    return { balance: s.balance, held: s.held, available: s.available };
+  }, [credits]);
 
   // Upload handlers
   const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

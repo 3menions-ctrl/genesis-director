@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
@@ -184,6 +185,7 @@ const PrivateBadge = memo(function PrivateBadge() {
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
   const { navigate } = useSafeNavigation();
   const { user, profile, loading, refreshProfile, signOut } = useAuth();
+  const credits = useCredits();
 
   const gatekeeper = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.profile,
@@ -399,12 +401,12 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const animatedCredits = useAnimatedNumber(profile?.credits_balance || 0);
+  const animatedCredits = useAnimatedNumber(credits.balance);
   const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
   const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
 
   const lifetimeSpendUsd = ((profile?.total_credits_used || 0) * 0.10);
-  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + (profile?.credits_balance || 0)) * 0.10;
+  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + credits.balance) * 0.10;
   const serial = (user?.id || '').replace(/-/g, '').slice(0, 12).toUpperCase();
 
   const copyToClipboard = useCallback((value: string, label: string) => {
@@ -735,7 +737,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-muted-foreground">Pay-as-you-go · $0.10/credit</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {(profile?.credits_balance || 0).toLocaleString()} credits · ${((profile?.credits_balance || 0) * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
+                      {credits.balance.toLocaleString()} credits · ${(credits.balance * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
                     </p>
                   </div>
                   <Button

@@ -6700,23 +6700,23 @@ serve(async (req) => {
     const shouldSkipCredits = (isServiceRoleCall && request.skipCreditDeduction) || isResuming;
     
     if (!shouldSkipCredits) {
-      // Check credits upfront
-      console.log(`[Hollywood] Checking credits for user ${request.userId}`);
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('id', request.userId)
-        .maybeSingle();
+      // Check authoritative available credits upfront (balance minus active holds).
+      console.log(`[Hollywood] Checking authoritative credit state for user ${request.userId}`);
+      const { data: creditState, error: creditStateError } = await supabase.rpc('get_credit_state', { p_user_id: request.userId });
+      const creditPayload = (creditState || {}) as any;
+      const availableCredits = Number(creditPayload.available || 0);
 
-      if (profileError || !profile) {
-        throw new Error("Failed to fetch user profile");
+      if (creditStateError || creditPayload.success !== true) {
+        throw new Error("Failed to fetch user credit state");
       }
 
-      if (profile.credits_balance < totalCredits) {
+      if (availableCredits < totalCredits) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
+            error: `Insufficient credits. Required: ${totalCredits}, Available: ${availableCredits}`,
+            required: totalCredits,
+            available: availableCredits,
           }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

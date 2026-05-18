@@ -710,7 +710,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             </span>
             <div className="leading-tight">
               <div className="text-[9px] uppercase tracking-[0.24em] text-white/35 font-light">Credits</div>
-              <div className="text-sm font-light text-white tabular-nums tracking-[-0.01em]">{userCredits.toLocaleString()}</div>
+              <div className="text-sm font-light text-white tabular-nums tracking-[-0.01em]">{displayedCredits.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -1095,7 +1095,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   {/* Premium CTA with halo */}
                   <div className="relative w-full sm:w-auto flex justify-center sm:block">
                     {/* Halo glow */}
-                    {!hasInsufficientCredits && isReadyToCreate() && (
+                    {!hasKnownInsufficientCredits && isReadyToCreate() && !isVerifyingCredits && (
                       <span
                         className="pointer-events-none absolute -inset-2 rounded-full opacity-70 animate-pulse"
                         style={{
@@ -1109,13 +1109,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       disabled={!isReadyToCreate()}
                       className={cn(
                         'group/cta relative h-12 px-6 rounded-full text-[13px] font-light tracking-[-0.005em] transition-all duration-500 overflow-hidden border-0',
-                        hasInsufficientCredits
+                        hasKnownInsufficientCredits
                           ? 'text-black'
                           : 'text-white',
                         'hover:brightness-110 hover:scale-[1.03] active:scale-[0.98]',
                         'disabled:opacity-30 disabled:shadow-none disabled:scale-100'
                       )}
-                      style={hasInsufficientCredits ? {
+                      style={hasKnownInsufficientCredits ? {
                         background: 'linear-gradient(180deg, hsl(40,95%,68%) 0%, hsl(35,90%,55%) 100%)',
                         boxShadow: '0 16px 40px -12px hsla(40,90%,55%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.4)',
                       } : {
@@ -1125,7 +1125,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/cta:translate-x-full transition-transform duration-[1100ms] ease-in-out" />
                       <span className="relative flex items-center gap-2.5">
-                        {hasInsufficientCredits ? (
+                        {hasKnownInsufficientCredits ? (
                           <>
                             <Coins className="w-4 h-4" strokeWidth={1.5} /> Get credits <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                           </>
@@ -1282,9 +1282,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   )}
                 </AnimatePresence>
 
-                {hasInsufficientCredits && (
+                {hasKnownInsufficientCredits && (
                   <p className="mt-3 text-[12px] text-amber-300/85 font-light tracking-[-0.005em]">
-                    Need {estimatedCredits - userCredits} more credits ·{' '}
+                    Need {estimatedCredits - displayedCredits} more credits ·{' '}
                     <button onClick={() => setShowBuyCredits(true)} className="underline underline-offset-2 hover:text-amber-200 transition-colors">Top up</button>
                   </p>
                 )}

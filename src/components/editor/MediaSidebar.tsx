@@ -66,16 +66,8 @@ export const MediaSidebar = memo(function MediaSidebar({
 
   return (
     <div
-      className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-      style={{
-        width: collapsed ? 52 : 360,
-        background:
-          'linear-gradient(180deg, hsla(220, 14%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.55) 100%)',
-        backdropFilter: 'blur(48px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-        boxShadow:
-          'inset -1px 0 0 hsla(0,0%,100%,0.025), 24px 0 64px -28px hsla(0,0%,0%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.04)',
-      }}
+      className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border-r border-border/40 bg-background/40 backdrop-blur-2xl"
+      style={{ width: collapsed ? 52 : 360 }}
     >
       {/* Collapsed state */}
       {collapsed ? (

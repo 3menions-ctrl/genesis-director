@@ -43,12 +43,19 @@ serve(async (req) => {
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return json(401, { error: "missing_authorization" });
   }
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userRes, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userRes?.user) return json(401, { error: "invalid_token" });
-  const userId = userRes.user.id;
+  const token = authHeader.replace(/^bearer\s+/i, "").trim();
+  let jwtPayload: { sub?: string; role?: string; aud?: string | string[]; exp?: number } | null = null;
+  try {
+    const payloadPart = token.split(".")[1];
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    jwtPayload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+  } catch {
+    return json(401, { error: "invalid_token" });
+  }
+  if (!jwtPayload?.sub || jwtPayload.role !== "authenticated" || (jwtPayload.exp && jwtPayload.exp * 1000 < Date.now())) {
+    return json(401, { error: "invalid_token" });
+  }
+  const userId = jwtPayload.sub;
 
   // 2) Parse + dispatch.
   let body: any;

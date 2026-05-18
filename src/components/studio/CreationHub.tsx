@@ -1106,7 +1106,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     )}
                     <Button
                       onClick={handleCreate}
-                      disabled={!isReadyToCreate()}
+                      disabled={!isReadyToCreate() || isVerifyingCredits}
                       className={cn(
                         'group/cta relative h-12 px-6 rounded-full text-[13px] font-light tracking-[-0.005em] transition-all duration-500 overflow-hidden border-0',
                         hasKnownInsufficientCredits
@@ -1125,7 +1125,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/cta:translate-x-full transition-transform duration-[1100ms] ease-in-out" />
                       <span className="relative flex items-center gap-2.5">
-                        {hasKnownInsufficientCredits ? (
+                        {isVerifyingCredits ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} /> Verifying
+                          </>
+                        ) : hasKnownInsufficientCredits ? (
                           <>
                             <Coins className="w-4 h-4" strokeWidth={1.5} /> Get credits <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                           </>

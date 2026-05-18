@@ -27,8 +27,8 @@ export interface CreditsState {
   available: number;
   loading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
-  reconcile: () => Promise<void>;
+  refresh: () => Promise<{ balance: number; held: number; available: number }>;
+  reconcile: () => Promise<{ balance: number; held: number; available: number }>;
 }
 
 const DEFAULT_STATE: CreditsState = {
@@ -37,8 +37,8 @@ const DEFAULT_STATE: CreditsState = {
   available: 0,
   loading: true,
   error: null,
-  refresh: async () => {},
-  reconcile: async () => {},
+  refresh: async () => ({ balance: 0, held: 0, available: 0 }),
+  reconcile: async () => ({ balance: 0, held: 0, available: 0 }),
 };
 
 const CreditsContext = createContext<CreditsState>(DEFAULT_STATE);
@@ -56,49 +56,49 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     if (rpcErr) throw rpcErr;
     const payload = (data as { success?: boolean; balance?: number; held?: number }) || {};
     if (payload.success === false) throw new Error('get_credit_state failed');
-    setBalance(Number(payload.balance ?? 0));
-    setHeld(Number(payload.held ?? 0));
+    const b = Number(payload.balance ?? 0);
+    const h = Number(payload.held ?? 0);
+    setBalance(b); setHeld(h);
+    return { balance: b, held: h, available: Math.max(b - h, 0) };
   }, []);
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setBalance(0); setHeld(0); setLoading(false); return;
+      setBalance(0); setHeld(0); setLoading(false);
+      return { balance: 0, held: 0, available: 0 };
     }
-    if (inflight.current) return inflight.current;
     const uid = user.id;
-    const p = (async () => {
-      try {
-        setError(null);
-        await readState(uid);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-    inflight.current = p;
-    try { await p; } finally { inflight.current = null; }
-  }, [user, readState]);
+    try {
+      setError(null);
+      const s = await readState(uid);
+      return s;
+    } catch (e) {
+      setError((e as Error).message);
+      return { balance, held, available: Math.max(balance - held, 0) };
+    } finally {
+      setLoading(false);
+    }
+  }, [user, readState, balance, held]);
 
   const reconcile = useCallback(async () => {
-    if (!user) return;
+    if (!user) return { balance: 0, held: 0, available: 0 };
     try {
       const { data, error: rpcErr } = await supabase.rpc('reconcile_user_credits' as never);
       if (rpcErr) throw rpcErr;
       const payload = (data as { success?: boolean; balance?: number; held?: number; drift_corrected?: number }) || {};
       if (payload.success) {
-        setBalance(Number(payload.balance ?? 0));
-        setHeld(Number(payload.held ?? 0));
+        const b = Number(payload.balance ?? 0);
+        const h = Number(payload.held ?? 0);
+        setBalance(b); setHeld(h);
         if (Number(payload.drift_corrected ?? 0) !== 0) {
-          // The stored profile balance changed — refresh AuthContext so any
-          // legacy reads of `profile.credits_balance` also reflect the truth.
           void refreshProfile();
         }
+        return { balance: b, held: h, available: Math.max(b - h, 0) };
       } else {
-        await refresh();
+        return await refresh();
       }
     } catch {
-      await refresh();
+      return await refresh();
     } finally {
       setLoading(false);
     }

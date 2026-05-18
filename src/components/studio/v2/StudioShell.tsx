@@ -118,42 +118,6 @@ function sceneApprovalSignature(draft: StudioDraft): string {
 
 type CreditState = { balance: number; held: number; available: number };
 
-async function readCreditState(userId: string): Promise<CreditState> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    const { data } = await supabase.functions.invoke("reserve-credits", {
-      body: { action: "state" },
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const payload = (data || {}) as any;
-    if (payload?.success) {
-      return {
-        balance: Number(payload.balance || 0),
-        held: Number(payload.held || 0),
-        available: Number(payload.available || 0),
-      };
-    }
-  }
-
-  const { data, error } = await (supabase.rpc as any)("get_credit_state", { p_user_id: userId });
-  const payload = (data || {}) as any;
-  if (!error && payload?.success) {
-    return {
-      balance: Number(payload.balance || 0),
-      held: Number(payload.held || 0),
-      available: Number(payload.available || 0),
-    };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("credits_balance")
-    .eq("id", userId)
-    .maybeSingle();
-  const balance = Number((profile as any)?.credits_balance || 0);
-  return { balance, held: 0, available: balance };
-}
-
 function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDraft[] {
   const shotSequence = pick.settings?.shotSequence || [];
   const lensMap: Record<string, SceneDraft["lens"]> = {

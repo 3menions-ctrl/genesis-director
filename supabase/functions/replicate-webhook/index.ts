@@ -472,6 +472,24 @@ async function handleAvatarAsyncPrediction(
           })
           .eq('project_id', project.id)
           .eq('shot_index', predIndex);
+
+        // MEDIA LIBRARY: durable record for the avatar clip.
+        try {
+          const { recordUserMedia } = await import("../_shared/media-library.ts");
+          await recordUserMedia({
+            userId: project.user_id,
+            mediaType: "video",
+            assetUrl: storedUrl,
+            projectId: project.id,
+            source: "replicate-webhook",
+            engine: "kling-v3",
+            generationMode: "avatar",
+            durationSeconds: tasks.clipDuration || 10,
+            title: `Avatar clip ${predIndex + 1}`,
+            mimeType: "video/mp4",
+            metadata: { predictionId: prediction.id, clipIndex: predIndex },
+          }, supabase);
+        } catch (_) { /* non-fatal */ }
         
         // Save updated tasks
         await supabase.from('movie_projects').update({

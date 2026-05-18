@@ -227,6 +227,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     // For export mode
     const [exportUrl, setExportUrl] = useState<string | null>(null);
+    const objectUrlRef = useRef<string | null>(null);
 
     // ========================================================================
     // REFS
@@ -253,6 +254,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       mountedRef.current = true;
       return () => {
         mountedRef.current = false;
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
       };
     }, []);
 
@@ -274,6 +279,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         setIsLoading(true);
         setHlsPlaylistUrl(null);
         setDirectVideoUrl(null);
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
 
         try {
           let hlsUrl: string | null = null;
@@ -373,6 +382,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               const clientPlaylistUrl = createClientSidePlaylist(clipUrls, clipDurations);
               if (clientPlaylistUrl) {
                 if (!mountedRef.current) return;
+                objectUrlRef.current = clientPlaylistUrl;
                 logPlaybackPath('CLIENT_STITCHED_PLAYLIST', { projectId: sourceProjectId, clipCount: clipUrls.length });
                 setHlsPlaylistUrl(clientPlaylistUrl);
                 setThumbnailUrl(clipUrls[0]);

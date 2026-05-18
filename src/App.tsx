@@ -206,6 +206,7 @@ const App = () => {
             <NavigationGuardProvider>
             <NavigationBridge>
             <AuthProvider>
+              <CreditsProvider>
               <WorkspaceProvider>
               <StudioProvider>
                 {/* Global Loading Overlay for smooth transitions */}
@@ -705,6 +706,7 @@ const App = () => {
                 <CommandPalette />
               </StudioProvider>
               </WorkspaceProvider>
+              </CreditsProvider>
             </AuthProvider>
             </NavigationBridge>
             </NavigationGuardProvider>

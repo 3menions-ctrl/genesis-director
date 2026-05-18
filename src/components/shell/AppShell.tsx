@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -80,6 +81,7 @@ const SIDEBAR_KEY = 'apex.sidebar.collapsed';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
+  const { available: availableCredits } = useCredits();
   const { navigateTo } = useNavigationWithLoading();
   const { startNavigation, isHeavyRoute } = useNavigationLoading();
   const location = useLocation();
@@ -113,8 +115,8 @@ export function AppShell({ children }: AppShellProps) {
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
-  const isZeroCredits = (profile?.credits_balance ?? 0) === 0;
-  const credits = profile?.credits_balance?.toLocaleString() || '0';
+  const isZeroCredits = availableCredits === 0;
+  const credits = availableCredits.toLocaleString();
   const isBusiness = profile?.account_type === 'business' || profile?.account_type === 'enterprise';
 
   // Cole's admin role is a fully cohesive admin-only experience. Admin access

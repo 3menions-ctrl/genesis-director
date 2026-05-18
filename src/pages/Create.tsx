@@ -287,7 +287,23 @@ function CreateContentInner() {
     try {
       if (!isMounted()) return;
       safeSetState(setCreationStatus, 'Verifying credits...');
-      const creditState = await credits.reconcile();
+      let creditState = await credits.reconcile();
+      if (!creditState.available || creditState.available <= 0) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const { data: stateData } = await supabase.functions.invoke('reserve-credits', {
+              body: { action: 'state' },
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            const serverAvail = Number((stateData as any)?.available ?? 0);
+            if (serverAvail > 0) {
+              creditState = { ...creditState, available: serverAvail };
+              void credits.refresh();
+            }
+          }
+        } catch { /* server-side reserve will enforce */ }
+      }
       const durations = config.clipDurations?.length
         ? config.clipDurations
         : Array.from({ length: config.clipCount }, () => config.clipDuration);

@@ -118,7 +118,7 @@ export default function MediaLibrary() {
       <PageHeader
         eyebrow="Library"
         title="Media"
-        description="Every image, audio, and video your account has generated — permanent and downloadable."
+        subtitle="Every image, audio, and video your account has generated — permanent and downloadable."
         actions={
           <Button variant="outline" size="sm" onClick={() => refresh()} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -130,10 +130,11 @@ export default function MediaLibrary() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <SegmentedControl
           value={tab}
-          onChange={(v) => setTab(v as any)}
-          options={TABS.map(t => ({
-            value: t.id,
-            label: `${t.label}${tab === 'all' ? ` (${counts[t.id] ?? counts.all})` : ''}`,
+          onChange={(v) => setTab(v)}
+          items={TABS.map(t => ({
+            key: t.id,
+            label: t.label,
+            count: counts[t.id] ?? 0,
           }))}
         />
       </div>

@@ -4,6 +4,7 @@
  */
 
 import { memo, useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Layers, Scissors, Sparkles, Wand2, Users, Mic, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClipPropertiesPanel } from "@/components/editor/ClipPropertiesPanel";
@@ -40,21 +41,35 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
 
   return (
     <div
-      className="w-72 shrink-0 flex flex-col overflow-hidden relative border-l border-border/40 bg-background/40 backdrop-blur-2xl"
+      className="w-72 shrink-0 flex flex-col overflow-hidden relative bg-transparent"
     >
+      {/* boundary-less left hairline */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/[0.07] to-transparent" />
       {/* Panel section header */}
       <div
-        className="shrink-0 px-5 py-5 relative border-b border-border/40"
+        className="shrink-0 px-5 py-5 relative"
       >
+        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center border border-border/60 bg-background/40">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-accent" strokeWidth={1.5} />
+          <div
+            className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center"
+            style={{
+              background:
+                'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.08) 100%)',
+              boxShadow:
+                '0 0 18px hsla(215,100%,60%,0.30), inset 0 1px 0 hsla(0,0%,100%,0.10)',
+            }}
+          >
+            <SlidersHorizontal
+              className="w-3.5 h-3.5 text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
+              strokeWidth={1.5}
+            />
           </div>
           <div className="leading-tight min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent block truncate">
               {meta.label}
             </span>
-            <span className="font-display italic text-sm text-foreground mt-0.5 block truncate">
+            <span className="font-display italic text-sm bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent mt-0.5 block truncate">
               {meta.sub}
             </span>
           </div>
@@ -63,7 +78,14 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
 
       {/* Top-level tab bar — glass pill rail */}
       <div
-        className="shrink-0 flex items-center mx-3 my-3 px-1 py-1 gap-0.5 rounded-full overflow-x-auto border border-border/60 bg-background/40"
+        className="shrink-0 flex items-center mx-3 my-3 px-1 py-1 gap-0.5 rounded-full overflow-x-auto"
+        style={{
+          background: 'hsla(0,0%,100%,0.025)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+          boxShadow:
+            '0 8px 40px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+        }}
       >
         <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Tmpl" />
         <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Insp" badge={hasSelection} />
@@ -91,25 +113,32 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[9px] font-light uppercase tracking-[0.14em] transition-all duration-300 relative min-w-0",
+        "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[9px] font-light uppercase tracking-[0.14em] transition-colors duration-500 relative min-w-0",
         active
           ? "text-foreground"
           : "text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04]"
       )}
-      style={
-        active
-          ? {
-              background: 'hsl(var(--accent))',
-              color: 'hsl(var(--accent-foreground))',
-            }
-          : undefined
-      }
     >
-      {icon}
+      {active && (
+        <motion.span
+          layoutId="editor-tab-active"
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          className="absolute inset-0 -z-10 rounded-full"
+          style={{
+            background:
+              'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
+            boxShadow:
+              '0 0 18px hsla(215,100%,60%,0.35), 0 0 32px hsla(215,100%,60%,0.18), inset 0 1px 0 hsla(0,0%,100%,0.10)',
+          }}
+        />
+      )}
+      <span className={cn(active && "text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]")}>
+        {icon}
+      </span>
       <span className="hidden xl:inline">{label}</span>
       {badge && (
         <span
-          className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"
+          className="w-1.5 h-1.5 rounded-full bg-[hsl(215,100%,60%)] animate-pulse shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
         />
       )}
     </button>

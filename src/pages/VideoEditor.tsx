@@ -4,7 +4,7 @@ import { EditorLoadingScreen } from "@/components/editor/EditorLoadingScreen";
 import { EditorErrorScreen } from "@/components/editor/EditorErrorScreen";
 import { CustomTimelineProvider } from "@/hooks/useCustomTimeline";
 import { EditorChrome } from "@/components/editor/EditorChrome";
-import { CinemaBackdrop } from "@/components/ui/CinemaBackdrop";
+import { EditorStudioAurora } from "@/components/editor/EditorStudioAurora";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // Dynamic import — keep browser-render for WebCodecs export
@@ -55,7 +55,7 @@ export default function VideoEditor() {
 
   return (
     <CustomTimelineProvider>
-      <CinemaBackdrop />
+      <EditorStudioAurora />
       <EditorChrome
         useBrowserRenderer={browserRender?.useBrowserRenderer}
         navigate={navigate}

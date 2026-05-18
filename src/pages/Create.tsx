@@ -9,6 +9,7 @@ import { ImageStudioHub } from '@/components/studio/ImageStudioHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,20 +27,6 @@ import { calculateCreditsForDurations, type VideoEngine } from '@/lib/creditSyst
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 
-async function readAuthoritativeCreditState() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('Please sign in to verify your credits');
-
-  const { data, error } = await supabase.functions.invoke('reserve-credits', {
-    body: { action: 'state' },
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (error) throw error;
-
-  const payload = (data || {}) as any;
-  if (!payload?.success) throw new Error(payload?.error || 'Unable to verify credit balance');
-  return { available: Number(payload.available || 0) };
-}
 // Premium tab definition for the Create studio
 const STUDIO_TABS = [
   { key: 'create' as const, label: 'Create Video', sub: 'Cinematic generation', icon: Film },

@@ -79,6 +79,8 @@ interface SeedancePipelineRequest {
   referenceImageAnalysis?: any;      // pre-extracted identity
   identityBible?: any;               // continuity manifest from extractor
   characterLock?: any;               // character lock object
+  environmentPrompt?: string;         // user-selected environment / scene DNA
+  sceneDescription?: string;          // legacy environment handoff
 
   // ─── Templates (rich template flow) ──────────────────────────────────
   useTemplateShots?: boolean;
@@ -143,6 +145,8 @@ function injectIdentity(
     characterLock?: any;
     referenceImageAnalysis?: any;
     templateCharacters?: any[];
+    templateEnvironmentLock?: any;
+    environmentPrompt?: string;
   },
 ): string {
   const parts: string[] = [];
@@ -161,10 +165,14 @@ function injectIdentity(
   if (charDesc) parts.push(`Character: ${String(charDesc).slice(0, 400)}`);
 
   const env =
+    opts.environmentPrompt ||
+    opts.templateEnvironmentLock?.description ||
+    opts.templateEnvironmentLock?.prompt ||
+    opts.templateEnvironmentLock?.location ||
     ib?.masterSceneAnchor?.environmentDNA ||
     ib?.consistencyPrompt ||
     null;
-  if (env) parts.push(`Continuity: ${String(env).slice(0, 300)}`);
+  if (env) parts.push(`Environment lock: ${String(env).slice(0, 420)}. Preserve this exact setting across every shot`);
 
   parts.push("Same person across all shots — no face, body, hair, or wardrobe drift");
 

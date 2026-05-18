@@ -349,8 +349,47 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
-      
-      if (nativeSupport) {
+
+      // ────────────────────────────────────────────────────────────────────
+      // PRE-FLIGHT: If the playlist is a stitch of full standalone MP4 files
+      // (Seedance/avatar post-mux pipeline), neither hls.js nor native HLS
+      // can chain them reliably — hls.js plays only clip 0 then stops.
+      // Detect this up front and go straight to sequential clip-swap mode.
+      // ────────────────────────────────────────────────────────────────────
+      let aborted = false;
+      (async () => {
+        try {
+          const clips = await parseM3u8ForClipUrls(hlsUrl);
+          if (aborted || !mountedRef.current) return;
+          const allMp4 = clips.length > 1 && clips.every(u => /\.mp4(\?|$)/i.test(u));
+          if (allMp4) {
+            console.log(`[UniversalHLS] Detected ${clips.length} MP4 segments — using SEQUENTIAL mode directly`);
+            sequentialClipsRef.current = clips;
+            sequentialIndexRef.current = 0;
+            sequentialElapsedRef.current = 0;
+            sequentialTotalDurationRef.current = clips.length * 10;
+            setPlaybackMethod('sequential');
+            setDuration(clips.length * 10);
+            setIsLoading(false);
+            setError(null);
+            initializingRef.current = false;
+            video.src = clips[0];
+            video.muted = muteClipAudio || initialMuted;
+            video.load();
+            if (autoPlay) safePlay(video);
+            onReadyRef.current?.();
+            return;
+          }
+          // Otherwise fall through to standard HLS init below
+          initHls();
+        } catch {
+          initHls();
+        }
+      })();
+
+      function initHls() {
+        if (aborted || !mountedRef.current) return;
+        if (nativeSupport) {
         // Safari/iOS - use native HLS
         setPlaybackMethod('native');
         video.src = hlsUrl;
@@ -464,8 +503,10 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         setError('Your browser does not support HLS video playback');
         onErrorRef.current?.('HLS not supported');
       }
+      }
       
       return () => {
+        aborted = true;
         initializingRef.current = false;
         if (playbackWatchdogRef.current) {
           clearTimeout(playbackWatchdogRef.current);

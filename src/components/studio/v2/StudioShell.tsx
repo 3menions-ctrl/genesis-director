@@ -529,8 +529,28 @@ export default function StudioShell() {
     // If the wallet can't cover the full project we warn but still allow
     // partial generation (user can top up mid-run).
     try {
-      const creditState = await credits.reconcile();
-      const balance = creditState.available;
+      let creditState = await credits.reconcile();
+      let balance = creditState.available;
+      // Guard against stale/zero client cache (e.g. auth not yet hydrated):
+      // before blocking the user, verify against the server-side ledger via
+      // reserve-credits `state`. The server is the source of truth.
+      if (!balance || balance <= 0) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const { data: stateData } = await supabase.functions.invoke("reserve-credits", {
+              body: { action: "state" },
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            const serverAvail = Number((stateData as any)?.available ?? 0);
+            if (serverAvail > 0) {
+              balance = serverAvail;
+              creditState = { ...creditState, available: serverAvail };
+              void credits.refresh();
+            }
+          }
+        } catch { /* fall through — per-scene reserve will enforce */ }
+      }
         const pending = draft.scenes.filter(s => !s.clipUrl);
         const nextCost = pending.length
           ? (() => {

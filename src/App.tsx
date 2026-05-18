@@ -344,6 +344,13 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                <Route path="/media" element={
+                  <RouteContainer fallbackMessage="Loading media library...">
+                    <ProtectedRoute>
+                      <AppShell><MediaLibraryPage /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 <Route path="/profile" element={
                   <RouteContainer fallbackMessage="Loading profile...">
                     <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">

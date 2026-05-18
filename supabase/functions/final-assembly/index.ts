@@ -139,6 +139,8 @@ serve(async (req) => {
     }
 
     const manifestUrl = stitchResult.manifestUrl || stitchResult.finalVideoUrl;
+    const hlsPlaylistUrl = stitchResult.hlsPlaylistUrl || null;
+    const stitchedClipUrls = Array.isArray(stitchResult.clipUrls) ? stitchResult.clipUrls : clips?.map((clip) => clip.video_url).filter(Boolean) || [];
     const totalDuration = stitchResult.totalDuration || 0;
     const clipsProcessed = stitchResult.clipsProcessed || completedCount;
 
@@ -159,6 +161,8 @@ serve(async (req) => {
         progress: 100,
         mode: 'manifest_playback',
         manifestUrl,
+        hlsPlaylistUrl,
+        mseClipUrls: stitchedClipUrls,
         clipCount: clipsProcessed,
         totalDuration,
         completedAt: new Date().toISOString(),

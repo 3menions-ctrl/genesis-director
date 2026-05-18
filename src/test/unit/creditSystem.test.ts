@@ -55,28 +55,28 @@ describe('Credit System — Source of Truth', () => {
   });
 
   describe('calculateCreditsPerClip', () => {
-    it('returns 60 for 10s avatar (kling) clip', () => {
-      expect(calculateCreditsPerClip(10, 0, 'kling')).toBe(60);
+    it('returns canonical Kling V3 pricing for a 10s clip', () => {
+      expect(calculateCreditsPerClip(10, 0, 'kling')).toBe(50);
     });
 
-    it('returns 90 for 15s avatar (kling) clip', () => {
-      expect(calculateCreditsPerClip(15, 0, 'kling')).toBe(90);
+    it('returns canonical Kling V3 pricing for a 15s clip', () => {
+      expect(calculateCreditsPerClip(15, 0, 'kling')).toBe(75);
     });
 
-    it('returns flat 55 for veo clips regardless of duration (10s)', () => {
-      expect(calculateCreditsPerClip(10, 0, 'veo')).toBe(55);
+    it('returns cinema Veo pricing for a 10s clip', () => {
+      expect(calculateCreditsPerClip(10, 0, 'veo')).toBe(400);
     });
 
-    it('returns flat 55 for veo clips regardless of duration (15s)', () => {
-      expect(calculateCreditsPerClip(15, 0, 'veo')).toBe(55);
+    it('returns cinema Veo pricing for a 15s clip', () => {
+      expect(calculateCreditsPerClip(15, 0, 'veo')).toBe(600);
     });
 
-    it('returns 60 for 5s avatar clip (still base rate)', () => {
-      expect(calculateCreditsPerClip(5, 0, 'kling')).toBe(60);
+    it('returns canonical Kling V3 pricing for a 5s clip', () => {
+      expect(calculateCreditsPerClip(5, 0, 'kling')).toBe(25);
     });
 
     it('defaults to kling engine', () => {
-      expect(calculateCreditsPerClip(10)).toBe(60);
+      expect(calculateCreditsPerClip(10)).toBe(50);
     });
   });
 

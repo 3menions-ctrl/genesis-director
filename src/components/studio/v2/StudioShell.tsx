@@ -703,32 +703,32 @@ export default function StudioShell() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-20%,hsl(var(--accent)/0.07),transparent_70%)]" />
       </div>
 
-      <header className="relative z-10 flex h-[72px] items-center gap-6 border-b border-border/40 bg-background/60 px-6 backdrop-blur-2xl">
-        <div className="flex items-center gap-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40">
+      <header className="relative z-10 flex h-[72px] items-center gap-3 border-b border-border/40 bg-background/60 px-4 backdrop-blur-2xl md:gap-4 md:px-6">
+        <div className="flex min-w-0 shrink items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40">
             <Film className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <input
               value={draft.brief.title}
               onChange={(e) => setDraft(d => ({ ...d, brief: { ...d.brief, title: e.target.value } }))}
               placeholder="Untitled film"
-              className="w-72 max-w-[30vw] bg-transparent font-display text-lg italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40"
+              className="w-full max-w-[160px] bg-transparent font-display text-base italic tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40 md:max-w-[220px] md:text-lg xl:max-w-[280px]"
             />
-            <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50">Cinematic workflow</div>
+            <div className="hidden font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/50 xl:block">Cinematic workflow</div>
           </div>
         </div>
 
-        <div className="hidden flex-1 items-center justify-center md:flex">
-          <div className="flex items-center gap-1.5">
+        <div className="hidden min-w-0 flex-1 items-center justify-center md:flex">
+          <div className="flex items-center gap-0.5 lg:gap-1.5">
             {STEPS.map(({ id, label }, index) => {
               const active = step === id;
               const complete = id === "start" ? canGenerateScript : id === "cast" ? draft.cast.length > 0 : id === "script" ? draft.scenes.length > 0 : renderedCount > 0;
               return (
-                <div key={id} className="flex items-center gap-3">
+                <div key={id} className="flex items-center gap-1.5 lg:gap-3">
                   <button
                     onClick={() => setStep(id)}
-                    className="group flex h-9 items-center gap-2 px-2 transition-colors"
+                    className="group flex h-9 items-center gap-1.5 px-1.5 transition-colors lg:gap-2 lg:px-2"
                   >
                     <span className={cn(
                       "font-mono text-[9px] tabular-nums transition-colors",
@@ -736,16 +736,16 @@ export default function StudioShell() {
                     )}>
                       {complete && !active ? <Check className="h-3 w-3" /> : String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground/70 group-hover:text-foreground")}>{label}</span>
+                    <span className={cn("font-mono text-[10px] uppercase tracking-[0.18em] lg:tracking-[0.24em]", active ? "text-foreground" : "text-muted-foreground/70 group-hover:text-foreground")}>{label}</span>
                   </button>
-                  {index < STEPS.length - 1 && <span className="h-px w-6 bg-border/40" />}
+                  {index < STEPS.length - 1 && <span className="hidden h-px w-4 bg-border/40 lg:inline-block lg:w-6" />}
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {saving && (
             <span className="hidden items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-muted-foreground sm:flex">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> saving

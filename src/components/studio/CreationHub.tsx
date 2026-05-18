@@ -35,26 +35,6 @@ import { useCredits } from '@/contexts/CreditsContext';
 
 type CreditState = { balance: number; held: number; available: number };
 
-async function readAuthoritativeCreditState(): Promise<CreditState> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('Please sign in to verify your credits');
-
-  const { data, error } = await supabase.functions.invoke('reserve-credits', {
-    body: { action: 'state' },
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (error) throw error;
-
-  const payload = (data || {}) as any;
-  if (!payload?.success) throw new Error(payload?.error || 'Unable to verify credit balance');
-
-  return {
-    balance: Number(payload.balance || 0),
-    held: Number(payload.held || 0),
-    available: Number(payload.available || 0),
-  };
-}
-
 // ─── Creation modes ───────────────────────────────────────────────────────────
 // A "mode" is the *intent* (text→video, image→video, avatar). The "engine" is
 // the *render model*. We model them separately and use a capability matrix so

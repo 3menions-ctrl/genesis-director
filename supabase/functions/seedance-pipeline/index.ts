@@ -574,6 +574,10 @@ serve(async (req) => {
         undefined;
       const envLock =
         request.templateEnvironmentLock?.location ||
+        request.templateEnvironmentLock?.description ||
+        request.templateEnvironmentLock?.prompt ||
+        request.environmentPrompt ||
+        request.sceneDescription ||
         request.identityBible?.masterSceneAnchor?.environmentDNA ||
         undefined;
       let scriptRes: any = await callEdgeFunction("seedance-script-director", {
@@ -797,6 +801,8 @@ serve(async (req) => {
             characterLock: request.characterLock,
             referenceImageAnalysis: request.referenceImageAnalysis,
             templateCharacters: request.templateCharacters,
+            templateEnvironmentLock: request.templateEnvironmentLock,
+            environmentPrompt: request.environmentPrompt || request.sceneDescription,
           },
         );
 

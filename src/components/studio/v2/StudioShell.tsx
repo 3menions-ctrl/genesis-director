@@ -118,6 +118,22 @@ function sceneApprovalSignature(draft: StudioDraft): string {
 type CreditState = { balance: number; held: number; available: number };
 
 async function readCreditState(userId: string): Promise<CreditState> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    const { data } = await supabase.functions.invoke("reserve-credits", {
+      body: { action: "state" },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const payload = (data || {}) as any;
+    if (payload?.success) {
+      return {
+        balance: Number(payload.balance || 0),
+        held: Number(payload.held || 0),
+        available: Number(payload.available || 0),
+      };
+    }
+  }
+
   const { data, error } = await (supabase.rpc as any)("get_credit_state", { p_user_id: userId });
   const payload = (data || {}) as any;
   if (!error && payload?.success) {
@@ -2028,7 +2044,6 @@ function ApprovalGate({
 }) {
   if (!open) return null;
   const available = creditState?.available ?? null;
-  const insufficient = available !== null && available < totalCost;
   const speakerName = (id?: string) => cast.find(c => c.id === id)?.name || "—";
 
   // ── Pre-flight cost analysis ──────────────────────────────────────────────
@@ -2052,6 +2067,8 @@ function ApprovalGate({
       cost,
     };
   });
+  const nextUnrenderedCost = rows.find(r => !r.scene.clipUrl)?.cost ?? 0;
+  const insufficient = available !== null && available < nextUnrenderedCost;
   const totalRuntime = rows.reduce((a, r) => a + r.duration, 0);
   const total4KSeconds = rows.filter(r => r.is4K).reduce((a, r) => a + r.duration, 0);
   const usd = (totalCost * 0.1).toFixed(2);
@@ -2198,7 +2215,7 @@ function ApprovalGate({
 
           {insufficient && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-[12px] text-destructive">
-              Not enough spendable credits. You need {totalCost - (available ?? 0)} more to render every scene.
+              Not enough spendable credits. You need {nextUnrenderedCost - (available ?? 0)} more to start the next scene.
             </div>
           )}
 
@@ -2223,7 +2240,7 @@ function ApprovalGate({
                   disabled={scenes.length === 0 || loading}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-foreground px-5 text-[11px] font-medium uppercase tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Approve script &amp; deduct {totalCost} cr
+                  Approve script &amp; start render
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </button>
               )}

@@ -1151,28 +1151,13 @@ function EditorCreditsBadge({ userId }: { userId: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full mr-1 cursor-default backdrop-blur-md transition-all hover:scale-[1.02]"
-          style={{
-            background: isLow
-              ? 'linear-gradient(180deg, hsla(0, 70%, 55%, 0.14), hsla(0, 70%, 40%, 0.06))'
-              : 'linear-gradient(180deg, hsla(215, 90%, 60%, 0.14), hsla(215, 90%, 40%, 0.05))',
-            border: `1px solid ${isLow ? 'hsla(0, 70%, 55%, 0.22)' : 'hsla(215, 90%, 60%, 0.22)'}`,
-            boxShadow: isLow
-              ? '0 0 14px -4px hsla(0, 70%, 55%, 0.35), inset 0 1px 0 hsla(0,0%,100%,0.06)'
-              : '0 0 14px -4px hsla(215, 100%, 55%, 0.45), inset 0 1px 0 hsla(0,0%,100%,0.08)',
-          }}
+          className={cn(
+            "h-9 flex items-center gap-1.5 rounded-full border bg-background/40 px-3 cursor-default transition-colors",
+            isLow ? "border-destructive/40 text-destructive" : "border-border/60 text-muted-foreground"
+          )}
         >
-          <Zap
-            className="w-3 h-3"
-            style={{
-              color: isLow ? 'hsl(0, 80%, 70%)' : 'hsl(200, 100%, 75%)',
-              filter: `drop-shadow(0 0 4px ${isLow ? 'hsla(0,80%,60%,0.6)' : 'hsla(215,100%,60%,0.7)'})`,
-            }}
-          />
-          <span
-            className="text-[10px] font-semibold tabular-nums tracking-wide"
-            style={{ color: isLow ? 'hsl(0, 85%, 78%)' : 'hsl(200, 100%, 82%)' }}
-          >
+          <Zap className={cn("w-3 h-3", isLow ? "text-destructive" : "text-accent")} strokeWidth={1.5} />
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] tabular-nums">
             {balance.toLocaleString()}
           </span>
         </div>

@@ -104,9 +104,14 @@ serve(async (req) => {
       
       let matchedProject: any = null;
       let matchedPredIndex = -1;
+      let matchedStitchProject: any = null;
       
       for (const proj of (projects || [])) {
         const tasks = proj.pending_video_tasks as any;
+        if (tasks?.stitchPredictionId === predictionId) {
+          matchedStitchProject = proj;
+          break;
+        }
         if (tasks?.predictions && Array.isArray(tasks.predictions)) {
           const idx = tasks.predictions.findIndex((p: any) => p.predictionId === predictionId);
           if (idx >= 0) {
@@ -115,6 +120,13 @@ serve(async (req) => {
             break;
           }
         }
+      }
+
+      if (matchedStitchProject) {
+        await handleProjectStitchPrediction(supabase, matchedStitchProject, prediction);
+        return new Response(JSON.stringify({ success: true, type: 'project_stitch' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       
       if (matchedProject && matchedPredIndex >= 0) {

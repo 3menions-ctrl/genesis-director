@@ -13,6 +13,7 @@ import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks
 import { useEditorStitch } from "@/hooks/useEditorStitch";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {

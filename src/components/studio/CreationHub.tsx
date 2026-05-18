@@ -479,8 +479,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     setUploadedImage(null); setUploadedVideo(null); setUploadedFileName(null);
   }, []);
 
-  const handleCreate = () => {
-    if (hasInsufficientCredits) { setShowBuyCredits(true); return; }
+  const handleCreate = async () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     const safetyResult = checkMultipleContent(prompt);
     if (!safetyResult.isSafe) {
@@ -513,6 +512,23 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     // here in case something raced.
     if (selectedMode === 'avatar' && uploadedImage) {
       toast.error('Avatar mode uses the avatar face as the start frame — please remove the uploaded image.');
+      return;
+    }
+
+    let liveCredits: CreditState;
+    try {
+      setIsVerifyingCredits(true);
+      liveCredits = await refreshCreditState();
+    } catch (error) {
+      toast.error('Could not verify your live credit balance. Please try again.');
+      return;
+    } finally {
+      setIsVerifyingCredits(false);
+    }
+
+    if (liveCredits.available < estimatedCredits) {
+      setShowBuyCredits(true);
+      toast.error(`Insufficient credits. Need ${estimatedCredits}, available ${liveCredits.available}.`);
       return;
     }
 

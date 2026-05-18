@@ -815,6 +815,44 @@ serve(async (req) => {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // FIRE poll-replicate-prediction (fallback to webhook)
+    // Webhook is the primary completion path; this poller guarantees the
+    // clip is still picked up even if the webhook never reaches us.
+    // ═══════════════════════════════════════════════════════════════════════
+    if (projectId) {
+      try {
+        const supabaseUrlForPoller = Deno.env.get("SUPABASE_URL");
+        const supabaseKeyForPoller = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (supabaseUrlForPoller && supabaseKeyForPoller) {
+          fetch(`${supabaseUrlForPoller}/functions/v1/poll-replicate-prediction`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseKeyForPoller}`,
+            },
+            body: JSON.stringify({
+              predictionId: klingPrediction.id,
+              projectId,
+              userId,
+              shotIndex: 0,
+              totalClips: allSegmentData.length,
+              chainDepth: 0,
+              pipelineContext: {
+                videoEngine: 'kling',
+                isAvatarMode: true,
+                clipDuration,
+                aspectRatio,
+              },
+            }),
+          }).catch((err) => console.warn('[AvatarDirect] poll-replicate fire failed (non-fatal):', err));
+          console.log(`[AvatarDirect] 🚀 Fired poll-replicate-prediction for clip 0 (${klingPrediction.id})`);
+        }
+      } catch (e) {
+        console.warn('[AvatarDirect] poll-replicate fire exception (non-fatal):', (e as Error).message);
+      }
+    }
+
     // Build predictions array - clip 1 is processing, rest are pending
     const pendingPredictions: Array<{
       clipIndex: number;

@@ -33,6 +33,7 @@ import { CommandPalette } from "@/components/agent/CommandPalette";
 const Landing = lazy(() => import("./pages/Landing"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Projects = lazy(() => import("./pages/Projects"));
+const MediaLibraryPage = lazy(() => import("./pages/MediaLibrary"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));

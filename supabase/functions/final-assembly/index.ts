@@ -138,6 +138,20 @@ serve(async (req) => {
       throw new Error(`simple-stitch returned error: ${stitchResult.error}`);
     }
 
+    if (stitchResult.mode === 'server_stitching' && !stitchResult.finalVideoUrl) {
+      console.log(`[FinalAssembly] Server MP4 stitch still processing; leaving project in stitching until webhook finalizes`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          checkpoints: { D: 'stitching_started' },
+          mode: 'server_stitching',
+          stitchPredictionId: stitchResult.stitchPredictionId,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const manifestUrl = stitchResult.manifestUrl || stitchResult.finalVideoUrl;
     const hlsPlaylistUrl = stitchResult.hlsPlaylistUrl || null;
     const stitchedClipUrls = Array.isArray(stitchResult.clipUrls) ? stitchResult.clipUrls : clips?.map((clip) => clip.video_url).filter(Boolean) || [];
@@ -159,7 +173,9 @@ serve(async (req) => {
       pending_video_tasks: {
         stage: 'complete',
         progress: 100,
-        mode: 'manifest_playback',
+        mode: stitchResult.stitchedVideoUrl ? 'server_stitched_mp4' : 'single_clip',
+        stitchedVideoUrl: stitchResult.stitchedVideoUrl || null,
+        stitchPredictionId: stitchResult.stitchPredictionId || null,
         manifestUrl,
         hlsPlaylistUrl,
         mseClipUrls: stitchedClipUrls,

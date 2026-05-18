@@ -433,12 +433,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const refreshCreditState = useCallback(async (): Promise<CreditState> => {
     // Force-reconcile so the displayed balance always matches the ledger
     // before we gate-check a generation submission.
-    await credits.reconcile();
-    return {
-      balance: credits.balance,
-      held: credits.held,
-      available: credits.available,
-    };
+    const s = await credits.reconcile();
+    return { balance: s.balance, held: s.held, available: s.available };
   }, [credits]);
 
   // Upload handlers

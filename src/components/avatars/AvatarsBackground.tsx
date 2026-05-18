@@ -1,135 +1,66 @@
-import { useEffect, useState, memo, forwardRef } from 'react';
+import { memo, forwardRef } from 'react';
 
 /**
- * AvatarsBackground — Pro-Dark cinematic canvas
- * Apple-clean dark base (hsl(220,14%,2%)) with #0A84FF aurora glows.
- * Replaces the legacy violet/magenta composition (violated no-purple Core rule).
+ * AvatarsBackground — mirrors the Create page's StudioAurora composition
+ * so the Avatars studio shares the exact same premium, boundary-less
+ * canvas. Pro-Dark base + conic aurora sweep + primary blue radial +
+ * cool counter-glow + vignette + film grain + top hairline.
  */
 const AvatarsBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsBackground(_, ref) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div
       ref={ref}
-      className={`fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      aria-hidden
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
     >
-      {/* Pro-Dark base */}
-      <div className="absolute inset-0" style={{ background: 'hsl(220, 14%, 2%)' }} />
+      {/* deep base */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_6%)_0%,hsl(220_14%_2%)_60%)]" />
 
-      {/* Cinematic blue aurora — heavy radial glows */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 900px 600px at 12% 18%, hsla(212, 100%, 55%, 0.10) 0%, transparent 60%),
-            radial-gradient(ellipse 1100px 700px at 88% 82%, hsla(215, 100%, 60%, 0.08) 0%, transparent 65%),
-            radial-gradient(ellipse 1400px 900px at 50% 50%, hsla(218, 100%, 50%, 0.04) 0%, transparent 70%)
-          `,
-        }}
-      />
+      {/* keyframes shared with Create page */}
+      <style>{`
+        @keyframes avatarsAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+      `}</style>
 
-      {/* Slow-pulsing accent orbs */}
+      {/* conic aurora sweep */}
       <div
-        className="absolute rounded-full animate-[pulse_14s_ease-in-out_infinite]"
+        className="absolute -inset-[20%] opacity-[0.18]"
         style={{
-          top: '8%',
-          left: '6%',
-          width: '420px',
-          height: '420px',
-          background: 'radial-gradient(circle, hsla(212, 100%, 60%, 0.18) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-          opacity: 0.7,
-        }}
-      />
-      <div
-        className="absolute rounded-full animate-[pulse_18s_ease-in-out_infinite]"
-        style={{
-          bottom: '5%',
-          right: '8%',
-          width: '520px',
-          height: '520px',
-          background: 'radial-gradient(circle, hsla(215, 100%, 55%, 0.14) 0%, transparent 70%)',
+          background:
+            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
           filter: 'blur(80px)',
-          opacity: 0.55,
-          animationDelay: '4s',
+          animation: 'avatarsAurora 60s linear infinite',
         }}
       />
+
+      {/* primary aurora */}
       <div
-        className="absolute rounded-full animate-[pulse_22s_ease-in-out_infinite]"
-        style={{
-          top: '40%',
-          left: '55%',
-          width: '700px',
-          height: '700px',
-          background: 'radial-gradient(circle, hsla(220, 100%, 65%, 0.06) 0%, transparent 70%)',
-          filter: 'blur(100px)',
-          opacity: 0.4,
-          animationDelay: '2s',
-        }}
+        className="absolute -top-1/3 left-1/2 h-[60vmax] w-[60vmax] -translate-x-1/2 rounded-full opacity-[0.35] blur-3xl animate-[pulse_12s_ease-in-out_infinite]"
+        style={{ background: 'radial-gradient(circle, hsl(212 100% 50% / 0.55) 0%, transparent 60%)' }}
       />
 
-      {/* Subtle horizon line — single luminous thread */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 0 1920 1080"
-        preserveAspectRatio="xMidYMid slice"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="avatarBlueLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(212, 100%, 65%)" stopOpacity="0" />
-            <stop offset="40%" stopColor="hsl(215, 100%, 70%)" stopOpacity="0.35" />
-            <stop offset="60%" stopColor="hsl(215, 100%, 70%)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="hsl(218, 100%, 65%)" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="avatarBlueLineSoft" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(212, 100%, 65%)" stopOpacity="0" />
-            <stop offset="50%" stopColor="hsl(215, 100%, 75%)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="hsl(218, 100%, 65%)" stopOpacity="0" />
-          </linearGradient>
-          <filter id="avatarSoftGlow" x="-20%" y="-50%" width="140%" height="200%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-        </defs>
+      {/* cool counter-glow */}
+      <div
+        className="absolute -bottom-1/3 -right-1/4 h-[55vmax] w-[55vmax] rounded-full opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(circle, hsl(190 100% 55% / 0.35) 0%, transparent 65%)' }}
+      />
 
-        <path
-          d="M-50,420 Q480,360 960,420 T1980,400"
-          stroke="url(#avatarBlueLine)"
-          strokeWidth="1"
-          fill="none"
-          filter="url(#avatarSoftGlow)"
-          opacity="0.6"
-        />
-        <path
-          d="M-50,680 Q500,640 980,680 T1980,660"
-          stroke="url(#avatarBlueLineSoft)"
-          strokeWidth="0.8"
-          fill="none"
-          filter="url(#avatarSoftGlow)"
-          opacity="0.45"
-        />
-      </svg>
-
-      {/* Cinematic vignette */}
+      {/* edge vignette */}
       <div
         className="absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }}
+      />
+
+      {/* film grain */}
+      <div
+        className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 35%, hsla(220, 14%, 1%, 0.6) 100%)',
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
 
-      {/* Premium grain */}
-      <div
-        className="absolute inset-0 opacity-[0.022] mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
+      {/* top hairline highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </div>
   );
 }));

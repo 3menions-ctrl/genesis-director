@@ -1,5 +1,8 @@
+import { creditsForScene, type EngineId } from '@/lib/video/engines';
+
 // Credit system constants
-// Consistent across frontend and backend
+// Kept for legacy screens. Canonical create-page pricing is resolved through
+// src/lib/video/engines.ts via creditsForScene().
 
 /**
  * Credit Pricing (SINGLE SOURCE OF TRUTH)
@@ -117,22 +120,33 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  */
 export type VideoEngine = 'kling' | 'veo' | 'seedance' | 'sora';
 
+function toEngineId(videoEngine: VideoEngine): EngineId {
+  switch (videoEngine) {
+    case 'seedance': return 'seedance-2';
+    case 'veo': return 'veo-3';
+    case 'sora': return 'sora-2';
+    case 'kling':
+    default: return 'kling-v3';
+  }
+}
+
 export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'kling'): number {
-  const extended = isExtendedPricing(clipIndex, clipDuration);
-  if (videoEngine === 'seedance') {
-    return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  void clipIndex;
+  try {
+    return creditsForScene(toEngineId(videoEngine), clipDuration);
+  } catch {
+    const extended = isExtendedPricing(0, clipDuration);
+    if (videoEngine === 'seedance') {
+      return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
+    }
+    if (videoEngine === 'sora') {
+      return clipDuration > 8 ? CREDIT_SYSTEM.SORA_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SORA_BASE_CREDITS_PER_CLIP;
+    }
+    if (videoEngine === 'veo') {
+      return CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP;
+    }
+    return extended ? CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
   }
-  if (videoEngine === 'sora') {
-    // Sora: clipDuration > 8 = extended (12s)
-    return clipDuration > 8 ? CREDIT_SYSTEM.SORA_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SORA_BASE_CREDITS_PER_CLIP;
-  }
-  if (videoEngine === 'veo') {
-    return CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP;
-  }
-  if (videoEngine === 'kling') {
-    return extended ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP;
-  }
-  return extended ? CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
 }
 
 /**
@@ -211,14 +225,8 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
   isExtended: boolean;
   isVeo: boolean;
 } {
-  const isAvatar = videoEngine === 'kling';
-  const isSeedance = videoEngine === 'seedance';
-  const baseRate = isSeedance
-    ? CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP
-    : isAvatar ? CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
-  const extRate = isSeedance
-    ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
-    : isAvatar ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
+  const baseRate = calculateCreditsPerClip(CREDIT_SYSTEM.BASE_DURATION_THRESHOLD, 0, videoEngine);
+  const extRate = calculateCreditsPerClip(clipDuration > CREDIT_SYSTEM.BASE_DURATION_THRESHOLD ? clipDuration : 15, 0, videoEngine);
 
   let baseClipCount = 0;
   let extendedClipCount = 0;
@@ -243,7 +251,7 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
     creditsPerClipBase: baseRate,
     creditsPerClipExtended: extRate,
     isExtended: extendedClipCount > 0,
-    isVeo: !isAvatar,
+    isVeo: videoEngine === 'veo',
   };
 }
 

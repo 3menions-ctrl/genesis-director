@@ -354,6 +354,10 @@ export function useScenePipeline(
       // render (other tab, other scene), eliminating pre-flight drift.
       let holdId: string | null = null;
       try {
+        // Best-effort wallet reconciliation immediately before reservation.
+        // This keeps legacy ledger/profile drift from making the reserve RPC
+        // see stale 0-credit state while the account actually has credits.
+        await (supabase.rpc as any)('reconcile_user_credits').catch(() => null);
         const estimated = creditsForScene(engineId, scene.duration, profile.id);
         logEvent(sceneId, "reserving", `Reserving ${estimated} credits`);
         const { data: hold, error: holdErr } = await supabase.functions.invoke("reserve-credits", {

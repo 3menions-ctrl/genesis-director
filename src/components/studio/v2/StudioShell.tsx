@@ -43,6 +43,7 @@ import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
 import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, engineToBackend, getQualityProfile, type EngineId } from "@/lib/video/engines";
 import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
+import { useCredits } from "@/contexts/CreditsContext";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
@@ -211,6 +212,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 export default function StudioShell() {
   const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
+  const credits = useCredits();
   const draftRef = useRef(draft);
   useEffect(() => { draftRef.current = draft; }, [draft]);
   const { generateScene, generateSceneFromDraft } = useScenePipeline(
@@ -280,13 +282,11 @@ export default function StudioShell() {
     setApprovalLoading(true);
     setApprovalCreditState(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setApprovalCreditState(await readCreditState(user.id));
-      }
+      const live = await credits.reconcile();
+      setApprovalCreditState({ balance: live.balance, held: live.held, available: live.available });
     } catch { setApprovalCreditState(null); }
     finally { setApprovalLoading(false); }
-  }, []);
+  }, [credits]);
 
   const approveAndStamp = useCallback(() => {
     const stamp = new Date().toISOString();
@@ -554,10 +554,8 @@ export default function StudioShell() {
     // If the wallet can't cover the full project we warn but still allow
     // partial generation (user can top up mid-run).
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const creditState = await readCreditState(user.id);
-        const balance = creditState.available;
+      const creditState = await credits.reconcile();
+      const balance = creditState.available;
         const pending = draft.scenes.filter(s => !s.clipUrl);
         const nextCost = pending.length
           ? (() => {
@@ -576,7 +574,6 @@ export default function StudioShell() {
         if (balance < totalCost) {
           toast.warning(`Heads up — full project costs ${totalCost} credits, you have ${balance}. Rendering will stop when the wallet runs out.`);
         }
-      }
     } catch { /* non-fatal — server enforces final deduct */ }
     setStep("clips");
     // ── Sequential continuity gate ─────────────────────────────────────────
@@ -634,7 +631,7 @@ export default function StudioShell() {
         break;
       }
     }
-  }, [canRender, draft.scenes, draft.defaults.engine, ensureProjectId, generateSceneFromDraft, hasCinema, navigate, patchScene, totalCost]);
+  }, [canRender, credits, draft.scenes, draft.defaults.engine, ensureProjectId, generateSceneFromDraft, hasCinema, navigate, patchScene, totalCost]);
 
   // Render entry point — enforces the approval gate. Opens the dialog when
   // approval is missing or stale; otherwise dispatches directly.

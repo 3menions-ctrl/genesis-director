@@ -43,6 +43,7 @@ import { useScenePipeline } from "@/hooks/useScenePipeline";
 import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
 import { ENGINES, listEngines, clampDurationForEngine, defaultQualityProfile, creditsForScene, engineToBackend, getQualityProfile, type EngineId } from "@/lib/video/engines";
 import { useCinemaEntitlement } from "@/hooks/useCinemaEntitlement";
+import { useCredits } from "@/contexts/CreditsContext";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StudioDrawer } from "./StudioDrawer";
 import { AvatarsDrawerContent } from "./drawers/AvatarsDrawer";
@@ -211,6 +212,7 @@ function scenesFromTemplatePick(pick: TemplatePick, draft: StudioDraft): SceneDr
 export default function StudioShell() {
   const { draft, setDraft, loading, saving, addScene, removeScene, patchScene, reorderScene, duplicateScene, setActive, clearDraft, ensureProjectId } = useStudioDraft();
   const { appliedSettings, templateId, clearAppliedSettings } = useTemplateEnvironment();
+  const credits = useCredits();
   const draftRef = useRef(draft);
   useEffect(() => { draftRef.current = draft; }, [draft]);
   const { generateScene, generateSceneFromDraft } = useScenePipeline(
@@ -280,13 +282,11 @@ export default function StudioShell() {
     setApprovalLoading(true);
     setApprovalCreditState(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setApprovalCreditState(await readCreditState(user.id));
-      }
+      const live = await credits.reconcile();
+      setApprovalCreditState({ balance: live.balance, held: live.held, available: live.available });
     } catch { setApprovalCreditState(null); }
     finally { setApprovalLoading(false); }
-  }, []);
+  }, [credits]);
 
   const approveAndStamp = useCallback(() => {
     const stamp = new Date().toISOString();

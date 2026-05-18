@@ -99,10 +99,8 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
       style={
         active
           ? {
-              background:
-                'linear-gradient(180deg, hsla(215,100%,60%,0.28), hsla(215,100%,45%,0.10))',
-              boxShadow:
-                'inset 0 1px 0 hsla(0,0%,100%,0.10), 0 6px 20px -6px hsla(215,100%,60%,0.55), 0 0 24px -8px hsla(215,100%,60%,0.45)',
+              background: 'hsl(var(--accent))',
+              color: 'hsl(var(--accent-foreground))',
             }
           : undefined
       }
@@ -111,14 +109,7 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
       <span className="hidden xl:inline">{label}</span>
       {badge && (
         <span
-          className="w-1.5 h-1.5 rounded-full bg-[hsl(142,72%,55%)] animate-pulse"
-          style={{ boxShadow: '0 0 6px hsla(142,72%,55%,0.7)' }}
-        />
-      )}
-      {glow && active && (
-        <span
-          className="absolute -inset-px rounded-full pointer-events-none"
-          style={{ boxShadow: '0 0 24px hsla(215,100%,60%,0.45)' }}
+          className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"
         />
       )}
     </button>

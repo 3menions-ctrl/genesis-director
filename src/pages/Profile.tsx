@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
@@ -184,6 +185,7 @@ const PrivateBadge = memo(function PrivateBadge() {
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
   const { navigate } = useSafeNavigation();
   const { user, profile, loading, refreshProfile, signOut } = useAuth();
+  const credits = useCredits();
 
   const gatekeeper = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.profile,
@@ -399,7 +401,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const animatedCredits = useAnimatedNumber(profile?.credits_balance || 0);
+  const animatedCredits = useAnimatedNumber(credits.balance);
   const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
   const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
 

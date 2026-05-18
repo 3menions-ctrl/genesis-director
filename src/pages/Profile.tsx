@@ -737,7 +737,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-muted-foreground">Pay-as-you-go · $0.10/credit</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {(profile?.credits_balance || 0).toLocaleString()} credits · ${((profile?.credits_balance || 0) * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
+                      {credits.balance.toLocaleString()} credits · ${(credits.balance * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
                     </p>
                   </div>
                   <Button

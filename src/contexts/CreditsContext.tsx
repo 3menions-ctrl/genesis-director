@@ -13,7 +13,7 @@
  *      credit_transactions for this user and refetch whenever anything moves.
  */
 import {
-  createContext, useCallback, useContext, useEffect, useRef, useState,
+  createContext, useCallback, useContext, useEffect, useState,
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +49,6 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [held, setHeld] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const inflight = useRef<Promise<void> | null>(null);
 
   const readState = useCallback(async (uid: string) => {
     const { data, error: rpcErr } = await supabase.rpc('get_credit_state', { p_user_id: uid });

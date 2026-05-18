@@ -437,6 +437,22 @@ async function handleAvatarAsyncPrediction(
           p_video_url: storedUrl,
           p_duration_seconds: tasks.clipDuration || 10,
         });
+        // MODE-BASED ROUTING: tag the row so UI/diagnostics know which
+        // generator produced it.
+        await supabase
+          .from('video_clips')
+          .update({
+            generation_mode: 'avatar',
+            video_engine: 'kling-v3',
+            engine: 'kling-v3',
+            replicate_prediction_id: prediction.id,
+            veo_operation_name: prediction.id,
+            video_url: storedUrl,
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('project_id', project.id)
+          .eq('shot_index', predIndex);
         
         // Save updated tasks
         await supabase.from('movie_projects').update({

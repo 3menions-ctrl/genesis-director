@@ -48,6 +48,16 @@ export function useMediaLibrary(opts: Options = {}) {
     setLoading(true);
     setError(null);
     try {
+      // Best-effort reconciliation: pulls any video/audio/image that was
+      // generated but never registered in the unified library (missed
+      // webhook, crashed pipeline, cancelled project, etc.) into
+      // user_media_assets BEFORE we read. Failure here is non-fatal.
+      try {
+        await supabase.rpc('reconcile_user_media' as never);
+      } catch (_e) {
+        // ignore — read still proceeds
+      }
+
       const { data, error: rpcErr } = await supabase.rpc('get_user_media_library', {
         p_media_type: mediaType,
         p_project_id: projectId,
@@ -65,6 +75,31 @@ export function useMediaLibrary(opts: Options = {}) {
   }, [mediaType, projectId, limit]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Realtime: new/updated media for this user → re-read in background.
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const channel = supabase
+        .channel(`user-media-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_media_assets',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => { void refresh(); },
+        )
+        .subscribe();
+      cleanup = () => { void supabase.removeChannel(channel); };
+    })();
+    return () => { cancelled = true; cleanup?.(); };
+  }, [refresh]);
 
   const remove = useCallback(async (id: string) => {
     const prev = assets;

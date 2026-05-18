@@ -7579,6 +7579,7 @@ export type Database = {
         }[]
       }
       reconcile_pipeline_credit_holds: { Args: never; Returns: Json }
+      reconcile_user_media: { Args: never; Returns: number }
       record_user_media: {
         Args: {
           p_asset_url: string

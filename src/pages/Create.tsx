@@ -163,6 +163,7 @@ function CreateContentInner() {
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();
+  const credits = useCredits();
   const cinemaGuard = useCinemaGuard();
   
   const [isCreating, setIsCreating] = useState(false);
@@ -286,7 +287,7 @@ function CreateContentInner() {
     try {
       if (!isMounted()) return;
       safeSetState(setCreationStatus, 'Verifying credits...');
-      const creditState = await readAuthoritativeCreditState();
+      const creditState = await credits.reconcile();
       const durations = config.clipDurations?.length
         ? config.clipDurations
         : Array.from({ length: config.clipCount }, () => config.clipDuration);

@@ -147,5 +147,23 @@ export async function markProjectFailedAndRefund(
     }
   }
 
+  // 4) Release any active credit hold attached to this project (idempotent).
+  //    Pipelines using the new reserve/hold pattern attach `credit_hold_id`
+  //    on the project row; release_credit_hold is a no-op when the hold is
+  //    already consumed/released, so this is always safe to call.
+  try {
+    const { releasePipelineCredits } = await import('./pipeline-credits.ts');
+    const released = await releasePipelineCredits({
+      supabase,
+      projectId: ctx.projectId,
+      reason: `Pipeline ${source}/${stage} failed: ${errorMessage.slice(0, 120)}`,
+    });
+    if (released.success) {
+      console.log(`[pipeline-failure] ✓ credit hold released (${source}/${stage})`);
+    }
+  } catch (e) {
+    console.warn('[pipeline-failure] release_credit_hold threw (non-fatal):', e);
+  }
+
   return { errorMessage, refundAmount, refunded };
 }

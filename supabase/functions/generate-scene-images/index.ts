@@ -409,6 +409,31 @@ serve(async (req) => {
 
     console.log(`[SceneImages] Generated ${generatedImages.length}/${scenes.length} scene images`);
 
+    // MEDIA LIBRARY: record every generated scene image so users can browse them.
+    if (userId && generatedImages.length > 0) {
+      try {
+        const { recordUserMediaBatch } = await import("../_shared/media-library.ts");
+        await recordUserMediaBatch(
+          generatedImages.map((g) => ({
+            userId,
+            mediaType: "image" as const,
+            assetUrl: g.imageUrl,
+            projectId: projectId ?? null,
+            source: "generate-scene-images",
+            engine: "flux-1.1-pro-ultra",
+            generationMode: "scene-image",
+            prompt: g.prompt?.slice(0, 2000) ?? null,
+            title: `Scene ${g.sceneNumber}`,
+            mimeType: "image/png",
+            metadata: { sceneNumber: g.sceneNumber },
+          })),
+          supabase,
+        );
+      } catch (e) {
+        console.warn("[SceneImages] media library record failed (non-fatal):", (e as Error).message);
+      }
+    }
+
     // Callback continuation — trigger next pipeline stage
     if (triggerNextStage && projectId && userId && generatedImages.length > 0) {
       console.log(`[SceneImages] Triggering next pipeline stage...`);

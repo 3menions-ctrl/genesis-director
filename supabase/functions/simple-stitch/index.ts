@@ -10,8 +10,10 @@ import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video
  * and JSON manifest are still written as fallbacks for the player, but the
  * primary playback source is the stitched MP4.
  *
- * If FFmpeg stitching fails or exceeds the inline polling budget, we fall
- * back to the manifest URL so playback still works.
+ * Multi-clip projects must not be marked completed with manifest/HLS fallback,
+ * because clip-to-clip HLS playback creates visible gaps. If FFmpeg is still
+ * processing, the project remains in `stitching` until the Replicate webhook
+ * persists the single MP4 and marks it completed.
  */
 
 const corsHeaders = {
@@ -32,9 +34,10 @@ async function stitchClipsServerSide(
   clipUrls: string[],
   projectId: string,
   replicateKey: string,
-): Promise<{ outputUrl: string | null; predictionId: string | null; mode: string }> {
+  supabaseUrl: string,
+): Promise<{ outputUrl: string | null; predictionId: string | null; mode: string; status: "completed" | "processing" | "failed" | "single_clip" }> {
   if (clipUrls.length < 2) {
-    return { outputUrl: clipUrls[0] || null, predictionId: null, mode: "single_clip" };
+    return { outputUrl: clipUrls[0] || null, predictionId: null, mode: "single_clip", status: "single_clip" };
   }
 
   let predictionId: string | null = null;
@@ -58,11 +61,16 @@ async function stitchClipsServerSide(
       const res = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ version: FFMPEG_MODEL_VERSION, input }),
+        body: JSON.stringify({
+          version: FFMPEG_MODEL_VERSION,
+          input,
+          webhook: `${supabaseUrl}/functions/v1/replicate-webhook`,
+          webhook_events_filter: ["completed"],
+        }),
       });
       if (!res.ok) {
         console.error(`[SimpleStitch] FFmpeg submit failed: ${res.status} ${await res.text()}`);
-        return { outputUrl: null, predictionId: null, mode };
+        return { outputUrl: null, predictionId: null, mode, status: "failed" };
       }
       predictionId = (await res.json()).id;
     } else {
@@ -71,19 +79,24 @@ async function stitchClipsServerSide(
       const res = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ version: CONCAT_MODEL_VERSION, input: { videos: clipUrls } }),
+        body: JSON.stringify({
+          version: CONCAT_MODEL_VERSION,
+          input: { videos: clipUrls },
+          webhook: `${supabaseUrl}/functions/v1/replicate-webhook`,
+          webhook_events_filter: ["completed"],
+        }),
       });
       if (!res.ok) {
         console.error(`[SimpleStitch] Concat submit failed: ${res.status} ${await res.text()}`);
-        return { outputUrl: null, predictionId: null, mode };
+        return { outputUrl: null, predictionId: null, mode, status: "failed" };
       }
       predictionId = (await res.json()).id;
     }
 
     console.log(`[SimpleStitch] Stitch prediction started: ${predictionId} (${mode})`);
 
-    // Inline polling: up to ~90s, every 3s
-    const deadline = Date.now() + 90_000;
+    // Inline fast path: poll briefly. If still processing, the webhook completes it.
+    const deadline = Date.now() + 45_000;
     while (Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 3000));
       const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -96,21 +109,21 @@ async function stitchClipsServerSide(
         const url = Array.isArray(out) ? out[0] : out;
         if (typeof url === "string" && url.startsWith("http")) {
           console.log(`[SimpleStitch] ✅ Stitch succeeded: ${url}`);
-          return { outputUrl: url, predictionId, mode };
+          return { outputUrl: url, predictionId, mode, status: "completed" };
         }
-        return { outputUrl: null, predictionId, mode };
+        return { outputUrl: null, predictionId, mode, status: "failed" };
       }
       if (pred.status === "failed" || pred.status === "canceled") {
         console.error(`[SimpleStitch] Stitch ${pred.status}: ${pred.error || "no detail"}`);
-        return { outputUrl: null, predictionId, mode };
+        return { outputUrl: null, predictionId, mode, status: "failed" };
       }
     }
 
-    console.warn(`[SimpleStitch] Stitch poll timeout for ${predictionId}; will fall back to manifest`);
-    return { outputUrl: null, predictionId, mode };
+    console.warn(`[SimpleStitch] Stitch still processing for ${predictionId}; webhook will finalize project`);
+    return { outputUrl: null, predictionId, mode, status: "processing" };
   } catch (err) {
     console.error("[SimpleStitch] Stitch error:", err);
-    return { outputUrl: null, predictionId, mode };
+    return { outputUrl: null, predictionId, mode, status: "failed" };
   }
 }
 

@@ -26,10 +26,33 @@ import { useTierLimits } from '@/hooks/useTierLimits';
 import { SimpleVideoPlayer } from '@/components/player';
 import { TemplateAvatarSelector } from './TemplateAvatarSelector';
 import { AvatarTemplate } from '@/types/avatar-templates';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+
+type CreditState = { balance: number; held: number; available: number };
+
+async function readAuthoritativeCreditState(): Promise<CreditState> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Please sign in to verify your credits');
+
+  const { data, error } = await supabase.functions.invoke('reserve-credits', {
+    body: { action: 'state' },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (error) throw error;
+
+  const payload = (data || {}) as any;
+  if (!payload?.success) throw new Error(payload?.error || 'Unable to verify credit balance');
+
+  return {
+    balance: Number(payload.balance || 0),
+    held: Number(payload.held || 0),
+    available: Number(payload.available || 0),
+  };
+}
 
 // ─── Creation modes ───────────────────────────────────────────────────────────
 // A "mode" is the *intent* (text→video, image→video, avatar). The "engine" is
@@ -194,6 +217,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [creditState, setCreditState] = useState<CreditState | null>(null);
+  const [isVerifyingCredits, setIsVerifyingCredits] = useState(false);
 
   const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
 
@@ -402,8 +427,21 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     [alignedDurations, videoEngine]
   );
 
-  const userCredits = profile?.credits_balance ?? 0;
-  const hasInsufficientCredits = userCredits < estimatedCredits;
+  const displayedCredits = creditState?.available ?? profile?.credits_balance ?? 0;
+  const hasKnownInsufficientCredits = creditState !== null && creditState.available < estimatedCredits;
+  const refreshCreditState = useCallback(async () => {
+    const state = await readAuthoritativeCreditState();
+    setCreditState(state);
+    return state;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    readAuthoritativeCreditState()
+      .then((state) => { if (!cancelled) setCreditState(state); })
+      .catch(() => { if (!cancelled) setCreditState(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Upload handlers
   const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,8 +479,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     setUploadedImage(null); setUploadedVideo(null); setUploadedFileName(null);
   }, []);
 
-  const handleCreate = () => {
-    if (hasInsufficientCredits) { setShowBuyCredits(true); return; }
+  const handleCreate = async () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     const safetyResult = checkMultipleContent(prompt);
     if (!safetyResult.isSafe) {
@@ -475,6 +512,23 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     // here in case something raced.
     if (selectedMode === 'avatar' && uploadedImage) {
       toast.error('Avatar mode uses the avatar face as the start frame — please remove the uploaded image.');
+      return;
+    }
+
+    let liveCredits: CreditState;
+    try {
+      setIsVerifyingCredits(true);
+      liveCredits = await refreshCreditState();
+    } catch (error) {
+      toast.error('Could not verify your live credit balance. Please try again.');
+      return;
+    } finally {
+      setIsVerifyingCredits(false);
+    }
+
+    if (liveCredits.available < estimatedCredits) {
+      setShowBuyCredits(true);
+      toast.error(`Insufficient credits. Need ${estimatedCredits}, available ${liveCredits.available}.`);
       return;
     }
 
@@ -656,7 +710,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             </span>
             <div className="leading-tight">
               <div className="text-[9px] uppercase tracking-[0.24em] text-white/35 font-light">Credits</div>
-              <div className="text-sm font-light text-white tabular-nums tracking-[-0.01em]">{userCredits.toLocaleString()}</div>
+              <div className="text-sm font-light text-white tabular-nums tracking-[-0.01em]">{displayedCredits.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -1041,7 +1095,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   {/* Premium CTA with halo */}
                   <div className="relative w-full sm:w-auto flex justify-center sm:block">
                     {/* Halo glow */}
-                    {!hasInsufficientCredits && isReadyToCreate() && (
+                    {!hasKnownInsufficientCredits && isReadyToCreate() && !isVerifyingCredits && (
                       <span
                         className="pointer-events-none absolute -inset-2 rounded-full opacity-70 animate-pulse"
                         style={{
@@ -1052,16 +1106,16 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     )}
                     <Button
                       onClick={handleCreate}
-                      disabled={!isReadyToCreate()}
+                      disabled={!isReadyToCreate() || isVerifyingCredits}
                       className={cn(
                         'group/cta relative h-12 px-6 rounded-full text-[13px] font-light tracking-[-0.005em] transition-all duration-500 overflow-hidden border-0',
-                        hasInsufficientCredits
+                        hasKnownInsufficientCredits
                           ? 'text-black'
                           : 'text-white',
                         'hover:brightness-110 hover:scale-[1.03] active:scale-[0.98]',
                         'disabled:opacity-30 disabled:shadow-none disabled:scale-100'
                       )}
-                      style={hasInsufficientCredits ? {
+                      style={hasKnownInsufficientCredits ? {
                         background: 'linear-gradient(180deg, hsl(40,95%,68%) 0%, hsl(35,90%,55%) 100%)',
                         boxShadow: '0 16px 40px -12px hsla(40,90%,55%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.4)',
                       } : {
@@ -1071,7 +1125,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/cta:translate-x-full transition-transform duration-[1100ms] ease-in-out" />
                       <span className="relative flex items-center gap-2.5">
-                        {hasInsufficientCredits ? (
+                        {isVerifyingCredits ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} /> Verifying
+                          </>
+                        ) : hasKnownInsufficientCredits ? (
                           <>
                             <Coins className="w-4 h-4" strokeWidth={1.5} /> Get credits <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                           </>
@@ -1228,9 +1286,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   )}
                 </AnimatePresence>
 
-                {hasInsufficientCredits && (
+                {hasKnownInsufficientCredits && (
                   <p className="mt-3 text-[12px] text-amber-300/85 font-light tracking-[-0.005em]">
-                    Need {estimatedCredits - userCredits} more credits ·{' '}
+                    Need {estimatedCredits - displayedCredits} more credits ·{' '}
                     <button onClick={() => setShowBuyCredits(true)} className="underline underline-offset-2 hover:text-amber-200 transition-colors">Top up</button>
                   </p>
                 )}

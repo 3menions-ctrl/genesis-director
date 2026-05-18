@@ -445,31 +445,29 @@ serve(async (req) => {
 
       console.log(`[ModeRouter] Credit check engine=${videoEngine} mode=${mode} avatar=${isAvatar}: ${clipCount} clips × ${clipDuration}s @ ${creditsPerClip}cr = ${totalCredits} credits required`);
       
-      // Check if user has enough credits
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (profileError || !profile) {
-        console.error('[ModeRouter] Failed to fetch user profile:', profileError);
+      // Check authoritative available credits (balance minus active holds).
+      const { data: creditState, error: creditStateError } = await supabase.rpc('get_credit_state', { p_user_id: userId });
+      const creditPayload = (creditState || {}) as any;
+      const availableCredits = Number(creditPayload.available || 0);
+
+      if (creditStateError || creditPayload.success !== true) {
+        console.error('[ModeRouter] Failed to fetch authoritative credit state:', creditStateError || creditPayload);
         // Fail project
         await supabase.from('movie_projects').update({ status: 'failed', last_error: 'Failed to verify credit balance' }).eq('id', projectId);
         throw new Error('Failed to verify credit balance');
       }
-      
-      if (profile.credits_balance < totalCredits) {
-        console.log(`[ModeRouter] INSUFFICIENT CREDITS: User has ${profile.credits_balance}, needs ${totalCredits}`);
+
+      if (availableCredits < totalCredits) {
+        console.log(`[ModeRouter] INSUFFICIENT CREDITS: User has ${availableCredits} available, needs ${totalCredits}`);
         // Mark project as payment failed
         await supabase.from('movie_projects').update({ status: 'payment_failed', last_error: 'Insufficient credits' }).eq('id', projectId);
         
         return new Response(
           JSON.stringify({
             success: false,
-            error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
+            error: `Insufficient credits. Required: ${totalCredits}, Available: ${availableCredits}`,
             required: totalCredits,
-            available: profile.credits_balance,
+            available: availableCredits,
           }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

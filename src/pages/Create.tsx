@@ -22,8 +22,24 @@ import { withSafePageRef } from '@/lib/withSafeRef';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { cn } from '@/lib/utils';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
+import { calculateCreditsForDurations, type VideoEngine } from '@/lib/creditSystem';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+
+async function readAuthoritativeCreditState() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Please sign in to verify your credits');
+
+  const { data, error } = await supabase.functions.invoke('reserve-credits', {
+    body: { action: 'state' },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (error) throw error;
+
+  const payload = (data || {}) as any;
+  if (!payload?.success) throw new Error(payload?.error || 'Unable to verify credit balance');
+  return { available: Number(payload.available || 0) };
+}
 // Premium tab definition for the Create studio
 const STUDIO_TABS = [
   { key: 'create' as const, label: 'Create Video', sub: 'Cinematic generation', icon: Film },
@@ -255,7 +271,7 @@ function CreateContentInner() {
     templateCharacters?: unknown[];
     templateEnvironmentLock?: unknown;
     // Engine selection: 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
-    videoEngine?: 'kling' | 'veo' | 'seedance';
+    videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');
@@ -282,6 +298,18 @@ function CreateContentInner() {
 
     try {
       if (!isMounted()) return;
+      safeSetState(setCreationStatus, 'Verifying credits...');
+      const creditState = await readAuthoritativeCreditState();
+      const durations = config.clipDurations?.length
+        ? config.clipDurations
+        : Array.from({ length: config.clipCount }, () => config.clipDuration);
+      const requiredCredits = calculateCreditsForDurations(durations, (config.videoEngine || 'kling') as VideoEngine);
+      if (creditState.available < requiredCredits) {
+        toast.error(`Insufficient credits. Need ${requiredCredits}, available ${creditState.available}.`);
+        navigate('/credits');
+        return;
+      }
+
       safeSetState(setCreationStatus, 'Creating project...');
       
       // Build the request body

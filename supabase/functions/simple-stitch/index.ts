@@ -405,6 +405,8 @@ serve(async (req) => {
         mode: 'manifest_playback',
         finalVideoUrl: manifestUrl,
         manifestUrl,
+        hlsPlaylistUrl,
+        clipUrls: clipData.map(c => c.videoUrl),
         clipsProcessed: clips.length,
         totalDuration,
         processingTimeMs: Date.now() - startTime,

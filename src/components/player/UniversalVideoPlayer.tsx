@@ -109,6 +109,18 @@ function isDirectPlayableUrl(url: string): boolean {
   );
 }
 
+function createClientSidePlaylist(urls: string[], durations: number[] = []): string | null {
+  const playableUrls = urls.filter(Boolean);
+  if (playableUrls.length === 0) return null;
+  const targetDuration = Math.max(1, Math.ceil(Math.max(...playableUrls.map((_, i) => durations[i] || 10))));
+  const body = playableUrls.map((url, i) => {
+    const discontinuity = i > 0 ? '#EXT-X-DISCONTINUITY\n' : '';
+    return `${discontinuity}#EXTINF:${(durations[i] || 10).toFixed(3)},\n${url}`;
+  }).join('\n');
+  const playlist = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${targetDuration}\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n${body}\n#EXT-X-ENDLIST\n`;
+  return URL.createObjectURL(new Blob([playlist], { type: 'application/vnd.apple.mpegurl' }));
+}
+
 // ============================================================================
 // MANIFEST PARSER
 // ============================================================================
@@ -215,6 +227,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     // For export mode
     const [exportUrl, setExportUrl] = useState<string | null>(null);
+    const objectUrlRef = useRef<string | null>(null);
 
     // ========================================================================
     // REFS
@@ -241,6 +254,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       mountedRef.current = true;
       return () => {
         mountedRef.current = false;
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
       };
     }, []);
 
@@ -262,6 +279,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         setIsLoading(true);
         setHlsPlaylistUrl(null);
         setDirectVideoUrl(null);
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
 
         try {
           let hlsUrl: string | null = null;
@@ -273,7 +294,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // ================================================================
             const { data: dbClips } = await supabase
               .from('video_clips')
-              .select('video_url, shot_index')
+              .select('video_url, shot_index, duration_seconds')
               .eq('project_id', sourceProjectId)
               .not('video_url', 'is', null)
               .order('shot_index', { ascending: true });
@@ -281,6 +302,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const clipUrls = (dbClips || [])
               .map((clip) => clip.video_url)
               .filter((url): url is string => Boolean(url));
+            const clipDurations = (dbClips || []).map((clip) => clip.duration_seconds || 10);
 
             const { data: project } = await supabase
               .from('movie_projects')
@@ -356,6 +378,20 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               return;
             }
             
+            if (clipUrls.length > 1) {
+              const clientPlaylistUrl = createClientSidePlaylist(clipUrls, clipDurations);
+              if (clientPlaylistUrl) {
+                if (!mountedRef.current) return;
+                objectUrlRef.current = clientPlaylistUrl;
+                logPlaybackPath('CLIENT_STITCHED_PLAYLIST', { projectId: sourceProjectId, clipCount: clipUrls.length });
+                setHlsPlaylistUrl(clientPlaylistUrl);
+                setThumbnailUrl(clipUrls[0]);
+                setExportUrl(clipUrls[0]);
+                setIsLoading(false);
+                return;
+              }
+            }
+
             if (clipUrls.length > 0) {
               if (!mountedRef.current) return;
               const primaryClip = clipUrls[0];

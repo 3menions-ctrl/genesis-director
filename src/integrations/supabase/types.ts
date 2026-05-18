@@ -6972,6 +6972,10 @@ export type Database = {
         Args: { p_clip_index: number; p_lock_id?: string; p_project_id: string }
         Returns: Json
       }
+      active_credit_holds_total: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       add_credits: {
         Args: {
           p_amount: number
@@ -7264,6 +7268,7 @@ export type Database = {
         Args: { p_name: string; p_plan?: string; p_user_id: string }
         Returns: string
       }
+      credit_ledger_total: { Args: { p_user_id: string }; Returns: number }
       deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
       deduct_credits: {
         Args: {
@@ -7365,7 +7370,7 @@ export type Database = {
           used_seconds: number
         }[]
       }
-      get_credit_state: { Args: { p_user_id: string }; Returns: Json }
+      get_credit_state: { Args: { p_user_id?: string }; Returns: Json }
       get_generation_checkpoint: {
         Args: { p_project_id: string }
         Returns: {

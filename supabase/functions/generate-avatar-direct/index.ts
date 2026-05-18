@@ -733,14 +733,23 @@ serve(async (req) => {
         : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching",
     };
     console.log(`[AvatarDirect] 🎬 Kling V3 input: duration=${clip1Input.duration}s, generateAudio=${clip1Input.generate_audio}, hasStartImage=true`);
-    
+
+    // Register webhook so completion is delivered the instant Replicate finishes.
+    // poll-replicate-prediction (below) is a redundant fallback.
+    const supabaseUrlForWebhook = Deno.env.get("SUPABASE_URL");
+    const klingRequestBody: Record<string, any> = { input: clip1Input };
+    if (supabaseUrlForWebhook) {
+      klingRequestBody.webhook = `${supabaseUrlForWebhook}/functions/v1/replicate-webhook`;
+      klingRequestBody.webhook_events_filter = ["completed"];
+    }
+
     const klingResponse = await fetch(KLING_V3_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ input: clip1Input }),
+      body: JSON.stringify(klingRequestBody),
     });
 
     if (!klingResponse.ok) {

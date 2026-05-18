@@ -31,6 +31,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { useCredits } from '@/contexts/CreditsContext';
 
 type CreditState = { balance: number; held: number; available: number };
 
@@ -207,6 +208,7 @@ interface CreationHubProps {
 export const CreationHub = memo(function CreationHub({ onStartCreation, onReady, className }: CreationHubProps) {
   const { navigateTo: navigate } = useNavigationWithLoading();
   const { profile } = useAuth();
+  const credits = useCredits();
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   // Engine is now an INDEPENDENT axis from mode. The capability matrix
@@ -217,7 +219,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-  const [creditState, setCreditState] = useState<CreditState | null>(null);
   const [isVerifyingCredits, setIsVerifyingCredits] = useState(false);
 
   const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
@@ -427,21 +428,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     [alignedDurations, videoEngine]
   );
 
-  const displayedCredits = creditState?.available ?? profile?.credits_balance ?? 0;
-  const hasKnownInsufficientCredits = creditState !== null && creditState.available < estimatedCredits;
-  const refreshCreditState = useCallback(async () => {
-    const state = await readAuthoritativeCreditState();
-    setCreditState(state);
-    return state;
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    readAuthoritativeCreditState()
-      .then((state) => { if (!cancelled) setCreditState(state); })
-      .catch(() => { if (!cancelled) setCreditState(null); });
-    return () => { cancelled = true; };
-  }, []);
+  const displayedCredits = credits.available;
+  const hasKnownInsufficientCredits = !credits.loading && credits.available < estimatedCredits;
+  const refreshCreditState = useCallback(async (): Promise<CreditState> => {
+    // Force-reconcile so the displayed balance always matches the ledger
+    // before we gate-check a generation submission.
+    await credits.reconcile();
+    return {
+      balance: credits.balance,
+      held: credits.held,
+      available: credits.available,
+    };
+  }, [credits]);
 
   // Upload handlers
   const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

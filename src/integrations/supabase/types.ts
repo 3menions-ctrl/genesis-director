@@ -3181,6 +3181,7 @@ export type Database = {
           avatar_voice_id: string | null
           continuity_manifest_v2: Json | null
           created_at: string
+          credit_hold_id: string | null
           engine: string
           generated_script: string | null
           generation_checkpoint: Json | null
@@ -3233,6 +3234,7 @@ export type Database = {
           avatar_voice_id?: string | null
           continuity_manifest_v2?: Json | null
           created_at?: string
+          credit_hold_id?: string | null
           engine?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
@@ -3285,6 +3287,7 @@ export type Database = {
           avatar_voice_id?: string | null
           continuity_manifest_v2?: Json | null
           created_at?: string
+          credit_hold_id?: string | null
           engine?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
@@ -3333,6 +3336,13 @@ export type Database = {
           voice_audio_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movie_projects_credit_hold_id_fkey"
+            columns: ["credit_hold_id"]
+            isOneToOne: false
+            referencedRelation: "credit_holds"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movie_projects_organization_id_fkey"
             columns: ["organization_id"]
@@ -7568,6 +7578,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reconcile_pipeline_credit_holds: { Args: never; Returns: Json }
       record_user_media: {
         Args: {
           p_asset_url: string

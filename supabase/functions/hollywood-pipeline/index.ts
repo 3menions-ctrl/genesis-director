@@ -6722,28 +6722,31 @@ serve(async (req) => {
         );
       }
 
-      // DEDUCT CREDITS UPFRONT - this ensures users are charged when pipeline starts
-      console.log(`[Hollywood] Deducting ${totalCredits} credits from user ${request.userId}`);
-      const { data: deductOk, error: deductError } = await supabase.rpc('deduct_credits', {
-        p_user_id: request.userId,
-        p_amount: totalCredits,
-        p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
-        p_project_id: request.projectId ?? null, // Link to project if known
-        p_clip_duration: clipCount * clipDuration,
-        p_idempotency_key: request.projectId ? `hollywood:${request.projectId}` : null,
+      // HOLD CREDITS via reserve_credits (idempotent on pipeline:hollywood:{projectId}).
+      // Credits remain on the user's balance but are removed from "available"
+      // until the pipeline either succeeds (consume) or fails (release).
+      const { holdCreditsForPipeline } = await import('../_shared/pipeline-credits.ts');
+      const holdResult = await holdCreditsForPipeline({
+        supabase,
+        userId: request.userId,
+        projectId: request.projectId ?? null,
+        amount: totalCredits,
+        pipeline: 'hollywood',
+        description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
       });
-
-      if (deductError || deductOk !== true) {
-        console.error('[Hollywood] Credit deduction failed:', deductError, 'ok=', deductOk);
+      if (!holdResult.success) {
+        console.error('[Hollywood] Credit hold failed:', holdResult);
+        const insufficient = holdResult.error === 'insufficient_credits' || holdResult.error === 'reserve_failed';
         return new Response(
           JSON.stringify({
             success: false,
-            error: deductError ? 'Failed to deduct credits. Please try again.' : 'Insufficient credits at deduction time.',
+            error: insufficient ? 'Insufficient credits at reservation time.' : 'Failed to reserve credits. Please try again.',
+            detail: holdResult.detail || holdResult.error,
           }),
-          { status: deductError ? 500 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: insufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.log(`[Hollywood] Successfully deducted ${totalCredits} credits`);
+      console.log(`[Hollywood] ✓ Held ${totalCredits} credits (holdId=${holdResult.holdId}, reused=${holdResult.reused})`);
     } else {
       console.log(`[Hollywood] Skipping credit deduction (skipCreditDeduction=${request.skipCreditDeduction}, isResuming=${isResuming})`);
     }

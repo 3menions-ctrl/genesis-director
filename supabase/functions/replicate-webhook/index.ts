@@ -104,9 +104,14 @@ serve(async (req) => {
       
       let matchedProject: any = null;
       let matchedPredIndex = -1;
+      let matchedStitchProject: any = null;
       
       for (const proj of (projects || [])) {
         const tasks = proj.pending_video_tasks as any;
+        if (tasks?.stitchPredictionId === predictionId) {
+          matchedStitchProject = proj;
+          break;
+        }
         if (tasks?.predictions && Array.isArray(tasks.predictions)) {
           const idx = tasks.predictions.findIndex((p: any) => p.predictionId === predictionId);
           if (idx >= 0) {
@@ -115,6 +120,13 @@ serve(async (req) => {
             break;
           }
         }
+      }
+
+      if (matchedStitchProject) {
+        await handleProjectStitchPrediction(supabase, matchedStitchProject, prediction);
+        return new Response(JSON.stringify({ success: true, type: 'project_stitch' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       
       if (matchedProject && matchedPredIndex >= 0) {
@@ -406,6 +418,74 @@ async function chainContinueProduction(
     }
   } catch (err) {
     console.error(`[ReplicateWebhook] Failed to chain continue-production:`, err);
+  }
+}
+
+async function handleProjectStitchPrediction(supabase: any, project: any, prediction: any) {
+  const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
+  const status = prediction.status;
+
+  if (status === 'succeeded') {
+    const output = prediction.output?.files || prediction.output;
+    const outputUrl = Array.isArray(output) ? output[0] : output;
+    if (typeof outputUrl !== 'string' || !outputUrl.startsWith('http')) {
+      throw new Error('Stitch prediction succeeded without a video URL');
+    }
+
+    const storedUrl = await persistVideoToStorage(
+      supabase,
+      outputUrl,
+      project.id,
+      { prefix: `stitched_${project.id}_${Date.now()}`, clipIndex: 0 }
+    );
+    const finalVideoUrl = storedUrl || outputUrl;
+
+    await supabase.from('movie_projects').update({
+      status: 'completed',
+      pipeline_stage: 'completed',
+      video_url: finalVideoUrl,
+      pending_video_tasks: {
+        ...tasks,
+        stage: 'complete',
+        progress: 100,
+        mode: 'server_stitched_mp4',
+        stitchedVideoUrl: finalVideoUrl,
+        finalVideoUrl,
+        completedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }).eq('id', project.id);
+
+    try {
+      const { consumePipelineCredits } = await import('../_shared/pipeline-credits.ts');
+      await consumePipelineCredits({
+        supabase,
+        projectId: project.id,
+        description: 'Project completed (stitched MP4 webhook)',
+        clipDuration: Math.round(tasks.totalDuration || 0) || null,
+      });
+    } catch (creditErr) {
+      console.warn('[ReplicateWebhook] Stitch credit consume non-fatal:', creditErr);
+    }
+
+    console.log(`[ReplicateWebhook] ✅ Project stitch completed: ${project.id}`);
+    return;
+  }
+
+  if (status === 'failed' || status === 'canceled') {
+    await supabase.from('movie_projects').update({
+      status: 'stitching_failed',
+      pending_video_tasks: {
+        ...tasks,
+        stage: 'stitching_failed',
+        progress: 90,
+        mode: 'server_stitch_failed',
+        error: prediction.error || `Stitch ${status}`,
+        failedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }).eq('id', project.id);
+    console.warn(`[ReplicateWebhook] ❌ Project stitch ${status}: ${project.id}`);
   }
 }
 

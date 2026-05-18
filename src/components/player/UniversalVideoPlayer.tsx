@@ -311,6 +311,33 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
+            const stitchedVideoUrl = typeof tasks?.stitchedVideoUrl === 'string'
+              ? tasks.stitchedVideoUrl
+              : null;
+            const projectVideoUrl = typeof project?.video_url === 'string' ? project.video_url : null;
+
+            // Primary standard: completed multi-clip projects play the single server-stitched MP4.
+            // Do not prefer pseudo-HLS manifests because those swap between source MP4s and show gaps.
+            if (stitchedVideoUrl && isDirectPlayableUrl(stitchedVideoUrl)) {
+              logPlaybackPath('SERVER_STITCHED_MP4', { projectId: sourceProjectId, videoUrl: stitchedVideoUrl });
+              if (!mountedRef.current) return;
+              setDirectVideoUrl(stitchedVideoUrl);
+              setThumbnailUrl(stitchedVideoUrl);
+              setExportUrl(stitchedVideoUrl);
+              setIsLoading(false);
+              return;
+            }
+
+            if (projectVideoUrl && isDirectPlayableUrl(projectVideoUrl)) {
+              logPlaybackPath('PROJECT_DIRECT_MP4', { projectId: sourceProjectId, videoUrl: projectVideoUrl });
+              if (!mountedRef.current) return;
+              setDirectVideoUrl(projectVideoUrl);
+              setThumbnailUrl(projectVideoUrl);
+              setExportUrl(projectVideoUrl);
+              setIsLoading(false);
+              return;
+            }
+
             hlsUrl = tasks?.hlsPlaylistUrl ? tasks.hlsPlaylistUrl as string : null;
             
             // Get first clip URL for thumbnail mode

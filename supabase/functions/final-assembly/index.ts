@@ -138,7 +138,22 @@ serve(async (req) => {
       throw new Error(`simple-stitch returned error: ${stitchResult.error}`);
     }
 
+    if (stitchResult.mode === 'server_stitching' && !stitchResult.finalVideoUrl) {
+      console.log(`[FinalAssembly] Server MP4 stitch still processing; leaving project in stitching until webhook finalizes`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          checkpoints: { D: 'stitching_started' },
+          mode: 'server_stitching',
+          stitchPredictionId: stitchResult.stitchPredictionId,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const manifestUrl = stitchResult.manifestUrl || stitchResult.finalVideoUrl;
+    const finalVideoUrl = stitchResult.finalVideoUrl || manifestUrl;
     const hlsPlaylistUrl = stitchResult.hlsPlaylistUrl || null;
     const stitchedClipUrls = Array.isArray(stitchResult.clipUrls) ? stitchResult.clipUrls : clips?.map((clip) => clip.video_url).filter(Boolean) || [];
     const totalDuration = stitchResult.totalDuration || 0;
@@ -155,12 +170,15 @@ serve(async (req) => {
     const finalUpdate = {
       status: 'completed',
       pipeline_stage: 'completed', // Use 'completed' not 'complete' to match DB constraint
-      video_url: manifestUrl,
+      video_url: finalVideoUrl,
       pending_video_tasks: {
         stage: 'complete',
         progress: 100,
-        mode: 'manifest_playback',
+        mode: stitchResult.stitchedVideoUrl ? 'server_stitched_mp4' : 'single_clip',
+        stitchedVideoUrl: stitchResult.stitchedVideoUrl || null,
+        stitchPredictionId: stitchResult.stitchPredictionId || null,
         manifestUrl,
+        finalVideoUrl,
         hlsPlaylistUrl,
         mseClipUrls: stitchedClipUrls,
         clipCount: clipsProcessed,
@@ -211,6 +229,7 @@ serve(async (req) => {
           E: 'final_video_produced',
         },
         manifestUrl,
+        finalVideoUrl,
         clipsProcessed,
         totalDuration,
         processingTimeMs: Date.now() - startTime,

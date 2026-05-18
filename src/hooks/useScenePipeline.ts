@@ -428,6 +428,13 @@ export function useScenePipeline(
         headers: authHeaders,
       });
       if (error) {
+        const msg = String((error as any)?.message || "");
+        if (/non-2xx|edge function|timeout|timed out/i.test(msg)) {
+          patchScene(sceneId, { status: "generating", errorReason: undefined });
+          logEvent(sceneId, "dispatched", "Renderer may still be running — switching to database tracking", { detail: msg.slice(0, 240) });
+          pollClipRow(sceneId, projectId, scene.index);
+          return;
+        }
         // Renderer errored before consume_credit_hold ran — release the hold
         // so the user isn't billed.
         if (holdId) {

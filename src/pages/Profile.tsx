@@ -406,7 +406,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
 
   const lifetimeSpendUsd = ((profile?.total_credits_used || 0) * 0.10);
-  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + (profile?.credits_balance || 0)) * 0.10;
+  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + credits.balance) * 0.10;
   const serial = (user?.id || '').replace(/-/g, '').slice(0, 12).toUpperCase();
 
   const copyToClipboard = useCallback((value: string, label: string) => {

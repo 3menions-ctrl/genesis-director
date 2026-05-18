@@ -3,18 +3,116 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 /**
- * Simple Stitch Edge Function v7 - MANIFEST-ONLY MODE
- * 
- * Creates a playback manifest for client-side video concatenation.
- * Uses the browser-based SmartStitcherPlayer for seamless playback.
- * 
- * No external Cloud Run dependency - fully self-contained.
+ * Simple Stitch Edge Function v8 - SERVER-SIDE FFMPEG CONCAT (STANDARD)
+ *
+ * Standard behavior: produce a single seamless MP4 via Replicate FFmpeg
+ * (concat filter) and set it as the project's video_url. The HLS playlist
+ * and JSON manifest are still written as fallbacks for the player, but the
+ * primary playback source is the stitched MP4.
+ *
+ * If FFmpeg stitching fails or exceeds the inline polling budget, we fall
+ * back to the manifest URL so playback still works.
  */
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Replicate models reused from editor-stitch (kept in sync)
+const FFMPEG_MODEL_VERSION = "efd0b79b577bcd58ae7d035bce9de5c4659a59e09faafac4d426d61c04249251";
+const CONCAT_MODEL_VERSION = "03c0802dc63ff01bb16f967f9ce4d7a784cbb697e9e7a593dd5f08bb83807ced";
+
+/**
+ * Server-side FFmpeg concat via Replicate.
+ * Returns the temporary Replicate output URL, or null on failure / timeout.
+ * Inline polling budget ~90s — sufficient for typical 3-6 clip projects.
+ */
+async function stitchClipsServerSide(
+  clipUrls: string[],
+  projectId: string,
+  replicateKey: string,
+): Promise<{ outputUrl: string | null; predictionId: string | null; mode: string }> {
+  if (clipUrls.length < 2) {
+    return { outputUrl: clipUrls[0] || null, predictionId: null, mode: "single_clip" };
+  }
+
+  let predictionId: string | null = null;
+  let mode = "ffmpeg_concat";
+
+  try {
+    if (clipUrls.length <= 4) {
+      // cog-ffmpeg with concat filter — seamless, re-encoded, +faststart
+      const n = clipUrls.length;
+      const concatInputs = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join("");
+      const filter = `${concatInputs}concat=n=${n}:v=1:a=1[vout][aout]`;
+      const inputArgs = clipUrls.map((_, i) => `-i file${i + 1}`).join(" ");
+      const command = `ffmpeg ${inputArgs} -filter_complex "${filter}" -map "[vout]" -map "[aout]" -c:v libx264 -preset fast -crf 20 -c:a aac -b:a 192k -movflags +faststart output1`;
+
+      const input: Record<string, string> = {
+        command,
+        output1: `stitch_${projectId}.mp4`,
+      };
+      clipUrls.forEach((url, i) => { input[`file${i + 1}`] = url; });
+
+      const res = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ version: FFMPEG_MODEL_VERSION, input }),
+      });
+      if (!res.ok) {
+        console.error(`[SimpleStitch] FFmpeg submit failed: ${res.status} ${await res.text()}`);
+        return { outputUrl: null, predictionId: null, mode };
+      }
+      predictionId = (await res.json()).id;
+    } else {
+      // >4 clips: bfirsh/concatenate-videos (no transitions, simple concat)
+      mode = "concatenate_videos";
+      const res = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ version: CONCAT_MODEL_VERSION, input: { videos: clipUrls } }),
+      });
+      if (!res.ok) {
+        console.error(`[SimpleStitch] Concat submit failed: ${res.status} ${await res.text()}`);
+        return { outputUrl: null, predictionId: null, mode };
+      }
+      predictionId = (await res.json()).id;
+    }
+
+    console.log(`[SimpleStitch] Stitch prediction started: ${predictionId} (${mode})`);
+
+    // Inline polling: up to ~90s, every 3s
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 3000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: { Authorization: `Bearer ${replicateKey}` },
+      });
+      if (!pollRes.ok) continue;
+      const pred = await pollRes.json();
+      if (pred.status === "succeeded") {
+        const out = pred.output?.files || pred.output;
+        const url = Array.isArray(out) ? out[0] : out;
+        if (typeof url === "string" && url.startsWith("http")) {
+          console.log(`[SimpleStitch] ✅ Stitch succeeded: ${url}`);
+          return { outputUrl: url, predictionId, mode };
+        }
+        return { outputUrl: null, predictionId, mode };
+      }
+      if (pred.status === "failed" || pred.status === "canceled") {
+        console.error(`[SimpleStitch] Stitch ${pred.status}: ${pred.error || "no detail"}`);
+        return { outputUrl: null, predictionId, mode };
+      }
+    }
+
+    console.warn(`[SimpleStitch] Stitch poll timeout for ${predictionId}; will fall back to manifest`);
+    return { outputUrl: null, predictionId, mode };
+  } catch (err) {
+    console.error("[SimpleStitch] Stitch error:", err);
+    return { outputUrl: null, predictionId, mode };
+  }
+}
 
 interface SimpleStitchRequest {
   projectId: string;

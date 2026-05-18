@@ -1003,8 +1003,24 @@ export function EditorChrome({
           {/* Center — Player + Timeline */}
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
             {/* Player stage with cinematic letterbox feel */}
-            <div className="h-[42%] shrink-0 relative px-4 pt-4 pb-2.5 bg-background/40">
-              <div className="w-full h-full rounded-2xl overflow-hidden relative bg-black border border-border/60 shadow-[0_30px_80px_-24px_hsla(0,0%,0%,0.7)]">
+            <div className="h-[42%] shrink-0 relative px-4 pt-4 pb-2.5">
+              {/* ambient blue glow behind the player — floating, boundary-less */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-10 top-2 bottom-0 rounded-[28px] opacity-70"
+                style={{
+                  background:
+                    'radial-gradient(60% 80% at 50% 50%, hsla(215,100%,55%,0.18), transparent 70%)',
+                  filter: 'blur(40px)',
+                }}
+              />
+              <div
+                className="relative w-full h-full rounded-2xl overflow-hidden bg-black"
+                style={{
+                  boxShadow:
+                    '0 30px 80px -24px hsla(0,0%,0%,0.75), 0 0 0 1px hsla(0,0%,100%,0.05), 0 0 60px -10px hsla(215,100%,55%,0.18)',
+                }}
+              >
                 <VideoPreviewPlayer className="absolute inset-0" />
                 {/* Premium Timecode HUD — top-center floating chip */}
                 <PlayerTimecodeHUD
@@ -1020,7 +1036,7 @@ export function EditorChrome({
                 </div>
               </div>
             </div>
-            <div className="h-px bg-border/40 shrink-0" />
+            <div className="h-px shrink-0 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 

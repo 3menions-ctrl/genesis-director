@@ -70,20 +70,11 @@ const STEPS: Array<{ id: StepId; label: string; icon: LucideIcon }> = [
   { id: "clips", label: "Clips", icon: Clapperboard },
 ];
 
-function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
-  const scenes = Array.isArray(data?.scenes) ? data.scenes : [];
-  if (!scenes.length) {
-    return [0, 1, 2].map((_, index) => ({
-      ...newScene(index),
-      location: index === 0 ? "OPENING" : `SCENE ${index + 1}`,
-      beat: index === 0 ? draft.brief.logline : `${draft.brief.logline} — story beat ${index + 1}`,
-      speakerId: draft.cast[0]?.id,
-      refImageUrl: draft.brief.refImageUrl,
-      duration: draft.defaults.duration,
-    }));
-  }
+function makeScenesFromResponse(data: any, draft: StudioDraft, requestedCount?: number): SceneDraft[] {
+  const raw = Array.isArray(data?.scenes) ? data.scenes : [];
+  const target = Math.max(1, requestedCount ?? raw.length ?? 3);
 
-  return scenes.map((s: any, index: number) => ({
+  const fromRaw = raw.map((s: any, index: number) => ({
     ...newScene(index),
     location: s.location || s.heading || `SCENE ${index + 1}`,
     beat: s.beat || s.action || s.description || draft.brief.logline || "",
@@ -95,6 +86,26 @@ function makeScenesFromResponse(data: any, draft: StudioDraft): SceneDraft[] {
     refImageUrl: draft.brief.refImageUrl,
     engine: draft.defaults.engine,
   }));
+
+  // Truncate if backend returned too many.
+  const truncated = fromRaw.slice(0, target);
+
+  // Pad if backend returned too few (or none at all) — honor user's requested count.
+  while (truncated.length < target) {
+    const index = truncated.length;
+    truncated.push({
+      ...newScene(index),
+      location: index === 0 ? "OPENING" : `SCENE ${index + 1}`,
+      beat: index === 0 ? draft.brief.logline : `${draft.brief.logline || "Untitled"} — story beat ${index + 1}`,
+      speakerId: draft.cast[0]?.id,
+      refImageUrl: draft.brief.refImageUrl,
+      duration: draft.defaults.duration,
+      engine: draft.defaults.engine,
+    });
+  }
+
+  // Re-index in case of pad/truncate.
+  return truncated.map((s, index) => ({ ...s, index }));
 }
 
 function sceneCost(scene: SceneDraft, fallbackEngine: EngineId, qualityProfileId?: string): number {
@@ -477,7 +488,7 @@ export default function StudioShell() {
       });
       if (error) throw error;
 
-      const scenes = makeScenesFromResponse(data, draft);
+      const scenes = makeScenesFromResponse(data, draft, sceneCount);
       const nextDraft: StudioDraft = { ...draft, scenes, activeSceneId: scenes[0]?.id };
       setDraft(() => nextDraft);
       setStep(renderAfter ? "clips" : "script");

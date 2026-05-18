@@ -763,6 +763,8 @@ serve(async (req) => {
       await supabase.from('movie_projects').update({
         pending_video_tasks: {
           type: 'avatar_async',
+          mode: 'avatar',
+          generationMode: 'avatar',
           _generationLock: new Date().toISOString(),
           predictions: [{
             predictionId: klingPrediction.id,
@@ -780,6 +782,28 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq('id', projectId);
       console.log(`[AvatarDirect] ✅ Prediction registered in DB before full state save`);
+
+      // MODE-BASED ROUTING: also insert a durable video_clips row tagged with
+      // generation_mode='avatar' so the webhook and the UI can retrieve it
+      // through the same path as Seedance / scene clips.
+      try {
+        await supabase.from('video_clips').upsert({
+          project_id: projectId,
+          user_id: userId,
+          shot_index: 0,
+          prompt: clip1Data.segmentText?.slice(0, 2000) || script.slice(0, 2000),
+          duration_seconds: videoDuration,
+          status: 'processing',
+          replicate_prediction_id: klingPrediction.id,
+          veo_operation_name: klingPrediction.id,
+          video_engine: 'kling-v3',
+          engine: 'kling-v3',
+          generation_mode: 'avatar',
+          start_image_url: sharedAnimationStartImage,
+        }, { onConflict: 'project_id,shot_index' });
+      } catch (e) {
+        console.warn('[AvatarDirect] video_clips upsert (clip 0) non-fatal:', (e as Error).message);
+      }
     }
 
     // Build predictions array - clip 1 is processing, rest are pending

@@ -803,7 +803,10 @@ serve(async (req) => {
           duration_seconds: shot.durationSeconds ?? clipDuration,
           status: "processing",
           replicate_prediction_id: predictionId,
+          veo_operation_name: predictionId, // legacy lookup column
           video_engine: "seedance",
+          engine: "seedance",
+          generation_mode: "seedance",
           start_image_url: imageUrl,
           end_image_url: lastFrameImageUrl,
         });

@@ -290,6 +290,25 @@ Deno.serve(async (req) => {
 
     console.log(`[edit-photo] Completed in ${processingTime}ms for user ${auth.userId.slice(0, 8)}`);
 
+    // MEDIA LIBRARY: record edited image so users see it in history.
+    try {
+      const { recordUserMedia } = await import("../_shared/media-library.ts");
+      await recordUserMedia({
+        userId: auth.userId!,
+        mediaType: "image",
+        assetUrl: editedUrl,
+        source: "edit-photo",
+        engine: "lovable-ai-image-edit",
+        generationMode: "photo-edit",
+        prompt: typeof instruction === "string" ? instruction.slice(0, 2000) : null,
+        title: "Edited photo",
+        mimeType: "image/png",
+        metadata: { templateId: templateId ?? null, editId: editId ?? null, source_image: imageUrl },
+      }, supabase);
+    } catch (e) {
+      console.warn("[edit-photo] media library record failed (non-fatal):", (e as Error).message);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

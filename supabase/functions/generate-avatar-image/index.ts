@@ -269,6 +269,31 @@ serve(async (req) => {
 
     console.log("[Avatar Gen] Successfully generated avatar:", config.name);
 
+    // MEDIA LIBRARY: record every generated view so users see them in history.
+    try {
+      const { recordUserMediaBatch } = await import("../_shared/media-library.ts");
+      const items: Array<{ url: string; view: string }> = [{ url: frontImageUrl, view: "front" }];
+      if (sideImageUrl) items.push({ url: sideImageUrl, view: "side" });
+      if (backImageUrl) items.push({ url: backImageUrl, view: "back" });
+      await recordUserMediaBatch(
+        items.map((i) => ({
+          userId: auth.userId!,
+          mediaType: "image" as const,
+          assetUrl: i.url,
+          source: "generate-avatar-image",
+          engine: "lovable-ai-image",
+          generationMode: "avatar-image",
+          prompt: buildAvatarPrompt(config, i.view as any).slice(0, 2000),
+          title: `Avatar — ${config.name} (${i.view})`,
+          mimeType: "image/png",
+          metadata: { avatarName: config.name, view: i.view },
+        })),
+        supabase,
+      );
+    } catch (e) {
+      console.warn("[Avatar Gen] media library record failed (non-fatal):", (e as Error).message);
+    }
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

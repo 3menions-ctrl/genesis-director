@@ -5993,6 +5993,93 @@ export type Database = {
         }
         Relationships: []
       }
+      user_media_assets: {
+        Row: {
+          asset_url: string
+          created_at: string
+          duration_seconds: number | null
+          engine: string | null
+          file_size_bytes: number | null
+          generation_mode: string | null
+          height: number | null
+          id: string
+          is_archived: boolean
+          is_favorite: boolean
+          media_type: string
+          metadata: Json
+          mime_type: string | null
+          project_id: string | null
+          prompt: string | null
+          source: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          asset_url: string
+          created_at?: string
+          duration_seconds?: number | null
+          engine?: string | null
+          file_size_bytes?: number | null
+          generation_mode?: string | null
+          height?: number | null
+          id?: string
+          is_archived?: boolean
+          is_favorite?: boolean
+          media_type: string
+          metadata?: Json
+          mime_type?: string | null
+          project_id?: string | null
+          prompt?: string | null
+          source?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          asset_url?: string
+          created_at?: string
+          duration_seconds?: number | null
+          engine?: string | null
+          file_size_bytes?: number | null
+          generation_mode?: string | null
+          height?: number | null
+          id?: string
+          is_archived?: boolean
+          is_favorite?: boolean
+          media_type?: string
+          metadata?: Json
+          mime_type?: string | null
+          project_id?: string | null
+          prompt?: string | null
+          source?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_media_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_media_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_presence: {
         Row: {
           last_seen_at: string
@@ -7310,6 +7397,43 @@ export type Database = {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["universe_role"]
       }
+      get_user_media_library: {
+        Args: {
+          p_limit?: number
+          p_media_type?: string
+          p_offset?: number
+          p_project_id?: string
+        }
+        Returns: {
+          asset_url: string
+          created_at: string
+          duration_seconds: number | null
+          engine: string | null
+          file_size_bytes: number | null
+          generation_mode: string | null
+          height: number | null
+          id: string
+          is_archived: boolean
+          is_favorite: boolean
+          media_type: string
+          metadata: Json
+          mime_type: string | null
+          project_id: string | null
+          prompt: string | null
+          source: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          width: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_media_assets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_org_role: {
         Args: { p_org_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["org_role"]
@@ -7443,6 +7567,27 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_user_media: {
+        Args: {
+          p_asset_url: string
+          p_duration_seconds?: number
+          p_engine?: string
+          p_file_size_bytes?: number
+          p_generation_mode?: string
+          p_height?: number
+          p_media_type: string
+          p_metadata?: Json
+          p_mime_type?: string
+          p_project_id?: string
+          p_prompt?: string
+          p_source?: string
+          p_thumbnail_url?: string
+          p_title?: string
+          p_user_id: string
+          p_width?: number
+        }
+        Returns: string
       }
       redeem_referral_code: { Args: { p_code: string }; Returns: Json }
       refund_credits: {

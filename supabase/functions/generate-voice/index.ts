@@ -403,6 +403,27 @@ serve(async (req) => {
       }
     }
 
+    // MEDIA LIBRARY: record the generated audio so the user can browse it.
+    try {
+      const { recordUserMedia } = await import("../_shared/media-library.ts");
+      await recordUserMedia({
+        userId: auth.userId!,
+        mediaType: "audio",
+        assetUrl: result.audioUrl,
+        projectId: projectId ?? null,
+        source: "generate-voice",
+        engine: "minimax/speech-2.6-turbo",
+        generationMode: "voice",
+        prompt: typeof text === "string" ? text.slice(0, 2000) : null,
+        title: characterName ? `Voice — ${characterName}` : "Voice line",
+        durationSeconds: result.duration ? result.duration / 1000 : null,
+        mimeType: "audio/mpeg",
+        metadata: { voice: resolvedVoice, voiceSource, shotId: shotId ?? null },
+      }, supabase ?? undefined);
+    } catch (e) {
+      console.warn("[Voice] media library record failed (non-fatal):", (e as Error).message);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,

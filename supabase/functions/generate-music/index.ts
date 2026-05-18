@@ -683,6 +683,27 @@ serve(async (req) => {
           .update({ music_url: storedUrl })
           .eq('id', projectId);
       }
+
+      // MEDIA LIBRARY: durable record of the music asset.
+      try {
+        const { recordUserMedia } = await import("../_shared/media-library.ts");
+        await recordUserMedia({
+          userId: ownerId ?? auth.userId!,
+          mediaType: "audio",
+          assetUrl: finalUrl,
+          projectId: projectId,
+          source: "generate-music",
+          engine: "replicate-musicgen-stereo-large",
+          generationMode: "music",
+          prompt: finalPrompt.slice(0, 2000),
+          title: `Score — ${mood ?? "cinematic"}`,
+          durationSeconds: duration,
+          mimeType: "audio/mpeg",
+          metadata: { mood, genre, sceneType, intensity, referenceComposer },
+        }, supabase);
+      } catch (e) {
+        console.warn("[Music] media library record failed (non-fatal):", (e as Error).message);
+      }
       
       // Log cost
       try {

@@ -4,7 +4,7 @@ import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
   Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
-  Smile,
+  Smile, Library,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Library',
     items: [
       { label: 'Projects',  to: '/projects',  icon: Film,   hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
+      { label: 'Media',     to: '/media',     icon: Library, hue: 215, match: (p) => p === '/media' || p.startsWith('/media') },
       { label: 'Templates', to: '/templates', icon: Layers, hue: 215 },
     ],
   },

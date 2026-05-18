@@ -222,6 +222,25 @@ serve(async (req) => {
       
       await supabase.from('video_clips').update(clipUpdate).eq('id', clip.id);
       console.log(`[ReplicateWebhook] ✅ Clip ${clip.shot_index + 1} marked completed with stored URL`);
+
+      // MEDIA LIBRARY: durable record of the completed video clip.
+      try {
+        const { recordUserMedia } = await import("../_shared/media-library.ts");
+        await recordUserMedia({
+          userId: clip.user_id,
+          mediaType: "video",
+          assetUrl: storedVideoUrl,
+          projectId: clip.project_id,
+          source: "replicate-webhook",
+          engine: (clip as any).video_engine || (clip as any).engine || "replicate",
+          generationMode: (clip as any).generation_mode || "scene",
+          thumbnailUrl: lastFrameUrl || null,
+          durationSeconds: clip.duration_seconds || null,
+          title: `Clip ${clip.shot_index + 1}`,
+          mimeType: "video/mp4",
+          metadata: { predictionId, shotIndex: clip.shot_index },
+        }, supabase);
+      } catch (_) { /* non-fatal */ }
       
       // ═══════════════════════════════════════════════════════════════
       // STEP 3: Chain to continue-production for next clip
@@ -453,6 +472,24 @@ async function handleAvatarAsyncPrediction(
           })
           .eq('project_id', project.id)
           .eq('shot_index', predIndex);
+
+        // MEDIA LIBRARY: durable record for the avatar clip.
+        try {
+          const { recordUserMedia } = await import("../_shared/media-library.ts");
+          await recordUserMedia({
+            userId: project.user_id,
+            mediaType: "video",
+            assetUrl: storedUrl,
+            projectId: project.id,
+            source: "replicate-webhook",
+            engine: "kling-v3",
+            generationMode: "avatar",
+            durationSeconds: tasks.clipDuration || 10,
+            title: `Avatar clip ${predIndex + 1}`,
+            mimeType: "video/mp4",
+            metadata: { predictionId: prediction.id, clipIndex: predIndex },
+          }, supabase);
+        } catch (_) { /* non-fatal */ }
         
         // Save updated tasks
         await supabase.from('movie_projects').update({

@@ -37,7 +37,7 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const JWT_SECRET   = Deno.env.get("SUPABASE_JWT_SECRET")!;
+  const JWT_SECRET   = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("JWT_SECRET") || "";
 
   // 1) Validate JWT — reject anonymous callers.
   const authHeader = req.headers.get("Authorization") || "";
@@ -51,6 +51,7 @@ serve(async (req) => {
   };
   let jwtPayload: { sub?: string; role?: string; aud?: string | string[]; exp?: number };
   try {
+    if (!JWT_SECRET) throw new Error("missing_jwt_secret");
     const [headerPart, payloadPart, signaturePart] = token.split(".");
     if (!headerPart || !payloadPart || !signaturePart) throw new Error("malformed_jwt");
     const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);

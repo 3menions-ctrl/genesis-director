@@ -181,6 +181,24 @@ serve(async (req) => {
 
     console.log(`[FinalAssembly] ✅ Assembly complete in ${Date.now() - startTime}ms`);
 
+    // CREDIT RECONCILIATION: project succeeded — consume the hold (idempotent).
+    try {
+      const { consumePipelineCredits } = await import('../_shared/pipeline-credits.ts');
+      const consumed = await consumePipelineCredits({
+        supabase,
+        projectId,
+        description: 'Project completed (final-assembly)',
+        clipDuration: Math.round(totalDuration || 0) || null,
+      });
+      if (consumed.success) {
+        console.log(`[FinalAssembly] ✓ Credit hold consumed (reused=${consumed.reused})`);
+      } else {
+        console.warn(`[FinalAssembly] Credit hold consume non-fatal failure:`, consumed.error);
+      }
+    } catch (creditErr) {
+      console.warn('[FinalAssembly] consume credit hold threw (non-fatal):', creditErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

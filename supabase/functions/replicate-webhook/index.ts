@@ -73,11 +73,24 @@ serve(async (req) => {
     // STEP 1: Find the clip this prediction belongs to
     // We store predictionId in veo_operation_name column
     // ═══════════════════════════════════════════════════════════════
-    const { data: clip, error: clipError } = await supabase
+    // MODE-BASED ROUTING: look up by replicate_prediction_id first (new
+    // unified column populated by avatar/seedance/scene pipelines), then
+    // fall back to legacy veo_operation_name for older rows.
+    let { data: clip, error: clipError } = await supabase
       .from('video_clips')
-      .select('id, project_id, user_id, shot_index, status, duration_seconds')
-      .eq('veo_operation_name', predictionId)
+      .select('id, project_id, user_id, shot_index, status, duration_seconds, generation_mode, video_engine')
+      .eq('replicate_prediction_id', predictionId)
       .maybeSingle();
+
+    if (!clip) {
+      const legacy = await supabase
+        .from('video_clips')
+        .select('id, project_id, user_id, shot_index, status, duration_seconds, generation_mode, video_engine')
+        .eq('veo_operation_name', predictionId)
+        .maybeSingle();
+      clip = legacy.data as any;
+      clipError = legacy.error;
+    }
     
     if (clipError || !clip) {
       // Also check pending_video_tasks for avatar-async predictions

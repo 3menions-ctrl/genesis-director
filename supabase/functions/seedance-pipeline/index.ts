@@ -417,18 +417,21 @@ serve(async (req) => {
 
     // ═══ CREDIT CHECK + DEDUCT ═══
     if (!request.skipCreditDeduction && !isResuming) {
-      const { data: balanceRow } = await supabase
-        .from("profiles")
-        .select("credits_balance")
-        .eq("id", request.userId)
-        .maybeSingle();
-      const balance = balanceRow?.credits_balance ?? 0;
-      if (balance < totalCredits) {
+      const { data: creditState, error: creditStateError } = await supabase.rpc("get_credit_state", { p_user_id: request.userId });
+      const creditPayload = (creditState || {}) as any;
+      const availableCredits = Number(creditPayload.available || 0);
+      if (creditStateError || creditPayload.success !== true) {
+        return new Response(
+          JSON.stringify({ success: false, error: "CREDIT_STATE_FAILED" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (availableCredits < totalCredits) {
         return new Response(
           JSON.stringify({
             success: false,
             error: "INSUFFICIENT_CREDITS",
-            required: totalCredits, available: balance,
+            required: totalCredits, available: availableCredits,
           }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );

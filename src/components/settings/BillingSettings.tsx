@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -34,6 +35,7 @@ interface UsageStats {
 
 export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function BillingSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
+  const credits = useCredits();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
@@ -234,7 +236,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <div>
               <p className="text-sm text-white/50">Available Credits</p>
               <p className="text-4xl font-bold text-white">
-                {profile?.credits_balance?.toLocaleString() || 0}
+                {credits.available.toLocaleString()}
               </p>
             </div>
           </div>

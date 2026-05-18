@@ -225,14 +225,8 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
   isExtended: boolean;
   isVeo: boolean;
 } {
-  const isAvatar = videoEngine === 'kling';
-  const isSeedance = videoEngine === 'seedance';
-  const baseRate = isSeedance
-    ? CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP
-    : isAvatar ? CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
-  const extRate = isSeedance
-    ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
-    : isAvatar ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
+  const baseRate = calculateCreditsPerClip(CREDIT_SYSTEM.BASE_DURATION_THRESHOLD, 0, videoEngine);
+  const extRate = calculateCreditsPerClip(clipDuration > CREDIT_SYSTEM.BASE_DURATION_THRESHOLD ? clipDuration : 15, 0, videoEngine);
 
   let baseClipCount = 0;
   let extendedClipCount = 0;
@@ -257,7 +251,7 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
     creditsPerClipBase: baseRate,
     creditsPerClipExtended: extRate,
     isExtended: extendedClipCount > 0,
-    isVeo: !isAvatar,
+    isVeo: videoEngine === 'veo',
   };
 }
 

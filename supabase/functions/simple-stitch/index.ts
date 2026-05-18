@@ -473,16 +473,60 @@ serve(async (req) => {
 
     const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
 
+    // =========================================================================
+    // SERVER-SIDE FFMPEG STITCH (STANDARD) — produce single seamless MP4
+    // This is the primary playback source. Manifest/HLS remain as fallback.
+    // =========================================================================
+    let stitchedMp4Url: string | null = null;
+    let stitchPredictionId: string | null = null;
+    let stitchMode = "skipped";
+
+    const replicateKey = Deno.env.get("REPLICATE_API_KEY");
+    if (!replicateKey) {
+      console.warn("[SimpleStitch] REPLICATE_API_KEY missing — using manifest fallback only");
+    } else {
+      const stitchResult = await stitchClipsServerSide(
+        clipData.map(c => c.videoUrl),
+        projectId,
+        replicateKey,
+      );
+      stitchPredictionId = stitchResult.predictionId;
+      stitchMode = stitchResult.mode;
+
+      if (stitchResult.outputUrl) {
+        // Persist Replicate temp URL to permanent storage
+        try {
+          const persisted = await persistVideoToStorage(
+            supabase,
+            stitchResult.outputUrl,
+            projectId,
+            { prefix: `stitched_${projectId}_${timestamp}`, clipIndex: 0 }
+          );
+          stitchedMp4Url = persisted && persisted.startsWith("http") ? persisted : stitchResult.outputUrl;
+          console.log(`[SimpleStitch] ✅ Stitched MP4 persisted: ${stitchedMp4Url}`);
+        } catch (persistErr) {
+          console.error("[SimpleStitch] Stitched MP4 persistence failed:", persistErr);
+          stitchedMp4Url = stitchResult.outputUrl; // use temp URL rather than nothing
+        }
+      }
+    }
+
+    // Primary video_url: stitched MP4 if available, otherwise manifest URL (legacy player fallback)
+    const finalVideoUrl = stitchedMp4Url || manifestUrl;
+
     // Update project to completed
     await supabase
       .from('movie_projects')
       .update({
         status: 'completed',
-        video_url: manifestUrl,
+        video_url: finalVideoUrl,
       pending_video_tasks: {
           stage: 'complete',
           progress: 100,
-          mode: 'manifest_playback',
+          mode: stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback',
+          stitchedVideoUrl: stitchedMp4Url,
+          stitchPredictionId,
+          stitchMode,
           manifestUrl,
           hlsPlaylistUrl,
           // mseClipUrls for crossfade fallback and download merge - ORDERED by shot_index
@@ -495,13 +539,14 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
-    console.log(`[SimpleStitch] ✅ Manifest created: ${manifestUrl}`);
+    console.log(`[SimpleStitch] ✅ Done. video_url=${finalVideoUrl} (mode=${stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback'})`);
     
     return new Response(
       JSON.stringify({
         success: true,
-        mode: 'manifest_playback',
-        finalVideoUrl: manifestUrl,
+        mode: stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback',
+        finalVideoUrl,
+        stitchedVideoUrl: stitchedMp4Url,
         manifestUrl,
         hlsPlaylistUrl,
         clipUrls: clipData.map(c => c.videoUrl),

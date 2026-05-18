@@ -6058,12 +6058,14 @@ export type Database = {
           created_at: string
           debug_attempts: number | null
           duration_seconds: number | null
+          end_image_url: string | null
           engine: string | null
           error_message: string | null
           final_fps: number | null
           final_resolution: string | null
           frame_extraction_attempts: number | null
           frame_extraction_status: string | null
+          generation_mode: string | null
           id: string
           last_error_category: string | null
           last_frame_url: string | null
@@ -6072,12 +6074,15 @@ export type Database = {
           project_id: string
           prompt: string
           quality_score: number | null
+          replicate_prediction_id: string | null
           retry_count: number | null
           shot_index: number
+          start_image_url: string | null
           status: string
           updated_at: string
           user_id: string
           veo_operation_name: string | null
+          video_engine: string | null
           video_url: string | null
         }
         Insert: {
@@ -6088,12 +6093,14 @@ export type Database = {
           created_at?: string
           debug_attempts?: number | null
           duration_seconds?: number | null
+          end_image_url?: string | null
           engine?: string | null
           error_message?: string | null
           final_fps?: number | null
           final_resolution?: string | null
           frame_extraction_attempts?: number | null
           frame_extraction_status?: string | null
+          generation_mode?: string | null
           id?: string
           last_error_category?: string | null
           last_frame_url?: string | null
@@ -6102,12 +6109,15 @@ export type Database = {
           project_id: string
           prompt: string
           quality_score?: number | null
+          replicate_prediction_id?: string | null
           retry_count?: number | null
           shot_index: number
+          start_image_url?: string | null
           status?: string
           updated_at?: string
           user_id: string
           veo_operation_name?: string | null
+          video_engine?: string | null
           video_url?: string | null
         }
         Update: {
@@ -6118,12 +6128,14 @@ export type Database = {
           created_at?: string
           debug_attempts?: number | null
           duration_seconds?: number | null
+          end_image_url?: string | null
           engine?: string | null
           error_message?: string | null
           final_fps?: number | null
           final_resolution?: string | null
           frame_extraction_attempts?: number | null
           frame_extraction_status?: string | null
+          generation_mode?: string | null
           id?: string
           last_error_category?: string | null
           last_frame_url?: string | null
@@ -6132,12 +6144,15 @@ export type Database = {
           project_id?: string
           prompt?: string
           quality_score?: number | null
+          replicate_prediction_id?: string | null
           retry_count?: number | null
           shot_index?: number
+          start_image_url?: string | null
           status?: string
           updated_at?: string
           user_id?: string
           veo_operation_name?: string | null
+          video_engine?: string | null
           video_url?: string | null
         }
         Relationships: [

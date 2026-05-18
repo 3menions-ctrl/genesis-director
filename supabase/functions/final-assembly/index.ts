@@ -153,6 +153,7 @@ serve(async (req) => {
     }
 
     const manifestUrl = stitchResult.manifestUrl || stitchResult.finalVideoUrl;
+    const finalVideoUrl = stitchResult.finalVideoUrl || manifestUrl;
     const hlsPlaylistUrl = stitchResult.hlsPlaylistUrl || null;
     const stitchedClipUrls = Array.isArray(stitchResult.clipUrls) ? stitchResult.clipUrls : clips?.map((clip) => clip.video_url).filter(Boolean) || [];
     const totalDuration = stitchResult.totalDuration || 0;
@@ -169,7 +170,7 @@ serve(async (req) => {
     const finalUpdate = {
       status: 'completed',
       pipeline_stage: 'completed', // Use 'completed' not 'complete' to match DB constraint
-      video_url: manifestUrl,
+      video_url: finalVideoUrl,
       pending_video_tasks: {
         stage: 'complete',
         progress: 100,
@@ -177,6 +178,7 @@ serve(async (req) => {
         stitchedVideoUrl: stitchResult.stitchedVideoUrl || null,
         stitchPredictionId: stitchResult.stitchPredictionId || null,
         manifestUrl,
+        finalVideoUrl,
         hlsPlaylistUrl,
         mseClipUrls: stitchedClipUrls,
         clipCount: clipsProcessed,
@@ -227,6 +229,7 @@ serve(async (req) => {
           E: 'final_video_produced',
         },
         manifestUrl,
+        finalVideoUrl,
         clipsProcessed,
         totalDuration,
         processingTimeMs: Date.now() - startTime,

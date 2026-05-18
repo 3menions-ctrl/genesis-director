@@ -37,7 +37,6 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const JWT_SECRET   = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("JWT_SECRET") || "";
 
   // 1) Validate JWT — reject anonymous callers.
   const authHeader = req.headers.get("Authorization") || "";
@@ -45,36 +44,17 @@ serve(async (req) => {
     return json(401, { error: "missing_authorization" });
   }
   const token = authHeader.replace(/^bearer\s+/i, "").trim();
-  const decodeBase64Url = (value: string) => {
-    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-    return atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
-  };
-  let jwtPayload: { sub?: string; role?: string; aud?: string | string[]; exp?: number };
-  try {
-    if (!JWT_SECRET) throw new Error("missing_jwt_secret");
-    const [headerPart, payloadPart, signaturePart] = token.split(".");
-    if (!headerPart || !payloadPart || !signaturePart) throw new Error("malformed_jwt");
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-    const signature = Uint8Array.from(decodeBase64Url(signaturePart), (c) => c.charCodeAt(0));
-    const valid = await crypto.subtle.verify("HMAC", key, signature, new TextEncoder().encode(`${headerPart}.${payloadPart}`));
-    if (!valid) throw new Error("bad_signature");
-    jwtPayload = JSON.parse(decodeBase64Url(payloadPart));
-  } catch {
-    return json(401, { error: "invalid_token" });
-  }
-  if (!jwtPayload?.sub || jwtPayload.role !== "authenticated" || (jwtPayload.exp && jwtPayload.exp * 1000 < Date.now())) {
-    return json(401, { error: "invalid_token" });
-  }
-  const userId = jwtPayload.sub;
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: userRes, error: userErr } = await admin.auth.getUser(token);
+  if (userErr || !userRes?.user) return json(401, { error: "invalid_token" });
+  const userId = userRes.user.id;
 
   // 2) Parse + dispatch.
   let body: any;
   try { body = await req.json(); } catch { return json(400, { error: "bad_json" }); }
   const action = String(body?.action || "");
-
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   try {
     if (action === "state") {

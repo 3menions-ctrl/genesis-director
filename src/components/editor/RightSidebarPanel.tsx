@@ -40,40 +40,21 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
 
   return (
     <div
-      className="w-72 shrink-0 flex flex-col overflow-hidden relative"
-      style={{
-        background:
-          'linear-gradient(180deg, hsla(220, 14%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.55) 100%)',
-        backdropFilter: 'blur(48px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-        boxShadow:
-          'inset 1px 0 0 hsla(0,0%,100%,0.025), -24px 0 64px -28px hsla(0,0%,0%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.04)',
-      }}
+      className="w-72 shrink-0 flex flex-col overflow-hidden relative border-l border-border/40 bg-background/40 backdrop-blur-2xl"
     >
       {/* Panel section header */}
       <div
-        className="shrink-0 px-4 py-4 relative"
-        style={{
-          background: 'linear-gradient(180deg, hsla(215,100%,50%,0.045), transparent 80%)',
-        }}
+        className="shrink-0 px-5 py-5 relative border-b border-border/40"
       >
-        <div className="absolute bottom-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.16)] to-transparent" />
         <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            style={{
-              background: 'hsla(215,100%,60%,0.12)',
-              boxShadow:
-                'inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 18px -4px hsla(215,100%,55%,0.45)',
-            }}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: 'hsla(215,100%,80%,0.95)' }} />
+          <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center border border-border/60 bg-background/40">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-accent" strokeWidth={1.5} />
           </div>
           <div className="leading-tight min-w-0">
-            <span className="font-display text-[10.5px] font-light uppercase tracking-[0.22em] text-foreground/80 block truncate">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent block truncate">
               {meta.label}
             </span>
-            <span className="text-[9px] font-light text-muted-foreground/45 mt-1.5 block tracking-wide truncate">
+            <span className="font-display italic text-sm text-foreground mt-0.5 block truncate">
               {meta.sub}
             </span>
           </div>
@@ -82,14 +63,7 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
 
       {/* Top-level tab bar — glass pill rail */}
       <div
-        className="shrink-0 flex items-center mx-3 my-2.5 px-1 py-1 gap-0.5 rounded-full overflow-x-auto"
-        style={{
-          background: 'hsla(0,0%,100%,0.025)',
-          backdropFilter: 'blur(36px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(36px) saturate(180%)',
-          boxShadow:
-            'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 8px 32px -16px hsla(0,0%,0%,0.5)',
-        }}
+        className="shrink-0 flex items-center mx-3 my-3 px-1 py-1 gap-0.5 rounded-full overflow-x-auto border border-border/60 bg-background/40"
       >
         <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Tmpl" />
         <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Insp" badge={hasSelection} />

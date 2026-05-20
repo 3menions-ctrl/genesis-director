@@ -193,15 +193,7 @@ export function installChunkErrorInterceptor(): () => void {
   window.onerror = function(message, source, lineno, colno, error) {
     if (isChunkLoadError(error || message)) {
       console.debug('[ChunkRecovery] Intercepted chunk error:', message);
-      
-      // Attempt recovery
-      recoverFromChunkError(error || message).then(recovered => {
-        if (recovered) {
-          // If recovery succeeds, we might want to retry the failed operation
-          console.log('[ChunkRecovery] Suggesting page reload for chunk recovery');
-        }
-      });
-      
+      silentChunkReload();
       // Prevent default error handling to avoid crash
       return true;
     }
@@ -218,8 +210,7 @@ export function installChunkErrorInterceptor(): () => void {
     if (isChunkLoadError(event.reason)) {
       console.debug('[ChunkRecovery] Intercepted chunk rejection:', event.reason?.message);
       event.preventDefault();
-      
-      recoverFromChunkError(event.reason);
+      silentChunkReload();
     }
   };
   

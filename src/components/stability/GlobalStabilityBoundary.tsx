@@ -25,6 +25,9 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'ChunkLoadError',
   'Loading chunk',
   'Failed to fetch dynamically imported module',
+  'Importing a module script failed',
+  'error loading dynamically imported module',
+  'Unable to preload CSS',
   
   // AbortController errors - expected during navigation
   'AbortError',

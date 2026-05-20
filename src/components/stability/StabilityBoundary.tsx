@@ -16,7 +16,7 @@ import {
   ErrorCategory, 
   getRecoverySuggestion 
 } from '@/lib/stabilityMonitor';
-import { isChunkLoadError, recoverFromChunkError } from '@/lib/chunkLoadRecovery';
+import { isChunkLoadError, recoverFromChunkError, silentChunkReload } from '@/lib/chunkLoadRecovery';
 
 interface Props {
   children: ReactNode;
@@ -137,15 +137,9 @@ export class StabilityBoundary extends Component<Props, State> {
 
     // Chunk-load errors: trigger recovery (preload + reload) instead of showing UI
     if (isChunkLoadError(error)) {
+      // Silent, one-shot reload to fetch fresh chunk manifest. No error UI flash.
       this.setState({ hasError: false, error: null, isRetrying: false });
-      recoverFromChunkError(error).then((recovered) => {
-        if (!recovered) {
-          // Last-resort: full page reload so the user lands on the requested route cleanly
-          setTimeout(() => window.location.reload(), 250);
-        }
-      }).catch(() => {
-        setTimeout(() => window.location.reload(), 250);
-      });
+      silentChunkReload();
       return;
     }
 

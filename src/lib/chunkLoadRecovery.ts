@@ -35,6 +35,34 @@ const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
 const RECOVERY_COOLDOWN_MS = 5000;
 
+const RELOAD_GUARD_KEY = '__chunk_reload_ts';
+const RELOAD_GUARD_WINDOW_MS = 8000;
+
+/**
+ * Perform a single silent reload to recover from a stale chunk after deploy.
+ * Guards against reload loops via sessionStorage.
+ */
+export function silentChunkReload(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || '0');
+    const now = Date.now();
+    if (now - last < RELOAD_GUARD_WINDOW_MS) {
+      // Already reloaded recently — don't loop; let user proceed.
+      return false;
+    }
+    sessionStorage.setItem(RELOAD_GUARD_KEY, String(now));
+  } catch {
+    // ignore storage errors
+  }
+  // Use replace so back button isn't polluted
+  try {
+    window.location.replace(window.location.href);
+  } catch {
+    window.location.reload();
+  }
+  return true;
+}
+
 /**
  * Check if an error is a ChunkLoadError
  */
@@ -165,15 +193,7 @@ export function installChunkErrorInterceptor(): () => void {
   window.onerror = function(message, source, lineno, colno, error) {
     if (isChunkLoadError(error || message)) {
       console.debug('[ChunkRecovery] Intercepted chunk error:', message);
-      
-      // Attempt recovery
-      recoverFromChunkError(error || message).then(recovered => {
-        if (recovered) {
-          // If recovery succeeds, we might want to retry the failed operation
-          console.log('[ChunkRecovery] Suggesting page reload for chunk recovery');
-        }
-      });
-      
+      silentChunkReload();
       // Prevent default error handling to avoid crash
       return true;
     }
@@ -190,8 +210,7 @@ export function installChunkErrorInterceptor(): () => void {
     if (isChunkLoadError(event.reason)) {
       console.debug('[ChunkRecovery] Intercepted chunk rejection:', event.reason?.message);
       event.preventDefault();
-      
-      recoverFromChunkError(event.reason);
+      silentChunkReload();
     }
   };
   

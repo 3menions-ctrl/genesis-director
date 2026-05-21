@@ -8,6 +8,7 @@ import { Section, Field, CmdButton, DataInput, Pill } from '@/components/workspa
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 interface Member {
   id: string; user_id: string; role: OrgRole; joined_at: string;
@@ -39,6 +40,8 @@ export default function WorkspaceTeam() {
   const [inviting, setInviting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const canManage = hasPermission('admin');
+  const memberPage = usePagination(members, 20);
+  const invitePage = usePagination(invites, 20);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -165,7 +168,8 @@ export default function WorkspaceTeam() {
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">No members on roster.</p>
           ) : (
             <ul className="divide-y divide-[hsl(220,14%,12%)]">
-              {members.map((m, idx) => {
+              {memberPage.slice.map((m, sliceIdx) => {
+                const idx = (memberPage.page - 1) * memberPage.pageSize + sliceIdx;
                 const RoleIcon = ROLE_META[m.role].icon;
                 const isSelf = m.user_id === user?.id;
                 const canEdit = canManage && !isSelf;
@@ -228,6 +232,14 @@ export default function WorkspaceTeam() {
               })}
             </ul>
           )}
+          <ListPagination
+            page={memberPage.page}
+            totalPages={memberPage.totalPages}
+            total={memberPage.total}
+            pageSize={memberPage.pageSize}
+            onPageChange={memberPage.setPage}
+            label="members"
+          />
         </Section>
 
         {/* ── Pending invites ───────────────────────── */}
@@ -241,7 +253,7 @@ export default function WorkspaceTeam() {
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,8%,55%)] py-6 text-center">No pending invites.</p>
           ) : (
             <ul className="divide-y divide-[hsl(220,14%,12%)]">
-              {invites.map(inv => (
+              {invitePage.slice.map(inv => (
                 <li key={inv.id} className="flex items-center gap-4 px-2 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] text-[hsl(220,14%,92%)] truncate">{inv.email}</div>
@@ -267,6 +279,14 @@ export default function WorkspaceTeam() {
               ))}
             </ul>
           )}
+          <ListPagination
+            page={invitePage.page}
+            totalPages={invitePage.totalPages}
+            total={invitePage.total}
+            pageSize={invitePage.pageSize}
+            onPageChange={invitePage.setPage}
+            label="invites"
+          />
         </Section>
 
         {/* ── Role reference ────────────────────────── */}

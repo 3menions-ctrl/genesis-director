@@ -7,6 +7,7 @@ import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Surface, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 interface BrandAsset {
   id: string;
@@ -47,6 +48,7 @@ export default function WorkspaceAssets() {
   const [assets, setAssets] = useState<BrandAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const { slice, page, setPage, totalPages, total, pageSize } = usePagination(assets, 24);
 
   const load = useCallback(async () => {
     if (!currentOrg) return;
@@ -168,8 +170,9 @@ export default function WorkspaceAssets() {
               </p>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {assets.map(a => {
+              {slice.map(a => {
                 const meta = KIND_META[a.kind] ?? KIND_META.other;
                 const isImage = (a.mime_type ?? '').startsWith('image/');
                 return (
@@ -210,6 +213,8 @@ export default function WorkspaceAssets() {
                 );
               })}
             </div>
+            <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="assets" />
+            </>
           )}
         </section>
       </div>

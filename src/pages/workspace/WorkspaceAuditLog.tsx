@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill } from '@/components/workspace/command-ui';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 type LedgerKind = 'credit' | 'workspace';
 interface LedgerRow {
@@ -83,6 +84,7 @@ export default function WorkspaceAuditLog() {
   }, [currentOrg?.id]);
 
   const visible = filter === 'all' ? rows : rows.filter(r => r.kind === filter);
+  const { slice, page, setPage, totalPages, total, pageSize } = usePagination(visible, 25);
 
   return (
     <WorkspacePage
@@ -111,8 +113,9 @@ export default function WorkspaceAuditLog() {
             body="Audit events will appear here as members create projects, spend credits and manage the team."
           />
         ) : (
+          <>
           <ul className="divide-y divide-white/[0.05]">
-            {visible.slice(0, 200).map(e => (
+            {slice.map(e => (
               <li key={e.id} className="px-5 py-3 flex items-center gap-4">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 w-40 shrink-0">
                   {new Date(e.ts).toLocaleString()}
@@ -131,6 +134,10 @@ export default function WorkspaceAuditLog() {
               </li>
             ))}
           </ul>
+          <div className="px-5 pb-5">
+            <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="events" />
+          </div>
+          </>
         )}
       </Surface>
     </WorkspacePage>

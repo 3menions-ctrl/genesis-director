@@ -35,6 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -148,6 +149,7 @@ export function AdminProjectsBrowser() {
   const [projectClips, setProjectClips] = useState<ClipRecord[]>([]);
   const [clipsLoading, setClipsLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const { slice: pagedProjects, page, setPage, totalPages, total, pageSize } = usePagination(projects, 25);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -414,7 +416,7 @@ export function AdminProjectsBrowser() {
                 </tr>
               </thead>
               <tbody>
-                {projects.map((project) => (
+                {pagedProjects.map((project) => (
                   <tr
                     key={project.id}
                     className={cn(

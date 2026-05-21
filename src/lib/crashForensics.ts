@@ -373,20 +373,21 @@ function loadPersistedState(): void {
     if (!stored) return;
     
     const parsed = JSON.parse(stored);
-    
-    // Different session = reload occurred
+
+    // Different session = reload occurred. We previously recorded a 'reload'
+    // crashEvent here whenever checkpoints hadn't all passed in the prior
+    // session — but that fires for any HMR/dev reload, falsely accumulating
+    // crash events and tripping the CRASH_LOOP threshold permanently.
+    // Reloads alone are not crashes; the recordBoot() loop detector in the
+    // overlay handles true rapid-reload scenarios with a sliding window.
+    // Carry forward only the last few crashLoops, trimmed to the active window,
+    // so transient state doesn't poison subsequent sessions.
     if (parsed.sessionId !== forensicsState.sessionId) {
-      const previousCheckpoints = parsed.checkpoints || [];
-      const hadAllCheckpoints = previousCheckpoints.every((c: Checkpoint) => c.passed);
-      
-      if (!hadAllCheckpoints) {
-        logForensic('[RELOAD DETECTED] App crashed before all checkpoints passed', 'error');
-        recordCrashEvent('reload', { 
-          message: `Previous session failed at checkpoint: ${
-            previousCheckpoints.find((c: Checkpoint) => !c.passed)?.id || 'unknown'
-          }` 
-        });
-      }
+      const now = Date.now();
+      const carried = Array.isArray(parsed.crashLoops) ? parsed.crashLoops : [];
+      forensicsState.crashLoops = carried.filter(
+        (e: CrashLoopEvent) => e && typeof e.timestamp === 'number' && now - e.timestamp < CRASH_LOOP_WINDOW_MS
+      );
     }
   } catch {
     // Invalid stored data

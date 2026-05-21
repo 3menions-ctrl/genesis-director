@@ -66,7 +66,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (err) {
-      console.error('[WorkspaceContext] Failed to load orgs:', err);
+      // Silent for transient network / abort errors so it doesn't get
+      // recorded as a global error event by crashForensics. Real schema
+      // errors still surface via toasts where the caller acts on them.
+      const msg = (err as any)?.message ?? String(err);
+      const isTransient = /Load failed|Failed to fetch|NetworkError|aborted|AbortError|timeout/i.test(msg);
+      if (isTransient) {
+        console.debug('[WorkspaceContext] Transient org load error suppressed:', msg);
+      } else {
+        console.warn('[WorkspaceContext] Failed to load orgs:', err);
+      }
     } finally {
       setLoading(false);
     }

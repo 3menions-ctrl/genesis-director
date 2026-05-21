@@ -12,7 +12,7 @@
  * - Reload loop detection
  */
 
-import { useState, useEffect, useCallback, memo, forwardRef } from 'react';
+import { useState, useEffect, useCallback, memo, forwardRef, useRef } from 'react';
 import { X, AlertTriangle, CheckCircle2, XCircle, Activity, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { crashForensics, getOverlayData, type Checkpoint } from '@/lib/crashForensics';
@@ -27,8 +27,11 @@ interface CrashForensicsOverlayProps {
 
 // Boot tracking for reload loop detection
 const BOOT_KEY = 'crash_forensics_boot_times';
-const BOOT_WINDOW_MS = 10000; // 10 seconds
-const BOOT_THRESHOLD = 3; // 3 boots in 10 seconds = crash loop
+// Aligned with crashForensics CRASH_LOOP_WINDOW_MS / THRESHOLD so that dev
+// HMR + React StrictMode double-mounts + a normal refresh don't trip a
+// false "CRASH LOOP DETECTED" badge. A true loop is 5+ full boots in 15s.
+const BOOT_WINDOW_MS = 15000;
+const BOOT_THRESHOLD = 5;
 
 function recordBoot(): { isLoop: boolean; count: number } {
   const now = Date.now();
@@ -67,16 +70,16 @@ function clearBootTracking(): void {
   } catch {}
 }
 
-// Check boot status on module load
-const bootStatus = typeof window !== 'undefined' ? recordBoot() : { isLoop: false, count: 0 };
+// Check boot status on module load (one-time snapshot — overlay also keeps
+// a reactive copy in state so the badge can clear once the app stabilizes).
+const initialBootStatus = typeof window !== 'undefined' ? recordBoot() : { isLoop: false, count: 0 };
 
-// If reload loop detected and not already in safe mode, set safe mode WITHOUT reload
-// CRITICAL: Using skipReload=true prevents infinite reload loops where the 
-// crash detection itself causes more crashes
-if (bootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') {
-  console.error('[CrashForensics] RELOAD LOOP DETECTED - enabling safe mode (no reload)');
-  // Set safe mode flag but DON'T reload - let this render complete in safe mode
-  autoEnableSafeMode(`Reload loop detected: ${bootStatus.count} boots in 10 seconds`, true);
+// Only auto-enable safe mode for a TRUE catastrophic boot loop (well above
+// dev-mode HMR / StrictMode noise). Use console.warn (not error) so a
+// surfaced banner doesn't itself feed the global error tracker.
+if (initialBootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') {
+  console.warn('[CrashForensics] Reload loop suspected - enabling safe mode (no reload)');
+  autoEnableSafeMode(`Reload loop detected: ${initialBootStatus.count} boots in ${BOOT_WINDOW_MS / 1000}s`, true);
 }
 
 export const CrashForensicsOverlay = memo(forwardRef<HTMLDivElement, CrashForensicsOverlayProps>(
@@ -84,6 +87,7 @@ export const CrashForensicsOverlay = memo(forwardRef<HTMLDivElement, CrashForens
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState(getOverlayData);
+  const [bootStatus, setBootStatus] = useState(initialBootStatus);
   const isSafeMode = getSafeModeStatus();
   
   // ADMIN ONLY: Only show to admin users (safe mode is the exception for recovery)
@@ -112,19 +116,18 @@ export const CrashForensicsOverlay = memo(forwardRef<HTMLDivElement, CrashForens
     if ((crashForensics.isCrashLoop() || isSafeMode || bootStatus.isLoop) && isEnabled) {
       setIsOpen(true);
     }
-  }, [isEnabled, isSafeMode]);
+  }, [isEnabled, isSafeMode, bootStatus.isLoop]);
   
-  // Clear boot tracking after app stabilizes (all checkpoints passed)
+  // Clear boot tracking once the app has been alive long enough to count as
+  // stable. Being able to render this overlay at all means we successfully
+  // booted — there's no point holding onto historical boot timestamps that
+  // make the badge falsely pulse red forever.
   useEffect(() => {
-    const checkStability = () => {
-      if (crashForensics.allCheckpointsPassed()) {
-        clearBootTracking();
-      }
-    };
-    
-    // Check after a delay to ensure we've truly stabilized
-    const timer = setTimeout(checkStability, 5000);
-    return () => clearTimeout(timer);
+    const stabilizeTimer = setTimeout(() => {
+      clearBootTracking();
+      setBootStatus({ isLoop: false, count: 0 });
+    }, 4000);
+    return () => clearTimeout(stabilizeTimer);
   }, []);
   
   if (!isEnabled) return null;

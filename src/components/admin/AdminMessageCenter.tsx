@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { AdminEmptyState } from '@/refine/components/AdminPageShell';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 interface SupportMessage {
   id: string;
@@ -217,6 +218,7 @@ export function AdminMessageCenter() {
       msg.message.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+  const { slice: pagedMessages, page, setPage, totalPages, total, pageSize } = usePagination(filteredMessages, 25);
 
   // Count by status
   const statusCounts = {
@@ -334,8 +336,9 @@ export function AdminMessageCenter() {
                 hint="No inbound threads match this filter. New messages stream in here the moment they're submitted from any surface."
               />
             ) : (
+              <>
               <div className="divide-y divide-border">
-                {filteredMessages.map((msg) => (
+                {pagedMessages.map((msg) => (
                   <button
                     key={msg.id}
                     className={cn(
@@ -398,6 +401,10 @@ export function AdminMessageCenter() {
                   </button>
                 ))}
               </div>
+              <div className="px-3 pb-3">
+                <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="messages" />
+              </div>
+              </>
             )}
           </ScrollArea>
         </Card>

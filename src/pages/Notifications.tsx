@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const ICONS: Record<NotificationType, typeof Bell> = {
@@ -110,16 +111,17 @@ export default function NotificationsPage() {
     () => (notifications ?? []).filter((n) => classifyFilter(n, filter)),
     [notifications, filter],
   );
+  const { slice: pagedFiltered, page, setPage, totalPages, total, pageSize } = usePagination(filtered, 25);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Notification[]>();
-    for (const n of filtered) {
+    for (const n of pagedFiltered) {
       const k = dayLabel(new Date(n.created_at));
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(n);
     }
     return Array.from(map.entries());
-  }, [filtered]);
+  }, [pagedFiltered]);
 
   const open = (n: Notification) => {
     if (!n.read) markAsRead.mutate(n.id);
@@ -231,6 +233,7 @@ export default function NotificationsPage() {
             <p className="text-[13px] text-muted-foreground mt-1">No notifications match this filter yet.</p>
           </div>
         ) : (
+          <>
           <div className="space-y-8">
             {grouped.map(([day, items]) => (
               <section key={day}>
@@ -303,6 +306,8 @@ export default function NotificationsPage() {
               </section>
             ))}
           </div>
+          <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="notifications" />
+          </>
         )}
       </main>
     </div>

@@ -5,6 +5,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill, CmdButton } from '@/components/workspace/command-ui';
+import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 interface OrgProject {
   id: string;
@@ -19,6 +20,7 @@ export default function WorkspaceProjects() {
   const { currentOrg } = useWorkspace();
   const [rows, setRows] = useState<OrgProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const { slice, page, setPage, totalPages, total, pageSize } = usePagination(rows, 25);
 
   useEffect(() => {
     if (!currentOrg) return;
@@ -67,8 +69,9 @@ export default function WorkspaceProjects() {
             action={<Link to="/workspace/create"><CmdButton><Plus className="w-3 h-3" /> Start a project</CmdButton></Link>}
           />
         ) : (
+          <>
           <ul className="divide-y divide-[hsl(220,14%,12%)]">
-            {rows.map((p) => (
+            {slice.map((p) => (
               <li key={p.id} className="px-5 py-3 flex items-center gap-4 hover:bg-[hsl(220,14%,6%)] transition-colors">
                 <div className="w-12 h-12 bg-[hsl(220,14%,8%)] border border-[hsl(220,14%,14%)] overflow-hidden shrink-0">
                   {p.thumbnail_url
@@ -87,6 +90,10 @@ export default function WorkspaceProjects() {
               </li>
             ))}
           </ul>
+          <div className="px-5 pb-5">
+            <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="projects" />
+          </div>
+          </>
         )}
       </Surface>
     </WorkspacePage>

@@ -401,6 +401,10 @@ export function AdminMessageCenter() {
                   </button>
                 ))}
               </div>
+              <div className="px-3 pb-3">
+                <ListPagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} label="messages" />
+              </div>
+              </>
             )}
           </ScrollArea>
         </Card>

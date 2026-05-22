@@ -797,7 +797,15 @@ export default function StartOnboarding() {
                       ))}
                     </div>
                     {errors.otp && <p className="text-[11px] text-rose-400 text-center">{errors.otp}</p>}
-                    <div className="text-center">
+                    <div className="text-center space-y-3">
+                      <div className="flex items-start gap-2 text-left rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5 max-w-sm mx-auto">
+                        <Mail className="w-3.5 h-3.5 text-[#9DCBFF] mt-0.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-[11px] text-white/60 leading-relaxed">
+                            Codes arrive in under a minute. If you don't see it, check your <span className="text-white/80 font-medium">Spam</span> or <span className="text-white/80 font-medium">Promotions</span> folder.
+                          </p>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         disabled={resending}

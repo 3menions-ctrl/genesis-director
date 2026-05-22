@@ -603,9 +603,19 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             <span className="text-[11px] tracking-wide text-white/65">End-to-end secure</span>
                           </div>
                           
-                          <p className="text-white/35 text-[12px] mb-6 leading-relaxed max-w-[280px] mx-auto">
-                            Enter the code from your email to verify your account.
-                          </p>
+                          <div className="space-y-2 mb-6 max-w-[320px] mx-auto">
+                            <p className="text-white/35 text-[12px] leading-relaxed">
+                              Enter the code from your email to verify your account.
+                            </p>
+                            <div className="flex items-start gap-2 text-left rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
+                              <Mail className="w-3.5 h-3.5 text-[hsl(212,100%,62%)] mt-0.5 shrink-0" />
+                              <div className="space-y-1">
+                                <p className="text-[11px] text-white/60 leading-relaxed">
+                                  Codes arrive in under a minute. If you don't see it, check your <span className="text-white/80 font-medium">Spam</span> or <span className="text-white/80 font-medium">Promotions</span> folder.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </motion.div>
                         
                         <div className="space-y-3">

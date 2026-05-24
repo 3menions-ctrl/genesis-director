@@ -1,36 +1,73 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
-import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+/** Database health — live row counts across key tables. */
+import { useEffect, useState } from "react";
+import { Database, RefreshCw } from "lucide-react";
+import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+
+const TABLES = [
+  "profiles",
+  "movie_projects",
+  "video_clips",
+  "api_cost_logs",
+  "credit_transactions",
+  "admin_audit_log",
+  "support_messages",
+  "gallery_showcase",
+  "credit_packages",
+  "subscriptions",
+] as const;
 
 export default function AdminDbHealthPage() {
+  const [counts, setCounts] = useState<Record<string, number | null>>({});
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      setLoading(true);
+      const next: Record<string, number | null> = {};
+      await Promise.all(TABLES.map(async (t) => {
+        const { count, error } = await supabase.from(t as any).select("*", { count: "exact", head: true });
+        next[t] = error ? null : (count ?? 0);
+      }));
+      if (!on) return;
+      setCounts(next);
+      setLoading(false);
+    })();
+    return () => { on = false; };
+  }, [reload]);
+
+  const total = Object.values(counts).reduce<number>((s, v) => s + (v ?? 0), 0);
+
   return (
     <AdminPageShell
-      eyebrow="05 // SYSTEM"
+      eyebrow="06 // SYSTEM"
       code="DB"
       title="Database"
       italic="Health."
-      description="Slow query log, RLS coverage report, migration history, and dead tuple monitor."
+      description="Live row counts across critical tables — quick read on data volume and accessibility."
+      stats={[
+        { label: "Tables Probed", value: TABLES.length, tone: "blue" },
+        { label: "Total Rows", value: total.toLocaleString(), tone: "emerald" },
+        { label: "Errored", value: Object.values(counts).filter(v => v === null).length, tone: "rose" },
+      ]}
+      actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
     >
-      <AdminConsoleScaffold
-        intro="The vital-signs panel for the database — slow queries, missing RLS, bloated tables, all in one rail."
-        status="scoped"
-        signals={[
-        { label: "Connections", value: "—", tone: "blue" },
-        { label: "Slow Queries", value: "—", tone: "amber" },
-        { label: "RLS Coverage", value: "—", tone: "emerald", trend: "%" },
-        { label: "Dead Tuples", value: "—", tone: "rose" },
-        ]}
-        capabilities={[
-    { icon: Database, title: "Slow Query Log", description: "Top-N queries by p99 latency.", status: "queued" },
-    { icon: ShieldCheck, title: "RLS Coverage", description: "Tables missing or with permissive policies.", status: "manual" },
-    { icon: GitCommit, title: "Migration History", description: "Every migration with rollback preview.", status: "manual" },
-    { icon: Trash2, title: "Dead Tuple Monitor", description: "Tables overdue for VACUUM with bloat ratio.", status: "manual" },
-    { icon: Activity, title: "Connection Pool", description: "Live connection map with idle timeouts.", status: "manual" },
-    { icon: FlaskConical, title: "EXPLAIN Helper", description: "Paste a query, see the plan and indexes.", status: "manual" },
-        ]}
-      primaryCta={{ label: "Run health scan" }}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {TABLES.map(t => (
+          <AdminSurface key={t} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="w-4 h-4 text-[#6FB6FF]" />
+              <span className="text-white/80 font-mono text-[12px]">{t}</span>
+            </div>
+            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`} style={{ fontFamily: "'Fraunces', serif" }}>
+              {counts[t] === null ? "ERR" : (counts[t] ?? "—").toLocaleString()}
+            </div>
+          </AdminSurface>
+        ))}
+      </div>
     </AdminPageShell>
   );
 }

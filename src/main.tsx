@@ -9,7 +9,6 @@ import "./i18n";
 import { installConsoleShield } from "./lib/consoleShield";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
-import { crashForensics } from "./lib/crashForensics";
 // Initialize cross-browser compatibility layer
 import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
 // ChunkLoadError recovery system
@@ -276,24 +275,17 @@ if ("serviceWorker" in navigator) {
 
 // Initialize diagnostics in development mode
 let cleanupDiagnostics: (() => void) | null = null;
-let cleanupForensics: (() => void) | null = null;
-
-// ALWAYS initialize crash forensics (even in production for Safe Mode)
-cleanupForensics = crashForensics.init();
 
 if (process.env.NODE_ENV === 'development') {
   cleanupDiagnostics = initializeDiagnostics();
   setStateSnapshotProvider(getCurrentSnapshot);
 }
 
-// Clean up diagnostics, forensics, chunk recovery, and console shield on HMR
+// Clean up diagnostics, chunk recovery, and console shield on HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     if (cleanupDiagnostics) {
       cleanupDiagnostics();
-    }
-    if (cleanupForensics) {
-      cleanupForensics();
     }
     if (cleanupChunkRecovery) {
       cleanupChunkRecovery();

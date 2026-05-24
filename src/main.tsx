@@ -9,7 +9,6 @@ import "./i18n";
 import { installConsoleShield } from "./lib/consoleShield";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
-import { crashForensics } from "./lib/crashForensics";
 // Initialize cross-browser compatibility layer
 import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
 // ChunkLoadError recovery system

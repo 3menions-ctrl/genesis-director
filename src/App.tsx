@@ -20,7 +20,7 @@ import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
-import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
+
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
@@ -699,7 +699,7 @@ const App = () => {
                 } />
                 </Routes>
                 {/* Diagnostics - Admin console only */}
-                <AdminOnlyDiagnostics />
+                
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
                 {/* Command Palette (Cmd+K) */}

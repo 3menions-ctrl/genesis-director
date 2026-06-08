@@ -77,10 +77,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Always namespace paths under the owning user's folder.
+    // Namespace caller-supplied paths under the owning user's folder. Service-role
+    // callers (internal pipelines) keep their legacy flat path for backwards compat.
     const baseName = filename ? filename.replace(/^.*[\\/]/, '') : `stitched_${projectId}_${Date.now()}.mp4`;
     const finalFilename = baseName;
-    const filePath = `${userFolder}/${projectId}/${baseName}`;
+    const filePath = auth.isServiceRole
+      ? baseName
+      : `${userFolder}/${projectId}/${baseName}`;
 
     console.log(`[GenerateUploadUrl] Signed URL request bucket=${bucket} path=${filePath} user=${authenticatedUserId || 'service-role'}`);
 

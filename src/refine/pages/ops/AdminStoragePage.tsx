@@ -1,36 +1,101 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
-import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+/** Storage — per-bucket object count + total bytes via admin_storage_overview RPC. */
+import { useEffect, useMemo, useState } from "react";
+import { Folder, Lock, RefreshCw, Unlock } from "lucide-react";
+import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type Row = {
+  bucket_id: string;
+  is_public: boolean;
+  file_size_limit: number | null;
+  object_count: number;
+  total_bytes: number;
+  latest_upload: string | null;
+};
+
+function bytes(n: number): string {
+  if (!n) return "0 B";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0; let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v < 10 ? 2 : 1)} ${u[i]}`;
+}
 
 export default function AdminStoragePage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("admin_storage_overview");
+    if (error) toast.error(error.message);
+    else setRows((data as Row[]) || []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  const totalBytes = useMemo(() => rows.reduce((s, r) => s + Number(r.total_bytes || 0), 0), [rows]);
+  const totalObjects = useMemo(() => rows.reduce((s, r) => s + Number(r.object_count || 0), 0), [rows]);
+  const publicCount = useMemo(() => rows.filter(r => r.is_public).length, [rows]);
+  // Approx Supabase storage cost: ~$0.021 / GB / month
+  const estCost = totalBytes / 1024 / 1024 / 1024 * 0.021;
+
   return (
     <AdminPageShell
       eyebrow="04 // CONTENT"
       code="STG"
       title="Asset"
       italic="Storage."
-      description="Bucket browser, usage telemetry, orphan scanner, and bulk purge."
+      description="Per-bucket object inventory, size telemetry, and access posture."
+      stats={[
+        { label: "Total", value: bytes(totalBytes), tone: "blue" },
+        { label: "Objects", value: totalObjects.toLocaleString(), tone: "neutral" },
+        { label: "Public Buckets", value: `${publicCount} / ${rows.length}`, tone: publicCount > 0 ? "amber" : "emerald" },
+        { label: "Est. Cost / mo", value: `$${estCost.toFixed(2)}`, tone: "emerald" },
+      ]}
+      actions={
+        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </Button>
+      }
     >
-      <AdminConsoleScaffold
-        intro="Every byte of generated media — visible, attributable, and purgeable when it overstays."
-        status="scoped"
-        signals={[
-        { label: "Total Storage", value: "—", tone: "blue", trend: "GB" },
-        { label: "Buckets", value: "—", tone: "neutral" },
-        { label: "Orphans", value: "—", tone: "rose" },
-        { label: "Cost / mo", value: "—", tone: "amber" },
-        ]}
-        capabilities={[
-    { icon: Folder, title: "Bucket Browser", description: "Drill into every Supabase storage bucket.", status: "queued" },
-    { icon: Search, title: "Orphan Scanner", description: "Detect files with no DB row reference.", status: "manual" },
-    { icon: Trash2, title: "Bulk Purge", description: "Delete orphans with double-confirm + audit.", status: "manual" },
-    { icon: FileBarChart, title: "Per-User Usage", description: "Top consumers by tier and project.", status: "manual" },
-    { icon: DollarSign, title: "Cost Estimator", description: "Monthly storage cost projection.", status: "manual" },
-    { icon: Lock, title: "Policy Editor", description: "Tune RLS on each bucket with diff preview.", status: "manual" },
-        ]}
-      primaryCta={{ label: "Scan for orphans" }}
-      />
+      <AdminSurface className="p-0 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+                <th className="text-left px-4 py-3">Bucket</th>
+                <th className="text-left px-4 py-3">Access</th>
+                <th className="text-right px-4 py-3">Objects</th>
+                <th className="text-right px-4 py-3">Size</th>
+                <th className="text-right px-4 py-3">File Limit</th>
+                <th className="text-left px-4 py-3 pl-8">Last Upload</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No buckets.</td></tr>}
+              {rows.map((r) => (
+                <tr key={r.bucket_id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 text-white/90 font-mono text-[12px]"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
+                      {r.is_public ? <><Unlock className="w-3 h-3 mr-1" />public</> : <><Lock className="w-3 h-3 mr-1" />private</>}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{Number(r.object_count).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-[#6FB6FF] font-mono tabular-nums text-[12px]">{bytes(Number(r.total_bytes))}</td>
+                  <td className="px-4 py-3 text-right text-white/40 font-mono text-[11px]">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</td>
+                  <td className="px-4 py-3 pl-8 text-white/40 font-mono text-[11px] whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminSurface>
     </AdminPageShell>
   );
 }

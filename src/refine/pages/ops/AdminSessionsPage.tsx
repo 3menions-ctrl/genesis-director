@@ -62,7 +62,7 @@ export default function AdminSessionsPage() {
 
   async function killOne(userId: string) {
     if (!confirm("Force-revoke this user's sessions?")) return;
-    const { error } = await supabase.rpc("admin_force_logout_user", { p_user_id: userId });
+    const { error } = await supabase.rpc("admin_force_logout_user", { p_target_user_id: userId });
     if (error) toast.error(error.message);
     else { toast.success("User signed out"); load(); }
   }

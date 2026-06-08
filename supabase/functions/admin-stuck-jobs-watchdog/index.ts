@@ -5,8 +5,15 @@
  * verify_jwt = false — only invoked by pg_cron via service-role.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireCronSecret } from "../_shared/auth-guard.ts";
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (!requireCronSecret(req)) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

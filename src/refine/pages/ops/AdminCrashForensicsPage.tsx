@@ -118,7 +118,7 @@ export default function AdminCrashForensicsPage() {
                     <tr key={i} className="border-b border-white/[0.04]">
                       <td className="px-6 py-2 text-white/50 font-mono text-[10px] whitespace-nowrap">{new Date(s.timestamp).toLocaleTimeString()}</td>
                       <td className="px-6 py-2 text-white/70 font-mono text-[11px]">{s.category}</td>
-                      <td className="px-6 py-2 text-white/60 font-mono text-[11px]">{s.context || "—"}</td>
+                      <td className="px-6 py-2 text-white/60 font-mono text-[11px]">{s.componentName || s.route || "—"}</td>
                       <td className="px-6 py-2 text-white/80 font-mono text-[11px] truncate max-w-[520px]">{s.message}</td>
                     </tr>
                   ))}

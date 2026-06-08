@@ -7092,6 +7092,21 @@ export type Database = {
           template_name: string
         }[]
       }
+      admin_list_onboarding_intents: {
+        Args: { p_limit?: number }
+        Returns: {
+          account_type: string
+          consumed_at: string
+          consumed_by_user_id: string
+          contact_email: string
+          created_at: string
+          id: string
+          monthly_volume: string
+          primary_use_case: string
+          selected_plan_id: string
+          selected_plan_kind: string
+        }[]
+      }
       admin_list_projects: {
         Args: {
           p_limit?: number
@@ -7128,6 +7143,33 @@ export type Database = {
           user_id: string
           user_name: string
           video_url: string
+        }[]
+      }
+      admin_list_referrals: {
+        Args: { p_limit?: number }
+        Returns: {
+          code: string
+          code_id: string
+          created_at: string
+          credited_redemptions: number
+          pending_redemptions: number
+          referrer_email: string
+          referrer_id: string
+          total_redemptions: number
+        }[]
+      }
+      admin_list_sessions: {
+        Args: { p_limit?: number }
+        Returns: {
+          account_tier: string
+          confirmed_at: string
+          created_at: string
+          display_name: string
+          email: string
+          is_active_24h: boolean
+          is_idle_24h: boolean
+          last_sign_in_at: string
+          user_id: string
         }[]
       }
       admin_list_users: {
@@ -7170,6 +7212,17 @@ export type Database = {
       admin_moderate_content: {
         Args: { p_action: string; p_project_id: string; p_reason?: string }
         Returns: Json
+      }
+      admin_storage_overview: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          file_size_limit: number
+          is_public: boolean
+          latest_upload: string
+          object_count: number
+          total_bytes: number
+        }[]
       }
       admin_suspend_account: {
         Args: { p_reason: string; p_target_user: string }

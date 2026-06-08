@@ -39,15 +39,53 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[GenerateUploadUrl] Creating signed URL for project ${projectId}, user: ${authenticatedUserId || 'service-role'}`);
+    // Allowlist of buckets callers may write to via this endpoint.
+    const ALLOWED_BUCKETS = new Set(['final-videos', 'video-clips', 'videos', 'thumbnails']);
+    if (!ALLOWED_BUCKETS.has(bucket)) {
+      return new Response(
+        JSON.stringify({ error: 'Bucket not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Reject path traversal / absolute paths in any caller-supplied filename.
+    if (filename && (filename.includes('..') || filename.startsWith('/'))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid filename' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
 
-    // Generate unique filename
-    const finalFilename = filename || `stitched_${projectId}_${Date.now()}.mp4`;
-    const filePath = finalFilename;
+    // For end-user JWT calls, verify the project belongs to them and scope the
+    // path to their own user folder so they can never overwrite another user's files.
+    let userFolder = authenticatedUserId;
+    if (!auth.isServiceRole) {
+      const { data: project, error: projErr } = await supabase
+        .from('movie_projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (projErr || !project || project.user_id !== authenticatedUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Project not found or access denied' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Namespace caller-supplied paths under the owning user's folder. Service-role
+    // callers (internal pipelines) keep their legacy flat path for backwards compat.
+    const baseName = filename ? filename.replace(/^.*[\\/]/, '') : `stitched_${projectId}_${Date.now()}.mp4`;
+    const finalFilename = baseName;
+    const filePath = auth.isServiceRole
+      ? baseName
+      : `${userFolder}/${projectId}/${baseName}`;
+
+    console.log(`[GenerateUploadUrl] Signed URL request bucket=${bucket} path=${filePath} user=${authenticatedUserId || 'service-role'}`);
 
     // Create a signed upload URL (valid for 1 hour)
     // CRITICAL: upsert: true prevents "signature verification failed" errors on re-uploads

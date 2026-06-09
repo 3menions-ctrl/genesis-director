@@ -116,14 +116,14 @@ const FEATURES: Feature[] = [
 ];
 
 const ADDITIONAL_FEATURES = [
-  { icon: <Image className="w-4 h-4" />, title: 'Photo Editor', desc: 'AI-powered image editing & retouching' },
-  { icon: <Clapperboard className="w-4 h-4" />, title: 'Video Editor', desc: 'Timeline-based post-production' },
-  { icon: <Wand2 className="w-4 h-4" />, title: 'Smart Screenplay', desc: 'AI writes & structures your story' },
-  { icon: <Layers className="w-4 h-4" />, title: 'Scene Composer', desc: 'Visual shot-by-shot breakdown' },
-  { icon: <Zap className="w-4 h-4" />, title: 'Auto Assembly', desc: 'One-click seamless stitching' },
-  { icon: <Film className="w-4 h-4" />, title: 'HLS Streaming', desc: 'Gapless cinema-grade playback' },
-  { icon: <Clock className="w-4 h-4" />, title: 'Pipeline Engine', desc: 'Real-time generation progress' },
-  { icon: <Shield className="w-4 h-4" />, title: 'Credit System', desc: 'Flexible pay-as-you-go' },
+  { icon: <Image className="w-4 h-4" />, title: 'Photo Editor', desc: 'Inpaint, upscale, swap subjects frame-by-frame' },
+  { icon: <Clapperboard className="w-4 h-4" />, title: 'Video Editor', desc: 'Multi-track timeline, keyframes, magnetic clips' },
+  { icon: <Wand2 className="w-4 h-4" />, title: 'Smart Screenplay', desc: 'Concept → shot list → dialogue chain' },
+  { icon: <Layers className="w-4 h-4" />, title: 'Scene Composer', desc: 'Block characters, camera, and lighting per shot' },
+  { icon: <Zap className="w-4 h-4" />, title: 'Auto Assembly', desc: 'Stitches clips in render order, drag to reorder' },
+  { icon: <Film className="w-4 h-4" />, title: 'HLS Streaming', desc: 'Gapless 1080p playback, HTML5 fallback' },
+  { icon: <Clock className="w-4 h-4" />, title: 'Pipeline Engine', desc: '8-stage checkpoint recovery on every generation' },
+  { icon: <Shield className="w-4 h-4" />, title: 'Credit System', desc: '$0.10 per credit, no expiry, no subscription' },
 ];
 
 // Memoized Feature Card
@@ -186,7 +186,7 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
                 {/* Static image */}
                 <img 
                   src={feature.image} 
-                  alt={feature.title}
+                  alt={`Apex Studio screenshot — ${feature.title} in action`}
                   loading="lazy"
                   decoding="async"
                   className={`w-full h-full object-cover transition-all duration-700 ${

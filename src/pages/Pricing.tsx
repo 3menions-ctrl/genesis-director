@@ -234,7 +234,7 @@ function buildEnterprise(): CreditPackage[] {
         'Unlimited seats · SAML SSO',
         'Dedicated infra & render lanes',
         'Custom data retention',
-        '99.9% uptime SLA',
+        'Uptime SLA on request',
         'Named CSM · 24/7 priority',
       ],
       segment: 'enterprise',
@@ -983,10 +983,10 @@ export default function Pricing() {
           className="max-w-2xl mx-auto text-center"
         >
           <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[42px] leading-tight text-foreground mb-4">
-            Start creating today.
+            Pick a pack. Start rendering.
           </h2>
           <p className="text-muted-foreground mb-8 text-[14px]">
-            Join thousands of creators making cinematic AI videos.
+            Credits don't expire. Pay only for what you generate.
           </p>
           <Button
             onClick={() => navigate('/auth?mode=signup')}

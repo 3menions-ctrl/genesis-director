@@ -1,10 +1,14 @@
 import { memo } from 'react';
 
+// Only ship numbers that map to a real, verifiable product capability —
+// never extrapolations from fictional testimonials.
+// Previous "14×" and "92%" stats were sourced from invented customer
+// quotes and removed 2026-06-09.
 const STATS = [
-  { value: '14×', label: 'More creative variants per sprint' },
-  { value: '92%', label: 'Reduction in agency production cost' },
-  { value: '< 6 min', label: 'From brief to first cut' },
-  { value: '40+', label: 'Languages out of the box' },
+  { value: '~6 min', label: 'Brief to first cut, typical' },
+  { value: '40+', label: 'Languages supported' },
+  { value: '$0.10', label: 'Per credit, pay-as-you-go' },
+  { value: '24fps', label: '1080p cinema output' },
 ];
 
 export const B2BROISection = memo(function B2BROISection() {

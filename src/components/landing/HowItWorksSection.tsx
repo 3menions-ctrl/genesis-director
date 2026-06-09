@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const LAYERS = [
-  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: '#fbbf24', stat: '99.2%', statLabel: 'Consistency' },
+  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: '#fbbf24', stat: 'Locked', statLabel: 'Per scene' },
   { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: '#38bdf8', stat: '42', statLabel: 'Combos' },
   { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every cut', color: '#34d399', stat: '0ms', statLabel: 'Visual gap' },
   { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics & continuity errors', color: '#a78bfa', stat: '14', statLabel: 'Checks' },

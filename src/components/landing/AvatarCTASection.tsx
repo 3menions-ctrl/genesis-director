@@ -105,11 +105,11 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
           {/* CTA content */}
           <div className="text-center lg:text-left flex-1 mt-8 lg:mt-0">
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-              Ready to create?
+              Cast an avatar. Hand them a script.
             </h2>
             <p className="text-lg text-white/75 mb-8 max-w-md">
-              Join thousands of creators making videos with AI.
-              Credits are just $0.10 each — no subscriptions.
+              Locked identity across every cut, native lip-sync, your voice or one of ours.
+              Credits are $0.10 each — no subscription.
             </p>
             <Button
               onClick={() => onNavigate('/auth?mode=signup')}

@@ -57,7 +57,7 @@ const CATEGORY_CONFIG: Record<VideoCategory, { label: string; icon: typeof Film;
   'text-to-video': {
     label: 'Text to Video',
     icon: Film,
-    description: 'Transform your ideas into cinematic films',
+    description: 'Type a scene, get a produced shot',
   },
   'image-to-video': {
     label: 'Image to Video',

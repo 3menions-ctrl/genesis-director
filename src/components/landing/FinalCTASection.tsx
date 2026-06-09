@@ -18,10 +18,10 @@ export const FinalCTASection = memo(forwardRef<HTMLElement, FinalCTASectionProps
             transition={{ duration: 0.6, delay: 0.4 }}
           >
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
-              Ready to create?
+              Your first scene, in minutes.
             </h2>
             <p className="text-lg text-white/75 mb-10 max-w-md mx-auto">
-              Join thousands of creators making videos with AI.
+              No card to start. Credits are $0.10 each — you only pay for what you render.
             </p>
             <Button
               onClick={() => onNavigate('/auth?mode=signup')}

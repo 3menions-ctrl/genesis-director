@@ -3260,7 +3260,6 @@ By using a browser-based ecosystem, teams can collaborate on these assets remote
 *   **Narrative Power:** Features such as multi-character dialogue and lip-sync allow for story-driven commercials rather than just simple product b-roll.
 *   **Iterative Testing:** Rapid generation enables performance marketers to test dozens of creative variants to optimize for conversion rates.
 
-Try **Apex-Studio** today to leverage the power of Kling V3 and transform your product imagery into cinematic marketing assets with no subscription required. Experience the speed of professional-grade video generation via our intuitive, browser-based editor.
     `
   },
   {
@@ -3334,7 +3333,6 @@ Platforms like **Apex-Studio** are the catalysts for this transition. By offerin
 *   **No Technical Barrier:** Browser-based editors and instant generation mean agents don't need a background in video editing or expensive hardware.
 *   **Human Elements:** New features like lip-sync and character dialogue allow for narrated, guided tours that build emotional resonance with buyers.
 
-Try **Apex-Studio** today to transform your existing listing photos into high-end cinematic tours using the Kling V3 model. With no subscriptions and a simple pay-as-you-go credit system, premium real estate marketing is now accessible to every agent.
     `
   },
   {

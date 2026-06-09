@@ -186,7 +186,7 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
                 {/* Static image */}
                 <img 
                   src={feature.image} 
-                  alt={feature.title}
+                  alt={`Apex Studio screenshot — ${feature.title} in action`}
                   loading="lazy"
                   decoding="async"
                   className={`w-full h-full object-cover transition-all duration-700 ${

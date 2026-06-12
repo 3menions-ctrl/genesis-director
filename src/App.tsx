@@ -21,6 +21,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalPublishWizard } from "@/components/publish/GlobalPublishWizard";
 import { GlobalAtomListingWizard } from "@/components/market/GlobalAtomListingWizard";
+import { GlobalConfirmHost } from "@/components/ui/global-confirm";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -869,6 +870,8 @@ const App = () => {
                 <GlobalPublishWizard />
                 {/* Atom Listing Wizard — triggered by openAtomListingWizard() */}
                 <GlobalAtomListingWizard />
+                {/* Global confirm dialog — replaces native window.confirm() */}
+                <GlobalConfirmHost />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

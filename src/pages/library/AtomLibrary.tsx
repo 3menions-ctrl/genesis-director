@@ -21,6 +21,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 type Atom = 'cast' | 'locations' | 'looks' | 'voices';
 
 const ATOM_META: Record<Atom, {
@@ -130,7 +131,7 @@ export default function AtomLibrary() {
   };
 
   const remove = async (row: AtomRow) => {
-    if (!confirm(`Delete this ${meta.singular}? Projects that already used it keep working — only the library entry is removed.`)) return;
+    if (!await confirmAsync(`Delete this ${meta.singular}? Projects that already used it keep working — only the library entry is removed.`)) return;
     const { error } = await supabase.from(meta.table).delete().eq('id', row.id);
     if (error) return toast.error(error.message);
     toast.success(`${meta.label.slice(0, -1)} removed`);

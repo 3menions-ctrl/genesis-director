@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface BrandAsset {
   id: string;
   organization_id: string;
@@ -100,7 +101,7 @@ export default function WorkspaceAssets() {
   }, [currentOrg, user, load]);
 
   const remove = async (asset: BrandAsset) => {
-    if (!confirm(`Purge "${asset.name}"? This cannot be undone.`)) return;
+    if (!await confirmAsync(`Purge "${asset.name}"? This cannot be undone.`)) return;
     const { error: stErr } = await supabase.storage.from('brand-assets').remove([asset.storage_path]);
     if (stErr) console.warn('[assets] storage remove warning:', stErr.message);
     const { error } = await (supabase as any).from('organization_brand_assets').delete().eq('id', asset.id);

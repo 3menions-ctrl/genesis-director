@@ -7,6 +7,7 @@ import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, CmdButton, DataInput, DataTextarea, Field, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface TplRow {
   id: string;
   name: string;
@@ -62,7 +63,7 @@ export default function WorkspaceTemplates() {
   };
 
   const remove = async (row: TplRow) => {
-    if (!confirm(`Delete template "${row.name}"?`)) return;
+    if (!await confirmAsync(`Delete template "${row.name}"?`)) return;
     const { error } = await supabase.from('org_templates').delete().eq('id', row.id);
     if (error) { toast.error(error.message); return; }
     toast.success('Template deleted');

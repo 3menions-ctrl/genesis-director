@@ -340,9 +340,18 @@ export default function Lobby() {
         {/* TRENDING GRID */}
         <SectionLabel label="Trending now" icon={Flame} meta={`${filtered.length} reels`} />
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-white/55">
-            <Spinner size="md" tone="muted" />
-            <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Pulling the reel…</span>
+          // Skeleton matches the final 1/2/3-column grid layout so there's
+          // no FOUC when real cards swap in.
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="rounded-2xl border border-glass bg-glass overflow-hidden">
+                <div className="aspect-video bg-white/[0.03] animate-pulse" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 w-3/4 bg-white/[0.05] rounded animate-pulse" />
+                  <div className="h-2 w-1/2 bg-white/[0.04] rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <AnimatePresence mode="wait">

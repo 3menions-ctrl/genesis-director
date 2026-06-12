@@ -10,6 +10,7 @@ import {
 import { Code2, Copy, KeyRound, Trash2, Activity, Plus, Check } from 'lucide-react';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface ApiKey {
   id: string;
   name: string;
@@ -74,7 +75,7 @@ export default function Developers() {
   };
 
   const revoke = async (id: string) => {
-    if (!confirm('Revoke this key? This cannot be undone.')) return;
+    if (!await confirmAsync('Revoke this key? This cannot be undone.')) return;
     const { error } = await supabase.functions.invoke('api-keys-manage', {
       body: { action: 'revoke', id },
     });

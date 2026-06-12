@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface Member {
   id: string; user_id: string; role: OrgRole; joined_at: string;
   monthly_credit_limit: number | null;
@@ -114,7 +115,7 @@ export default function WorkspaceTeam() {
   };
 
   const removeMember = async (memberId: string) => {
-    if (!confirm('Remove this member from the workspace?')) return;
+    if (!await confirmAsync('Remove this member from the workspace?')) return;
     const { error } = await supabase.from('organization_members').delete().eq('id', memberId);
     if (error) toast.error(error.message); else { toast.success('Member removed'); load(); refresh(); }
   };

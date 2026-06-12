@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Loader2, Monitor, Smartphone, Tablet, Globe, LogOut, Shield, Check } from 'lucide-react';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 type Session = {
   id: string;
   created_at: string;
@@ -119,7 +120,7 @@ export function SessionsCard({ glassCard }: { glassCard: string }) {
   };
 
   const revokeAll = async () => {
-    if (!confirm('Sign out everywhere, including this device?')) return;
+    if (!await confirmAsync('Sign out everywhere, including this device?')) return;
     setBulkBusy('all');
     try {
       const { error } = await supabase.functions.invoke('manage-sessions', {

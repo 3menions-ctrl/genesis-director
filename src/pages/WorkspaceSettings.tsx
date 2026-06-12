@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface Member {
   id: string;
   user_id: string;
@@ -121,7 +122,7 @@ export default function WorkspaceSettings() {
   };
 
   const removeMember = async (memberId: string) => {
-    if (!confirm('Remove this member from the workspace?')) return;
+    if (!await confirmAsync('Remove this member from the workspace?')) return;
     const { error } = await supabase.from('organization_members').delete().eq('id', memberId);
     if (error) toast.error(error.message);
     else { toast.success('Member removed'); loadData(); refresh(); }

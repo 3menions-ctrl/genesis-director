@@ -9,6 +9,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, Section, CmdButton, Pill, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 type OAuthProvider = 'google_drive' | 'notion';
 
 interface OAuthRow {
@@ -146,7 +147,7 @@ function OAuthIntegration({
 
   const disconnect = async () => {
     if (!connection) return;
-    if (!confirm(`Disconnect ${name}? Future automations using this connection will stop.`)) return;
+    if (!await confirmAsync(`Disconnect ${name}? Future automations using this connection will stop.`)) return;
     setBusy(true);
     const { error } = await supabase
       .from('workspace_integrations')

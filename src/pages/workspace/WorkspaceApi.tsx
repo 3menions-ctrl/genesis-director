@@ -7,6 +7,7 @@ import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Section, CmdButton, DataInput, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface KeyRow {
   id: string;
   name: string;
@@ -116,7 +117,7 @@ export default function WorkspaceApi() {
   };
 
   const revokeKey = async (row: KeyRow) => {
-    if (!confirm(`Revoke key "${row.name}"? Any service using it will immediately stop working.`)) return;
+    if (!await confirmAsync(`Revoke key "${row.name}"? Any service using it will immediately stop working.`)) return;
     const { error } = await supabase
       .from('org_api_keys')
       .update({ revoked_at: new Date().toISOString() })
@@ -246,7 +247,7 @@ function WebhooksSection({ canManage }: { canManage: boolean }) {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (row: WebhookRow) => {
-    if (!confirm(`Delete webhook for ${row.url}? Future events will not be delivered to this endpoint.`)) return;
+    if (!await confirmAsync(`Delete webhook for ${row.url}? Future events will not be delivered to this endpoint.`)) return;
     const { error } = await supabase.from('webhook_endpoints').delete().eq('id', row.id);
     if (error) return toast.error(error.message);
     toast.success('Webhook deleted');

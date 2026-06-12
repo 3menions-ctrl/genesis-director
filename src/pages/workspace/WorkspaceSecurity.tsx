@@ -6,6 +6,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, Pill, CmdButton, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface OrgDomain {
   id: string;
   domain: string;
@@ -74,7 +75,7 @@ export default function WorkspaceSecurity() {
   };
 
   const remove = async (d: OrgDomain) => {
-    if (!confirm(`Remove ${d.domain}?`)) return;
+    if (!await confirmAsync(`Remove ${d.domain}?`)) return;
     const { error } = await supabase.from('org_domains').delete().eq('id', d.id);
     if (error) return toast.error(error.message);
     load();

@@ -26,6 +26,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 interface Crew {
   id: string;
   slug: string;
@@ -136,7 +137,7 @@ export default function CrewDetail() {
       toast.error("Owners can't leave their own crew. Transfer ownership first.");
       return;
     }
-    if (!window.confirm("Leave this crew?")) return;
+    if (!await confirmAsync("Leave this crew?")) return;
     setLeaving(true);
     try {
       const { error } = await supabase

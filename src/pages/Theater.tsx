@@ -228,9 +228,18 @@ export default function Theater() {
       <StudioAurora intensity="subtle" />
       <PageShell width="gallery" pad>
       {loading || !payload ? (
-        <div className="min-h-screen flex items-center justify-center text-white/55 gap-3">
-          <Spinner size="md" tone="muted" />
-          <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading theater…</span>
+        // Cinematic theater skeleton — big player frame + side rail.
+        <div className="min-h-screen pt-16 max-w-6xl mx-auto px-6">
+          <div className="aspect-video w-full rounded-3xl bg-glass border border-glass animate-pulse" />
+          <div className="mt-6 space-y-3">
+            <div className="h-4 w-2/3 bg-white/[0.05] rounded animate-pulse" />
+            <div className="h-3 w-1/3 bg-white/[0.04] rounded animate-pulse" />
+          </div>
+          <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="aspect-video rounded-xl bg-glass border border-glass animate-pulse" />
+            ))}
+          </div>
         </div>
       ) : (
         <>

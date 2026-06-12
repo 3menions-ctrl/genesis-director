@@ -31,6 +31,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { confirmAsync } from '@/components/ui/global-confirm';
 type AtomType = "voice" | "character" | "location" | "look" | "score" | "vfx_pack" | "sheet_music" | "course";
 
 interface Listing {
@@ -192,7 +193,7 @@ export default function Market() {
       return;
     }
     if (!user) { navigate("/auth"); return; }
-    if (!window.confirm(`Buy "${l.name}" for ${l.price_credits.toLocaleString()} credits?`)) return;
+    if (!await confirmAsync(`Buy "${l.name}" for ${l.price_credits.toLocaleString()} credits?`)) return;
     setBuying(l.id);
     try {
       const { data, error } = await supabase.rpc("buy_atom" as never, { p_listing_id: l.id } as never);
@@ -248,9 +249,17 @@ export default function Market() {
         </section>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20 gap-3 text-muted-foreground">
-            <Spinner size="md" tone="muted" />
-            <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Opening the doors…</span>
+          // Layout-shaped skeleton — 3-up grid of listing cards. No FOUC.
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="rounded-2xl border border-glass bg-glass overflow-hidden">
+                <div className="aspect-square bg-white/[0.03] animate-pulse" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 w-2/3 bg-white/[0.05] rounded animate-pulse" />
+                  <div className="h-2 w-1/3 bg-white/[0.04] rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : activeTab === "patrons" ? (
           <PatronsTab />

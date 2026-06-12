@@ -56,7 +56,6 @@ function LegacyParamRedirect({ to }: { to: string }) {
 const Landing = lazy(() => import("./pages/Landing"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Projects = lazy(() => import("./pages/Projects"));
-const MediaLibraryPage = lazy(() => import("./pages/MediaLibrary"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -440,13 +439,10 @@ const App = () => {
                 } />
                 {/* Legacy → canonical redirects */}
                 <Route path="/reel/:id" element={<LegacyParamRedirect to="/r" />} />
-                <Route path="/media" element={
-                  <RouteContainer fallbackMessage="Loading media library...">
-                    <ProtectedRoute>
-                      <AppShell><MediaLibraryPage /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* /media folds into Library. The standalone MediaLibrary
+                    page (assets browser) is retired; Library is where your
+                    work lives. */}
+                <Route path="/media" element={<Navigate to="/library" replace />} />
                 {/* Profile is reachable by any signed-in user regardless of
                    account type — it's their personal identity page, not a
                    workspace surface. Previously this was gated by

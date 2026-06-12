@@ -42,6 +42,12 @@ import {
   Tv,
   Palette,
   Bookmark,
+  Scissors,
+  Music2,
+  ShoppingBag,
+  Smile,
+  GraduationCap,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,8 +65,17 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Item model
+//
+// Sections mirror the AppShell rail's NAV_GROUPS so the rail and the
+// modal feel like one navigation surface, not two parallel ones. Order:
+//   Make    — verbs that author something
+//   Watch   — surfaces for consuming films
+//   Library — the user's own work
+//   Cast    — characters / talent
+//   Account — identity, billing, system
+//   Quick   — verbs/hidden items, surfaced only via search
 // ─────────────────────────────────────────────────────────────────────────────
-type Section = "Spine" | "Integrations" | "Quick" | "Account";
+type Section = "Make" | "Watch" | "Library" | "Cast" | "Account" | "Quick";
 
 interface Item {
   id: string;
@@ -83,131 +98,196 @@ interface RunCtx {
 // Catalog — the canonical list
 // ─────────────────────────────────────────────────────────────────────────────
 const CATALOG: Item[] = [
-  // SPINE
+  // ── MAKE — verbs that author something ──────────────────────────────
   {
     id: "studio",
     label: "Studio",
     description: "Direct a new film from a single prompt",
     Icon: Wand2,
-    section: "Spine",
-    keywords: ["new", "create", "make", "prompt", "film", "video"],
+    section: "Make",
+    keywords: ["studio", "new", "create", "make", "prompt", "film", "video"],
+    hint: "⌘ N",
     run: ({ navigate }) => navigate("/studio"),
   },
   {
-    id: "library",
-    label: "Library",
-    description: "All your films, in one place",
-    Icon: Folder,
-    section: "Spine",
-    keywords: ["projects", "library", "films", "videos", "work"],
-    run: ({ navigate }) => navigate("/library"),
-  },
-  {
-    id: "reel",
-    label: "Reel — recent",
-    description: "Open your most recent film",
-    Icon: Play,
-    section: "Spine",
-    keywords: ["watch", "view", "recent"],
-    run: ({ navigate }) => navigate("/library?open=recent"),
-  },
-  {
-    id: "account",
-    label: "Account",
-    description: "Profile · settings · credits",
-    Icon: User,
-    section: "Spine",
-    keywords: ["profile", "settings", "credits", "billing", "workspace"],
-    run: ({ navigate }) => navigate("/account"),
-  },
-
-  // INTEGRATIONS — Wave features promoted into navigable surfaces
-  {
-    id: "theater",
-    label: "Theater",
-    description: "Premiere a film with friends",
-    Icon: Theater,
-    section: "Integrations",
-    keywords: ["premiere", "schedule", "live"],
-    run: ({ navigate }) => navigate("/library?mode=theater"),
-  },
-  {
-    id: "atlas",
-    label: "Atlas",
-    description: "Your films as a 3D star-field",
-    Icon: Telescope,
-    section: "Integrations",
-    keywords: ["3d", "starfield", "map", "constellation"],
-    run: ({ navigate }) => navigate("/library?mode=atlas"),
-  },
-  {
-    id: "watch-party",
-    label: "Watch Party",
-    description: "Sync up and watch together",
-    Icon: Tv,
-    section: "Integrations",
-    keywords: ["party", "watch", "sync", "group"],
-    run: ({ navigate }) => navigate("/library?open=watch-party"),
-  },
-  {
-    id: "style-packs",
-    label: "Style Packs",
-    description: "Saved looks, applied in one click",
-    Icon: Palette,
-    section: "Integrations",
-    keywords: ["preset", "style", "look", "preset"],
-    run: ({ navigate }) => navigate("/studio?drawer=style-packs"),
-  },
-  {
-    id: "lobby",
-    label: "Daily Sketch",
-    description: "Today's community prompt",
-    Icon: Sparkles,
-    section: "Integrations",
-    keywords: ["daily", "sketch", "community", "prompt"],
-    run: ({ navigate }) => navigate("/lobby"),
-  },
-  {
-    id: "discover",
-    label: "Discover",
-    description: "Films from the community",
-    Icon: Compass,
-    section: "Integrations",
-    keywords: ["explore", "discover", "search", "gallery"],
-    run: ({ navigate }) => navigate("/search"),
-  },
-
-  // QUICK — verbs, not destinations
-  {
-    id: "new-film",
-    label: "New film",
-    description: "Open the Studio composer",
-    Icon: Sparkles,
-    section: "Quick",
-    keywords: ["new", "create", "+", "start"],
-    hint: "⌘ N",
-    run: ({ navigate }) => navigate("/studio?new=1"),
+    id: "editor",
+    label: "Editor",
+    description: "Trim · stitch · publish",
+    Icon: Scissors,
+    section: "Make",
+    keywords: ["editor", "edit", "trim", "cut", "video editor", "timeline", "stitch"],
+    run: ({ navigate }) => navigate("/editor"),
   },
   {
     id: "image-to-video",
     label: "Image → Video",
     description: "Animate an uploaded frame",
     Icon: ImageIcon,
-    section: "Quick",
+    section: "Make",
     keywords: ["image", "upload", "animate"],
     run: ({ navigate }) => navigate("/studio?mode=image"),
   },
   {
-    id: "search",
-    label: "Search films",
-    description: "Find a project by title or prompt",
-    Icon: Search,
-    section: "Quick",
-    keywords: ["search", "find"],
+    id: "style-packs",
+    label: "Style Packs",
+    description: "Saved looks, applied in one click",
+    Icon: Palette,
+    section: "Make",
+    keywords: ["preset", "style", "look"],
+    run: ({ navigate }) => navigate("/studio?drawer=style-packs"),
+  },
+
+  // ── WATCH — destinations for consuming films ────────────────────────
+  {
+    id: "lobby",
+    label: "Lobby",
+    description: "Today's daily sketch + community",
+    Icon: Tv,
+    section: "Watch",
+    keywords: ["lobby", "daily", "sketch", "community", "watch", "live"],
+    run: ({ navigate }) => navigate("/lobby"),
+  },
+  {
+    id: "theater",
+    label: "Theater",
+    description: "Premiere a film with friends",
+    Icon: Theater,
+    section: "Watch",
+    keywords: ["premiere", "schedule", "live", "watch party"],
+    run: ({ navigate }) => navigate("/library?mode=theater"),
+  },
+  {
+    id: "watch-party",
+    label: "Watch Party",
+    description: "Sync up and watch together",
+    Icon: Users,
+    section: "Watch",
+    keywords: ["party", "watch", "sync", "group"],
+    run: ({ navigate }) => navigate("/library?open=watch-party"),
+  },
+  {
+    id: "music",
+    label: "Music",
+    description: "Soundtracks, beats, score",
+    Icon: Music2,
+    section: "Watch",
+    keywords: ["music", "score", "soundtrack", "audio"],
+    run: ({ navigate }) => navigate("/music"),
+  },
+  {
+    id: "market",
+    label: "Market",
+    description: "Buy and sell assets",
+    Icon: ShoppingBag,
+    section: "Watch",
+    keywords: ["market", "shop", "buy", "sell", "marketplace"],
+    run: ({ navigate }) => navigate("/market"),
+  },
+  {
+    id: "discover",
+    label: "Discover",
+    description: "Films from the community",
+    Icon: Compass,
+    section: "Watch",
+    keywords: ["explore", "discover", "search", "gallery"],
     run: ({ navigate }) => navigate("/search"),
   },
 
-  // ACCOUNT
+  // ── LIBRARY — the user's own work ────────────────────────────────────
+  {
+    id: "library",
+    label: "Library",
+    description: "Every film you've directed",
+    Icon: Folder,
+    section: "Library",
+    keywords: ["projects", "library", "films", "videos", "work"],
+    run: ({ navigate }) => navigate("/library"),
+  },
+  {
+    id: "atlas",
+    label: "Atlas",
+    description: "Your films as a 3D star-field",
+    Icon: Telescope,
+    section: "Library",
+    keywords: ["3d", "starfield", "map", "constellation"],
+    run: ({ navigate }) => navigate("/library?mode=atlas"),
+  },
+  {
+    id: "reel",
+    label: "Recent reel",
+    description: "Open your most recent film",
+    Icon: Play,
+    section: "Library",
+    keywords: ["watch", "view", "recent", "last"],
+    run: ({ navigate }) => navigate("/library?open=recent"),
+  },
+  {
+    id: "media",
+    label: "Media",
+    description: "Uploads, images, audio",
+    Icon: ImageIcon,
+    section: "Library",
+    keywords: ["media", "library", "uploads", "assets"],
+    run: ({ navigate }) => navigate("/media"),
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    description: "Re-usable blueprints",
+    Icon: Layers,
+    section: "Library",
+    keywords: ["template", "blueprint", "reusable"],
+    run: ({ navigate }) => navigate("/templates"),
+  },
+
+  // ── CAST — characters and talent ─────────────────────────────────────
+  {
+    id: "avatars",
+    label: "Avatars",
+    description: "Cast members you've created",
+    Icon: User,
+    section: "Cast",
+    keywords: ["avatars", "characters", "cast", "actors"],
+    run: ({ navigate }) => navigate("/avatars"),
+  },
+  {
+    id: "mascots",
+    label: "Mascots",
+    description: "Reusable on-brand personas",
+    Icon: Smile,
+    section: "Cast",
+    keywords: ["mascots", "brand", "persona"],
+    run: ({ navigate }) => navigate("/mascots"),
+  },
+  {
+    id: "crews",
+    label: "Crews",
+    description: "Production teams",
+    Icon: Users,
+    section: "Cast",
+    keywords: ["crew", "team", "production"],
+    run: ({ navigate }) => navigate("/crews"),
+  },
+  {
+    id: "training",
+    label: "Training",
+    description: "Teach an avatar your style",
+    Icon: GraduationCap,
+    section: "Cast",
+    keywords: ["training", "teach", "fine-tune", "model"],
+    run: ({ navigate }) => navigate("/training-video"),
+  },
+
+  // ── ACCOUNT — identity, billing, system ─────────────────────────────
+  {
+    id: "account",
+    label: "Account",
+    description: "Profile · settings · credits",
+    Icon: User,
+    section: "Account",
+    keywords: ["account", "profile", "settings", "credits", "billing", "workspace"],
+    run: ({ navigate }) => navigate("/account"),
+  },
   {
     id: "credits",
     label: "Credits",
@@ -255,7 +335,28 @@ const CATALOG: Item[] = [
     run: ({ signOut }) => { void signOut(); },
   },
 
-  // HIDDEN — only surface via search
+  // ── QUICK — verbs/utilities surfaced via search ─────────────────────
+  {
+    id: "new-film",
+    label: "New film",
+    description: "Open the Studio composer",
+    Icon: Sparkles,
+    section: "Quick",
+    keywords: ["new", "create", "+", "start"],
+    hint: "⌘ N",
+    run: ({ navigate }) => navigate("/studio?new=1"),
+  },
+  {
+    id: "search",
+    label: "Search films",
+    description: "Find a project by title or prompt",
+    Icon: Search,
+    section: "Quick",
+    keywords: ["search", "find"],
+    run: ({ navigate }) => navigate("/search"),
+  },
+
+  // ── HIDDEN — only surface via search ────────────────────────────────
   {
     id: "loft",
     label: "The Loft",
@@ -269,7 +370,7 @@ const CATALOG: Item[] = [
 ];
 
 // Section render order — kept stable so muscle memory works.
-const SECTION_ORDER: Section[] = ["Spine", "Integrations", "Quick", "Account"];
+const SECTION_ORDER: Section[] = ["Make", "Watch", "Library", "Cast", "Account", "Quick"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component

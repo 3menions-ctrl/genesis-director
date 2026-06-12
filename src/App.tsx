@@ -488,12 +488,13 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                {/* /settings — folded into the unified Account surface as a tab.
+                    Personal users land on Account; business accounts still get
+                    routed to their workspace settings root. */}
                 <Route path="/settings" element={
-                  <RouteContainer fallbackMessage="Pulling settings…">
-                    <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
-                      <AppShell><Settings /></AppShell>
-                    </RequireAccountType>
-                  </RouteContainer>
+                  <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
+                    <Navigate to="/account?tab=settings" replace />
+                  </RequireAccountType>
                 } />
                 <Route path="/settings/deactivate" element={
                   <RouteContainer fallbackMessage="Loading…">

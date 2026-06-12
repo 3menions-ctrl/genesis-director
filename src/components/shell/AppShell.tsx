@@ -22,7 +22,9 @@ import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import logoImage from '@/assets/small-bridges-logo.webp';
-import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
+import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
+import { openCommandCenter } from '@/components/foundation/CommandCenter';
+import { Command as CommandIcon } from 'lucide-react';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import { usePendingVideoRecovery } from '@/hooks/usePendingVideoRecovery';
 
@@ -166,8 +168,9 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <div data-app-shell className="relative flex min-h-screen w-full bg-transparent text-foreground">
-        {/* Cinematic backdrop — identical to global loading screen */}
-        <CinemaBackdrop />
+        {/* Shared aurora backdrop — same atmosphere as FoundationShell so
+            workflow surfaces and spine surfaces feel like one room. */}
+        <SpineBackdrop />
 
         {/* Mobile backdrop */}
         {mobileOpen && (
@@ -197,10 +200,13 @@ export function AppShell({ children }: AppShellProps) {
             railWidth,
           )}
           style={{
+            // Hairline glass over the SpineBackdrop aurora — lets the
+            // navy/violet bloom read through so the rail feels like part
+            // of the same room, not an opaque panel pasted on top.
             background:
-              'linear-gradient(180deg, hsla(220, 18%, 4%, 0.92) 0%, hsla(220, 16%, 3%, 0.96) 100%)',
-            backdropFilter: 'blur(40px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
+              'linear-gradient(180deg, hsla(220, 30%, 6%, 0.55) 0%, hsla(222, 35%, 4%, 0.68) 100%)',
+            backdropFilter: 'blur(32px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(160%)',
           }}
         >
           {/* Inset floating panel (only on lg+) */}
@@ -285,6 +291,35 @@ export function AppShell({ children }: AppShellProps) {
                 strokeWidth={1.75}
               />
               {!collapsed && <span className="relative font-light tracking-[0.01em]">New Project</span>}
+            </button>
+          </div>
+
+          {/* Command Center trigger — same shortcut everywhere (Cmd+K).
+              Keeps the rail and the global command surface in lockstep. */}
+          <div className={cn('px-3 pb-3', collapsed && 'lg:px-2')}>
+            <button
+              type="button"
+              onClick={() => openCommandCenter()}
+              aria-label="Open Command Center (Cmd+K)"
+              className={cn(
+                'group/cmd flex w-full items-center gap-2 rounded-full px-3 h-9',
+                'border border-white/[0.06] bg-white/[0.02]',
+                'transition-colors hover:border-white/[0.14] hover:bg-white/[0.04]',
+                collapsed && 'lg:justify-center lg:px-0',
+              )}
+            >
+              <SearchIcon className="h-3.5 w-3.5 shrink-0 text-white/45 group-hover/cmd:text-white/80" strokeWidth={1.5} />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 truncate text-left text-[12.5px] font-light text-white/55 group-hover/cmd:text-white/90">
+                    Direct anywhere…
+                  </span>
+                  <span className="flex items-center gap-1 font-mono text-[10px] tracking-[0.1em] text-white/30">
+                    <CommandIcon className="h-3 w-3" strokeWidth={1.5} />
+                    <span>K</span>
+                  </span>
+                </>
+              )}
             </button>
           </div>
 

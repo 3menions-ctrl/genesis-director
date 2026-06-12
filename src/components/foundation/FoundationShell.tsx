@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
+import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import logoImage from "@/assets/small-bridges-logo.webp";
 
@@ -53,10 +54,16 @@ export function FoundationShell({ children, bare = false }: Props) {
     return p.replace(/^\//, "").split("/")[0];
   })();
 
-  if (bare) return <>{children}</>;
+  if (bare) return (
+    <div className="relative min-h-[100dvh] text-foreground">
+      <SpineBackdrop />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground">
+    <div className="relative min-h-[100dvh] text-foreground">
+      <SpineBackdrop />
       <motion.header
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -65,7 +72,7 @@ export function FoundationShell({ children, bare = false }: Props) {
           "sticky top-0 z-40 w-full",
           "border-b border-border/30",
           "backdrop-blur-2xl",
-          "bg-[hsl(var(--background)/0.65)]",
+          "bg-[hsl(220_30%_4%/0.6)]",
         )}
       >
         <div className="mx-auto flex h-14 max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
@@ -178,7 +185,7 @@ export function FoundationShell({ children, bare = false }: Props) {
         </div>
       </motion.header>
 
-      <main>{children}</main>
+      <main className="relative z-10">{children}</main>
     </div>
   );
 }

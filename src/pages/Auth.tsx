@@ -43,7 +43,6 @@ import { OAuthProviders } from "@/components/auth/OAuthProviders";
 import { AuthHeroStage } from "@/components/auth/AuthHeroStage";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
 import { AuthErrorBanner, classifyAuthError, type AuthErrorCue } from "@/components/auth/AuthErrorBanner";
-import { AutoSectionAurora } from "@/components/studio/AutoSectionAurora";
 import { sfx } from "@/lib/sound";
 import { celebrate } from "@/lib/celebrate";
 
@@ -234,42 +233,26 @@ export default function Auth() {
   }, [pendingEmail]);
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-background text-foreground overflow-hidden">
-      {/* Backdrop — aurora + a soft top vignette */}
-      <AutoSectionAurora intensity="subtle" />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(80vmax 40vmax at 50% -10%, hsla(215, 100%, 60%, 0.15), transparent 60%)",
-        }}
-      />
-
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] min-h-[100dvh]">
+    <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
           <AuthHeroStage />
         </div>
 
-        {/* FORM column */}
-        <div className="relative flex items-center justify-center px-6 py-10 md:py-14">
+        {/* FORM column — borderless, generous spacing */}
+        <div className="relative flex items-center justify-center px-6 py-10 sm:px-10 md:py-14 lg:px-14">
           <motion.div
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 18 }}
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={cn(
-              "relative w-full max-w-md rounded-3xl overflow-hidden",
-              "border border-white/[0.08] bg-white/[0.025] backdrop-blur-2xl",
-              "shadow-[0_30px_90px_-20px_rgba(0,0,0,0.7),0_0_0_1px_hsla(0,0%,100%,0.04)_inset]",
-              "p-7 sm:p-8",
-            )}
+            className="relative w-full max-w-[400px]"
           >
             {/* Mobile-only mini header */}
-            <div className="lg:hidden mb-6">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-white/55">Small Bridges</div>
-              <div className="font-display text-2xl text-white font-light mt-1 leading-tight">
-                Step onto the set.
+            <div className="lg:hidden mb-8">
+              <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">Small Bridges</div>
+              <div className="font-display text-3xl text-white font-light mt-2 leading-tight">
+                One prompt away from a film.
               </div>
             </div>
 
@@ -348,57 +331,51 @@ export default function Auth() {
                   exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  {/* Tab toggle */}
-                  <div className="inline-flex p-1 rounded-full border border-white/[0.08] bg-white/[0.02] mb-6">
-                    <button
-                      type="button"
-                      onClick={() => { setMode("signin"); setBanner(null); sfx.play("click"); }}
-                      className={cn(
-                        "px-4 py-1.5 rounded-full text-[12px] uppercase tracking-[0.16em] transition-colors",
-                        mode === "signin"
-                          ? "bg-white text-black"
-                          : "text-white/65 hover:text-white",
-                      )}
-                    >
-                      Sign in
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setMode("signup"); setBanner(null); sfx.play("click"); }}
-                      className={cn(
-                        "px-4 py-1.5 rounded-full text-[12px] uppercase tracking-[0.16em] transition-colors",
-                        mode === "signup"
-                          ? "bg-white text-black"
-                          : "text-white/65 hover:text-white",
-                      )}
-                    >
-                      Create account
-                    </button>
-                  </div>
-
-                  <h2 className="font-display text-2xl text-white font-light leading-snug">
-                    {mode === "signin"
-                      ? "Welcome back."
-                      : "Make your first film."}
+                  <h2 className="font-display text-[34px] sm:text-[40px] text-white font-light leading-[1.05] tracking-tight">
+                    {mode === "signin" ? "Welcome back." : "Create your account."}
                   </h2>
-                  <p className="text-sm text-white/55 mt-1.5">
+                  <p className="text-[14px] text-white/55 mt-3">
                     {mode === "signin"
                       ? "Pick up where you left off."
-                      : "Free during beta. 100 starter credits when you confirm."}
+                      : "Free during beta — 100 starter credits when you confirm."}
                   </p>
 
+                  {/* Underline tab toggle */}
+                  <div className="mt-8 flex items-center gap-7 border-b border-white/[0.08]">
+                    {(["signin", "signup"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setMode(m); setBanner(null); sfx.play("click"); }}
+                        className={cn(
+                          "relative pb-3 text-[12px] uppercase tracking-[0.22em] transition-colors",
+                          mode === m ? "text-white" : "text-white/45 hover:text-white/75",
+                        )}
+                      >
+                        {m === "signin" ? "Sign in" : "Create account"}
+                        {mode === m && (
+                          <motion.span
+                            layoutId="auth-tab-underline"
+                            className="absolute -bottom-px left-0 right-0 h-px bg-white"
+                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* OAuth row */}
-                  <div className="mt-6">
+                  <div className="mt-7">
                     <OAuthProviders next={nextParam} />
                   </div>
 
-                  <div className="relative my-5" aria-hidden>
+                  <div className="relative my-6" aria-hidden>
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-white/[0.08]" />
+                      <span className="w-full border-t border-white/[0.06]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-background/0 px-3 text-[10px] uppercase tracking-[0.18em] text-white/45">
-                        or with email
+                      <span className="bg-[#0a0b0f] px-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
+                        or
                       </span>
                     </div>
                   </div>

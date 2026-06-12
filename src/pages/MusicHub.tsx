@@ -15,8 +15,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -109,11 +107,9 @@ export default function MusicHub() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col">
-      <StudioAurora hue={280} hueAccent={213} intensity="subtle" />
-      <PageShell width="wide" pad>
+    <div className="relative">
         <StudioHero
-          eyebrow="Small Bridges · Music"
+          eyebrow="Tonight"
           title="Score"
           accent="the room."
           subtitle="Generate a soundtrack from a prompt. Read sheet music with an AI accompanist. Build on today's beat. Sing the chorus. Every score lives in the market the moment you ship it."
@@ -187,7 +183,6 @@ export default function MusicHub() {
             </Link>
           </div>
         </section>
-      </PageShell>
     </div>
   );
 }

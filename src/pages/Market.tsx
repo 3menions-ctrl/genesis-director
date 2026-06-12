@@ -22,8 +22,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -218,11 +216,9 @@ export default function Market() {
   }, [activeTab, listings]);
 
   return (
-    <div className="relative min-h-screen flex flex-col">
-      <StudioAurora hue={38} hueAccent={215} intensity="subtle" />
-      <PageShell width="wide" pad>
+    <div className="relative">
         <StudioHero
-          eyebrow="Small Bridges · Market"
+          eyebrow="Tonight"
           title="Trade"
           accent="atoms."
           subtitle="Voices, characters, scores, sheet music — every atom you can put inside a reel is sellable here. 90% goes to the creator on every transaction."
@@ -309,7 +305,6 @@ export default function Market() {
             </motion.div>
           </AnimatePresence>
         )}
-      </PageShell>
     </div>
   );
 }

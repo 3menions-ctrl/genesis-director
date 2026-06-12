@@ -56,9 +56,10 @@ const NAV_GROUPS: NavGroup[] = [
     // signs in, the Lobby is the natural first stop.
     label: 'Watch',
     items: [
-      { label: 'Lobby',  to: '/lobby',  icon: Tv,         hue: 215, match: (p) => p === '/lobby' || p.startsWith('/watch') || p.startsWith('/world') },
-      { label: 'Music',  to: '/music',  icon: Music2,     hue: 280 },
-      { label: 'Market', to: '/market', icon: ShoppingBag, hue: 38  },
+      // Lobby absorbs Music + Market + Worlds via tabs. Match rule keeps
+      // the legacy paths highlighting the same rail entry while their
+      // routes ride redirects.
+      { label: 'Lobby',  to: '/lobby',  icon: Tv,         hue: 215, match: (p) => p === '/lobby' || p.startsWith('/lobby') || p === '/music' || p === '/market' || p.startsWith('/watch') || p.startsWith('/world') },
       { label: 'Crews',  to: '/crews',  icon: UsersIcon,  hue: 160 },
       { label: 'Search', to: '/search', icon: SearchIcon, hue: 215 },
     ],

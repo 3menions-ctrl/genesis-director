@@ -582,11 +582,8 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
-                <Route path="/music" element={
-                  <RouteContainer fallbackMessage="Loading music…">
-                    <AppShell><MusicHub /></AppShell>
-                  </RouteContainer>
-                } />
+                {/* /music and /market are now tabs inside /lobby. */}
+                <Route path="/music" element={<Navigate to="/lobby?tab=music" replace />} />
                 
                 {/* Cast — Foundation surface that absorbs /avatars,
                     /avatars-gallery, and /mascots into one talent locker
@@ -691,11 +688,7 @@ const App = () => {
                     <AppShell><Profile /></AppShell>
                   </RouteContainer>
                 } />
-                <Route path="/market" element={
-                  <RouteContainer fallbackMessage="Opening the doors…">
-                    <AppShell><Market /></AppShell>
-                  </RouteContainer>
-                } />
+                <Route path="/market" element={<Navigate to="/lobby?tab=market" replace />} />
                 {/* Crossover — VFX template library (50 break-out effects) */}
                 <Route path="/crossover" element={
                   <RouteContainer fallbackMessage="Loading Crossover...">
@@ -728,7 +721,7 @@ const App = () => {
                     to browse + watch reels signed out, like YouTube). */}
                 <Route path="/lobby" element={
                   <RouteContainer fallbackMessage="Reading the room…">
-                    <AppShell><Lobby /></AppShell>
+                    <Lobby />
                   </RouteContainer>
                 } />
                 <Route path="/watch/:id" element={

@@ -35,8 +35,10 @@ import {
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
 import { usePaginatedProjects } from "@/hooks/usePaginatedProjects";
+import { useActiveProjects } from "@/hooks/useActiveProjects";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { ProjectAtlas } from "@/components/atlas/ProjectAtlas";
+import { ActiveRendersCard } from "@/components/library/ActiveRendersCard";
 import {
   EASE_PREMIUM,
   TYPE_EYEBROW,
@@ -82,6 +84,7 @@ export default function Library() {
     statusFilter,
     search,
   );
+  const { projects: activeRenders } = useActiveProjects();
 
   const counts = useMemo(() => {
     const total = projects.length;
@@ -95,6 +98,17 @@ export default function Library() {
     return { total, completed, inProgress };
   }, [projects]);
 
+  // Chrome timecode prefers the active-render state — when something is
+  // actually rendering, the chrome shows its progress instead of the
+  // page-level count. Falls back to FILMS · ACTIVE when idle.
+  const liveRenderTimecode = useMemo(() => {
+    if (activeRenders.length === 0) return null;
+    const lead = activeRenders[0];
+    const title = lead.title.length > 22 ? `${lead.title.slice(0, 22)}…` : lead.title;
+    const rest = activeRenders.length > 1 ? ` · +${activeRenders.length - 1}` : "";
+    return `${title.toUpperCase()} · ${lead.progress}%${rest}`;
+  }, [activeRenders]);
+
   return (
     <FoundationShell>
       <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
@@ -102,7 +116,9 @@ export default function Library() {
           maxWidth="100%"
           chrome={{
             crumbs: ["Small Bridges", "library"],
-            timecode: `${counts.total} ${counts.total === 1 ? "FILM" : "FILMS"} · ${counts.inProgress} ACTIVE`,
+            timecode:
+              liveRenderTimecode ??
+              `${counts.total} ${counts.total === 1 ? "FILM" : "FILMS"} · ${counts.inProgress} ACTIVE`,
           }}
         >
           {/* ── Header row ──────────────────────────────────────── */}
@@ -134,6 +150,14 @@ export default function Library() {
                 ⌘ N
               </span>
             </button>
+          </div>
+
+          {/* ── Active renders dashboard ─────────────────────────
+              Vercel-deploy-style live view of films currently in the
+              pipeline. Self-hides when nothing is rendering. Real-time
+              via Supabase channel. */}
+          <div className="mt-10">
+            <ActiveRendersCard />
           </div>
 
           {/* ── Mode tabs ──────────────────────────────────────── */}

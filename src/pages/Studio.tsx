@@ -48,6 +48,7 @@ import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useCinemaGuard } from "@/hooks/useCinemaEntitlement";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { VideoGenerationMode, VideoStylePreset } from "@/types/video-modes";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -202,6 +203,7 @@ function StudioContentInner() {
   const { user } = useAuth();
   const credits = useCredits();
   const cinemaGuard = useCinemaGuard();
+  const liveRenderTimecode = useLiveRenderTimecode();
   const reducedMotion = useReducedMotion();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -465,7 +467,9 @@ function StudioContentInner() {
           maxWidth="100%"
           chrome={{
             crumbs: ["Small Bridges", "studio"],
-            timecode: `${activeMeta?.label.toUpperCase() ?? "STUDIO"} · LIVE`,
+            timecode:
+              liveRenderTimecode ??
+              `${activeMeta?.label.toUpperCase() ?? "STUDIO"} · LIVE`,
           }}
         >
           {/* ── Headline row ─────────────────────────────────────── */}

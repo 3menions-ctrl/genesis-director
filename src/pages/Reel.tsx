@@ -55,6 +55,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { supabase } from "@/integrations/supabase/client";
 import { useSafeNavigation } from "@/lib/navigation";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -101,6 +102,7 @@ export default function Reel() {
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const reducedMotion = useReducedMotion();
+  const liveRenderTimecode = useLiveRenderTimecode();
 
   const [reel, setReel] = useState<ReelData | null>(null);
   const [publishedReel, setPublishedReel] = useState<PublishedReelLink | null>(null);
@@ -394,7 +396,9 @@ export default function Reel() {
           maxWidth="100%"
           chrome={{
             crumbs: ["Small Bridges", "reel", reel.id.slice(0, 8)],
-            timecode: meta.age ? `· ${meta.age.toUpperCase()}` : undefined,
+            timecode:
+              liveRenderTimecode ??
+              (meta.age ? `· ${meta.age.toUpperCase()}` : undefined),
           }}
           bodyClassName="!p-0"
         >

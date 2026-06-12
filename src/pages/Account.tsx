@@ -32,6 +32,7 @@ import {
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   EASE_PREMIUM,
@@ -86,6 +87,8 @@ export default function Account() {
     setParams(p, { replace: true });
   };
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
     <FoundationShell>
       <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
@@ -93,7 +96,9 @@ export default function Account() {
           maxWidth="100%"
           chrome={{
             crumbs: ["Small Bridges", "account"],
-            timecode: profile?.email ? profile.email.toUpperCase() : undefined,
+            timecode:
+              liveRenderTimecode ??
+              (profile?.email ? profile.email.toUpperCase() : undefined),
           }}
         >
           {/* Header */}

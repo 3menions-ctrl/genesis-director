@@ -35,7 +35,7 @@ import {
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
 import { usePaginatedProjects } from "@/hooks/usePaginatedProjects";
-import { useActiveProjects } from "@/hooks/useActiveProjects";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { ProjectAtlas } from "@/components/atlas/ProjectAtlas";
 import { ActiveRendersCard } from "@/components/library/ActiveRendersCard";
@@ -84,7 +84,7 @@ export default function Library() {
     statusFilter,
     search,
   );
-  const { projects: activeRenders } = useActiveProjects();
+  const liveRenderTimecode = useLiveRenderTimecode();
 
   const counts = useMemo(() => {
     const total = projects.length;
@@ -97,17 +97,6 @@ export default function Library() {
     ).length;
     return { total, completed, inProgress };
   }, [projects]);
-
-  // Chrome timecode prefers the active-render state — when something is
-  // actually rendering, the chrome shows its progress instead of the
-  // page-level count. Falls back to FILMS · ACTIVE when idle.
-  const liveRenderTimecode = useMemo(() => {
-    if (activeRenders.length === 0) return null;
-    const lead = activeRenders[0];
-    const title = lead.title.length > 22 ? `${lead.title.slice(0, 22)}…` : lead.title;
-    const rest = activeRenders.length > 1 ? ` · +${activeRenders.length - 1}` : "";
-    return `${title.toUpperCase()} · ${lead.progress}%${rest}`;
-  }, [activeRenders]);
 
   return (
     <FoundationShell>

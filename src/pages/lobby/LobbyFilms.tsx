@@ -31,7 +31,6 @@ import { PageShell } from "@/components/shell";
 import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
-import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

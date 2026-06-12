@@ -40,26 +40,14 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
   const meta = TAB_META[activeTab];
 
   return (
-    <div
-      className="w-72 shrink-0 flex flex-col overflow-hidden relative bg-transparent"
-    >
-      {/* boundary-less left hairline */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/[0.07] to-transparent" />
+    <div className="w-72 shrink-0 flex flex-col overflow-hidden relative bg-[hsl(var(--foreground)/0.015)] backdrop-blur-xl border-l border-border/30">
+      {/* Foundation accent hairline on inside edge */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-[hsl(var(--accent)/0.18)] to-transparent" />
       {/* Panel section header */}
-      <div
-        className="shrink-0 px-5 py-5 relative"
-      >
-        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+      <div className="shrink-0 px-5 py-5 relative">
+        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
         <div className="flex items-center gap-2">
-          <div
-            className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center"
-            style={{
-              background:
-                'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.08) 100%)',
-              boxShadow:
-                '0 0 18px hsla(215,100%,60%,0.30), inset 0 1px 0 hsla(0,0%,100%,0.10)',
-            }}
-          >
+          <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
             <SlidersHorizontal
               className="w-3.5 h-3.5 text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
               strokeWidth={1.5}

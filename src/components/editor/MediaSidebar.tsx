@@ -66,11 +66,12 @@ export const MediaSidebar = memo(function MediaSidebar({
 
   return (
     <div
-      className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative bg-transparent"
+      className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative bg-[hsl(var(--foreground)/0.015)] backdrop-blur-xl border-r border-border/30"
       style={{ width: collapsed ? 52 : 360 }}
     >
-      {/* boundary-less right hairline — luminous, not a hard border */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/[0.07] to-transparent" />
+      {/* Luminous accent hairline on the inside edge — same vocabulary
+          as Foundation's hairline rules, just running vertically. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[hsl(var(--accent)/0.18)] to-transparent" />
       {/* Collapsed state */}
       {collapsed ? (
         <div className="flex flex-col items-center py-3 gap-2 h-full">

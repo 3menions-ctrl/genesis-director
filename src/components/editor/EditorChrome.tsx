@@ -716,28 +716,21 @@ export function EditorChrome({
               <TooltipContent side="bottom" className="text-[10px]">Back to Library</TooltipContent>
             </Tooltip>
 
-            {/* Brand mark — luminous circular icon, glowing like Create's active tab */}
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-              style={{
-                background:
-                  'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.08) 100%)',
-                boxShadow:
-                  '0 0 24px hsla(215,100%,60%,0.35), 0 0 48px hsla(215,100%,60%,0.16), inset 0 1px 0 hsla(0,0%,100%,0.10)',
-              }}
-            >
+            {/* Brand mark — restrained Foundation glass, not the loud
+                Studio v2 glow. Same atmosphere as Library / Studio. */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
               <Film
-                className="h-3.5 w-3.5 text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
+                className="h-3.5 w-3.5 text-accent"
                 strokeWidth={1.5}
               />
             </div>
 
             <div className="flex flex-col min-w-0 leading-tight">
-              {/* Live eyebrow — matches Create page */}
+              {/* Live eyebrow — Foundation mono uppercase with accent ping. */}
               <div className="hidden md:flex items-center gap-1.5 mb-0.5">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 rounded-full bg-[hsl(215,100%,60%)] animate-ping opacity-60" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(215,100%,60%)]" />
+                  <span className="absolute inset-0 rounded-full bg-accent animate-ping opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/70">
                   ◆ Small Bridges · editor · Live
@@ -771,18 +764,9 @@ export function EditorChrome({
             </div>
           </div>
 
-          {/* ── Center: Import + Aspect ── */}
+          {/* ── Center: Import + Aspect — Foundation glass pill ── */}
           <div className="flex-1 flex items-center justify-center">
-            <div
-              className="flex items-center gap-1 rounded-full px-1.5 py-1"
-              style={{
-                background: 'hsla(0,0%,100%,0.025)',
-                backdropFilter: 'blur(48px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-                boxShadow:
-                  '0 8px 40px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
-              }}
-            >
+            <div className="flex items-center gap-1 rounded-full px-1.5 py-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -815,12 +799,7 @@ export function EditorChrome({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[9px] tabular-nums uppercase tracking-[0.18em] text-[hsl(215,100%,80%)]"
-                    style={{
-                      background: 'hsla(215,100%,60%,0.12)',
-                      boxShadow:
-                        'inset 0 1px 0 hsla(0,0%,100%,0.10), 0 0 16px -4px hsla(215,100%,55%,0.45)',
-                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[9px] tabular-nums uppercase tracking-[0.18em] text-accent border border-accent/30 bg-[hsl(var(--accent)/0.08)]"
                   >
                     <Check className="w-2.5 h-2.5" />
                     {mediaCounts.videos}
@@ -864,17 +843,8 @@ export function EditorChrome({
 
             <div className="w-px h-5 bg-white/10" />
 
-            {/* Primary action group */}
-            <div
-              className="flex items-center gap-0.5 rounded-full px-1 py-1"
-              style={{
-                background: 'hsla(0,0%,100%,0.025)',
-                backdropFilter: 'blur(48px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-                boxShadow:
-                  '0 8px 40px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
-              }}
-            >
+            {/* Primary action group — Foundation glass pill */}
+            <div className="flex items-center gap-0.5 rounded-full px-1 py-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
               {/* Save */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -892,13 +862,7 @@ export function EditorChrome({
 
               {/* Stitch */}
               {isStitching ? (
-                <div
-                  className="h-7 flex items-center gap-1.5 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em] tabular-nums text-[hsl(215,100%,80%)]"
-                  style={{
-                    background: 'hsla(215,100%,60%,0.14)',
-                    boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.10), 0 0 16px -4px hsla(215,100%,55%,0.45)',
-                  }}
-                >
+                <div className="h-7 flex items-center gap-1.5 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em] tabular-nums text-accent border border-accent/30 bg-[hsl(var(--accent)/0.08)]">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Stitching
                 </div>
@@ -952,15 +916,9 @@ export function EditorChrome({
                     <button
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
-                      className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full px-5 text-[12px] font-medium tracking-[0.04em] text-[hsl(215,100%,92%)] transition-all disabled:cursor-not-allowed disabled:opacity-30"
-                      style={{
-                        background:
-                          'linear-gradient(180deg, hsla(215,100%,60%,0.32) 0%, hsla(215,100%,55%,0.14) 100%)',
-                        boxShadow:
-                          '0 0 28px hsla(215,100%,60%,0.45), 0 0 56px hsla(215,100%,60%,0.22), inset 0 1px 0 hsla(0,0%,100%,0.14)',
-                      }}
+                      className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full px-5 text-[12px] tracking-tight text-foreground transition-all disabled:cursor-not-allowed disabled:opacity-30 border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5 hover:border-accent/60 hover:from-accent/25"
                     >
-                      {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" strokeWidth={1.8} />}
+                      {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" /> : <Download className="w-3.5 h-3.5 text-accent" strokeWidth={1.5} />}
                       <span>{isDownloading ? "Exporting…" : "Export"}</span>
                     </button>
                   </TooltipTrigger>
@@ -1002,21 +960,22 @@ export function EditorChrome({
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
             {/* Player stage with cinematic letterbox feel */}
             <div className="h-[42%] shrink-0 relative px-4 pt-4 pb-2.5">
-              {/* ambient blue glow behind the player — floating, boundary-less */}
+              {/* Ambient accent halo behind the player — subtle, not loud.
+                  Foundation tokens, not hardcoded hsla. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-x-10 top-2 bottom-0 rounded-[28px] opacity-70"
+                className="pointer-events-none absolute inset-x-10 top-2 bottom-0 rounded-[28px] opacity-60"
                 style={{
                   background:
-                    'radial-gradient(60% 80% at 50% 50%, hsla(215,100%,55%,0.18), transparent 70%)',
+                    'radial-gradient(60% 80% at 50% 50%, hsl(var(--accent) / 0.14), transparent 70%)',
                   filter: 'blur(40px)',
                 }}
               />
               <div
-                className="relative w-full h-full rounded-2xl overflow-hidden bg-black"
+                className="relative w-full h-full rounded-2xl overflow-hidden bg-black ring-1 ring-inset ring-border/40"
                 style={{
                   boxShadow:
-                    '0 30px 80px -24px hsla(0,0%,0%,0.75), 0 0 0 1px hsla(0,0%,100%,0.05), 0 0 60px -10px hsla(215,100%,55%,0.18)',
+                    '0 30px 80px -24px hsl(0 0% 0% / 0.75), 0 0 60px -10px hsl(var(--accent) / 0.14)',
                 }}
               >
                 <VideoPreviewPlayer className="absolute inset-0" />

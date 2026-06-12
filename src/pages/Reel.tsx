@@ -371,6 +371,34 @@ export default function Reel() {
 
   return (
     <FoundationShell>
+      {/* Ambient backdrop — Apple TV+ pattern. The film's thumbnail is
+          blurred and saturated into a full-bleed wash so the room takes
+          on the film's lighting. Sits behind SpineBackdrop's blooms;
+          a deep gradient pulls it back down to readable contrast. */}
+      {reel.thumbnail_url && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 -z-[5]"
+            style={{
+              backgroundImage: `url(${reel.thumbnail_url})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(80px) saturate(1.35)",
+              opacity: 0.32,
+            }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 -z-[4]"
+            style={{
+              background:
+                "linear-gradient(to bottom, hsl(220 30% 4% / 0.85) 0%, hsl(220 30% 4% / 0.55) 40%, hsl(220 30% 4% / 0.92) 100%)",
+            }}
+          />
+        </>
+      )}
+
       <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-8 sm:px-6 lg:px-10">
         {/* Back link */}
         <motion.div

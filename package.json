@@ -9,6 +9,11 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --reporter=dot",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
     "audit:edge-auth": "node scripts/audit-edge-function-auth.mjs",
     "predev": "bunx tsx scripts/generate-sitemap.ts",
     "prebuild": "bunx tsx scripts/generate-sitemap.ts"
@@ -42,6 +47,7 @@
     "@radix-ui/react-toggle": "^1.1.9",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@sentry/react": "^8",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.83.0",
     "@testing-library/dom": "^10.4.1",
@@ -65,6 +71,7 @@
     "jsdom": "^20.0.3",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "posthog-js": "^1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -80,6 +87,7 @@
     "vaul": "^0.9.9",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.2.4",
+    "web-vitals": "^4",
     "zod": "^3.25.76"
   },
   "devDependencies": {

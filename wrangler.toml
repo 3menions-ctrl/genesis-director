@@ -1,0 +1,41 @@
+# Cloudflare Pages config — used by `wrangler pages deploy` for static
+# upload. The actual runtime is Cloudflare's Pages edge (no Worker code
+# needed for this app, which is purely client-rendered Vite). This file
+# is also OSS-friendly: Wrangler is fully open source and can target any
+# Workers-compatible runtime (e.g. Cloudflare's open `workerd`).
+
+name = "smallbridges"
+compatibility_date = "2026-06-11"
+pages_build_output_dir = "dist"
+
+# Headers applied by Cloudflare Pages to every static response. These are a
+# defense-in-depth layer on top of the CSP meta tag in index.html.
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+Cross-Origin-Opener-Policy = "same-origin"
+Cross-Origin-Resource-Policy = "same-origin"
+
+# Long-cache hashed assets — Vite emits content-hashed filenames.
+[[headers]]
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Service-worker file must NOT be cached, otherwise PWA updates stall.
+[[headers]]
+for = "/sw.js"
+[headers.values]
+Cache-Control = "no-cache, no-store, must-revalidate"
+
+# SPA fallback — every unknown path serves index.html so React Router
+# handles it client-side.
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

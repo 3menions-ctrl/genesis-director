@@ -132,3 +132,7 @@ verify_jwt = false
 
 [functions.translate-text]
 verify_jwt = false
+
+# Liveness probe — uptime monitors must hit without auth.
+[functions.health]
+verify_jwt = false

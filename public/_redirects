@@ -1,0 +1,5 @@
+# SPA fallback for Cloudflare Pages / Netlify-style hosts. Any unknown
+# path serves index.html and React Router picks up routing client-side.
+# Wrangler also reads `wrangler.toml` for the same; this file is the
+# Cloudflare Pages-native location.
+/*    /index.html    200

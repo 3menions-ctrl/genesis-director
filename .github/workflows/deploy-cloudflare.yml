@@ -1,0 +1,54 @@
+name: Deploy to Cloudflare Pages
+
+# Deploys the production build to Cloudflare Pages on every push to main.
+# Preview deploys on PRs get a unique URL. Cloudflare Pages is OSS-friendly:
+# Workers runtime is open source, free tier is generous, no vendor lock-in
+# (you can move the same build to any static host).
+#
+# Required repo secrets:
+#   CLOUDFLARE_API_TOKEN     — token with `Cloudflare Pages: Edit`
+#   CLOUDFLARE_ACCOUNT_ID    — your account id
+#   VITE_SUPABASE_URL        — prod Supabase URL
+#   VITE_SUPABASE_PROJECT_ID — prod Supabase project ref
+#   VITE_SUPABASE_PUBLISHABLE_KEY — prod anon publishable key
+#   VITE_GLITCHTIP_DSN       — error tracker DSN (optional)
+#   VITE_POSTHOG_KEY         — product analytics (optional)
+#   VITE_POSTHOG_HOST        — analytics host (optional)
+#   VITE_TURNSTILE_SITE_KEY  — Cloudflare Turnstile site key (optional)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_GLITCHTIP_DSN: ${{ secrets.VITE_GLITCHTIP_DSN }}
+      VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+      VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
+      VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=smallbridges --branch=${{ github.head_ref || github.ref_name }}

@@ -27,7 +27,12 @@ import {
   getSafeModeConfig 
 } from "./lib/safeMode";
 
-// ============= PHASE 0: CONSOLE SHIELD (FIRST!) =============
+// ============= PHASE 0: OBSERVABILITY + CONSOLE SHIELD (FIRST!) =============
+// Observability boot is first so Sentry's beforeSend can capture any
+// error from the boot sequence below. PII scrubber strips emails / phones
+// / JWTs before events leave the browser.
+import { bootObservability } from "./lib/observability";
+bootObservability();
 // Must run before any other code that might log sensitive data
 const cleanupConsoleShield = installConsoleShield();
 

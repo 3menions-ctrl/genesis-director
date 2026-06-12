@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
 import { resetQueryCache } from '@/lib/queryClient';
+import { identifyUser, resetIdentity } from '@/lib/observability';
 
 interface UserProfile {
   id: string;
@@ -370,16 +371,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // fire-and-forget the profile/admin fetch - DO NOT await, DO NOT control loading
         // The isSessionVerified stays true (set during initial load), preventing redirects
         if (newSession?.user) {
+          // Identify the user in observability tools (GlitchTip + PostHog).
+          // PII scrubber on outbound events will strip emails/tokens from
+          // breadcrumbs, but the identifier itself is intentional.
+          identifyUser({ id: newSession.user.id, email: newSession.user.email });
+
           // Fire and forget - update profile/admin in background
           fetchProfile(newSession.user.id).then(profileData => {
             if (mounted) setProfile(profileData);
           }).catch(console.error);
-          
+
           checkAdminRole(newSession.user.id).then(isAdminResult => {
             if (mounted) setIsAdmin(isAdminResult);
           }).catch(console.error);
         } else {
-          // Logged out
+          // Logged out — clear identity in observability tools.
+          resetIdentity();
           setProfile(null);
           setProfileError(null);
           setIsAdmin(false);

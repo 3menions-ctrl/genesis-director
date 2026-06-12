@@ -1,10 +1,10 @@
 /**
  * Auth — /auth
  *
- * The Director's entry hall. Two-pane on desktop (cinematic hero left,
- * focused form right), single-column on mobile with the hero collapsed
- * to a heading. Surfaces real Supabase errors with direct one-tap
- * remediation links. Apple / Google OAuth front and center.
+ * Two-pane on desktop (cinematic hero left, focused form right),
+ * single-column on mobile with the hero collapsed to a heading.
+ * Surfaces real Supabase errors with direct one-tap remediation
+ * links. Apple / Google OAuth front and center.
  *
  * Flows handled:
  *   - Sign in (email + password)
@@ -378,8 +378,8 @@ export default function Auth() {
 
                   <h2 className="font-display text-2xl text-white font-light leading-snug">
                     {mode === "signin"
-                      ? "Welcome back, Director."
-                      : "Get a director's chair."}
+                      ? "Welcome back."
+                      : "Make your first film."}
                   </h2>
                   <p className="text-sm text-white/55 mt-1.5">
                     {mode === "signin"

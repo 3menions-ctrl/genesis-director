@@ -687,8 +687,10 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Page content with expressive transition */}
           <main
+            id="main"
             key={location.pathname}
-            className="relative flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll"
+            tabIndex={-1}
+            className="relative flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll outline-none"
           >
             {/* Cinematic ambient stage — landing-page deep-space vibe behind
                 every in-app surface. Pure CSS, fixed to viewport, GPU-light. */}

@@ -780,6 +780,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               <Input
                                 id="email"
                                 type="email"
+                                inputMode="email"
+                                autoComplete="email"
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 placeholder="you@example.com"
                                 value={email}
                                 onChange={(e) => {
@@ -820,6 +825,10 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
+                                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => {

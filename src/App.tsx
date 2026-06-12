@@ -22,6 +22,7 @@ import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalPublishWizard } from "@/components/publish/GlobalPublishWizard";
 import { GlobalAtomListingWizard } from "@/components/market/GlobalAtomListingWizard";
 import { GlobalConfirmHost } from "@/components/ui/global-confirm";
+import { SkipToContent } from "@/components/a11y/SkipToContent";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -242,6 +243,8 @@ const App = () => {
         <TooltipProvider>
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            {/* WCAG 2.1 SC 2.4.1 — skip nav for keyboard users */}
+            <SkipToContent />
             {/* Boot checkpoint markers */}
             <BootCheckpointMarker />
             {/* Route change tracker for forensics */}

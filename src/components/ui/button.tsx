@@ -98,13 +98,16 @@ const buttonVariants = cva(
           "hover:-translate-y-0.5",
         ].join(" "),
       },
+      // Heights bumped to clear the iOS 44px touch-target minimum. Audit
+      // gap H3. `sm` is intentionally just below for tight admin tables;
+      // pages should use `default` or larger anywhere a real user taps.
       size: {
-        default: "h-10 px-5 py-2",
+        default: "h-11 px-5 py-2",
         sm: "h-9 rounded-lg px-4 text-[13px]",
-        lg: "h-11 rounded-xl px-6",
-        xl: "h-12 rounded-xl px-8 text-base font-semibold",
+        lg: "h-12 rounded-xl px-6",
+        xl: "h-13 rounded-xl px-8 text-base font-semibold",
         pill: "h-11 rounded-full px-7 text-[13px] uppercase tracking-[0.18em]",
-        icon: "h-10 w-10",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

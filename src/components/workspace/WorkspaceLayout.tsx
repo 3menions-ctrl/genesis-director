@@ -14,7 +14,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
+import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
 import { OnboardingWizard } from '@/components/workspace/OnboardingWizard';
 import logoImage from '@/assets/small-bridges-logo.webp';
 
@@ -109,7 +109,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
   if (loading) {
     return (
       <div className="relative min-h-screen flex items-center justify-center text-white/70">
-        <CinemaBackdrop />
+        <SpineBackdrop />
         <div className="relative font-mono text-[11px] uppercase tracking-[0.32em] animate-pulse text-white/55">
           Initializing workspace…
         </div>
@@ -120,7 +120,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
   if (!currentOrg) {
     return (
       <div className="relative min-h-screen flex items-center justify-center px-6">
-        <CinemaBackdrop />
+        <SpineBackdrop />
         <div className="relative max-w-md text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] border border-white/[0.08] flex items-center justify-center shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
             <Building2 className="w-6 h-6 text-[hsl(215,100%,68%)]" />
@@ -143,8 +143,8 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
   return (
     <TooltipProvider delayDuration={150}>
     <div data-workspace-shell className="relative flex min-h-screen w-full bg-transparent text-foreground">
-      {/* Cinematic backdrop — identical to AppShell */}
-      <CinemaBackdrop />
+      {/* Shared aurora backdrop — same atmosphere as AppShell + FoundationShell. */}
+      <SpineBackdrop />
 
       {/* Mobile backdrop */}
       {mobileOpen && (

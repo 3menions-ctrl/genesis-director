@@ -302,9 +302,9 @@ export default function ScriptReview() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-0 z-40 bg-[hsl(220_30%_4%/0.7)] backdrop-blur-lg border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

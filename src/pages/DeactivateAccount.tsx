@@ -41,9 +41,9 @@ export default function DeactivateAccount() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-white/[0.06] bg-background/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-white/[0.06] bg-[hsl(220_30%_4%/0.6)] backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <Button
             variant="ghost"

@@ -1028,7 +1028,7 @@ function ProjectsContentInner() {
   const stitchingProjects = useMemo(() => projects.filter(p => status(p) === 'stitching'), [projects]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
+    <div className="min-h-screen relative overflow-x-hidden">
       {/* Gatekeeper loading screen - renders EXCLUSIVELY, no background or content behind it */}
       {gatekeeper.isLoading ? (
         <CinemaLoader

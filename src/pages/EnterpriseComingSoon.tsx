@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Sparkles, ArrowRight, Mail, Shield, Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
-import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
+import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logoImage from '@/assets/small-bridges-logo.webp';
@@ -80,7 +80,7 @@ export default function EnterpriseComingSoon() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 py-16 text-foreground">
-      <CinemaBackdrop />
+      <SpineBackdrop />
 
       {/* Ambient glow */}
       <div

@@ -52,14 +52,17 @@ export function SpineBackdrop() {
           filter: "blur(90px)",
         }}
       />
-      {/* Subtle cyan halo — top-right, picks up the hero. */}
+      {/* Time-of-day halo — top-right, tinted by TimeOfDayAura's hue
+          var so the room breathes dawn → day → dusk → night without
+          stacking a second aurora layer on top. Default hue mirrors
+          the cyan that used to live here statically. */}
       <div
         className="absolute h-[28vw] w-[28vw] rounded-full"
         style={{
           top: "8vh",
           right: "10vw",
           background:
-            "radial-gradient(circle, hsl(195 95% 55% / 0.10) 0%, transparent 65%)",
+            "radial-gradient(circle, hsla(var(--sb-tod-hue, 195), 95%, 55%, calc(var(--sb-tod-opacity, 0.04) * 2.5)) 0%, transparent 65%)",
           filter: "blur(60px)",
         }}
       />

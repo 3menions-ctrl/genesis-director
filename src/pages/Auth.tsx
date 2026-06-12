@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star } from 'lucide-react';
+import { OAuthProviders } from '@/components/auth/OAuthProviders';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -768,6 +769,21 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             </div>
                           </motion.div>
                         )}
+
+                        {/* OAuth providers above the email form. Drops the
+                            user into Apple/Google auth without typing. */}
+                        <OAuthProviders next={nextParam} className="mb-4" />
+
+                        <div className="relative my-4" aria-hidden>
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-white/[0.08]" />
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="bg-background px-3 text-[10px] uppercase tracking-[0.16em] text-white/45">
+                              or with email
+                            </span>
+                          </div>
+                        </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                           {/* Email */}

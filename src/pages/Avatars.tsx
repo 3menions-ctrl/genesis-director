@@ -31,7 +31,6 @@ import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { CinematicModeConfig, DEFAULT_CINEMATIC_CONFIG } from '@/types/cinematic-mode';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { VirtualAvatarGallery } from '@/components/avatars/VirtualAvatarGallery';
-import AvatarsBackground from '@/components/avatars/AvatarsBackground';
 import { AvatarsHero } from '@/components/avatars/AvatarsHero';
 import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
 import { AvatarsFilters } from '@/components/avatars/AvatarsFilters';
@@ -47,7 +46,6 @@ import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
-import { StudioAurora } from '@/components/studio/StudioAurora';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // GATEKEEPER: Extract critical image URLs from templates
@@ -420,10 +418,9 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // ========== GATEKEEPER LOADING STATE ==========
   if (gatekeeper.isLoading) {
     return (
-      <div ref={ref || containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
-        <SafeComponent name="AvatarsBackground-loading" silent>
-          <AvatarsBackground />
-        </SafeComponent>
+      <div ref={ref || containerRef} className="relative min-h-[60vh] flex flex-col overflow-hidden">
+        {/* No AvatarsBackground — SpineBackdrop from the parent
+            Foundation surface (/cast) is the only atmosphere. */}
         <CinemaLoader
           isVisible={true}
           message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.avatars.messages)}
@@ -469,10 +466,9 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   };
 
   return (
-    <div ref={ref || containerRef} className="relative h-screen flex flex-col bg-background overflow-hidden">
-      <SafeComponent name="AvatarsBackground" silent>
-        <AvatarsBackground />
-      </SafeComponent>
+    <div ref={ref || containerRef} className="relative flex flex-col overflow-hidden">
+      {/* No AvatarsBackground or bg-background — SpineBackdrop (via the
+          Cast Foundation surface) is the canonical atmosphere. */}
       {/* Scrollable content area — grows to fill space above the fixed config panel */}
       <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="animate-fade-in">
@@ -584,7 +580,7 @@ export default function Avatars() {
 
   return (
     <ErrorBoundary>
-      <StudioAurora intensity="subtle" />
+      {/* StudioAurora removed — SpineBackdrop owns atmosphere now. */}
       <AvatarsContent />
     </ErrorBoundary>
   );

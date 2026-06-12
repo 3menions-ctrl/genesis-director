@@ -12,7 +12,7 @@
  *
  * Data: reuses the existing usePaginatedProjects hook.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -310,7 +310,14 @@ function ProjectCard({
   index,
   onOpen,
 }: {
-  project: { id: string; name?: string | null; status?: string | null; updated_at?: string; final_video_url?: string | null; thumbnail_url?: string | null };
+  project: {
+    id: string;
+    name?: string | null;
+    status?: string | null;
+    updated_at?: string;
+    video_url?: string | null;
+    thumbnail_url?: string | null;
+  };
   index: number;
   onOpen: () => void;
 }) {
@@ -319,10 +326,46 @@ function ProjectCard({
   const status = project.status ?? "idle";
   const inProgress = status === "generating" || status === "rendering" || status === "stitching";
   const completed = status === "completed";
+  const previewRef = useRef<HTMLVideoElement | null>(null);
+  const [previewActive, setPreviewActive] = useState(false);
+  const canPreview = completed && !!project.video_url && !reducedMotion;
+
+  // Hover-to-preview — YouTube/Apple TV+ pattern. Plays the muted reel
+  // in place after a short hover delay so a stray mouse drag doesn't
+  // unleash 6 videos at once. Pauses + resets on mouse leave.
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startPreview = () => {
+    if (!canPreview) return;
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => {
+      setPreviewActive(true);
+      const el = previewRef.current;
+      if (el) {
+        el.currentTime = 0;
+        void el.play().catch(() => { /* autoplay rejected, no-op */ });
+      }
+    }, 180);
+  };
+  const stopPreview = () => {
+    if (previewTimer.current) {
+      clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+    }
+    setPreviewActive(false);
+    const el = previewRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  };
 
   return (
     <motion.button
       onClick={onOpen}
+      onMouseEnter={startPreview}
+      onMouseLeave={stopPreview}
+      onFocus={startPreview}
+      onBlur={stopPreview}
       initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.6), ease: EASE_PREMIUM }}
@@ -343,12 +386,31 @@ function ProjectCard({
           <img
             src={project.thumbnail_url}
             alt=""
-            className="h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-[1.04]"
+            className={cn(
+              "h-full w-full object-cover transition-all duration-700 group-hover/card:scale-[1.04]",
+              previewActive && "opacity-0",
+            )}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <Film className="h-10 w-10 text-muted-foreground/25" strokeWidth={1} />
           </div>
+        )}
+        {canPreview && (
+          <video
+            ref={previewRef}
+            src={project.video_url ?? undefined}
+            poster={project.thumbnail_url ?? undefined}
+            muted
+            loop
+            playsInline
+            preload="none"
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
+              previewActive ? "opacity-100" : "opacity-0",
+            )}
+          />
         )}
         {/* Vignette */}
         <div

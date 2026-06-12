@@ -221,7 +221,7 @@ describe('Redirect Loop Prevention', () => {
       const hasRedirected = useRef(false);
 
       if (isLoading) {
-        return <div>Loading auth...</div>;
+        return <div>Loading auth…</div>;
       }
 
       if (!isAuthenticated && !hasRedirected.current) {

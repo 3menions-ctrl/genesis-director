@@ -193,7 +193,7 @@ export function AdminAvatarSeeder() {
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {isGenerating ? 'Generating...' : 'Complete'}
+                {isGenerating ? 'Generating…' : 'Complete'}
               </span>
               <span className="font-medium">
                 {currentIndex} / {presets.length}

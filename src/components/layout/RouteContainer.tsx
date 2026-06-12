@@ -25,7 +25,7 @@ interface RouteContainerProps {
  * without the flash caused by individual motion.div opacity:0 → 1 transitions.
  */
 export const RouteContainer = memo(forwardRef<HTMLDivElement, RouteContainerProps>(
-  function RouteContainer({ children, fallbackMessage = 'Loading...', skeleton, routeName }, ref) {
+  function RouteContainer({ children, fallbackMessage = 'Loading…', skeleton, routeName }, ref) {
     const fallback = skeleton ?? <AppLoader message={fallbackMessage} />;
     return (
       <div ref={ref} className="animate-route-enter">

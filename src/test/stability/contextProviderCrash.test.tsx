@@ -453,7 +453,7 @@ describe('Context with Async State', () => {
         ctx?.load();
       }, [ctx]);
 
-      if (ctx?.loading) return <div>Loading...</div>;
+      if (ctx?.loading) return <div>Loading…</div>;
       return <div data-testid="data">{ctx?.data || 'none'}</div>;
     }
 
@@ -464,7 +464,7 @@ describe('Context with Async State', () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId('data')).toHaveTextContent('loaded');

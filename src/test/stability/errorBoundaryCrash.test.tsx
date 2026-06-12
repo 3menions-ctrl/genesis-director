@@ -269,7 +269,7 @@ describe('Async Error Handling', () => {
       if (error) {
         return <div data-testid="local-error">{error}</div>;
       }
-      return <div>Loading...</div>;
+      return <div>Loading…</div>;
     }
 
     render(

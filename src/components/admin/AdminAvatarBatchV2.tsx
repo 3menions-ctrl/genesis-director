@@ -311,7 +311,7 @@ export function AdminAvatarBatchV2() {
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {isGenerating ? 'Generating...' : isPaused ? 'Paused' : rateLimited ? 'Rate Limited' : 'Complete'}
+                {isGenerating ? 'Generating…' : isPaused ? 'Paused' : rateLimited ? 'Rate Limited' : 'Complete'}
               </span>
               <span className="font-medium">
                 {currentIndex} / {total}

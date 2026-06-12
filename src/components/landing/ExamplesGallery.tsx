@@ -231,7 +231,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <Loader2 className="w-12 h-12 text-white/60 animate-spin" />
-            <p className="text-white/60 text-sm">Loading gallery...</p>
+            <p className="text-white/60 text-sm">Loading gallery…</p>
           </div>
           <button 
             type="button"

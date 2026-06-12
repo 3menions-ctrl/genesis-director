@@ -117,7 +117,7 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
         </div>
 
         {isLoading ? (
-          <div className={`p-12 text-center ${textSecondary} text-sm`}>Loading events...</div>
+          <div className={`p-12 text-center ${textSecondary} text-sm`}>Loading events…</div>
         ) : !events?.length ? (
           <div className={`p-12 text-center ${textSecondary} text-sm`}>No events recorded yet. Publish your widget to start tracking.</div>
         ) : (

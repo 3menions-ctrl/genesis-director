@@ -232,7 +232,7 @@ export default function AuthCallback() {
           <>
             <Loader2 className="w-16 h-16 text-white animate-spin mx-auto mb-6" />
             <h1 className="text-2xl font-display font-bold text-white mb-2">
-              Processing...
+              Processing…
             </h1>
             <p className="text-white/70">{message}</p>
           </>

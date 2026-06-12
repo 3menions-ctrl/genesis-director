@@ -103,7 +103,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
     setState({
       isLoading: true,
       targetRoute,
-      currentMessage: config.messages[0] || 'Loading...',
+      currentMessage: config.messages[0] || 'Loading…',
       progress: 0,
     });
     

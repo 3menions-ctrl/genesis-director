@@ -401,7 +401,7 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
         {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
           <div className="flex items-center justify-center gap-2 mb-4 text-white/50 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Loading avatars... {loadProgress}%</span>
+            <span>Loading avatars… {loadProgress}%</span>
           </div>
         )}
         

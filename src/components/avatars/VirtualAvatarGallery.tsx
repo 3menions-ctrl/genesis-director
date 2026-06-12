@@ -667,7 +667,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
           >
             <Loader2 className="w-3.5 h-3.5 text-[hsl(215,100%,72%)] animate-spin" strokeWidth={1.5} />
             <span className="text-[10px] font-light tracking-[0.16em] uppercase text-white/55">
-              Loading avatars... {visibleAvatars.length}/{totalCount}
+              Loading avatars… {visibleAvatars.length}/{totalCount}
             </span>
             <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: 'hsla(0,0%,100%,0.06)' }}>
               <div 

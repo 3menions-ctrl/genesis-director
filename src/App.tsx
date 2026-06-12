@@ -261,18 +261,18 @@ const App = () => {
                 <Routes>
                 {/* Public routes - each wrapped for isolation */}
                 <Route path="/" element={
-                  <RouteContainer fallbackMessage="Loading...">
+                  <RouteContainer fallbackMessage="Loading…">
                     <Landing />
                   </RouteContainer>
                 } />
                 <Route path="/mockup" element={<MockupPreview />} />
                 <Route path="/auth" element={
-                  <RouteContainer fallbackMessage="Loading authentication...">
+                  <RouteContainer fallbackMessage="Loading authentication…">
                     <Auth />
                   </RouteContainer>
                 } />
                 <Route path="/auth/callback" element={
-                  <RouteContainer fallbackMessage="Verifying...">
+                  <RouteContainer fallbackMessage="Verifying…">
                     <AuthCallback />
                   </RouteContainer>
                 } />
@@ -317,7 +317,7 @@ const App = () => {
                 {/* /discover → /search is the natural hub-discovery path now */}
                 <Route path="/discover" element={<Navigate to="/search" replace />} />
                 <Route path="/search" element={
-                  <RouteContainer fallbackMessage="Loading search...">
+                  <RouteContainer fallbackMessage="Loading search…">
                     <AppShell><SearchHub /></AppShell>
                   </RouteContainer>
                 } />
@@ -377,7 +377,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/messages" element={
-                  <RouteContainer fallbackMessage="Loading messages…">
+                  <RouteContainer fallbackMessage="Threading messages…">
                     <ProtectedRoute>
                       <AppShell><Messages /></AppShell>
                     </ProtectedRoute>
@@ -400,7 +400,7 @@ const App = () => {
                 
                 {/* Protected routes - each with isolated error boundary */}
                 <Route path="/projects" element={
-                  <RouteContainer fallbackMessage="Loading projects...">
+                  <RouteContainer fallbackMessage="Pulling up your reels…">
                     <ProtectedRoute>
                       <AppShell><Projects /></AppShell>
                     </ProtectedRoute>
@@ -420,21 +420,21 @@ const App = () => {
                    accounts to /workspace/general, making the Profile menu
                    link feel broken for those users. */}
                 <Route path="/profile" element={
-                  <RouteContainer fallbackMessage="Loading profile...">
+                  <RouteContainer fallbackMessage="Loading profile…">
                     <ProtectedRoute>
                       <AppShell><Profile /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings" element={
-                  <RouteContainer fallbackMessage="Loading settings...">
+                  <RouteContainer fallbackMessage="Pulling settings…">
                     <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
                       <AppShell><Settings /></AppShell>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/settings/deactivate" element={
-                  <RouteContainer fallbackMessage="Loading...">
+                  <RouteContainer fallbackMessage="Loading…">
                     <ProtectedRoute>
                       <AppShell><DeactivateAccount /></AppShell>
                     </ProtectedRoute>
@@ -448,7 +448,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/settings/workspace" element={
-                  <RouteContainer fallbackMessage="Loading workspace...">
+                  <RouteContainer fallbackMessage="Spinning up your workspace…">
                     <ProtectedRoute>
                       <AppShell><WorkspaceSettings /></AppShell>
                     </ProtectedRoute>
@@ -456,14 +456,14 @@ const App = () => {
                 } />
                 {/* Business workspace admin hub — separate from app /admin */}
                 <Route path="/workspace" element={
-                  <RouteContainer fallbackMessage="Loading workspace...">
+                  <RouteContainer fallbackMessage="Spinning up your workspace…">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
                       <EnterpriseGate><WorkspaceOverview /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/team" element={
-                  <RouteContainer fallbackMessage="Loading team...">
+                  <RouteContainer fallbackMessage="Loading team…">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
                       <EnterpriseGate><WorkspaceTeam /></EnterpriseGate>
                     </RequireAccountType>
@@ -477,21 +477,21 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/workspace/assets" element={
-                  <RouteContainer fallbackMessage="Loading assets...">
+                  <RouteContainer fallbackMessage="Loading assets…">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
                       <EnterpriseGate><WorkspaceAssets /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/billing" element={
-                  <RouteContainer fallbackMessage="Loading billing...">
+                  <RouteContainer fallbackMessage="Loading billing…">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
                       <EnterpriseGate><WorkspaceBilling /></EnterpriseGate>
                     </RequireAccountType>
                   </RouteContainer>
                 } />
                 <Route path="/workspace/analytics" element={
-                  <RouteContainer fallbackMessage="Loading analytics...">
+                  <RouteContainer fallbackMessage="Loading analytics…">
                     <RequireAccountType allow={["business","enterprise","admin"]}>
                       <EnterpriseGate><WorkspaceAnalytics /></EnterpriseGate>
                     </RequireAccountType>
@@ -517,7 +517,7 @@ const App = () => {
                   ['danger',        WorkspaceDanger],
                 ] as const).map(([slug, Comp]) => (
                   <Route key={slug} path={`/workspace/${slug}`} element={
-                    <RouteContainer fallbackMessage="Loading workspace…">
+                    <RouteContainer fallbackMessage="Spinning up your workspace…">
                       <RequireAccountType allow={["business","enterprise","admin"]}>
                         <EnterpriseGate><Comp /></EnterpriseGate>
                       </RequireAccountType>
@@ -545,7 +545,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/director" element={
-                  <RouteContainer fallbackMessage="Loading director...">
+                  <RouteContainer fallbackMessage="Loading director…">
                     <ProtectedRoute>
                       <AppShell><DirectorStudio /></AppShell>
                     </ProtectedRoute>
@@ -559,7 +559,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/music" element={
-                  <RouteContainer fallbackMessage="Loading music...">
+                  <RouteContainer fallbackMessage="Loading music…">
                     <AppShell><MusicHub /></AppShell>
                   </RouteContainer>
                 } />
@@ -575,7 +575,7 @@ const App = () => {
                 
                 {/* Avatar Selection Page */}
                 <Route path="/avatars" element={
-                  <RouteContainer fallbackMessage="Loading avatars...">
+                  <RouteContainer fallbackMessage="Calling cast to set…">
                     <ProtectedRoute>
                       <AppShell><Avatars /></AppShell>
                     </ProtectedRoute>
@@ -593,14 +593,14 @@ const App = () => {
                 
                 {/* Production Pipeline Routes - supports both query params and path params */}
                 <Route path="/production" element={
-                  <RouteContainer fallbackMessage="Loading production...">
+                  <RouteContainer fallbackMessage="Loading production…">
                     <ProtectedRoute>
                       <AppShell><Production /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/production/:projectId" element={
-                  <RouteContainer fallbackMessage="Loading production...">
+                  <RouteContainer fallbackMessage="Loading production…">
                     <ProtectedRoute>
                       <AppShell><Production /></AppShell>
                     </ProtectedRoute>
@@ -612,7 +612,7 @@ const App = () => {
                 {/* Legacy universe routes - redirect to projects */}
                 {/* Canonical singular per hub convention. */}
                 <Route path="/universe/:id" element={
-                  <RouteContainer fallbackMessage="Loading universe...">
+                  <RouteContainer fallbackMessage="Charting the universe…">
                     <AppShell><UniverseDetail /></AppShell>
                   </RouteContainer>
                 } />
@@ -621,14 +621,14 @@ const App = () => {
                     through a small adapter that reads the param. */}
                 <Route path="/universes/:id" element={<LegacyParamRedirect to="/universe" />} />
                 <Route path="/universes" element={
-                  <RouteContainer fallbackMessage="Loading universes...">
+                  <RouteContainer fallbackMessage="Charting the universes…">
                     <AppShell><Universes /></AppShell>
                   </RouteContainer>
                 } />
                 
                 {/* Templates Gallery */}
                 <Route path="/templates" element={
-                  <RouteContainer fallbackMessage="Loading templates...">
+                  <RouteContainer fallbackMessage="Pulling templates…">
                     <ProtectedRoute>
                       <AppShell><Templates /></AppShell>
                     </ProtectedRoute>
@@ -646,7 +646,7 @@ const App = () => {
                 
                 {/* Environments DNA */}
                 <Route path="/environments" element={
-                  <RouteContainer fallbackMessage="Loading environments...">
+                  <RouteContainer fallbackMessage="Loading environments…">
                     <ProtectedRoute>
                       <AppShell><Environments /></AppShell>
                     </ProtectedRoute>
@@ -673,7 +673,7 @@ const App = () => {
                 
                 {/* Consumer social hub sunset — redirect to projects */}
                 <Route path="/creators" element={
-                  <RouteContainer fallbackMessage="Loading creators...">
+                  <RouteContainer fallbackMessage="Calling the directors…">
                     <AppShell><Creators /></AppShell>
                   </RouteContainer>
                 } />
@@ -683,12 +683,12 @@ const App = () => {
                     automatically when the viewed user isn't the signed-in
                     user. Follow / Share become the primary CTAs. */}
                 <Route path="/c/:id" element={
-                  <RouteContainer fallbackMessage="Loading channel...">
+                  <RouteContainer fallbackMessage="Loading channel…">
                     <AppShell><Profile /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/market" element={
-                  <RouteContainer fallbackMessage="Loading market...">
+                  <RouteContainer fallbackMessage="Opening the doors…">
                     <AppShell><Market /></AppShell>
                   </RouteContainer>
                 } />
@@ -699,12 +699,12 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/crews" element={
-                  <RouteContainer fallbackMessage="Loading crews...">
+                  <RouteContainer fallbackMessage="Rallying your crew…">
                     <AppShell><Crews /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/crews/:id" element={
-                  <RouteContainer fallbackMessage="Loading crew...">
+                  <RouteContainer fallbackMessage="Loading crew…">
                     <AppShell><CrewDetail /></AppShell>
                   </RouteContainer>
                 } />
@@ -714,7 +714,7 @@ const App = () => {
                 
                 {/* Video Detail Page */}
                 <Route path="/video/:videoId" element={
-                  <RouteContainer fallbackMessage="Loading video...">
+                  <RouteContainer fallbackMessage="Loading video…">
                     <AppShell><VideoDetail /></AppShell>
                   </RouteContainer>
                 } />
@@ -723,17 +723,17 @@ const App = () => {
                 {/* These are reachable without auth (you should be able
                     to browse + watch reels signed out, like YouTube). */}
                 <Route path="/lobby" element={
-                  <RouteContainer fallbackMessage="Loading lobby...">
+                  <RouteContainer fallbackMessage="Reading the room…">
                     <AppShell><Lobby /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/watch/:id" element={
-                  <RouteContainer fallbackMessage="Loading theater...">
+                  <RouteContainer fallbackMessage="Dimming the house lights…">
                     <AppShell><Theater /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/world/:slug" element={
-                  <RouteContainer fallbackMessage="Loading world...">
+                  <RouteContainer fallbackMessage="Loading world…">
                     <AppShell><WorldDetail /></AppShell>
                   </RouteContainer>
                 } />
@@ -742,14 +742,14 @@ const App = () => {
                     resolve to the same page; the editor reads `:id` from
                     params or `?project=` from search. */}
                 <Route path="/editor" element={
-                  <RouteContainer fallbackMessage="Loading editor...">
+                  <RouteContainer fallbackMessage="Loading the cutting room…">
                     <ProtectedRoute>
                       <VideoEditorPage />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/editor/:id" element={
-                  <RouteContainer fallbackMessage="Loading editor...">
+                  <RouteContainer fallbackMessage="Loading the cutting room…">
                     <ProtectedRoute>
                       <VideoEditorPage />
                     </ProtectedRoute>
@@ -757,13 +757,13 @@ const App = () => {
                 } />
                 
                 <Route path="/w/:slug" element={
-                  <RouteContainer fallbackMessage="Loading...">
+                  <RouteContainer fallbackMessage="Loading…">
                     <WidgetLanding />
                   </RouteContainer>
                 } />
                 {/* Viral public share — unauthenticated. RLS-gated by project_shares.is_public. */}
                 <Route path="/p/:slug" element={
-                  <RouteContainer fallbackMessage="Loading...">
+                  <RouteContainer fallbackMessage="Loading…">
                     <PublicShare />
                   </RouteContainer>
                 } />
@@ -781,7 +781,7 @@ const App = () => {
                 
                 {/* Admin — Refine-powered */}
                 <Route path="/admin" element={
-                  <RouteContainer fallbackMessage="Loading admin...">
+                  <RouteContainer fallbackMessage="Booting the bridge…">
                     <ProtectedRoute>
                       <RefineAdminLayout />
                     </ProtectedRoute>

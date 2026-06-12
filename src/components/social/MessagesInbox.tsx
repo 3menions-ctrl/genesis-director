@@ -139,7 +139,7 @@ export function MessagesInbox({ className }: { className?: string }) {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <span className="text-sm text-white/40">Loading conversations...</span>
+              <span className="text-sm text-white/40">Loading conversations…</span>
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 px-6">

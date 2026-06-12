@@ -125,8 +125,8 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
     if (pipelineStage === 'music_generation') return 'Composing music...';
     if (pipelineStage === 'stitching') return 'Assembling video...';
     if (status === 'awaiting_approval') return 'Awaiting approval';
-    if (status === 'rendering') return 'Rendering...';
-    if (status === 'processing') return 'Processing...';
+    if (status === 'rendering') return 'Rendering…';
+    if (status === 'processing') return 'Processing…';
     return 'In progress...';
   };
 

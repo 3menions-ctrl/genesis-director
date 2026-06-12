@@ -229,7 +229,7 @@ describe('Infinite Render Loop Prevention', () => {
           };
         }, [id]); // Only re-fetch when id changes
 
-        if (loading) return <div>Loading...</div>;
+        if (loading) return <div>Loading…</div>;
         return <div data-testid="data">{data}</div>;
       }
 

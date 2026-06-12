@@ -201,7 +201,7 @@ const Contact = () => {
                   className="w-full h-12 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Sending..." : "Send Message"}
+                  {isSubmitting ? "Sending…" : "Send Message"}
                 </Button>
               </form>
             </div>

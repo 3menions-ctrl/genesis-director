@@ -119,7 +119,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} hover:bg-glass-active hover:border-white/[0.12] transition-all disabled:opacity-50`}
         >
           <Save className="w-4 h-4" />
-          {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+          {saveMutation.isPending ? 'Saving…' : 'Save changes'}
         </button>
       </div>
 

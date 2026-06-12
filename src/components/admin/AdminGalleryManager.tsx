@@ -315,7 +315,7 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
             </Button>
             <Button onClick={handleSave} disabled={!formData.title || !formData.video_url}>
               <Save className="w-4 h-4 mr-2" />
-              {editingItem ? 'Save Changes' : 'Add Video'}
+              {editingItem ? 'Save changes' : 'Add Video'}
             </Button>
           </DialogFooter>
         </DialogContent>

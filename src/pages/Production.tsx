@@ -942,7 +942,7 @@ function ProductionContentInner() {
         setLastError(null);
         setDegradationFlags([]);
         
-        addLog('Stitching...', 'info');
+        addLog('Stitching…', 'info');
         updateStageStatus(5, 'active');
         setProgress(85);
 

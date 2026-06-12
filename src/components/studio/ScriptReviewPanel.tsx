@@ -380,7 +380,7 @@ export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPan
                 >
                   <Sparkles className="w-4 h-4" />
                 </motion.div>
-                Processing...
+                Processing…
               </>
             ) : (
               <>

@@ -224,7 +224,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
           {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
             <div className="flex items-center justify-center gap-2 mb-3 text-white/50 text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Loading avatars... {loadProgress}%</span>
+              <span>Loading avatars… {loadProgress}%</span>
             </div>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

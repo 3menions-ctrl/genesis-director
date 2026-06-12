@@ -315,7 +315,7 @@ export function MergeDownloadDialog({
             {isMerging ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {canMerge ? 'Merging...' : 'Processing...'}
+                {canMerge ? 'Merging...' : 'Processing…'}
               </>
             ) : mergeProgress?.stage === 'complete' ? (
               <>

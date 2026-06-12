@@ -1350,7 +1350,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                   disabled={!canGenerate}
                 >
                   {isGenerating ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</>
                   ) : (
                     <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge className="ml-2 text-xs bg-white/20 text-foreground border-0">{ESTIMATED_CREDITS} cr</Badge></>
                   )}

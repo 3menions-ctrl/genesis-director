@@ -673,7 +673,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             {verifyingOtp ? (
                               <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Verifying...
+                                Verifying…
                               </>
                             ) : (
                               <>
@@ -708,7 +708,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             }}
                             className="text-xs text-white/75 hover:text-white/70 transition-colors disabled:opacity-50"
                           >
-                            {resendingOtp ? 'Sending...' : "Didn't get a code? Resend"}
+                            {resendingOtp ? 'Sending…' : "Didn't get a code? Resend"}
                           </button>
                           
                           <button

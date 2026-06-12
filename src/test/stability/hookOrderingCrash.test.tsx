@@ -66,7 +66,7 @@ describe('Hook Ordering Stability', () => {
 
         // Early return AFTER all hooks
         if (loading) {
-          return <div>Loading...</div>;
+          return <div>Loading…</div>;
         }
 
         return (
@@ -82,7 +82,7 @@ describe('Hook Ordering Stability', () => {
       const { rerender } = render(<SafeComponent loading={true} />, {
         wrapper: createTestWrapper(),
       });
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByText('Loading…')).toBeInTheDocument();
 
       // Rerender with loading=false (different code path, same hook count)
       rerender(<SafeComponent loading={false} />);
@@ -221,7 +221,7 @@ describe('Hook Ordering Stability', () => {
         }, [fetchData]);
 
         if (!id) return <div>No ID provided</div>;
-        if (loading) return <div>Loading...</div>;
+        if (loading) return <div>Loading…</div>;
         if (error) return <div>Error: {error}</div>;
         return <div data-testid="data">{data}</div>;
       }
@@ -239,7 +239,7 @@ describe('Hook Ordering Stability', () => {
 
       // Wait for async effects
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByText('Loading…')).not.toBeInTheDocument();
       }, { timeout: 500 });
 
       // No crashes
@@ -291,7 +291,7 @@ describe('Hook Ordering Stability', () => {
           }
         }, [isAuthenticated]);
 
-        if (loading) return <div>Loading...</div>;
+        if (loading) return <div>Loading…</div>;
         return (
           <div>
             <span data-testid="user">{processedUser}</span>
@@ -303,7 +303,7 @@ describe('Hook Ordering Stability', () => {
       render(<TestComponent />, { wrapper: createTestWrapper() });
 
       // No immediate crash
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByText('Loading…')).toBeInTheDocument();
     });
   });
 
@@ -330,7 +330,7 @@ describe('Hook Ordering Stability', () => {
         }, [shouldFetch]);
 
         if (!shouldFetch) return <div>Fetch disabled</div>;
-        if (isLoading) return <div>Loading...</div>;
+        if (isLoading) return <div>Loading…</div>;
         return <div>{data}</div>;
       }
 

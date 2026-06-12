@@ -295,7 +295,7 @@ export default function ScriptReview() {
     return (
       <CinemaLoader
         isVisible={true}
-        message="Loading script..."
+        message="Loading script…"
         showProgress={false}
       />
     );
@@ -574,7 +574,7 @@ export default function ScriptReview() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
+                    Processing…
                   </>
                 ) : (
                   <>

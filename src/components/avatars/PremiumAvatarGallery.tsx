@@ -374,7 +374,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
       {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
         <div className="flex items-center justify-center gap-2 mt-4 text-white/50 text-xs">
           <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Loading... {loadProgress}%</span>
+          <span>Loading… {loadProgress}%</span>
         </div>
       )}
       

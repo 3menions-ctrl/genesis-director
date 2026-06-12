@@ -51,7 +51,7 @@ export const GlobalLoadingOverlay = memo(forwardRef<HTMLDivElement, Record<strin
       <CinemaLoader
         ref={ref}
         isVisible={isVisible}
-        message={state.currentMessage || 'Loading...'}
+        message={state.currentMessage || 'Loading…'}
         progress={state.progress}
         showProgress={true}
         onExitComplete={handleExitComplete}

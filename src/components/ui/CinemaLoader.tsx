@@ -22,7 +22,7 @@ interface CinemaLoaderProps {
 
 export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
   function CinemaLoader({
-    message = 'Loading...',
+    message = 'Loading…',
     progress = 0,
     showProgress = true,
     isVisible = true,

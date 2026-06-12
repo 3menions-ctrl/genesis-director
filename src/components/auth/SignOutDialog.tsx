@@ -37,7 +37,7 @@ export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>
   variant = 'ghost', 
   className,
   showIcon = true,
-  buttonText = 'Sign Out'
+  buttonText = 'Sign out'
 }, ref) {
   const { signOut } = useAuth();
   const navigate = useNavigate();

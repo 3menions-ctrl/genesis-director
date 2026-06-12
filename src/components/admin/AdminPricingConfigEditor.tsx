@@ -455,7 +455,7 @@ export function AdminPricingConfigEditor() {
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editDialog.isNew ? 'Create' : 'Save Changes'}
+              {editDialog.isNew ? 'Create' : 'Save changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

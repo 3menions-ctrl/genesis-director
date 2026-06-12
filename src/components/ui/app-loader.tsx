@@ -16,7 +16,7 @@ interface AppLoaderProps {
 }
 
 export const AppLoader = forwardRef<HTMLDivElement, AppLoaderProps>(
-  function AppLoader({ message = 'Loading...', className }, ref) {
+  function AppLoader({ message = 'Loading…', className }, ref) {
     const [progress, setProgress] = useState(0);
     const startTimeRef = useRef(Date.now());
     const rafRef = useRef<number>(0);

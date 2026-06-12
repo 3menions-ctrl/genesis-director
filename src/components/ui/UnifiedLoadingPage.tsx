@@ -165,7 +165,7 @@ interface UnifiedLoadingPageProps {
 }
 
 export const UnifiedLoadingPage = memo(function UnifiedLoadingPage({
-  message = 'Loading...',
+  message = 'Loading…',
   showProgress = false,
   progress = 0,
   variant = 'minimal',

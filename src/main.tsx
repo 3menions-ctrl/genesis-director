@@ -58,7 +58,7 @@ bootTheme();
 // only want to fire prefetch for routes a user is *very likely* to hit.
 installRoutePrefetcher();
 registerPrefetch('/projects',   () => import('./pages/Projects'));
-registerPrefetch('/create',     () => import('./pages/CreateCanvas'));
+registerPrefetch('/studio',     () => import('./pages/Studio'));
 registerPrefetch('/library',    () => import('./pages/library/LibraryHub'));
 registerPrefetch('/library/wall', () => import('./pages/library/StoryboardWall'));
 registerPrefetch('/library/cast', () => import('./pages/library/AtomLibrary'));

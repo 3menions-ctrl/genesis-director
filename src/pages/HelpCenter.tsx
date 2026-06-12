@@ -6,7 +6,7 @@
  * gradients, category descriptions) since those can't be serialised in
  * frontmatter cleanly. See [src/content/help/index.ts] for the loader.
  */
-import { useState, useMemo, lazy, Suspense, forwardRef } from 'react';
+import { useState, useMemo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -23,8 +23,14 @@ import { SupportInboxModal } from '@/components/social/SupportInboxModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { HELP_CATEGORIES, HELP_ARTICLES, type HelpArticle } from '@/content/help';
-
-const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
+import { FoundationShell } from '@/components/foundation/FoundationShell';
+import {
+  EditorialCanvas,
+  EditorialEyebrow,
+  EditorialHeadline,
+} from '@/components/foundation/EditorialCanvas';
+import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
+import { TYPE_META } from '@/lib/design-system';
 
 // Per-category visual chrome — icons + gradients + descriptions can't live in
 // markdown frontmatter without a translation layer, so we keep them here.
@@ -199,25 +205,18 @@ export default function HelpCenter() {
     .map((c) => c.articles[0])
     .filter(Boolean) as HelpArticle[];
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
-    <div className="min-h-screen bg-[#000] overflow-hidden relative">
-      <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
-        <AbstractBackground className="fixed inset-0 z-0" />
-      </Suspense>
-
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-sm font-bold text-black">A</span>
-            </div>
-            <span className="text-base font-semibold text-foreground tracking-tight">Small Bridges</span>
-          </Link>
-        </div>
-      </nav>
-
-      <div className="relative z-10 pt-24 pb-16">
-        <div className="max-w-6xl mx-auto px-6">
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "help"],
+            timecode: liveRenderTimecode ?? `${HELP_ARTICLES.length} ARTICLES`,
+          }}
+        >
           <AnimatePresence mode="wait">
             {selectedArticle ? (
               <ArticleContent
@@ -227,32 +226,25 @@ export default function HelpCenter() {
               />
             ) : (
               <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center mb-12"
-                >
-                  <Link
-                    to="/"
-                    className="inline-flex items-center gap-2 text-foreground/80 hover:text-foreground transition-colors mb-8"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Home
-                  </Link>
-                  <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Help Center</h1>
-                  <p className="text-lg text-foreground/80 max-w-2xl mx-auto mb-8">
-                    Find answers, learn best practices, and get the most out of Small Bridges
+                <div className="mb-10">
+                  <EditorialEyebrow>Help Center</EditorialEyebrow>
+                  <EditorialHeadline className="mt-5">
+                    Need a hand?
+                  </EditorialHeadline>
+                  <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
+                    Guides, FAQs, and troubleshooting for everything Small
+                    Bridges. Search below or browse by category.
                   </p>
-                  <div className="relative max-w-xl mx-auto">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <div className="mt-8 relative max-w-xl">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" strokeWidth={1.5} />
                     <Input
-                      placeholder="Search for help..."
+                      placeholder="Search the help center…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-14 pl-12 pr-4 bg-glass border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-white/20 focus:ring-0"
+                      className="h-11 pl-11 pr-4 rounded-full bg-[hsl(var(--foreground)/0.02)] border-border/30 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:border-accent/40 focus:ring-0"
                     />
                   </div>
-                </motion.div>
+                </div>
 
                 {searchQuery && filteredArticles.length > 0 && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
@@ -400,8 +392,8 @@ export default function HelpCenter() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </EditorialCanvas>
       </div>
-    </div>
+    </FoundationShell>
   );
 }

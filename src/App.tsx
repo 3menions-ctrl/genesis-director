@@ -25,6 +25,7 @@ import { GlobalConfirmHost } from "@/components/ui/global-confirm";
 import { SkipToContent } from "@/components/a11y/SkipToContent";
 import { CursorSpotlight } from "@/components/ui/cursor-spotlight";
 import { CompanionPanel } from "@/components/companion/CompanionPanel";
+import { ConcentrationOverlay } from "@/components/focus/ConcentrationMode";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -884,6 +885,9 @@ const App = () => {
                 {/* Hoppy — the persistent AI companion. Skipped for
                     pre-auth marketing routes via internal gating. */}
                 <CompanionPanel />
+                {/* Concentration mode — dims the world around the canvas
+                    when the user starts creating. Esc returns. */}
+                <ConcentrationOverlay />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

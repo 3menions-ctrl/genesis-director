@@ -75,7 +75,7 @@ const TRANSITION_LABELS: Record<string, string> = {
 };
 
 export default function ScriptReview() {
-  usePageMeta({ title: "Script review — Apex Studio", description: "Review and approve your generated screenplay." });
+  usePageMeta({ title: "Script review — Small Bridges", description: "Review and approve your generated screenplay." });
 
   const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();

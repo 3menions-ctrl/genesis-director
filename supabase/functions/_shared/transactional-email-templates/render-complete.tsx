@@ -8,12 +8,12 @@ interface Props {
   projectUrl?: string
 }
 
-function RenderComplete({ projectTitle = 'Your project', projectUrl = 'https://apex-studio.ai/projects' }: Props) {
+function RenderComplete({ projectTitle = 'Your project', projectUrl = 'https://smallbridges.com/projects' }: Props) {
   return (
     <EmailLayout preview={`${projectTitle} is ready to watch`}>
       <Text style={styles.h1}>Your render is ready.</Text>
       <Text style={styles.body}>
-        <strong style={{ color: '#fff' }}>{projectTitle}</strong> just finished generating. Open it in Apex Studio to watch, edit, or share.
+        <strong style={{ color: '#fff' }}>{projectTitle}</strong> just finished generating. Open it in Small Bridges to watch, edit, or share.
       </Text>
       <Link href={projectUrl} style={styles.button}>Watch now</Link>
       <Text style={styles.muted}>Tip — projects stay in your Library forever; download or remix anytime.</Text>
@@ -25,5 +25,5 @@ export const template: TemplateEntry = {
   component: RenderComplete,
   displayName: 'Render Complete',
   subject: (d: Props) => `🎬 ${d?.projectTitle ?? 'Your project'} is ready`,
-  previewData: { projectTitle: 'Neon City Chase', projectUrl: 'https://apex-studio.ai/projects' },
+  previewData: { projectTitle: 'Neon City Chase', projectUrl: 'https://smallbridges.com/projects' },
 }

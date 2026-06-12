@@ -1,10 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { assertSafeFetchUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const IMAGE_ALLOW_HOSTS = [
+  '*.supabase.co',
+  '*.supabase.in',
+  '*.replicate.delivery',
+  'replicate.delivery',
+  '*.cloudfront.net',
+  '*.amazonaws.com',
+  'images.unsplash.com',
+  '*.pexels.com',
+  'images.pexels.com',
+  'cdn.midjourney.com',
+  'oaidalleapiprodscus.blob.core.windows.net',
+];
 
 interface ImageOrientation {
   width: number;
@@ -277,6 +292,24 @@ serve(async (req) => {
         JSON.stringify({ error: 'No image provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // SSRF guard: validate any URL we'll hand to the vision model
+    // (OpenAI fetches the URL server-side; an attacker-controlled URL on
+    // an internal IP would be fetched by their workers, not ours, but the
+    // expand-aspect-ratio sibling function *does* fetch it locally).
+    if (imageUrl) {
+      try {
+        assertSafeFetchUrl(imageUrl, { allowHosts: IMAGE_ALLOW_HOSTS });
+      } catch (e) {
+        if (e instanceof SSRFError) {
+          return new Response(
+            JSON.stringify({ error: `imageUrl host is not allowed (${e.reason})` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw e;
+      }
     }
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');

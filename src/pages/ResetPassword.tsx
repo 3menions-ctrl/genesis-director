@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { Lock, Loader2, ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import { useSafeNavigation } from '@/lib/navigation';
-import { motion } from 'framer-motion';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +17,7 @@ const passwordSchema = z.string()
   .max(72, 'Password must be less than 72 characters');
 
 export default function ResetPassword() {
-  usePageMeta({ title: "Reset password — Apex Studio", description: "Choose a new password for your Apex Studio account." });
+  usePageMeta({ title: "Reset password — Small Bridges", description: "Choose a new password for your Small Bridges account." });
 
   const [searchParams] = useSearchParams();
   const { navigate } = useSafeNavigation();
@@ -31,28 +30,94 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
-      
-      if (type === 'recovery' && accessToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: hashParams.get('refresh_token') || '',
-        });
-        setIsValidSession(!error);
-        if (error) setError('This password reset link has expired or is invalid.');
-      } else if (session) {
-        setIsValidSession(true);
-      } else {
+    // Robust to every URL shape Supabase delivers recovery links in:
+    //
+    //   • #access_token=…&refresh_token=…&type=recovery   (v2 hash flow)
+    //   • ?token_hash=…&type=recovery                     (v3 OTP flow)
+    //   • ?code=…                                         (PKCE flow)
+    //   • already signed-in (callback handled the exchange and bounced here)
+    //
+    // Whichever shape arrives, we end with a session and isValidSession=true,
+    // or a clear "Invalid Link" error — never a blank page.
+    // Failsafe — if Supabase's API hangs for any reason, bail out after 8s
+    // with a useful error message instead of spinning forever (the user's
+    // original "blank screen" symptom).
+    const fallback = window.setTimeout(() => {
+      setIsValidSession((prev) => {
+        if (prev !== null) return prev;
+        setError('Reset session timed out. Please request a new link.');
+        return false;
+      });
+    }, 8000);
+
+    const exchangeAndValidate = async () => {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || '';
+        const hashType = hashParams.get('type');
+
+        const tokenHash = searchParams.get('token_hash') ?? searchParams.get('token');
+        const qpType = searchParams.get('type');
+        const code = searchParams.get('code');
+
+        // 1) Hash-fragment flow.
+        if (accessToken && hashType === 'recovery') {
+          const { error: setErr } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setErr) throw setErr;
+          // Clean the URL so a refresh doesn't re-run setSession with stale tokens.
+          window.history.replaceState({}, '', window.location.pathname);
+          setIsValidSession(true);
+          return;
+        }
+
+        // 2) token_hash flow (verifyOtp).
+        if (tokenHash && (qpType === 'recovery' || !qpType)) {
+          const { error: verifyErr } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          });
+          if (verifyErr) throw verifyErr;
+          window.history.replaceState({}, '', window.location.pathname);
+          setIsValidSession(true);
+          return;
+        }
+
+        // 3) PKCE code flow.
+        if (code) {
+          const { error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (codeErr) throw codeErr;
+          window.history.replaceState({}, '', window.location.pathname);
+          setIsValidSession(true);
+          return;
+        }
+
+        // 4) Already authenticated (callback page handled the exchange).
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsValidSession(true);
+          return;
+        }
+
+        // Nothing usable — show the invalid-link UI.
         setIsValidSession(false);
         setError('No valid reset session found. Please request a new link.');
+      } catch (e) {
+        console.error('[ResetPassword] validation failed', e);
+        setIsValidSession(false);
+        setError(
+          e instanceof Error && e.message.toLowerCase().includes('expired')
+            ? 'This reset link has expired. Please request a new one.'
+            : 'This reset link is invalid or already used. Please request a new one.'
+        );
       }
     };
-    checkSession();
-  }, []);
+    void exchangeAndValidate().finally(() => window.clearTimeout(fallback));
+    return () => window.clearTimeout(fallback);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,32 +129,35 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) { setError('Failed to update password. Please try again.'); }
-      else { setSuccess(true); toast.success('Password updated!'); setTimeout(() => navigate('/auth'), 3000); }
-    } catch { setError('Something went wrong.'); } 
-    finally { setLoading(false); }
+      if (updateError) {
+        setError('Failed to update password. Please try again.');
+      } else {
+        // Supabase already established a session via setSession() during the
+        // recovery callback — the user is authenticated. No need to force a
+        // re-login. Route them straight to their project library.
+        setSuccess(true);
+        toast.success('Password updated — signing you in.');
+        setTimeout(() => navigate('/projects', { replace: true }), 800);
+      }
+    } catch {
+      setError('Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (isValidSession === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(240,10%,4%)]">
-        <Loader2 className="w-6 h-6 animate-spin text-white/65" />
-      </div>
-    );
-  }
-
+  // NOTE: every state branch (loading / invalid / form / success) is wrapped
+  // in a SINGLE always-painted container so the page can never go truly
+  // blank. The previous implementation used framer-motion at opacity 0 as
+  // the outer wrapper — when the page chunked in slowly or the animation
+  // never ran, the whole document stayed blank.
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[hsl(240,10%,4%)] relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 right-1/3 w-[500px] h-[500px] rounded-full bg-primary/6 blur-[180px]" />
       </div>
 
-      <motion.div 
-        className="w-full max-w-[420px] relative"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      >
+      <div className="w-full max-w-[420px] relative animate-fade-in">
         <div className="text-center mb-8">
           <div className="inline-flex mb-4"><Logo size="xl" /></div>
           <h1 className="text-2xl font-display font-bold text-white tracking-tight">
@@ -103,8 +171,15 @@ export default function ResetPassword() {
           </div>
           
           <div className="relative p-8">
-            {success ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
+            {isValidSession === null ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-white/65 mx-auto mb-4" />
+                <p className="text-white/55 text-[12px] font-mono uppercase tracking-[0.22em]">
+                  Verifying reset link…
+                </p>
+              </div>
+            ) : success ? (
+              <div className="text-center py-4 animate-fade-in">
                 <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
@@ -115,7 +190,7 @@ export default function ResetPassword() {
                     Go to Sign In
                   </Button>
                 </Link>
-              </motion.div>
+              </div>
             ) : !isValidSession ? (
               <div className="text-center py-4">
                 <div className="w-16 h-16 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-5">
@@ -186,7 +261,7 @@ export default function ResetPassword() {
             <ArrowLeft className="w-3 h-3" /> Back to Sign In
           </Link>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

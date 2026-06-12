@@ -2414,7 +2414,7 @@ async function runAssetCreation(
           
           // ═══════════════════════════════════════════════════════════════════════════
           // PERSIST MUSIC SYNC PLAN TO DATABASE FOR DOWNSTREAM CONSUMPTION
-          // This enables simple-stitch and the frontend to access timing data
+          // This enables seamless-stitcher and the frontend to access timing data
           // ═══════════════════════════════════════════════════════════════════════════
           try {
             const { data: currentProFeatures } = await supabase
@@ -5542,60 +5542,27 @@ async function runProduction(
         console.log(`[Hollywood] Clip sequence now has ${clipSequence.length} items (${bridgeClipUrls.length} bridges)`);
       }
       
-      // Use intelligent-stitch for ALL tiers with bridge clips enabled for all
-      console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier (bridge clips enabled for all)`);
-      
-      // Determine if we should mute native audio (Veo 3.1 generated narration)
-      const includeNarration = request.includeVoice !== false;
-      const muteNativeAudio = !includeNarration;
-      console.log(`[Hollywood] Audio config: includeNarration=${includeNarration}, muteNativeAudio=${muteNativeAudio}`);
-      
-      const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
-        projectId: state.projectId,
-        userId: request.userId,
-        clips: clipSequence,
-        voiceAudioUrl: state.assets?.voiceUrl,
-        musicAudioUrl: state.assets?.musicUrl,
-        autoGenerateBridges: bridgeClipUrls.length === 0, // Only auto-generate if we didn't already
-        strictnessLevel: 'normal',
-        maxBridgeClips: Math.max(0, 5 - bridgeClipUrls.length), // Subtract already generated
-        targetFormat: '1080p',
-        qualityTier: request.qualityTier || 'standard',
-        muteNativeAudio, // Strip Veo 3.1 native audio if no narration wanted
-        // Pass pro features for intelligent audio-visual sync
-        musicSyncPlan: (state as any).musicSyncPlan,
-        colorGradingFilter: (state as any).colorGrading?.masterFilter,
-        sfxPlan: (state as any).sfxPlan,
-        // Pass continuity plan for transition timing
-        continuityPlan: continuityPlan,
-      }, { timeoutMs: 600000, maxRetries: 2 }); // 10 minute timeout with 2 retries
-      
-      if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
-        state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
-        console.log(`[Hollywood] Intelligent stitch complete: ${state.finalVideoUrl}`);
-        console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
-        console.log(`[Hollywood] Total bridge clips: ${bridgeClipUrls.length + (intelligentStitchResult.bridgeClipsGenerated || 0)}`);
-      } else {
-        console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to simple-stitch manifest`);
-      }
-      
-      // Fallback: Use simple-stitch for manifest-based playback if intelligent stitch failed
-      if (!state.finalVideoUrl) {
-        console.log(`[Hollywood] Fallback: Using simple-stitch for manifest playback`);
-        
-        try {
-          const simpleStitchResult = await callEdgeFunction('simple-stitch', {
-            projectId: state.projectId,
-            userId: request.userId,
-          }, { timeoutMs: 30000, maxRetries: 1 });
-          
-          if (simpleStitchResult.success && simpleStitchResult.finalVideoUrl) {
-            state.finalVideoUrl = simpleStitchResult.finalVideoUrl;
-            console.log(`[Hollywood] Manifest created: ${state.finalVideoUrl}`);
-          }
-        } catch (manifestError) {
-          console.error(`[Hollywood] Simple-stitch fallback error:`, manifestError);
+      // Single unified stitcher — seamless-stitcher always crossfades, normalizes
+      // every input clip, and produces a Safari-safe MP4. Voice/music overlays,
+      // bridge clips, and continuity-plan-driven transitions are handled by
+      // their own functions earlier in the pipeline; this is the final join.
+      console.log(`[Hollywood] Invoking seamless-stitcher (tier=${request.qualityTier || 'standard'})`);
+      try {
+        const stitchResult = await callEdgeFunction('seamless-stitcher', {
+          projectId: state.projectId,
+          includeIntro: false, // pipeline output is the canonical render; brand intro is burned at user-download time
+          transitionDuration: 0.4,
+          transitionType: 'fade',
+        }, { timeoutMs: 600000, maxRetries: 1 });
+
+        if (stitchResult.ok && stitchResult.url) {
+          state.finalVideoUrl = stitchResult.url;
+          console.log(`[Hollywood] Stitch complete: ${state.finalVideoUrl} (cached=${stitchResult.cached})`);
+        } else {
+          console.error(`[Hollywood] Seamless-stitcher returned no url`, stitchResult);
         }
+      } catch (stitchInnerError) {
+        console.error(`[Hollywood] Seamless-stitcher invocation failed:`, stitchInnerError);
       }
     } catch (stitchError) {
       console.error(`[Hollywood] Stitching failed:`, stitchError);

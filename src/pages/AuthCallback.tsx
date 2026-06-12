@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -9,18 +9,24 @@ import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 /**
- * AuthCallback - Handles email confirmation and OAuth callbacks
- * 
+ * AuthCallback - Handles email confirmation, magic-link sign-in, and password recovery.
+ *
  * This page processes:
- * - Email confirmation links (type=signup, type=email_change)
- * - Password reset links (type=recovery)
- * - Magic link logins (type=magiclink)
- * - OAuth provider redirects
+ * - Email confirmation links   (type=signup, type=email_change)
+ * - Password reset links       (type=recovery)
+ * - Magic link logins          (type=magiclink)
+ *
+ * OAuth was removed — the app uses email-based auth only.
  */
 export default function AuthCallback() {
-  usePageMeta({ title: "Signing in — Apex Studio", description: "Completing your Apex Studio sign-in." });
+  usePageMeta({ title: "Signing in — Small Bridges", description: "Completing your Small Bridges sign-in." });
 
   const { navigate } = useSafeNavigation();
+  // Plain react-router navigate — bypasses the safe-nav coordinator, which
+  // can silently reject a follow-up navigation while it's still unlocking
+  // from the original email-link click. Used for the recovery → reset
+  // redirect so the user never gets stranded on the success card.
+  const hardNavigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { navigateTo } = useNavigationWithLoading();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -29,44 +35,60 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Check for hash fragment (OAuth flow) or query params (email confirmation)
+        // Supabase delivers the verification payload in one of THREE shapes
+        // depending on the email-template version and provider settings.
+        // We accept any of them so users don't 404 mid-flow:
+        //
+        //   1) Hash fragment:    #access_token=...&refresh_token=...&type=signup
+        //      (Supabase v2 email templates — session arrives ready-made.)
+        //   2) Query token_hash: ?token_hash=...&type=signup
+        //      (Supabase v3 default.)
+        //   3) Legacy query:     ?token=...&type=signup
+        //      (Older email templates / some external IdP redirects.)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type') || searchParams.get('type');
-        const tokenHash = searchParams.get('token_hash');
+        const tokenHash = searchParams.get('token_hash') ?? searchParams.get('token');
         const error = hashParams.get('error') || searchParams.get('error');
         const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
 
-        // Handle errors from the auth provider
         if (error) {
           console.error('[AuthCallback] Auth error:', error, errorDescription);
           setStatus('error');
-          setMessage(errorDescription || 'Authentication failed. Please try again.');
+          setMessage(errorDescription || 'Sign-in failed. Please try again.');
           return;
         }
 
-        // Handle OAuth callback with tokens in hash
+        // Magic-link / email-confirmation paths that arrive with tokens in the
+        // URL hash get exchanged for a Supabase session, then the user is
+        // routed to /projects (or /reset-password for recovery).
         if (accessToken && refreshToken) {
-          console.log('[AuthCallback] Processing OAuth callback');
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
-
           if (sessionError) {
-            console.error('[AuthCallback] Session error:', sessionError);
             setStatus('error');
-            setMessage('Failed to establish session. Please try again.');
+            setMessage('Could not finish sign-in. Please try again.');
             return;
           }
-
           setStatus('success');
-          setMessage('Successfully signed in!');
-          toast.success('Welcome back!');
-          
-          // Redirect to projects after brief delay
-          setTimeout(() => navigateTo('/projects'), 1500);
+          const next = searchParams.get('next');
+          if (type === 'recovery') {
+            // Recovery flows should land on the reset form immediately —
+            // no setTimeout, no coordinator. The toast is the only feedback.
+            toast.success('Email verified. Set your new password.');
+            hardNavigate(next || '/reset-password', { replace: true });
+          } else if (next) {
+            setMessage('Signed in!');
+            toast.success('Welcome to Small Bridges');
+            setTimeout(() => navigate(next, { replace: true }), 1200);
+          } else {
+            setMessage('Signed in!');
+            toast.success('Welcome to Small Bridges');
+            setTimeout(() => navigateTo('/projects'), 1200);
+          }
           return;
         }
 
@@ -118,14 +140,50 @@ export default function AuthCallback() {
             console.warn('[AuthCallback] trackSignup failed');
           }
 
+          const next = searchParams.get('next');
           if (type === 'recovery') {
-            setMessage('Email verified! Redirecting to reset password...');
+            // Recovery flows redirect immediately — same reason as above.
             toast.success('Email verified! Set your new password.');
-            setTimeout(() => navigate('/reset-password', { replace: true }), 1500);
+            hardNavigate(next || '/reset-password', { replace: true });
+          } else if (next) {
+            setMessage('Signed in!');
+            toast.success('Welcome to Small Bridges');
+            setTimeout(() => navigate(next, { replace: true }), 1500);
           } else {
             setMessage('Email confirmed! You can now sign in.');
             toast.success('Email confirmed! Please sign in to continue.');
             setTimeout(() => navigate('/auth', { replace: true }), 2000);
+          }
+          return;
+        }
+
+        // Supabase v3 PKCE flow — the email link delivers the user to the
+        // redirect URL with `?code=…`. Exchange the code for a session.
+        const pkceCode = searchParams.get('code');
+        if (pkceCode) {
+          setMessage('Completing sign-in…');
+          const { error: codeErr } = await supabase.auth.exchangeCodeForSession(pkceCode);
+          if (codeErr) {
+            console.error('[AuthCallback] code exchange failed', codeErr);
+            setStatus('error');
+            setMessage(
+              codeErr.message.toLowerCase().includes('expired')
+                ? 'This link has expired. Please request a new one.'
+                : 'Could not finish sign-in. Please try again.'
+            );
+            return;
+          }
+          setStatus('success');
+          const next = searchParams.get('next');
+          // Default destination depends on intent — recovery codes always go
+          // to /reset-password unless an explicit `next` is supplied.
+          const dest = next || (type === 'recovery' ? '/reset-password' : '/projects');
+          setMessage(type === 'recovery' ? 'Set a new password to continue.' : 'Signed in!');
+          if (type === 'recovery' || next === '/reset-password') {
+            toast.success('Set a new password.');
+            hardNavigate(dest, { replace: true });
+          } else {
+            setTimeout(() => navigate(dest, { replace: true }), 1200);
           }
           return;
         }
@@ -188,7 +246,21 @@ export default function AuthCallback() {
             <h1 className="text-2xl font-display font-bold text-white mb-2">
               Success!
             </h1>
-            <p className="text-white/70">{message}</p>
+            <p className="text-white/70 mb-4">{message}</p>
+            {/* Safety-net link — if the auto-redirect ever silently fails
+                (e.g. a coordinator lock or a slow navigation), the user can
+                always finish manually. Visible only on success. */}
+            <button
+              onClick={() => {
+                const next = searchParams.get('next');
+                const type = searchParams.get('type')
+                  || new URLSearchParams(window.location.hash.substring(1)).get('type');
+                hardNavigate(next || (type === 'recovery' ? '/reset-password' : '/projects'), { replace: true });
+              }}
+              className="text-sm text-white/55 hover:text-white underline underline-offset-4 transition-colors"
+            >
+              Continue manually →
+            </button>
           </>
         )}
 

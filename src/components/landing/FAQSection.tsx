@@ -10,11 +10,11 @@ import { motion } from 'framer-motion';
 const FAQS = [
   {
     question: 'How does it work?',
-    answer: 'Describe your scene in plain language. Apex-Studio generates cinematic clips with native audio, lip-sync and character continuity, then lets you regenerate, edit and export the final film. AI output varies between runs — regenerating clips is part of the creative process, so plan a small credit buffer for iteration.',
+    answer: 'Describe your scene in plain language. Small Bridges generates cinematic clips with native audio, lip-sync and character continuity, then lets you regenerate, edit and export the final film. AI output varies between runs — regenerating clips is part of the creative process, so plan a small credit buffer for iteration.',
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power everything on Apex-Studio — video generation, photo editing, avatars, voice and exports. Each credit is $0.10 USD, billed in pay-as-you-go packs. There are no subscriptions, no seats and no monthly minimums. Purchased credits never expire while your account remains active.',
+    answer: 'Credits power everything on Small Bridges — video generation, photo editing, avatars, voice and exports. Each credit is $0.10 USD, billed in pay-as-you-go packs. There are no subscriptions, no seats and no monthly minimums. Purchased credits never expire while your account remains active.',
   },
   {
     question: 'Can I get a refund on credits?',
@@ -30,7 +30,7 @@ const FAQS = [
   },
   {
     question: 'What content is not allowed?',
-    answer: 'Apex-Studio prohibits non-consensual intimate imagery, sexual content involving minors, deceptive deepfakes of real people without consent, content that incites violence or hatred, election or medical disinformation, and any use that violates applicable law. We use multi-layer moderation; violating accounts can be suspended without refund.',
+    answer: 'Small Bridges prohibits non-consensual intimate imagery, sexual content involving minors, deceptive deepfakes of real people without consent, content that incites violence or hatred, election or medical disinformation, and any use that violates applicable law. We use multi-layer moderation; violating accounts can be suspended without refund.',
   },
   {
     question: 'How is my data handled?',

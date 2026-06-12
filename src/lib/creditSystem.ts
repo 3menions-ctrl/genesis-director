@@ -118,10 +118,11 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  * Calculate credits for a single clip based on duration and engine.
  * 'kling' = Avatar mode (native audio), 'veo' = Standard T2V/I2V
  */
-export type VideoEngine = 'kling' | 'veo' | 'seedance' | 'sora';
+export type VideoEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
 
 function toEngineId(videoEngine: VideoEngine): EngineId {
   switch (videoEngine) {
+    case 'wan': return 'wan-25';
     case 'seedance': return 'seedance-2';
     case 'veo': return 'veo-3';
     case 'sora': return 'sora-2';
@@ -130,12 +131,16 @@ function toEngineId(videoEngine: VideoEngine): EngineId {
   }
 }
 
-export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'kling'): number {
+export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'wan'): number {
   void clipIndex;
   try {
     return creditsForScene(toEngineId(videoEngine), clipDuration);
   } catch {
     const extended = isExtendedPricing(0, clipDuration);
+    // Wan = free-tier baseline; bypass the legacy CREDIT_SYSTEM constants.
+    if (videoEngine === 'wan') {
+      return clipDuration > 5 ? 20 : 10;
+    }
     if (videoEngine === 'seedance') {
       return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
     }

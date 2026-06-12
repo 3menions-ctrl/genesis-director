@@ -22,21 +22,21 @@ import sceneC from '@/assets/environments/la-canyon-sunset.jpg';
 
 const G = {
   beautifulDay:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   sunsetDreams:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   snowy:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2b6fb5c2-ca02-4c06-8341-ec32286c9e60_1768303542610.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   fiery:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_41698610-96e3-4cb5-95a0-aacfaee56d40_1768299043866.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   silentVigil:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_bc47c878-24ae-42b5-96b8-3f0eda090302_1768276458728.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   enchanted:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_0_1770518760774.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   studioTalk:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5a66288c-cb24-420e-ae65-7c531967de70_1768273917429.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
   brandSpot:
-    'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4',
+    'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
 };
 
 type Reel = {
@@ -273,7 +273,7 @@ const Stage = memo(function Stage({ reel }: { reel: Reel }) {
             {reel.title}
           </span>
           <span className="px-2.5 py-1 rounded-full text-[10px] tracking-[0.32em] uppercase text-white bg-[#0A84FF]/85 border border-white/15 shadow-[0_0_24px_hsla(212,100%,55%,0.5)]">
-            After · Apex
+            After · Small Bridges
           </span>
         </div>
 

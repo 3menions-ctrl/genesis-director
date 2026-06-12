@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import logoImage from '@/assets/apex-studio-logo.webp';
+import logoImage from '@/assets/small-bridges-logo.webp';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 /**
@@ -30,9 +30,9 @@ const COMPANY_SIZES = [
 ];
 
 export default function EnterpriseComingSoon() {
-  usePageMeta({ title: "Enterprise — Apex Studio", description: "Enterprise-grade cinematic AI for production studios. Coming soon." });
+  usePageMeta({ title: "Enterprise — Small Bridges", description: "Enterprise-grade cinematic AI for production studios. Coming soon." });
 
-  useEffect(() => { document.title = 'Apex-Studio · Enterprise (Coming Soon)'; }, []);
+  useEffect(() => { document.title = 'Small Bridges · Enterprise (Coming Soon)'; }, []);
 
   const [form, setForm] = useState({
     contact_name: '',
@@ -68,7 +68,7 @@ export default function EnterpriseComingSoon() {
       });
       if (error) {
         console.warn('[enterprise-lead]', error);
-        toast.error('Could not submit. Please email apex-studio.ai@apex-studio.ai directly.');
+        toast.error('Could not submit. Please email smallbridges.com@smallbridges.com directly.');
         return;
       }
       setSubmitted(true);
@@ -101,7 +101,7 @@ export default function EnterpriseComingSoon() {
             </div>
             <div className="flex flex-col">
               <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display">
-                Apex<span className="text-white/85 mx-[1px]">-</span>Studio
+                Small Bridges<span className="text-white/85 mx-[1px]">-</span>Studio
               </span>
               <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/65 mt-[4px]">
                 Enterprise Suite
@@ -161,8 +161,8 @@ export default function EnterpriseComingSoon() {
           <div className="mt-10 flex items-center gap-4 text-[11px] font-mono uppercase tracking-[0.28em] text-white/35">
             <span>Estimated launch · Q3 2026</span>
             <span aria-hidden>·</span>
-            <a href="mailto:apex-studio.ai@apex-studio.ai" className="hover:text-white/70 transition-colors">
-              apex-studio.ai@apex-studio.ai
+            <a href="mailto:smallbridges.com@smallbridges.com" className="hover:text-white/70 transition-colors">
+              smallbridges.com@smallbridges.com
             </a>
           </div>
         </div>

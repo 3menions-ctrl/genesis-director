@@ -42,17 +42,17 @@ import { Logo } from '@/components/ui/Logo';
 describe('Logo', () => {
   it('renders img with alt text', () => {
     render(<Logo />);
-    expect(screen.getByAltText('Apex-Studio')).toBeInTheDocument();
+    expect(screen.getByAltText('Small Bridges')).toBeInTheDocument();
   });
 
   it('shows text when showText=true', () => {
     render(<Logo showText />);
-    expect(screen.getByText('Apex-Studio')).toBeInTheDocument();
+    expect(screen.getByText('Small Bridges')).toBeInTheDocument();
   });
 
   it('hides text when showText=false (default)', () => {
     render(<Logo />);
-    expect(screen.queryByText('Apex-Studio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Small Bridges')).not.toBeInTheDocument();
   });
 
   it('applies size class', () => {
@@ -270,7 +270,7 @@ describe('LandingNav', () => {
 
   it('renders Logo with text', () => {
     render(withRouter(<LandingNav onScrollToSection={mockScroll} onNavigate={mockNav} />));
-    expect(screen.getByAltText('Apex-Studio')).toBeInTheDocument();
+    expect(screen.getByAltText('Small Bridges')).toBeInTheDocument();
   });
 });
 
@@ -581,10 +581,12 @@ describe('Component Architecture Audit', () => {
 
 
   describe('Player components', () => {
+    // After the player consolidation the entire src/components/player/
+    // directory was deleted. There is exactly one media player now and
+    // it lives at src/components/intro/BrandedVideoPlayer.tsx.
     const files = [
-      'src/components/player/UniversalHLSPlayer.tsx',
-      'src/components/player/UniversalVideoPlayer.tsx',
-      'src/components/player/SimpleVideoPlayer.tsx',
+      'src/components/intro/BrandedVideoPlayer.tsx',
+      'src/components/intro/PremiumControls.tsx',
     ];
 
     for (const f of files) {
@@ -629,7 +631,10 @@ describe('Component Architecture Audit', () => {
       const content = readFile('src/components/credits/BuyCreditsModal.tsx');
       expect(content).toContain('Dialog');
       expect(content).toContain('DialogContent');
-      expect(content).toContain('CreditPackage');
+      // During beta this modal opens a "Request more credits" form (writes
+      // to support_messages). The Stripe-checkout `CreditPackage` selector
+      // returns alongside paid plans — assert on the beta surface for now.
+      expect(content).toMatch(/support_messages|credits_request/);
     });
   });
 });

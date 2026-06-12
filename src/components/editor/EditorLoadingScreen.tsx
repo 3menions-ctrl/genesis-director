@@ -150,7 +150,7 @@ export function EditorLoadingScreen() {
         <div className="flex flex-col items-center gap-3 mt-2">
           <div className="flex items-baseline gap-2.5">
             <span className="font-display text-[22px] font-semibold tracking-[0.32em] uppercase text-foreground/90">
-              Apex
+              Small Bridges
             </span>
             <span className="font-display text-[14px] font-light tracking-[0.5em] uppercase text-muted-foreground/40">
               Studio

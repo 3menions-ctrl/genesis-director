@@ -24,7 +24,7 @@ import { CreditLowInline } from '@/components/credits/CreditLowInline';
 import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { handleError } from '@/lib/errorHandler';
-import { SimpleVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
 
 // Import environment presets - Diverse variety for training videos
@@ -242,7 +242,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   }, []);
 
   // Voice preview cache key prefix
-  const VOICE_CACHE_KEY = 'apex_voice_preview_';
+  const VOICE_CACHE_KEY = 'sb_voice_preview_';
   const VOICE_CACHE_VERSION = 'v1';
   
   // Get cached voice preview from localStorage
@@ -996,7 +996,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                       animate={{ opacity: 1 }}
                       className="w-full h-full"
                     >
-                      <SimpleVideoPlayer
+                      <BrandedVideoPlayer
                         src={generatedVideoUrl}
                         showControls
                         className="w-full h-full object-cover"
@@ -1384,7 +1384,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
 // Wrapper with error boundary for fault isolation
 export default function TrainingVideo() {
-  usePageMeta({ title: "Training — Apex Studio", description: "Watch in-depth tutorials and creator masterclasses for Apex Studio." });
+  usePageMeta({ title: "Training — Small Bridges", description: "Watch in-depth tutorials and creator masterclasses for Small Bridges." });
 
   return (
     <ErrorBoundary>

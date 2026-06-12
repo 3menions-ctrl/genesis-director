@@ -99,10 +99,43 @@
     --popover: 220 12% 8%;
     --popover-foreground: 240 5% 90%;
 
-    /* Primary — White CTAs (app-wide button color) */
+    /* Primary — White CTAs (Auth, Landing, marketing).
+       Do not change this without updating the auth/landing surface,
+       which renders text on a white pill. */
     --primary: 0 0% 100%;            /* pure white */
     --primary-foreground: 220 14% 4%;/* near-black text on white */
     --primary-glow: 0 0% 100%;
+
+    /* Brand — the canonical blue used by every "primary action" pill in
+       the app shell, workspace, admin, and beta-free surfaces.
+       Recalibrated v2:
+         • Lifted from flat 215° to 213° + slightly higher lightness,
+           which on dark backgrounds reads as cleaner and more saturated
+           without falling into "washed-out cyan".
+         • Brand-light leans warmer (217°) so iconography reads more "soft
+           cyan" than "icy blue" — better contrast on glass surfaces.
+         • Brand-dark deepens further so primary CTA gradients have real
+           depth (~14% lightness delta top-to-bottom).
+       New code should write `bg-brand`, `text-brand`, `border-brand`, or
+       read `hsl(var(--brand))` directly instead of hardcoded hex literals.
+       Tailwind aliases live in tailwind.config.ts. */
+    --brand: 213 100% 56%;           /* canonical primary action color */
+    --brand-light: 217 100% 74%;     /* hover glow & icon tint */
+    --brand-dark: 215 100% 38%;      /* pill gradient bottom */
+    --brand-foreground: 0 0% 100%;
+    /* Brand glow — the warm-tinged radial used in hero band radials and
+       button hover shadows. Slightly amber-shifted (208°) so when it
+       sits over a dark backdrop it reads as a *cinema lighting* glow
+       rather than a flat color overlay. */
+    --brand-glow: 208 100% 64%;
+
+    /* Display-P3 brand for capable browsers. On Mac displays and modern
+       iPhones the brand reads as ~15% more saturated. Falls back to the
+       HSL tokens above on non-P3 displays. Used in carefully chosen
+       surfaces (hero buttons, primary CTAs) via `color-mix()`. */
+    --brand-p3-r: 0.039;
+    --brand-p3-g: 0.518;
+    --brand-p3-b: 1.0;
 
     /* Secondary — Muted neutral */
     --secondary: 220 14% 12%;
@@ -2209,6 +2242,12 @@ img, a, button {
     @apply font-display text-[11px] font-medium uppercase text-white/40;
     letter-spacing: 0.22em;
   }
+  /* Cinematic pill button — base for primary/secondary chips across the app.
+     Color / background are layered via additional utility classes. */
+  .pill {
+    @apply inline-flex items-center gap-2 h-9 px-4 rounded-full text-[11px] font-mono uppercase transition-colors;
+    letter-spacing: 0.22em;
+  }
   .text-display {
     @apply font-display font-semibold text-white;
     font-size: clamp(2rem, 4vw + 0.5rem, 2.875rem);
@@ -2390,6 +2429,215 @@ img, a, button {
    auth, onboarding, marketing) are unaffected. */
 [data-app-shell] .bg-background {
   background-color: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Design-system primitives — shared classes referenced from React.
+   Keep this section small; prefer Tailwind utilities unless a class
+   needs multiple `focus-visible:` / `disabled:` states that are too
+   verbose to repeat at every call site.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Canonical text input / textarea. Replaces the hand-rolled
+   `mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08]
+    bg-white/[0.02] focus:outline-none focus:border-[#0A84FF]/40`
+   block that appeared on every recent page. Restores a real keyboard
+   focus ring (a11y) and standardizes the border treatment. */
+.ds-input {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.ds-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.ds-input:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.ds-input:focus,
+.ds-input:focus-visible {
+  border-color: rgba(10, 132, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+.ds-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Shared atmosphere keyframes — extracted from inline <style> blocks
+   in Settings.tsx and Profile.tsx so multiple pages can reuse the same
+   animations without duplication. Names are `app-*` so per-page legacy
+   aliases (`settingsAurora`, `profileAurora`, etc.) can keep working
+   by mapping to these in the source files.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Slow continuous rotation for radial gradient backdrops. */
+@keyframes app-aurora { to { transform: rotate(360deg); } }
+
+/* Status-dot pulse used next to "LIVE" / "ACTIVE" eyebrows. */
+@keyframes app-tick { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+/* Gentle vertical drift for floating glow orbs. */
+@keyframes app-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+/* Horizontal shimmer wipe for skeleton / loading bars. */
+@keyframes app-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Tiny opacity flicker for ambient particle dots. */
+@keyframes app-twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+
+/* Legacy aliases — keep until call sites are migrated. Adding the alias
+   here costs ~80 bytes but lets us remove every per-page <style> block. */
+@keyframes settingsAurora { to { transform: rotate(360deg); } }
+@keyframes settingsTick   { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes profileAurora  { to { transform: rotate(360deg); } }
+@keyframes profileTick    { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes profileFloat   { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes profileShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes profileTwinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Backdrop continuity — the AppShell aurora is fixed-positioned and
+   marked with `view-transition-name: app-backdrop` so the View
+   Transition system treats it as a *persistent* shared element across
+   route changes. The route-content layer wraps inside its own
+   `view-transition-name: app-content` so only the content cross-fades,
+   leaving the aurora rock-steady.
+   ───────────────────────────────────────────────────────────────────── */
+[data-app-shell-backdrop] {
+  view-transition-name: app-backdrop;
+  will-change: opacity, transform;
+}
+[data-app-shell-content] {
+  view-transition-name: app-content;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   View Transitions — global cross-dissolve between routes.
+   The `startTransition` helper in `src/lib/viewTransitions.ts` runs the
+   route swap inside a View Transition; these rules define how the old
+   and new pages animate.
+   ───────────────────────────────────────────────────────────────────── */
+::view-transition-old(root) {
+  animation: vt-fade-out 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes vt-fade-out {
+  from { opacity: 1; transform: translateY(0); filter: blur(0); }
+  to   { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Top progress bar — `<TopProgress />` shows during navigation.
+   ───────────────────────────────────────────────────────────────────── */
+.top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--brand-light)) 50%,
+    hsl(var(--brand)) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  pointer-events: none;
+  box-shadow: 0 0 10px hsl(var(--brand-light) / 0.6);
+  animation: top-progress-shimmer 1.4s linear infinite;
+}
+@keyframes top-progress-shimmer {
+  from { background-position: 0% 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Theme: Production Day — warmer low-blue palette for long-form
+   sessions. Toggled via Settings → Preferences (and the Cmd+K palette).
+   Overrides the canonical brand + background tokens.
+   ───────────────────────────────────────────────────────────────────── */
+[data-theme="production-day"] {
+  --background: 30 12% 8%;
+  --foreground: 30 8% 92%;
+  --brand: 25 80% 60%;
+  --brand-light: 25 80% 76%;
+  --brand-dark: 25 70% 42%;
+  --brand-glow: 32 95% 64%;
+}
+
+/* P3 wide-gamut brand color on capable displays — the brand reads ~15%
+   more saturated on Macs / modern iPhones without changing how it appears
+   on older monitors. Applied through a single utility class to keep the
+   non-P3 fallback identical. */
+.bg-brand-p3 {
+  background-color: hsl(var(--brand));
+}
+@supports (color: color(display-p3 1 1 1)) {
+  .bg-brand-p3 {
+    background-color: color(display-p3 var(--brand-p3-r) var(--brand-p3-g) var(--brand-p3-b));
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Director Mode — global focus mode toggled by `F`.
+   Mutes decorative chrome so the canvas / production page reads as a
+   distraction-free workshop. Triggered by `<DirectorMode />` setting
+   `data-director-mode="1"` on the html element.
+   ───────────────────────────────────────────────────────────────────── */
+[data-director-mode] [data-app-shell-sidebar],
+[data-director-mode] [data-app-shell-topbar] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+[data-director-mode] [data-app-shell-sidebar]:hover,
+[data-director-mode] [data-app-shell-topbar]:hover {
+  opacity: 0.95;
+  pointer-events: auto;
+}
+[data-director-mode] .director-mode-mute {
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+}
+
+/* Landing-page film grain — translates the grain tile every ~470ms for the
+   subtle "live film stock" feel. Step-3 transition snaps between offsets
+   instead of smoothly interpolating, which reads as analog flicker. */
+@keyframes app-grain {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(-2%, -1%); }
+  66%  { transform: translate(1%, 2%); }
+  100% { transform: translate(0, 0); }
 }
 
 /* Studio page film grain animation */

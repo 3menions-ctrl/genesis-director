@@ -121,11 +121,11 @@ export default function WorkspaceSecurity() {
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-white/90 font-display">{d.domain}</div>
                   <div className="font-mono text-[10px] text-white/75 mt-0.5 break-all">
-                    TXT  apex-verify={d.verification_token}
+                    TXT  smallbridges-verify={d.verification_token}
                   </div>
                 </div>
                 {d.verified_at ? <Pill tone="good">VERIFIED</Pill> : <Pill tone="amber">PENDING</Pill>}
-                <button onClick={() => copy(`apex-verify=${d.verification_token}`)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Copy TXT value">
+                <button onClick={() => copy(`smallbridges-verify=${d.verification_token}`)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Copy TXT value">
                   <Copy className="w-3.5 h-3.5 text-white/50" />
                 </button>
                 {!d.verified_at && (
@@ -160,11 +160,11 @@ export default function WorkspaceSecurity() {
           {currentOrg?.plan === 'business' || currentOrg?.plan === 'enterprise' ? 'AVAILABLE' : 'BUSINESS PLAN'}
         </Pill>}>
         <p className="text-[12px] text-white/50 mb-4 max-w-xl font-light">
-          ACS URL: <code className="font-mono text-[11px] text-white/70">https://ahlikyhgcqvrdvbtkghh.supabase.co/auth/v1/sso/saml/acs</code>
+          ACS URL: <code className="font-mono text-[11px] text-white/70">{`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/sso/saml/acs`}</code>
         </p>
         <div className="flex gap-2">
           <a
-            href="mailto:apex-studio.ai@apex-studio.ai?subject=SAML SSO setup"
+            href="mailto:smallbridges.com@smallbridges.com?subject=SAML SSO setup"
             target="_blank" rel="noreferrer"
           >
             <CmdButton variant="primary">

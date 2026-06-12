@@ -114,7 +114,7 @@ export default function MediaLibrary() {
   };
 
   return (
-    <PageShell width="full" className="max-w-[1800px]">
+    <PageShell width="gallery">
       <PageHeader
         eyebrow="Library"
         title="Media"

@@ -23,7 +23,7 @@ import {
 } from '@/lib/video/VideoThumbnailGenerator';
 
 // Test video URL (public domain)
-const VALID_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/dd2b725a-d7b1-49a1-ae71-b930b52dec89/clip_dd2b725a-d7b1-49a1-ae71-b930b52dec89_0_1770011593410.mp4';
+const VALID_VIDEO_URL = 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4';
 const INVALID_VIDEO_URL = 'https://invalid-domain-that-does-not-exist.com/video.mp4';
 const CORS_BLOCKED_URL = 'https://example.com/video.mp4'; // Will likely be CORS blocked
 

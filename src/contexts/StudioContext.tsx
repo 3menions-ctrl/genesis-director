@@ -315,7 +315,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       // currently selected org from localStorage (the same key used by
       // WorkspaceContext) and validate the membership server-side via RLS.
       let orgId: string | null = null;
-      try { orgId = localStorage.getItem('apex.currentOrgId'); } catch {}
+      try { orgId = localStorage.getItem('smallbridges.currentOrgId'); } catch {}
 
       const { data, error } = await supabase
         .from('movie_projects')

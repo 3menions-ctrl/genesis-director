@@ -1,129 +1,86 @@
+/**
+ * WelcomeCheckout — post-signup landing during the free-beta period.
+ *
+ * Previously this page opened embedded Stripe checkout. While Small Bridges is
+ * in beta there's nothing to pay — the user is granted a starter credit
+ * balance (by a DB trigger on profile insert) and we just welcome them
+ * and route them into the studio.
+ */
+
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, ShieldCheck, Sparkles } from 'lucide-react';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { getStripe, getStripeEnvironment } from '@/lib/stripe';
-import { supabase } from '@/integrations/supabase/client';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
-import { Logo } from '@/components/ui/Logo';
-import { toast } from 'sonner';
-
 import { usePageMeta } from '@/hooks/usePageMeta';
-/**
- * Post-signup checkout handoff. The pre-signup wizard captures plan choice
- * and routes here as `next=` after auth completes. We open Stripe Embedded
- * Checkout for the chosen price.
- */
+import { BetaHero } from '@/components/ui/BetaHero';
+import { PrimaryCTA } from '@/components/ui/PrimaryCTA';
+
 export default function WelcomeCheckout() {
-  usePageMeta({ title: "Welcome — Apex Studio", description: "Confirm your plan and step into Apex Studio." });
-
-  const [params] = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  usePageMeta({
+    title: 'Welcome — Small Bridges',
+    description: 'Small Bridges is free during beta. Your starter credits are ready.',
+  });
+  const { profile } = useAuth();
   const { navigate } = useSafeNavigation();
-  const planId = params.get('plan') ?? '';
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(5);
 
+  // Auto-route into the studio after a brief celebration moment so the user
+  // never lands here and gets stuck. We keep a manual button too.
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      navigate(`/auth?mode=signup&next=${encodeURIComponent(`/welcome/checkout?plan=${planId}`)}`, { replace: true });
-    }
-  }, [user, authLoading, navigate, planId]);
-
-  const fetchClientSecret = async (): Promise<string> => {
-    setLoading(true);
-    try {
-      const returnUrl = `${window.location.origin}/profile?payment=success&plan=${encodeURIComponent(planId)}&session_id={CHECKOUT_SESSION_ID}`;
-      const { data, error: fnError } = await supabase.functions.invoke('create-plan-checkout', {
-        body: { priceId: planId, environment: getStripeEnvironment(), returnUrl },
+    const t = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(t);
+          navigate('/create?welcome=1', { replace: true });
+          return 0;
+        }
+        return c - 1;
       });
-      // Edge function may return a non-2xx with JSON { error } in `data`.
-      const serverError = (data && typeof data === 'object' && 'error' in data) ? String((data as any).error) : null;
-      if (fnError || serverError || !data?.clientSecret) {
-        const msg = serverError || fnError?.message || 'We could not start checkout. Please try again.';
-        console.error('[WelcomeCheckout] create-plan-checkout failed', { fnError, serverError, data });
-        setError(msg);
-        toast.error(msg);
-        throw new Error(msg);
-      }
-      return data.clientSecret as string;
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 1000);
+    return () => clearInterval(t);
+  }, [navigate]);
 
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(220,14%,2%)]">
-        <Loader2 className="w-6 h-6 animate-spin text-white/60" />
-      </div>
-    );
-  }
-
-  if (!planId) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[hsl(220,14%,2%)] text-white p-8 text-center">
-        <p className="text-white/65 mb-4">No plan selected.</p>
-        <button onClick={() => navigate('/pricing')} className="text-[#9DCBFF] underline">Choose a plan</button>
-      </div>
-    );
-  }
+  const starterCredits = profile?.credits_balance ?? 0;
 
   return (
-    <div className="relative min-h-screen bg-[hsl(220,14%,2%)] text-white">
-      <div aria-hidden className="absolute inset-0 -z-10"
-        style={{ background: 'radial-gradient(ellipse at top, hsla(212,100%,40%,0.15), transparent 60%)' }}
-      />
-      <div className="max-w-3xl mx-auto px-6 pt-12 pb-24">
-        <div className="flex justify-center mb-8"><Logo size="lg" /></div>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
-        >
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] mb-3">Final step</p>
-          <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight">Confirm your plan</h1>
-          <p className="text-white/55 text-sm mt-2">Secured by Stripe. Cancel anytime.</p>
-        </motion.div>
-
-        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-2 md:p-4 overflow-hidden">
-          {error ? (
-            <div className="p-8 text-center">
-              <p className="text-rose-300 text-sm mb-4">{error}</p>
-              <button
-                onClick={() => navigate('/projects')}
-                className="text-[#9DCBFF] underline text-sm"
+    <div className="min-h-screen flex items-center justify-center text-white px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-xl"
+      >
+        <BetaHero
+          eyebrow="No card · no checkout"
+          title={<>Welcome to Small Bridges.</>}
+          body={
+            <>
+              You&rsquo;re in. Small Bridges is free while we&rsquo;re in beta — no card needed, no surprise fees. We&rsquo;ve seeded your account with{' '}
+              <span className="text-emerald-300 font-mono">{starterCredits.toLocaleString()}</span>{' '}
+              starter credits so you can generate your first scenes immediately.
+            </>
+          }
+          actions={
+            <div className="flex flex-wrap items-center gap-4">
+              <PrimaryCTA
+                size="lg"
+                onClick={() => navigate('/create?welcome=1', { replace: true })}
+                trailingIcon={ArrowRight}
               >
-                Continue to dashboard
-              </button>
+                Open the studio
+              </PrimaryCTA>
+              <span className="text-[11px] font-mono uppercase tracking-[0.22em] text-white/35">
+                Auto-launching in {countdown}…
+              </span>
             </div>
-          ) : (
-            <EmbeddedCheckoutProvider
-              stripe={getStripe()}
-              options={{ fetchClientSecret }}
-            >
-              <EmbeddedCheckout />
-            </EmbeddedCheckoutProvider>
-          )}
-        </div>
+          }
+        />
 
-        <div className="flex items-center justify-center gap-6 mt-8 text-[11px] text-white/75">
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> SSL secure</span>
-          <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Powered by Stripe</span>
-        </div>
-
-        <div className="text-center mt-6">
-          <button
-            onClick={() => navigate('/projects')}
-            className="text-xs text-white/75 hover:text-white/70 underline underline-offset-2"
-          >
-            Skip for now — I'll choose later
-          </button>
-        </div>
-      </div>
+        <p className="mt-8 text-[11px] text-white/35 leading-relaxed text-center">
+          When paid plans launch we&rsquo;ll email you well in advance with what changes (and what stays free). Your in-beta work stays yours.
+        </p>
+      </motion.div>
     </div>
   );
 }

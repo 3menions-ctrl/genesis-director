@@ -235,6 +235,11 @@ serve(async (req) => {
         // Continuity-chain inputs (optional)
         continuityFrameUrl,    // last frame of previous clip
         continuityDNA,         // distilled identity descriptor of previous clip
+        // Idempotency + scope. Client should pass a stable key (e.g. uuid)
+        // per logical submission; a retry of the same submission reuses the
+        // existing prediction without a second credit charge.
+        idempotencyKey,
+        projectId,
       } = body;
 
       if (!prompt) {
@@ -269,11 +274,21 @@ serve(async (req) => {
         });
       }
 
-      // Deduct credits — STRICTLY assert success before proceeding (no free generation)
+      // Deduct credits — STRICTLY assert success before proceeding.
+      // Pass an idempotency key + project scope so a client retry
+      // (re-submit on transient network error) does NOT double-charge.
+      // The RPC short-circuits when an identical (project_id, idempotency_key)
+      // row exists and returns TRUE without inserting a second ledger row.
+      const idemKey = idempotencyKey
+        ? `editor-clip:${String(idempotencyKey)}`
+        : `editor-clip:auto:${auth.userId}:${duration}:${Date.now() >> 16}`;
       const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
         p_user_id: auth.userId,
         p_amount: creditsRequired,
         p_description: `Editor clip generation (${duration}s)`,
+        p_project_id: projectId || null,
+        p_clip_duration: duration > 10 ? 10 : 5,
+        p_idempotency_key: idemKey,
       });
       if (deductErr || deductOk !== true) {
         console.error("[editor-generate-clip] Credit deduction failed:", deductErr, "ok=", deductOk);
@@ -332,11 +347,14 @@ serve(async (req) => {
       if (!replicateRes.ok) {
         const errText = await replicateRes.text();
         console.error("[editor-generate-clip] Replicate error:", errText);
-        // Refund on failure via the dedicated refund_credits RPC (single source of truth).
+        // Refund on failure. Reuse the same idempotency key so this refund
+        // pairs 1:1 with the deduct above — replays are no-ops.
         const { error: refundErr } = await supabase.rpc("refund_credits", {
           p_user_id: auth.userId,
           p_amount: creditsRequired,
           p_description: `Editor clip refund: Replicate error`,
+          p_project_id: projectId || null,
+          p_idempotency_key: idemKey,
         });
         if (refundErr) {
           console.error("[editor-generate-clip] Refund RPC failed:", refundErr);

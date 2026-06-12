@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     if (row.verified_at) return json({ ok: true, already: true });
 
     // DNS-over-HTTPS lookup against Cloudflare for TXT records.
-    const expected = `apex-verify=${row.verification_token}`;
+    const expected = `smallbridges-verify=${row.verification_token}`;
     const dnsRes = await fetch(
       `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(row.domain)}&type=TXT`,
       { headers: { accept: 'application/dns-json' } },

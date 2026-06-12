@@ -46,7 +46,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Describe it. Watch it come alive.',
     description: 'Type a prompt and get a fully produced cinematic film — complete with scenes, transitions, and professional pacing. No editing required.',
     image: textToVideoPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_8dc7338b-9a71-4775-aabe-09639aff006e_1768454538078.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     icon: <Type className="w-5 h-5" />,
     highlights: ['Multi-Scene Films', 'Auto Script & Storyboard', 'Cinematic Transitions'],
     accentColor: 'from-blue-400 to-cyan-300',
@@ -58,7 +58,7 @@ const FEATURES: Feature[] = [
     subtitle: 'One photo. Infinite motion.',
     description: 'Upload any image and our AI generates fluid, physics-accurate motion with camera movement and depth. Ideal for product reveals and art.',
     image: imageToVideoPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f585b189-b898-4695-bbb4-26fcff2f55e1_1768455399164.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     icon: <Image className="w-5 h-5" />,
     highlights: ['Parallax Depth', 'Camera Choreography', 'Style Preservation'],
     accentColor: 'from-amber-300 to-orange-300',
@@ -70,7 +70,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Same face. Every scene.',
     description: 'Lock a character\'s identity across your entire film. Face, wardrobe, proportions — perfectly consistent from scene one to the finale.',
     image: characterLockPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     icon: <UserCheck className="w-5 h-5" />,
     highlights: ['Identity Persistence', 'Multi-Angle Consistency', 'Wardrobe Lock'],
     accentColor: 'from-cyan-300 to-teal-300',
@@ -82,7 +82,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Your digital presenter.',
     description: 'Create photorealistic talking avatars with synchronized lip movements. Choose from 50+ voices and languages for professional narration.',
     image: voiceoverPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/ef504108-f573-4dc2-a1f3-b7ca2415a595/avatar_ef504108-f573-4dc2-a1f3-b7ca2415a595_clip1_lipsync_1771732984023.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4',
     icon: <Mic className="w-5 h-5" />,
     highlights: ['50+ Voices', 'Precision Lip-Sync', 'Multi-Language'],
     accentColor: 'from-emerald-400 to-teal-300',
@@ -94,7 +94,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Music that feels the scene.',
     description: 'Generate original, royalty-free scores that adapt to the mood and pacing of every shot. From orchestral swells to ambient textures.',
     image: musicPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     icon: <Music className="w-5 h-5" />,
     highlights: ['Scene-Aware', 'Any Genre', 'Royalty-Free'],
     accentColor: 'from-amber-300 to-orange-400',
@@ -106,7 +106,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Any look. Any world.',
     description: 'Apply cinematic presets or define your own visual language. From hyperrealistic to anime, noir to Wes Anderson — your vision, amplified.',
     image: styleTransferPremium,
-    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1d3f6370-80f4-47ea-b958-ea5472fbe504_1768434523158.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     icon: <Palette className="w-5 h-5" />,
     highlights: ['20+ Cinema Presets', 'Custom Color Grading', 'Visual Consistency'],
     accentColor: 'from-violet-400 to-purple-400',
@@ -186,7 +186,7 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
                 {/* Static image */}
                 <img 
                   src={feature.image} 
-                  alt={`Apex Studio screenshot — ${feature.title} in action`}
+                  alt={`Small Bridges screenshot — ${feature.title} in action`}
                   loading="lazy"
                   decoding="async"
                   className={`w-full h-full object-cover transition-all duration-700 ${

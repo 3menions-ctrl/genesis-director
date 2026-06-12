@@ -79,8 +79,38 @@ export default function WorkspaceTeam() {
   };
 
   const updateRole = async (memberId: string, role: OrgRole) => {
+    // Capture the row before update so we can email the affected member with
+    // their old vs new role.
+    const target = members.find((m) => m.id === memberId);
+    const oldRole = target?.role;
     const { error } = await supabase.from('organization_members').update({ role }).eq('id', memberId);
-    if (error) toast.error(error.message); else { toast.success('Role updated'); load(); }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Role updated');
+    load();
+    // Fire-and-forget org_role_changed email (template exists in registry).
+    if (target?.profile?.email && oldRole && oldRole !== role) {
+      void supabase.functions
+        .invoke('send-transactional-email', {
+          body: {
+            template: 'org_role_changed',
+            recipientEmail: target.profile.email,
+            templateData: {
+              orgName: currentOrg?.name ?? 'your workspace',
+              oldRole,
+              newRole: role,
+              memberName:
+                target.profile.display_name ??
+                target.profile.full_name ??
+                target.profile.email?.split('@')[0] ??
+                'there',
+            },
+          },
+        })
+        .catch((e) => console.warn('[WorkspaceTeam] org_role_changed email failed:', e));
+    }
   };
 
   const removeMember = async (memberId: string) => {

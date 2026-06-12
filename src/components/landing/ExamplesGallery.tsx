@@ -5,7 +5,7 @@ import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Imag
 import { useMountSafe } from '@/lib/navigation';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
-import { UniversalVideoPlayer, SimpleVideoPlayer, type SimpleVideoPlayerHandle } from '@/components/player';
+import { BrandedVideoPlayer, BrandedVideoPlayer, type BrandedVideoPlayerHandle } from '@/components/intro/BrandedVideoPlayer';
 
 
 type VideoCategory = 'all' | GalleryCategory;
@@ -76,10 +76,10 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Helper component to trigger load state for UniversalVideoPlayer
+// Helper component to trigger load state for BrandedVideoPlayer
 const LoadTrigger = memo(function LoadTrigger({ onLoad }: { onLoad: () => void }) {
   useEffect(() => {
-    // Delay slightly to allow UniversalVideoPlayer to initialize
+    // Delay slightly to allow BrandedVideoPlayer to initialize
     const timer = setTimeout(onLoad, 500);
     return () => clearTimeout(timer);
   }, [onLoad]);
@@ -100,7 +100,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [videoError, setVideoError] = useState<string | null>(null);
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
   const [isResolvingHLS, setIsResolvingHLS] = useState(false);
-  const videoRef = useRef<SimpleVideoPlayerHandle>(null);
+  const videoRef = useRef<BrandedVideoPlayerHandle>(null);
   const manifestPlayerRef = useRef<HTMLDivElement>(null);
 
   // Transform database items to ShowcaseVideo format
@@ -260,12 +260,12 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
 
           {/* Error state: silently auto-advance, no popup shown */}
 
-          {/* Video Player - Use HLS for manifest videos (seamless), SimpleVideoPlayer for direct MP4s */}
+          {/* Video Player - Use HLS for manifest videos (seamless), BrandedVideoPlayer for direct MP4s */}
           {currentVideo && (
-            // For manifest videos: use resolved HLS URL with SimpleVideoPlayer for seamless playback
+            // For manifest videos: use resolved HLS URL with BrandedVideoPlayer for seamless playback
             isCurrentManifest ? (
               hlsUrl ? (
-                <SimpleVideoPlayer
+                <BrandedVideoPlayer
                   ref={videoRef}
                   key={`hls-${activeCategory}-${currentIndex}`}
                   src={hlsUrl}
@@ -283,14 +283,13 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                   )}
                 />
               ) : !isResolvingHLS ? (
-                // Fallback to UniversalVideoPlayer if no HLS URL found
+                // Fallback to BrandedVideoPlayer if no HLS URL found
                 <div 
                   key={`manifest-${activeCategory}-${currentIndex}`}
                   className="absolute inset-0 w-full h-full"
                 >
-                  <UniversalVideoPlayer
-                    source={{ manifestUrl: currentVideo.url }}
-                    mode="inline"
+                  <BrandedVideoPlayer
+                    src={currentVideo.url}
                     autoPlay={isPlaying}
                     muted={isMuted}
                     className="w-full h-full [&_video]:object-cover"
@@ -299,8 +298,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 </div>
               ) : null
             ) : (
-              // Direct MP4/video files - use SimpleVideoPlayer
-              <SimpleVideoPlayer
+              // Direct MP4/video files - use BrandedVideoPlayer
+              <BrandedVideoPlayer
                 ref={videoRef}
                 key={`video-${activeCategory}-${currentIndex}`}
                 src={currentVideo.url}
@@ -419,7 +418,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               <p className="text-white/60 text-sm md:text-xl max-w-2xl line-clamp-2 md:line-clamp-none">{currentVideo?.description}</p>
             </div>
 
-            {/* Controls row - Only show for non-manifest videos (UniversalVideoPlayer has its own controls) */}
+            {/* Controls row - Only show for non-manifest videos (BrandedVideoPlayer has its own controls) */}
             {!isCurrentManifest && (
               <div className="flex items-center gap-2 md:gap-4">
                 {/* Play/Pause */}

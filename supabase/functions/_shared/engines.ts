@@ -7,6 +7,7 @@
  */
 
 export type EngineId =
+  | 'wan-25'
   | 'kling-v3'
   | 'seedance-2'
   | 'veo-3'
@@ -15,7 +16,7 @@ export type EngineId =
 
 export type EngineTier = 'standard' | 'pro' | 'cinema';
 
-export type EngineProvider = 'kling' | 'seedance' | 'veo3' | 'runway' | 'sora';
+export type EngineProvider = 'wan' | 'kling' | 'seedance' | 'veo3' | 'runway' | 'sora';
 
 export type EntitlementId = 'studio_cinema';
 
@@ -74,6 +75,25 @@ function tableCost(table: Record<number, number>, duration: number): number {
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
+  // -------- FREE --------
+  'wan-25': {
+    id: 'wan-25',
+    provider: 'wan',
+    tier: 'standard',
+    label: 'Wan 2.5 — Free',
+    shortLabel: 'Wan 2.5',
+    description: "Alibaba's Wan 2.5 — the free-tier engine. Strong baseline quality, bundled with starter credit grants.",
+    durations: [5, 10],
+    maxDuration: 10,
+    supportsImageInput: true,
+    supportsAudio: false,
+    supportsAvatar: false,
+    etaSeconds: 110,
+    healthy: true,
+    upscale4kCredits: 10,
+    fps60Credits: 5,
+    baseCreditsFor: (d) => tableCost({ 5: 10, 10: 20 }, d),
+  },
   // -------- STANDARD --------
   'kling-v3': {
     id: 'kling-v3',

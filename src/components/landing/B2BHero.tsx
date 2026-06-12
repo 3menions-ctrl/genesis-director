@@ -60,7 +60,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-          Apex Studio
+          Small Bridges
         </span>
       </motion.div>
 
@@ -122,7 +122,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
         style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        Write a scene. Apex generates the{' '}
+        Write a scene. Small Bridges generates the{' '}
         <span
           className="text-white/85 italic"
           style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}

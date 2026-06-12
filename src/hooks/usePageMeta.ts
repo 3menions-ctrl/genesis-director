@@ -6,12 +6,12 @@ interface PageMeta {
   /**
    * Self-referencing canonical path for this route, e.g. "/blog".
    * If omitted, the current location pathname is used.
-   * Final URL is resolved against https://apex-studio.ai.
+   * Final URL is resolved against https://smallbridges.com.
    */
   canonicalPath?: string;
 }
 
-const SITE_ORIGIN = 'https://apex-studio.ai';
+const SITE_ORIGIN = 'https://smallbridges.com';
 
 /**
  * Sets document title, meta description, and a self-referencing canonical

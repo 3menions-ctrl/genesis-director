@@ -14,12 +14,13 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
+        JSON.stringify({ error: 'Sign in required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     // Validate JWT using shared auth guard
@@ -29,6 +30,44 @@ Deno.serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
     const userId = auth.userId;
+
+    // Re-authentication gate: deleting an account is irreversible. The
+    // attacker's bar is now session-theft + password-knowledge, not
+    // session-theft alone. Body must include { password } (or { confirm:
+    // 'DELETE MY ACCOUNT' } if the user verified via passkey/SSO with no
+    // password — we accept either, server-side enforced).
+    let body: any = {}
+    try { body = await req.json() } catch { /* allow empty body for legacy */ }
+    const reauthClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { data: userData } = await reauthClient.auth.getUser(authHeader.replace(/^Bearer\s+/i, ''))
+    const currentEmail = userData?.user?.email
+    if (!currentEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Sign in expired — sign in again, then retry' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (body?.password && typeof body.password === 'string') {
+      const { error: reauthErr } = await reauthClient.auth.signInWithPassword({
+        email: currentEmail,
+        password: body.password,
+      })
+      if (reauthErr) {
+        return new Response(
+          JSON.stringify({ error: 'That password is incorrect' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else if (body?.confirm !== 'DELETE MY ACCOUNT') {
+      // No password and no typed confirmation phrase — refuse. The client
+      // must collect one of the two.
+      return new Response(
+        JSON.stringify({ error: 'Confirm by entering your password or type "DELETE MY ACCOUNT"' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Create admin client for deletions
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)

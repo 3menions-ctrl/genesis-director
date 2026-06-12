@@ -10,7 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
-import { useEditorStitch } from "@/hooks/useEditorStitch";
+import { useSeamlessStitch } from "@/hooks/useSeamlessStitch";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ export function EditorChrome({
   const [renameValue, setRenameValue] = useState("");
 
   const { listProjects, loadProjectClips, loadAllUserClips, loading: clipsLoading } = useEditorClips();
-  const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
+  const { stitchEditorAndDownload, stitching: isStitching } = useSeamlessStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
   const { state: timelineState, dispatch, undo, redo } = useCustomTimeline();
@@ -83,7 +83,7 @@ export function EditorChrome({
     quality: "high" as const,
     includeAudio: true,
     autoDownload: true,
-    downloadFilename: `Apex_${sessionTitle.replace(/\s+/g, "_")}.mp4`,
+    downloadFilename: `Small Bridges_${sessionTitle.replace(/\s+/g, "_")}.mp4`,
   });
   const isRendering = renderer?.isRendering ?? false;
   const renderProgress = renderer?.progress ?? 0;
@@ -349,13 +349,16 @@ export function EditorChrome({
       return;
     }
 
-    // Determine crossfade: use per-clip transitions if set, otherwise seamless join (0)
-    const hasTransitions = clips.some(c => c.transition && c.transition !== "none" && (c.transitionDuration ?? 0) > 0);
-    await submitStitch(currentSessionId, clips, {
-      crossfadeDuration: hasTransitions ? 0.5 : 0,
-      transition: "fade",
+    // seamless-stitcher always crossfades; honor per-clip transition duration if any.
+    const xfade = clips.find(c => c.transition && c.transition !== "none" && (c.transitionDuration ?? 0) > 0)?.transitionDuration ?? 0.4;
+    await stitchEditorAndDownload({
+      sessionId: currentSessionId,
+      clips: clips.map(c => ({ url: c.url, duration: c.duration })),
+      title: sessionTitle,
+      transitionDuration: xfade,
+      transitionType: "fade",
     });
-  }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
+  }, [sessionId, getProjectJSON, saveProject, sessionTitle, stitchEditorAndDownload]);
 
   // ─── Auto-load clips from all projects (or a specific project via ?project=) ───
   const projectParam = searchParams.get("project");
@@ -440,7 +443,7 @@ export function EditorChrome({
           }
         }
       } catch (err) {
-        console.error("[Apex] Auto-load clips failed:", err);
+        console.error("[Small Bridges] Auto-load clips failed:", err);
       } finally {
         if (!cancelled) setAutoLoadDone(true);
       }
@@ -616,7 +619,7 @@ export function EditorChrome({
       const project = projects.find(p => p.id === projectId);
       toast.success(`Loaded ${clips.length} clips from "${project?.title || "project"}"`);
     } catch (err) {
-      console.error("[Apex] Failed to load project clips:", err);
+      console.error("[Small Bridges] Failed to load project clips:", err);
       toast.error("Failed to load clips. Please try again.");
     }
   }, [loadedProjectIds, loadProjectClips, projects]);
@@ -664,7 +667,7 @@ export function EditorChrome({
             <h2 className="text-sm font-semibold text-foreground">Desktop Required</h2>
           </div>
           <p className="text-xs text-muted-foreground/70 max-w-[280px]">
-            Apex-Studio requires a desktop browser for the best editing experience.
+            Small Bridges requires a desktop browser for the best editing experience.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/projects")}>
@@ -741,7 +744,7 @@ export function EditorChrome({
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(215,100%,60%)]" />
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">
-                  Apex Editor · Live
+                  Small Bridges Editor · Live
                 </span>
               </div>
               {isRenamingSession ? (
@@ -893,8 +896,7 @@ export function EditorChrome({
 
               {/* Stitch */}
               {isStitching ? (
-                <button
-                  onClick={() => resetStitch()}
+                <div
                   className="h-7 flex items-center gap-1.5 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em] tabular-nums text-[hsl(215,100%,80%)]"
                   style={{
                     background: 'hsla(215,100%,60%,0.14)',
@@ -902,8 +904,8 @@ export function EditorChrome({
                   }}
                 >
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  {Math.round(stitchProgress)}%
-                </button>
+                  Stitching
+                </div>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1032,7 +1034,7 @@ export function EditorChrome({
                 />
                 {/* Brand watermark — subliminal, bottom-right */}
                 <div className="pointer-events-none absolute bottom-3 right-4 z-20 font-mono text-[9px] uppercase tracking-[0.32em] text-foreground/25 select-none">
-                  Apex
+                  Small Bridges
                 </div>
               </div>
             </div>
@@ -1093,7 +1095,7 @@ export function EditorChrome({
               WebCodecs
             </span>
             <span className="w-px h-3 bg-border/60" />
-            <span className="text-muted-foreground/50">Apex Pro</span>
+            <span className="text-muted-foreground/50">Small Bridges Pro</span>
           </div>
         </div>
 

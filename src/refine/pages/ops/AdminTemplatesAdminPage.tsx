@@ -1,35 +1,79 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Project templates — global admin curation across users. */
+import { LayoutTemplate, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+
+interface TemplateRow extends AdminRow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  thumbnail_url: string | null;
+  is_public: boolean;
+  use_count: number;
+  created_at: string;
+  profiles?: { email: string | null; display_name: string | null } | null;
+}
 
 export default function AdminTemplatesAdminPage() {
   return (
     <AdminPageShell
-      eyebrow="04 // CONTENT"
+      eyebrow="11 // CONTENT"
       code="TPL"
-      title="Template"
+      title="Templates"
       italic="Library."
-      description="Author and publish the editor template catalogue surfaced inside the Video Editor."
+      description="Every project template across the user base — promote good ones to public, retire low-quality."
     >
-      <AdminConsoleScaffold
-        intro="Every editor template — composition, color preset, motion preset — managed here."
-        status="scoped"
+      <AdminConsoleV2<TemplateRow>
+        intro="Audit every template. Public ones are discoverable; private ones live only with their author."
+        query={{
+          table: "project_templates",
+          select: "id, user_id, name, description, category, thumbnail_url, is_public, use_count, created_at, profiles(email, display_name)",
+          orderBy: { column: "use_count", ascending: false },
+        }}
+        searchKey="name"
+        filters={[
+          { key: "category", label: "Category", type: "select", options: [
+            { value: "commercial", label: "Commercial" }, { value: "cinematic", label: "Cinematic" },
+            { value: "social", label: "Social" }, { value: "educational", label: "Educational" },
+            { value: "general", label: "General" }] },
+        ]}
         signals={[
-        { label: "Published", value: "—", tone: "blue" },
-        { label: "Drafts", value: "—", tone: "amber" },
-        { label: "Installs", value: "—", tone: "emerald" },
-        { label: "Avg Rating", value: "—", tone: "neutral" },
+          { label: "Total", value: (r) => r.length, tone: "blue" },
+          { label: "Public", value: (r) => r.filter((x) => (x as TemplateRow).is_public).length, tone: "emerald" },
+          { label: "Total uses",
+            value: (r) => r.reduce((s, x) => s + ((x as TemplateRow).use_count ?? 0), 0).toLocaleString(),
+            tone: "amber" },
+          { label: "Unused", value: (r) => r.filter((x) => (x as TemplateRow).use_count === 0).length, tone: "neutral" },
         ]}
-        capabilities={[
-    { icon: LayoutTemplate, title: "Template Editor", description: "Author layout, color, and motion presets.", status: "queued" },
-    { icon: Sparkles, title: "Style Packs", description: "Bundle a coherent visual system.", status: "manual" },
-    { icon: UploadCloud, title: "Publish Pipeline", description: "Promote draft → preview → published.", status: "manual" },
-    { icon: BarChart3, title: "Install Telemetry", description: "Track which templates win in production.", status: "manual" },
-    { icon: Tag, title: "Categorization", description: "Genre, mood, aspect ratio facets.", status: "manual" },
-    { icon: History, title: "Version History", description: "Roll back to any prior template revision.", status: "manual" },
+        columns={[
+          { key: "thumbnail_url", label: "", width: "64px",
+            render: (v) => v
+              ? <img src={String(v)} alt="" className="w-12 h-8 rounded-md object-cover border border-white/[0.06]" />
+              : <div className="w-12 h-8 rounded-md bg-white/[0.03] border border-white/[0.06]" /> },
+          { key: "name", label: "Name" },
+          { key: "category", label: "Category", width: "130px" },
+          { key: "profiles", label: "Author", width: "200px",
+            render: (_, row) => row.profiles?.email ?? row.user_id.slice(0, 8) },
+          { key: "use_count", label: "Uses", width: "80px", align: "right" },
+          { key: "is_public", label: "Public", width: "100px" },
         ]}
-      primaryCta={{ label: "New template" }}
+        actions={[
+          { label: "Toggle public", icon: Power,
+            onRun: async (r) => {
+              const { error } = await supabase.from("project_templates").update({ is_public: !r.is_public }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this template? The author keeps their projects but loses the template.",
+            onRun: async (r) => {
+              const { error } = await supabase.from("project_templates").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        emptyTitle="No templates yet"
+        emptyDescription="When users save templates they appear here for global oversight and promotion."
       />
     </AdminPageShell>
   );

@@ -97,7 +97,7 @@ export default function Unsubscribe() {
         {state.kind === 'already' && (
           <>
             <h1 className="font-display text-[28px] font-light leading-tight">Already unsubscribed</h1>
-            <p className="text-white/55 text-sm mt-3">You won't receive marketing emails from Apex Studio.</p>
+            <p className="text-white/55 text-sm mt-3">You won't receive marketing emails from Small Bridges.</p>
           </>
         )}
 

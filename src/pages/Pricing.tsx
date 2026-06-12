@@ -679,7 +679,7 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 }
 
 export default function Pricing() {
-  usePageMeta({ title: "Pricing — Apex Studio", description: "Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand." });
+  usePageMeta({ title: "Pricing — Small Bridges", description: "Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand." });
 
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
@@ -756,7 +756,7 @@ export default function Pricing() {
       <nav className="relative z-50 px-6 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="font-display font-semibold text-lg text-foreground tracking-tight">
-            APEX-STUDIO
+            Small Bridges
           </Link>
           <Button
             onClick={() => navigate('/auth?mode=signup')}

@@ -35,9 +35,43 @@ const CINEMA_TIER_BY_PRICE: Record<string, "cinema_lite" | "cinema_pro" | "cinem
   cinema_studio_yearly:  "cinema_studio",
 };
 
+// Monthly credit grants for each Cinema tier. Refilled at the start of every
+// billing period via `handleInvoicePaid`; initial grant fires from
+// `checkout.session.completed` for `mode === "subscription"`.
+const CINEMA_TIER_CREDITS: Record<string, number> = {
+  cinema_lite:   500,
+  cinema_pro:    2000,
+  cinema_studio: 6000,
+};
+
 function resolveCinemaTier(priceId?: string | null) {
   if (!priceId) return null;
   return CINEMA_TIER_BY_PRICE[priceId] ?? null;
+}
+
+async function grantCinemaCredits(opts: {
+  userId: string;
+  tier: "cinema_lite" | "cinema_pro" | "cinema_studio";
+  reference: string;       // stripe payment_intent or invoice id (idempotency)
+  reason: string;
+}) {
+  const credits = CINEMA_TIER_CREDITS[opts.tier];
+  if (!credits) {
+    log("skip cinema grant: unknown tier", { tier: opts.tier });
+    return;
+  }
+  const sb = getSupabase();
+  const { error } = await sb.rpc("add_credits", {
+    p_user_id: opts.userId,
+    p_amount: credits,
+    p_description: opts.reason,
+    p_stripe_payment_id: opts.reference,
+  });
+  if (error) {
+    log("cinema grant error", { error: error.message, userId: opts.userId, tier: opts.tier });
+    throw new Error(error.message);
+  }
+  log("cinema credits granted", { userId: opts.userId, tier: opts.tier, credits });
 }
 
 async function handleCreditPurchase(session: any) {
@@ -173,7 +207,7 @@ async function handleInvoicePaid(invoice: any, env: StripeEnv) {
     return;
   }
   const sb = getSupabase();
-  const { error } = await sb.from("subscriptions")
+  const { data: subRow, error } = await sb.from("subscriptions")
     .update({
       status: "active",
       current_period_start: new Date(periodStart * 1000).toISOString(),
@@ -181,12 +215,34 @@ async function handleInvoicePaid(invoice: any, env: StripeEnv) {
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscriptionId)
-    .eq("environment", env);
+    .eq("environment", env)
+    .select("user_id, metadata, price_id")
+    .maybeSingle();
   if (error) {
     log("invoice.paid update error", { error: error.message, subscriptionId });
     throw new Error(error.message);
   }
   log("invoice.paid period rolled", { subscriptionId, periodStart, periodEnd, env });
+
+  // Cinema subscribers get monthly credits topped up on every paid invoice.
+  // The invoice id is unique per period, so `add_credits` dedupes via the
+  // `stripe_payment_id` UNIQUE constraint — replaying the same invoice is a
+  // no-op. The first invoice for a new sub is covered by the
+  // `checkout.session.completed` handler above.
+  const tier = (subRow?.metadata as any)?.cinema_tier
+    || resolveCinemaTier(subRow?.price_id);
+  if (subRow?.user_id && tier && CINEMA_TIER_CREDITS[tier]) {
+    try {
+      await grantCinemaCredits({
+        userId: subRow.user_id,
+        tier: tier as "cinema_lite" | "cinema_pro" | "cinema_studio",
+        reference: invoice.id,
+        reason: `Cinema ${tier.replace("cinema_", "")} monthly refill`,
+      });
+    } catch (e) {
+      log("invoice.paid cinema refill failed (continuing)", { error: String(e) });
+    }
+  }
 }
 
 async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
@@ -297,9 +353,20 @@ export async function handleStripeWebhookRequest(
           if (session.mode === "subscription") {
             const md = session.metadata || {};
             if (md.kind === "cinema_subscription") {
-              log("cinema checkout completed", {
-                userId: md.userId, priceId: md.priceId, tier: md.tier, sessionId: session.id,
-              });
+              const tier = (md.tier || resolveCinemaTier(md.priceId)) as
+                | "cinema_lite" | "cinema_pro" | "cinema_studio" | null;
+              if (md.userId && UUID_RE.test(md.userId) && tier && CINEMA_TIER_CREDITS[tier]) {
+                await grantCinemaCredits({
+                  userId: md.userId,
+                  tier,
+                  reference: session.id,    // session id is unique per checkout
+                  reason: `Cinema ${tier.replace("cinema_", "")} initial grant`,
+                });
+              } else {
+                log("cinema checkout missing userId or tier", {
+                  userId: md.userId, priceId: md.priceId, tier: md.tier, sessionId: session.id,
+                });
+              }
             }
           }
           break;

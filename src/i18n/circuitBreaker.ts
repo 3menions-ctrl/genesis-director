@@ -3,8 +3,8 @@
  * Stops both aiBackend (i18next) and domTranslator from hammering
  * the function once we hit a hard failure (402 credits exhausted, 500…).
  */
-const FLAG_KEY = "apex.i18n.disabled.until";
-const TOAST_KEY = "apex.i18n.disabled.notified";
+const FLAG_KEY = 'sb.i18n.disabled.until';
+const TOAST_KEY = 'sb.i18n.disabled.notified';
 const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 let runtimeDisabledUntil = 0;
@@ -36,7 +36,7 @@ export const tripBreaker = (reason: "credits" | "error" = "error") => {
           ? "[i18n] Auto-translation paused: AI credits exhausted. Add credits in Lovable Cloud to re-enable."
           : "[i18n] Auto-translation paused after repeated failures."
       );
-      window.dispatchEvent(new CustomEvent("apex:i18n-disabled", { detail: { reason } }));
+      window.dispatchEvent(new CustomEvent('sb:i18n-disabled', { detail: { reason } }));
     }
   } catch { /* ignore */ }
 };

@@ -1,10 +1,18 @@
-// Auto-generates public/sitemap.xml from the known public route list.
+// Auto-generates public/sitemap.xml from public routes in src/App.tsx.
 // Runs before `vite dev` and `vite build` via predev/prebuild hooks.
+//
+// HOW IT WORKS
+// 1. The curated list below carries SEO metadata (priority/changefreq) for
+//    pages where ranking matters. Edit this for tuning.
+// 2. Anything not in the curated list is auto-discovered from App.tsx using
+//    a static-source scan, so new public routes can never silently miss the
+//    sitemap. Dynamic params, redirects, admin, and protected routes are
+//    filtered out automatically.
 
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
-const BASE_URL = "https://apex-studio.ai";
+const BASE_URL = "https://smallbridges.com";
 const today = new Date().toISOString().slice(0, 10);
 
 interface SitemapEntry {
@@ -14,22 +22,100 @@ interface SitemapEntry {
   priority?: string;
 }
 
-const entries: SitemapEntry[] = [
-  { path: "/", lastmod: today, changefreq: "weekly", priority: "1.0" },
-  { path: "/pricing", lastmod: today, changefreq: "weekly", priority: "0.9" },
-  { path: "/how-it-works", lastmod: today, changefreq: "monthly", priority: "0.8" },
-  { path: "/auth", lastmod: today, changefreq: "monthly", priority: "0.8" },
-  { path: "/blog", lastmod: today, changefreq: "weekly", priority: "0.7" },
-  { path: "/enterprise/coming-soon", lastmod: today, changefreq: "monthly", priority: "0.7" },
-  { path: "/mascots", lastmod: today, changefreq: "monthly", priority: "0.6" },
-  { path: "/developers", lastmod: today, changefreq: "monthly", priority: "0.6" },
-  { path: "/help", lastmod: today, changefreq: "monthly", priority: "0.6" },
-  { path: "/contact", lastmod: today, changefreq: "monthly", priority: "0.5" },
-  { path: "/press", lastmod: today, changefreq: "monthly", priority: "0.5" },
-  { path: "/terms", lastmod: today, changefreq: "yearly", priority: "0.3" },
-  { path: "/privacy", lastmod: today, changefreq: "yearly", priority: "0.3" },
-  { path: "/forgot-password", lastmod: today, changefreq: "yearly", priority: "0.2" },
+// ── Curated SEO config ──────────────────────────────────────────────────
+// These get explicit priority/changefreq. Auto-discovered routes use
+// sensible defaults (priority 0.5, monthly) so they appear without
+// requiring a manual touch here.
+const curated: SitemapEntry[] = [
+  { path: "/", changefreq: "weekly", priority: "1.0" },
+  { path: "/pricing", changefreq: "weekly", priority: "0.9" },
+  { path: "/how-it-works", changefreq: "monthly", priority: "0.8" },
+  { path: "/auth", changefreq: "monthly", priority: "0.8" },
+  { path: "/blog", changefreq: "weekly", priority: "0.7" },
+  { path: "/enterprise/coming-soon", changefreq: "monthly", priority: "0.7" },
+  { path: "/gallery", changefreq: "daily", priority: "0.7" },
+  { path: "/mascots", changefreq: "monthly", priority: "0.6" },
+  { path: "/developers", changefreq: "monthly", priority: "0.6" },
+  { path: "/help", changefreq: "monthly", priority: "0.6" },
+  { path: "/contact", changefreq: "monthly", priority: "0.5" },
+  { path: "/press", changefreq: "monthly", priority: "0.5" },
+  { path: "/terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/privacy", changefreq: "yearly", priority: "0.3" },
+  { path: "/forgot-password", changefreq: "yearly", priority: "0.2" },
 ];
+
+// ── Route discovery from App.tsx ────────────────────────────────────────
+function discoverPublicRoutes(): string[] {
+  const appSource = readFileSync(resolve("src/App.tsx"), "utf8");
+
+  // Walk every <Route ...> opening tag and capture (path, attrsAndBody until
+  // the matching close or self-close). Lazy multiline-safe.
+  const openTagRegex = /<Route\b([^>]*?)(\/)?>/g;
+  const found = new Set<string>();
+
+  let m: RegExpExecArray | null;
+  while ((m = openTagRegex.exec(appSource)) !== null) {
+    const attrs = m[1];
+    const selfClosing = !!m[2];
+    const pathMatch = attrs.match(/\bpath=["']([^"']+)["']/);
+    if (!pathMatch) continue;
+    const path = pathMatch[1].trim();
+
+    // Quick path-shape filters.
+    if (!path.startsWith("/")) continue; // relative paths = nested-route children (admin tree)
+    if (path.startsWith("/admin")) continue;
+    if (path.includes(":")) continue;
+    if (path.includes("*")) continue;
+    if (path.startsWith("/widget")) continue;
+    if (path.startsWith("/w/")) continue;
+    // Auth callback / password reset / mockup-preview are not SEO surfaces.
+    if (path.startsWith("/auth/")) continue;
+    if (path === "/reset-password") continue;
+    if (path === "/unsubscribe") continue;
+    if (path === "/mockup") continue;
+    if (path === "/welcome/checkout") continue;
+    if (path === "/start") continue;
+    if (path === "/onboarding") continue;
+    if (path === "/notifications") continue;
+
+    // Look at the body of THIS route only — slice from this Route opening
+    // up to the next `<Route` (word-bounded so we don't catch RouteContainer)
+    // sibling so we don't borrow the wrapping of an adjacent route.
+    const nextRouteRegex = /<Route(?:\s|\/|>)/g;
+    nextRouteRegex.lastIndex = m.index + 6;
+    const nextMatch = nextRouteRegex.exec(appSource);
+    const nextRouteIdx = nextMatch ? nextMatch.index : -1;
+    const body = appSource.slice(
+      m.index,
+      nextRouteIdx === -1 ? m.index + 1500 : nextRouteIdx,
+    );
+    if (/<Navigate\b/.test(body)) continue;
+    if (/ProtectedRoute|RequireAccountType|EnterpriseGate/.test(body)) continue;
+
+    found.add(path);
+  }
+
+  return [...found].sort();
+}
+
+// ── Merge ──────────────────────────────────────────────────────────────
+function build(): SitemapEntry[] {
+  const byPath = new Map<string, SitemapEntry>();
+  for (const c of curated) byPath.set(c.path, { ...c, lastmod: today });
+
+  for (const path of discoverPublicRoutes()) {
+    if (byPath.has(path)) continue;
+    byPath.set(path, {
+      path,
+      lastmod: today,
+      changefreq: "monthly",
+      priority: "0.5",
+    });
+  }
+  return [...byPath.values()].sort((a, b) =>
+    Number(b.priority ?? 0) - Number(a.priority ?? 0) || a.path.localeCompare(b.path),
+  );
+}
 
 function generateSitemap(items: SitemapEntry[]) {
   const urls = items.map((e) =>
@@ -54,5 +140,9 @@ function generateSitemap(items: SitemapEntry[]) {
   ].join("\n");
 }
 
+const entries = build();
 writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries));
-console.log(`sitemap.xml written (${entries.length} entries)`);
+console.log(
+  `sitemap.xml written (${entries.length} entries; ` +
+    `${curated.length} curated + ${entries.length - curated.length} auto-discovered)`,
+);

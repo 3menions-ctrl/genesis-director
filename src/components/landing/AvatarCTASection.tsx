@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, Volume2, VolumeX } from 'lucide-react';
 
 // Pre-generated avatar video for CTA cameo — distinct from other landing cameos
-const AVATAR_CTA_VIDEO = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/c042deb9-3be5-41ef-9e63-acad0d064c6e/avatar_c042deb9-3be5-41ef-9e63-acad0d064c6e_clip1_lipsync_1771738208320.mp4';
+const AVATAR_CTA_VIDEO = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 
 // Subtitle text matching the avatar speech
 const SUBTITLE_TEXT = "You've scrolled this far — clearly you're curious. Why not see what you can create?";

@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
+import { BetaHero } from '@/components/ui/BetaHero';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
@@ -73,8 +74,8 @@ type StepKey = typeof PERSONAL_STEPS[number] | typeof BUSINESS_STEPS[number];
 const STEP_META: Record<StepKey, { chapter: string; question: string; whisper: string }> = {
   company: { chapter: 'Chapter I', question: 'Introduce\nyour company.', whisper: 'A few firmographics so we can shape the workspace around you.' },
   team:    { chapter: 'Chapter II', question: 'Sketch out\nyour operation.', whisper: 'Team, role, monthly volume, brand voice — defaults baked in.' },
-  plan:    { chapter: 'Chapter III', question: 'Pick your\nstarting capacity.', whisper: 'Change anytime. No contracts. You won\u2019t be charged until checkout.' },
-  account: { chapter: 'Chapter IV', question: 'Make it\nofficial.', whisper: 'Create your account. Google/Apple or email — your call.' },
+  plan:    { chapter: 'Chapter III', question: 'Small Bridges is\nfree right now.', whisper: 'We\u2019re in beta. You get starter credits the moment you sign up \u2014 no card, no checkout.' },
+  account: { chapter: 'Chapter IV', question: 'Make it\nofficial.', whisper: 'Create your account with email — quick and private.' },
   verify:  { chapter: 'Chapter V', question: 'Verify and\nstep inside.', whisper: 'Six-digit code from your email. Optional teammate invites & billing details below.' },
 };
 
@@ -169,11 +170,11 @@ const companySchema = z.object({
  * ================================================================= */
 
 export default function StartOnboarding() {
-  usePageMeta({ title: "Get started — Apex Studio", description: "Begin your Apex Studio onboarding." });
+  usePageMeta({ title: "Get started — Small Bridges", description: "Begin your Small Bridges onboarding." });
 
   const { navigate } = useSafeNavigation();
   const [params] = useSearchParams();
-  const { user, signUp, signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, signUp, signIn } = useAuth();
   const rawType = (params.get('type') || params.get('audience')) as AccountType | null;
 
   // Enterprise → coming soon (separate tier)
@@ -260,8 +261,11 @@ export default function StartOnboarding() {
       if (!form.monthly_volume) fe.monthly_volume = 'Pick a volume';
       if (!form.brand_voice) fe.brand_voice = 'Pick a voice';
     }
+    // Plan selection is optional during beta — the app is free. We default
+    // selected_plan_id to 'beta_free' if the user skips this step so any
+    // downstream code expecting a value still gets one.
     if (currentStep === 'plan' && !form.selected_plan_id) {
-      fe.plan = 'Pick a plan to continue';
+      form.selected_plan_id = 'beta_free';
     }
     if (currentStep === 'account') {
       if (user) {
@@ -317,8 +321,8 @@ export default function StartOnboarding() {
       toast.error('Could not save your choices. Please try again.');
       return null;
     }
-    try { sessionStorage.setItem('apex.intent_token', token); } catch {}
-    try { localStorage.setItem('apex.audience', accountType); } catch {}
+    try { sessionStorage.setItem('smallbridges.intent_token', token); } catch {}
+    try { localStorage.setItem('smallbridges.audience', accountType); } catch {}
     setIntentToken(token);
     return token;
   };
@@ -431,7 +435,7 @@ export default function StartOnboarding() {
 
   /* ── Render ────────────────────────────────────────────────── */
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[hsl(220,14%,2%)] text-white" style={{ fontFamily: "'Fraunces', serif" }}>
+    <div className="relative min-h-screen w-full overflow-hidden bg-[hsl(220,14%,2%)] text-white">
       <CinematicBackdrop accountType={accountType} stepKey={currentStep} />
 
       {/* Top bar */}
@@ -507,7 +511,7 @@ export default function StartOnboarding() {
             exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 className="text-[44px] md:text-[68px] leading-[0.96] tracking-[-0.035em] font-light whitespace-pre-line">
+            <h1 className="font-display text-[44px] md:text-[68px] leading-[0.96] tracking-[-0.035em] font-light whitespace-pre-line">
               {meta.question.split(' ').map((word, i) => (
                 <motion.span
                   key={`${currentStep}-${i}`}
@@ -639,13 +643,16 @@ export default function StartOnboarding() {
               </div>
             )}
 
-            {/* PLAN */}
+            {/* PLAN — beta is free, paid plans deferred */}
             {currentStep === 'plan' && (
-              <PlanGrid
-                plans={plans}
-                selectedId={form.selected_plan_id}
-                onSelect={(p) => setForm(f => ({ ...f, selected_plan_id: p.id, selected_plan_kind: p.kind }))}
-                error={errors.plan}
+              <BetaFreePlanCard
+                onContinue={() =>
+                  setForm((f) => ({
+                    ...f,
+                    selected_plan_id: 'beta_free',
+                    selected_plan_kind: 'beta',
+                  }))
+                }
               />
             )}
 
@@ -671,39 +678,6 @@ export default function StartOnboarding() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={async () => {
-                          await ensureIntentPersisted();
-                          const { error } = await signInWithGoogle();
-                          if (error) toast.error(error.message || 'Google sign-in failed.');
-                        }}
-                        className="h-12 rounded-xl bg-white text-black text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.99] transition disabled:opacity-60"
-                      >
-                        <GoogleGlyph className="w-4 h-4" /> Continue with Google
-                      </button>
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={async () => {
-                          await ensureIntentPersisted();
-                          const { error } = await signInWithApple();
-                          if (error) toast.error(error.message || 'Apple sign-in failed.');
-                        }}
-                        className="h-12 rounded-xl bg-black text-white text-sm font-semibold inline-flex items-center justify-center gap-2 border border-white/15 hover:bg-white/[0.04] active:scale-[0.99] transition disabled:opacity-60"
-                      >
-                        <AppleGlyph className="w-4 h-4" /> Continue with Apple
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="h-px flex-1 bg-white/[0.07]" />
-                      <span className="text-[10px] tracking-[0.28em] uppercase text-white/35">or with email</span>
-                      <div className="h-px flex-1 bg-white/[0.07]" />
-                    </div>
-
                     <Field label="Email" error={errors.email}>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
@@ -764,18 +738,18 @@ export default function StartOnboarding() {
                       {Array.from({ length: 6 }).map((_, i) => (
                         <input
                           key={i}
-                          id={`apex-otp-${i}`}
+                          id={`sb-otp-${i}`}
                           type="text" inputMode="numeric" maxLength={1}
                           value={otpCode[i] || ''}
                           onChange={(e) => {
                             const v = e.target.value.replace(/\D/g, '').slice(0, 1);
                             const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 6);
                             setOtpCode(next);
-                            if (v && i < 5) document.getElementById(`apex-otp-${i + 1}`)?.focus();
+                            if (v && i < 5) document.getElementById(`sb-otp-${i + 1}`)?.focus();
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
-                              document.getElementById(`apex-otp-${i - 1}`)?.focus();
+                              document.getElementById(`sb-otp-${i - 1}`)?.focus();
                             }
                           }}
                           onPaste={(e) => {
@@ -783,7 +757,7 @@ export default function StartOnboarding() {
                             if (pasted.length >= 1) {
                               e.preventDefault();
                               setOtpCode(pasted);
-                              document.getElementById(`apex-otp-${Math.min(pasted.length, 5)}`)?.focus();
+                              document.getElementById(`sb-otp-${Math.min(pasted.length, 5)}`)?.focus();
                             }
                           }}
                           className={cn(
@@ -1314,6 +1288,45 @@ function SegmentScale({
   );
 }
 
+function BetaFreePlanCard({ onContinue }: { onContinue: () => void }) {
+  // Auto-claim the beta-free "plan" the moment this step mounts so the user
+  // can advance without an explicit click. The visible card explains why
+  // there's nothing to choose.
+  useEffect(() => {
+    onContinue();
+  }, [onContinue]);
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <BetaHero
+        size="compact"
+        eyebrow="No checkout required"
+        title={<>Your starter pack is on us.</>}
+        body={
+          <>
+            Every new account gets <span className="text-emerald-300 font-mono">100 starter credits</span> the moment you finish signing up. Use them across every mode — text-to-video, avatars, motion transfer, the lot.
+          </>
+        }
+        actions={
+          <ul className="space-y-2.5">
+            {[
+              'No card on file. No surprise charges.',
+              'Refunds for failed renders land back in your balance automatically.',
+              'Request more credits anytime from /credits — we hand-grant top-ups during beta.',
+              'Paid plans launch later. We’ll email at least 30 days in advance.',
+            ].map((l) => (
+              <li key={l} className="flex gap-3 text-[13px] text-white/65 leading-relaxed">
+                <span className="mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" />
+                {l}
+              </li>
+            ))}
+          </ul>
+        }
+      />
+    </div>
+  );
+}
+
 function PlanGrid({
   plans, selectedId, onSelect, error,
 }: { plans: Plan[]; selectedId: string; onSelect: (p: Plan) => void; error?: string }) {
@@ -1354,7 +1367,7 @@ function PlanGrid({
                 </div>
               </div>
               <div className="flex items-baseline gap-1.5 mb-3">
-                <span className="text-3xl font-bold tracking-tight text-white" style={{ fontFamily: "'Fraunces', serif" }}>${p.price}</span>
+                <span className="text-3xl font-bold tracking-tight text-white">${p.price}</span>
                 {p.interval && <span className="text-xs text-white/45">/ {p.interval}</span>}
                 {p.credits && <span className="text-[11px] text-white/40 ml-1.5">· {p.credits.toLocaleString()} credits</span>}
               </div>
@@ -1388,25 +1401,3 @@ function PlanGrid({
   );
 }
 
-/* =================================================================
- * OAuth glyphs
- * ================================================================= */
-
-function GoogleGlyph({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden>
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.1A6.99 6.99 0 0 1 5.46 12c0-.73.13-1.44.36-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.46 1.18 4.94l3.66-2.84z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.1 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
-    </svg>
-  );
-}
-
-function AppleGlyph({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M17.05 12.04c-.03-2.7 2.2-4 2.3-4.06-1.26-1.84-3.21-2.09-3.91-2.12-1.66-.17-3.24.98-4.09.98-.85 0-2.15-.95-3.54-.93-1.82.03-3.5 1.06-4.43 2.69-1.89 3.27-.48 8.11 1.36 10.78.9 1.31 1.97 2.78 3.36 2.73 1.36-.06 1.87-.88 3.51-.88 1.64 0 2.1.88 3.54.85 1.46-.03 2.39-1.34 3.28-2.66.62-.91 1.27-2.15 1.55-3.21-.04-.02-2.97-1.14-3-4.51zM14.42 4.04c.74-.9 1.24-2.15 1.1-3.39-1.06.04-2.35.71-3.12 1.6-.69.79-1.29 2.06-1.13 3.27 1.18.09 2.39-.6 3.15-1.48z" />
-    </svg>
-  );
-}

@@ -102,6 +102,15 @@ const SEEDANCE_MODEL_OWNER = "bytedance";
 const SEEDANCE_MODEL_NAME = "seedance-2.0";
 const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
 
+// ─── Wan 2.5 (Alibaba) — FREE TIER engine ──────────────────────────────────
+// Model: wan-ai/wan-2.5-t2v — text-to-video + image-to-video (5/10s clips).
+// Chosen as the free-tier engine because it's cheap to run, the quality is
+// strong enough to demo the product, and Alibaba's pricing on Replicate
+// keeps the platform burn-rate sustainable on signup-grant credits.
+const WAN_MODEL_OWNER = "wan-ai";
+const WAN_MODEL_NAME = "wan-2.5-t2v";
+const WAN_MODEL_URL = `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}/predictions`;
+
 // ─── Runway Gen-4 Turbo (Replicate-hosted) ─────────────────────────────────
 // Model: runwayml/gen4-turbo — best-in-class character consistency, 5s/10s clips
 const RUNWAY_MODEL_OWNER = "runwayml";
@@ -274,6 +283,78 @@ const createReplicatePrediction = createKlingV3Prediction;
  *   - Resolution: 1080p (default)
  *   - No native audio (TTS / music overlay added in post)
  */
+/**
+ * Create an Alibaba Wan 2.5 prediction via Replicate.
+ *
+ * Model: wan-ai/wan-2.5-t2v
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 5s or 10s
+ *   - 1080p output, 24fps
+ *
+ * Wan is the FREE TIER engine — users on signup-grant credits route here.
+ * The model accepts a `prompt` + optional `image` for I2V; an end-frame is
+ * not supported (unlike Seedance).
+ */
+async function createWan25Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = DEFAULT_CLIP_DURATION,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Wan 2.5: durations 5s or 10s — snap to nearest.
+  const duration = durationSeconds <= 7 ? 5 : 10;
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    aspect_ratio: aspectRatio,
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Wan25] Creating ${mode} prediction:`, {
+    model: `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
+    duration, aspectRatio, hasStartImage: !!input.image, promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(WAN_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Wan25] Replicate API error:", response.status, errorText);
+    throw new Error(`Wan 2.5 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Wan 2.5 response");
+  }
+  console.log(`[SingleClip][Wan25] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
 async function createSeedancePrediction(
   prompt: string,
   startImageUrl?: string | null,
@@ -1093,7 +1174,7 @@ serve(async (req) => {
     //
     // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
     // The body param is only a hint and can never override the DB lock.
-    type BackendEngine = 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
     let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
     try {
       const { data: projRow } = await supabase
@@ -1122,6 +1203,7 @@ serve(async (req) => {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
     const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
+      wan:      'wan-ai/wan-2.5-t2v',
       kling:    'kwaivgi/kling-v3-video',
       seedance: 'bytedance/seedance-2.0',
       veo:      'google/veo-3-fast',
@@ -1479,17 +1561,21 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     const isAvatarMode = !!isAvatarModeFlag; // Explicit flag from pipeline, NOT from videoEngine
     const hasStartImage = !!validatedStartImage;
-    const engineLabel = videoEngine === 'seedance'
-      ? (isAvatarMode
-          ? `Seedance 2.0 Avatar (I2V from start image, TTS audio overlaid post-stitch)`
-          : hasStartImage
-            ? `Seedance 2.0 I2V (image-to-video, no native audio)`
-            : `Seedance 2.0 T2V (text-to-video, no native audio)`)
-      : (isAvatarMode
-          ? `Kling V3 Avatar (I2V + native lip-sync, ${hasStartImage ? 'frame-chained' : 'scene image'})`
-          : hasStartImage
-            ? "Kling V3 I2V (image-to-video, no native audio)"
-            : "Kling V3 T2V (text-to-video, no native audio)");
+    const engineLabel = videoEngine === 'wan'
+      ? (hasStartImage
+          ? `Wan 2.5 I2V (free tier, image-to-video)`
+          : `Wan 2.5 T2V (free tier, text-to-video)`)
+      : videoEngine === 'seedance'
+        ? (isAvatarMode
+            ? `Seedance 2.0 Avatar (I2V from start image, TTS audio overlaid post-stitch)`
+            : hasStartImage
+              ? `Seedance 2.0 I2V (image-to-video, no native audio)`
+              : `Seedance 2.0 T2V (text-to-video, no native audio)`)
+        : (isAvatarMode
+            ? `Kling V3 Avatar (I2V + native lip-sync, ${hasStartImage ? 'frame-chained' : 'scene image'})`
+            : hasStartImage
+              ? "Kling V3 I2V (image-to-video, no native audio)"
+              : "Kling V3 T2V (text-to-video, no native audio)");
     console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", isAvatarMode=${isAvatarMode}, hasStartImage=${hasStartImage}) ══`);
     
     // Avatar mode: enable native audio for lip-sync. I2V/T2V: no native audio
@@ -1556,7 +1642,16 @@ serve(async (req) => {
     }
 
     let predictionId: string;
-    if (videoEngine === 'seedance') {
+    if (videoEngine === 'wan') {
+      console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-ai/wan-2.5-t2v) — FREE TIER ══`);
+      const wanResult = await createWan25Prediction(
+        tuneForEngine('kling', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = wanResult.predictionId;
+    } else if (videoEngine === 'seedance') {
       console.log(`[SingleClip] ══ ROUTING TO SEEDANCE 2.0 (bytedance/seedance-2.0) ══`);
       const seedanceResult = await createSeedancePrediction(
         tuneForEngine('seedance', enhancedPrompt, { isAvatarMode, hasStartImage }),

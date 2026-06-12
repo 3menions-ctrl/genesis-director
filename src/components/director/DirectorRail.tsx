@@ -8,9 +8,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import logoImage from "@/assets/apex-studio-logo.webp";
+import logoImage from "@/assets/small-bridges-logo.webp";
 
-const RAIL_KEY = "apex.director-rail.collapsed";
+const RAIL_KEY = 'sb.director-rail.collapsed';
 
 interface NavItem { label: string; to: string; icon: typeof Film; }
 
@@ -116,7 +116,7 @@ export function DirectorShell({ children, topSlot }: Props) {
                     border: "1px solid hsla(0,0%,100%,0.10)",
                     boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.10)",
                   }}>
-                  <img src={logoImage} alt="Apex" className="w-6 h-6 object-contain opacity-95" />
+                  <img src={logoImage} alt="Small Bridges" className="w-6 h-6 object-contain opacity-95" />
                 </div>
               </div>
               {!collapsed && (
@@ -131,7 +131,7 @@ export function DirectorShell({ children, topSlot }: Props) {
                       backgroundClip: "text",
                     }}
                   >
-                    Apex Studio
+                    Small Bridges
                   </span>
                   <span className="mt-1.5 text-[9px] uppercase tracking-[0.32em] text-white/35">
                     Director Suite
@@ -217,8 +217,7 @@ export function DirectorShell({ children, topSlot }: Props) {
                       }}
                     />
                     {!collapsed && (
-                      <span className="relative text-[13px] font-light tracking-[-0.005em] truncate"
-                        style={{ fontFamily: "'Fraunces', serif" }}>
+                      <span className="relative text-[13px] font-light tracking-[-0.005em] truncate">
                         {item.label}
                       </span>
                     )}

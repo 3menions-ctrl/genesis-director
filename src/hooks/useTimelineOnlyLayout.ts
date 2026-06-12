@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only') {
+export function useTimelineOnlyLayout(containerSelector = '.sb-timeline-only') {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoInserted = useRef(false);
 
@@ -56,7 +56,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
       // Insert a native video player in place of the canvas
       if (!videoInserted.current) {
         const playerDiv = document.createElement('div');
-        playerDiv.id = 'apex-native-player';
+        playerDiv.id = 'sb-native-player';
         playerDiv.style.cssText = `
           width: 100%;
           background: hsl(240, 28%, 4%);
@@ -68,7 +68,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
         `;
 
         const video = document.createElement('video');
-        video.id = 'apex-player-video';
+        video.id = 'sb-player-video';
         video.style.cssText = `
           max-width: 100%;
           max-height: 100%;
@@ -79,7 +79,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
         video.controls = true;
 
         const emptyState = document.createElement('div');
-        emptyState.id = 'apex-player-empty';
+        emptyState.id = 'sb-player-empty';
         emptyState.style.cssText = `
           display: flex;
           flex-direction: column;
@@ -113,7 +113,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
       const children = Array.from(contentDiv.children) as HTMLElement[];
       const rows = children.map((child) => {
         if (child === canvas) return '0px'; // hidden canvas
-        if (child.id === 'apex-native-player') return '35%';
+        if (child.id === 'sb-native-player') return '35%';
         return 'minmax(40px, 1fr)';
       }).join(' ');
       contentDiv.style.setProperty('grid-template-rows', rows, 'important');
@@ -121,7 +121,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
 
       // Make timeline siblings scrollable
       for (const child of children) {
-        if (child === canvas || child.id === 'apex-native-player') continue;
+        if (child === canvas || child.id === 'sb-native-player') continue;
         child.style.setProperty('overflow-y', 'auto', 'important');
         child.style.setProperty('overflow-x', 'hidden', 'important');
         child.style.setProperty('min-height', '0', 'important');
@@ -136,7 +136,7 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       // Clean up inserted player
-      const player = document.getElementById('apex-native-player');
+      const player = document.getElementById('sb-native-player');
       if (player) player.remove();
       videoInserted.current = false;
     };
@@ -148,8 +148,8 @@ export function useTimelineOnlyLayout(containerSelector = '.apex-timeline-only')
  * Call this when timeline playhead changes or clip selection changes.
  */
 export function setNativePlayerSrc(src: string | null) {
-  const video = document.getElementById('apex-player-video') as HTMLVideoElement;
-  const empty = document.getElementById('apex-player-empty') as HTMLElement;
+  const video = document.getElementById('sb-player-video') as HTMLVideoElement;
+  const empty = document.getElementById('sb-player-empty') as HTMLElement;
   if (!video) return;
   
   if (src) {

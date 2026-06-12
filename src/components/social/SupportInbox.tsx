@@ -168,7 +168,7 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
           />
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono inline-flex items-center gap-1.5">
-              <Shield className="w-3 h-3" /> Sent privately to apex-studio admins
+              <Shield className="w-3 h-3" /> Sent privately to small-bridges admins
             </span>
             <Button size="sm" disabled={sending || !subject.trim() || !message.trim()} onClick={handleSend}
               className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground gap-1.5">
@@ -233,7 +233,7 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
                       {hasReply ? (
                         <div className="p-3 rounded-lg bg-[hsla(215,100%,60%,0.06)] border border-[hsla(215,100%,60%,0.25)]">
                           <p className="text-[10px] uppercase tracking-[0.3em] text-[hsl(215,100%,72%)] font-mono mb-1 flex items-center gap-1.5">
-                            <Shield className="w-3 h-3" /> Apex-Studio admin
+                            <Shield className="w-3 h-3" /> Small Bridges admin
                             {t.replied_at && (
                               <span className="text-muted-foreground"> · {formatDistanceToNow(new Date(t.replied_at), { addSuffix: true })}</span>
                             )}

@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withSafePageRef } from '@/lib/withSafeRef';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
-import { 
-  Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
-} from 'lucide-react';
+import { Loader2, X, Clock } from 'lucide-react';
+import { STAGE_CONFIG } from './production/stages';
+import type {
+  StageStatus, ClipResult, PipelineLog, ProductionProject,
+} from './production/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -24,7 +26,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell, PageHeader } from '@/components/shell';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
-import { SimpleVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -49,60 +51,9 @@ const SectionLoader = memo(() => (
 ));
 SectionLoader.displayName = 'SectionLoader';
 
-// ============= TYPES =============
-
-interface StageStatus {
-  name: string;
-  shortName: string;
-  icon: React.ElementType;
-  status: 'pending' | 'active' | 'complete' | 'error' | 'skipped';
-  details?: string;
-}
-
-interface ClipResult {
-  index: number;
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  videoUrl?: string;
-  error?: string;
-  id?: string;
-  motionVectors?: {
-    subjectVelocity?: { x: number; y: number; magnitude: number };
-    cameraMovement?: { type: string; direction: string; speed: number };
-    motionBlur?: number;
-    dominantDirection?: string;
-  };
-}
-
-interface PipelineLog {
-  id: string;
-  time: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
-
-interface ProductionProject {
-  id: string;
-  title: string;
-  status: string;
-  progress: number;
-  clipsCompleted: number;
-  totalClips: number;
-  thumbnail?: string;
-  updatedAt: string;
-}
-
 // ProFeaturesState is now imported from @/types/pro-features
-
-// ============= CONSTANTS =============
-
-const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.ElementType }> = [
-  { name: 'Script Generation', shortName: 'Script', icon: FileText },
-  { name: 'Identity Analysis', shortName: 'Identity', icon: Users },
-  { name: 'Quality Audit', shortName: 'Audit', icon: Shield },
-  { name: 'Asset Creation', shortName: 'Assets', icon: Wand2 },
-  { name: 'Video Production', shortName: 'Render', icon: Film },
-  { name: 'Final Assembly', shortName: 'Stitch', icon: Sparkles },
-];
+// StageStatus / ClipResult / PipelineLog / ProductionProject live in ./production/types
+// STAGE_CONFIG lives in ./production/stages
 
 // ============= MAIN COMPONENT =============
 
@@ -1061,16 +1012,18 @@ function ProductionContentInner() {
 
       if (!clips?.length) throw new Error('No clips');
 
-      const { data, error } = await supabase.functions.invoke('simple-stitch', {
+      const { data, error } = await supabase.functions.invoke('seamless-stitcher', {
         body: {
           projectId,
-          clips: clips.map(c => ({ shotId: c.id, videoUrl: c.video_url, durationSeconds: c.duration_seconds || 6 })),
+          includeIntro: false,
+          transitionDuration: 0.4,
+          transitionType: 'fade',
         },
       });
 
       if (error) throw error;
-      if (data?.success && data?.finalVideoUrl) {
-        setFinalVideoUrl(data.finalVideoUrl);
+      if (data?.ok && data?.url) {
+        setFinalVideoUrl(data.url);
         setProjectStatus('completed');
         setProgress(100);
         updateStageStatus(5, 'complete');
@@ -1518,9 +1471,28 @@ const transitionsData = useMemo(() =>
                   !!pipelineStageIsActive
                 );
                 
-                // CRITICAL: During active production, suppress ALL banners
-                // Degradation flags and transient errors are internal recovery states — never show to users mid-generation
+                // During active production we don't surface every transient
+                // error — but we DO surface a stall hint when the pipeline has
+                // gone silent for a few minutes. Silence-as-progress is what
+                // strands users on a spinner. Threshold: 3 min of no clip
+                // status changes AND no completed clip transitions.
                 if (isActivelyProducing) {
+                  const STALL_SECONDS = 180;
+                  if (elapsedTime >= STALL_SECONDS && !hasCompletedClips) {
+                    return (
+                      <div className="rounded-2xl border border-amber-400/30 bg-amber-500/[0.04] p-4 flex items-start gap-3">
+                        <Clock className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <div className="text-amber-200 text-[13px] font-medium">
+                            Still working — but this is taking longer than usual.
+                          </div>
+                          <p className="text-amber-300/70 text-[12px] mt-1 leading-relaxed">
+                            Most renders finish in under 3 minutes. If the next minute is also quiet, you can cancel and we&rsquo;ll refund every credit.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
                   return null;
                 }
                 
@@ -1558,6 +1530,7 @@ const transitionsData = useMemo(() =>
                         projectStatus={projectStatus}
                         failedClipCount={failedClipCount}
                         totalClipCount={expectedClipCount}
+                        refundAmount={(pipelineState as { refundAmount?: number } | null)?.refundAmount ?? null}
                         onRetry={handleResume}
                         onDismiss={handleDismissError}
                         isRetrying={isResuming}
@@ -1681,7 +1654,7 @@ const transitionsData = useMemo(() =>
               className="relative max-w-4xl w-full aspect-video"
               onClick={(e) => e.stopPropagation()}
             >
-              <SimpleVideoPlayer src={selectedClipUrl} autoPlay showControls controlsVisibility="always" className="w-full h-full rounded-xl" />
+              <BrandedVideoPlayer src={selectedClipUrl} autoPlay showControls controlsVisibility="always" className="w-full h-full rounded-xl" />
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -1703,7 +1676,7 @@ const ProductionContent = withSafePageRef(ProductionContentInner, 'ProductionCon
 
 // Wrapper with error boundary
 export default function Production() {
-  usePageMeta({ title: "Production — Apex Studio", description: "Track, recover, and resume every cinematic production stage in real time." });
+  usePageMeta({ title: "Production — Small Bridges", description: "Track, recover, and resume every cinematic production stage in real time." });
 
   return (
     <ErrorBoundary>

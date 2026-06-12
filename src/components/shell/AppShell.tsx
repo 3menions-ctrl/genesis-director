@@ -4,7 +4,7 @@ import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
   Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
-  Smile, Library,
+  Smile, Library, Tv, ShoppingBag, Music2, Users as UsersIcon, Search as SearchIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +21,7 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
-import logoImage from '@/assets/apex-studio-logo.webp';
+import logoImage from '@/assets/small-bridges-logo.webp';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import { usePendingVideoRecovery } from '@/hooks/usePendingVideoRecovery';
@@ -48,6 +48,19 @@ interface NavGroup {
 }
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    // The discovery / consumption surfaces. Sitting at the top of the rail
+    // because Small Bridges is now both a tool AND a destination — when the user
+    // signs in, the Lobby is the natural first stop.
+    label: 'Watch',
+    items: [
+      { label: 'Lobby',  to: '/lobby',  icon: Tv,         hue: 215, match: (p) => p === '/lobby' || p.startsWith('/watch') || p.startsWith('/world') },
+      { label: 'Music',  to: '/music',  icon: Music2,     hue: 280 },
+      { label: 'Market', to: '/market', icon: ShoppingBag, hue: 38  },
+      { label: 'Crews',  to: '/crews',  icon: UsersIcon,  hue: 160 },
+      { label: 'Search', to: '/search', icon: SearchIcon, hue: 215 },
+    ],
+  },
   {
     label: 'Create',
     items: [
@@ -77,7 +90,7 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const SIDEBAR_KEY = 'apex.sidebar.collapsed';
+const SIDEBAR_KEY = 'sb.sidebar.collapsed';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
@@ -221,13 +234,13 @@ export function AppShell({ children }: AppShellProps) {
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
                 <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
-                  <img src={logoImage} alt="Apex-Studio" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
+                  <img src={logoImage} alt="Small Bridges" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
                 </div>
               </div>
               {!collapsed && (
                 <div className="flex flex-col min-w-0 lg:flex">
                   <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display truncate">
-                    Apex<span className="display-serif text-white/85 mx-[1px] text-[15px]">-</span><span className="display-serif text-white/85 text-[15px]">Studio</span>
+                    Small Bridges<span className="display-serif text-white/85 mx-[1px] text-[15px]">-</span><span className="display-serif text-white/85 text-[15px]">Studio</span>
                   </span>
                   <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
                     Creative Suite
@@ -617,6 +630,7 @@ export function AppShell({ children }: AppShellProps) {
                 <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
                 {(isBusiness
                   ? [
+                      { icon: UserIcon, label: 'Profile', path: '/profile' },
                       { icon: SettingsIcon, label: 'Workspace', path: '/workspace/general' },
                       { icon: HelpCircle, label: 'Help & FAQ', path: '/help' },
                     ]
@@ -626,22 +640,35 @@ export function AppShell({ children }: AppShellProps) {
                       { icon: HelpCircle, label: 'Help & FAQ', path: '/help' },
                     ]
                 ).map(({ icon: Icon, label, path }) => (
+                  // Render each item as an anchor via `asChild`. The
+                  // browser's native anchor navigation handles the click
+                  // BEFORE Radix dispatches pointer events to close the
+                  // menu — which fixes the Safari bug where the menu
+                  // collapsing on pointerdown shifted items up and
+                  // pointerup fired on the sibling below (sending Profile
+                  // clicks to Help & FAQ). Programmatic `navigateTo` calls
+                  // in `onSelect` lost the race on Safari; the anchor
+                  // route is invariant across browsers.
                   <DropdownMenuItem
                     key={path}
-                    onClick={() => navigateTo(path)}
+                    asChild
                     className="text-[12px] text-white/55 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
                   >
-                    <Icon className="w-3.5 h-3.5 opacity-70" />
-                    {label}
+                    <Link to={path}>
+                      <Icon className="w-3.5 h-3.5 opacity-70" />
+                      {label}
+                    </Link>
                   </DropdownMenuItem>
                 ))}
                 {isAdmin && (
                   <DropdownMenuItem
-                    onClick={() => navigateTo('/admin')}
+                    asChild
                     className="text-[12px] text-[hsl(var(--warning))] hover:text-[hsl(var(--warning))] focus:bg-[hsl(var(--warning)/0.06)] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
                   >
-                    <Shield className="w-3.5 h-3.5 opacity-80" />
-                    Admin Panel
+                    <Link to="/admin">
+                      <Shield className="w-3.5 h-3.5 opacity-80" />
+                      Admin Panel
+                    </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />

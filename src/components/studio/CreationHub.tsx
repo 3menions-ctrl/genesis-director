@@ -23,7 +23,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
-import { SimpleVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { TemplateAvatarSelector } from './TemplateAvatarSelector';
 import { AvatarTemplate } from '@/types/avatar-templates';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,7 +59,7 @@ const CREATION_MODES: CreationModeDef[] = [
 // Single source of truth for what each render model can/can't do. The UI reads
 // this to dim invalid engines, snap aspect ratio + duration into legal range,
 // and prevent incoherent submissions before they reach the pipeline.
-type EngineKey = 'kling' | 'seedance' | 'veo' | 'sora';
+type EngineKey = 'wan' | 'kling' | 'seedance' | 'veo' | 'sora';
 type EngineCapabilities = {
   label: string;
   model: string;
@@ -73,6 +73,13 @@ type EngineCapabilities = {
   durations: number[];
 };
 const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
+  // Alibaba's Wan 2.5 — the free-tier engine. Always shown first.
+  wan: {
+    label: 'Wan 2.5', model: 'wan-ai/wan-2.5-t2v',
+    tagline: 'Free tier · Alibaba Wan', badge: 'FREE',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10],
+  },
   kling: {
     label: 'Kling V3', model: 'kwaivgi/kling-v3-video',
     tagline: 'Cinematic · Native lip-sync',
@@ -164,7 +171,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-    videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
+    videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
     breakoutPlatform?: string;
@@ -189,11 +196,23 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const { navigateTo: navigate } = useNavigationWithLoading();
   const { profile } = useAuth();
   const credits = useCredits();
+  // Free-tier rule: users who have never purchased credits can only use the
+  // baseline engine (Alibaba's Wan 2.5). The premium engines (kling /
+  // seedance / veo / sora) remain visible but locked, with a clear
+  // "upgrade to unlock" hint. The admin role bypasses this lock so
+  // internal testing isn't hampered.
+  const FREE_TIER_ENGINE: EngineKey = 'wan';
+  const isFreeTier = !!profile
+    && profile.account_type !== 'admin'
+    && (profile.total_credits_purchased ?? 0) === 0;
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   // Engine is now an INDEPENDENT axis from mode. The capability matrix
   // (ENGINE_CAPS) decides which engines are valid for the chosen mode.
-  const [videoEngine, setVideoEngine] = useState<EngineKey>('kling');
+  // Default engine: 'wan' for everyone — purchased users will see Wan as the
+  // free option but can flip to Kling for richer features. New free-tier
+  // users land directly on the engine that won't blow through their grant.
+  const [videoEngine, setVideoEngine] = useState<EngineKey>('wan');
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -322,9 +341,24 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   //               (Avatar = Kling lip-sync only; everything else falls back to Kling.)
   useEffect(() => {
     if (!engineSupportsMode(videoEngine, selectedMode as CreationModeId)) {
-      setVideoEngine('kling');
+      // Prefer wan as the fallback so free-tier users don't get bumped to
+      // a locked engine just because they touched a mode the wan engine
+      // also supports. Only fall through to kling for modes wan can't
+      // serve (avatar / lip-sync).
+      const fallback: EngineKey = engineSupportsMode('wan', selectedMode as CreationModeId) ? 'wan' : 'kling';
+      setVideoEngine(fallback);
     }
-  }, [selectedMode, videoEngine]);
+    // Free-tier guardrail: if a free user somehow ends up on a paid engine
+    // (e.g. via a template that auto-picks seedance) AND wan supports the
+    // selected mode, snap them back to wan instead of failing at
+    // generation time. If wan can't do the mode (avatar), let them stay on
+    // the locked engine so the existing "purchase to unlock" toast fires
+    // when they hit Generate.
+    if (isFreeTier && videoEngine !== FREE_TIER_ENGINE
+        && engineSupportsMode(FREE_TIER_ENGINE, selectedMode as CreationModeId)) {
+      setVideoEngine(FREE_TIER_ENGINE);
+    }
+  }, [selectedMode, videoEngine, isFreeTier]);
 
   // ── GUARDRAIL: snap default duration AND every per-scene duration into
   //               the new engine's legal range.
@@ -699,23 +733,33 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             {(Object.keys(ENGINE_CAPS) as EngineKey[]).map((k) => {
               const caps = ENGINE_CAPS[k];
               const compatible = engineSupportsMode(k, selectedMode as CreationModeId);
-              const active = videoEngine === k && compatible;
+              const freeLocked = isFreeTier && k !== FREE_TIER_ENGINE;
+              const available = compatible && !freeLocked;
+              const active = videoEngine === k && available;
               return (
                 <button
                   key={k}
-                  onClick={() => compatible && setVideoEngine(k)}
-                  disabled={!compatible}
+                  onClick={() => {
+                    if (freeLocked) {
+                      toast.error(`${caps.label} unlocks once you've purchased credits. Free credits run on Kling V3.`);
+                      return;
+                    }
+                    if (compatible) setVideoEngine(k);
+                  }}
+                  disabled={!available}
                   title={
-                    !compatible
-                      ? selectedMode === 'avatar'
-                        ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
-                        : `${caps.label} isn't compatible with this mode.`
-                      : caps.tagline
+                    freeLocked
+                      ? `${caps.label} requires purchased credits. Free credits use Kling V3.`
+                      : !compatible
+                        ? selectedMode === 'avatar'
+                          ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
+                          : `${caps.label} isn't compatible with this mode.`
+                        : caps.tagline
                   }
                   className={cn(
                     'group relative inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full transition-all duration-400',
                     active && 'scale-[1.02]',
-                    !compatible && 'opacity-35 cursor-not-allowed',
+                    !available && 'opacity-35 cursor-not-allowed',
                   )}
                   style={{
                     background: active
@@ -732,7 +776,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       background: active ? 'hsla(215,100%,60%,0.30)' : 'hsla(0,0%,100%,0.06)',
                     }}
                   >
-                    {compatible ? (
+                    {available ? (
                       <Cpu className={cn('w-2.5 h-2.5', active ? 'text-[hsl(215,100%,82%)]' : 'text-white/55')} strokeWidth={1.5} />
                     ) : (
                       <Lock className="w-2.5 h-2.5 text-white/40" strokeWidth={1.5} />
@@ -851,7 +895,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         <img src={uploadedImage} alt="Uploaded" className="w-full h-44 object-cover" />
                       )}
                       {uploadedVideo && (
-                        <SimpleVideoPlayer src={uploadedVideo} className="w-full h-44 object-cover" showControls />
+                        <BrandedVideoPlayer src={uploadedVideo} className="w-full h-44 object-cover" showControls />
                       )}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">

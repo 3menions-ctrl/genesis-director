@@ -19,10 +19,10 @@ const SEEDANCE_VIDEO = '/__l5e/assets-v1/db9b8c6e-776b-4292-b571-6f2aac699445/se
 const KLING_VIDEO = '/__l5e/assets-v1/1fac204f-d8cc-4285-aee2-28065b1f7bb4/test-seedance-clip.mp4';
 // Distinct remote avatar reels — prevents the same "wave hello" loop from
 // appearing in multiple tiles across the Studio tour.
-const AVATAR_VIDEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/2bf9822a-95e4-43cc-afb5-fe8b707bf5f4/avatar_2bf9822a-95e4-43cc-afb5-fe8b707bf5f4_clip1_lipsync_1771556343051.mp4';
-const AVATAR_VIDEO_2 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/b50d6ab1-c49a-4e51-a435-0b0b0b9c7049/avatar_b50d6ab1-c49a-4e51-a435-0b0b0b9c7049_clip1_lipsync_1771735085809.mp4';
-const AVATAR_VIDEO_3 = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fb50fcdc-bed9-4423-a5cb-871a26f77ee1/avatar_fb50fcdc-bed9-4423-a5cb-871a26f77ee1_clip1_lipsync_1771727043052.mp4';
-const HOPPY_VIDEO    = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/6c28668e-2067-4b92-9fac-8f6ba70cb3a8/avatar_6c28668e-2067-4b92-9fac-8f6ba70cb3a8_clip1_lipsync_1770183667726.mp4';
+const AVATAR_VIDEO   = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
+const AVATAR_VIDEO_2 = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
+const AVATAR_VIDEO_3 = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
+const HOPPY_VIDEO    = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 
 /* ---------------- Asset imports (Vite bundles the URLs) ------------- */
 
@@ -124,7 +124,6 @@ function SectionTitle({ children, className = '' }: { children: React.ReactNode;
       viewport={{ once: true, margin: '-10%' }}
       transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
       className={`font-display text-center text-4xl md:text-6xl text-foreground tracking-[-0.03em] leading-[1.05] max-w-4xl mx-auto ${className}`}
-      style={{ fontFamily: "'Fraunces', serif" }}
     >
       {children}
     </motion.h2>
@@ -133,7 +132,7 @@ function SectionTitle({ children, className = '' }: { children: React.ReactNode;
 
 function Italic({ children }: { children: React.ReactNode }) {
   return (
-    <span className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent" style={{ fontFamily: "'Fraunces', serif" }}>
+    <span className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent">
       {children}
     </span>
   );
@@ -313,7 +312,7 @@ function StatsBand() {
           >
             <div aria-hidden className="absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                  style={{ background: 'radial-gradient(60% 60% at 30% 0%, rgba(10,132,255,0.15), transparent 70%)' }} />
-            <div className="font-display text-5xl md:text-6xl text-foreground tracking-[-0.04em]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="font-display text-5xl md:text-6xl text-foreground tracking-[-0.04em]">
               <AnimatedNumber value={it.value} suffix={it.suffix} decimals={it.decimals ?? 0} />
             </div>
             <div className="mt-3 text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">{it.label}</div>
@@ -369,13 +368,13 @@ function RotatingWord({ words, interval = 2400 }: { words: string[]; interval?: 
 /* =================================================================== */
 
 export default function Studio() {
-  usePageMeta({ title: "Studio — Apex Studio", description: "The unified Apex Studio production environment for cinematic AI video." });
+  usePageMeta({ title: "Studio — Small Bridges", description: "The unified Small Bridges production environment for cinematic AI video." });
 
   const { navigate } = useSafeNavigation();
   const [chooserOpen, setChooserOpen] = useState(false);
   const handleEnter = useCallback(() => setChooserOpen(true), []);
   const handleSelect = useCallback((category: AudienceCategory) => {
-    try { localStorage.setItem('apex.audience', category); } catch {}
+    try { localStorage.setItem('smallbridges.audience', category); } catch {}
     setChooserOpen(false);
     navigate(`/start?type=${category}`);
   }, [navigate]);
@@ -384,11 +383,11 @@ export default function Studio() {
   /* SEO */
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'The Studio — every craft of cinema, one room | Apex';
+    document.title = 'The Studio — every craft of cinema, one room | Small Bridges';
     const meta = document.querySelector('meta[name="description"]');
     const prev = meta?.getAttribute('content') ?? '';
     meta?.setAttribute('content',
-      'Tour Apex Studio — Seedance and Kling V3 engines, avatar cast, environments, templates, scoring, the editor, and a live create-page preview.');
+      'Tour Small Bridges — Seedance and Kling V3 engines, avatar cast, environments, templates, scoring, the editor, and a live create-page preview.');
     return () => { document.title = prevTitle; meta?.setAttribute('content', prev); };
   }, []);
 
@@ -561,7 +560,6 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
           className="font-display text-[3.4rem] md:text-[8rem] leading-[0.92] tracking-[-0.045em] text-foreground max-w-5xl"
-          style={{ fontFamily: "'Fraunces', serif" }}
         >
           The studio,<br />
           <Italic>not the <RotatingWord words={["software.", "tool.", "template.", "shortcut."]} /></Italic>
@@ -572,7 +570,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 1, delay: 0.25 }}
           className="mt-10 max-w-2xl text-muted-foreground text-lg md:text-2xl font-light leading-relaxed"
         >
-          Eleven chapters through every craft inside Apex. Seedance and Kling V3,
+          Eleven chapters through every craft inside Small Bridges. Seedance and Kling V3,
           a cast of avatars, forty environments, the score room, the editor — and
           the pipeline that walks a sentence into a finished film.
         </motion.p>
@@ -727,7 +725,7 @@ function EnginesSection() {
         Five engines.{' '}<Italic>One director.</Italic>
       </SectionTitle>
       <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
-        Apex doesn't ride one model — it conducts five, each a master of one craft. Pick a name to look inside.
+        Small Bridges doesn't ride one model — it conducts five, each a master of one craft. Pick a name to look inside.
       </p>
 
       <div className="max-w-7xl mx-auto mt-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -751,7 +749,7 @@ function EnginesSection() {
                     <e.icon className="w-4 h-4 text-[#0A84FF]" />
                   </div>
                   <div>
-                    <div className="font-display text-lg text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{e.name}</div>
+                    <div className="font-display text-lg text-foreground tracking-tight">{e.name}</div>
                     <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{e.role}</div>
                   </div>
                 </div>
@@ -781,7 +779,7 @@ function EnginesSection() {
                 </div>
                 <div className="absolute bottom-6 left-6 right-6">
                   <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/85 mb-2">{E.role}</div>
-                  <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-3" style={{ fontFamily: "'Fraunces', serif" }}>{E.name}</h3>
+                  <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-3">{E.name}</h3>
                   <p className="text-muted-foreground text-sm md:text-base font-light leading-relaxed max-w-2xl">{E.desc}</p>
                 </div>
               </div>
@@ -916,7 +914,6 @@ function BentoCaption({
     <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7 z-10">
       <h3
         className={`font-display text-foreground tracking-[-0.02em] mb-2 ${compact ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'}`}
-        style={{ fontFamily: "'Fraunces', serif" }}
       >
         {title}
       </h3>
@@ -927,7 +924,7 @@ function BentoCaption({
         <div className="mt-5 flex gap-6">
           {metric.map((m) => (
             <div key={m.l}>
-              <div className="font-display text-2xl text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>{m.k}</div>
+              <div className="font-display text-2xl text-foreground">{m.k}</div>
               <div className="text-[9.5px] uppercase tracking-[0.24em] text-muted-foreground mt-0.5">{m.l}</div>
             </div>
           ))}
@@ -1042,8 +1039,7 @@ function EnvironmentsSection() {
               {e.tag}
             </div>
             <div className="absolute bottom-5 left-5 right-5">
-              <div className={`font-display text-foreground tracking-tight ${i === 0 ? 'text-3xl md:text-5xl' : 'text-xl md:text-2xl'}`}
-                   style={{ fontFamily: "'Fraunces', serif" }}>
+              <div className={`font-display text-foreground tracking-tight ${i === 0 ? 'text-3xl md:text-5xl' : 'text-xl md:text-2xl'}`}>
                 {e.label}
               </div>
             </div>
@@ -1178,7 +1174,7 @@ function ScenesReel() {
               </div>
               <div className="lg:col-span-5">
                 <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-4">Example {i + 1}</div>
-                <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-5" style={{ fontFamily: "'Fraunces', serif" }}>{s.title}</h3>
+                <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-5">{s.title}</h3>
                 <p className="text-muted-foreground text-base md:text-lg font-light leading-relaxed mb-8">{s.body}</p>
                 <div className="flex flex-wrap gap-2">
                   {['Anamorphic', 'Native audio', 'Identity-locked', 'Auto-graded'].map((t) => (
@@ -1242,7 +1238,7 @@ function PipelineSection() {
                 </div>
                 <div className={`md:row-start-1 ${right ? 'md:col-start-2 md:pl-12' : 'md:col-start-1 md:pr-12 md:text-right'}`}>
                   <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-2">Stage {String(i + 1).padStart(2, '0')}</div>
-                  <h4 className="font-display text-2xl md:text-3xl text-foreground tracking-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>{s.t}</h4>
+                  <h4 className="font-display text-2xl md:text-3xl text-foreground tracking-tight mb-2">{s.t}</h4>
                   <p className="text-muted-foreground text-[14px] leading-relaxed font-light max-w-md md:inline-block">{s.sub}</p>
                 </div>
               </motion.div>
@@ -1278,7 +1274,7 @@ function EditorMockupSection() {
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-              <div className="ml-4 text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">apex.studio / editor / brand-film-v3</div>
+              <div className="ml-4 text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">small bridges / editor / brand-film-v3</div>
               <div className="ml-auto flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 <span>4K · 23.976</span>
                 <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
@@ -1352,7 +1348,7 @@ function EditorMockupSection() {
                 <f.icon className="w-4 h-4 text-[#0A84FF]" />
               </div>
               <div>
-                <div className="font-display text-lg text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{f.t}</div>
+                <div className="font-display text-lg text-foreground tracking-tight">{f.t}</div>
                 <div className="text-[13px] text-muted-foreground leading-relaxed font-light mt-1">{f.d}</div>
               </div>
             </motion.div>
@@ -1424,7 +1420,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
       <SectionTitle>Where{' '}<Italic>a sentence becomes a film.</Italic></SectionTitle>
       <p className="mt-6 max-w-2xl mx-auto text-center text-muted-foreground text-base md:text-lg font-light">
         A peek at the room you walk into after sign-in. Type a brief, pick a cast,
-        choose a world — Apex takes it from there.
+        choose a world — Small Bridges takes it from there.
       </p>
 
       <motion.div
@@ -1443,14 +1439,14 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
             <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-            <div className="mx-auto text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">apex.studio / create / new-project</div>
+            <div className="mx-auto text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">small bridges / create / new-project</div>
             <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Untitled</div>
           </div>
 
           <div className="p-8 md:p-12">
             {/* Brief input */}
             <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/80 mb-3">Step 01 · Brief</div>
-            <div className="font-display text-3xl md:text-5xl text-foreground tracking-[-0.02em] leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="font-display text-3xl md:text-5xl text-foreground tracking-[-0.02em] leading-tight">
               Tell me about your film.
             </div>
 
@@ -1543,7 +1539,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
             {/* CTA — sign in to actually create */}
             <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-5 p-5 rounded-2xl border border-white/[0.10] bg-gradient-to-r from-[#0A84FF]/[0.08] to-transparent">
               <div>
-                <div className="font-display text-xl md:text-2xl text-foreground tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+                <div className="font-display text-xl md:text-2xl text-foreground tracking-tight">
                   This is the room you walk into.
                 </div>
                 <div className="text-[13px] text-muted-foreground mt-1 font-light">
@@ -1587,7 +1583,7 @@ function FinalCTA({ onEnter }: { onEnter: () => void }) {
           <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
           <span className="text-[10.5px] font-medium text-muted-foreground tracking-[0.32em] uppercase">The doors are open</span>
         </div>
-        <h2 className="font-display text-5xl md:text-7xl font-bold text-foreground tracking-[-0.035em] mb-8 leading-[1.02]" style={{ fontFamily: "'Fraunces', serif" }}>
+        <h2 className="font-display text-5xl md:text-7xl font-bold text-foreground tracking-[-0.035em] mb-8 leading-[1.02]">
           Ready to{' '}<Italic>roll camera?</Italic>
         </h2>
         <p className="text-muted-foreground text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
@@ -1782,7 +1778,6 @@ function KineticCollage() {
           viewport={{ once: true, margin: '-15%' }}
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="font-display text-5xl md:text-8xl tracking-[-0.045em] leading-[0.95] max-w-5xl mx-auto"
-          style={{ fontFamily: "'Fraunces', serif" }}
         >
           <span className="text-foreground">A studio that</span>{' '}
           <span

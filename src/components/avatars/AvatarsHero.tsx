@@ -38,7 +38,7 @@ export const AvatarsHero = memo(forwardRef<HTMLElement, AvatarsHeroProps>(functi
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
           </span>
           <span className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
-            Apex-Studio · Cast
+            Small Bridges · Cast
           </span>
         </div>
 

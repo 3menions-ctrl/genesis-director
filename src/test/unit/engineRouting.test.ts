@@ -35,6 +35,7 @@ const ENGINE_IDS: EngineId[] = [
 ];
 
 const EXPECTED_BACKEND: Record<EngineId, BackendEngine> = {
+  'wan-25':      'wan',
   'kling-v3':    'kling',
   'seedance-2':  'seedance',
   'veo-3':       'veo',

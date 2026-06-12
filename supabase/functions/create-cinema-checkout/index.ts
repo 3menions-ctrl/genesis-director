@@ -77,10 +77,13 @@ Deno.serve(async (req) => {
       throw new Error(`Cinema plan must be recurring: ${priceId}`);
     }
 
-    const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
-    const finalReturnUrl =
-      returnUrl ||
-      `${origin}/profile?cinema=success&plan=${encodeURIComponent(priceId)}&session_id={CHECKOUT_SESSION_ID}`;
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://genesis-director.lovable.app";
+    const { safeReturnUrl } = await import("../_shared/return-url.ts");
+    const finalReturnUrl = safeReturnUrl({
+      requested: returnUrl,
+      fallback: `${origin}/profile?cinema=success&plan=${encodeURIComponent(priceId)}&session_id={CHECKOUT_SESSION_ID}`,
+      requestUrl: req.url,
+    });
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],

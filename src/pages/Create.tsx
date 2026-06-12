@@ -6,7 +6,6 @@ import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { ImageStudioHub } from '@/components/studio/ImageStudioHub';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -180,7 +179,7 @@ function CreateContentInner() {
       if (t === 'create' || t === 'image' || t === 'scenes' || t === 'photo') return t;
     } catch {}
     try {
-      const saved = localStorage.getItem('apex_create_active_tab');
+      const saved = localStorage.getItem('sb_create_active_tab');
       if (saved === 'create' || saved === 'image' || saved === 'scenes' || saved === 'photo') return saved;
     } catch {}
     return 'create';
@@ -189,7 +188,7 @@ function CreateContentInner() {
   // Persist active tab changes
   useEffect(() => {
     try {
-      localStorage.setItem('apex_create_active_tab', activeTab);
+      localStorage.setItem('sb_create_active_tab', activeTab);
     } catch {}
   }, [activeTab]);
   
@@ -407,9 +406,7 @@ function CreateContentInner() {
       )}
       
       {/* Top Menu Bar */}
-      <AppHeader />
-      
-      {/* Editorial Studio shell */}
+{/* Editorial Studio shell */}
       <PageShell width="wide" pad={false}>
         {/* Cinematic hero header */}
         <motion.header
@@ -424,7 +421,7 @@ function CreateContentInner() {
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
             <span className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
-              Apex-Studio · Live
+              Small Bridges · Live
             </span>
           </div>
 
@@ -516,7 +513,7 @@ const CreateContent = withSafePageRef(CreateContentInner, 'CreateContent');
 
 // Wrapper with error boundary
 export default function Create() {
-  usePageMeta({ title: "Create — Apex Studio", description: "Compose cinematic scenes, avatars, and environments in one studio." });
+  usePageMeta({ title: "Create — Small Bridges", description: "Compose cinematic scenes, avatars, and environments in one studio." });
 
   return (
     <ErrorBoundary>

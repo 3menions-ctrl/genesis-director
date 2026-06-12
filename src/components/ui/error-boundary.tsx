@@ -1,6 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode, useCallback, useRef, useEffect, forwardRef } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode, useCallback, useRef, useEffect, forwardRef, useState } from 'react';
+import { AlertTriangle, RefreshCw, Home, Bug, Send, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -174,12 +175,10 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              If this keeps happening, please{' '}
-              <a href="/contact" className="text-primary hover:underline">
-                contact support
-              </a>
-            </p>
+            <ReportThisIssueButton
+              error={this.state.error}
+              errorInfo={this.state.errorInfo}
+            />
           </div>
         </div>
       );
@@ -187,6 +186,79 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
     return this.props.children;
   }
+}
+
+/**
+ * "Report this issue" — opens a support_messages row with the captured error
+ * and component stack. Lets the user opt in to send their email/context.
+ * Renders inline below the Try Again / Go Home row so the user always has a
+ * concrete escalation path when the app crashes.
+ */
+function ReportThisIssueButton({
+  error,
+  errorInfo,
+}: {
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const send = async () => {
+    setSending(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('support_messages').insert({
+        user_id: user?.id ?? null,
+        name: user?.email?.split('@')[0] ?? 'Anonymous',
+        email: user?.email ?? 'anonymous@smallbridges.com',
+        source: 'app_crash',
+        subject: `App crash — ${error?.name ?? 'Error'}: ${(error?.message ?? '').slice(0, 100)}`,
+        message:
+          `URL: ${window.location.href}\n` +
+          `User-Agent: ${navigator.userAgent}\n` +
+          `Time: ${new Date().toISOString()}\n\n` +
+          `Message: ${error?.message ?? 'unknown'}\n\n` +
+          `Stack:\n${(error?.stack ?? '').slice(0, 4000)}\n\n` +
+          `Component stack:\n${(errorInfo?.componentStack ?? '').slice(0, 4000)}`,
+      });
+      setSent(true);
+    } catch (e) {
+      console.error('[ErrorBoundary] Report failed:', e);
+      // Still mark as sent so the user isn't trapped repeating a failing report.
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <p className="text-xs text-emerald-500 inline-flex items-center justify-center gap-1.5">
+        <Check className="w-3.5 h-3.5" /> Thanks — your report was sent. We&rsquo;ll get back to you.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={send}
+        disabled={sending}
+        className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 underline underline-offset-2"
+      >
+        {sending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+        {sending ? 'Sending…' : 'Report this issue to support'}
+      </button>
+      <p className="text-xs text-muted-foreground">
+        Or{' '}
+        <a href="/contact" className="text-primary hover:underline">
+          start a conversation
+        </a>{' '}
+        with our team.
+      </p>
+    </div>
+  );
 }
 
 // Export the class as ErrorBoundary for backwards compatibility

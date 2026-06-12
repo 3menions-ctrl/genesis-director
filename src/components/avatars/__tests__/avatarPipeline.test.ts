@@ -368,7 +368,7 @@ describe('Avatar Template Validation', () => {
   });
 
   it('image URLs should be from Supabase storage', () => {
-    const validUrl = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/avatars/test.png';
+    const validUrl = 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4';
     const invalidUrl = 'https://images.unsplash.com/photo-123';
 
     expect(validUrl).toContain('supabase');

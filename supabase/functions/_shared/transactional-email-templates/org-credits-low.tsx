@@ -14,7 +14,7 @@ function OrgCreditsLow({
   orgName = 'Your workspace',
   balance = 0,
   threshold = 100,
-  billingUrl = 'https://apex-studio.ai/workspace/billing',
+  billingUrl = 'https://smallbridges.com/workspace/billing',
 }: Props) {
   return (
     <EmailLayout preview={`${orgName} is running low on credits`}>
@@ -36,6 +36,6 @@ export const template: TemplateEntry = {
     orgName: 'Acme Studio',
     balance: 47,
     threshold: 500,
-    billingUrl: 'https://apex-studio.ai/workspace/billing',
+    billingUrl: 'https://smallbridges.com/workspace/billing',
   },
 }

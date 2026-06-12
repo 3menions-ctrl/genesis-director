@@ -11,7 +11,7 @@ import { LANGUAGES, type LanguageCode } from "./languages";
 import { supabase } from "@/integrations/supabase/client";
 import { isTranslationDisabled, tripBreaker, looksLikeCreditsError } from "./circuitBreaker";
 
-const CACHE_PREFIX = "apex.i18n.cache.v1.";
+const CACHE_PREFIX = 'sb.i18n.cache.v1.';
 const PENDING: Map<string, Promise<string>> = new Map();
 const QUEUE: Map<LanguageCode, Map<string, ((value: string) => void)[]>> = new Map();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;

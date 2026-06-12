@@ -17,7 +17,7 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Your Apex Studio verification code',
+  signup: 'Your Small Bridges verification code',
   invite: "You've been invited",
   magiclink: 'Your login link',
   recovery: 'Reset your password',
@@ -36,10 +36,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "Apex Studio"
-const SENDER_DOMAIN = "notify.apex-studio.ai"
-const ROOT_DOMAIN = "apex-studio.ai"
-const FROM_DOMAIN = "apex-studio.ai" // Domain shown in From address (may be root or sender subdomain)
+const SITE_NAME = "Small Bridges"
+const SENDER_DOMAIN = "notify.smallbridges.com"
+const ROOT_DOMAIN = "smallbridges.com"
+const FROM_DOMAIN = "smallbridges.com" // Domain shown in From address (may be root or sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

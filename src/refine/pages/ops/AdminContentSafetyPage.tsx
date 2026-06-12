@@ -1,36 +1,112 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Content safety rules — block/warn patterns on user-generated content. */
+import { useState } from "react";
+import { ShieldAlert, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface RuleRow extends AdminRow {
+  id: string;
+  pattern: string;
+  match_type: string;
+  severity: string;
+  category: string | null;
+  active: boolean;
+  hits: number;
+  created_at: string;
+}
 
 export default function AdminContentSafetyPage() {
+  const [creating, setCreating] = useState(false);
   return (
     <AdminPageShell
-      eyebrow="04 // CONTENT"
+      eyebrow="11 // CONTENT"
       code="SAF"
       title="Content"
       italic="Safety."
-      description="Tune the multi-layer NSFW phrase blocker, severity gates, and allow-list."
+      description="Pattern-based rules that block or warn on prompts and generated assets."
     >
-      <AdminConsoleScaffold
-        intro="Calibrate the moderation engine — every tweak diffed and reversible."
-        status="scoped"
+      <AdminConsoleV2<RuleRow>
+        intro="Layer this on top of the built-in moderation. Patterns match against prompts before the pipeline runs."
+        query={{ table: "content_safety_rules", orderBy: { column: "created_at", ascending: false } }}
+        searchKey="pattern"
+        filters={[
+          { key: "severity", label: "Severity", type: "select", options: [
+            { value: "warn", label: "Warn" }, { value: "block", label: "Block" }] },
+          { key: "match_type", label: "Match", type: "select", options: [
+            { value: "substring", label: "Substring" }, { value: "regex", label: "Regex" }, { value: "exact", label: "Exact" }] },
+        ]}
         signals={[
-        { label: "Block List", value: "—", tone: "rose" },
-        { label: "Allow List", value: "—", tone: "emerald" },
-        { label: "Tier Levels", value: "3", tone: "blue" },
-        { label: "Hits 24h", value: "—", tone: "amber" },
+          { label: "Active", value: (r) => r.filter((x) => (x as RuleRow).active).length, tone: "blue" },
+          { label: "Blocking", value: (r) => r.filter((x) => (x as RuleRow).severity === "block").length, tone: "rose" },
+          { label: "Warnings", value: (r) => r.filter((x) => (x as RuleRow).severity === "warn").length, tone: "amber" },
+          { label: "Total hits", value: (r) => r.reduce((s, x) => s + ((x as RuleRow).hits ?? 0), 0).toLocaleString(), tone: "neutral" },
         ]}
-        capabilities={[
-    { icon: FileX, title: "Phrase Block List", description: "Add / remove blocked phrases with severity.", status: "queued" },
-    { icon: FileCheck, title: "Allow List", description: "Whitelist phrases that look risky but aren't.", status: "manual" },
-    { icon: Sliders, title: "Severity Gates", description: "Tune the threshold per surface (Create, Edit).", status: "manual" },
-    { icon: BarChart3, title: "Hit Telemetry", description: "How often each rule fires + drift over time.", status: "manual" },
-    { icon: FlaskConical, title: "Test Bench", description: "Paste a script, see what would trigger.", status: "manual" },
-    { icon: History, title: "Change Log", description: "Every safety rule mutation captured.", status: "wired" },
+        columns={[
+          { key: "pattern", label: "Pattern",
+            render: (v) => <code className="font-mono text-[12px] text-white/85">{String(v)}</code> },
+          { key: "match_type", label: "Match", width: "100px" },
+          { key: "severity", label: "Severity", width: "100px",
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${v === "block" ? "text-rose-300" : "text-amber-300"}`}>{String(v)}</span> },
+          { key: "category", label: "Category", width: "140px" },
+          { key: "hits", label: "Hits", width: "80px", align: "right" },
+          { key: "active", label: "Status", width: "100px" },
         ]}
-      primaryCta={{ label: "Add rule" }}
-      />
+        actions={[
+          { label: "Toggle", icon: Power, onRun: async (r) => {
+            const { error } = await supabase.from("content_safety_rules").update({ active: !r.active }).eq("id", r.id);
+            if (error) throw error;
+          }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this rule?",
+            onRun: async (r) => {
+              const { error } = await supabase.from("content_safety_rules").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        primaryCta={{ label: "Add rule", onClick: () => setCreating(true) }}
+        emptyTitle="No custom safety rules yet"
+        emptyDescription="Add a pattern to block or warn on specific content before generation runs."
+      >
+        {creating && <CreateRule onClose={() => setCreating(false)} />}
+      </AdminConsoleV2>
     </AdminPageShell>
+  );
+}
+
+function CreateRule({ onClose }: { onClose: () => void }) {
+  const [pattern, setPattern] = useState("");
+  const [matchType, setMatchType] = useState("substring");
+  const [severity, setSeverity] = useState("warn");
+  const [category, setCategory] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!pattern.trim()) { toast.error("Pattern required"); return; }
+    if (matchType === "regex") {
+      try { new RegExp(pattern); } catch (e) { toast.error(`Invalid regex: ${(e as Error).message}`); return; }
+    }
+    setBusy(true);
+    const { error } = await supabase.from("content_safety_rules").insert({
+      pattern, match_type: matchType, severity, category: category || null,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Rule added");
+    onClose();
+  };
+
+  return (
+    <AdminDialog title="New safety rule" icon={Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Add">
+      <AdminField label="Pattern"><input value={pattern} onChange={(e) => setPattern(e.target.value)} className={inputClass} /></AdminField>
+      <AdminField label="Match type"><select value={matchType} onChange={(e) => setMatchType(e.target.value)} className={inputClass}>
+        <option value="substring">Substring</option><option value="regex">Regex</option><option value="exact">Exact</option>
+      </select></AdminField>
+      <AdminField label="Severity"><select value={severity} onChange={(e) => setSeverity(e.target.value)} className={inputClass}>
+        <option value="warn">Warn (let through, flag)</option><option value="block">Block (refuse generation)</option>
+      </select></AdminField>
+      <AdminField label="Category" hint="Optional grouping (e.g. violence, pii)"><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} /></AdminField>
+    </AdminDialog>
   );
 }

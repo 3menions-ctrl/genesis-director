@@ -62,8 +62,7 @@ export function AdminConsoleScaffold({
               <span className="h-px w-8 bg-white/10" />
               <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/30">Operator Console</span>
             </div>
-            <p className="text-[15px] text-white/65 leading-relaxed font-light max-w-xl"
-              style={{ fontFamily: "'Fraunces', serif" }}>
+            <p className="text-[15px] text-white/65 leading-relaxed font-light max-w-xl">
               {intro}
             </p>
           </div>
@@ -91,8 +90,7 @@ export function AdminConsoleScaffold({
             {signals.map((s, i) => (
               <div key={i}>
                 <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.32em] mb-2">{s.label}</div>
-                <div className={cn("text-2xl font-light tabular-nums", toneText[s.tone || "neutral"])}
-                  style={{ fontFamily: "'Fraunces', serif" }}>{s.value}</div>
+                <div className={cn("text-2xl font-display font-light tabular-nums", toneText[s.tone || "neutral"])}>{s.value}</div>
                 {s.trend && <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.2em]">{s.trend}</div>}
               </div>
             ))}
@@ -122,7 +120,7 @@ export function AdminConsoleScaffold({
                   </div>
                   <span className={cn("w-1.5 h-1.5 rounded-full", statusDot)} title={c.status} />
                 </div>
-                <h3 className="text-[15px] text-white font-light mb-1.5" style={{ fontFamily: "'Fraunces', serif" }}>
+                <h3 className="font-display text-[15px] text-white font-light mb-1.5">
                   {c.title}
                 </h3>
                 <p className="text-[12px] text-white/45 leading-relaxed">{c.description}</p>

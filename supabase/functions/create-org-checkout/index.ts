@@ -80,10 +80,13 @@ Deno.serve(async (req) => {
       lookupPriceId(stripe, plan.seatPriceId),
     ]);
 
-    const origin = req.headers.get("origin") || "https://apex-studio.ai";
-    const finalReturnUrl =
-      returnUrl ||
-      `${origin}/workspace?payment=success&plan=${encodeURIComponent(plan.plan)}&seats=${seats}&session_id={CHECKOUT_SESSION_ID}`;
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://smallbridges.com";
+    const { safeReturnUrl } = await import("../_shared/return-url.ts");
+    const finalReturnUrl = safeReturnUrl({
+      requested: returnUrl,
+      fallback: `${origin}/workspace?payment=success&plan=${encodeURIComponent(plan.plan)}&seats=${seats}&session_id={CHECKOUT_SESSION_ID}`,
+      requestUrl: req.url,
+    });
 
     const subMetadata = {
       userId: user.id,

@@ -1,1049 +1,1373 @@
 /**
- * Profile Page — Private Account
- * Cinematic Pro-Dark identity page. Only private data: account identity,
- * plan, credits, billing history, usage, messages, settings.
- * NO public/social surfaces (followers, leaderboards, achievements, public link).
+ * Profile — /profile (own) + powers /c/:id (others) via shared component.
+ *
+ * The most comprehensive identity surface on Small Bridges. Composes:
+ *
+ *   1. COVER + AVATAR HERO
+ *      Editable cover image (owner only), avatar with click-to-upload,
+ *      tagline / quote, display-name + bio + location, social link rail,
+ *      account-type badge, joined date, Follow/Edit primary CTA.
+ *
+ *   2. STAT RAIL
+ *      4 cards persistent at the bottom of the hero — Followers, Plays,
+ *      Reels, Credits (credits only when owner). 30-day delta sparklines.
+ *
+ *   3. TABS (StudioTabs glass pill)
+ *      Overview / Analytics / Reels / Achievements / About / [Settings].
+ *      Last tab is owner-only and groups Credits, Security, Danger.
+ *
+ *   4. ANALYTICS TAB
+ *      Recharts area chart for plays + followers over the last 30 days,
+ *      top reels by play count, engagement summary.
+ *
+ *   5. REELS TAB
+ *      All published reels grid with pinning (owner) and play / like
+ *      counters.
+ *
+ *   6. ABOUT TAB
+ *      Bio, tagline, location, links, member-since, universes, crews.
+ *
+ * All data flows through a single RPC (`profile_overview`) + one chart
+ * RPC (`profile_play_series`). Public-readable so non-owner views work
+ * for anonymous + signed-in visitors.
  */
-
-import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCredits } from '@/contexts/CreditsContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useSafeNavigation } from '@/lib/navigation';
-import { CinemaLoader } from '@/components/ui/CinemaLoader';
-import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Coins, Gift, ShoppingCart, Zap, Video, Crown, Sparkles,
-  Plus, Settings, BarChart3, TrendingUp, Clock, Camera, Edit2, Loader2,
-  Mail, Shield, KeyRound, Calendar, CreditCard, Download, LogOut, Check,
-  Copy, Fingerprint, Smartphone, Globe, Lock, Star, Award, ChevronRight,
-} from 'lucide-react';
-import { AppHeader } from '@/components/layout/AppHeader';
-import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useRealAnalytics } from '@/hooks/useRealAnalytics';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { MessagesInbox } from '@/components/social/MessagesInbox';
-import { SupportInboxModal } from '@/components/social/SupportInboxModal';
-import { TwoFactorCard } from '@/components/security/TwoFactorCard';
-import { SessionsCard } from '@/components/security/SessionsCard';
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer,
+} from "recharts";
+import {
+  User as UserIcon, Mail, Check, Camera, Edit2, Save, X, Coins,
+  Film, Heart, Eye, Wand2, ArrowRight, Crown, Sparkles, Loader2,
+  ShieldCheck, LogOut, Building2, Calendar, AlertTriangle, Settings as SettingsIcon,
+  Plus, MapPin, Quote, Link2, ImagePlus, UserPlus, UserCheck, Share2,
+  Globe, Twitter, Instagram, Youtube, Github, Linkedin, Music2, KeyRound,
+  Pin, LayoutGrid, BarChart3, Award, ExternalLink, Flame, TrendingUp,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCredits } from "@/contexts/CreditsContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useSafeNavigation } from "@/lib/navigation";
+import { PageShell } from "@/components/shell";
+import { StudioAurora } from "@/components/studio/StudioAurora";
+import { StudioTabs } from "@/components/studio/StudioTabs";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { Spinner } from "@/components/ui/Spinner";
+import { BuyCreditsModal } from "@/components/credits/BuyCreditsModal";
+import { TwoFactorCard } from "@/components/security/TwoFactorCard";
+import { SessionsCard } from "@/components/security/SessionsCard";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-import { usePageMeta } from '@/hooks/usePageMeta';
-// Cinematic glass system (mirrors Settings/Pricing/Create signature)
-const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
-const glassCardHover = "hover:border-[hsla(215,100%,60%,0.22)] hover:shadow-[0_40px_140px_-40px_hsla(215,100%,60%,0.55)] transition-all duration-500";
+// ───────────────────────────────────────────────────────────────────────
+// Types
+// ───────────────────────────────────────────────────────────────────────
 
-// Animated counter
-function useAnimatedNumber(target: number, duration = 1400) {
-  const [value, setValue] = useState(0);
-  const startRef = useRef<number | null>(null);
-  const fromRef = useRef(0);
-  useEffect(() => {
-    fromRef.current = value;
-    startRef.current = null;
-    let raf = 0;
-    const step = (t: number) => {
-      if (startRef.current === null) startRef.current = t;
-      const p = Math.min(1, (t - startRef.current) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.round(fromRef.current + (target - fromRef.current) * eased));
-      if (p < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
-  return value;
-}
-
-type TabType = 'account' | 'usage' | 'security';
-
-// Ranking, tiers, XP and achievements are intentionally NOT shown.
-// Account data — including credits and lifetime spend — is private to the user.
-
-function Sparkline({ values, color = 'hsl(215,100%,70%)' }: { values: number[]; color?: string }) {
-  if (!values.length) return null;
-  const w = 96, h = 28, max = Math.max(1, ...values);
-  const step = w / Math.max(1, values.length - 1);
-  const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`).join(' ');
-  return (
-    <svg width={w} height={h} className="overflow-visible">
-      <defs>
-        <linearGradient id={`sp-${color}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.55" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`url(#sp-${color})`} stroke="none" />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-interface Transaction {
+interface ProfileRow {
   id: string;
-  amount: number;
-  transaction_type: string;
-  description: string | null;
-  created_at: string;
+  email?: string | null;
+  display_name?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  cover_url?: string | null;
+  bio?: string | null;
+  tagline?: string | null;
+  location?: string | null;
+  external_links?: Record<string, string>;
+  account_type?: "personal" | "business" | "enterprise" | "admin" | null;
+  created_at?: string;
+  credits_balance?: number;
+  total_credits_used?: number;
 }
 
-interface UserMetrics {
-  totalProjects: number;
-  completedProjects: number;
-  totalVideosGenerated: number;
-  totalVideoDuration: number;
+interface Stats {
+  reels: number; plays: number; likes: number; remixes: number; tips: number;
+  followers: number; following: number; projects: number; crews: number; universes: number;
+  followers_30d: number; plays_30d: number;
 }
 
-// Atmosphere (kept identical to design system)
-const ProfileAtmosphere = memo(function ProfileAtmosphere() {
-  return (
-    <>
-      <style>{`
-        @keyframes profileAurora { to { transform: rotate(360deg); } }
-        @keyframes profileTick { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
-        @keyframes profileFloat { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
-        @keyframes profileShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        @keyframes profileTwinkle { 0%,100% { opacity: 0.15; } 50% { opacity: 0.9; } }
-        @keyframes profileRise { 0% { opacity: 0; transform: translateY(24px); } 100% { opacity: 1; transform: translateY(0); } }
-      `}</style>
-      <div className="fixed inset-0 -z-50 bg-[hsl(220,14%,2%)]" aria-hidden />
-      <div
-        className="fixed inset-0 -z-40 pointer-events-none"
-        style={{
-          background:
-            'conic-gradient(from 0deg at 50% 45%, transparent 0deg, hsla(215,100%,60%,0.30) 60deg, transparent 130deg, hsla(210,100%,55%,0.18) 220deg, transparent 300deg, hsla(215,100%,60%,0.24) 360deg)',
-          filter: 'blur(100px)',
-          animation: 'profileAurora 80s linear infinite',
-          opacity: 0.7,
-        }}
-        aria-hidden
-      />
-      <div
-        className="fixed -z-30 pointer-events-none rounded-full"
-        style={{
-          width: 720, height: 720, top: '-20%', right: '-12%',
-          background: 'radial-gradient(circle, hsla(215,100%,60%,0.14), transparent 65%)',
-          filter: 'blur(60px)', animation: 'profileFloat 14s ease-in-out infinite',
-        }}
-        aria-hidden
-      />
-      <div className="fixed inset-0 -z-30 pointer-events-none overflow-hidden" aria-hidden>
-        {Array.from({ length: 22 }).map((_, i) => {
-          const top = (i * 137.5) % 100;
-          const left = (i * 73.3) % 100;
-          const size = 1 + ((i * 7) % 3);
-          const delay = (i * 0.31) % 6;
-          return (
-            <span
-              key={i}
-              className="absolute rounded-full bg-[hsl(215,100%,75%)]"
-              style={{
-                top: `${top}%`, left: `${left}%`,
-                width: size, height: size,
-                boxShadow: '0 0 8px hsla(215,100%,68%,0.6)',
-                animation: `profileTwinkle ${5 + (i % 4)}s ease-in-out infinite`,
-                animationDelay: `${delay}s`,
-                opacity: 0.3,
-              }}
-            />
-          );
-        })}
-      </div>
-      <div
-        className="fixed inset-0 -z-20 pointer-events-none opacity-[0.05] mix-blend-overlay"
-        style={{
-          backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.07 0 0 0 0 0.08 0 0 0 0.65 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
-        aria-hidden
-      />
-      <div
-        className="fixed inset-0 -z-10 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsla(220,14%,1%,0.85) 100%)' }}
-        aria-hidden
-      />
-    </>
-  );
-});
+interface ReelLite {
+  id: string;
+  title: string;
+  thumbnail_url: string | null;
+  video_url: string;
+  play_count: number;
+  like_count: number;
+  remix_count?: number;
+  world_slug?: string | null;
+  is_featured?: boolean;
+  created_at?: string;
+}
 
-const PrivateBadge = memo(function PrivateBadge() {
-  return (
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.18)] backdrop-blur-xl">
-      <Shield className="w-3 h-3 text-[hsl(215,100%,72%)]" />
-      <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-mono">
-        Private · Only visible to you
-      </span>
-    </div>
-  );
-});
+interface OverviewPayload {
+  profile: ProfileRow;
+  stats: Stats;
+  recent_reels: ReelLite[];
+  top_reels: ReelLite[];
+  pinned_reels: ReelLite[];
+  is_owner: boolean;
+  viewer_following: boolean;
+}
 
-const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
+interface SeriesPoint { day: string; plays: number; followers: number; }
+
+type TabKey = "overview" | "analytics" | "reels" | "achievements" | "about" | "settings";
+
+const ZERO_STATS: Stats = {
+  reels: 0, plays: 0, likes: 0, remixes: 0, tips: 0,
+  followers: 0, following: 0, projects: 0, crews: 0, universes: 0,
+  followers_30d: 0, plays_30d: 0,
+};
+
+// ───────────────────────────────────────────────────────────────────────
+
+export default function Profile() {
+  // /c/:id passes :id param. /profile uses the signed-in user's id.
+  const params = useParams<{ id?: string }>();
+  const { user, profile: ownProfile, refreshProfile, signOut } = useAuth();
+  // CreditsContext exposes `available` (ledger truth, less holds).
+  // Older code path destructured `credits` which never existed → silently
+  // fell back to the cached `profiles.credits_balance`. Use `available` so
+  // the Profile pill matches the topbar pill and the ledger.
+  const { available: credits } = useCredits();
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading, refreshProfile, signOut } = useAuth();
-  const credits = useCredits();
 
-  const gatekeeper = useGatekeeperLoading({
-    ...GATEKEEPER_PRESETS.profile,
-    authLoading: loading,
-    dataLoading: loading,
-    dataSuccess: !loading && !!user,
-  });
+  const viewedId = params.id ?? user?.id ?? "";
+  const isOwnRoute = !params.id;
 
-  let analyticsData: any = { analytics: null, loading: false };
-  try { analyticsData = useRealAnalytics(); } catch { /* noop */ }
-  const { analytics, loading: analyticsLoading } = analyticsData;
-
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('account');
-  const [metrics, setMetrics] = useState<UserMetrics>({
-    totalProjects: 0, completedProjects: 0, totalVideosGenerated: 0, totalVideoDuration: 0,
-  });
-  const [usageSeries, setUsageSeries] = useState<number[]>([]);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState('');
-  const [savingName, setSavingName] = useState(false);
-  const [sendingReset, setSendingReset] = useState(false);
+  const [payload, setPayload] = useState<OverviewPayload | null>(null);
+  const [series, setSeries] = useState<SeriesPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [followBusy, setFollowBusy] = useState(false);
+  const [editingField, setEditingField] = useState<"name" | "bio" | "tagline" | "location" | null>(null);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [editingLinks, setEditingLinks] = useState(false);
+  const [linkDraft, setLinkDraft] = useState<Record<string, string>>({});
+  const [savingLinks, setSavingLinks] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const isOwner = payload?.is_owner ?? false;
+  const p = payload?.profile;
 
-  const handleSaveName = useCallback(async () => {
-    if (!user || !nameValue.trim()) return;
-    setSavingName(true);
+  usePageMeta({
+    title: p?.display_name ? `${p.display_name} — Small Bridges` : "Profile — Small Bridges",
+    description: p?.tagline ?? p?.bio ?? "Your Small Bridges identity.",
+  });
+
+  // ── Load ──────────────────────────────────────────────────────────
+  const load = useCallback(async () => {
+    if (!viewedId) { setLoading(false); return; }
+    setLoading(true);
     try {
-      const { error } = await supabase.from('profiles').update({ display_name: nameValue.trim() }).eq('id', user.id);
+      const [overRes, seriesRes] = await Promise.all([
+        supabase.rpc("profile_overview" as never, { p_user_id: viewedId } as never),
+        supabase.rpc("profile_play_series" as never, { p_user_id: viewedId } as never),
+      ]);
+      if (overRes.error) throw overRes.error;
+      const ov = overRes.data as unknown as OverviewPayload;
+      setPayload(ov);
+      const seriesData = seriesRes.data as unknown as { series?: SeriesPoint[] } | null;
+      setSeries(seriesData?.series ?? []);
+    } catch (e) {
+      console.warn("[Profile] overview load failed (likely tables not yet pushed); falling back to stub", e);
+      // Best-effort minimal payload so the page still renders.
+      setPayload({
+        profile: { id: viewedId, ...(ownProfile ?? {}), ...(isOwnRoute && user ? { email: user.email } : {}) } as ProfileRow,
+        stats: ZERO_STATS,
+        recent_reels: [], top_reels: [], pinned_reels: [],
+        is_owner: isOwnRoute,
+        viewer_following: false,
+      });
+      setSeries([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [viewedId, ownProfile, isOwnRoute, user]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const accountType = (p?.account_type ?? "personal") as "personal" | "business" | "enterprise" | "admin";
+  const memberSince = useMemo(() => {
+    if (!p?.created_at) return null;
+    try { return new Date(p.created_at).toLocaleDateString(undefined, { year: "numeric", month: "long" }); }
+    catch { return null; }
+  }, [p?.created_at]);
+
+  const displayName = p?.display_name || p?.full_name || (p?.email?.split("@")[0]) || "Creator";
+  const initial = (displayName[0] || "?").toUpperCase();
+
+  // ── Follow / unfollow ─────────────────────────────────────────────
+  const toggleFollow = async () => {
+    if (!user) { navigate("/auth"); return; }
+    if (!payload || isOwner) return;
+    setFollowBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("toggle_follow" as never, { p_target: payload.profile.id } as never);
       if (error) throw error;
-      toast.success('Display name updated');
-      setEditingName(false);
-      refreshProfile();
-    } catch {
-      toast.error('Failed to update display name');
-    } finally {
-      setSavingName(false);
-    }
-  }, [user, nameValue, refreshProfile]);
-
-  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
-    setUploadingAvatar(true);
-    try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const filePath = `${user.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
-      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
-      if (updateError) throw updateError;
-      await refreshProfile();
-      toast.success('Profile picture updated');
-    } catch (error: any) {
-      console.error('Avatar upload error:', error);
-      toast.error('Failed to upload picture');
-    } finally {
-      setUploadingAvatar(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = '';
-    }
-  }, [user, refreshProfile]);
-
-  const handlePasswordReset = useCallback(async () => {
-    if (!user?.email) return;
-    setSendingReset(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const out = data as unknown as { following: boolean };
+      setPayload({
+        ...payload,
+        viewer_following: out.following,
+        stats: {
+          ...payload.stats,
+          followers: Math.max(0, payload.stats.followers + (out.following ? 1 : -1)),
+        },
       });
-      if (error) throw error;
-      toast.success('Password reset link sent to your email');
-    } catch {
-      toast.error('Failed to send reset link');
+      toast.success(out.following ? "Following" : "Unfollowed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't follow");
     } finally {
-      setSendingReset(false);
-    }
-  }, [user]);
-
-  const handleExport = useCallback(() => {
-    const blob = new Blob([JSON.stringify({
-      account: { id: user?.id, email: user?.email, display_name: profile?.display_name, member_since: profile?.created_at },
-      credits: { balance: profile?.credits_balance, total_used: profile?.total_credits_used },
-      transactions,
-      metrics,
-      exported_at: new Date().toISOString(),
-    }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `apex-account-${(user?.id || '').slice(0,8)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast.success('Account data exported');
-  }, [user, profile, transactions, metrics]);
-
-  useEffect(() => {
-    if (!loading && !user) navigate('/auth');
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    const paymentStatus = searchParams.get('payment');
-    const creditsAdded = searchParams.get('credits');
-    const buy = searchParams.get('buy');
-    if (paymentStatus === 'success') {
-      const expected = parseInt(creditsAdded || '0', 10) || 0;
-      const baseline = profile?.credits_balance ?? 0;
-      const target = expected > 0 ? baseline + expected : baseline + 1;
-      const toastId = toast.loading('Finalizing payment…');
-      setSearchParams({});
-
-      let attempts = 0;
-      const maxAttempts = 10; // ~15s total
-      const poll = async () => {
-        attempts++;
-        await refreshProfile();
-        const { data } = await supabase
-          .from('profiles')
-          .select('credits_balance')
-          .eq('id', user?.id)
-          .maybeSingle();
-        const current = data?.credits_balance ?? 0;
-        if (current >= target) {
-          toast.success(
-            `Payment confirmed! ${expected > 0 ? `${expected} credits` : 'Credits'} added.`,
-            { id: toastId },
-          );
-          fetchTransactions();
-          fetchMetrics();
-          return;
-        }
-        if (attempts >= maxAttempts) {
-          toast.success(
-            'Payment received. Credits will appear momentarily — refresh if not visible.',
-            { id: toastId },
-          );
-          fetchTransactions();
-          fetchMetrics();
-          return;
-        }
-        setTimeout(poll, 1500);
-      };
-      poll();
-    } else if (paymentStatus === 'canceled') {
-      toast.info('Payment was canceled'); setSearchParams({});
-    } else if (buy) {
-      setShowBuyModal(true); setSearchParams({});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (user) { fetchTransactions(); fetchMetrics(); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const fetchMetrics = async () => {
-    if (!user) return;
-    try {
-      const { data: projects } = await supabase
-        .from('movie_projects').select('id, status').eq('user_id', user.id);
-      const { data: allTransactions } = await supabase
-        .from('credit_transactions_safe').select('amount, clip_duration_seconds, transaction_type, created_at').eq('user_id', user.id);
-      const videoTransactions = allTransactions?.filter(t => t.transaction_type === 'usage' && t.amount < 0) || [];
-      setMetrics({
-        totalProjects: projects?.length || 0,
-        completedProjects: projects?.filter(p => p.status === 'completed').length || 0,
-        totalVideosGenerated: videoTransactions.length,
-        totalVideoDuration: videoTransactions.reduce((sum, t) => sum + (t.clip_duration_seconds || 0), 0),
-      });
-      // Build a 14-day usage sparkline (absolute spend per day)
-      const now = new Date();
-      const buckets: number[] = Array.from({ length: 14 }, () => 0);
-      (allTransactions || []).forEach((t: any) => {
-        if (t.amount >= 0 || !t.created_at) return;
-        const d = new Date(t.created_at);
-        const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-        if (days >= 0 && days < 14) buckets[13 - days] += Math.abs(t.amount);
-      });
-      setUsageSeries(buckets);
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
+      setFollowBusy(false);
     }
   };
 
-  const fetchTransactions = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('credit_transactions_safe').select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false }).limit(20);
-    if (!error) setTransactions(data || []);
-    setLoadingTransactions(false);
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const animatedCredits = useAnimatedNumber(credits.balance);
-  const animatedUsed = useAnimatedNumber(profile?.total_credits_used || 0);
-  const animatedVideos = useAnimatedNumber(metrics.totalVideosGenerated);
-
-  const lifetimeSpendUsd = ((profile?.total_credits_used || 0) * 0.10);
-  const lifetimeValueUsd = ((profile?.total_credits_used || 0) + credits.balance) * 0.10;
-  const serial = (user?.id || '').replace(/-/g, '').slice(0, 12).toUpperCase();
-
-  const copyToClipboard = useCallback((value: string, label: string) => {
-    navigator.clipboard?.writeText(value).then(
-      () => toast.success(`${label} copied`),
-      () => toast.error('Copy failed'),
+  // ── Inline editing (owner only) ───────────────────────────────────
+  const startEdit = (field: "name" | "bio" | "tagline" | "location") => {
+    setDraft(
+      field === "name" ? (p?.display_name ?? p?.full_name ?? "")
+      : field === "bio" ? (p?.bio ?? "")
+      : field === "tagline" ? (p?.tagline ?? "")
+      : (p?.location ?? "")
     );
-  }, []);
+    setEditingField(field);
+  };
+  const cancelEdit = () => { setEditingField(null); setDraft(""); };
 
-  const getTransactionIcon = (type: string, amount: number) => {
-    if (type === 'bonus') return <Gift className="w-4 h-4 text-[hsl(150,80%,55%)]" />;
-    if (type === 'purchase') return <ShoppingCart className="w-4 h-4 text-[hsl(215,100%,60%)]" />;
-    if (amount < 0) return <Zap className="w-4 h-4 text-[hsl(215,100%,68%)]" />;
-    return <TrendingUp className="w-4 h-4 text-[hsl(150,80%,55%)]" />;
+  const saveEdit = async () => {
+    if (!user || !editingField) return;
+    setSaving(true);
+    try {
+      const args: Record<string, string | null> = {
+        p_display_name: editingField === "name" ? draft : null,
+        p_bio:          editingField === "bio" ? draft : null,
+        p_tagline:      editingField === "tagline" ? draft : null,
+        p_location:     editingField === "location" ? draft : null,
+      };
+      const { error } = await supabase.rpc("update_profile_text" as never, args as never);
+      if (error) throw error;
+      // Optimistic local update.
+      setPayload((prev) => prev ? {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          ...(editingField === "name"     ? { display_name: draft.trim() || null } : {}),
+          ...(editingField === "bio"      ? { bio: draft.trim() || null } : {}),
+          ...(editingField === "tagline"  ? { tagline: draft.trim() || null } : {}),
+          ...(editingField === "location" ? { location: draft.trim() || null } : {}),
+        },
+      } : prev);
+      await refreshProfile();
+      setEditingField(null);
+      toast.success("Saved");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      const friendly = msg.includes("too_long") ? "That value is too long" : msg;
+      toast.error(friendly);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    : 'Recently';
+  // ── Avatar + cover upload (owner only) ────────────────────────────
+  const pickImage = async (kind: "avatar" | "cover", file: File) => {
+    if (!user) return;
+    const maxBytes = kind === "cover" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(`Image must be under ${maxBytes / 1024 / 1024} MB`);
+      return;
+    }
+    setUploading(kind);
+    try {
+      const bucket = kind === "cover" ? "profile-covers" : "avatars";
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${user.id}/${kind}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
+        cacheControl: "3600", upsert: false, contentType: file.type || `image/${ext}`,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+      const col = kind === "cover" ? "cover_url" : "avatar_url";
+      const { error: setErr } = await supabase.from("profiles").update({ [col]: pub.publicUrl }).eq("id", user.id);
+      if (setErr) throw setErr;
+      setPayload((prev) => prev ? { ...prev, profile: { ...prev.profile, [col]: pub.publicUrl } } : prev);
+      await refreshProfile();
+      toast.success(kind === "cover" ? "Cover updated" : "Avatar updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(null);
+    }
+  };
 
-  if (loading || gatekeeper.isLoading) {
+  const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (f) void pickImage("avatar", f);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+  const onCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (f) void pickImage("cover", f);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
+
+  // ── Links editing ─────────────────────────────────────────────────
+  const startLinksEdit = () => {
+    setLinkDraft({
+      website: p?.external_links?.website ?? "",
+      twitter: p?.external_links?.twitter ?? "",
+      instagram: p?.external_links?.instagram ?? "",
+      youtube: p?.external_links?.youtube ?? "",
+      tiktok: p?.external_links?.tiktok ?? "",
+      github: p?.external_links?.github ?? "",
+      linkedin: p?.external_links?.linkedin ?? "",
+      spotify: p?.external_links?.spotify ?? "",
+      soundcloud: p?.external_links?.soundcloud ?? "",
+    });
+    setEditingLinks(true);
+  };
+  const saveLinks = async () => {
+    setSavingLinks(true);
+    try {
+      const cleaned: Record<string, string> = {};
+      for (const [k, v] of Object.entries(linkDraft)) {
+        if (v && v.trim().length > 0) cleaned[k] = v.trim();
+      }
+      const { data, error } = await supabase.rpc("update_profile_links" as never, { p_links: cleaned } as never);
+      if (error) throw error;
+      const out = data as unknown as { links: Record<string, string> };
+      setPayload((prev) => prev ? { ...prev, profile: { ...prev.profile, external_links: out.links } } : prev);
+      setEditingLinks(false);
+      toast.success("Links saved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSavingLinks(false);
+    }
+  };
+
+  // ── Pin toggle ────────────────────────────────────────────────────
+  const togglePin = async (reelId: string) => {
+    if (!isOwner) return;
+    try {
+      const { data, error } = await supabase.rpc("toggle_pin_reel" as never, { p_reel_id: reelId } as never);
+      if (error) throw error;
+      const out = data as unknown as { pinned: boolean };
+      toast.success(out.pinned ? "Pinned to profile" : "Unpinned");
+      await load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Pin failed";
+      toast.error(msg.includes("max_pinned_reached") ? "You can pin up to 3 reels" : msg);
+    }
+  };
+
+  // ── Share ─────────────────────────────────────────────────────────
+  const sharePage = async () => {
+    try {
+      const url = `${window.location.origin}/c/${viewedId}`;
+      if (navigator.share) {
+        await navigator.share({ title: `${displayName} on Small Bridges`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch { /* user cancelled */ }
+  };
+
+  // ── Render ───────────────────────────────────────────────────────
+  if (loading && !payload) {
+    return <div className="min-h-screen flex items-center justify-center"><Spinner size="lg" tone="muted" /></div>;
+  }
+  if (!payload) {
     return (
-      <div className="min-h-screen bg-background">
-        <CinemaLoader
-          isVisible={true}
-          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.profile.messages)}
-          showProgress={true}
-          progress={gatekeeper.progress}
-        />
+      <div className="min-h-screen flex items-center justify-center text-center px-6 max-w-md mx-auto">
+        <div>
+          <Sparkles className="w-7 h-7 mx-auto mb-4 text-white/45" />
+          <h2 className="font-display font-medium text-[24px] text-white mb-2">Profile not found</h2>
+          <p className="text-[12px] text-white/45 mb-6">This account doesn't exist or has been removed.</p>
+          <Link to="/lobby" className="pill bg-white text-black hover:bg-white/90">
+            Back to Lobby <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+    { key: "overview",     label: "Overview",     icon: LayoutGrid },
+    { key: "analytics",    label: "Analytics",    icon: BarChart3 },
+    { key: "reels",        label: "Reels",        icon: Wand2 },
+    { key: "achievements", label: "Achievements", icon: Award },
+    { key: "about",        label: "About",        icon: UserIcon },
+    ...(isOwner ? [{ key: "settings" as TabKey, label: "Settings", icon: SettingsIcon }] : []),
+  ];
+
   return (
-    <div ref={ref} className="min-h-screen text-foreground overflow-hidden relative">
-      <ProfileAtmosphere />
-      <AppHeader />
+    <div className="relative min-h-screen flex flex-col">
+      <StudioAurora intensity="subtle" />
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      {/* ─────────────────────────────────────────────────────────────
+          HERO — cover + avatar overlay
+      ──────────────────────────────────────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative w-full"
+      >
+        <div className="relative w-full h-[300px] lg:h-[380px] overflow-hidden">
+          {p?.cover_url ? (
+            <img src={p.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 30% 30%, hsla(215,100%,60%,0.22), transparent 60%)," +
+                  "radial-gradient(ellipse at 70% 60%, hsla(280,70%,55%,0.18), transparent 60%)," +
+                  "linear-gradient(180deg, hsla(220,14%,5%,0.95), hsla(220,14%,3%,1))",
+              }} />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#040506] via-[#040506]/30 to-transparent" />
 
-        {/* ─── Eyebrow: privacy badge ─── */}
-        <div className="flex items-center justify-center animate-fade-in">
-          <PrivateBadge />
+          {/* Cover upload — owner only */}
+          {isOwner && (
+            <>
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                className="absolute top-5 right-5 inline-flex items-center gap-2 h-9 px-3.5 rounded-full bg-black/55 backdrop-blur-md border border-white/[0.10] hover:border-white/30 text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.28em] transition-colors"
+              >
+                {uploading === "cover" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                {p?.cover_url ? "Change cover" : "Add cover"}
+              </button>
+              <input ref={coverInputRef} type="file" accept="image/*" className="sr-only" onChange={onCoverChange} />
+            </>
+          )}
         </div>
 
-        {/* ─── HERO: Identity card ─── */}
-        <section
-          className="relative px-6 sm:px-10 py-8 rounded-[28px] overflow-hidden animate-fade-in"
-        >
-          <div className="absolute inset-0 rounded-[28px] bg-[hsla(220,14%,4%,0.6)] backdrop-blur-2xl border border-[hsla(215,100%,60%,0.12)]" />
-          <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,75%,0.7), hsla(215,100%,60%,0.3), hsla(215,100%,75%,0.7), transparent)' }} />
-          <div
-            className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.22), transparent 65%)', filter: 'blur(60px)' }}
-          />
+        <PageShell width="wide" pad>
+          <div className="relative -mt-20 lg:-mt-24 mb-8 grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 lg:gap-8 items-end">
 
-          {/* Engraved monogram watermark */}
-          <div
-            aria-hidden
-            className="absolute right-6 bottom-2 pointer-events-none select-none font-bold tracking-tighter opacity-[0.06] text-foreground hidden sm:block"
-            style={{ fontFamily: 'Sora, sans-serif', fontSize: 180, lineHeight: 1 }}
-          >
-            {(profile?.display_name?.charAt(0) || user?.email?.charAt(0) || 'A').toUpperCase()}
-          </div>
-          {/* Serial engraving */}
-          <div className="absolute left-6 top-3 hidden md:flex items-center gap-2 text-[9px] uppercase tracking-[0.5em] text-muted-foreground font-mono">
-            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
-            SN · {serial}
-          </div>
-
-          <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
-            {/* Avatar */}
-            <div className="relative group shrink-0">
-              <div
-                className="absolute -inset-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
-                style={{
-                  background: 'conic-gradient(from 0deg, hsla(215,100%,60%,0.55), hsla(210,100%,55%,0.2), hsla(215,100%,68%,0.45), hsla(215,100%,60%,0.55))',
-                  filter: 'blur(14px)',
-                  animation: 'profileAurora 14s linear infinite',
-                }}
-              />
-              <Avatar className="relative w-24 h-24 ring-2 ring-[hsla(215,100%,60%,0.4)]">
-                <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-[hsl(220,14%,6%)] text-[hsl(215,100%,75%)] text-2xl font-bold">
-                  {profile?.display_name?.charAt(0) || user?.email?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <input
-                ref={avatarInputRef} type="file" accept="image/*" className="hidden"
-                onChange={handleAvatarUpload}
-              />
+            {/* Avatar — owner can click to upload */}
+            <div className="relative shrink-0 group">
               <button
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(220,14%,6%)] border border-[hsla(215,100%,60%,0.4)] flex items-center justify-center hover:bg-[hsl(220,14%,9%)] hover:border-[hsl(215,100%,60%)] transition-all disabled:opacity-50"
+                onClick={() => isOwner && avatarInputRef.current?.click()}
+                disabled={!isOwner}
+                aria-label="Change avatar"
+                className={cn(
+                  "relative w-32 h-32 lg:w-40 lg:h-40 rounded-3xl overflow-hidden border-[3px] border-[#040506] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]",
+                  isOwner && "focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer",
+                )}
               >
-                {uploadingAvatar ? (
-                  <Loader2 className="w-3.5 h-3.5 text-[hsl(215,100%,68%)] animate-spin" />
+                {p?.avatar_url ? (
+                  <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <Camera className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
+                  <div className="w-full h-full bg-gradient-to-br from-[hsl(215_90%_55%/0.55)] to-[hsl(280_70%_45%/0.40)] flex items-center justify-center text-[48px] lg:text-[60px] font-light text-white/95">
+                    {initial}
+                  </div>
+                )}
+                {isOwner && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    {uploading === "avatar"
+                      ? <Loader2 className="w-7 h-7 text-white animate-spin" />
+                      : <Camera className="w-7 h-7 text-white" strokeWidth={1.5} />}
+                  </div>
                 )}
               </button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="sr-only" onChange={onAvatarChange} />
             </div>
 
             {/* Identity */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] uppercase tracking-[0.4em] text-[hsl(215,100%,68%)] font-mono">
-                  ACCOUNT · ID {(user?.id || '').slice(0, 6).toUpperCase()}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-mono border border-white/10 text-muted-foreground">
-                  <Lock className="w-3 h-3" />
-                  Private
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                {editingName ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      className="bg-[hsla(220,14%,3%,0.85)] border border-[hsla(215,100%,60%,0.35)] rounded-lg px-3 py-1.5 text-2xl font-bold text-foreground outline-none focus:border-[hsl(215,100%,60%)] focus:ring-2 focus:ring-[hsla(215,100%,60%,0.2)]"
-                      value={nameValue}
-                      onChange={(e) => setNameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveName();
-                        if (e.key === 'Escape') setEditingName(false);
-                      }}
-                      maxLength={50}
-                    />
-                    <Button size="sm" variant="ghost" className="text-[hsl(150,80%,60%)]" onClick={handleSaveName} disabled={savingName}>
-                      {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <h1
-                      className="text-3xl sm:text-4xl font-bold tracking-tight"
-                      style={{
-                        fontFamily: 'Sora, sans-serif',
-                        backgroundImage: 'linear-gradient(135deg, #ffffff 0%, hsl(215,100%,85%) 60%, hsl(215,100%,68%) 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      {profile?.display_name || 'Set your name'}
-                    </h1>
-                    <button
-                      onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-[hsl(215,100%,72%)] hover:bg-[hsla(215,100%,60%,0.08)] transition"
-                      aria-label="Edit display name"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                  </>
+            <div className="min-w-0 lg:pb-2">
+              <div className="text-[10px] font-mono uppercase tracking-[0.28em] mb-3 flex items-center gap-2 flex-wrap">
+                <AccountBadge type={accountType} />
+                {memberSince && <span className="text-white/35">Joined {memberSince}</span>}
+                {p?.location && (
+                  <span className="inline-flex items-center gap-1 text-white/45">
+                    <MapPin className="w-3 h-3" /> {p.location}
+                  </span>
+                )}
+                {isOwner && !p?.location && (
+                  <button onClick={() => startEdit("location")} className="inline-flex items-center gap-1 text-white/30 hover:text-white/65">
+                    <Plus className="w-3 h-3" /> Add location
+                  </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
-                  <span className="font-mono text-xs">{user?.email}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[hsl(215,100%,68%)]" />
-                  <span className="text-xs">Member since {memberSince}</span>
-                </div>
+              {editingField === "name" ? (
+                <InlineEdit value={draft} onChange={setDraft} onSave={saveEdit} onCancel={cancelEdit} saving={saving} large maxLength={60} placeholder="Your display name" />
+              ) : (
+                <button
+                  onClick={() => isOwner && startEdit("name")}
+                  disabled={!isOwner}
+                  className="group/name font-display font-light text-[36px] lg:text-[56px] leading-[1.0] tracking-[-0.02em] text-white inline-flex items-center gap-3 text-left disabled:cursor-default"
+                >
+                  {displayName}
+                  {isOwner && <Edit2 className="w-4 h-4 text-white/30 opacity-0 group-hover/name:opacity-100 transition-opacity" />}
+                </button>
+              )}
+
+              {/* Tagline / quote */}
+              <div className="mt-3">
+                {editingField === "tagline" ? (
+                  <InlineEdit value={draft} onChange={setDraft} onSave={saveEdit} onCancel={cancelEdit} saving={saving} maxLength={160} placeholder="A line you live by" />
+                ) : p?.tagline ? (
+                  <button
+                    onClick={() => isOwner && startEdit("tagline")}
+                    disabled={!isOwner}
+                    className="group/tag inline-flex items-start gap-2 text-left text-[14px] lg:text-[16px] text-white/65 italic max-w-2xl"
+                  >
+                    <Quote className="w-3.5 h-3.5 shrink-0 mt-1 text-primary/60" />
+                    <span>{p.tagline}</span>
+                    {isOwner && <Edit2 className="w-3 h-3 text-white/25 opacity-0 group-hover/tag:opacity-100 transition-opacity shrink-0 mt-1.5" />}
+                  </button>
+                ) : isOwner ? (
+                  <button
+                    onClick={() => startEdit("tagline")}
+                    className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-white/35 hover:text-white/65"
+                  >
+                    <Quote className="w-3 h-3" /> Add a tagline
+                  </button>
+                ) : null}
               </div>
 
-              {/* Quick action chips */}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => user?.email && copyToClipboard(user.email, 'Email')}
-                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
-                >
-                  <Copy className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Copy email
-                </button>
-                <button
-                  onClick={() => user?.id && copyToClipboard(user.id, 'Account ID')}
-                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
-                >
-                  <Fingerprint className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Copy ID
-                </button>
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground bg-[hsla(220,14%,5%,0.6)] border border-white/[0.06] hover:border-[hsla(215,100%,60%,0.3)] transition-all"
-                >
-                  <Settings className="w-3 h-3 group-hover:text-[hsl(215,100%,72%)]" /> Settings
-                </button>
-              </div>
+              {/* Email — owner only */}
+              {isOwner && (
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-white/50 font-light">
+                  <Mail className="w-3 h-3" />
+                  <span className="truncate">{p?.email ?? user?.email}</span>
+                  {user?.email_confirmed_at && (
+                    <span className="inline-flex items-center gap-1 ml-1 text-emerald-300 text-[9px] font-mono uppercase tracking-[0.22em]">
+                      <Check className="w-3 h-3" /> Verified
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Social link rail */}
+              <SocialLinks
+                links={p?.external_links ?? {}}
+                isOwner={isOwner}
+                onEdit={startLinksEdit}
+              />
             </div>
 
-            {/* Credits */}
-            <div className="flex flex-col items-stretch gap-2 lg:items-end shrink-0">
-              <div className="relative flex items-center gap-3 px-5 py-3 rounded-2xl bg-[hsl(220,14%,4%)] border border-[hsla(215,100%,60%,0.25)] overflow-hidden">
-                <div className="absolute inset-0 opacity-60"
-                  style={{ background: 'radial-gradient(circle at 0% 0%, hsla(215,100%,60%,0.18), transparent 60%)' }}
-                />
-                <Coins className="relative w-5 h-5 text-[hsl(215,100%,72%)]" />
-                <span className="relative text-2xl font-bold text-foreground tabular-nums">{animatedCredits.toLocaleString()}</span>
-                <span className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground">credits</span>
-              </div>
-              <Button
-                onClick={() => setShowBuyModal(true)}
-                size="sm"
-                className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Buy Credits
-              </Button>
-            </div>
-          </div>
-
-        </section>
-
-        {/* ─── At-a-glance stats ─── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in">
-          {[
-            { label: 'Credits Available', value: animatedCredits, icon: Coins, accent: true, sub: `$${(animatedCredits * 0.10).toFixed(2)} value` },
-            { label: 'Credits Used', value: animatedUsed, icon: Zap, sub: `$${lifetimeSpendUsd.toFixed(2)} lifetime`, spark: true },
-            { label: 'Videos Generated', value: animatedVideos, icon: Video, sub: `${Math.round(metrics.totalVideoDuration)}s rendered` },
-            { label: 'Projects', value: metrics.totalProjects, icon: Sparkles, sub: `${metrics.completedProjects} completed` },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className={cn("relative p-5 overflow-hidden", glassCard, glassCardHover)}
-              style={{ animation: `profileRise 0.55s ease-out both`, animationDelay: `${i * 70}ms` }}
-            >
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.45)] to-transparent" />
-              <div className="relative flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
-                  <stat.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                {stat.spark && usageSeries.some(v => v > 0) && (
-                  <div className="opacity-90"><Sparkline values={usageSeries} /></div>
-                )}
-              </div>
-              <p className="relative text-3xl font-bold text-foreground tabular-nums">{Number(stat.value).toLocaleString()}</p>
-              <p className="relative text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mt-1">{stat.label}</p>
-              {stat.sub && (
-                <p className="relative text-[11px] text-muted-foreground/80 mt-2 font-mono">{stat.sub}</p>
+            {/* Primary CTA */}
+            <div className="flex flex-col gap-2 shrink-0">
+              {isOwner ? (
+                <>
+                  <Link to="/settings" className="pill bg-white text-black hover:bg-white/90">
+                    <SettingsIcon className="w-3 h-3" /> Settings
+                  </Link>
+                  <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                    <Share2 className="w-3 h-3" /> Share profile
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={toggleFollow}
+                    disabled={followBusy}
+                    className={cn(
+                      "pill",
+                      payload.viewer_following
+                        ? "border border-white/15 text-white/75 hover:border-rose-300/40 hover:text-rose-200"
+                        : "bg-white text-black hover:bg-white/90",
+                    )}
+                  >
+                    {followBusy ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : payload.viewer_following ? <UserCheck className="w-3 h-3" />
+                      : <UserPlus className="w-3 h-3" />}
+                    {payload.viewer_following ? "Following" : "Follow"}
+                  </button>
+                  <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                    <Share2 className="w-3 h-3" /> Share
+                  </button>
+                </>
               )}
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* ─── TABS ─── */}
-        <section className="flex items-center justify-center animate-fade-in">
-          <div className="inline-flex p-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.12)] backdrop-blur-2xl">
-            {[
-              { id: 'account' as TabType, label: 'Account', icon: User },
-              { id: 'usage' as TabType, label: 'Usage & Billing', icon: BarChart3 },
-              { id: 'security' as TabType, label: 'Security', icon: Shield },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "relative flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-full uppercase tracking-[0.18em] text-[11px]",
-                  activeTab === tab.id
-                    ? "text-foreground shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)]"
-                    : "text-muted-foreground hover:text-foreground/90 hover:bg-[hsla(215,100%,60%,0.06)]"
-                )}
-                style={activeTab === tab.id ? {
-                  background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                } : undefined}
+          {/* Bio — full-width under the hero, editable for owner */}
+          {(p?.bio || editingField === "bio" || isOwner) && (
+            <div className="mb-8 max-w-3xl">
+              {editingField === "bio" ? (
+                <InlineEdit value={draft} onChange={setDraft} onSave={saveEdit} onCancel={cancelEdit} saving={saving} multiline maxLength={600} placeholder="A few sentences about you, your craft, what you're building." />
+              ) : p?.bio ? (
+                <button
+                  onClick={() => isOwner && startEdit("bio")}
+                  disabled={!isOwner}
+                  className="group/bio block text-left text-[14px] text-white/70 leading-relaxed whitespace-pre-wrap"
+                >
+                  {p.bio}
+                  {isOwner && <Edit2 className="inline-block ml-2 w-3 h-3 text-white/25 opacity-0 group-hover/bio:opacity-100 transition-opacity" />}
+                </button>
+              ) : isOwner ? (
+                <button
+                  onClick={() => startEdit("bio")}
+                  className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-white/35 hover:text-white/65"
+                >
+                  <Plus className="w-3 h-3" /> Add a bio
+                </button>
+              ) : null}
+            </div>
+          )}
+
+          {/* STAT RAIL */}
+          <div className={cn("grid gap-3 mb-10", isOwner ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-4")}>
+            <HeroStat icon={UserIcon} label="Followers" value={payload.stats.followers} delta={payload.stats.followers_30d} accent="primary" />
+            <HeroStat icon={Eye}      label="Plays"     value={payload.stats.plays}     delta={payload.stats.plays_30d} />
+            <HeroStat icon={Wand2}    label="Reels"     value={payload.stats.reels} />
+            {isOwner ? (
+              <HeroStat icon={Coins} label="Credits" value={credits ?? (p?.credits_balance ?? 0)} tone="amber" onClick={() => setBuyOpen(true)} />
+            ) : (
+              <HeroStat icon={Heart} label="Likes" value={payload.stats.likes} />
+            )}
+          </div>
+
+          {/* TABS */}
+          <div className="flex items-center justify-center mb-8 overflow-x-auto">
+            <StudioTabs<TabKey>
+              items={TABS}
+              value={tab}
+              onChange={(k) => setTab(k)}
+              layoutId="profile-tabs"
+            />
+          </div>
+
+          <AnimatePresence mode="wait">
+
+            {/* ── OVERVIEW ── */}
+            {tab === "overview" && (
+              <motion.div
+                key="t-overview"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 mb-12"
               >
-                <tab.icon className="w-3.5 h-3.5" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ─── ACCOUNT ─── */}
-        {activeTab === 'account' && (
-          <div className="space-y-6 animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Account fields */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className={cn("p-6", glassCard)}>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                    <User className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Account Identity</h3>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Private to you</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <FieldRow
-                    label="Display Name"
-                    value={profile?.display_name || 'Not set'}
-                    action={
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-[hsl(215,100%,72%)]"
-                        onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                    }
-                  />
-                  <FieldRow label="Email" value={user?.email || ''} mono />
-                  <FieldRow label="Account ID" value={user?.id || ''} mono />
-                  <FieldRow label="Member Since" value={memberSince} />
-                </div>
-              </div>
-
-              {/* Plan */}
-              <div className={cn("p-6 relative overflow-hidden", glassCard)}>
-                <div
-                  className="absolute -top-20 -right-20 w-72 h-72 rounded-full pointer-events-none"
-                  style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.20), transparent 65%)', filter: 'blur(40px)' }}
-                />
-                <div className="relative flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                    <Crown className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Plan & Credits</h3>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Pay-as-you-go</p>
-                  </div>
-                </div>
-
-                <div className="relative p-5 rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.25)] flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-foreground">Personal</p>
-                      <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-muted-foreground">Pay-as-you-go · $0.10/credit</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {credits.balance.toLocaleString()} credits · ${(credits.balance * 0.10).toFixed(2)} balance · ${lifetimeValueUsd.toFixed(2)} lifetime value
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => setShowBuyModal(true)}
-                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground font-semibold shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.8)] border border-[hsla(215,100%,75%,0.3)]"
-                  >
-                    Top up
-                  </Button>
-                </div>
-
-                {/* Mini spend summary */}
-                <div className="grid grid-cols-3 gap-3 mt-4">
-                  {[
-                    { k: 'Lifetime spend', v: `$${lifetimeSpendUsd.toFixed(2)}` },
-                    { k: 'Avg / video', v: metrics.totalVideosGenerated ? `$${(lifetimeSpendUsd / metrics.totalVideosGenerated).toFixed(2)}` : '—' },
-                    { k: 'Credits / project', v: metrics.totalProjects ? Math.round((profile?.total_credits_used || 0) / metrics.totalProjects).toLocaleString() : '—' },
-                  ].map((m, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                      <p className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground font-mono">{m.k}</p>
-                      <p className="text-base font-bold text-foreground tabular-nums mt-1">{m.v}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Messages — private */}
-            <div className="space-y-6">
-              <ErrorBoundary fallback={null}>
-                <MessagesInbox className="h-auto" />
-              </ErrorBoundary>
-              <ErrorBoundary fallback={null}>
-                <SupportInboxModal />
-              </ErrorBoundary>
-            </div>
-          </div>
-        )}
-
-        {/* ─── USAGE & BILLING ─── */}
-        {activeTab === 'usage' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Credit History</h3>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">All transactions</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={handleExport} className="text-muted-foreground hover:text-[hsl(215,100%,72%)] gap-1.5">
-                  <Download className="w-3.5 h-3.5" /> Export
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {loadingTransactions ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 rounded-lg bg-white/[0.03]" />
-                  ))
-                ) : transactions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
-                ) : (
-                  transactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center gap-4 p-3 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05] hover:border-[hsla(215,100%,60%,0.18)] transition-colors">
-                      {getTransactionIcon(tx.transaction_type, tx.amount)}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground truncate">{tx.description || tx.transaction_type}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{formatRelativeTime(tx.created_at)}</p>
+                {/* Pinned + featured */}
+                {(payload.pinned_reels.length > 0 || isOwner) && (
+                  <Card>
+                    <SectionLabel
+                      icon={Pin}
+                      label={payload.pinned_reels.length > 0 ? "Pinned reels" : "Pin your best work"}
+                    />
+                    {payload.pinned_reels.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {payload.pinned_reels.map((r) => (
+                          <ReelCard key={r.id} reel={r} isOwner={isOwner} pinned onTogglePin={togglePin} />
+                        ))}
                       </div>
-                      <span className={cn(
-                        "text-base font-semibold font-mono tabular-nums",
-                        tx.amount > 0 ? "text-[hsl(150,80%,60%)]" : "text-muted-foreground"
-                      )}>
-                        {tx.amount > 0 ? '+' : ''}{tx.amount}
-                      </span>
-                    </div>
-                  ))
+                    ) : (
+                      <p className="text-[12px] text-white/45">
+                        Open any of your reels from the Reels tab and tap the pin icon to feature it here (up to 3).
+                      </p>
+                    )}
+                  </Card>
                 )}
-              </div>
-            </div>
 
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+                {/* Recent + top stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="lg:col-span-2">
+                    <SectionLabel icon={Sparkles} label="Public footprint" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <SmallStat icon={Wand2} label="Reels"   value={payload.stats.reels} />
+                      <SmallStat icon={Eye}   label="Plays"   value={payload.stats.plays} />
+                      <SmallStat icon={Heart} label="Likes"   value={payload.stats.likes} />
+                      <SmallStat icon={Wand2} label="Remixes" value={payload.stats.remixes} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Link to={`/c/${viewedId}`} className="pill bg-white text-black hover:bg-white/90">
+                        Public channel <ArrowRight className="w-3 h-3" />
+                      </Link>
+                      {isOwner && <Link to="/me/year" className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                        Year in review <Crown className="w-3 h-3" />
+                      </Link>}
+                      <Link to="/lobby" className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">Lobby</Link>
+                    </div>
+                  </Card>
+
+                  <Card>
+                    <SectionLabel icon={Sparkles} label="Quick actions" />
+                    <div className="space-y-2">
+                      {isOwner ? (
+                        <>
+                          <ActionRow to="/create"   icon={Wand2} label="Start a new project" hint="Fresh canvas" />
+                          <ActionRow to="/projects" icon={Film}  label="Your library" hint={`${payload.stats.projects} project${payload.stats.projects === 1 ? "" : "s"}`} />
+                          <ActionRow to="/messages" icon={Mail}  label="Messages" hint="DMs + replies" />
+                        </>
+                      ) : (
+                        <>
+                          <ActionRow to={`/messages`} icon={Mail} label="Send a message" hint="DM the creator" />
+                          <ActionRow to="/lobby" icon={Sparkles} label="Discover more" hint="Browse the Lobby" />
+                        </>
+                      )}
+                    </div>
+                  </Card>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Billing</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Manage payment methods</p>
+
+                {/* Recent reels strip */}
+                {payload.recent_reels.length > 0 && (
+                  <Card>
+                    <SectionLabel icon={Flame} label="Recent reels" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {payload.recent_reels.slice(0, 8).map((r) => (
+                        <ReelCard key={r.id} reel={r} isOwner={isOwner} onTogglePin={togglePin} />
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── ANALYTICS ── */}
+            {tab === "analytics" && (
+              <motion.div
+                key="t-analytics"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 mb-12"
+              >
+                <Card>
+                  <SectionLabel icon={TrendingUp} label="Last 30 days" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <BigStat label="Plays (30d)"     value={payload.stats.plays_30d} />
+                    <BigStat label="Followers (30d)" value={payload.stats.followers_30d} />
+                    <BigStat label="Tips received"   value={payload.stats.tips} tone="amber" />
+                  </div>
+                  <div className="h-[280px]">
+                    {series.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="play-grad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%"   stopColor="hsl(215 100% 60%)" stopOpacity={0.55} />
+                              <stop offset="100%" stopColor="hsl(215 100% 60%)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="foll-grad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%"   stopColor="hsl(280 80% 65%)" stopOpacity={0.45} />
+                              <stop offset="100%" stopColor="hsl(280 80% 65%)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsla(0,0%,100%,0.05)" />
+                          <XAxis
+                            dataKey="day"
+                            tick={{ fill: "hsla(0,0%,100%,0.4)", fontSize: 10 }}
+                            tickFormatter={(v) => new Date(v).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            stroke="hsla(0,0%,100%,0.08)"
+                          />
+                          <YAxis tick={{ fill: "hsla(0,0%,100%,0.4)", fontSize: 10 }} stroke="hsla(0,0%,100%,0.08)" />
+                          <ChartTooltip
+                            contentStyle={{ background: "hsla(220,14%,5%,0.95)", border: "1px solid hsla(0,0%,100%,0.08)", borderRadius: 12 }}
+                            labelStyle={{ color: "hsla(0,0%,100%,0.5)", fontSize: 11 }}
+                            itemStyle={{ color: "white", fontSize: 12 }}
+                          />
+                          <Area type="monotone" dataKey="plays"     stroke="hsl(215 100% 75%)" strokeWidth={1.5} fill="url(#play-grad)" />
+                          <Area type="monotone" dataKey="followers" stroke="hsl(280 80% 75%)"  strokeWidth={1.5} fill="url(#foll-grad)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-[12px] text-white/35">
+                        Once people start watching, the engagement curve will plot here.
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {payload.top_reels.length > 0 && (
+                  <Card>
+                    <SectionLabel icon={Flame} label="Top performers" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {payload.top_reels.map((r) => (
+                        <ReelCard key={r.id} reel={r} isOwner={isOwner} onTogglePin={togglePin} />
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── REELS ── */}
+            {tab === "reels" && (
+              <motion.div
+                key="t-reels"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="mb-12"
+              >
+                <Card>
+                  <SectionLabel icon={Wand2} label={`All published reels · ${payload.stats.reels}`} />
+                  {payload.recent_reels.length === 0 ? (
+                    <EmptyHint
+                      title={isOwner ? "You haven't published a reel yet." : "No public reels yet."}
+                      sub={isOwner ? "Finish a project and click Publish to see it here." : "Check back soon — they're just getting started."}
+                      cta={isOwner ? { to: "/create", label: "Start a project" } : { to: "/lobby", label: "Browse the Lobby" }}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {payload.recent_reels.map((r) => (
+                        <ReelCard key={r.id} reel={r} isOwner={isOwner} onTogglePin={togglePin} />
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ── ACHIEVEMENTS ── */}
+            {tab === "achievements" && (
+              <motion.div
+                key="t-ach"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="mb-12"
+              >
+                <Card>
+                  <SectionLabel icon={Award} label="Achievements" />
+                  <AchievementsPreview userId={viewedId} stats={payload.stats} />
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ── ABOUT ── */}
+            {tab === "about" && (
+              <motion.div
+                key="t-about"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12"
+              >
+                <Card className="lg:col-span-2">
+                  <SectionLabel icon={UserIcon} label="About" />
+                  <div className="space-y-5">
+                    <AboutRow label="Display name" value={displayName} editable={isOwner} onEdit={() => startEdit("name")} />
+                    {p?.tagline && <AboutRow label="Tagline" value={p.tagline} editable={isOwner} onEdit={() => startEdit("tagline")} />}
+                    {p?.location && <AboutRow label="Location" value={p.location} editable={isOwner} onEdit={() => startEdit("location")} icon={MapPin} />}
+                    {p?.bio && (
+                      <div>
+                        <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/40 mb-2">Bio</div>
+                        <div className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{p.bio}</div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                <Card>
+                  <SectionLabel icon={Link2} label="Links" />
+                  {Object.keys(p?.external_links ?? {}).length === 0 ? (
+                    isOwner ? (
+                      <button onClick={startLinksEdit} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                        <Plus className="w-3 h-3" /> Add links
+                      </button>
+                    ) : (
+                      <div className="text-[12px] text-white/35 italic">No external links yet.</div>
+                    )
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.entries(p?.external_links ?? {}).map(([key, value]) => (
+                        <a
+                          key={key}
+                          href={value}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-white/[0.02] transition-colors"
+                        >
+                          <SocialIcon platform={key} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[12px] text-white capitalize truncate">{key}</div>
+                            <div className="text-[10px] text-white/35 font-mono truncate">{value}</div>
+                          </div>
+                          <ExternalLink className="w-3 h-3 text-white/35 group-hover:text-white" />
+                        </a>
+                      ))}
+                      {isOwner && (
+                        <button onClick={startLinksEdit} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border mt-3">
+                          <Edit2 className="w-3 h-3" /> Edit links
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="lg:col-span-3">
+                  <SectionLabel icon={Sparkles} label="Connections" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <SmallStat icon={UserIcon} label="Followers" value={payload.stats.followers} />
+                    <SmallStat icon={UserIcon} label="Following" value={payload.stats.following} />
+                    <SmallStat icon={Building2} label="Crews"    value={payload.stats.crews} />
+                    <SmallStat icon={Sparkles} label="Universes" value={payload.stats.universes} />
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ── SETTINGS (owner-only) ── */}
+            {tab === "settings" && isOwner && (
+              <motion.div
+                key="t-settings"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 mb-12"
+              >
+                <Card>
+                  <SectionLabel icon={Coins} label="Credits & plan" tone="amber" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <BigStat label="Balance" value={credits ?? (p?.credits_balance ?? 0)} tone="amber" />
+                    <BigStat label="Lifetime spent" value={p?.total_credits_used ?? 0} />
+                    <BigStat label="Plan" textValue={accountType === "admin" ? "Admin" : accountType[0].toUpperCase() + accountType.slice(1)} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setBuyOpen(true)} className="pill bg-amber-300/90 hover:bg-amber-300 text-black"><Plus className="w-3.5 h-3.5" /> Buy credits</button>
+                    <Link to="/credits"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">History</Link>
+                    <Link to="/pricing"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">View plans</Link>
+                  </div>
+                </Card>
+
+                <Card>
+                  <SectionLabel icon={ShieldCheck} label="Security" tone="emerald" />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div><TwoFactorCard /></div>
+                    <div><SessionsCard /></div>
+                  </div>
+                  <div className="mt-6">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.resetPasswordForEmail(p?.email ?? user?.email ?? "", {
+                            redirectTo: `${window.location.origin}/reset-password`,
+                          });
+                          if (error) throw error;
+                          toast.success("Password reset email sent");
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Couldn't send reset email");
+                        }
+                      }}
+                      className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" /> Reset password
+                    </button>
+                  </div>
+                </Card>
+
+                <div className="rounded-3xl border border-rose-400/15 bg-rose-400/[0.02] p-6 lg:p-8">
+                  <SectionLabel icon={AlertTriangle} label="Danger zone" tone="rose" />
+                  <p className="text-[12px] text-white/55 leading-relaxed mb-5 max-w-xl">
+                    These actions are permanent or session-altering. Deactivation has a 30-day
+                    reversal window during which signing back in restores your account.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={async () => { await signOut(); navigate("/auth"); }}
+                      className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-white/[0.06] hover:border-white/20 bg-white/[0.015] text-left transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl border border-white/[0.06] flex items-center justify-center text-white/65">
+                          <LogOut className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-[13px] text-white">Sign out</div>
+                          <div className="text-[10px] text-white/40 font-mono">Ends this session</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-white/35" />
+                    </button>
+                    <Link
+                      to="/settings/deactivate"
+                      className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-rose-400/20 hover:border-rose-400/40 bg-rose-400/[0.02] text-left transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl border border-rose-400/20 flex items-center justify-center text-rose-300">
+                          <AlertTriangle className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-[13px] text-rose-200">Deactivate account</div>
+                          <div className="text-[10px] text-rose-200/55 font-mono">30-day reversal window</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-rose-300/65" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                <p className="text-sm text-muted-foreground">Buy more credits or open the secure payment portal.</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => navigate('/credits')}
-                    className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
-                    Open Credits
-                  </Button>
-                  <Button size="sm" onClick={() => setShowBuyModal(true)}
-                    className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground">
-                    Buy Credits
-                  </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </PageShell>
+      </motion.section>
+
+      <BuyCreditsModal open={buyOpen} onOpenChange={setBuyOpen} />
+
+      {/* Links editing modal */}
+      {editingLinks && (
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+             onClick={(e) => { if (e.target === e.currentTarget) setEditingLinks(false); }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
+            className="relative w-full max-w-lg rounded-3xl border border-white/[0.08] bg-[#080a0d] p-7"
+          >
+            <button onClick={() => setEditingLinks(false)} className="absolute top-4 right-4 w-9 h-9 rounded-full border border-white/[0.08] hover:border-white/30 text-white/55 hover:text-white flex items-center justify-center">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-display font-light text-[24px] text-white mb-2">External links</h3>
+            <p className="text-[12px] text-white/55 mb-6">Add any of these. Empty fields are removed.</p>
+            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+              {(["website","twitter","instagram","youtube","tiktok","github","linkedin","spotify","soundcloud"] as const).map((k) => (
+                <div key={k}>
+                  <label className="text-[9px] font-mono uppercase tracking-[0.28em] text-white/45 mb-1.5 block capitalize">{k}</label>
+                  <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-white/[0.03] border border-white/[0.08] focus-within:border-primary/40 transition-colors">
+                    <SocialIcon platform={k} />
+                    <input
+                      value={linkDraft[k] ?? ""}
+                      onChange={(e) => setLinkDraft({ ...linkDraft, [k]: e.target.value })}
+                      placeholder={`https://${k === "website" ? "your-site.com" : `${k}.com/yourhandle`}`}
+                      className="flex-1 bg-transparent outline-none text-[12px] text-white placeholder:text-white/30 font-mono"
+                    />
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button onClick={() => setEditingLinks(false)} className="pill border-white/[0.08] hover:border-white/30 text-white/65 border">Cancel</button>
+              <button onClick={saveLinks} disabled={savingLinks} className="pill bg-white text-black hover:bg-white/90">
+                {savingLinks ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Sub-components
+// ───────────────────────────────────────────────────────────────────────
+
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("relative rounded-3xl border border-white/[0.06] bg-white/[0.015] p-6 lg:p-8 overflow-hidden", className)}>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({
+  icon: Icon, label, tone = "blue",
+}: { icon: React.ElementType; label: string; tone?: "blue" | "amber" | "rose" | "emerald" }) {
+  const colorClass = tone === "amber" ? "text-amber-300"
+    : tone === "rose" ? "text-rose-300"
+    : tone === "emerald" ? "text-emerald-300"
+    : "text-primary/80";
+  return (
+    <div className="flex items-center gap-3 mb-5">
+      <Icon className={cn("w-3.5 h-3.5", colorClass)} />
+      <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-foreground/65">{label}</span>
+      <div className="h-px flex-1 bg-gradient-to-r from-white/[0.07] to-transparent" />
+    </div>
+  );
+}
+
+function AccountBadge({ type }: { type: "personal" | "business" | "enterprise" | "admin" }) {
+  const map = {
+    personal:   { label: "Personal",   color: "hsl(215 100% 70%)", bg: "hsla(215,100%,60%,0.12)", border: "hsla(215,100%,60%,0.30)" },
+    business:   { label: "Business",   color: "hsl(280 80% 75%)",  bg: "hsla(280,70%,55%,0.12)",  border: "hsla(280,70%,55%,0.30)" },
+    enterprise: { label: "Enterprise", color: "hsl(38 90% 70%)",   bg: "hsla(38,90%,55%,0.12)",   border: "hsla(38,90%,55%,0.30)" },
+    admin:      { label: "Admin",      color: "hsl(0 90% 75%)",    bg: "hsla(0,80%,60%,0.12)",    border: "hsla(0,80%,60%,0.30)" },
+  } as const;
+  const m = map[type];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8.5px] font-mono uppercase tracking-[0.28em] border"
+      style={{ color: m.color, backgroundColor: m.bg, borderColor: m.border }}
+    >
+      {m.label}
+    </span>
+  );
+}
+
+function HeroStat({
+  icon: Icon, label, value, delta, tone, accent, onClick,
+}: { icon: React.ElementType; label: string; value: number | null; delta?: number; tone?: "amber"; accent?: "primary"; onClick?: () => void }) {
+  const valColor = tone === "amber" ? "text-amber-200" : "text-white";
+  return (
+    <button
+      onClick={onClick}
+      disabled={!onClick}
+      className={cn(
+        "group text-left rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors disabled:cursor-default",
+        onClick && "hover:border-white/15",
+      )}
+    >
+      <div className="flex items-center gap-2 mb-2 text-[9px] font-mono uppercase tracking-[0.32em] text-white/45">
+        <Icon className={cn("w-3 h-3", tone === "amber" && "text-amber-300", accent === "primary" && "text-primary")} />
+        {label}
+      </div>
+      <div className={cn("text-[26px] font-light tabular-nums leading-tight", valColor)}>
+        {value === null ? <span className="text-white/20">—</span> : value.toLocaleString()}
+      </div>
+      {typeof delta === "number" && delta > 0 && (
+        <div className="text-[10px] font-mono text-emerald-300/85 mt-1">+{delta} this month</div>
+      )}
+    </button>
+  );
+}
+
+function BigStat({
+  label, value, textValue, tone,
+}: { label: string; value?: number | null; textValue?: string; tone?: "amber" }) {
+  return (
+    <div>
+      <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/40 mb-1.5">{label}</div>
+      <div className={cn("text-[28px] font-light tabular-nums leading-tight", tone === "amber" ? "text-amber-200" : "text-white")}>
+        {textValue ?? (value === null || value === undefined ? <span className="text-white/20">—</span> : value.toLocaleString())}
+      </div>
+    </div>
+  );
+}
+
+function SmallStat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number | null }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
+      <div className="flex items-center gap-2 mb-2 text-[9px] font-mono uppercase tracking-[0.32em] text-white/45">
+        <Icon className="w-3 h-3" />
+        {label}
+      </div>
+      <div className="text-[20px] font-light text-white tabular-nums">
+        {value === null ? <span className="text-white/20">—</span> : value.toLocaleString()}
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({ to, icon: Icon, label, hint }: { to: string; icon: React.ElementType; label: string; hint?: string }) {
+  return (
+    <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-white/[0.02] transition-colors">
+      <div className="w-8 h-8 rounded-lg border border-white/[0.06] flex items-center justify-center text-white/65 group-hover:text-white">
+        <Icon className="w-3.5 h-3.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px] text-white truncate">{label}</div>
+        {hint && <div className="text-[10px] text-white/35 font-mono uppercase tracking-[0.22em] truncate">{hint}</div>}
+      </div>
+      <ArrowRight className="w-3 h-3 text-white/25 group-hover:text-white transition-colors" />
+    </Link>
+  );
+}
+
+function AboutRow({
+  label, value, editable, onEdit, icon: Icon,
+}: { label: string; value: string; editable: boolean; onEdit: () => void; icon?: React.ElementType }) {
+  return (
+    <div>
+      <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/40 mb-1.5">{label}</div>
+      <div className="flex items-center gap-2 text-[13px] text-white/85">
+        {Icon && <Icon className="w-3.5 h-3.5 text-white/45 shrink-0" />}
+        <span className="flex-1 truncate">{value}</span>
+        {editable && (
+          <button onClick={onEdit} className="text-white/30 hover:text-white/85 transition-colors">
+            <Edit2 className="w-3 h-3" />
+          </button>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {/* ─── SECURITY ─── */}
-        {activeTab === 'security' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <KeyRound className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Password</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Account access</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Reset password</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">We'll email a secure link to {user?.email}</p>
-                </div>
-                <Button size="sm" variant="outline" onClick={handlePasswordReset} disabled={sendingReset}
-                  className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]">
-                  {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send link'}
-                </Button>
-              </div>
+function ReelCard({
+  reel, isOwner, pinned, onTogglePin,
+}: { reel: ReelLite; isOwner: boolean; pinned?: boolean; onTogglePin: (id: string) => void }) {
+  return (
+    <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden hover:border-white/15 transition-colors">
+      <Link to={`/watch/${reel.id}`} className="block">
+        <div className="relative aspect-video bg-black/40">
+          {reel.thumbnail_url ? (
+            <img src={reel.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+          {(pinned || reel.is_featured) && (
+            <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.28em] bg-black/55 backdrop-blur-md border border-white/[0.10] text-white/85">
+              {pinned ? <><Pin className="w-2.5 h-2.5" />Pinned</> : <>Featured</>}
             </div>
-
-            {/* Two-factor — full TOTP enroll/verify/disable */}
-            <TwoFactorCard glassCard={glassCard} />
-
-            {/* Active sessions — device/IP, revoke, force sign-out */}
-            <SessionsCard glassCard={glassCard} />
-
-            {/* Connected accounts */}
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Connected sign-in</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Identity providers</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {(() => {
-                  const provider = (user as any)?.app_metadata?.provider || 'email';
-                  const isGoogle = provider === 'google';
-                  const isApple = provider === 'apple';
-                  return (
-                    <>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Email & password</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-[0.3em] font-mono text-[hsl(150,80%,60%)]">Active</span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Google</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{isGoogle ? 'Linked to this account' : 'Not connected'}</p>
-                        </div>
-                        <span className={cn("text-[10px] uppercase tracking-[0.3em] font-mono", isGoogle ? 'text-[hsl(150,80%,60%)]' : 'text-muted-foreground')}>
-                          {isGoogle ? 'Linked' : 'Available'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Apple</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{isApple ? 'Linked to this account' : 'Not connected'}</p>
-                        </div>
-                        <span className={cn("text-[10px] uppercase tracking-[0.3em] font-mono", isApple ? 'text-[hsl(150,80%,60%)]' : 'text-muted-foreground')}>
-                          {isApple ? 'Linked' : 'Available'}
-                        </span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Active session */}
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Fingerprint className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Active session</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">This device</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-[hsla(215,100%,60%,0.1)] border border-[hsla(215,100%,60%,0.25)] flex items-center justify-center shrink-0">
-                    <Smartphone className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {typeof navigator !== 'undefined' ? (navigator.userAgent.match(/(Chrome|Safari|Firefox|Edge)/)?.[0] || 'Browser') : 'Browser'}
-                      {' · '}
-                      {typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground font-mono truncate">
-                      {typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC'} · last active just now
-                    </p>
-                  </div>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] font-mono text-[hsl(150,80%,60%)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[hsl(150,80%,55%)]" style={{ animation: 'profileTick 1.6s ease-in-out infinite' }} />
-                  Live
-                </span>
-              </div>
-            </div>
-
-            <div className={cn("p-6", glassCard)}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)] flex items-center justify-center">
-                  <Settings className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Sessions & Data</h3>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono">Privacy controls</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Export account data</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Download your identity, credits and transactions</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={handleExport}
-                    className="border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)] gap-1.5">
-                    <Download className="w-3.5 h-3.5" /> Export
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Sign out everywhere</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">End this session and return to sign-in</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => signOut?.()}
-                    className="border-[hsla(0,70%,50%,0.3)] text-[hsl(0,70%,70%)] hover:bg-[hsla(0,70%,50%,0.08)] gap-1.5">
-                    <LogOut className="w-3.5 h-3.5" /> Sign out
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsla(0,70%,50%,0.05)] border border-[hsla(0,70%,50%,0.18)]">
-                  <div>
-                    <p className="text-sm font-medium text-[hsl(0,70%,75%)]">Deactivate account</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your account and all data</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/settings/deactivate')}
-                    className="border-[hsla(0,70%,50%,0.4)] text-[hsl(0,70%,75%)] hover:bg-[hsla(0,70%,50%,0.12)]">
-                    Deactivate
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Footer plate ─── */}
-        <div className="relative pt-4 pb-2 flex flex-col items-center gap-2 animate-fade-in">
-          <div className="h-px w-32" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,68%,0.6), transparent)' }} />
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-mono">
-            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
-            APEX STUDIO · PRIVATE ACCOUNT · ENC-{(user?.id || '').slice(0, 4).toUpperCase()}
-            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite', animationDelay: '0.6s' }} />
+          )}
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] font-mono text-white/75">
+            <span className="inline-flex items-center gap-1"><Eye className="w-3 h-3" />{reel.play_count.toLocaleString()}</span>
+            <span className="inline-flex items-center gap-1"><Heart className="w-3 h-3" />{reel.like_count.toLocaleString()}</span>
           </div>
         </div>
-      </main>
-
-      <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />
+        <div className="p-3">
+          <div className="text-[12px] text-white font-light truncate">{reel.title}</div>
+          {reel.world_slug && (
+            <div className="text-[10px] text-white/35 font-mono uppercase tracking-[0.22em] mt-1">{reel.world_slug}</div>
+          )}
+        </div>
+      </Link>
+      {isOwner && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTogglePin(reel.id); }}
+          className={cn(
+            "absolute top-2 right-2 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-colors",
+            pinned
+              ? "bg-primary/20 border border-primary/40 text-primary"
+              : "bg-black/55 border border-white/[0.10] text-white/65 hover:text-white opacity-0 group-hover:opacity-100",
+          )}
+          aria-label={pinned ? "Unpin" : "Pin"}
+        >
+          <Pin className={cn("w-3.5 h-3.5", pinned && "fill-current")} />
+        </button>
+      )}
     </div>
   );
-}));
+}
 
-function FieldRow({ label, value, mono, action }: { label: string; value: string; mono?: boolean; action?: React.ReactNode }) {
+function EmptyHint({ title, sub, cta }: { title: string; sub: string; cta?: { to: string; label: string } }) {
   return (
-    <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-[hsla(220,14%,5%,0.5)] border border-white/[0.05]">
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mb-1">{label}</p>
-        <p className={cn("text-sm text-foreground truncate", mono && "font-mono text-xs")}>{value}</p>
+    <div className="text-center py-12 max-w-md mx-auto">
+      <Wand2 className="w-6 h-6 mx-auto mb-3 text-white/45" />
+      <h3 className="font-display font-medium text-[18px] text-white mb-1.5">{title}</h3>
+      <p className="text-[12px] text-white/45 mb-5 leading-relaxed">{sub}</p>
+      {cta && (
+        <Link to={cta.to} className="pill bg-white text-black hover:bg-white/90">
+          {cta.label} <ArrowRight className="w-3 h-3" />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function SocialLinks({
+  links, isOwner, onEdit,
+}: { links: Record<string, string>; isOwner: boolean; onEdit: () => void }) {
+  const entries = Object.entries(links ?? {});
+  if (entries.length === 0 && !isOwner) return null;
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-2">
+      {entries.map(([k, v]) => (
+        <a key={k} href={v} target="_blank" rel="noreferrer noopener"
+           className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.06] hover:border-white/30 flex items-center justify-center text-white/65 hover:text-white transition-colors"
+           aria-label={k}>
+          <SocialIcon platform={k} />
+        </a>
+      ))}
+      {isOwner && (
+        <button
+          onClick={onEdit}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/[0.04] border border-white/[0.06] hover:border-white/30 text-white/65 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors"
+        >
+          {entries.length === 0 ? <><Plus className="w-3 h-3" /> Add links</> : <><Edit2 className="w-3 h-3" /> Edit</>}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SocialIcon({ platform }: { platform: string }) {
+  const map: Record<string, React.ReactNode> = {
+    website:   <Globe className="w-3.5 h-3.5" />,
+    twitter:   <Twitter className="w-3.5 h-3.5" />,
+    instagram: <Instagram className="w-3.5 h-3.5" />,
+    youtube:   <Youtube className="w-3.5 h-3.5" />,
+    tiktok:    <Music2 className="w-3.5 h-3.5" />,
+    github:    <Github className="w-3.5 h-3.5" />,
+    linkedin:  <Linkedin className="w-3.5 h-3.5" />,
+    spotify:   <Music2 className="w-3.5 h-3.5" />,
+    soundcloud:<Music2 className="w-3.5 h-3.5" />,
+  };
+  return <>{map[platform] ?? <Link2 className="w-3.5 h-3.5" />}</>;
+}
+
+function AchievementsPreview({ userId: _userId, stats }: { userId: string; stats: Stats }) {
+  const badges = useMemo(() => ([
+    { key: "first_reel",    label: "First reel",       desc: "Publish your first reel",  done: stats.reels >= 1,   icon: Wand2 },
+    { key: "10_reels",      label: "Prolific",         desc: "10 published reels",       done: stats.reels >= 10,  icon: Film },
+    { key: "100_plays",     label: "Hundred views",    desc: "100 lifetime plays",       done: stats.plays >= 100, icon: Eye },
+    { key: "1k_plays",      label: "Thousand views",   desc: "1,000 lifetime plays",     done: stats.plays >= 1000, icon: TrendingUp },
+    { key: "10_followers",  label: "Building a base",  desc: "10 followers",             done: stats.followers >= 10, icon: UserIcon },
+    { key: "100_followers", label: "Community",        desc: "100 followers",            done: stats.followers >= 100, icon: UserIcon },
+    { key: "first_remix",   label: "Remixed",          desc: "A reel of yours was remixed", done: stats.remixes >= 1, icon: Wand2 },
+    { key: "tipped",        label: "Supported",        desc: "Received your first tip",  done: stats.tips >= 1,   icon: Coins },
+    { key: "crews",         label: "Collaborator",     desc: "Joined a crew",            done: stats.crews >= 1, icon: Building2 },
+    { key: "universes",     label: "Worldbuilder",     desc: "Member of a universe",     done: stats.universes >= 1, icon: Sparkles },
+  ]), [stats]);
+  const done = badges.filter((b) => b.done).length;
+  return (
+    <>
+      <div className="text-[11px] font-mono uppercase tracking-[0.28em] text-white/55 mb-5">
+        {done} / {badges.length} unlocked
       </div>
-      {action}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {badges.map((b) => {
+          const Icon = b.icon;
+          return (
+            <div
+              key={b.key}
+              className={cn(
+                "rounded-2xl border p-4 text-center transition-colors",
+                b.done
+                  ? "border-primary/30 bg-primary/[0.05]"
+                  : "border-white/[0.06] bg-white/[0.015] opacity-50 grayscale",
+              )}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center",
+                b.done ? "bg-primary/15 text-primary" : "bg-white/[0.04] text-white/45"
+              )}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <div className={cn("text-[12px] font-light mb-1", b.done ? "text-white" : "text-white/55")}>
+                {b.label}
+              </div>
+              <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.22em] leading-tight">
+                {b.desc}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function InlineEdit({
+  value, onChange, onSave, onCancel, saving, multiline = false, large = false, maxLength, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  multiline?: boolean;
+  large?: boolean;
+  maxLength?: number;
+  placeholder?: string;
+}) {
+  const sharedProps = {
+    value,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value),
+    maxLength,
+    placeholder,
+    autoFocus: true,
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter" && !multiline) onSave();
+    },
+    className: cn(
+      "flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.12] focus:border-primary/50 outline-none text-white placeholder:text-white/30 transition-colors",
+      large ? "text-[32px] font-light tracking-tight" : "text-[13px]",
+      multiline && "resize-none",
+    ),
+  };
+  return (
+    <div className={cn("flex gap-2", multiline ? "flex-col" : "items-center")}>
+      {multiline ? <textarea {...sharedProps} rows={4} /> : <input {...sharedProps} />}
+      <div className="flex items-center gap-1.5">
+        <button onClick={onSave} disabled={saving} className="pill bg-white text-black hover:bg-white/90 disabled:opacity-50">
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+        </button>
+        <button onClick={onCancel} disabled={saving} className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/[0.08] hover:border-white/30 text-white/65 hover:text-white" aria-label="Cancel">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
-
-function Profile() {
-  usePageMeta({ title: "Profile — Apex Studio", description: "Your public director profile, showcased projects, and creator stats." });
-  return (
-    <ErrorBoundary>
-      <ProfileContent />
-    </ErrorBoundary>
-  );
-}
-
-export default Profile;

@@ -427,7 +427,7 @@ function EnvironmentCard({
 }
 
 export default function Environments() {
-  usePageMeta({ title: "Environments — Apex Studio", description: "Cinematic location packs and environment libraries for Apex Studio scenes." });
+  usePageMeta({ title: "Environments — Small Bridges", description: "Cinematic location packs and environment libraries for Small Bridges scenes." });
 
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();

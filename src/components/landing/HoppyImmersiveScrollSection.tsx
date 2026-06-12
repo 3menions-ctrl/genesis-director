@@ -236,7 +236,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
                 'radial-gradient(60% 70% at 50% 45%, rgba(10,132,255,0.18), rgba(0,0,0,0.78) 70%)',
             }}
             role="dialog"
-            aria-label="Get started with Apex Studio"
+            aria-label="Get started with Small Bridges"
           >
             {/* Eyebrow */}
             <motion.div
@@ -247,7 +247,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_12px_rgba(10,132,255,0.8)]" />
               <span className="text-[10.5px] font-medium text-white/75 tracking-[0.32em] uppercase">
-                That was made with Apex Studio
+                That was made with Small Bridges
               </span>
             </motion.div>
 
@@ -262,7 +262,6 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
               Now make{' '}
               <span
                 className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
-                style={{ fontFamily: "'Fraunces', serif" }}
               >
                 yours.
               </span>

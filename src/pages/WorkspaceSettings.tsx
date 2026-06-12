@@ -45,7 +45,7 @@ const ROLE_META: Record<OrgRole, { label: string; icon: typeof Crown; descriptio
 };
 
 export default function WorkspaceSettings() {
-  usePageMeta({ title: "Workspace settings — Apex Studio", description: "Configure your team workspace, members, and roles." });
+  usePageMeta({ title: "Workspace settings — Small Bridges", description: "Configure your team workspace, members, and roles." });
 
   const { currentOrg, hasPermission, refresh } = useWorkspace();
   const { user } = useAuth();

@@ -34,8 +34,8 @@ interface Feature {
 }
 
 const FEATURES: Feature[] = [
-  { id: 't2v',        icon: Type,      eyebrow: 'Generate',    title: 'Text-to-Video',            blurb: 'Describe the shot in plain language. Apex renders it — framing, motion and lighting included.', hue: 212 },
-  { id: 'i2v',        icon: ImageIcon, eyebrow: 'Animate',     title: 'Image-to-Video',           blurb: 'Upload a frame. Apex extracts its scene DNA and extends it into directed motion.', hue: 200 },
+  { id: 't2v',        icon: Type,      eyebrow: 'Generate',    title: 'Text-to-Video',            blurb: 'Describe the shot in plain language. Small Bridges renders it — framing, motion and lighting included.', hue: 212 },
+  { id: 'i2v',        icon: ImageIcon, eyebrow: 'Animate',     title: 'Image-to-Video',           blurb: 'Upload a frame. Small Bridges extracts its scene DNA and extends it into directed motion.', hue: 200 },
   { id: 'script',     icon: Wand2,     eyebrow: 'Write',       title: 'AI Screenwriter',          blurb: 'Turn a one-line idea into a shot list with beats, dialogue and camera blocking.', hue: 218 },
   { id: 'continuity', icon: Layers,    eyebrow: 'Lock-in',     title: 'Frame-Chained Continuity', blurb: 'The last frame of each shot becomes the first of the next — characters and lighting persist.', hue: 210 },
   { id: 'stitch',     icon: Film,      eyebrow: 'Long-form',   title: 'Cinematic Stitching',      blurb: 'Chain 5s clips into 30-second, 60-second and multi-minute cuts without seam artifacts.', hue: 205 },
@@ -454,7 +454,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
             </div>
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] font-mono tracking-[0.28em] uppercase text-white/75 z-20">
               <span>{active.eyebrow}</span>
-              <span className="text-white/65">Apex Studio</span>
+              <span className="text-white/65">Small Bridges</span>
               <span>{String(activeIdx + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}</span>
             </div>
           </div>

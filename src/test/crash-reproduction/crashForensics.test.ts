@@ -131,7 +131,7 @@ describe('Video Player Source Path Analysis', () => {
   /**
    * CRASH PATH TRACE: "No video source" Error
    * 
-   * File: src/components/player/UniversalVideoPlayer.tsx
+   * File: src/components/player/BrandedVideoPlayer.tsx
    * 
    * Entry Points:
    * 1. Line 533-535: hasValidSource computed value
@@ -217,7 +217,7 @@ describe('Identified Crash Loop Patterns', () => {
   
   /**
    * PATTERN 3: window.location.reload in error handlers
-   * Files: Multiple (UniversalVideoPlayer, GlobalStabilityBoundary, error-boundary)
+   * Files: Multiple (BrandedVideoPlayer, GlobalStabilityBoundary, error-boundary)
    * 
    * Trigger: Retry button clicked repeatedly on persistent error
    * - Can cause reload loop if error persists after reload
@@ -226,7 +226,7 @@ describe('Identified Crash Loop Patterns', () => {
    */
   it('should document reload button pattern', () => {
     const pattern = {
-      files: ['UniversalVideoPlayer.tsx', 'GlobalStabilityBoundary.tsx', 'error-boundary.tsx'],
+      files: ['BrandedVideoPlayer.tsx', 'GlobalStabilityBoundary.tsx', 'error-boundary.tsx'],
       trigger: 'User clicks Retry on persistent error',
       mitigation: 'Error throttling in main.tsx (10 errors / 30s)',
     };

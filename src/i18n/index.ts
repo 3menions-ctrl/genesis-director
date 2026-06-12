@@ -5,7 +5,7 @@ import { aiBackend, translateOnDemand } from "./aiBackend";
 import { LANGUAGE_CODES, isRtl, type LanguageCode } from "./languages";
 import { initDomTranslator, setDomLanguage } from "./domTranslator";
 
-const STORAGE_KEY = "apex.lang";
+const STORAGE_KEY = 'smallbridges.lang';
 
 i18n
   .use(aiBackend)

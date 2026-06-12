@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
@@ -17,6 +17,8 @@ import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 // WorldChatButton removed - now a dedicated page
 import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
+import { GlobalPublishWizard } from "@/components/publish/GlobalPublishWizard";
+import { GlobalAtomListingWizard } from "@/components/market/GlobalAtomListingWizard";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -31,6 +33,16 @@ import { getSafeModeStatus } from "@/lib/safeMode";
 import { CommandPalette } from "@/components/agent/CommandPalette";
 
 // Lazy load all pages for code splitting
+// Tiny adapter to redirect legacy plural URLs (e.g. /universes/abc) to their
+// canonical singular form (/universe/abc) while preserving the id param.
+// React Router's `<Navigate to="/universe/:id">` treats `:id` as a literal,
+// which silently 404s — this fixes that.
+function LegacyParamRedirect({ to }: { to: string }) {
+  const params = useParams<{ id?: string; userId?: string }>();
+  const id = params.id ?? params.userId ?? "";
+  return <Navigate to={`${to}/${id}`} replace />;
+}
+
 const Landing = lazy(() => import("./pages/Landing"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -149,8 +161,38 @@ const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
+// Entertainment Hub (public watch experience — the Netflix half)
+const Lobby = lazy(() => import("./pages/Lobby"));
+const Theater = lazy(() => import("./pages/Theater"));
+const WorldDetail = lazy(() => import("./pages/WorldDetail"));
+// Entertainment Hub (creator economy — the YouTube half)
+const Creators = lazy(() => import("./pages/Creators"));
+// Entertainment Hub (atom marketplace)
+const Market = lazy(() => import("./pages/Market"));
+// Crossover — next-gen VFX template library (break-out effects)
+const Crossover = lazy(() => import("./pages/Crossover"));
+// Entertainment Hub (universes — shared worldbuilding)
+const UniverseDetail = lazy(() => import("./pages/UniverseDetail"));
+const Universes = lazy(() => import("./pages/Universes"));
+// Entertainment Hub (crews — persistent collab groups)
+const Crews = lazy(() => import("./pages/Crews"));
+const CrewDetail = lazy(() => import("./pages/CrewDetail"));
+// Entertainment Hub (universal discovery)
+const SearchHub = lazy(() => import("./pages/SearchHub"));
+// Entertainment Hub (year-in-review)
+const DirectorCards = lazy(() => import("./pages/DirectorCards"));
+// Entertainment Hub (music parallel surface)
+const MusicHub = lazy(() => import("./pages/MusicHub"));
+const SupportInbox = lazy(() => import("./pages/SupportInbox"));
+const Messages = lazy(() => import("./pages/Messages"));
+// Director Studio — multi-scene cockpit creation experience
+const DirectorStudio = lazy(() => import("./pages/DirectorStudio"));
+
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
+// Public sharing — unauthenticated, viral
+const PublicShare = lazy(() => import("./pages/PublicShare"));
+const EmbedPlayer = lazy(() => import("./pages/EmbedPlayer"));
 const EnterpriseComingSoon = lazy(() => import("./pages/EnterpriseComingSoon"));
 
 // Route change tracker component
@@ -267,7 +309,13 @@ const App = () => {
                     <EnterpriseComingSoon />
                   </RouteContainer>
                 } />
-                <Route path="/discover" element={<Navigate to="/projects" replace />} />
+                {/* /discover → /search is the natural hub-discovery path now */}
+                <Route path="/discover" element={<Navigate to="/search" replace />} />
+                <Route path="/search" element={
+                  <RouteContainer fallbackMessage="Loading search...">
+                    <AppShell><SearchHub /></AppShell>
+                  </RouteContainer>
+                } />
                 <Route path="/help" element={
                   <RouteContainer>
                     <AdaptiveShell><HelpCenter /></AdaptiveShell>
@@ -323,6 +371,13 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                <Route path="/messages" element={
+                  <RouteContainer fallbackMessage="Loading messages…">
+                    <ProtectedRoute>
+                      <AppShell><Messages /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 <Route path="/notifications" element={
                   <RouteContainer fallbackMessage="Loading inbox…">
                     <ProtectedRoute>
@@ -353,11 +408,17 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                {/* Profile is reachable by any signed-in user regardless of
+                   account type — it's their personal identity page, not a
+                   workspace surface. Previously this was gated by
+                   RequireAccountType which redirected business/enterprise
+                   accounts to /workspace/general, making the Profile menu
+                   link feel broken for those users. */}
                 <Route path="/profile" element={
                   <RouteContainer fallbackMessage="Loading profile...">
-                    <RequireAccountType allow={["personal", "admin"]} redirectTo="/workspace/general">
+                    <ProtectedRoute>
                       <AppShell><Profile /></AppShell>
-                    </RequireAccountType>
+                    </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings" element={
@@ -371,6 +432,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading...">
                     <ProtectedRoute>
                       <AppShell><DeactivateAccount /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/settings/support" element={
+                  <RouteContainer fallbackMessage="Loading support inbox...">
+                    <ProtectedRoute>
+                      <AppShell><SupportInbox /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -471,9 +539,26 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
-                <Route path="/director" element={<Navigate to="/create" replace />} />
-                {/* Legacy /studio route — Studio was unified into /create */}
-                <Route path="/studio" element={<Navigate to="/create" replace />} />
+                <Route path="/director" element={
+                  <RouteContainer fallbackMessage="Loading director...">
+                    <ProtectedRoute>
+                      <AppShell><DirectorStudio /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/me/year" element={
+                  <RouteContainer fallbackMessage="Loading your year...">
+                    <ProtectedRoute>
+                      <AppShell><DirectorCards /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/music" element={
+                  <RouteContainer fallbackMessage="Loading music...">
+                    <AppShell><MusicHub /></AppShell>
+                  </RouteContainer>
+                } />
+                {/* /studio is rendered above (line 328) — only nested URLs need a legacy redirect. */}
                 <Route path="/studio/*" element={<Navigate to="/create" replace />} />
                 <Route path="/create/legacy" element={
                   <RouteContainer fallbackMessage="Preparing studio...">
@@ -519,12 +604,22 @@ const App = () => {
                 
                 {/* Keep production route for active productions */}
                 
-                {/* Legacy clips route - redirect to projects */}
-                <Route path="/clips" element={<Navigate to="/projects" replace />} />
-                
                 {/* Legacy universe routes - redirect to projects */}
-                <Route path="/universes" element={<Navigate to="/projects" replace />} />
-                <Route path="/universes/:id" element={<Navigate to="/projects" replace />} />
+                {/* Canonical singular per hub convention. */}
+                <Route path="/universe/:id" element={
+                  <RouteContainer fallbackMessage="Loading universe...">
+                    <AppShell><UniverseDetail /></AppShell>
+                  </RouteContainer>
+                } />
+                {/* Legacy plural URL — redirect to singular, preserving id.
+                    A literal `:id` in the `to` prop is a broken NoOp; route
+                    through a small adapter that reads the param. */}
+                <Route path="/universes/:id" element={<LegacyParamRedirect to="/universe" />} />
+                <Route path="/universes" element={
+                  <RouteContainer fallbackMessage="Loading universes...">
+                    <AppShell><Universes /></AppShell>
+                  </RouteContainer>
+                } />
                 
                 {/* Templates Gallery */}
                 <Route path="/templates" element={
@@ -572,10 +667,44 @@ const App = () => {
                 } />
                 
                 {/* Consumer social hub sunset — redirect to projects */}
-                <Route path="/creators" element={<Navigate to="/projects" replace />} />
+                <Route path="/creators" element={
+                  <RouteContainer fallbackMessage="Loading creators...">
+                    <AppShell><Creators /></AppShell>
+                  </RouteContainer>
+                } />
+                {/* /c/:id renders the same comprehensive Profile component as
+                    /profile, in "viewing-another-user" mode. Owner-only
+                    affordances (edit, danger zone, credits tab) are hidden
+                    automatically when the viewed user isn't the signed-in
+                    user. Follow / Share become the primary CTAs. */}
+                <Route path="/c/:id" element={
+                  <RouteContainer fallbackMessage="Loading channel...">
+                    <AppShell><Profile /></AppShell>
+                  </RouteContainer>
+                } />
+                <Route path="/market" element={
+                  <RouteContainer fallbackMessage="Loading market...">
+                    <AppShell><Market /></AppShell>
+                  </RouteContainer>
+                } />
+                {/* Crossover — VFX template library (50 break-out effects) */}
+                <Route path="/crossover" element={
+                  <RouteContainer fallbackMessage="Loading Crossover...">
+                    <AppShell><Crossover /></AppShell>
+                  </RouteContainer>
+                } />
+                <Route path="/crews" element={
+                  <RouteContainer fallbackMessage="Loading crews...">
+                    <AppShell><Crews /></AppShell>
+                  </RouteContainer>
+                } />
+                <Route path="/crews/:id" element={
+                  <RouteContainer fallbackMessage="Loading crew...">
+                    <AppShell><CrewDetail /></AppShell>
+                  </RouteContainer>
+                } />
                 <Route path="/user/:userId" element={<Navigate to="/projects" replace />} />
-                <Route path="/social" element={<Navigate to="/projects" replace />} />
-                
+
                 {/* Chat route removed */}
                 
                 {/* Video Detail Page */}
@@ -584,8 +713,29 @@ const App = () => {
                     <AppShell><VideoDetail /></AppShell>
                   </RouteContainer>
                 } />
+
+                {/* ── Entertainment Hub — the public watch experience ── */}
+                {/* These are reachable without auth (you should be able
+                    to browse + watch reels signed out, like YouTube). */}
+                <Route path="/lobby" element={
+                  <RouteContainer fallbackMessage="Loading lobby...">
+                    <AppShell><Lobby /></AppShell>
+                  </RouteContainer>
+                } />
+                <Route path="/watch/:id" element={
+                  <RouteContainer fallbackMessage="Loading theater...">
+                    <AppShell><Theater /></AppShell>
+                  </RouteContainer>
+                } />
+                <Route path="/world/:slug" element={
+                  <RouteContainer fallbackMessage="Loading world...">
+                    <AppShell><WorldDetail /></AppShell>
+                  </RouteContainer>
+                } />
                 
-                {/* Video Editor - Twick Studio */}
+                {/* Video Editor - Twick Studio. Both /editor and /editor/:id
+                    resolve to the same page; the editor reads `:id` from
+                    params or `?project=` from search. */}
                 <Route path="/editor" element={
                   <RouteContainer fallbackMessage="Loading editor...">
                     <ProtectedRoute>
@@ -593,17 +743,29 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                <Route path="/editor/:id" element={
+                  <RouteContainer fallbackMessage="Loading editor...">
+                    <ProtectedRoute>
+                      <VideoEditorPage />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
-                {/* Legacy route redirects */}
-                <Route path="/long-video" element={<Navigate to="/create" replace />} />
-                <Route path="/pipeline/*" element={<Navigate to="/create" replace />} />
-                
-                {/* Genesis Scenes - redirect to Create page */}
-                <Route path="/scenes" element={<Navigate to="/create" replace />} />
-                <Route path="/design-picker" element={<Navigate to="/create" replace />} />
                 <Route path="/w/:slug" element={
                   <RouteContainer fallbackMessage="Loading...">
                     <WidgetLanding />
+                  </RouteContainer>
+                } />
+                {/* Viral public share — unauthenticated. RLS-gated by project_shares.is_public. */}
+                <Route path="/p/:slug" element={
+                  <RouteContainer fallbackMessage="Loading...">
+                    <PublicShare />
+                  </RouteContainer>
+                } />
+                {/* Minimal iframe-friendly player. No shell, no auth. */}
+                <Route path="/embed/:slug" element={
+                  <RouteContainer fallbackMessage="">
+                    <EmbedPlayer />
                   </RouteContainer>
                 } />
                 <Route path="/widget/:publicKey" element={
@@ -702,6 +864,10 @@ const App = () => {
                 
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
+                {/* Publish Wizard — triggered by openPublishWizard(projectId) */}
+                <GlobalPublishWizard />
+                {/* Atom Listing Wizard — triggered by openAtomListingWizard() */}
+                <GlobalAtomListingWizard />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

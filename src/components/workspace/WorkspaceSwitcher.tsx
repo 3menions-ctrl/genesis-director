@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3, Layers } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import {
@@ -18,7 +18,6 @@ interface Props { collapsed?: boolean }
 
 export function WorkspaceSwitcher({ collapsed }: Props) {
   const { organizations, currentOrg, switchOrg, createOrg, loading } = useWorkspace();
-  const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -118,58 +117,57 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
               <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               New workspace
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/settings/workspace')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <SettingsIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Workspace settings
+            {/*
+              All navigation items use `asChild` + <Link> so the browser's
+              native anchor click handles routing. This sidesteps the Safari
+              bug where the menu collapsing on pointerdown shifted items up
+              and pointerup fired on a sibling, causing the wrong route.
+            */}
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/settings/workspace">
+                <SettingsIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Workspace settings
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
             <DropdownMenuLabel className="text-[9px] uppercase tracking-[0.22em] text-white/30 px-3 pt-2 pb-1 font-medium">
               Workspace admin
             </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Overview
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace">
+                <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Overview
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace/team')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Team
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace/team">
+                <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Team
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace/brand')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <Palette className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Brand kit
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace/brand">
+                <Palette className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Brand kit
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace/assets')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <Layers className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Brand assets
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace/assets">
+                <Layers className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Brand assets
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace/billing')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Billing
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace/billing">
+                <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Billing
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/workspace/analytics')}
-              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
-            >
-              <BarChart3 className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Analytics
+            <DropdownMenuItem asChild className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer">
+              <Link to="/workspace/analytics">
+                <BarChart3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Analytics
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

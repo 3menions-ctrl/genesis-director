@@ -62,7 +62,7 @@ export default function AdminDbHealthPage() {
               <Database className="w-4 h-4 text-[#6FB6FF]" />
               <span className="text-white/80 font-mono text-[12px]">{t}</span>
             </div>
-            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`} style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`}>
               {counts[t] === null ? "ERR" : (counts[t] ?? "—").toLocaleString()}
             </div>
           </AdminSurface>

@@ -19,7 +19,7 @@ function AdminNewSignup({
   source = null,
 }: Props) {
   return (
-    <EmailLayout preview={`New signup: ${email}`} footerNote="Internal admin notification — new user signed up to Apex Studio.">
+    <EmailLayout preview={`New signup: ${email}`} footerNote="Internal admin notification — new user signed up to Small Bridges.">
       <Text style={styles.h1}>New signup</Text>
       <Text style={styles.body}>
         <strong style={{ color: '#fff' }}>{fullName || email}</strong> just created an account.
@@ -44,8 +44,8 @@ function AdminNewSignup({
 export const template: TemplateEntry = {
   component: AdminNewSignup,
   displayName: 'Admin: New Signup',
-  subject: (d: Props) => `[Apex] New signup — ${d?.fullName || d?.email || 'unknown'}`,
-  to: 'apex-studio.ai@apex-studio.ai',
+  subject: (d: Props) => `[Small Bridges] New signup — ${d?.fullName || d?.email || 'unknown'}`,
+  to: 'smallbridges.com@smallbridges.com',
   previewData: {
     email: 'jane@example.com',
     fullName: 'Jane Doe',

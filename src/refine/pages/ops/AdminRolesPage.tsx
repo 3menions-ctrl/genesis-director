@@ -1,7 +1,20 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Roles — every user_role assignment with revoke action. */
+import { ShieldCheck, UserMinus } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+
+interface RoleRow extends AdminRow {
+  id: string;
+  user_id: string;
+  role: string;
+  granted_at: string | null;
+  profiles?: { email: string | null; display_name: string | null } | null;
+}
+
+const ROLE_TONE: Record<string, string> = {
+  admin: "text-rose-300", moderator: "text-amber-300", support: "text-[#6FB6FF]", user: "text-white/65",
+};
 
 export default function AdminRolesPage() {
   return (
@@ -9,27 +22,41 @@ export default function AdminRolesPage() {
       eyebrow="07 // ACCESS"
       code="RLS"
       title="Roles"
-      italic="& Permissions."
-      description="Granular RBAC editor — define roles, scope permissions, attach to operators."
+      italic="& RBAC."
+      description="Every user → role assignment. Revoke instantly; promotion happens through the admin promote flow."
     >
-      <AdminConsoleScaffold
-        intro="Replace the binary admin flag with composable roles and per-resource grants."
-        status="scoped"
+      <AdminConsoleV2<RoleRow>
+        intro="Roles drive policy. Revoking a role takes effect on the next request — sessions don't carry it."
+        query={{
+          table: "user_roles",
+          select: "id, user_id, role, granted_at, profiles(email, display_name)",
+          orderBy: { column: "granted_at", ascending: false },
+        }}
         signals={[
-        { label: "Roles", value: "—", tone: "blue" },
-        { label: "Permissions", value: "—", tone: "neutral" },
-        { label: "Assignments", value: "—", tone: "emerald" },
-        { label: "Scoped Keys", value: "—", tone: "amber" },
+          { label: "Total assignments", value: (r) => r.length, tone: "blue" },
+          { label: "Admins", value: (r) => r.filter((x) => (x as RoleRow).role === "admin").length, tone: "rose" },
+          { label: "Moderators", value: (r) => r.filter((x) => (x as RoleRow).role === "moderator").length, tone: "amber" },
+          { label: "Other roles", value: (r) => r.filter((x) => !["admin","moderator"].includes((x as RoleRow).role)).length, tone: "neutral" },
         ]}
-        capabilities={[
-    { icon: KeySquare, title: "Role Builder", description: "Compose roles from atomic permission grants.", status: "queued" },
-    { icon: UserCog, title: "Assignment Matrix", description: "User × role grid with bulk apply / revoke.", status: "queued" },
-    { icon: FileLock, title: "Resource Scopes", description: "Limit grants by table, function, or tenant.", status: "manual" },
-    { icon: History, title: "Grant History", description: "Audit trail of every role assignment change.", status: "wired" },
-    { icon: AlertTriangle, title: "Privilege Drift", description: "Detect operators with unused or excess grants.", status: "manual" },
-    { icon: Copy, title: "Role Templates", description: "Pre-built roles: Support, Finance, Engineering.", status: "manual" },
+        columns={[
+          { key: "profiles", label: "User", width: "300px",
+            render: (_, row) => row.profiles?.email
+              ? <span><span className="text-white/90">{row.profiles.email}</span>{row.profiles.display_name ? <span className="text-white/45 ml-2">· {row.profiles.display_name}</span> : null}</span>
+              : <code className="font-mono text-[11px] text-white/45">{row.user_id}</code> },
+          { key: "role", label: "Role", width: "140px",
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${ROLE_TONE[String(v)] ?? "text-white/55"}`}>{String(v)}</span> },
+          { key: "granted_at", label: "Granted", width: "180px" },
         ]}
-      primaryCta={{ label: "Create role" }}
+        actions={[
+          { label: "Revoke", icon: UserMinus, variant: "destructive",
+            confirm: "Revoke this role? The user loses any access that depends on it.",
+            onRun: async (r) => {
+              const { error } = await supabase.from("user_roles").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        emptyTitle="No role assignments"
+        emptyDescription="Promote users to admin/moderator/support via the team page — assignments will appear here."
       />
     </AdminPageShell>
   );

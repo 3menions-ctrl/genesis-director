@@ -16,7 +16,7 @@ function OrgMemberJoined({
   memberName = 'A new member',
   memberEmail = '',
   role = 'producer',
-  workspaceUrl = 'https://apex-studio.ai/workspace/team',
+  workspaceUrl = 'https://smallbridges.com/workspace/team',
 }: Props) {
   return (
     <EmailLayout preview={`${memberName} joined ${orgName}`}>
@@ -39,6 +39,6 @@ export const template: TemplateEntry = {
     memberName: 'Jordan Lee',
     memberEmail: 'jordan@acme.com',
     role: 'producer',
-    workspaceUrl: 'https://apex-studio.ai/workspace/team',
+    workspaceUrl: 'https://smallbridges.com/workspace/team',
   },
 }

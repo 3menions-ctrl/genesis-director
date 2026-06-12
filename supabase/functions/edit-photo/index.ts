@@ -1,6 +1,25 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { validateAuth, unauthorizedResponse } from '../_shared/auth-guard.ts';
 import { checkContentSafety } from '../_shared/content-safety.ts';
+import { assertSafeFetchUrl, safeFetch, SSRFError } from '../_shared/ssrf-guard.ts';
+
+// Image-host allowlist for user-provided imageUrl. Covers Supabase Storage,
+// the generative-AI vendor CDNs we actually use, and well-known public
+// stock hosts. Anything outside this list is rejected before fetch.
+const IMAGE_ALLOW_HOSTS = [
+  '*.supabase.co',
+  '*.supabase.in',
+  '*.replicate.delivery',
+  'replicate.delivery',
+  '*.cloudfront.net',
+  '*.amazonaws.com',
+  'images.unsplash.com',
+  '*.pexels.com',
+  'images.pexels.com',
+  'videos.pexels.com',
+  'cdn.midjourney.com',
+  'oaidalleapiprodscus.blob.core.windows.net',
+];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +47,21 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'imageUrl is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // SSRF guard: reject internal IPs, non-http, off-allowlist hosts. Edge
+    // functions can otherwise be coerced to fetch cloud metadata endpoints
+    // or RFC1918 networks via a hostile imageUrl.
+    try {
+      assertSafeFetchUrl(imageUrl, { allowHosts: IMAGE_ALLOW_HOSTS });
+    } catch (e) {
+      if (e instanceof SSRFError) {
+        return new Response(
+          JSON.stringify({ error: `imageUrl host is not allowed (${e.reason})` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw e;
     }
 
     if (!instruction && !templateId) {
@@ -117,10 +151,18 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Use editId as the idempotency anchor — every photo_edits row has a
+      // unique id, so client retries with the same editId can't double-charge.
+      // If editId is absent (rare ad-hoc edit) we fall back to a millisecond
+      // bucket per user to at least collapse rapid double-clicks.
+      const idemKey = editId
+        ? `edit-photo:${editId}`
+        : `edit-photo:auto:${auth.userId}:${Date.now() >> 16}`;
       const { data: deductOk, error: deductErr } = await supabase.rpc('deduct_credits', {
         p_user_id: auth.userId,
         p_amount: creditsCost,
         p_description: `Photo edit: ${editInstruction?.substring(0, 50)}...`,
+        p_idempotency_key: idemKey,
       });
       if (deductErr || deductOk !== true) {
         console.error('[edit-photo] Credit deduction failed:', deductErr, 'ok=', deductOk);
@@ -147,10 +189,14 @@ Deno.serve(async (req) => {
 
     console.log(`[edit-photo] Processing via Lovable AI gateway for user ${auth.userId.slice(0, 8)}...`);
 
-    // Download the source image and convert to data URI for reliable input
+    // Download the source image and convert to data URI for reliable input.
+    // safeFetch re-validates each redirect hop against the SSRF allowlist.
     let imageInput = imageUrl;
     try {
-      const imgResp = await fetch(imageUrl);
+      const imgResp = await safeFetch(imageUrl, undefined, {
+        allowHosts: IMAGE_ALLOW_HOSTS,
+        maxBodyBytes: 25 * 1024 * 1024, // 25 MB cap on input
+      });
       if (imgResp.ok) {
         const imgBuf = new Uint8Array(await imgResp.arrayBuffer());
         const contentType = imgResp.headers.get('content-type') || 'image/png';
@@ -205,12 +251,15 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
 
-      // Refund via the dedicated refund_credits RPC (single source of truth)
+      // Refund via the dedicated refund_credits RPC (single source of truth).
+      // Reuse the same idemKey so a replayed request finds the existing
+      // refund row and short-circuits — no double refunds.
       if (creditsCost > 0) {
         const { error: refundError } = await supabase.rpc('refund_credits', {
           p_user_id: auth.userId,
           p_amount: creditsCost,
           p_description: `Photo edit refund: AI gateway error`,
+          p_idempotency_key: idemKey,
         });
         if (refundError) {
           console.error('[edit-photo] Refund RPC failed:', refundError);
@@ -239,6 +288,7 @@ Deno.serve(async (req) => {
           p_user_id: auth.userId,
           p_amount: creditsCost,
           p_description: `Photo edit refund: No edited image returned`,
+          p_idempotency_key: idemKey,
         });
         if (refundError) console.error('[edit-photo] Refund RPC failed:', refundError);
       }

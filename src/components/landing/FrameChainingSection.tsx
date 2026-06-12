@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 
 /**
- * Frame Chaining — landing-page chapter explaining how Apex stitches
+ * Frame Chaining — landing-page chapter explaining how Small Bridges stitches
  * 5-second clips into long-form films. Visual: a horizontal reel of
  * film frames slides in one by one, then the reel telescopes outward
  * to show the resulting long-form timeline scaling from 0:05 → 5:00.
@@ -145,18 +145,16 @@ export function FrameChainingSection() {
           <h2
             id="frame-chaining-title"
             className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-7 leading-[1.02]"
-            style={{ fontFamily: "'Fraunces', serif" }}
           >
             Five-second clips,{' '}
             <span
               className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
-              style={{ fontFamily: "'Fraunces', serif" }}
             >
               chained into films.
             </span>
           </h2>
           <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-16 max-w-2xl mx-auto">
-            Apex carries the last frame of every shot forward as the first frame of the next —
+            Small Bridges carries the last frame of every shot forward as the first frame of the next —
             so characters, lighting and motion stay locked while the runtime grows. Build seconds.
             Watch them become minutes.
           </p>
@@ -262,7 +260,6 @@ function RuntimeDisplay({
   return (
     <motion.span
       className="font-display text-3xl md:text-5xl font-light text-white tabular-nums tracking-tight"
-      style={{ fontFamily: "'Fraunces', serif" }}
     >
       {reduceMotion ? '5:00' : <motion.span>{formatted}</motion.span>}
     </motion.span>

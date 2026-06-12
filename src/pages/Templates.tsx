@@ -793,7 +793,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   // Persist search, category, duration filter, and duration mode across reloads / revisits.
   // URL query parameters take priority (shareable links), then localStorage fallback.
   const [searchParams, setSearchParams] = useSearchParams();
-  const FILTERS_KEY = 'apex_templates_filters_v1';
+  const FILTERS_KEY = 'sb_templates_filters_v1';
   type DurationFilter = 'any' | '1' | '2' | '3' | '3plus';
   type DurationMode = 'bucket' | 'exact';
   type PersistedFilters = {
@@ -1210,7 +1210,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
 // Wrapper with error boundary for fault isolation
 export default function Templates() {
-  usePageMeta({ title: "Templates — Apex Studio", description: "Cinematic, animated, and breakout templates ready to launch your next scene." });
+  usePageMeta({ title: "Templates — Small Bridges", description: "Cinematic, animated, and breakout templates ready to launch your next scene." });
 
   return (
     <ErrorBoundary>

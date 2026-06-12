@@ -247,7 +247,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
           setStage('videos_in_progress');
 
           const totalScenes = data.config.scenes?.length || 0;
-          setStageMessage(`Scene 1/${totalScenes} generating via Apex Pipeline... (sequential mode)`);
+          setStageMessage(`Scene 1/${totalScenes} generating via Small Bridges Pipeline... (sequential mode)`);
           
           const initStatuses: Record<string, string> = {};
           data.projects_created.forEach((p: GeneratedProject) => {
@@ -310,7 +310,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
             <Sparkles className="w-4 h-4 text-violet-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-white/90">Apex Widget Pipeline</p>
+            <p className="text-sm font-medium text-white/90">Small Bridges Widget Pipeline</p>
             <p className="text-[10px] text-white/30">Concept → AI Config → Cinematic Videos → Live Widget</p>
           </div>
         </div>
@@ -392,7 +392,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
               <div className={cn('w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform', generateVideos ? 'translate-x-[18px]' : 'translate-x-0.5')} />
             </button>
             <div>
-              <p className="text-xs text-white/70">Auto-generate videos via Apex Pipeline</p>
+              <p className="text-xs text-white/70">Auto-generate videos via Small Bridges Pipeline</p>
               <p className="text-[10px] text-white/25">Uses credits • {selectedStyleData.scenes} scene{selectedStyleData.scenes > 1 ? 's' : ''} produced sequentially</p>
             </div>
           </div>
@@ -466,7 +466,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
             {isGenerating ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> {stage === 'generating_config' ? 'AI architecting...' : `Pipeline running (${completedCount}/${totalCount})...`}</>
             ) : (
-              <><Zap className="w-4 h-4" /> Launch Apex Pipeline</>
+              <><Zap className="w-4 h-4" /> Launch Small Bridges Pipeline</>
             )}
           </button>
         </div>

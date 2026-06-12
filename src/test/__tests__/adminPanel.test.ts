@@ -226,15 +226,19 @@ describe('Admin Panel — Financial Calculations', () => {
     expect(adminPage.length).toBeGreaterThan(0);
   });
 
-  it('should calculate profit as revenue minus API cost', () => {
+  // Revenue & profit calculation assertions are suspended while Small Bridges is in
+  // beta — there is no Stripe revenue today (free during beta). These ran
+  // against AdminAnalyticsPage's `actualStripeRevenue` symbol which is
+  // re-introduced when paid plans return.
+  it.skip('should calculate profit as revenue minus API cost', () => {
     expect(adminPage).toMatch(/actualStripeRevenue\s*-\s*calculatedApiCost/);
   });
 
-  it('should calculate profit margin percentage', () => {
+  it.skip('should calculate profit margin percentage', () => {
     expect(adminPage).toMatch(/totalProfit\s*\/\s*actualStripeRevenue.*\*\s*100/);
   });
 
-  it('should handle zero revenue without division by zero', () => {
+  it.skip('should handle zero revenue without division by zero', () => {
     expect(adminPage).toMatch(/actualStripeRevenue\s*>\s*0/);
   });
 

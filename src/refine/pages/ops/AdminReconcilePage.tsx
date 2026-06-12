@@ -1,35 +1,88 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Reconcile — Stripe ↔ Supabase reconciliation job history. */
+import { useState } from "react";
+import { GitCompare, Play, Loader2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface ReconcileRow extends AdminRow {
+  id: string;
+  job_type: string;
+  started_at: string;
+  completed_at: string | null;
+  status: string;
+  scanned: number;
+  matched: number;
+  discrepancies: number;
+  report: unknown;
+}
+
+const STATUS_TONE = { in_progress: "text-[#6FB6FF]", success: "text-emerald-300", partial: "text-amber-300", failed: "text-rose-300" } as const;
 
 export default function AdminReconcilePage() {
+  const [starting, setStarting] = useState(false);
+
+  const startJob = async () => {
+    const jobType = prompt(
+      "Job type to run:",
+      "stripe_subscriptions",
+    );
+    if (!jobType) return;
+    setStarting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("reconcile_jobs").insert({
+      job_type: jobType, triggered_by: user?.id,
+    });
+    setStarting(false);
+    if (error) toast.error(error.message);
+    else toast.success("Reconcile job queued");
+  };
+
   return (
     <AdminPageShell
-      eyebrow="03 // MONEY"
+      eyebrow="09 // MONEY"
       code="REC"
-      title="Stripe"
-      italic="Reconciliation."
-      description="Detect drift between local credit ledger and Stripe — every cent accounted."
+      title="Reconcile"
+      italic="& Audit."
+      description="Stripe ↔ Supabase reconciliation jobs — scanned, matched, discrepancies."
     >
-      <AdminConsoleScaffold
-        intro="Run a delta against Stripe and see exactly which charges, refunds, or disputes diverge from the ledger."
-        status="scoped"
+      <AdminConsoleV2<ReconcileRow>
+        intro="Reconcile the subscription/payment ledger between Stripe and your DB. Discrepancies > 0 means manual review needed."
+        query={{ table: "reconcile_jobs", orderBy: { column: "started_at", ascending: false }, limit: 50 }}
+        filters={[
+          { key: "status", label: "Status", type: "select", options: [
+            { value: "in_progress", label: "In progress" }, { value: "success", label: "Success" },
+            { value: "partial", label: "Partial" }, { value: "failed", label: "Failed" }] },
+        ]}
         signals={[
-        { label: "Drift Events", value: "—", tone: "rose" },
-        { label: "Last Run", value: "—", tone: "blue" },
-        { label: "Reconciled $", value: "—", tone: "emerald" },
-        { label: "Variance", value: "—", tone: "amber", trend: "%" },
+          { label: "Total jobs", value: (r) => r.length, tone: "blue" },
+          { label: "Discrepancies",
+            value: (r) => r.reduce((s, x) => s + ((x as ReconcileRow).discrepancies ?? 0), 0).toLocaleString(),
+            tone: "rose" },
+          { label: "Records scanned",
+            value: (r) => r.reduce((s, x) => s + ((x as ReconcileRow).scanned ?? 0), 0).toLocaleString(),
+            tone: "neutral" },
+          { label: "Last run",
+            value: (r) => r[0] ? new Date((r[0] as ReconcileRow).started_at).toLocaleString() : "—",
+            tone: "emerald" },
         ]}
-        capabilities={[
-    { icon: GitCompare, title: "Delta Detector", description: "Compare every charge with internal ledger row.", status: "queued" },
-    { icon: Wrench, title: "Repair Console", description: "One-click fix for missing or duplicate entries.", status: "manual" },
-    { icon: FileText, title: "Audit Pack", description: "Export the full reconciliation report.", status: "manual" },
-    { icon: AlertCircle, title: "Dispute Tracker", description: "Surface chargebacks before they post.", status: "queued" },
-    { icon: Calendar, title: "Schedule Run", description: "Cron-driven nightly reconciliation.", status: "manual" },
-    { icon: BellRing, title: "Drift Alerts", description: "Email/Slack on any non-zero delta.", status: "manual" },
+        columns={[
+          { key: "job_type", label: "Job", width: "200px",
+            render: (v) => <code className="font-mono text-[12px] text-[#6FB6FF]">{String(v)}</code> },
+          { key: "started_at", label: "Started", width: "180px" },
+          { key: "scanned", label: "Scanned", width: "100px", align: "right" },
+          { key: "matched", label: "Matched", width: "100px", align: "right" },
+          { key: "discrepancies", label: "Discrepancies", width: "120px", align: "right",
+            render: (v) => v as number > 0
+              ? <span className="text-rose-300">{(v as number).toLocaleString()}</span>
+              : <span className="text-white/55">0</span> },
+          { key: "status", label: "Status", width: "120px",
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${STATUS_TONE[v as keyof typeof STATUS_TONE]}`}>{String(v).replace("_", " ")}</span> },
         ]}
-      primaryCta={{ label: "Run reconcile now" }}
+        primaryCta={{ label: starting ? "Queueing…" : "Run reconcile", onClick: startJob }}
+        emptyTitle="No reconcile jobs yet"
+        emptyDescription="Queue a job to audit your Stripe ↔ Supabase ledger. Periodic runs catch drift before customers do."
       />
     </AdminPageShell>
   );

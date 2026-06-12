@@ -59,7 +59,18 @@ export function WorkspacePage({
   );
 }
 
-/** Empty state used when a feature has no data yet. */
+/**
+ * EmptyState — workspace-surface variant (dashed border treatment).
+ *
+ * Intentionally distinct from the canonical `<EmptyState />` in
+ * `components/ui/empty-state.tsx`: workspace surfaces signal
+ * "configurable workspace resource" via the dashed border. Both
+ * variants consume the same brand color token so they stay aligned.
+ *
+ * Use the canonical primitive for page-level empty states
+ * (Projects, MediaLibrary, Notifications). Use this for inline
+ * workspace section placeholders (Team list, Brand kit, etc.).
+ */
 export function EmptyState({
   icon: Icon,
   title,
@@ -75,7 +86,7 @@ export function EmptyState({
     <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] p-14 text-center backdrop-blur-sm">
       {Icon && (
         <div className="w-12 h-12 mx-auto mb-4 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06)]">
-          <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
+          <Icon className="w-4 h-4 text-brand-light" strokeWidth={1.5} />
         </div>
       )}
       <div className="font-display text-[16px] tracking-[-0.01em] text-white/90 font-light">

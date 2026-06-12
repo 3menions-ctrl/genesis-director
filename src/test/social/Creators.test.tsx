@@ -95,9 +95,9 @@ vi.mock('@/components/ui/PausedFrameVideo', () => ({
   ),
 }));
 
-// Mock UniversalVideoPlayer (uses canvas/video APIs unavailable in jsdom)
+// Mock BrandedVideoPlayer (uses canvas/video APIs unavailable in jsdom)
 vi.mock('@/components/player', () => ({
-  UniversalVideoPlayer: () => <div data-testid="universal-video-player" />,
+  BrandedVideoPlayer: () => <div data-testid="universal-video-player" />,
   default: () => <div data-testid="universal-video-player" />,
 }));
 

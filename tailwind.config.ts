@@ -63,6 +63,15 @@ export default {
           foreground: "hsl(var(--info-foreground))",
           muted: "hsl(var(--info-muted))",
         },
+        // Canonical brand blue. Prefer `bg-brand`, `text-brand`, `border-brand`
+        // (and the `light` / `dark` variants for hovers / gradients) over
+        // hardcoded `#0A84FF` or `hsl(215,…)` in new code.
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          light: "hsl(var(--brand-light))",
+          dark: "hsl(var(--brand-dark))",
+          foreground: "hsl(var(--brand-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

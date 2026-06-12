@@ -86,7 +86,7 @@ export default function AdminStatusPage() {
             <div className="flex items-center gap-4">
               {c.status === "operational" ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : c.status === "degraded" ? <Activity className="w-5 h-5 text-amber-400" /> : <XCircle className="w-5 h-5 text-rose-400" />}
               <div>
-                <div className="text-white text-[14px] font-medium" style={{ fontFamily: "'Fraunces', serif" }}>{c.name}</div>
+                <div className="text-white text-[14px] font-medium">{c.name}</div>
                 <div className="text-white/40 font-mono text-[11px] uppercase tracking-[0.18em] mt-0.5">{c.detail}</div>
               </div>
             </div>

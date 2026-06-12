@@ -13,7 +13,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Contact = () => {
-  usePageMeta({ title: "Contact — Apex Studio", description: "Get in touch with the Apex Studio team. We respond within one business day." });
+  usePageMeta({ title: "Contact — Small Bridges", description: "Get in touch with the Small Bridges team. We respond within one business day." });
 
   const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
@@ -47,7 +47,7 @@ const Contact = () => {
         await supabase.functions.invoke('send-transactional-email', {
           body: {
             templateName: 'admin_contact_message',
-            recipientEmail: 'apex-studio.ai@apex-studio.ai',
+            recipientEmail: 'smallbridges.com@smallbridges.com',
             templateData: {
               fromName: formData.name,
               fromEmail: formData.email,
@@ -64,7 +64,10 @@ const Contact = () => {
       }
 
       toast.success("Message sent! We'll get back to you within 24-48 hours.", {
-        description: user ? "Track replies in your Profile › Help & Support." : undefined,
+        description: user ? 'Track replies under Settings → Support.' : undefined,
+        action: user
+          ? { label: 'Open inbox', onClick: () => (window.location.href = '/settings/support') }
+          : undefined,
       });
       setFormData({
         name: profile?.display_name || "",
@@ -225,10 +228,10 @@ const Contact = () => {
                       For general inquiries and support
                     </p>
                     <a 
-                      href="mailto:apex-studio.ai@apex-studio.ai" 
+                      href="mailto:smallbridges.com@smallbridges.com" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      apex-studio.ai@apex-studio.ai
+                      smallbridges.com@smallbridges.com
                     </a>
                   </div>
                 </div>
@@ -243,10 +246,10 @@ const Contact = () => {
                       For partnerships and enterprise
                     </p>
                     <a 
-                      href="mailto:apex-studio.ai@apex-studio.ai" 
+                      href="mailto:smallbridges.com@smallbridges.com" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      apex-studio.ai@apex-studio.ai
+                      smallbridges.com@smallbridges.com
                     </a>
                   </div>
                 </div>

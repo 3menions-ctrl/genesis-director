@@ -6,9 +6,9 @@ export const HOPPY_INTRO_EVENT = 'hoppy:open-intro';
 
 // Official Hoppy "Immersive Landing Video" — registered in gallery_showcase
 export const HOPPY_HLS_URL =
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
+  'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4';
 export const HOPPY_MP4_URL =
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
+  'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 
 // Hoppy intro is a 6-clip lipsync playlist. The published .m3u8 references
 // raw (un-fragmented) MP4 segments — both hls.js and native Safari HLS
@@ -17,7 +17,7 @@ export const HOPPY_MP4_URL =
 // <video> element. Each MP4 is a complete file with embedded AAC audio,
 // so sound is guaranteed.
 const HOPPY_CLIP_BASE =
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c';
+  'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 const HOPPY_CLIPS: string[] = [
   `${HOPPY_CLIP_BASE}_clip1_lipsync_1771086006879.mp4`,
   `${HOPPY_CLIP_BASE}_clip2_lipsync_1771086184096.mp4`,
@@ -230,7 +230,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
             </button>
           </div>
 
-          {/* Bottom — Enter Apex CTA */}
+          {/* Bottom — Enter Small Bridges CTA */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
             <motion.button
               initial={{ opacity: 0, y: 12 }}
@@ -243,7 +243,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
                   '0 0 0 1px hsla(0,0%,100%,0.1), 0 20px 60px -15px hsla(212,100%,50%,0.55), 0 0 80px -10px hsla(212,100%,50%,0.35)',
               }}
             >
-              <span>Enter Apex</span>
+              <span>Enter Small Bridges</span>
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
                 <ArrowRight className="w-4 h-4" />
               </span>

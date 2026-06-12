@@ -14,7 +14,7 @@
  *     muxed in the stitch stage. (Kling has native lip-sync; Seedance
  *     does not — this is a fundamental capability difference.)
  *   • Reuses shared sub-functions: generate-script, generate-scene-images,
- *     generate-voice, generate-music, simple-stitch.
+ *     generate-voice, generate-music, seamless-stitcher.
  *   • Async by design: dispatches all clips, returns predictionIds,
  *     watchdog completes the run (avoids 60s edge timeout).
  *
@@ -893,7 +893,7 @@ serve(async (req) => {
           // Watchdog instructions: after all clips succeed, run audio + stitch
           postProduction: {
             includeVoice, includeMusic,
-            stitchFunction: "simple-stitch",
+            stitchFunction: "seamless-stitcher",
             audioAssets, // pre-generated voice/music URLs for muxing
             muxStrategy: "post-stitch", // Seedance: no native audio, mux after
           },

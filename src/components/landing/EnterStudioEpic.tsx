@@ -27,8 +27,8 @@ import hoppyIntroAsset from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import seedanceClipAsset from '@/assets/test-seedance-clip.mp4.asset.json';
 
 // Remote avatar reels — distinct cameos, no duplicate "wave hello" across the page.
-const ALT_AVATAR_CAMEO   = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/a1d2febd-5d8d-42f8-82d9-66cd1669f511/avatar_a1d2febd-5d8d-42f8-82d9-66cd1669f511_clip1_lipsync_1771729924910.mp4';
-const ALT_AVATAR_LIPSYNC = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/f27fc141-7f5c-48f1-ab0b-645f702df131/avatar_f27fc141-7f5c-48f1-ab0b-645f702df131_clip1_lipsync_1771731724210.mp4';
+const ALT_AVATAR_CAMEO   = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
+const ALT_AVATAR_LIPSYNC = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 
 // ── Mascot ring (PNG, transparent or framed) ─────────────────────────────
 import mAstroBear from '@/assets/mascots/cereal-astronaut-bear.png';
@@ -87,15 +87,15 @@ import featImageToVideo from '@/assets/features/image-to-video-premium.jpg';
 const MASCOTS = [mAstroBear, mFox, mTiger, mKnight, mWizRabbit, mRobot, mBurger, mIcecream, mTaco];
 // Transparent-background 5s seedance loops, indexed to MASCOTS above.
 const MASCOT_LOOPS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-astronaut-bear.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-fox-rogue.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-tiger.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-knight.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-wizard-rabbit.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-robot.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-burger.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-icecream.webm',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-taco.webm',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
+  'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4',
 ];
 const AVATARS = [
   aAaliya, aAelindra, aAmina, aArctic, aAtlas, aBella, aBlitz, aCaptain,
@@ -117,7 +117,7 @@ const SHOWREEL = [
   { src: seedanceClipAsset.url, label: 'Seedance · Motion Lab',spec: 'Seedance 2.0' },
   { src: ALT_AVATAR_LIPSYNC,    label: 'Lip-sync · Talkback',  spec: 'Kling V3 · Audio' },
   // Distinct gallery reel — avoids reusing the hero clip already on stage.
-  { src: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ad10b35f-1a39-47c5-8323-3b57b97c9968_1768351244978.mp4',
+  { src: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4',
     label: 'Beautiful Day · Vibes',  spec: 'Kling V3 · Stitched' },
 ];
 
@@ -308,12 +308,10 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </div>
           <h2
             className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-white tracking-[-0.04em] leading-[0.98]"
-            style={{ fontFamily: "'Fraunces', serif" }}
           >
             Enter the{' '}
             <span
               className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
-              style={{ fontFamily: "'Fraunces', serif" }}
             >
               Studio.
             </span>
@@ -407,9 +405,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 <span className="text-[11px] font-mono uppercase tracking-[0.4em] font-semibold">Now showing</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7a2a00]" />
               </div>
-              <h3 className="mt-5 text-white text-3xl md:text-5xl font-light tracking-[-0.02em]"
-                style={{ fontFamily: "'Fraunces', serif" }}>
-                <span className="italic">The Apex Premiere</span>
+              <h3 className="font-display mt-5 text-white text-3xl md:text-5xl font-light tracking-[-0.02em]">
+                <span className="italic">The Small Bridges Premiere</span>
                 <span className="opacity-50"> · </span>
                 <span className="font-mono text-base md:text-xl tracking-[0.18em] align-middle text-[#ffd98a]">Reel 01</span>
               </h3>
@@ -458,7 +455,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                     <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-white/75 px-2 py-1 rounded-full bg-black/55 border border-white/10">24fps · 2.39:1</span>
                   </div>
                   <div className="absolute bottom-4 left-6 right-6">
-                    <div className="text-white text-lg md:text-2xl font-light tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>
+                    <div className="text-white text-lg md:text-2xl font-light tracking-[-0.01em]">
                       Opening sequence
                     </div>
                     <div className="mt-1 h-px w-16 bg-gradient-to-r from-[#ffd98a] via-[#0A84FF] to-transparent" />
@@ -554,7 +551,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               </div>
               {/* Bottom caption */}
               <div className="absolute bottom-4 left-4 right-4">
-                <div className="text-white text-base md:text-lg font-medium tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>
+                <div className="text-white text-base md:text-lg font-medium tracking-[-0.01em]">
                   {v.label}
                 </div>
                 <div className="mt-1 h-px w-12 bg-gradient-to-r from-[#0A84FF] to-transparent" />
@@ -603,7 +600,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Sonic engine</p>
               <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">MusicGen · Lip-sync</p>
             </div>
-            <h3 className="text-white text-2xl md:text-3xl font-medium tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h3 className="font-display text-white text-2xl md:text-3xl font-medium tracking-[-0.02em] mb-6">
               Score, voice, and duck — automatically.
             </h3>
             {/* Live waveform */}
@@ -683,7 +680,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.85))' }}
               />
               <div className="absolute bottom-3 left-3 right-3">
-                <div className="text-white text-[13px] font-medium tracking-[-0.01em]" style={{ fontFamily: "'Fraunces', serif" }}>{v.label}</div>
+                <div className="text-white text-[13px] font-medium tracking-[-0.01em]">{v.label}</div>
                 <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-white/55 mt-0.5">{v.spec}</div>
               </div>
             </div>
@@ -722,7 +719,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
             }}
           >
             <div className="text-center">
-              <div className="text-[10px] font-mono uppercase tracking-[0.42em] text-white/90">Apex</div>
+              <div className="text-[10px] font-mono uppercase tracking-[0.42em] text-white/90">Small Bridges</div>
               <div className="text-[10px] font-mono uppercase tracking-[0.42em] text-white/70 mt-1">Engine</div>
             </div>
           </div>
@@ -850,7 +847,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2.5">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#0A84FF', boxShadow: '0 0 10px #0A84FF' }} />
-                      <h3 className="text-white text-[17px] font-medium tracking-[-0.012em]" style={{ fontFamily: "'Fraunces', serif" }}>{eng.name}</h3>
+                      <h3 className="font-display text-white text-[17px] font-medium tracking-[-0.012em]">{eng.name}</h3>
                     </div>
                     <p className="text-white/45 text-[12.5px] font-light mt-0.5 leading-snug">{eng.tag}</p>
                   </div>
@@ -1073,7 +1070,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 30px 80px -40px rgba(10,132,255,0.4)',
             }}>
             <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono mb-2">Reel · 01</p>
-            <h3 className="text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h3 className="font-display text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6">
               Film keeps rolling.
             </h3>
             <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
@@ -1123,7 +1120,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 30px 80px -40px rgba(255,200,90,0.35)',
             }}>
             <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono mb-2">Side A · Score</p>
-            <h3 className="text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h3 className="font-display text-white text-2xl md:text-3xl font-light tracking-[-0.02em] mb-6">
               The score writes itself.
             </h3>
             <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
@@ -1211,8 +1208,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 {/* Right side info */}
                 <div className="flex-1 px-3 py-2 flex flex-col justify-between">
                   <div>
-                    <div className="text-[8.5px] font-mono uppercase tracking-[0.28em] opacity-70">Apex Studio</div>
-                    <div className="text-[14px] font-semibold tracking-[-0.01em] mt-0.5" style={{ fontFamily: "'Fraunces', serif" }}>
+                    <div className="text-[8.5px] font-mono uppercase tracking-[0.28em] opacity-70">Small Bridges</div>
+                    <div className="text-[14px] font-semibold tracking-[-0.01em] mt-0.5">
                       Premiere Pass
                     </div>
                   </div>

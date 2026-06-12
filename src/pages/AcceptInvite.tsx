@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 export default function AcceptInvite() {
-  usePageMeta({ title: "Accept invite — Apex Studio", description: "Join your team's Apex Studio workspace." });
+  usePageMeta({ title: "Accept invite — Small Bridges", description: "Join your team's Small Bridges workspace." });
 
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -45,6 +45,49 @@ export default function AcceptInvite() {
       await refresh();
       switchOrg(result.organization_id);
       toast.success('Welcome to the workspace');
+
+      // Fire-and-forget: notify the workspace admins that someone joined.
+      // Reads the org name + admin emails so the email targets the right
+      // people. We don't gate the navigation on this.
+      void (async () => {
+        try {
+          const { data: org } = await supabase
+            .from('organizations')
+            .select('name')
+            .eq('id', result.organization_id!)
+            .maybeSingle<{ name: string }>();
+          const { data: admins } = await supabase
+            .from('organization_members')
+            .select('user_id, profiles(email)')
+            .eq('organization_id', result.organization_id!)
+            .in('role', ['owner', 'admin']);
+          const recipients = (admins ?? [])
+            .map((a: { profiles?: { email: string | null } | null }) => a.profiles?.email)
+            .filter((e): e is string => !!e && e !== user?.email);
+          if (recipients.length === 0 || !org) return;
+          await Promise.all(
+            recipients.map((email) =>
+              supabase.functions.invoke('send-transactional-email', {
+                body: {
+                  template: 'org_member_joined',
+                  recipientEmail: email,
+                  templateData: {
+                    orgName: org.name,
+                    memberName:
+                      user?.user_metadata?.display_name ??
+                      user?.email?.split('@')[0] ??
+                      'A new member',
+                    memberEmail: user?.email ?? '',
+                  },
+                },
+              }),
+            ),
+          );
+        } catch (e) {
+          console.warn('[AcceptInvite] org_member_joined email failed:', e);
+        }
+      })();
+
       setTimeout(() => navigate('/projects'), 1200);
     } else {
       setStatus('error');

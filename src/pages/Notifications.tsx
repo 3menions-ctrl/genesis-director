@@ -6,7 +6,6 @@ import {
   Heart, MessageCircle, UserPlus, Trophy, Star, Gift, Zap, Video, Play,
   AlertTriangle, Coins,
 } from 'lucide-react';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useNotifications, NotificationType, Notification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,7 +91,7 @@ function dayLabel(d: Date): string {
 }
 
 export default function NotificationsPage() {
-  usePageMeta({ title: "Notifications — Apex Studio", description: "Updates on your projects, credits, and the Apex Studio community." });
+  usePageMeta({ title: "Notifications — Small Bridges", description: "Updates on your projects, credits, and the Small Bridges community." });
 
   const { user, loading } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -130,16 +129,13 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(220,14%,2%)] text-foreground font-body relative overflow-hidden">
+    <div className="min-h-screen text-foreground font-body relative overflow-hidden">
       {/* Atmospheric backdrop */}
       <div aria-hidden className="fixed inset-0 pointer-events-none opacity-60">
         <div className="absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full bg-[#0A84FF]/[0.05] blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-[480px] h-[480px] rounded-full bg-[#0A84FF]/[0.04] blur-[120px]" />
       </div>
-
-      <AppHeader />
-
-      <main className="relative z-10 max-w-4xl mx-auto px-6 lg:px-10 py-10">
+<main className="relative z-10 max-w-4xl mx-auto px-6 lg:px-10 py-10">
         {/* Back */}
         <button
           onClick={() => realNavigate(-1)}

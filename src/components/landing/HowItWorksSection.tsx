@@ -266,7 +266,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
           {/* Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-white/[0.05]">
             <p className="text-xs text-white/55 tracking-wide">
-              Powered by <span className="text-[#0A84FF]/80 font-medium">Seedance 2.0</span> — orchestrated by Apex
+              Powered by <span className="text-[#0A84FF]/80 font-medium">Seedance 2.0</span> — orchestrated by Small Bridges
             </p>
             <Link
               to="/how-it-works"

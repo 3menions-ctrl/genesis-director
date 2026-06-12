@@ -2,7 +2,7 @@ import { memo, forwardRef, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UniversalVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -170,11 +170,13 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
         
         {/* Video Player */}
         <div className="relative aspect-video bg-black/80">
-          <UniversalVideoPlayer
-            source={isManifest ? { manifestUrl: videoUrl } : { urls: [videoUrl] }}
-            mode="inline"
-            controls={{ showDownload: !isManifest }}
+          <BrandedVideoPlayer
+            src={videoUrl}
+            title="Final cut"
+            skipIntro
+            playsInline
             className="w-full h-full"
+            onDownload={!isManifest ? handleDownload : undefined}
           />
         </div>
         

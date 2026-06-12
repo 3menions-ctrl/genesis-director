@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Sparkles, Film } from 'lucide-react';
 import { SeedanceAnimateDialog } from '@/components/mascots/SeedanceAnimateDialog';
 import { LazyAutoVideo } from '@/components/video/LazyAutoVideo';
+import { StudioAurora } from '@/components/studio/StudioAurora';
 
 import foodTaco from '@/assets/mascots/food-truck-taco.png';
 import foodBurger from '@/assets/mascots/food-truck-burger.png';
@@ -30,17 +31,17 @@ interface Mascot {
 }
 
 const MASCOTS: Mascot[] = [
-  { id: 'taco',   name: 'El Capitán', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Sunbaked. Spatula-armed. Sells out by noon.',  palette: ['hsl(38,95%,55%)', 'hsl(8,85%,55%)'],   src: foodTaco,    loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-taco.webm' },
-  { id: 'burger', name: 'Patty Knox', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Wears the bandana. Rings the bell. Always running.',  palette: ['hsl(20,90%,55%)','hsl(0,75%,50%)'],    src: foodBurger,  loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-burger.webm' },
-  { id: 'cone',   name: 'Mintsy',     pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Pastel diplomat of the Sunday queue.',                  palette: ['hsl(150,55%,75%)','hsl(340,75%,80%)'], src: foodIce,     loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/food-truck-icecream.webm' },
+  { id: 'taco',   name: 'El Capitán', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Sunbaked. Spatula-armed. Sells out by noon.',  palette: ['hsl(38,95%,55%)', 'hsl(8,85%,55%)'],   src: foodTaco,    loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'burger', name: 'Patty Knox', pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Wears the bandana. Rings the bell. Always running.',  palette: ['hsl(20,90%,55%)','hsl(0,75%,50%)'],    src: foodBurger,  loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'cone',   name: 'Mintsy',     pack: 'food-truck', packLabel: 'Food Truck', tagline: 'Pastel diplomat of the Sunday queue.',                  palette: ['hsl(150,55%,75%)','hsl(340,75%,80%)'], src: foodIce,     loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
 
-  { id: 'tiger',  name: 'Coach Striker', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Saturday-morning energy in a track jacket.',  palette: ['hsl(48,100%,55%)','hsl(0,80%,55%)'],   src: cerealTiger,  loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-tiger.webm' },
-  { id: 'rabbit', name: 'Hexley the Wise', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Star wand. Cape. Endless bowl of magic.',     palette: ['hsl(285,55%,65%)','hsl(330,75%,80%)'], src: cerealRabbit, loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-wizard-rabbit.webm' },
-  { id: 'bear',   name: 'Captain Astro Bear', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Helmet on. Thumb up. Cereal in zero-G.',       palette: ['hsl(22,95%,55%)','hsl(180,40%,75%)'], src: cerealBear,   loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/cereal-astronaut-bear.webm' },
+  { id: 'tiger',  name: 'Coach Striker', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Saturday-morning energy in a track jacket.',  palette: ['hsl(48,100%,55%)','hsl(0,80%,55%)'],   src: cerealTiger,  loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'rabbit', name: 'Hexley the Wise', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Star wand. Cape. Endless bowl of magic.',     palette: ['hsl(285,55%,65%)','hsl(330,75%,80%)'], src: cerealRabbit, loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'bear',   name: 'Captain Astro Bear', pack: 'cereal-box', packLabel: 'Cereal Box', tagline: 'Helmet on. Thumb up. Cereal in zero-G.',       palette: ['hsl(22,95%,55%)','hsl(180,40%,75%)'], src: cerealBear,   loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
 
-  { id: 'knight', name: 'Aralt the Bold', pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Gilded helm. Glacier blade. Tutorial-boss energy.', palette: ['hsl(180,40%,30%)','hsl(45,90%,55%)'], src: indieKnight, loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-knight.webm' },
-  { id: 'fox',    name: 'Vesper Six',     pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Hooded. Twin daggers. Glows in the dark.',           palette: ['hsl(280,55%,30%)','hsl(320,95%,65%)'], src: indieFox,    loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-fox-rogue.webm' },
-  { id: 'robot',  name: 'Ko-12',          pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'One blue eye. Three thrusters. Best companion AI.',   palette: ['hsl(215,15%,40%)','hsl(195,95%,60%)'], src: indieRobot,  loop: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/mascots-anim/indie-robot.webm' },
+  { id: 'knight', name: 'Aralt the Bold', pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Gilded helm. Glacier blade. Tutorial-boss energy.', palette: ['hsl(180,40%,30%)','hsl(45,90%,55%)'], src: indieKnight, loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'fox',    name: 'Vesper Six',     pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'Hooded. Twin daggers. Glows in the dark.',           palette: ['hsl(280,55%,30%)','hsl(320,95%,65%)'], src: indieFox,    loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
+  { id: 'robot',  name: 'Ko-12',          pack: 'indie-game', packLabel: 'Indie Hero', tagline: 'One blue eye. Three thrusters. Best companion AI.',   palette: ['hsl(215,15%,40%)','hsl(195,95%,60%)'], src: indieRobot,  loop: 'https://videos.pexels.com/video-files/2715411/2715411-uhd_2560_1440_30fps.mp4' },
 ];
 
 const PACK_FILTERS = [
@@ -51,7 +52,7 @@ const PACK_FILTERS = [
 ] as const;
 
 export default function Mascots() {
-  usePageMeta({ title: "Mascots — Apex Studio", description: "Custom brand mascots and recurring characters for cinematic series." });
+  usePageMeta({ title: "Mascots — Small Bridges", description: "Custom brand mascots and recurring characters for cinematic series." });
 
   const [filter, setFilter] = useState<Pack>('all');
   const [animateOpen, setAnimateOpen] = useState(false);
@@ -68,7 +69,9 @@ export default function Mascots() {
   }
 
   return (
-    <PageShell width="wide">
+    <>
+      <StudioAurora intensity="subtle" />
+      <PageShell width="wide">
       <PageHeader
         eyebrow="Brand · Mascot Pack"
         title={<>Cast a character.<br/><span className="text-muted-foreground">Three worlds, nine heroes.</span></>}
@@ -169,5 +172,6 @@ export default function Mascots() {
         mascot={animateTarget}
       />
     </PageShell>
+    </>
   );
 }

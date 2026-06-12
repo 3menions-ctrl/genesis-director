@@ -3,25 +3,28 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
-
 import { usePageMeta } from '@/hooks/usePageMeta';
+
 /**
- * Onboarding (legacy redirect)
+ * Onboarding — landing target after email verification.
  *
- * The full onboarding wizard now lives at `/start` (StartOnboarding.tsx),
- * which captures display name, company, role, industry, team size, brand,
- * use case, plan and invites in a single guided flow.
+ * Behavior:
+ *   1. Consume any pending intent token from the /start wizard.
+ *   2. Mark onboarding_completed = true unconditionally (Small Bridges is free during
+ *      beta — the gating questions live in /start as a courtesy, but the
+ *      product itself works the moment auth succeeds).
+ *   3. Route to /welcome/checkout (which shows the BETA-FREE welcome card)
+ *      so brand-new users see what they got. Returning users skip straight
+ *      to /projects.
  *
- * Previously this file rendered a SECOND 5-step wizard that re-asked the
- * same questions after email verification — a bad duplicate experience.
- * It now simply:
- *   1. Consumes any pending intent token (if the user came from /start)
- *   2. Marks onboarding_completed if a profile exists but isn't flagged
- *   3. Forwards the user to their correct landing page (or back to /start
- *      if no prior data exists, so they answer the questions exactly once).
+ * The previous version of this file bounced the user back to /start in a
+ * loop when no intent token was present — that's gone.
  */
 export default function Onboarding() {
-  usePageMeta({ title: "Welcome to Apex Studio", description: "Three quick steps to set up your cinematic AI workspace." });
+  usePageMeta({
+    title: 'Welcome to Small Bridges',
+    description: 'Finishing setup for your Small Bridges account.',
+  });
 
   const { user, profile, refreshProfile, loading, isSessionVerified } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -35,54 +38,54 @@ export default function Onboarding() {
 
     let cancelled = false;
     (async () => {
-      // Try to consume any pending pre-signup intent (the path most users take).
-      let token: string | null = null;
-      try { token = sessionStorage.getItem('apex.intent_token'); } catch {}
+      // Consume an intent token from /start if one is present.
+      let intentToken: string | null = null;
+      try {
+        intentToken = sessionStorage.getItem('smallbridges.intent_token');
+      } catch {}
 
       let accountType: 'personal' | 'business' | 'enterprise' | undefined;
-      let planId: string | undefined;
-      let planKind: string | undefined;
 
-      if (token) {
+      if (intentToken) {
         try {
           const { data } = await supabase.rpc('consume_onboarding_intent', {
-            p_intent_token: token,
+            p_intent_token: intentToken,
           });
           const r = data as {
             success?: boolean;
             account_type?: 'personal' | 'business' | 'enterprise';
-            plan_id?: string;
-            plan_kind?: string;
           } | null;
-          if (r?.success) {
-            accountType = r.account_type;
-            planId = r.plan_id;
-            planKind = r.plan_kind;
-          }
+          if (r?.success) accountType = r.account_type;
         } catch (e) {
           console.warn('[Onboarding] intent consume failed', e);
         }
-        try { sessionStorage.removeItem('apex.intent_token'); } catch {}
+        try {
+          sessionStorage.removeItem('smallbridges.intent_token');
+        } catch {}
       }
 
-      // If the intent was consumed, the RPC already flagged onboarded.
-      // Otherwise, if the user has no prior wizard data at all, send them
-      // to /start so they answer the questionnaire exactly once.
-      const consumedIntent = !!accountType;
-      try { await refreshProfile(); } catch {}
-      if (!consumedIntent && profile && !profile.onboarding_completed) {
-        navigate('/start', { replace: true });
-        return;
+      // Always mark onboarding complete so the user can't get re-trapped in
+      // any future redirect that gates on this flag.
+      if (profile && !profile.onboarding_completed) {
+        try {
+          await supabase
+            .from('profiles')
+            .update({ onboarding_completed: true })
+            .eq('id', user.id);
+          await refreshProfile();
+        } catch (e) {
+          console.warn('[Onboarding] mark completed failed', e);
+        }
       }
 
       if (cancelled) return;
 
-      // Decide where to send the user.
-      const next = new URLSearchParams(window.location.search).get('next');
-      if (next) { navigate(next, { replace: true }); return; }
-
-      if (planId && planKind && planKind !== 'contact') {
-        navigate(`/welcome/checkout?plan=${planId}`, { replace: true });
+      // ?next= takes precedence (sanitized to same-origin).
+      const rawNext = new URLSearchParams(window.location.search).get('next');
+      const next =
+        rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
+      if (next) {
+        navigate(next, { replace: true });
         return;
       }
 
@@ -91,22 +94,20 @@ export default function Onboarding() {
         (profile?.account_type as 'personal' | 'business' | 'enterprise' | undefined) ??
         'personal';
 
+      // Brand-new accounts → welcome card. Returning accounts → project list.
+      const isBrandNew = (profile?.total_credits_used ?? 0) === 0;
+
       if (type === 'business' || type === 'enterprise') {
-        navigate('/workspace/overview', { replace: true });
+        navigate(isBrandNew ? '/welcome/checkout' : '/workspace', { replace: true });
       } else {
-        navigate('/create', { replace: true });
+        navigate(isBrandNew ? '/welcome/checkout' : '/projects', { replace: true });
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, profile, loading, isSessionVerified, navigate, refreshProfile]);
 
-  return (
-    <CinemaLoader
-      message="Finishing setup..."
-      showProgress
-      progress={85}
-      variant="fullscreen"
-    />
-  );
+  return <CinemaLoader message="Finishing setup..." showProgress progress={85} variant="fullscreen" />;
 }

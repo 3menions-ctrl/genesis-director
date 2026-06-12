@@ -60,8 +60,30 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
     );
   }, [shuffledTemplates, searchQuery]);
 
-  // Show first 20 avatars in compact mode, all in full mode
-  const displayTemplates = compact ? filteredTemplates.slice(0, 20) : filteredTemplates;
+  // Compact mode used to hard-cap at 20 — that made the picker feel like it
+  // "stopped loading" and was the source of the user-reported glitch. Now we
+  // surface progressive loading: render the first window immediately so the
+  // strip paints fast, then expand to the full catalogue after first paint.
+  const [compactWindow, setCompactWindow] = useState(40);
+  useEffect(() => {
+    if (!compact) return;
+    if (compactWindow >= filteredTemplates.length) return;
+    const onIdle = () => setCompactWindow((w) => Math.min(filteredTemplates.length, w + 60));
+    const handle = (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+      ? (window as Window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(onIdle)
+      : setTimeout(onIdle, 250);
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(handle as number);
+      } else {
+        clearTimeout(handle as ReturnType<typeof setTimeout>);
+      }
+    };
+  }, [compact, filteredTemplates.length, compactWindow]);
+
+  const displayTemplates = compact
+    ? filteredTemplates.slice(0, compactWindow)
+    : filteredTemplates;
 
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -114,6 +136,23 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
     }
   }, []);
 
+  // Compact mode: when the user scrolls near the right edge of the strip,
+  // bump the window so they see more avatars. Removes the "stops loading"
+  // glitch the user reported.
+  useEffect(() => {
+    if (!compact) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const remaining = el.scrollWidth - el.scrollLeft - el.clientWidth;
+      if (remaining < 400) {
+        setCompactWindow((w) => Math.min(filteredTemplates.length, w + 40));
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [compact, filteredTemplates.length]);
+
   if (compact) {
     // Horizontal strip view for inline use in CreationHub
     return (
@@ -152,20 +191,37 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
             <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
           </div>
         ) : (
-          <div 
+          <div
             ref={scrollContainerRef}
-            className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
-            style={{ scrollSnapType: 'x mandatory' }}
+            className="flex gap-3 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
+            style={{
+              // `proximity` snap is gentler than `mandatory`. Combined with
+              // `overscroll-behavior: contain` it prevents the horizontal
+              // scroll from leaking into the parent vertical scroll, which
+              // was the source of the on-scroll judder.
+              scrollSnapType: 'x proximity',
+              overscrollBehaviorX: 'contain',
+              overscrollBehaviorY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              // Reserve scroll-padding so a snapped item sits cleanly at the
+              // start of the visible area (no half-card peek-clip on snap).
+              scrollPaddingLeft: '12px',
+            }}
           >
             {displayTemplates.map((avatar) => (
               <div
                 key={avatar.id}
                 onClick={() => onSelect(avatar)}
                 className={cn(
-                  "relative flex-shrink-0 w-20 cursor-pointer transition-all duration-200",
+                  "relative flex-shrink-0 w-20 cursor-pointer transition-colors duration-200",
                   "scroll-snap-align-start"
                 )}
-                style={{ scrollSnapAlign: 'start' }}
+                style={{
+                  scrollSnapAlign: 'start',
+                  // Tell the browser layout/paint stays local to this card —
+                  // no thrashing the rest of the row during scroll.
+                  contain: 'layout paint style',
+                }}
               >
                 <div className={cn(
                   "aspect-[2/3] rounded-xl overflow-hidden border-2 transition-all",
@@ -256,12 +312,13 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
                 key={avatar.id}
                 onClick={() => onSelect(avatar)}
                 className={cn(
-                  "relative cursor-pointer transition-all duration-200 rounded-xl overflow-hidden",
+                  "relative cursor-pointer transition-colors duration-200 rounded-xl overflow-hidden",
                   "border-2",
                   selectedAvatar?.id === avatar.id
                     ? "border-violet-500 ring-2 ring-violet-500/30"
                     : "border-white/10 hover:border-white/30"
                 )}
+                style={{ contain: "layout paint style" }}
               >
                 <div className="aspect-[2/3]">
                   <img

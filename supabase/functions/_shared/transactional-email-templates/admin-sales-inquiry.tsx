@@ -66,8 +66,8 @@ function AdminSalesInquiry({
 export const template: TemplateEntry = {
   component: AdminSalesInquiry,
   displayName: 'Admin: Sales Inquiry',
-  subject: (d: Props) => `[Apex Sales] ${d?.companyName ?? 'New inquiry'} — ${d?.tierInterest ?? 'enterprise'}`,
-  to: 'apex-studio.ai@apex-studio.ai',
+  subject: (d: Props) => `[Small Bridges Sales] ${d?.companyName ?? 'New inquiry'} — ${d?.tierInterest ?? 'enterprise'}`,
+  to: 'smallbridges.com@smallbridges.com',
   previewData: {
     fullName: 'Jane Doe',
     workEmail: 'jane@acme.com',
@@ -77,7 +77,7 @@ export const template: TemplateEntry = {
     estimatedVideosPerMonth: '100-500',
     tierInterest: 'enterprise',
     useCase: 'Marketing video production at scale',
-    message: 'Looking to evaluate Apex for our brand team.',
+    message: 'Looking to evaluate Small Bridges for our brand team.',
     submittedAt: new Date().toISOString(),
     inquiryId: '00000000-0000-0000-0000-000000000000',
   },

@@ -8,7 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Terms = () => {
-  usePageMeta({ title: 'Terms of Service — Apex-Studio', description: 'Read the terms and conditions governing your use of the Apex-Studio platform.' });
+  usePageMeta({ title: 'Terms of Service — Small Bridges', description: 'Read the terms and conditions governing your use of the Small Bridges platform.' });
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
       {/* Abstract Background */}
@@ -54,7 +54,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
               <p>
-                By accessing and using Apex-Studio ("Service"), operated by Apex-studio LLC, a Missouri 
+                By accessing and using Small Bridges ("Service"), operated by Small Bridges-studio LLC, a Missouri 
                 limited liability company ("Company," "we," "our," or "us"), you accept and agree to be 
                 bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must 
                 not access or use the Service.
@@ -64,7 +64,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">2. Description of Service</h2>
               <p className="mb-4">
-                Apex-Studio is a software-as-a-service (SaaS) platform that provides AI-powered video 
+                Small Bridges is a software-as-a-service (SaaS) platform that provides AI-powered video 
                 generation tools allowing users to create, edit, and produce video content using artificial 
                 intelligence technology. The Service includes script generation, scene creation, video 
                 synthesis, and related features accessible via subscription or credit-based access.
@@ -182,7 +182,7 @@ const Terms = () => {
               <h2 className="text-xl font-semibold text-white mb-4">8. Intellectual Property</h2>
               <p>
                 The Service, including its original content, features, functionality, AI models, algorithms, 
-                software, and technology, is owned by Apex-studio LLC and is protected by United States and 
+                software, and technology, is owned by Small Bridges-studio LLC and is protected by United States and 
                 international copyright, trademark, patent, trade secret, and other intellectual property laws. 
                 Our trademarks and trade dress may not be used without our prior written permission.
               </p>
@@ -259,7 +259,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">12. Limitation of Liability</h2>
               <p className="mb-4 text-white/80">
-                TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL APEX-STUDIO LLC, 
+                TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL Small Bridges LLC, 
                 ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, OR THIRD-PARTY AI TECHNOLOGY 
                 PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, 
                 OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR:
@@ -290,7 +290,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">13. Indemnification</h2>
               <p>
-                You agree to indemnify, defend, and hold harmless Apex-studio LLC and its officers, 
+                You agree to indemnify, defend, and hold harmless Small Bridges-studio LLC and its officers, 
                 directors, employees, agents, and affiliates from and against any and all claims, 
                 damages, losses, costs, and expenses (including reasonable attorneys' fees) arising 
                 from or related to: (a) your use of the Service; (b) your violation of these Terms; 
@@ -306,13 +306,13 @@ const Terms = () => {
                 INCLUDING YOUR RIGHT TO FILE A LAWSUIT IN COURT.</strong>
               </p>
               <p className="mb-4">
-                You and Apex-studio LLC agree that any dispute, claim, or controversy arising out of or 
+                You and Small Bridges-studio LLC agree that any dispute, claim, or controversy arising out of or 
                 relating to these Terms or the Service shall be resolved through binding individual 
                 arbitration, rather than in court, except that either party may seek equitable relief 
                 in court for infringement or misuse of intellectual property rights.
               </p>
               <p className="mb-4">
-                <strong className="text-white">Class Action Waiver:</strong> YOU AND APEX-STUDIO LLC AGREE THAT 
+                <strong className="text-white">Class Action Waiver:</strong> YOU AND Small Bridges LLC AGREE THAT 
                 EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY 
                 AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS, COLLECTIVE, CONSOLIDATED, 
                 OR REPRESENTATIVE ACTION. YOU EXPRESSLY WAIVE ANY RIGHT TO PARTICIPATE IN A CLASS ACTION 
@@ -326,7 +326,7 @@ const Terms = () => {
               </p>
               <p>
                 <strong className="text-white">Opt-Out Right:</strong> You may opt out of this arbitration 
-                provision by sending written notice to apex-studio.ai@apex-studio.ai within 30 days of first 
+                provision by sending written notice to smallbridges.com@smallbridges.com within 30 days of first 
                 accepting these Terms. Your notice must include your name, address, email, and a clear 
                 statement that you wish to opt out of arbitration.
               </p>
@@ -380,7 +380,7 @@ const Terms = () => {
               </ul>
               <p className="mt-4">
                 Send notices to our DMCA Designated Agent at{' '}
-                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">apex-studio.ai@apex-studio.ai</a>.
+                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">smallbridges.com@smallbridges.com</a>.
                 We may, in appropriate circumstances and at our discretion, terminate the accounts of
                 users who are repeat infringers. Knowingly submitting a materially false notice may
                 result in liability under 17 U.S.C. § 512(f).
@@ -393,7 +393,7 @@ const Terms = () => {
                 You consent to receive communications from us electronically, including by email and
                 in-Service notices. Electronic communications satisfy any legal requirement that such
                 communications be in writing. Notices to us must be sent to{' '}
-                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">apex-studio.ai@apex-studio.ai</a>{' '}
+                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">smallbridges.com@smallbridges.com</a>{' '}
                 and are effective upon our confirmed receipt.
               </p>
             </section>
@@ -431,7 +431,7 @@ const Terms = () => {
               <p>
                 Our failure to enforce any right or provision of these Terms shall not constitute a
                 waiver of such right or provision. No waiver shall be effective unless in writing
-                and signed by an authorized representative of Apex-studio LLC.
+                and signed by an authorized representative of Small Bridges-studio LLC.
               </p>
             </section>
 
@@ -451,7 +451,7 @@ const Terms = () => {
                 These Terms, together with our{' '}
                 <Link to="/privacy" className="text-white hover:underline">Privacy Policy</Link>{' '}
                 and any additional terms you agree to when using specific features, constitute the
-                entire agreement between you and Apex-studio LLC concerning the Service and supersede
+                entire agreement between you and Small Bridges-studio LLC concerning the Service and supersede
                 all prior or contemporaneous agreements, communications, and proposals, whether oral
                 or written, between the parties.
               </p>
@@ -463,11 +463,11 @@ const Terms = () => {
                 For any questions about these Terms, please contact us:
               </p>
               <div className="space-y-2">
-                <p><strong className="text-white">Apex-studio LLC</strong></p>
+                <p><strong className="text-white">Small Bridges-studio LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
-                    apex-studio.ai@apex-studio.ai
+                  <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
+                    smallbridges.com@smallbridges.com
                   </a>
                 </p>
               </div>

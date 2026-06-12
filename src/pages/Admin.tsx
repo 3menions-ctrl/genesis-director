@@ -162,7 +162,7 @@ function StatPill({ icon: Icon, label, value, sub, accent }: {
 }
 
 export default function AdminDashboard() {
-  usePageMeta({ title: "Admin — Apex Studio", description: "Internal Apex Studio administration." });
+  usePageMeta({ title: "Admin — Small Bridges", description: "Internal Small Bridges administration." });
 
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules

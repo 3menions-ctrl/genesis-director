@@ -1,17 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const VIDEOS = [
-  { id: 'a1b6f181-26fa-4306-a663-d5892977b3fc', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4' },
-  { id: 'a0016bb1-34ea-45e3-a173-da9441a84bda', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4' },
-  { id: '71e83837-9ae4-4e79-a4f2-599163741b03', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4' },
-  { id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4' },
-  { id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4' },
-  { id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4' },
-  { id: '099597a1-0cbf-4d71-b000-7d140ab896d1', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171807679.mp4' },
-  { id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4' },
-  { id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4' },
-  { id: '7434c756-78d3-4f68-8107-b205930027c4', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4' },
-  { id: '5bd6da17-734b-452b-b8b0-3381e7c710e3', url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4' },
+  { id: 'a1b6f181-26fa-4306-a663-d5892977b3fc', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: 'a0016bb1-34ea-45e3-a173-da9441a84bda', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '71e83837-9ae4-4e79-a4f2-599163741b03', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '099597a1-0cbf-4d71-b000-7d140ab896d1', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '7434c756-78d3-4f68-8107-b205930027c4', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
+  { id: '5bd6da17-734b-452b-b8b0-3381e7c710e3', url: 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4' },
 ];
 
 // Extract a frame from video at specified time
@@ -115,7 +115,7 @@ export async function extractAllThumbnails(
 
 // Get existing thumbnail URLs from storage
 export function getThumbnailUrl(videoId: string): string {
-  return `https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-thumbnails/${videoId}.jpg`;
+  return `https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4${videoId}.jpg`;
 }
 
 export const VIDEO_THUMBNAIL_URLS: Record<string, string> = VIDEOS.reduce((acc, v) => {

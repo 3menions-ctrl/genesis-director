@@ -21,17 +21,17 @@ export function EmailLayout({
         <Container style={{ maxWidth: 560, margin: '0 auto', backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
           <Section style={{ padding: '28px 32px 8px 32px' }}>
             <Text style={{ color: ACCENT, fontSize: 11, letterSpacing: '0.32em', textTransform: 'uppercase', fontFamily: 'ui-sans-serif, system-ui', margin: 0 }}>
-              Apex Studio
+              Small Bridges
             </Text>
           </Section>
           <Section style={{ padding: '0 32px 24px 32px' }}>{children}</Section>
           <Hr style={{ borderColor: BORDER, margin: 0 }} />
           <Section style={{ padding: '20px 32px' }}>
             <Text style={{ color: MUTED, fontSize: 12, lineHeight: '1.6', margin: 0 }}>
-              {footerNote || 'You receive this because you have an active Apex Studio account.'}
+              {footerNote || 'You receive this because you have an active Small Bridges account.'}
             </Text>
             <Text style={{ color: MUTED, fontSize: 11, lineHeight: '1.6', marginTop: 8 }}>
-              <Link href="https://apex-studio.ai/settings?section=notifications" style={{ color: MUTED, textDecoration: 'underline' }}>
+              <Link href="https://smallbridges.com/settings?section=notifications" style={{ color: MUTED, textDecoration: 'underline' }}>
                 Manage email preferences
               </Link>
               {' · '}

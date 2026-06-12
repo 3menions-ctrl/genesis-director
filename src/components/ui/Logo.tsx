@@ -1,6 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
-import logoImage from '@/assets/apex-studio-logo.webp';
+import logoImage from '@/assets/small-bridges-logo.webp';
 
 interface LogoProps {
   className?: string;
@@ -22,12 +22,12 @@ export const Logo = memo(forwardRef<HTMLDivElement, LogoProps>(
       <div ref={ref} className={cn("flex items-center gap-2", className)}>
         <img 
           src={logoImage} 
-          alt="Apex-Studio" 
+          alt="Small Bridges" 
           className={cn(sizeMap[size], "object-contain")}
         />
         {showText && (
           <span className={cn("font-semibold text-white tracking-tight", textClassName)}>
-            Apex-Studio
+            Small Bridges
           </span>
         )}
       </div>

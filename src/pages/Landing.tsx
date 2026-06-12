@@ -12,6 +12,18 @@ import { CategoryChooserOverlay, type AudienceCategory } from '@/components/land
 import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
+// ── Round-2 premium landing primitives ─────────────────────────────────
+import { FilmGrainOverlay } from '@/components/landing/FilmGrainOverlay';
+import { FrameTimecode } from '@/components/landing/FrameTimecode';
+import { LiveStatRibbon } from '@/components/landing/LiveStatRibbon';
+import { ProductionSlate } from '@/components/landing/ProductionSlate';
+import { DirectorsReel } from '@/components/landing/DirectorsReel';
+import { InlineSandbox } from '@/components/landing/InlineSandbox';
+import { CastingWall } from '@/components/landing/CastingWall';
+import { PressJunketFAQ } from '@/components/landing/PressJunketFAQ';
+import { PricingCrew } from '@/components/landing/PricingCrew';
+import { EndCreditsFooter } from '@/components/landing/EndCreditsFooter';
+
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
   LandingDiagnosticsProvider,
@@ -133,7 +145,7 @@ export default function Landing() {
 }
 
 function LandingInner() {
-  usePageMeta({ title: "Apex Studio — Cinematic AI video creation", description: "Generate Hollywood-quality video scenes from a single prompt. Avatars, environments, and dialogue, all unified." });
+  usePageMeta({ title: "Small Bridges — Cinematic AI video creation", description: "Generate Hollywood-quality video scenes from a single prompt. Avatars, environments, and dialogue, all unified." });
 
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -264,7 +276,7 @@ function LandingInner() {
   const handleSelectCategory = useCallback(
     (category: AudienceCategory) => {
       try {
-        localStorage.setItem('apex.audience', category);
+        localStorage.setItem('smallbridges.audience', category);
       } catch {}
       setChooserOpen(false);
       navigate(`/start?type=${category}`);
@@ -281,7 +293,7 @@ function LandingInner() {
     // before completion lets /studio paint underneath the white-flash dissolve
     // so there is no black flash between scenes — but late enough that the
     // wordmark + monogram beats are fully visible first.
-    window.setTimeout(() => navigate('/studio'), 4300);
+    window.setTimeout(() => navigate('/studio'), 7300);
   }, [navigate]);
 
   // The cinema loader is a sibling of the page content. We render the page
@@ -305,6 +317,9 @@ function LandingInner() {
         showProgress={true}
         variant="fullscreen"
       />
+      {/* Always-on cinematic overlays — film grain texture + scrubber timecode */}
+      <FilmGrainOverlay />
+      <FrameTimecode />
       <div
         className="landing-glass-scope min-h-screen overflow-hidden relative"
         style={{
@@ -346,120 +361,118 @@ function LandingInner() {
         </TrackedSection>
       )}
 
+      {/* Live stat ribbon — top-of-page "the platform is alive" signal */}
+      <LiveStatRibbon />
+
       {/* Foreground content column — stacks above the fixed video layer */}
       <div className="relative z-10">
       {/* Hero — extra top breathing room from sticky nav */}
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleEnterStudio} /></div>
 
-      <Divider size="lg" />
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="01"
+        location="The Sandbox"
+        intExt="INT."
+        timeOfDay="CONTINUOUS"
+        take={1}
+        roll="SB.01"
+      />
 
-      {/* For everyone — Personal · Business · Enterprise tracks */}
-      <Chapter n="01" kicker="For Everyone" size="md">
-        <TrackedSection name="AudienceSegments" fallback={<SectionLoader />}>
-          <AudienceSegments onStart={handleStart} />
-        </TrackedSection>
-      </Chapter>
-      <Divider size="lg" />
+      {/* Inline Sandbox — the unsignaled magic moment */}
+      <TrackedSection name="InlineSandbox" fallback={<SectionLoader />}>
+        <InlineSandbox />
+      </TrackedSection>
 
-      {/* Before / After — drag-to-compare brief vs. final film */}
-      <Chapter n="02" kicker="Before / After">
-        <TrackedSection name="BeforeAfterGallery" fallback={<SectionLoader />}><BeforeAfterGallery /></TrackedSection>
-      </Chapter>
-      <Divider size="lg" />
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="02"
+        location="The Director's Reel"
+        intExt="INT."
+        timeOfDay="DAY"
+        take={2}
+        roll="DR.02"
+      />
 
-      {/* The Engine — generation engine reveal (the "wow") */}
-      <Chapter n="03" kicker="The Engine" size="lg">
-        <TrackedSection name="SeedanceSection" fallback={<SectionLoader />}>
-          <SeedanceSection onCta={handleStart} />
-        </TrackedSection>
-      </Chapter>
-      <Divider size="lg" />
+      {/* Director's Reel — replaces BeforeAfter + Seedance + FrameChaining + B2BWorkflow */}
+      <TrackedSection name="DirectorsReel" fallback={<SectionLoader />}>
+        <DirectorsReel />
+      </TrackedSection>
 
-      {/* Frame Chaining — five-second clips chain into long-form films */}
-      <Chapter n="3.5" kicker="Frame Chaining" size="lg">
-        <TrackedSection name="FrameChainingSection" fallback={<SectionLoader />}>
-          <FrameChainingSection />
-        </TrackedSection>
-      </Chapter>
-      <Divider size="lg" />
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="03"
+        location="The Casting Wall"
+        intExt="INT."
+        timeOfDay="DUSK"
+        take={3}
+        roll="CW.03"
+      />
 
-      {/* The Workflow — prompt → film, in plain language */}
-      <Chapter n="04" kicker="The Workflow">
-        <TrackedSection name="B2BWorkflow" fallback={<SectionLoader />}><B2BWorkflow /></TrackedSection>
-      </Chapter>
-      <Divider size="lg" />
+      {/* Casting Wall — real generated characters as social proof */}
+      <TrackedSection name="CastingWall" fallback={<SectionLoader />}>
+        <CastingWall />
+      </TrackedSection>
 
-      {/* Enter the Studio — gateway to the full capability tour */}
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="04"
+        location="For Everyone"
+        intExt="EXT."
+        timeOfDay="DAY"
+        take={4}
+        roll="AS.04"
+      />
+
+      {/* For everyone — Personal · Business · Enterprise tracks (kept) */}
+      <TrackedSection name="AudienceSegments" fallback={<SectionLoader />}>
+        <AudienceSegments onStart={handleStart} />
+      </TrackedSection>
+
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="05"
+        location="Enter the Studio"
+        intExt="INT."
+        timeOfDay="NIGHT"
+        take={5}
+        roll="ES.05"
+      />
+
+      {/* Enter the Studio — kept; cinematic CTA */}
       <TrackedSection name="EnterStudioEpic" fallback={<SectionLoader />}>
         <EnterStudioEpic onStart={handleStart} onEnter={() => navigate('/studio')} />
       </TrackedSection>
 
-      <Divider size="lg" />
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="06"
+        location="The Production Crew"
+        intExt="INT."
+        timeOfDay="DAY"
+        take={6}
+        roll="PC.06"
+      />
 
-      {/* Pricing anchor — keep simple, link to /pricing */}
-      <section id="pricing" className="relative z-10 py-40 md:py-56 px-6">
-        {/* Subtle radial spotlight behind pricing */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              'radial-gradient(50% 60% at 50% 40%, hsla(212,100%,50%,0.10), transparent 70%)',
-          }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-3xl mx-auto text-center"
-        >
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
-            <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-              Pricing · Chapter 05
-            </span>
-          </div>
-          <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]">
-            Pay only for{' '}
-            <span
-              className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              what you ship.
-            </span>
-          </h2>
-          <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
-            $0.10 per credit. No seats, no minimums. Add credits as your team
-            scales — or talk to us about volume contracts.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => navigate('/pricing')}
-              className="h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.04] shadow-[0_20px_60px_-20px_rgba(255,255,255,0.4)]"
-            >
-              See pricing
-            </button>
-            <button
-              onClick={handleSales}
-              className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
-            >
-              Volume & enterprise
-            </button>
-          </div>
-        </motion.div>
-      </section>
+      {/* Pricing as Production Crew — replaces the inline price block */}
+      <TrackedSection name="PricingCrew" fallback={<SectionLoader />}>
+        <PricingCrew />
+      </TrackedSection>
 
-      <Divider size="md" />
+      <ProductionSlate
+        eyebrow="Up Next"
+        scene="07"
+        location="The Junket"
+        intExt="INT."
+        timeOfDay="DAY"
+        take={7}
+        roll="PJ.07"
+      />
 
-      {/* FAQ */}
-      <div id="faq">
-        <TrackedSection name="FAQSection" fallback={<SectionLoader />}>
-          <Spaced><FAQSection /></Spaced>
-        </TrackedSection>
-      </div>
-
-      <Divider size="lg" />
+      {/* Press Junket FAQ — replaces standard accordion */}
+      <TrackedSection name="PressJunketFAQ" fallback={<SectionLoader />}>
+        <PressJunketFAQ />
+      </TrackedSection>
 
       {/* Final CTA */}
       <Spaced size="lg">
@@ -468,11 +481,9 @@ function LandingInner() {
         </TrackedSection>
       </Spaced>
 
-      <Divider size="md" />
-
-      {/* Footer */}
-      <TrackedSection name="Footer" fallback={<SectionLoader />}>
-        <Footer />
+      {/* End-credits footer — replaces standard footer */}
+      <TrackedSection name="EndCreditsFooter" fallback={<SectionLoader />}>
+        <EndCreditsFooter />
       </TrackedSection>
       </div>
 

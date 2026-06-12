@@ -69,8 +69,18 @@ Deno.serve(async (req) => {
     if (!prices.data.length) throw new Error(`Price not found for lookup_key: ${pkg.priceId}`);
     const stripePrice = prices.data[0];
 
-    const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
-    const finalReturnUrl = returnUrl || `${origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`;
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://genesis-director.lovable.app";
+    const fallbackReturn = `${origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`;
+    // Open-redirect guard: the requested returnUrl must point at our own
+    // domain (or an approved preview host). Otherwise fall back. Without
+    // this, an attacker could pass returnUrl=https://evil.com and Stripe
+    // would dutifully redirect the legit user there after checkout.
+    const { safeReturnUrl } = await import("../_shared/return-url.ts");
+    const finalReturnUrl = safeReturnUrl({
+      requested: returnUrl,
+      fallback: fallbackReturn,
+      requestUrl: req.url,
+    });
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],

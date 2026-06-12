@@ -2,6 +2,7 @@ import type { ComponentType } from 'npm:react@18.3.1'
 import { template as renderComplete } from './render-complete.tsx'
 import { template as lowCredits } from './low-credits.tsx'
 import { template as paymentFailed } from './payment-failed.tsx'
+import { template as userWelcome } from './user-welcome.tsx'
 import { template as orgMemberJoined } from './org-member-joined.tsx'
 import { template as orgRoleChanged } from './org-role-changed.tsx'
 import { template as orgCreditsLow } from './org-credits-low.tsx'
@@ -29,6 +30,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   render_complete: renderComplete,
   low_credits: lowCredits,
   payment_failed: paymentFailed,
+  user_welcome: userWelcome,
   org_member_joined: orgMemberJoined,
   org_role_changed: orgRoleChanged,
   org_credits_low: orgCreditsLow,

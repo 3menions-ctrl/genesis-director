@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       `You are a professional UI translator. Translate the given UI strings ` +
       `into ${languageName} (${targetLanguage}). Rules:\n` +
       `1. Preserve placeholders like {{name}}, {0}, %s exactly.\n` +
-      `2. Keep brand names ("Apex Studio", "Lovable Cloud", "Stripe", "Supabase", "GitHub", "Google", "Apple") in English.\n` +
+      `2. Keep brand names ("Small Bridges", "Lovable Cloud", "Stripe", "Supabase", "GitHub", "Google", "Apple") in English.\n` +
       `3. Match tone — concise, premium, cinematic.\n` +
       `4. Do NOT add explanations or quotes around output.\n` +
       `5. Return strictly via the provided tool.`;

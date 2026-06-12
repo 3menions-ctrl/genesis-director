@@ -358,7 +358,7 @@ CRITICAL REQUIREMENTS:
 
     // ═══════════════════════════════════════════════════════════
     // STAGE 3: VIDEO GENERATION ORCHESTRATION
-    // Trigger the Apex Pipeline for each scene via mode-router
+    // Trigger the Small Bridges Pipeline for each scene via mode-router
     // ═══════════════════════════════════════════════════════════
 
     let videoGenerationStarted = false;
@@ -435,7 +435,7 @@ CRITICAL REQUIREMENTS:
         video_generation_started: videoGenerationStarted,
         projects_created: generatedProjects,
         pipeline_note: videoGenerationStarted 
-          ? `${generatedProjects.length} video${generatedProjects.length > 1 ? 's' : ''} generating via Apex Pipeline. Videos will auto-populate when complete.`
+          ? `${generatedProjects.length} video${generatedProjects.length > 1 ? 's' : ''} generating via Small Bridges Pipeline. Videos will auto-populate when complete.`
           : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

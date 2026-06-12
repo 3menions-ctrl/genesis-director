@@ -42,7 +42,7 @@ export function SupportInboxModal() {
             Help &amp; Support — Direct line to admins
           </DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            Send a message to apex-studio admins. This window stays open until you exit.
+            Send a message to small-bridges admins. This window stays open until you exit.
           </DialogPrimitive.Description>
 
           {/* Hero band */}
@@ -56,7 +56,7 @@ export function SupportInboxModal() {
                   Help &amp; Support
                 </h1>
                 <p className="text-[11px] uppercase tracking-[0.32em] text-muted-foreground font-mono mt-1">
-                  Direct line to apex-studio admins · Private · Replies in realtime
+                  Direct line to small-bridges admins · Private · Replies in realtime
                 </p>
               </div>
             </div>

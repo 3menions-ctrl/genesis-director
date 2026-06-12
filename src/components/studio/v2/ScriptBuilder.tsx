@@ -120,7 +120,7 @@ function continuityWarnings(scene: SceneDraft, cast: CastMember[], prev?: SceneD
 /** Export the script in Fountain format — open standard, opens in Highland,
  *  WriterDuet, Final Draft, etc. */
 function toFountain(scenes: SceneDraft[], cast: CastMember[], title: string): string {
-  const head = `Title: ${title || "Untitled"}\nAuthor: Apex Studio\n\n`;
+  const head = `Title: ${title || "Untitled"}\nAuthor: Small Bridges\n\n`;
   const body = scenes.map(s => {
     const slug = (s.location || "INT. SCENE").toUpperCase();
     const speaker = cast.find(c => c.id === s.speakerId)?.name?.toUpperCase();

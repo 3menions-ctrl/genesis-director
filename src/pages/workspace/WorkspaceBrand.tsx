@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Palette, Save, Loader2, Mic2, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Palette, Save, Loader2, Mic2, Image as ImageIcon, Wand2, UploadCloud, Trash2 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
@@ -8,6 +8,9 @@ import {
 } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+const MAX_LOGO_BYTES = 4 * 1024 * 1024; // 4MB
 
 const VOICE_PRESETS = [
   { id: 'bold',          label: 'BOLD & CONFIDENT',  desc: 'Big claims, strong stance' },
@@ -185,22 +188,15 @@ export default function WorkspaceBrand() {
 
         <Section
           icon={ImageIcon}
-          label="Logo source"
-          sublabel="Direct URL. Native upload coming soon."
+          label="Logo"
+          sublabel="Upload a PNG, JPG, WebP or SVG. Or paste a URL — both work."
         >
-          <Field label="Asset URL">
-            <DataInput
-              placeholder="https://your-cdn.com/logo.png"
-              value={logoUrl}
-              disabled={!canEdit}
-              onChange={(e) => setLogoUrl(e.target.value)}
-            />
-          </Field>
-          {logoUrl && (
-            <div className="mt-4 inline-flex items-center justify-center p-4 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,4%)]">
-              <img src={logoUrl} alt="Brand logo preview" className="h-12 w-auto max-w-[200px] object-contain" />
-            </div>
-          )}
+          <LogoUploader
+            currentUrl={logoUrl}
+            onChange={setLogoUrl}
+            canEdit={canEdit}
+            orgId={currentOrg?.id}
+          />
         </Section>
 
         {canEdit && (
@@ -216,5 +212,160 @@ export default function WorkspaceBrand() {
         )}
       </div>
     </WorkspaceLayout>
+  );
+}
+
+// ── Logo uploader ───────────────────────────────────────────────────────
+
+function LogoUploader({
+  currentUrl,
+  onChange,
+  canEdit,
+  orgId,
+}: {
+  currentUrl: string;
+  onChange: (url: string) => void;
+  canEdit: boolean;
+  orgId: string | undefined;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const upload = async (file: File) => {
+    if (!orgId) return;
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
+      toast.error('Use PNG, JPG, WebP, or SVG');
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      toast.error('File is larger than 4MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const path = `${orgId}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('workspace-brand')
+        .upload(path, file, {
+          contentType: file.type,
+          upsert: true,
+          cacheControl: '3600',
+        });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('workspace-brand').getPublicUrl(path);
+      const publicUrl = data.publicUrl;
+
+      // Record asset metadata for audit & later retrieval
+      await supabase.from('workspace_brand_assets').upsert(
+        {
+          organization_id: orgId,
+          kind: 'logo_primary',
+          storage_path: path,
+          public_url: publicUrl,
+          mime_type: file.type,
+          size_bytes: file.size,
+        },
+        { onConflict: 'organization_id,kind' },
+      );
+
+      onChange(publicUrl);
+      toast.success('Logo uploaded');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (!canEdit) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) void upload(file);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => {
+          if (!canEdit) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => canEdit && !uploading && inputRef.current?.click()}
+        className={cn(
+          'relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-8 transition-colors',
+          dragging
+            ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.05]'
+            : 'border-white/[0.08] bg-white/[0.015]',
+          canEdit ? 'cursor-pointer hover:border-white/20' : 'cursor-not-allowed opacity-50',
+        )}
+      >
+        {uploading ? (
+          <Loader2 className="w-5 h-5 text-[#6FB6FF] animate-spin" />
+        ) : (
+          <UploadCloud className="w-5 h-5 text-white/45" />
+        )}
+        <div className="text-[12px] text-white/75 font-light">
+          {uploading
+            ? 'Uploading…'
+            : dragging
+              ? 'Drop logo to upload'
+              : 'Drop a logo here or click to choose a file'}
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
+          PNG · JPG · WebP · SVG · 4MB max
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_LOGO_TYPES.join(',')}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void upload(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+
+      {/* URL fallback */}
+      <Field label="Or paste an asset URL">
+        <DataInput
+          placeholder="https://your-cdn.com/logo.png"
+          value={currentUrl}
+          disabled={!canEdit}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </Field>
+
+      {/* Preview */}
+      {currentUrl && (
+        <div className="flex items-center gap-4">
+          <div className="inline-flex items-center justify-center p-4 border border-[hsl(220,14%,16%)] bg-[hsl(220,14%,4%)] rounded-xl">
+            <img
+              src={currentUrl}
+              alt="Brand logo preview"
+              className="h-12 w-auto max-w-[200px] object-contain"
+              onError={() => toast.error('Could not load image at that URL')}
+            />
+          </div>
+          {canEdit && (
+            <button
+              onClick={() => onChange('')}
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-rose-300 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" /> Remove
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

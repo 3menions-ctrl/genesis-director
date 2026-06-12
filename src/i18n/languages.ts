@@ -1,4 +1,4 @@
-// Top 25 world languages supported by Apex Studio
+// Top 25 world languages supported by Small Bridges
 export type LanguageCode =
   | "en" | "es" | "fr" | "de" | "pt" | "it" | "ja" | "zh" | "ar" | "hi"
   | "ru" | "ko" | "tr" | "nl" | "pl" | "sv" | "id" | "vi" | "th" | "fa"

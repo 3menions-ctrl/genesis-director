@@ -399,7 +399,7 @@ export function ImageStudioHub() {
                         </Button>
                         <a
                           href={img.url}
-                          download={`apex-${img.id}.png`}
+                          download={`smallbridges-${img.id}.png`}
                           onClick={(e) => e.stopPropagation()}
                           className="ml-auto inline-flex h-8 px-3 items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"
                         >
@@ -455,7 +455,7 @@ export function ImageStudioHub() {
                 <p className="text-body-muted text-sm leading-relaxed">{preview.prompt}</p>
                 <div className="grid grid-cols-2 gap-2 pt-4">
                   <Button variant="pill" size="pill" asChild>
-                    <a href={preview.url} download={`apex-${preview.id}.png`}>
+                    <a href={preview.url} download={`smallbridges-${preview.id}.png`}>
                       <Download className="w-4 h-4" /> Download
                     </a>
                   </Button>

@@ -1,12 +1,19 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-type Width = 'narrow' | 'default' | 'wide' | 'full';
+type Width = 'narrow' | 'default' | 'wide' | 'gallery' | 'full';
 
+// Canonical content widths.
+//   narrow  — focused reading / forms (Auth-adjacent personal flows)
+//   default — most personal pages (Settings, Profile, Notifications)
+//   wide    — the standard app-content width (Credits, SupportInbox, library)
+//   gallery — for grids that need extra breathing room (Projects, MediaLibrary)
+//   full    — opt-out for pages providing their own container
 const widthMap: Record<Width, string> = {
   narrow: 'max-w-3xl',
   default: 'max-w-5xl',
   wide: 'max-w-7xl',
+  gallery: 'max-w-[1800px]',
   full: 'max-w-none',
 };
 

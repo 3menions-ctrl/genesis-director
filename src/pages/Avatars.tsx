@@ -36,7 +36,6 @@ import { AvatarsHero } from '@/components/avatars/AvatarsHero';
 import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
 import { AvatarsFilters } from '@/components/avatars/AvatarsFilters';
 import { AvatarsConfigPanel } from '@/components/avatars/AvatarsConfigPanel';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
@@ -48,6 +47,7 @@ import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
+import { StudioAurora } from '@/components/studio/StudioAurora';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // GATEKEEPER: Extract critical image URLs from templates
@@ -473,10 +473,6 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>
-      <SafeComponent name="AppHeader" fallback={<div className="h-16" />}>
-        <AppHeader />
-      </SafeComponent>
-      
       {/* Scrollable content area — grows to fill space above the fixed config panel */}
       <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="animate-fade-in">
@@ -584,10 +580,11 @@ AvatarsContent.displayName = 'AvatarsContent';
 
 // Wrapper with error boundary - ref forwarding not needed as ErrorBoundary doesn't pass refs
 export default function Avatars() {
-  usePageMeta({ title: "Avatars — Apex Studio", description: "Cast, customize, and direct cinematic AI avatars for your scenes." });
+  usePageMeta({ title: "Avatars — Small Bridges", description: "Cast, customize, and direct cinematic AI avatars for your scenes." });
 
   return (
     <ErrorBoundary>
+      <StudioAurora intensity="subtle" />
       <AvatarsContent />
     </ErrorBoundary>
   );

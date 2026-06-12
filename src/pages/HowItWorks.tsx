@@ -135,12 +135,12 @@ const PIPELINE_LAYERS = [
 ];
 
 const COMPARISON_POINTS = [
-  { raw: 'Write a prompt, get a clip', apex: 'Write a concept, get a film' },
-  { raw: 'Characters morph between clips', apex: 'Identity locked across every scene' },
-  { raw: 'Random camera angles', apex: '12 cinematic movements, 14 angles' },
-  { raw: 'No scene continuity', apex: 'Frame-chained sequential linking' },
-  { raw: 'AI artifacts & crew reflections', apex: '25-point hallucination filter' },
-  { raw: 'Silent video output', apex: 'TTS, music, dialogue ducking' },
+  { raw: 'Write a prompt, get a clip', us: 'Write a concept, get a film' },
+  { raw: 'Characters morph between clips', us: 'Identity locked across every scene' },
+  { raw: 'Random camera angles', us: '12 cinematic movements, 14 angles' },
+  { raw: 'No scene continuity', us: 'Frame-chained sequential linking' },
+  { raw: 'AI artifacts & crew reflections', us: '25-point hallucination filter' },
+  { raw: 'Silent video output', us: 'TTS, music, dialogue ducking' },
 ];
 
 // ─── Animated Layer Card ────────────────────────────────────────────
@@ -223,7 +223,7 @@ const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPE
 
 // ─── Main Page ──────────────────────────────────────────────────────
 export default function HowItWorks() {
-  usePageMeta({ title: "How It Works — Apex Studio", description: "From script to screen in minutes. See how Apex Studio's pipeline turns ideas into cinematic video." });
+  usePageMeta({ title: "How It Works — Small Bridges", description: "From script to screen in minutes. See how Small Bridges's pipeline turns ideas into cinematic video." });
 
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -295,7 +295,7 @@ export default function HowItWorks() {
           </p>
 
           <p className="text-sm text-white/55 mb-12">
-            Powered by <span className="text-white/75 font-medium">Kling V3</span> — orchestrated by Apex
+            Powered by <span className="text-white/75 font-medium">Kling V3</span> — orchestrated by Small Bridges
           </p>
         </motion.div>
 
@@ -345,7 +345,7 @@ export default function HowItWorks() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-              Raw AI vs. Apex Pipeline
+              Raw AI vs. Small Bridges Pipeline
             </h2>
             <p className="text-base text-white/35">
               The difference between prompting Kling V3 directly and using our full production system.
@@ -369,7 +369,7 @@ export default function HowItWorks() {
                 <ArrowRight className="w-4 h-4 text-white/15 hidden md:block" />
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-white/60 shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
-                  <span className="text-sm text-white/70 font-medium">{point.apex}</span>
+                  <span className="text-sm text-white/70 font-medium">{point.us}</span>
                 </div>
               </motion.div>
             ))}

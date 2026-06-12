@@ -96,7 +96,7 @@ const signupFormSchema = z.object({
 // CRITICAL: forwardRef wrapper to prevent "Function components cannot be given refs" crash
 const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_props, ref) {
   const internalRef = useRef<HTMLDivElement>(null);
-  usePageMeta({ title: "Sign in — Apex Studio", description: "Sign in or create your Apex Studio account." });
+  usePageMeta({ title: "Sign in — Small Bridges", description: "Sign in or create your Small Bridges account." });
 
   const mergedRef = useCallback((node: HTMLDivElement | null) => {
     internalRef.current = node;
@@ -110,24 +110,20 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   }, [ref]);
 
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading: authLoading, isAdmin, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
-  
+  const { user, profile, loading: authLoading, isAdmin, signIn, signUp } = useAuth();
+
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const fromCreate = searchParams.get('from') === 'create';
   const modeParam = searchParams.get('mode');
-  const nextParam = searchParams.get('next');
-  
-  const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
+  // `next` is sanitized to prevent open-redirects. Only same-origin paths starting
+  // with a single `/` are honored; everything else falls back to the default landing.
+  const rawNext = searchParams.get('next');
+  const nextParam =
+    rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//')
+      ? rawNext
+      : null;
 
-  // Signup must always go through the full guided onboarding wizard at /start.
-  // If anyone lands on /auth?mode=signup, immediately redirect them there
-  // (preserving any `next` redirect target).
-  useEffect(() => {
-    if (modeParam === 'signup') {
-      const target = nextParam ? `/start?next=${encodeURIComponent(nextParam)}` : '/start';
-      navigate(target, { replace: true });
-    }
-  }, [modeParam, nextParam, navigate]);
+  const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -143,23 +139,6 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [otpCode, setOtpCode] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'apple'>(null);
-
-  const handleOAuth = useCallback(async (provider: 'google' | 'apple') => {
-    setOauthLoading(provider);
-    try {
-      const { error } = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
-      if (error) {
-        toast.error(`${provider === 'google' ? 'Google' : 'Apple'} sign-in failed. Please try again.`);
-        setOauthLoading(null);
-      }
-      // On success the browser redirects to provider; loading state stays until navigation
-    } catch {
-      toast.error('Sign-in failed. Please try again.');
-      setOauthLoading(null);
-    }
-  }, [signInWithGoogle, signInWithApple]);
-
   const trackSignup = useCallback(async (userId: string) => {
     try {
       // Wait briefly for session to be fully established in the client
@@ -212,7 +191,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       setHasRedirected(true);
       trackSignup(user.id);
       if (!profile.onboarding_completed) {
-        // Preserve `next` through onboarding so post-onboarding can resume the buy flow.
+        // Onboarding finalizes setup and routes to /welcome/checkout (beta) or projects.
         const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
         navigate(target, { replace: true });
       } else {
@@ -221,11 +200,18 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
           return;
         }
 
-        // Business / enterprise accounts land in the Operations Command Center;
-        // personal accounts land in the Studio.
+        // Returning users land on their project library (SaaS convention) —
+        // the new-creation path is one click from there. Business accounts
+        // land on the Workspace dashboard. Brand-new users land on the
+        // welcome card so they can see their starter credits before working.
         const isBusinessAccount =
           profile.account_type === 'business' || profile.account_type === 'enterprise';
-        const defaultLanding = isBusinessAccount ? '/workspace' : '/create';
+        const isBrandNew = (profile.total_credits_used ?? 0) === 0;
+        const defaultLanding = isBrandNew
+          ? '/welcome/checkout'
+          : isBusinessAccount
+            ? '/workspace'
+            : '/projects';
         navigate(nextParam || defaultLanding, { replace: true });
       }
     }
@@ -281,7 +267,19 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         } else {
           const { data: sessionData } = await supabase.auth.getUser();
           if (sessionData?.user) trackSignup(sessionData.user.id);
-          setShowWelcomeDialog(true);
+          // Only show the "Welcome back" Hoppy dialog to genuinely-returning
+          // users — defined as anyone who has consumed credits before. New
+          // accounts go straight to the welcome card / projects so the first
+          // experience is never a blocking animation.
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('total_credits_used')
+            .eq('id', sessionData?.user?.id ?? '')
+            .maybeSingle();
+          const isReturning = (profileRow?.total_credits_used ?? 0) > 0;
+          if (isReturning) {
+            setShowWelcomeDialog(true);
+          }
         }
       } else {
         const { error } = await signUp(trimmedEmail, password);
@@ -376,7 +374,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
           <div className="absolute inset-0">
             <motion.img 
               src={authHeroImage}
-              alt="Apex-Studio"
+              alt="Small Bridges"
               className="w-full h-full object-cover object-center"
               initial={{ scale: 1.1, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -411,7 +409,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-6">
                   <span className="w-1 h-1 rounded-full bg-[hsl(212,100%,55%)] shadow-[0_0_8px_hsl(212,100%,55%)]" />
-                  <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Apex-Studio Pro</span>
+                  <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Small Bridges Pro</span>
                 </div>
                 <h2 className="text-5xl xl:text-7xl font-display font-semibold text-white leading-[0.98] tracking-[-0.035em]">
                   Create.<br />
@@ -488,7 +486,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               >
                 <Logo size="xl" />
               </motion.div>
-              <h1 className="text-xl font-display font-semibold tracking-[-0.01em] text-white/90">Apex-Studio</h1>
+              <h1 className="text-xl font-display font-semibold tracking-[-0.01em] text-white/90">Small Bridges</h1>
             </div>
 
             {/* Glass card — Apple-clean, hairline ring, deep shadow */}
@@ -640,7 +638,26 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   toast.success('Email verified! Welcome aboard.');
                                   // Track signup analytics after OTP verification
                                   const { data: sessionData } = await supabase.auth.getUser();
-                                  if (sessionData?.user) trackSignup(sessionData.user.id);
+                                  if (sessionData?.user) {
+                                    trackSignup(sessionData.user.id);
+                                    // Fire-and-forget welcome email. We don't gate UI on this
+                                    // — if the function is missing it logs and moves on.
+                                    void supabase.functions
+                                      .invoke('send-transactional-email', {
+                                        body: {
+                                          template: 'user_welcome',
+                                          recipientEmail: sessionData.user.email,
+                                          templateData: {
+                                            displayName:
+                                              (sessionData.user.user_metadata?.display_name as string | undefined) ||
+                                              sessionData.user.email?.split('@')[0] ||
+                                              'there',
+                                            starterCredits: 100,
+                                          },
+                                        },
+                                      })
+                                      .catch((e) => console.warn('[Auth] welcome email failed:', e));
+                                  }
                                   setPendingEmailConfirmation(null);
                                   setOtpCode('');
                                 }
@@ -927,74 +944,16 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           </Button>
                         </form>
 
-                        {/* Divider */}
-                        <div className="relative my-6">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-                          </div>
-                          <div className="relative flex justify-center">
-                            <span className="px-3 text-[10px] font-medium tracking-[0.2em] uppercase text-white/35 bg-[hsl(220,14%,3.5%)]">
-                              or continue with
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Social sign-in */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            disabled={!!oauthLoading || loading}
-                            onClick={() => handleOAuth('google')}
-                            className={cn(
-                              'h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-medium text-white',
-                              'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]',
-                              'transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
-                            )}
-                          >
-                            {oauthLoading === 'google' ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden>
-                                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.65 4.1-5.5 4.1-3.31 0-6-2.74-6-6.1S8.69 6 12 6c1.88 0 3.14.8 3.86 1.49l2.64-2.55C16.84 3.42 14.65 2.5 12 2.5 6.76 2.5 2.5 6.76 2.5 12S6.76 21.5 12 21.5c6.93 0 9.5-4.86 9.5-7.4 0-.5-.05-.88-.12-1.27H12z" />
-                              </svg>
-                            )}
-                            Google
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!!oauthLoading || loading}
-                            onClick={() => handleOAuth('apple')}
-                            className={cn(
-                              'h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-medium text-white',
-                              'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]',
-                              'transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
-                            )}
-                          >
-                            {oauthLoading === 'apple' ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Apple className="w-4 h-4 fill-white" />
-                            )}
-                            Apple
-                          </button>
-                        </div>
-
                         {/* Toggle Mode */}
                         <p className="text-center text-[13px] text-white/75 mt-7">
                           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
                           <button
                             type="button"
                             onClick={() => {
-                              if (isLogin) {
-                                // Route signup through the full guided onboarding wizard
-                                const target = nextParam ? `/start?next=${encodeURIComponent(nextParam)}` : '/start';
-                                navigate(target);
-                              } else {
-                                setIsLogin(true);
-                                setErrors({});
-                                setPassword('');
-                                setConfirmPassword('');
-                              }
+                              setIsLogin((v) => !v);
+                              setErrors({});
+                              setPassword('');
+                              setConfirmPassword('');
                             }}
                             className="text-white font-medium hover:text-[hsl(212,100%,65%)] transition-colors duration-300 underline-offset-4 hover:underline"
                           >

@@ -11,6 +11,8 @@ import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
 // Initialize cross-browser compatibility layer
 import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
+import { bootTheme } from "./lib/theme";
+import { installRoutePrefetcher, registerPrefetch } from "./lib/routePreload";
 // ChunkLoadError recovery system
 import { 
   installChunkErrorInterceptor, 
@@ -43,6 +45,28 @@ if (SAFE_MODE) {
 
 // Apply browser-specific fixes immediately
 injectBrowserFixes();
+// Boot theme (Dailies / Production Day) from localStorage
+bootTheme();
+
+// ── Anticipatory route prefetching — register the heavy / common routes
+// so they begin downloading on hover. The list is small on purpose; we
+// only want to fire prefetch for routes a user is *very likely* to hit.
+installRoutePrefetcher();
+registerPrefetch('/projects',   () => import('./pages/Projects'));
+registerPrefetch('/create',     () => import('./pages/CreateCanvas'));
+registerPrefetch('/library',    () => import('./pages/library/LibraryHub'));
+registerPrefetch('/library/wall', () => import('./pages/library/StoryboardWall'));
+registerPrefetch('/library/cast', () => import('./pages/library/AtomLibrary'));
+registerPrefetch('/library/locations', () => import('./pages/library/AtomLibrary'));
+registerPrefetch('/library/looks', () => import('./pages/library/AtomLibrary'));
+registerPrefetch('/library/voices', () => import('./pages/library/AtomLibrary'));
+registerPrefetch('/credits',    () => import('./pages/Credits'));
+registerPrefetch('/templates',  () => import('./pages/Templates'));
+registerPrefetch('/avatars',    () => import('./pages/Avatars'));
+registerPrefetch('/pricing',    () => import('./pages/Pricing'));
+registerPrefetch('/settings',   () => import('./pages/Settings'));
+registerPrefetch('/profile',    () => import('./pages/Profile'));
+registerPrefetch('/notifications', () => import('./pages/Notifications'));
 
 // Install chunk error recovery FIRST (before any errors can occur)
 const cleanupChunkRecovery = installChunkErrorInterceptor();
@@ -264,13 +288,37 @@ window.addEventListener("unhandledrejection", (event) => {
   // Real unhandled rejections should propagate to console for debugging.
 });
 
-// Register service worker for PWA
+// Register service worker for PWA — production only.
+// In dev there is no real /sw.js (vite-plugin-pwa skips it), so registering
+// would either fail or, worse, leave a stale SW from a prior prod visit
+// active — which then serves dead cached chunks and strands the UI on the
+// Suspense spinner. So in dev we actively unregister + purge caches.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Service worker registration failed - app still works
+  if (import.meta.env.PROD) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Service worker registration failed - app still works
+      });
     });
-  });
+  } else {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => {
+        if (regs.length) {
+          console.warn('[Dev] Unregistering', regs.length, 'stale service worker(s)');
+        }
+        return Promise.all(regs.map((r) => r.unregister()));
+      })
+      .then(() => {
+        if ("caches" in window) {
+          return caches.keys().then((keys) =>
+            Promise.all(keys.map((k) => caches.delete(k)))
+          );
+        }
+      })
+      .catch(() => {
+        // Best-effort cleanup; never block boot on this.
+      });
+  }
 }
 
 // Initialize diagnostics in development mode

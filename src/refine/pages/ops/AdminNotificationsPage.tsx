@@ -242,7 +242,7 @@ export default function AdminNotificationsPage() {
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
             <div className="text-[11px] uppercase tracking-[0.3em] text-white/30 font-mono">No events yet</div>
-            <div className="text-[13px] text-white/40 mt-2" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="text-[13px] text-white/40 mt-2">
               Live alerts will appear here the moment they happen.
             </div>
           </div>
@@ -285,7 +285,6 @@ export default function AdminNotificationsPage() {
                             "text-[15px] truncate",
                             n.read ? "text-white/70" : "text-white"
                           )}
-                          style={{ fontFamily: "'Fraunces', serif" }}
                         >
                           {n.title}
                         </div>

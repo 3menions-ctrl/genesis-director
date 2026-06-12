@@ -564,6 +564,13 @@ export default function StudioShell() {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || "";
 
+    // Hand off to the Production page so the user gets the full pipeline UI
+    // (realtime progress, retry-failed-clip, recovery, auto-stitch). The
+    // batch generation loop below still runs to completion — Production
+    // subscribes to the same project's clip channels and renders state.
+    // We navigate AFTER ensuring the project exists so the URL is canonical.
+    navigate(`/production/${projectId}`);
+
     const waitForTerminal = (sceneId: string, timeoutMs = 8 * 60 * 1000) =>
       new Promise<"done" | "failed">((resolve) => {
         const started = Date.now();
@@ -1601,7 +1608,7 @@ function StartHero({
           </div>
           <div className="mx-auto flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/70">
             <span className="text-accent/80">◆</span>
-            <span>apex</span>
+            <span>Small Bridges</span>
             <span className="text-muted-foreground/30">·</span>
             <span>studio</span>
             <span className="text-muted-foreground/30">·</span>
@@ -1698,7 +1705,6 @@ function StartHero({
                 placeholder={placeholder}
                 rows={2}
                 className="flex-1 min-h-[68px] resize-none bg-transparent text-[17px] md:text-[19px] font-light leading-[1.55] tracking-[-0.005em] text-foreground outline-none placeholder:text-muted-foreground/40"
-                style={{ fontFamily: "'Fraunces', serif" }}
               />
               <div className="hidden shrink-0 items-center gap-2 md:flex">
                 <button
@@ -1777,7 +1783,6 @@ function StartHero({
                     key={label}
                     onClick={() => setDraft(d => ({ ...d, brief: { ...d.brief, logline: prompt } }))}
                     className="h-7 rounded-full border border-border/30 px-3 text-[11px] italic text-muted-foreground/75 transition-all hover:border-accent/50 hover:bg-accent/[0.06] hover:text-foreground"
-                    style={{ fontFamily: "'Fraunces', serif" }}
                   >
                     "{label}"
                   </button>
@@ -1929,7 +1934,7 @@ function StartHero({
             >
               <span className="italic">Roll</span> camera.
             </h2>
-            <p className="mt-3 max-w-md font-light text-[13px] leading-relaxed text-muted-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+            <p className="mt-3 max-w-md font-light text-[13px] leading-relaxed text-muted-foreground">
               When you're ready, we shoot what you've written — nothing more, nothing less.
             </p>
 
@@ -2280,7 +2285,7 @@ function PipelineMonitor({ scenes, onInspect }: { scenes: SceneDraft[]; onInspec
                 <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
                   {String(s.index + 1).padStart(2, "0")}
                 </span>
-                <span className="min-w-0 flex-1 truncate font-light text-[13px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="min-w-0 flex-1 truncate font-light text-[13px] text-foreground">
                   {s.location || `Scene ${s.index + 1}`}
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">

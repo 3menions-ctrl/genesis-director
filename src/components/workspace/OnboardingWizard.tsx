@@ -50,8 +50,8 @@ interface AuditEntry {
   reason?: string | null;
 }
 
-const DISMISS_KEY = (orgId: string) => `apex.workspace.onboarding.dismissed.${orgId}`;
-const AUTOCLEAR_KEY = (orgId: string) => `apex.workspace.onboarding.autoclear.${orgId}`;
+const DISMISS_KEY = (orgId: string) => `sb.workspace.onboarding.dismissed.${orgId}`;
+const AUTOCLEAR_KEY = (orgId: string) => `sb.workspace.onboarding.autoclear.${orgId}`;
 
 export function OnboardingWizard() {
   const { currentOrg, hasPermission } = useWorkspace();

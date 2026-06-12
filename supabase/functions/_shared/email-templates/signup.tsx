@@ -50,9 +50,9 @@ export const SignupEmail = ({
           ) with this code:
         </Text>
         {token ? <Text style={code}>{token}</Text> : null}
-        <Text style={text}>Enter this code in Apex Studio to finish creating your account. The code expires in 10 minutes.</Text>
+        <Text style={text}>Enter this code in Small Bridges to finish creating your account. The code expires in 10 minutes.</Text>
         <Button style={button} href={confirmationUrl}>
-          Open Apex Studio
+          Open Small Bridges
         </Button>
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.

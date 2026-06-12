@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 
 const ROWS = [
-  { label: 'Time from brief to first cut', old: '3–6 weeks', apex: 'Under 6 minutes' },
-  { label: 'Cost per ad variant', old: '$8k–$25k', apex: '~$2 in credits' },
-  { label: 'Brand consistency', old: 'Manual review per asset', apex: 'Locked at workspace level' },
-  { label: 'Localization', old: 'Re-shoot or dub agency', apex: '40+ languages, one click' },
-  { label: 'Approval audit trail', old: 'Email threads & decks', apex: 'Versioned, role-gated, exportable' },
-  { label: 'Team workflow', old: 'Hand-offs & file chaos', apex: 'One workspace, one URL' },
+  { label: 'Time from brief to first cut', old: '3–6 weeks', us: 'Under 6 minutes' },
+  { label: 'Cost per ad variant', old: '$8k–$25k', us: '~$2 in credits' },
+  { label: 'Brand consistency', old: 'Manual review per asset', us: 'Locked at workspace level' },
+  { label: 'Localization', old: 'Re-shoot or dub agency', us: '40+ languages, one click' },
+  { label: 'Approval audit trail', old: 'Email threads & decks', us: 'Versioned, role-gated, exportable' },
+  { label: 'Team workflow', old: 'Hand-offs & file chaos', us: 'One workspace, one URL' },
 ];
 
 export const B2BComparison = memo(function B2BComparison() {
@@ -53,7 +53,7 @@ export const B2BComparison = memo(function B2BComparison() {
           <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-3 px-6 md:px-10 py-5 border-b border-white/[0.06] text-[10px] uppercase tracking-[0.2em] text-white/35 font-medium">
             <div />
             <div className="text-center">The old way</div>
-            <div className="text-center text-[#0A84FF]">With Apex-Studio</div>
+            <div className="text-center text-[#0A84FF]">With Small Bridges</div>
           </div>
 
           {ROWS.map((row, i) => (
@@ -76,7 +76,7 @@ export const B2BComparison = memo(function B2BComparison() {
               </div>
               <div className="flex items-center justify-center gap-2 text-xs md:text-sm">
                 <Check className="w-3.5 h-3.5 text-[#0A84FF] shrink-0" strokeWidth={2.5} />
-                <span className="text-center text-white font-medium">{row.apex}</span>
+                <span className="text-center text-white font-medium">{row.us}</span>
               </div>
             </motion.div>
           ))}

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     if (!url) return json({ error: `${kind} webhook not configured` }, 400);
 
     const payload = kind === 'slack'
-      ? { text: `*Apex Studio · ${(org as any)?.name}* — ${event}\n${message}` }
+      ? { text: `*Small Bridges · ${(org as any)?.name}* — ${event}\n${message}` }
       : { event, organization: (org as any)?.name, message, ...(body?.payload || {}) };
 
     const res = await fetch(url, {

@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 // @public-endpoint
-// Public Apex Studio API. Authentication is performed via `x-api-key`
+// Public Small Bridges API. Authentication is performed via `x-api-key`
 // (apx_live_...) which is sha256-hashed and looked up in api_keys; an
 // invalid key yields 401. Supabase-JWT auth is intentionally disabled
 // because this endpoint is consumed by third-party servers without a JWT.
@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 /**
- * Public Apex Studio API gateway.
+ * Public Small Bridges API gateway.
  *
  *   POST /api-v1/videos       — generate a clip   (10 credits)
  *   POST /api-v1/avatars      — generate an avatar image (5 credits)
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
           error: 'Insufficient credits',
           required: cost,
           available: balance,
-          purchase_url: 'https://apex-studio.ai/pricing',
+          purchase_url: 'https://smallbridges.com/pricing',
         },
         402
       );

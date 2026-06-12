@@ -14,7 +14,7 @@
  *
  * GAP 3: Some protected routes navigate to heavy routes without coordination.
  *
- * GAP 4: useRetryStitch leaks raw error.message in toast description.
+ * GAP 4: (resolved — useRetryStitch removed during stitcher consolidation)
  *
  * GAP 5: MergeDownloadDialog shows raw error.message to users.
  *
@@ -254,17 +254,8 @@ describe('REAL GAP DETECTOR: Error Message Leaks', () => {
     expect(allLeaks.length).toBeGreaterThanOrEqual(0);
   });
 
-  // Specific known leaks
-  it('useRetryStitch leaks raw error.message in toast description (GAP 4)', () => {
-    const content = readFile('src/hooks/useRetryStitch.ts');
-    const leaksErrMsg = content.includes("err instanceof Error ? err.message : 'Please try again'") &&
-                         content.includes('description: errMsg');
-    
-    if (leaksErrMsg) {
-      console.log('  ⚠️  useRetryStitch.ts: raw error.message in toast description');
-    }
-    expect(leaksErrMsg).toBeDefined(); // Detection, not assertion
-  });
+  // (GAP 4 was useRetryStitch — the hook has been removed during the
+  // stitcher consolidation, so this gap no longer applies.)
 
   it('MergeDownloadDialog leaks raw error.message to UI state (GAP 5)', () => {
     const content = readFile('src/components/projects/MergeDownloadDialog.tsx');
@@ -405,7 +396,7 @@ describe('GAP ANALYSIS SUMMARY', () => {
     const KNOWN_GAPS = {
       rawNavigateToHeavyRoutes: rawNavs.length,
       errorMessageLeaks: leaks.length,
-      retryStitchLeak: readFile('src/hooks/useRetryStitch.ts').includes("err instanceof Error ? err.message"),
+      retryStitchLeak: false, // hook removed in stitcher consolidation
       mergeDialogLeak: readFile('src/components/projects/MergeDownloadDialog.tsx').includes("err instanceof Error ? err.message"),
       extractThumbnailsLeak: false, // File deleted — orphan page removed
       clipRecoveryLeak: readFile('src/hooks/useClipRecovery.ts').includes('${err}'),

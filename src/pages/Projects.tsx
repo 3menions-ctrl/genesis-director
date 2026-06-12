@@ -41,8 +41,8 @@ import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { UniversalVideoPlayer } from '@/components/player';
-import { AppHeader } from '@/components/layout/AppHeader';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
 import { usePaginatedProjects } from '@/hooks/usePaginatedProjects';
 
@@ -718,7 +718,7 @@ function ProjectsContentInner() {
     // A project is playable if it has a final video or completed clips
     if (isStitchedMp4(p.video_url)) return true;
     if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
-    // Completed projects should always be playable (UniversalVideoPlayer will fetch clips from DB)
+    // Completed projects should always be playable (BrandedVideoPlayer will fetch clips from DB)
     if (p.status === 'completed') return true;
     return false;
   };
@@ -815,27 +815,47 @@ function ProjectsContentInner() {
   };
 
   const handleDownloadAll = async (project: Project) => {
-    // Single video file (not manifest) - download directly
-    if (project.video_url && !isManifestUrl(project.video_url)) {
-      toast.info('Downloading video...');
+    // Route every project download through the seamless stitcher — even
+    // single-source projects get re-encoded against the canonical
+    // pipeline (yuv420p / 30fps / 48kHz) and a Small Bridges intro is
+    // prepended. The stitcher caches by content hash, so re-downloading
+    // the same project is a sub-second signed-URL hand-off.
+    if (project.video_url || project.status === 'completed') {
+      const toastId = toast.loading('Stitching your video with intro…');
       try {
-        const response = await fetch(project.video_url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+        const { data, error } = await supabase.functions.invoke<{ ok: boolean; url?: string; cached?: boolean; branded?: boolean; error?: string }>(
+          'seamless-stitcher',
+          { body: { projectId: project.id, includeIntro: true } },
+        );
+        if (error) throw error;
+        if (!data?.ok || !data.url) throw new Error(data?.error ?? 'stitch_failed');
+
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `${project.name}-final.mp4`;
+        a.href = data.url;
+        a.download = `${project.name || 'small-bridges-video'}.mp4`;
+        a.target = '_blank';
+        a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.success('Download complete!');
-      } catch (error) {
-        window.open(project.video_url, '_blank');
+        a.remove();
+        toast.success(
+          data.cached
+            ? `Pulled from cache${data.branded ? ' (with intro)' : ''}`
+            : `Stitched${data.branded ? ' with intro' : ''} — downloading`,
+          { id: toastId },
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Stitch failed';
+        toast.error(msg, { id: toastId });
+        // Final fallback: if the stitcher fails outright and we have a
+        // video_url, hand the user the raw source.
+        if (project.video_url && !isManifestUrl(project.video_url)) {
+          window.open(project.video_url, '_blank');
+        }
       }
       return;
     }
-    
+
     // Multi-clip project - fetch clips and open merge dialog
     let clipUrls = project.video_clips || [];
     let masterAudioUrl: string | null = null;
@@ -957,7 +977,9 @@ function ProjectsContentInner() {
         .eq('id', projectId)
         .maybeSingle();
       
-      const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
+      // The legacy `stitch-video` function was renamed to `seamless-stitcher`
+      // upstream; keep the same payload shape — the new function accepts it.
+      const { data, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
         body: {
           projectId,
           projectTitle: project?.title || 'Video',
@@ -1017,12 +1039,10 @@ function ProjectsContentInner() {
         />
       ) : (
         <>
-      {/* Navigation */}
-      <AppHeader onCreateClick={handleCreateProject} />
 
 
       {/* Main Content — full-bleed cinematic wall */}
-      <PageShell width="full" className="max-w-[1800px]">
+      <PageShell width="gallery">
         
         {/* Loading skeleton */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
@@ -1041,30 +1061,34 @@ function ProjectsContentInner() {
             </div>
           </div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
-          /* Minimal Empty State */
-          <div className="flex flex-col items-center justify-center py-28 sm:py-36 px-4 animate-fade-in">
-            <div className="w-20 h-20 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center mb-8">
-              <Film className="w-8 h-8 text-muted-foreground" strokeWidth={1.25} />
-            </div>
-            
-            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-foreground mb-3 text-center tracking-tight">
-              No projects yet
-            </h2>
-            
-            <p className="text-body-muted mb-10 text-center max-w-sm">
-              Create your first AI-generated film. It will appear right here.
-            </p>
-            
-            <button 
-              onClick={handleCreateProject}
-              className="group h-11 px-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm transition-all shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.6)]"
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
-                Create Project
-              </span>
-            </button>
-          </div>
+          <EmptyState
+            icon={Film}
+            title="Your first scene is one prompt away."
+            description="Small Bridges is free during beta — you've got starter credits ready. Pick a sample prompt or open the studio with a blank canvas."
+            cta={{
+              label: 'Open the studio',
+              onClick: handleCreateProject,
+              icon: Plus,
+            }}
+            secondaryCta={{
+              label: 'Browse templates',
+              onClick: () => navigate('/templates'),
+            }}
+            examples={[
+              {
+                label: 'A neon-lit Tokyo street at night, rain on the pavement, slow tracking shot toward a glowing ramen shop.',
+                onClick: handleCreateProject,
+              },
+              {
+                label: 'Aerial sunrise over the Faroe Islands, a sailboat carving through mirror-flat water.',
+                onClick: handleCreateProject,
+              },
+              {
+                label: 'A confident founder talks to camera in a sunlit Brooklyn loft — handheld, warm, candid.',
+                onClick: handleCreateProject,
+              },
+            ]}
+          />
         ) : (
           <>
             {/* ===== Editorial header + gallery mode tabs ===== */}
@@ -1293,7 +1317,7 @@ function ProjectsContentInner() {
         )}
       </PageShell>
 
-      {/* Video Player Modal - UniversalVideoPlayer for seamless transitions */}
+      {/* Video Player Modal - BrandedVideoPlayer for seamless transitions */}
       {videoModalOpen && selectedProject && !isLoadingClips && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
           {/* Header controls */}
@@ -1316,11 +1340,8 @@ function ProjectsContentInner() {
           </div>
           
           {/* Universal Video Player - seamless transitions */}
-          <UniversalVideoPlayer
-            source={isManifestUrl(resolvedClips[0]) 
-              ? { manifestUrl: resolvedClips[0] } 
-              : { urls: resolvedClips }
-            }
+          <BrandedVideoPlayer
+            src={resolvedClips[0]}
             mode="fullscreen"
             autoPlay
             onClose={() => {
@@ -1334,8 +1355,8 @@ function ProjectsContentInner() {
 
       {/* Training Video Player Modal */}
       {trainingVideoModalOpen && selectedTrainingVideo && (
-        <UniversalVideoPlayer
-          source={{ urls: [selectedTrainingVideo.video_url] }}
+        <BrandedVideoPlayer
+          src={selectedTrainingVideo.video_url}
           mode="fullscreen"
           title={selectedTrainingVideo.title}
           onClose={() => {
@@ -1446,7 +1467,7 @@ function ProjectsContentInner() {
       </Dialog>
 
       {/* Smart Video Player Modal - MOBILE OPTIMIZED: Full-screen on mobile */}
-      {/* ALL projects now use projectId source - UniversalVideoPlayer fetches clips from video_clips table */}
+      {/* ALL projects now use projectId source - BrandedVideoPlayer fetches clips from video_clips table */}
       {/* This ensures permanent Supabase URLs are used, not expired Replicate delivery URLs */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
         if (!open) {
@@ -1464,9 +1485,8 @@ function ProjectsContentInner() {
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-              <UniversalVideoPlayer
-                source={{ projectId: showBrowserStitcher }}
-                mode="inline"
+              <BrandedVideoPlayer
+                projectId={showBrowserStitcher}
                 autoPlay
                 className="w-full h-auto max-h-[90vh] aspect-video object-contain"
               />
@@ -1504,7 +1524,7 @@ const ProjectsContent = withSafePageRef(ProjectsContentInner, 'ProjectsContent')
 
 // Wrapper with error boundary
 export default function Projects() {
-  usePageMeta({ title: "My Projects — Apex Studio", description: "Browse, resume, and publish every project in your Apex Studio workspace." });
+  usePageMeta({ title: "My Projects — Small Bridges", description: "Browse, resume, and publish every project in your Small Bridges workspace." });
 
   return (
     <ErrorBoundary>

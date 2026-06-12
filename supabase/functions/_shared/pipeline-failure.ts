@@ -141,6 +141,36 @@ export async function markProjectFailedAndRefund(
       } else {
         refunded = true;
         console.log(`[pipeline-failure] ✓ refunded ${refundAmount} credits (${source}/${stage})`);
+
+        // Tell the user, in-app. Best-effort — failure here doesn't undo
+        // the refund. The notification row is keyed on idempotency
+        // shape (project_id + refunded_at) so retries don't double-notify.
+        try {
+          const { data: existing } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', ctx.userId)
+            .eq('type', 'video_complete')
+            .contains('data', { project_id: ctx.projectId, kind: 'refund' })
+            .limit(1)
+            .maybeSingle();
+          if (!existing) {
+            await supabase.from('notifications').insert({
+              user_id: ctx.userId,
+              type: 'video_complete',
+              title: `Refunded ${refundAmount} credit${refundAmount === 1 ? '' : 's'}`,
+              body: `Your render hit a snag at "${stage}" — we credited you back. Try again from your library.`,
+              data: {
+                project_id: ctx.projectId,
+                kind: 'refund',
+                amount: refundAmount,
+                action_url: `/production/${ctx.projectId}`,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[pipeline-failure] refund notification insert failed:', notifErr);
+        }
       }
     } catch (e) {
       console.error('[pipeline-failure] refund_credits threw:', e);

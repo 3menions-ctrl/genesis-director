@@ -8,7 +8,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Storage keys
-const DRAFT_KEY = 'apex_create_draft';
+const DRAFT_KEY = 'sb_create_draft';
 const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**

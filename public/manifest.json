@@ -1,7 +1,7 @@
 {
-  "name": "Apex-Studio",
-  "short_name": "Apex",
-  "description": "AI Virtual Production Platform - Create stunning videos with AI",
+  "name": "Small Bridges",
+  "short_name": "Small Bridges",
+  "description": "Cinematic AI video creation — the shortest distance from idea to film.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

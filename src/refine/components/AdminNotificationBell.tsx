@@ -195,7 +195,6 @@ export function AdminNotificationBell() {
               </div>
               <div
                 className="text-[15px] text-white mt-0.5"
-                style={{ fontFamily: "'Fraunces', serif" }}
               >
                 {unread > 0 ? `${unread} new alert${unread === 1 ? "" : "s"}` : "All caught up"}
               </div>
@@ -221,7 +220,7 @@ export function AdminNotificationBell() {
                 <div className="text-[11px] text-white/30 uppercase tracking-[0.25em] font-mono">
                   No alerts yet
                 </div>
-                <div className="text-[12px] text-white/40 mt-2" style={{ fontFamily: "'Fraunces', serif" }}>
+                <div className="text-[12px] text-white/40 mt-2">
                   Purchases, support messages, and inquiries will surface here in realtime.
                 </div>
               </div>
@@ -256,7 +255,6 @@ export function AdminNotificationBell() {
                                 "text-[13px] truncate",
                                 n.read ? "text-white/70" : "text-white"
                               )}
-                              style={{ fontFamily: "'Fraunces', serif" }}
                             >
                               {n.title}
                             </div>

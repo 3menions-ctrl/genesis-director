@@ -1,5 +1,5 @@
 /**
- * PremiumFullscreenPlayer - Gallery showcase player using UniversalHLSPlayer
+ * PremiumFullscreenPlayer - Gallery showcase wrapper around BrandedVideoPlayer
  * 
  * Now uses cross-browser HLS playback via hls.js for consistent
  * experience on all platforms (Safari, Chrome, Firefox, Edge).
@@ -9,7 +9,7 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, SkipForward, SkipBack } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SimpleVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 
 interface GalleryVideo {
   id: string;
@@ -98,7 +98,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
         {playbackUrl ? (
           <div className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden">
             {isHLS ? (
-              <SimpleVideoPlayer
+              <BrandedVideoPlayer
                 src={playbackUrl}
                 autoPlay
                 loop={hasHLS} // Loop if HLS (continuous stream)
@@ -109,7 +109,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                 objectFit="contain"
               />
             ) : (
-              <SimpleVideoPlayer
+              <BrandedVideoPlayer
                 src={playbackUrl}
                 autoPlay
                 showControls

@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
  * 
  * STRATEGY: Always guarantee a working video for users via manifest playback
  * 1. Check if all clips are completed
- * 2. Call simple-stitch to create manifest
+ * 2. Call seamless-stitcher to create manifest
  * 3. Users get immediate playback via SmartStitcherPlayer
  */
 
@@ -19,6 +19,82 @@ interface AutoStitchRequest {
   projectId: string;
   userId?: string;
   forceStitch?: boolean;
+}
+
+/**
+ * Fire "render complete" — email + in-app notification — when a project
+ * transitions to a usable final state. Idempotent via the `notifications`
+ * row: if a render_complete row already exists for this project, the email
+ * is skipped so cron retries don't double-send.
+ */
+async function notifyRenderComplete(params: {
+  supabase: ReturnType<typeof createClient>;
+  projectId: string;
+  userId?: string;
+  projectTitle?: string;
+}): Promise<void> {
+  const { supabase, projectId, userId, projectTitle } = params;
+  try {
+    if (!userId) {
+      // Try to look up owner if caller didn't pass it.
+      const { data: proj } = await supabase
+        .from('movie_projects')
+        .select('user_id, title')
+        .eq('id', projectId)
+        .maybeSingle<{ user_id: string; title: string | null }>();
+      if (!proj) return;
+      userId = proj.user_id;
+      params.projectTitle = params.projectTitle ?? proj.title ?? undefined;
+    }
+
+    // Idempotency: don't notify twice for the same project. The notification
+    // row stores the projectId in `data.project_id` so we can look it up.
+    const { data: existing } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', 'video_complete')
+      .contains('data', { project_id: projectId })
+      .limit(1)
+      .maybeSingle();
+    if (existing) return;
+
+    const title = projectTitle ?? params.projectTitle ?? 'Your project';
+
+    // 1. In-app notification row (type uses the existing notification_type
+    // enum value 'video_complete'; data carries project + deep-link).
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'video_complete',
+      title: `${title} is ready`,
+      body: 'Open it in your library to watch, edit, or share.',
+      data: {
+        project_id: projectId,
+        action_url: `/production/${projectId}`,
+      },
+    });
+
+    // 2. Email (best-effort — recipient lookup happens inside send-transactional-email)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .maybeSingle<{ email: string | null }>();
+    if (profile?.email) {
+      await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          template: 'render_complete',
+          recipientEmail: profile.email,
+          templateData: {
+            projectTitle: title,
+            projectUrl: `https://smallbridges.com/production/${projectId}`,
+          },
+        },
+      });
+    }
+  } catch (e) {
+    console.warn('[AutoStitch] notifyRenderComplete failed:', e);
+  }
 }
 
 serve(async (req) => {
@@ -131,7 +207,7 @@ serve(async (req) => {
     }
 
     // Step 5: All clips complete! Update status to stitching
-    console.log(`[AutoStitch] ✅ All ${completedCount} clips complete - triggering simple-stitch!`);
+    console.log(`[AutoStitch] ✅ All ${completedCount} clips complete - triggering seamless-stitcher!`);
 
     await supabase
       .from('movie_projects')
@@ -147,15 +223,15 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
-    // Step 6: Use simple-stitch for manifest creation
-    console.log("[AutoStitch] Calling simple-stitch for manifest creation...");
+    // Step 6: Use seamless-stitcher for manifest creation
+    console.log("[AutoStitch] Calling seamless-stitcher for manifest creation...");
     
-    const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('simple-stitch', {
+    const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
       body: { projectId, userId },
     });
     
     if (stitchError) {
-      console.error(`[AutoStitch] simple-stitch invocation error: ${stitchError.message}`);
+      console.error(`[AutoStitch] seamless-stitcher invocation error: ${stitchError.message}`);
       
       // Mark as completed anyway - clips are available individually
       await supabase
@@ -187,7 +263,16 @@ serve(async (req) => {
       );
     }
     
-    console.log("[AutoStitch] simple-stitch result:", JSON.stringify(stitchResult));
+    console.log("[AutoStitch] seamless-stitcher result:", JSON.stringify(stitchResult));
+
+    // Fire the "render complete" email + insert an in-app notification. Both
+    // are best-effort — the success response is independent of either.
+    void notifyRenderComplete({
+      supabase,
+      projectId,
+      userId,
+      projectTitle: (project as { title?: string } | null)?.title,
+    });
 
     return new Response(
       JSON.stringify({

@@ -296,7 +296,14 @@ export function useSafeNavigation() {
     pendingNavRef.current = to;
 
     try {
-      navigate(to, { replace: options?.replace, state: options?.state });
+      // Wrap the actual route change in a View Transition when supported.
+      // On Chrome / Edge / Safari TP, this gives a 220ms cross-dissolve with
+      // shared-element morphs (handled by `view-transition-name` CSS).
+      // On Firefox / older Safari it's a no-op pass-through.
+      const { startTransition } = await import('@/lib/viewTransitions');
+      await startTransition(() => {
+        navigate(to, { replace: options?.replace, state: options?.state });
+      });
       return true;
     } finally {
       // Clear pending ref on next frame

@@ -8,7 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Privacy = () => {
-  usePageMeta({ title: 'Privacy Policy — Apex-Studio', description: 'Learn how Apex-Studio collects, uses, and protects your personal information.' });
+  usePageMeta({ title: 'Privacy Policy — Small Bridges', description: 'Learn how Small Bridges collects, uses, and protects your personal information.' });
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
       {/* Abstract Background */}
@@ -54,10 +54,10 @@ const Privacy = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Introduction</h2>
               <p>
-                Apex-Studio LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
+                Small Bridges LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
                 is committed to protecting your privacy. This Privacy Policy explains how we collect, use, 
                 disclose, and safeguard your information when you use our AI-powered video generation 
-                software-as-a-service platform, Apex-Studio (the "Service").
+                software-as-a-service platform, Small Bridges (the "Service").
               </p>
               <p className="mt-4">
                 By accessing or using the Service, you agree to this Privacy Policy. If you do not agree 
@@ -189,7 +189,7 @@ const Privacy = () => {
               <h2 className="text-xl font-semibold text-white mb-4">8. International Data Transfers</h2>
               <p className="mb-4">
                 Your information may be transferred to and processed in countries other than your own, 
-                including the United States where Apex-Studio LLC is based. When we transfer data 
+                including the United States where Small Bridges LLC is based. When we transfer data 
                 internationally, we implement appropriate safeguards, including:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
@@ -256,8 +256,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise these rights, please contact us at{' '}
-                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
-                  apex-studio.ai@apex-studio.ai
+                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
+                  smallbridges.com@smallbridges.com
                 </a>. We will respond to your request within 30 days (or as required by applicable law).
               </p>
             </section>
@@ -276,8 +276,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise your California privacy rights, contact us at{' '}
-                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
-                  apex-studio.ai@apex-studio.ai
+                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
+                  smallbridges.com@smallbridges.com
                 </a>.
               </p>
             </section>
@@ -293,8 +293,8 @@ const Privacy = () => {
               <p className="mt-4">
                 If you are a parent or guardian and believe your child under 13 has provided us with 
                 personal information, please contact us at{' '}
-                <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
-                  apex-studio.ai@apex-studio.ai
+                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
+                  smallbridges.com@smallbridges.com
                 </a>.
               </p>
             </section>
@@ -376,11 +376,11 @@ const Privacy = () => {
                 please contact us:
               </p>
               <div className="space-y-2">
-                <p><strong className="text-white">Apex-Studio LLC</strong></p>
+                <p><strong className="text-white">Small Bridges LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:apex-studio.ai@apex-studio.ai" className="text-white hover:underline">
-                    apex-studio.ai@apex-studio.ai
+                  <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
+                    smallbridges.com@smallbridges.com
                   </a>
                 </p>
                 <p className="text-white/70 text-sm mt-2">

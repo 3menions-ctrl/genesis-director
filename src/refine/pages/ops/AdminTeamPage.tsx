@@ -1,36 +1,114 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Admin team — every user holding admin role, with promote/demote flow. */
+import { useState } from "react";
+import { UserCog, UserPlus, UserMinus } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface RoleRow extends AdminRow {
+  id: string;
+  user_id: string;
+  role: string;
+  granted_at: string | null;
+  profiles?: { email: string | null; display_name: string | null; avatar_url: string | null } | null;
+}
 
 export default function AdminTeamPage() {
+  const [promoting, setPromoting] = useState(false);
   return (
     <AdminPageShell
       eyebrow="07 // ACCESS"
       code="TEM"
       title="Admin"
       italic="Team."
-      description="Invite, scope, and revoke administrators with role bindings and 2FA enforcement."
+      description="Operators with admin role — promote new admins, demote when responsibilities shift."
     >
-      <AdminConsoleScaffold
-        intro="The directory of human principals with elevated access — every entry one revocation away from gone."
-        status="scoped"
+      <AdminConsoleV2<RoleRow>
+        intro="Every account holding the admin role. Promotion writes a row to user_roles; demotion deletes it."
+        query={{
+          table: "user_roles",
+          select: "id, user_id, role, granted_at, profiles(email, display_name, avatar_url)",
+          orderBy: { column: "granted_at", ascending: false },
+        }}
+        filters={[
+          { key: "role", label: "Role", type: "select", options: [
+            { value: "admin", label: "Admin" }, { value: "moderator", label: "Moderator" }, { value: "support", label: "Support" }] },
+        ]}
         signals={[
-        { label: "Members", value: "—", tone: "blue" },
-        { label: "Pending Invites", value: "—", tone: "amber" },
-        { label: "2FA Enforced", value: "—", tone: "emerald" },
-        { label: "Inactive 30d", value: "—", tone: "rose" },
+          { label: "Admins", value: (r) => r.filter((x) => (x as RoleRow).role === "admin").length, tone: "rose" },
+          { label: "Moderators", value: (r) => r.filter((x) => (x as RoleRow).role === "moderator").length, tone: "amber" },
+          { label: "Support", value: (r) => r.filter((x) => (x as RoleRow).role === "support").length, tone: "blue" },
+          { label: "Total operators", value: (r) => new Set(r.map((x) => (x as RoleRow).user_id)).size, tone: "emerald" },
         ]}
-        capabilities={[
-    { icon: UserPlus, title: "Invite Member", description: "Email-gated invite with scoped role pre-assignment.", status: "wired" },
-    { icon: ShieldCheck, title: "2FA Enforcement", description: "Require TOTP for any elevated role.", status: "manual" },
-    { icon: UserMinus, title: "Revoke Access", description: "Hard-revoke in <2s with cascading session kill.", status: "wired" },
-    { icon: KeyRound, title: "API Token Bind", description: "Mint per-member service tokens with audit.", status: "manual" },
-    { icon: Activity, title: "Activity Lens", description: "Per-member action log with anomaly highlights.", status: "wired" },
-    { icon: MailCheck, title: "Onboarding Flow", description: "Welcome email + RBAC walkthrough on accept.", status: "manual" },
+        columns={[
+          { key: "profiles", label: "Operator", width: "320px",
+            render: (_, row) => (
+              <div className="flex items-center gap-3">
+                {row.profiles?.avatar_url
+                  ? <img src={row.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full border border-white/[0.06]" />
+                  : <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06]" />}
+                <div>
+                  <div className="text-white/90 text-[13px]">{row.profiles?.display_name || row.profiles?.email || row.user_id.slice(0,8)}</div>
+                  {row.profiles?.email && <div className="text-white/45 text-[11px]">{row.profiles.email}</div>}
+                </div>
+              </div>
+            )},
+          { key: "role", label: "Role", width: "140px",
+            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">{String(v)}</span> },
+          { key: "granted_at", label: "Granted", width: "180px" },
         ]}
-      primaryCta={{ label: "Invite member" }}
-      />
+        actions={[
+          { label: "Demote", icon: UserMinus, variant: "destructive",
+            confirm: "Remove this role assignment? They keep their account, but lose admin powers.",
+            onRun: async (r) => {
+              const { error } = await supabase.from("user_roles").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        primaryCta={{ label: "Promote user", onClick: () => setPromoting(true) }}
+        emptyTitle="No role assignments yet"
+        emptyDescription="Promote a user to admin to populate this list."
+      >
+        {promoting && <PromoteDialog onClose={() => setPromoting(false)} />}
+      </AdminConsoleV2>
     </AdminPageShell>
+  );
+}
+
+function PromoteDialog({ onClose }: { onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("admin");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!email.trim()) { toast.error("Email required"); return; }
+    setBusy(true);
+    const { data: prof, error: pErr } = await supabase
+      .from("profiles").select("id").eq("email", email.trim().toLowerCase()).maybeSingle();
+    if (pErr || !prof) {
+      setBusy(false);
+      toast.error("No user with that email");
+      return;
+    }
+    const { error } = await supabase.from("user_roles").insert({
+      user_id: prof.id, role,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${email} promoted to ${role}`);
+    onClose();
+  };
+
+  return (
+    <AdminDialog title="Promote user" icon={UserPlus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Promote">
+      <AdminField label="User email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="ops@example.com" /></AdminField>
+      <AdminField label="Role">
+        <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
+          <option value="admin">Admin</option><option value="moderator">Moderator</option><option value="support">Support</option>
+        </select>
+      </AdminField>
+    </AdminDialog>
   );
 }

@@ -1,35 +1,79 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Admin webhooks — every workspace webhook endpoint across the platform. */
+import { Webhook, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+
+interface WebhookRow extends AdminRow {
+  id: string;
+  organization_id: string;
+  url: string;
+  description: string | null;
+  events: string[];
+  active: boolean;
+  last_delivered_at: string | null;
+  failure_count: number;
+  created_at: string;
+  organizations?: { name: string } | null;
+}
 
 export default function AdminWebhooksPage() {
   return (
     <AdminPageShell
-      eyebrow="05 // SYSTEM"
+      eyebrow="13 // SYSTEM"
       code="WHK"
       title="Webhooks"
-      italic="Outbound."
-      description="Registry of outbound webhooks with delivery logs, retry, and signed payloads."
+      italic="Registry."
+      description="Every workspace webhook endpoint, with delivery health and admin pause/delete."
     >
-      <AdminConsoleScaffold
-        intro="Push platform events into your customers' systems — reliably, with retry and verification."
-        status="scoped"
+      <AdminConsoleV2<WebhookRow>
+        intro="Workspace operators configure their own endpoints; this is the global view for platform-wide oversight."
+        query={{
+          table: "webhook_endpoints",
+          select: "id, organization_id, url, description, events, active, last_delivered_at, failure_count, created_at, organizations(name)",
+          orderBy: { column: "created_at", ascending: false },
+        }}
+        searchKey="url"
+        filters={[
+          { key: "active", label: "Active", type: "select", options: [
+            { value: "true", label: "Active" }, { value: "false", label: "Paused" }] },
+        ]}
         signals={[
-        { label: "Endpoints", value: "—", tone: "blue" },
-        { label: "Events 24h", value: "—", tone: "neutral" },
-        { label: "Delivery %", value: "—", tone: "emerald" },
-        { label: "Failed", value: "—", tone: "rose" },
+          { label: "Total", value: (r) => r.length, tone: "blue" },
+          { label: "Active", value: (r) => r.filter((x) => (x as WebhookRow).active).length, tone: "emerald" },
+          { label: "Failing", value: (r) => r.filter((x) => (x as WebhookRow).failure_count > 0).length, tone: "rose" },
+          { label: "Never delivered", value: (r) => r.filter((x) => !(x as WebhookRow).last_delivered_at).length, tone: "amber" },
         ]}
-        capabilities={[
-    { icon: Webhook, title: "Endpoint Registry", description: "Register URLs, choose events, set secret.", status: "queued" },
-    { icon: FileSignature, title: "Signed Payloads", description: "HMAC-SHA256 signatures per delivery.", status: "manual" },
-    { icon: RotateCcw, title: "Retry Engine", description: "Exponential backoff with DLQ after N tries.", status: "manual" },
-    { icon: History, title: "Delivery Log", description: "Every attempt with status, latency, response.", status: "queued" },
-    { icon: FlaskConical, title: "Test Send", description: "Fire any event to verify customer endpoint.", status: "manual" },
-    { icon: BookOpen, title: "Event Catalog", description: "Documentation of every event payload shape.", status: "manual" },
+        columns={[
+          { key: "url", label: "Endpoint",
+            render: (v) => <code className="font-mono text-[11px] text-white/80">{String(v)}</code> },
+          { key: "organizations", label: "Workspace", width: "180px",
+            render: (_, row) => row.organizations?.name ?? "—" },
+          { key: "events", label: "Events", width: "200px",
+            render: (v) => Array.isArray(v) && v.length
+              ? <span className="text-[11px] text-white/55">{v.slice(0, 2).join(", ")}{v.length > 2 ? ` +${v.length - 2}` : ""}</span>
+              : "—" },
+          { key: "failure_count", label: "Failures", width: "100px", align: "right",
+            render: (v) => v as number > 0
+              ? <span className="text-rose-300">{v as number}</span>
+              : <span className="text-white/55">0</span> },
+          { key: "last_delivered_at", label: "Last sent", width: "180px", hideOnMobile: true },
+          { key: "active", label: "Status", width: "100px" },
         ]}
-      primaryCta={{ label: "Add endpoint" }}
+        actions={[
+          { label: "Toggle", icon: Power,
+            onRun: async (r) => {
+              const { error } = await supabase.from("webhook_endpoints").update({ active: !r.active }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this endpoint? Future events won't be delivered.",
+            onRun: async (r) => {
+              const { error } = await supabase.from("webhook_endpoints").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        emptyTitle="No webhook endpoints registered"
+        emptyDescription="Workspaces configure endpoints at /workspace/api — they appear here for platform oversight."
       />
     </AdminPageShell>
   );

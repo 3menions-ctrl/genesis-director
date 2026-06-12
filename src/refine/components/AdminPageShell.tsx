@@ -3,8 +3,17 @@
  * Premium hero header + atmospheric backdrop for every admin sub-page.
  * Compose: <AdminPageShell eyebrow="03 // PEOPLE" code="IDN" title="Identity" description="...">{children}</AdminPageShell>
  */
-import { ReactNode } from "react";
+import { ReactNode, createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
+
+/**
+ * AdminEmbeddedContext — set to true by AdminHubShell when it renders a
+ * child page inside one of its tabs. Lets AdminPageShell auto-suppress its
+ * own hero so we never render two stacked headers.
+ */
+const AdminEmbeddedContext = createContext<boolean>(false);
+export const AdminEmbeddedProvider = AdminEmbeddedContext.Provider;
+export const useAdminEmbedded = () => useContext(AdminEmbeddedContext);
 
 interface Props {
   eyebrow: string;          // e.g. "02 // PEOPLE"
@@ -18,11 +27,20 @@ interface Props {
   children: ReactNode;
   className?: string;
   contained?: boolean;      // wrap children in max-w container (default true)
+  /** When true the hero is suppressed — used when the page is embedded as a tab
+   *  inside an AdminHubShell so we don't render two heroes stacked. */
+  embedded?: boolean;
 }
 
 export function AdminPageShell({
-  eyebrow, code, title, italic, description, actions, meta, stats, children, className, contained = true,
+  eyebrow, code, title, italic, description, actions, meta, stats, children, className, contained = true, embedded = false,
 }: Props) {
+  const inHub = useAdminEmbedded();
+  if (embedded || inHub) {
+    // When rendered inside a hub tab, suppress the hero + outer padding
+    // so the page composes cleanly under the hub shell.
+    return <div className={cn("animate-fade-in", className)}>{children}</div>;
+  }
   return (
     <div className={cn("p-8 lg:p-12 space-y-10 animate-fade-in", contained && "max-w-[1480px] mx-auto", className)}>
       {/* Hero */}
@@ -61,8 +79,7 @@ export function AdminPageShell({
               </span>
             </div>
             <h1
-              className="text-4xl lg:text-6xl text-white font-light tracking-tight leading-[0.95]"
-              style={{ fontFamily: "'Fraunces', serif" }}
+              className="font-display text-4xl lg:text-6xl text-white font-light tracking-tight leading-[0.95]"
             >
               {title}
               {italic && (
@@ -96,8 +113,7 @@ export function AdminPageShell({
               return (
                 <div key={i} className="px-6 py-5 relative group">
                   <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.32em] mb-2">{s.label}</div>
-                  <div className={cn("text-3xl font-light tabular-nums", toneMap[s.tone || "neutral"])}
-                       style={{ fontFamily: "'Fraunces', serif" }}>
+                  <div className={cn("text-3xl font-display font-light tabular-nums", toneMap[s.tone || "neutral"])}>
                     {s.value}
                   </div>
                   {s.sub && <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.18em]">{s.sub}</div>}
@@ -154,20 +170,20 @@ export function AdminEmptyState({
       <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="absolute w-[420px] h-[420px] rounded-full border border-white/[0.04]" />
         <div className="absolute w-[300px] h-[300px] rounded-full border border-white/[0.05]" />
-        <div className="absolute w-[180px] h-[180px] rounded-full border border-[#0A84FF]/15" />
+        <div className="absolute w-[180px] h-[180px] rounded-full border border-brand/15" />
         <div className="absolute w-[180px] h-[180px] rounded-full"
-             style={{ background: "radial-gradient(circle, rgba(10,132,255,0.10), transparent 65%)", filter: "blur(20px)" }} />
+             style={{ background: "radial-gradient(circle, hsl(var(--brand) / 0.10), transparent 65%)", filter: "blur(20px)" }} />
       </div>
       <div className="relative z-10 flex flex-col items-center">
         {Icon && (
-          <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md flex items-center justify-center mb-5 shadow-[0_8px_24px_-12px_rgba(10,132,255,0.4)]">
-            <Icon className="w-5 h-5 text-[#6FB6FF]" />
+          <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md flex items-center justify-center mb-5 shadow-[0_8px_24px_-12px_hsl(var(--brand)/0.4)]">
+            <Icon className="w-5 h-5 text-brand-light" />
           </div>
         )}
-        <span className="text-[9px] text-[#0A84FF]/70 font-mono uppercase tracking-[0.4em] mb-3">
+        <span className="text-[9px] text-brand/70 font-mono uppercase tracking-[0.4em] mb-3">
           {code} // STANDBY
         </span>
-        <h3 className="text-2xl text-white font-light mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+        <h3 className="font-display text-2xl text-white font-light mb-2">
           {title}
         </h3>
         {hint && <p className="text-[13px] text-white/40 max-w-md leading-relaxed">{hint}</p>}

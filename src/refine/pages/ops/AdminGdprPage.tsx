@@ -1,7 +1,22 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** GDPR requests — handle data export, deletion, rectification. */
+import { Shield, Check, X, Clock } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+
+interface GdprRow extends AdminRow {
+  id: string;
+  user_id: string | null;
+  email: string;
+  kind: string;
+  status: string;
+  payload_url: string | null;
+  notes: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+const STATUS_TONE = { pending: "text-amber-300", in_progress: "text-[#6FB6FF]", completed: "text-emerald-300", rejected: "text-rose-300" } as const;
 
 export default function AdminGdprPage() {
   return (
@@ -9,27 +24,68 @@ export default function AdminGdprPage() {
       eyebrow="07 // ACCESS"
       code="GDP"
       title="GDPR"
-      italic="Console."
-      description="Per-user data export, right-to-erasure, and processor inventory with audit trail."
+      italic="Requests."
+      description="Data export, deletion, rectification, and restriction requests from users."
     >
-      <AdminConsoleScaffold
-        intro="Honour DSAR requests in minutes, not weeks — every export is signed and every erasure is verifiable."
-        status="scoped"
+      <AdminConsoleV2<GdprRow>
+        intro="Statutory data requests. The clock starts at created_at — most jurisdictions require a 30-day response window."
+        query={{ table: "gdpr_requests", orderBy: { column: "created_at", ascending: false } }}
+        searchKey="email"
+        filters={[
+          { key: "status", label: "Status", type: "select", options: [
+            { value: "pending", label: "Pending" }, { value: "in_progress", label: "In progress" },
+            { value: "completed", label: "Completed" }, { value: "rejected", label: "Rejected" }] },
+          { key: "kind", label: "Kind", type: "select", options: [
+            { value: "export", label: "Export" }, { value: "delete", label: "Delete" },
+            { value: "rectification", label: "Rectification" }, { value: "restriction", label: "Restriction" }] },
+        ]}
         signals={[
-        { label: "Open DSARs", value: "—", tone: "amber" },
-        { label: "Avg Turnaround", value: "—", tone: "blue", trend: "hours" },
-        { label: "Erasures (30d)", value: "—", tone: "rose" },
-        { label: "Processors", value: "—", tone: "neutral" },
+          { label: "Pending", value: (r) => r.filter((x) => (x as GdprRow).status === "pending").length, tone: "amber" },
+          { label: "In progress", value: (r) => r.filter((x) => (x as GdprRow).status === "in_progress").length, tone: "blue" },
+          { label: "Overdue (>30d)",
+            value: (r) => r.filter((x) => {
+              const g = x as GdprRow;
+              if (g.status === "completed" || g.status === "rejected") return false;
+              return Date.now() - new Date(g.created_at).getTime() > 30 * 86400_000;
+            }).length, tone: "rose" },
+          { label: "Completed", value: (r) => r.filter((x) => (x as GdprRow).status === "completed").length, tone: "emerald" },
         ]}
-        capabilities={[
-    { icon: FileArchive, title: "Data Export", description: "Single-click bundle of all PII for any user.", status: "queued" },
-    { icon: Trash2, title: "Right to Erasure", description: "Cascading hard-delete with anonymized financial trail.", status: "wired" },
-    { icon: FileSignature, title: "Signed Receipts", description: "Every action returns a tamper-proof PDF.", status: "manual" },
-    { icon: Network, title: "Processor Map", description: "Inventory of every downstream subprocessor.", status: "manual" },
-    { icon: Clock, title: "SLA Timer", description: "Countdown to statutory response deadline.", status: "manual" },
-    { icon: History, title: "Request Log", description: "Full history of every DSAR with status.", status: "wired" },
+        columns={[
+          { key: "email", label: "Email", width: "240px" },
+          { key: "kind", label: "Kind", width: "120px",
+            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">{String(v)}</span> },
+          { key: "status", label: "Status", width: "130px",
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${STATUS_TONE[v as keyof typeof STATUS_TONE]}`}>{String(v).replace("_", " ")}</span> },
+          { key: "created_at", label: "Received", width: "170px" },
+          { key: "completed_at", label: "Closed", width: "170px", hideOnMobile: true },
+          { key: "notes", label: "Notes", hideOnMobile: true },
         ]}
-      primaryCta={{ label: "New DSAR request" }}
+        actions={[
+          { label: "Start", icon: Clock, show: (r) => r.status === "pending",
+            onRun: async (r) => {
+              const { data: { user } } = await supabase.auth.getUser();
+              const { error } = await supabase.from("gdpr_requests")
+                .update({ status: "in_progress", handled_by: user?.id }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Complete", icon: Check, show: (r) => r.status === "pending" || r.status === "in_progress",
+            onRun: async (r) => {
+              const note = prompt("Optional completion note (e.g. export URL, deletion summary):", r.notes ?? "");
+              const { error } = await supabase.from("gdpr_requests")
+                .update({ status: "completed", completed_at: new Date().toISOString(), notes: note }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Reject", icon: X, variant: "destructive", show: (r) => r.status === "pending" || r.status === "in_progress",
+            onRun: async (r) => {
+              const reason = prompt("Reason for rejecting? (will be logged in notes)");
+              if (!reason) return;
+              const { error } = await supabase.from("gdpr_requests")
+                .update({ status: "rejected", completed_at: new Date().toISOString(), notes: reason }).eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        emptyTitle="No GDPR requests pending"
+        emptyDescription="When users submit data requests, they appear here for processing."
       />
     </AdminPageShell>
   );

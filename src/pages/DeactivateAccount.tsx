@@ -11,7 +11,7 @@ import { ArrowLeft, AlertCircle, UserX, Power, Loader2, ShieldAlert } from 'luci
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 export default function DeactivateAccount() {
-  usePageMeta({ title: "Deactivate account — Apex Studio", description: "Permanently deactivate your Apex Studio account." });
+  usePageMeta({ title: "Deactivate account — Small Bridges", description: "Permanently deactivate your Small Bridges account." });
 
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();

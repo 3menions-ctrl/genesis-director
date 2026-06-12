@@ -162,7 +162,7 @@ export function DiagnosticsDrawer({ open, onClose, scenes, projectId, focusScene
             <header className="flex items-center justify-between gap-4 border-b border-border/40 px-6 py-5">
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-accent">Diagnostics</div>
-                <h2 className="mt-1 font-display text-[22px] italic leading-none text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                <h2 className="mt-1 font-display text-[22px] italic leading-none text-foreground">
                   Pipeline forensics
                 </h2>
                 <p className="mt-1.5 font-mono text-[10px] tracking-[0.14em] text-muted-foreground/70">
@@ -217,7 +217,7 @@ export function DiagnosticsDrawer({ open, onClose, scenes, projectId, focusScene
                         <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
                           S{String(s.index + 1).padStart(2, "0")}
                         </span>
-                        <span className="min-w-0 flex-1 truncate font-light text-[13px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                        <span className="min-w-0 flex-1 truncate font-light text-[13px] text-foreground">
                           {s.location || `Scene ${s.index + 1}`}
                         </span>
                         <span className="hidden font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 sm:inline">
@@ -351,7 +351,7 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
   return (
     <div className="flex flex-col bg-background px-4 py-3">
       <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground/60">{label}</span>
-      <span className={cn("mt-1 font-display text-[22px] leading-none tabular-nums", tc)} style={{ fontFamily: "'Fraunces', serif" }}>{value}</span>
+      <span className={cn("mt-1 font-display text-[22px] leading-none tabular-nums", tc)}>{value}</span>
     </div>
   );
 }

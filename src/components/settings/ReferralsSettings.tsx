@@ -73,7 +73,7 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
       if (!link) return;
       if (navigator.share) {
         try {
-          await navigator.share({ title: 'Apex Studio', text: 'Make cinematic AI videos with me on Apex.', url: link });
+          await navigator.share({ title: 'Small Bridges', text: 'Make cinematic AI videos with me on Small Bridges.', url: link });
         } catch { /* user cancelled */ }
       } else {
         copy(link, 'Invite link');

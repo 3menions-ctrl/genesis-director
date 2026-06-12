@@ -26,7 +26,7 @@ interface ThumbnailCacheSchema extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<ThumbnailCacheSchema>> | null = null;
 
-const DB_NAME = 'apex-video-thumbnails';
+const DB_NAME = 'sb-video-thumbnails';
 const DB_VERSION = 1;
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

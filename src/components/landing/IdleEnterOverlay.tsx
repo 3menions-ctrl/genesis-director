@@ -151,7 +151,7 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
                   backgroundClip: 'text',
                 }}
               >
-                Apex
+                Small Bridges
               </span>
             </motion.h2>
             <motion.p

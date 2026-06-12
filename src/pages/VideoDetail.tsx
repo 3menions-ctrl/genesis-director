@@ -10,7 +10,7 @@ import { ArrowLeft, Share2, Eye, Calendar, User, ExternalLink, Loader2 } from 'l
 import { useNavigationWithLoading } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UniversalVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { VideoReactionsBar, VideoCommentsSection } from '@/components/social';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +39,7 @@ interface VideoDetails {
 }
 
 export default function VideoDetailPage() {
-  usePageMeta({ title: "Video — Apex Studio", description: "Watch a cinematic Apex Studio production in full quality." });
+  usePageMeta({ title: "Video — Small Bridges", description: "Watch a cinematic Small Bridges production in full quality." });
 
   const { videoId } = useParams<{ videoId: string }>();
   const { navigate } = useSafeNavigation();
@@ -163,12 +163,9 @@ export default function VideoDetailPage() {
             {/* Video Player */}
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-900 border border-white/[0.06]">
               {video.video_url ? (
-                <UniversalVideoPlayer
-                  source={
-                    video.video_url.endsWith('.json')
-                      ? { manifestUrl: video.video_url }
-                      : { urls: [video.video_url] }
-                  }
+                <BrandedVideoPlayer
+                  src={video.video_url}
+                  skipIntro
                   autoPlay
                   className="w-full h-full"
                 />

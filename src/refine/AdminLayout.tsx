@@ -1,23 +1,18 @@
 /**
  * Admin Layout — Editorial Noir
- * Single cohesive admin shell. NO studio links. Reorganized into 5 operator
- * sections (Pulse / People / Money / Content / System). Pro-Dark + #0A84FF.
- * Premium editorial pass: Fraunces nav labels, frosted operator card,
- * ambient grain + radial glow, refined typographic hierarchy.
+ * Single cohesive admin shell. Consolidated into 9 nav items (was 47): a
+ * Dashboard, five Hub pages (People / Production / Money / Growth / System)
+ * each with internal tabs, and two Tools entries (Audit / Config). The ⌘K
+ * palette is the primary navigation device — typing an email or project
+ * title jumps directly to the right profile.
+ * Pro-Dark + #0A84FF. Fraunces nav labels, frosted operator card, ambient
+ * grain + radial glow, refined typographic hierarchy.
  */
 import { useState, useEffect, memo } from "react";
 import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
 import {
-  Activity, AlertOctagon, Users, MessageSquare, DollarSign, Coins,
-  FolderKanban, Shield, Mail, Settings, Loader2, ChevronLeft, Power,
-  ChevronDown, Lock,
-  ScrollText, Terminal, Cloud, ListOrdered, Heart, DatabaseBackup,
-  KeyRound, UserCog, MonitorSmartphone, FileLock2, Flag,
-  Repeat, Undo2, TicketPercent, Share2, Receipt, Scale,
-  UserSquare2, Images, LayoutTemplate, HardDrive, ShieldAlert,
-  BarChart3, Footprints, FlaskConical, GitBranch, ToggleLeft, Megaphone,
-  MailPlus, Bell, MessagesSquare, Newspaper,
-  Code2, Webhook, Database, Bug,
+  Activity, Users, FolderKanban, Loader2, ChevronLeft, Power,
+  ChevronDown, Lock, Wallet, TrendingUp, Zap, Settings, ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,76 +21,30 @@ import { OpsAccessProvider, useOpsAccess } from "./rbac/OpsAccessProvider";
 import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
 import { scopeForPath } from "./rbac/scopes";
 import { AdminNotificationBell } from "./components/AdminNotificationBell";
+import { AdminPalette } from "./components/AdminPalette";
 import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };
 type NavSection = { code: string; label: string; live?: boolean; items: NavItem[] };
 
+// Consolidated 9-item nav (was 47). Hubs absorb the old sub-pages — every
+// legacy /admin/<sub> route still works for deep links, but the operator's
+// primary surface is now just hubs + the dashboard + entity profiles. Hit
+// ⌘K to jump anywhere by name.
 const NAV: NavSection[] = [
   { code: "01", label: "Pulse", live: true, items: [
-    { n: "01", label: "Telemetry",  icon: Activity,     path: "/admin" },
-    { n: "02", label: "Production", icon: AlertOctagon, path: "/admin/production" },
+    { n: "01", label: "Dashboard",  icon: Activity, path: "/admin" },
   ]},
-  { code: "02", label: "People", items: [
-    { n: "03", label: "Identity",   icon: Users,         path: "/admin/users" },
-    { n: "04", label: "Inbox",      icon: MessageSquare, path: "/admin/messages" },
+  { code: "02", label: "Hubs", items: [
+    { n: "02", label: "People",     icon: Users,          path: "/admin/people" },
+    { n: "03", label: "Production", icon: FolderKanban,   path: "/admin/production-hub" },
+    { n: "04", label: "Money",      icon: Wallet,         path: "/admin/money" },
+    { n: "05", label: "Growth",     icon: TrendingUp,     path: "/admin/growth" },
+    { n: "06", label: "System",     icon: Zap,            path: "/admin/system" },
   ]},
-  { code: "03", label: "Money", items: [
-    { n: "05", label: "Treasury",   icon: DollarSign,   path: "/admin/finance" },
-    { n: "06", label: "Ledger",     icon: Coins,        path: "/admin/credits" },
-    { n: "11", label: "Subscriptions", icon: Repeat,        path: "/admin/subscriptions" },
-    { n: "12", label: "Refunds",       icon: Undo2,         path: "/admin/refunds" },
-    { n: "13", label: "Coupons",       icon: TicketPercent, path: "/admin/coupons" },
-    { n: "14", label: "Referrals",     icon: Share2,        path: "/admin/referrals" },
-    { n: "15", label: "Tax",           icon: Receipt,       path: "/admin/invoices" },
-    { n: "16", label: "Stripe",        icon: Scale,         path: "/admin/reconcile" },
-  ]},
-  { code: "04", label: "Content", items: [
-    { n: "07", label: "Projects",   icon: FolderKanban, path: "/admin/projects" },
-    { n: "08", label: "Moderation", icon: Shield,       path: "/admin/moderation" },
-    { n: "17", label: "Avatar",     icon: UserSquare2,   path: "/admin/avatar-catalog" },
-    { n: "18", label: "Gallery",    icon: Images,        path: "/admin/gallery" },
-    { n: "19", label: "Template",   icon: LayoutTemplate, path: "/admin/template-library" },
-    { n: "20", label: "Asset",      icon: HardDrive,     path: "/admin/storage" },
-    { n: "21", label: "Safety",     icon: ShieldAlert,   path: "/admin/content-safety" },
-  ]},
-  { code: "05", label: "Observability", items: [
-    { n: "22", label: "Audit",      icon: ScrollText,    path: "/admin/audit" },
-    { n: "23", label: "Edge",       icon: Terminal,      path: "/admin/edge-logs" },
-    { n: "24", label: "Provider",   icon: Cloud,         path: "/admin/providers" },
-    { n: "25", label: "Queue",      icon: ListOrdered,   path: "/admin/queue" },
-    { n: "26", label: "Status",     icon: Heart,         path: "/admin/status" },
-    { n: "27", label: "Backups",    icon: DatabaseBackup,path: "/admin/backups" },
-  ]},
-  { code: "06", label: "Access", items: [
-    { n: "28", label: "Roles",      icon: KeyRound,         path: "/admin/roles" },
-    { n: "29", label: "Admins",     icon: UserCog,          path: "/admin/team" },
-    { n: "30", label: "Sessions",   icon: MonitorSmartphone,path: "/admin/sessions" },
-    { n: "31", label: "GDPR",       icon: FileLock2,        path: "/admin/gdpr" },
-    { n: "32", label: "Abuse",      icon: Flag,             path: "/admin/abuse" },
-  ]},
-  { code: "07", label: "Growth", items: [
-    { n: "33", label: "Analytics",  icon: BarChart3,    path: "/admin/analytics" },
-    { n: "34", label: "Onboarding", icon: Footprints,   path: "/admin/onboarding-analytics" },
-    { n: "35", label: "A/B",        icon: FlaskConical, path: "/admin/experiments" },
-    { n: "36", label: "Cohorts",    icon: GitBranch,    path: "/admin/cohorts" },
-    { n: "37", label: "Flags",      icon: ToggleLeft,   path: "/admin/feature-flags" },
-    { n: "38", label: "News",       icon: Megaphone,    path: "/admin/announcements" },
-  ]},
-  { code: "08", label: "Comms", items: [
-    { n: "39", label: "Email",      icon: MailPlus,       path: "/admin/email-templates" },
-    { n: "40", label: "Notify",     icon: Bell,           path: "/admin/notifications-center" },
-    { n: "41", label: "Macros",     icon: MessagesSquare, path: "/admin/macros" },
-    { n: "42", label: "Changelog",  icon: Newspaper,      path: "/admin/changelog" },
-  ]},
-  { code: "09", label: "System", items: [
-    { n: "09", label: "Emails",     icon: Mail,         path: "/admin/emails" },
-    { n: "10", label: "Config",     icon: Settings,     path: "/admin/config" },
-    { n: "43", label: "API",        icon: Code2,    path: "/admin/api-keys" },
-    { n: "44", label: "Webhooks",   icon: Webhook,  path: "/admin/webhooks" },
-    { n: "45", label: "Secrets",    icon: Lock,     path: "/admin/secrets" },
-    { n: "46", label: "Database",   icon: Database, path: "/admin/db-health" },
-    { n: "47", label: "Crash",      icon: Bug,      path: "/admin/crash-forensics" },
+  { code: "03", label: "Tools", items: [
+    { n: "07", label: "Audit",      icon: ScrollText,     path: "/admin/audit" },
+    { n: "08", label: "Config",     icon: Settings,       path: "/admin/config" },
   ]},
 ];
 
@@ -248,7 +197,7 @@ function RefineAdminLayoutInner() {
                     {section.code} <span className="text-white/15">//</span> {section.label}
                   </span>
                   {section.live && (
-                    <span className="text-[#0A84FF]/70 italic normal-case tracking-normal text-[11px]" style={{ fontFamily: "'Fraunces', serif" }}>
+                    <span className="text-[#0A84FF]/70 italic normal-case tracking-normal text-[11px]">
                       live
                     </span>
                   )}
@@ -331,7 +280,6 @@ function RefineAdminLayoutInner() {
                 </div>
                 <div
                   className="text-[13px] text-white truncate"
-                  style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   {user.email?.split("@")[0] || "Operator"}
                 </div>
@@ -366,6 +314,19 @@ function RefineAdminLayoutInner() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse" />
               <span className="text-emerald-500/70 font-mono">Uptime 99.98%</span>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                document.dispatchEvent(
+                  new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+                );
+              }}
+              className="hidden md:flex items-center gap-2 px-3 h-7 rounded-full border border-white/[0.08] hover:border-[#0A84FF]/40 hover:text-[#0A84FF] text-white/45 transition-colors font-mono normal-case"
+              title="Open command palette (⌘K)"
+            >
+              <span className="text-[11px] tracking-[0.12em]">Search…</span>
+              <kbd className="text-[10px] px-1.5 py-0.5 rounded border border-white/[0.08] text-white/55">⌘K</kbd>
+            </button>
             <Clock />
             <AdminNotificationBell />
           </div>
@@ -377,6 +338,9 @@ function RefineAdminLayoutInner() {
           </OpsRouteGuard>
         </div>
       </main>
+
+      {/* ⌘K admin command palette — global to every admin page */}
+      <AdminPalette />
     </div>
   );
 }

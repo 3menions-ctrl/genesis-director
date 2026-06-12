@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const NotFound = () => {
-  usePageMeta({ title: "Page not found — Apex Studio", description: "We couldn't find that page. Head back to Apex Studio." });
+  usePageMeta({ title: "Page not found — Small Bridges", description: "We couldn't find that page. Head back to Small Bridges." });
 
   const location = useLocation();
 

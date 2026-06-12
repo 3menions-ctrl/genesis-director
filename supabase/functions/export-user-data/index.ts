@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="apex-studio-data-export-${new Date().toISOString().split('T')[0]}.json"`
+          'Content-Disposition': `attachment; filename="small-bridges-data-export-${new Date().toISOString().split('T')[0]}.json"`
         } 
       }
     )

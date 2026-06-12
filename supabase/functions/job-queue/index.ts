@@ -291,7 +291,7 @@ async function processBatch(
       // Route to appropriate handler
       const handlerMap: Record<JobType, string> = {
         video_generation: 'generate-single-clip',
-        stitching: 'simple-stitch',
+        stitching: 'seamless-stitcher',
         audio_generation: 'generate-voice',
         thumbnail: 'generate-project-thumbnail',
       };

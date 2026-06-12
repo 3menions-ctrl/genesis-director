@@ -29,7 +29,7 @@ const ROLE_RANK: Record<OrgRole, number> = {
   owner: 5, admin: 4, producer: 3, reviewer: 2, viewer: 1,
 };
 
-const STORAGE_KEY = 'apex.currentOrgId';
+const STORAGE_KEY = 'smallbridges.currentOrgId';
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {

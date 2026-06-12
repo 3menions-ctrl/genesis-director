@@ -44,7 +44,7 @@ const CHAPTERS: Chapter[] = [
     eyebrow: 'Chapter IV · The New Studio',
     headline: 'Your studio.',
     italic: 'Reimagined.',
-    sub: 'A brief, your brand kit, and Seedance 2.0 — Apex renders the first cut while you write the next scene.',
+    sub: 'A brief, your brand kit, and Seedance 2.0 — Small Bridges renders the first cut while you write the next scene.',
     meta: ['Solo to enterprise', 'Brand-locked', 'Ship today'],
   },
 ];

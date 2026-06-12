@@ -323,7 +323,7 @@ serve(async (req) => {
 
     if (forceStitchProjectId) {
       console.log(`[Watchdog] FORCE STITCH triggered for project: ${forceStitchProjectId}`);
-      const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+      const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1230,7 +1230,7 @@ serve(async (req) => {
         if (videoClipsArray.length > 1) {
           try {
             console.log(`[Watchdog] 🎬 AUTO-STITCH: Concatenating ${videoClipsArray.length} clips...`);
-            const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+            const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1452,7 +1452,7 @@ serve(async (req) => {
           // Trigger stitch with available clips
           try {
             console.log(`[Watchdog] 🎬 Triggering stitch for partial completion...`);
-            await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+            await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -2012,9 +2012,9 @@ serve(async (req) => {
             .eq('id', project.id);
           
           if (!recoveryError) {
-            // Trigger simple-stitch
+            // Trigger seamless-stitcher
             try {
-              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/simple-stitch`, {
+              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/seamless-stitcher`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -2135,7 +2135,7 @@ serve(async (req) => {
         console.log(`[Watchdog] Processing scheduled retry for ${project.id}`);
         
         try {
-          const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+          const response = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2174,7 +2174,7 @@ serve(async (req) => {
       console.log(`[Watchdog] Processing stitch job retry: ${job.id}`);
       
       try {
-        const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+        const response = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2323,7 +2323,7 @@ serve(async (req) => {
               .eq('id', project.id);
             
             try {
-              const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              const response = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -2627,7 +2627,7 @@ serve(async (req) => {
           console.log(`[Watchdog] All clips ready, triggering stitch`);
           
           try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+            const response = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LANGUAGES, isRtl, type LanguageCode } from "./languages";
 import { isTranslationDisabled, tripBreaker, looksLikeCreditsError } from "./circuitBreaker";
 
-const CACHE_PREFIX = "apex.i18n.dom.v1.";
+const CACHE_PREFIX = 'sb.i18n.dom.v1.';
 const ORIG_ATTR = "data-i18n-orig";
 const SKIP_TAGS = new Set([
   "SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "SVG", "PATH",

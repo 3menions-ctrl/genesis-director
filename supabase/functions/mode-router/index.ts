@@ -231,7 +231,7 @@ interface ModeRouterRequest {
 
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
 }
 
 serve(async (req) => {
@@ -361,8 +361,11 @@ serve(async (req) => {
     // Avatar mode bypasses hollywood-pipeline, so credits must be deducted here
     // Text-to-video/cinematic routes to hollywood-pipeline which handles its own credits
     // =========================================================
-    // FIX #1: Exclude motion-transfer from credit deduction since it's not implemented (returns 501)
-    const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video';
+    // Motion-transfer is now a real Replicate-backed pipeline, so it joins
+    // avatar/video-to-video in needing local credit deduction (cinematic
+    // text/image-to-video continue to deduct inside hollywood-pipeline).
+    const requiresLocalCreditDeduction =
+      mode === 'avatar' || mode === 'video-to-video' || mode === 'motion-transfer';
     
     // Create or get project FIRST (status: 'creating' or 'pending_payment')
     // This ensures we have a record to attach the transaction to, or refund against if needed.
@@ -764,7 +767,7 @@ async function handleAvatarCinematicMode(params: {
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
   avatarCast?: AvatarCastMember[];
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
   supabase: any;
 }) {
   const { 
@@ -1151,7 +1154,7 @@ async function handleCinematicMode(params: {
   mode: string;
   genre?: string;
   mood?: string;
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
   // Breakout template parameters
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
@@ -1176,7 +1179,14 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] BREAKOUT TEMPLATE: ${breakoutPlatform}, using platform UI as first frame`);
   }
 
-  // ENGINE ROUTING: Seedance → seedance-pipeline, all others → hollywood-pipeline
+  // ENGINE ROUTING:
+  //   wan      → hollywood-pipeline (configured to dispatch to wan-ai/wan-2.5-t2v)
+  //   seedance → seedance-pipeline
+  //   *        → hollywood-pipeline (kling default + veo + sora)
+  //
+  // Wan currently piggybacks on hollywood-pipeline; the pipeline uses the
+  // `videoEngine` field to swap the Replicate model id, so this is just a
+  // routing shortcut, not a model swap.
   const targetPipeline = (videoEngine === 'seedance')
     ? 'seedance-pipeline'
     : 'hollywood-pipeline';

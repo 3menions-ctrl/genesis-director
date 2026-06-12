@@ -30,6 +30,8 @@ interface PipelineErrorBannerProps {
   projectStatus?: string;
   failedClipCount?: number;
   totalClipCount?: number;
+  /** Credits that were automatically refunded for this failure (from `movie_projects.pipeline_state.refundAmount`). */
+  refundAmount?: number | null;
   onRetry?: () => void;
   onDismiss?: () => void;
   isRetrying?: boolean;
@@ -192,6 +194,7 @@ export function PipelineErrorBanner({
   projectStatus,
   failedClipCount = 0,
   totalClipCount = 0,
+  refundAmount,
   onRetry,
   onDismiss,
   isRetrying = false,
@@ -269,19 +272,29 @@ export function PipelineErrorBanner({
             </div>
             <div className="min-w-0">
               <p className={cn("text-sm font-semibold", errorStyle.color)}>
-                {projectStatus === 'failed' ? 'Pipeline Failed' : 
+                {projectStatus === 'failed' ? 'Pipeline Failed' :
                  parsedError?.code === 'PRODUCTION_INCOMPLETE' ? 'Production Incomplete' :
                  hasDegradation && !hasError ? 'Quality Warnings' : 'Error Occurred'}
               </p>
               <p className="text-xs text-white/50 truncate">
-                {parsedError?.message || 
-                 (failedClipCount > 0 ? `${failedClipCount} of ${totalClipCount} clips failed` : 
+                {parsedError?.message ||
+                 (failedClipCount > 0 ? `${failedClipCount} of ${totalClipCount} clips failed` :
                   hasDegradation ? `${degradationFlags.length} issue${degradationFlags.length > 1 ? 's' : ''} detected` :
                   'Unknown error')}
               </p>
+              {refundAmount && refundAmount > 0 && (
+                <p className="text-[11px] text-emerald-300 mt-1.5 inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+                  We&rsquo;ve refunded{' '}
+                  <span className="font-mono font-semibold">
+                    {refundAmount} credit{refundAmount === 1 ? '' : 's'}
+                  </span>{' '}
+                  to your balance.
+                </p>
+              )}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 shrink-0">
             {parsedError?.isRetryable && onRetry && (
               <Button

@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Env files — committed publishable keys still tie the repo to a specific
+# account. Sensitive values live in host env (Cloudflare Pages, Supabase
+# secrets). `.env.example` documents the shape.
+.env
+.env.*
+!.env.example
+!.env.example.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,10 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { assertSafeFetchUrl, safeFetch, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Hosts the user could legitimately point us at — generative-model CDNs,
+// our own storage, public Pexels/Unsplash. Anything else is treated as a
+// SSRF attempt.
+const VIDEO_ALLOW_HOSTS = [
+  '*.supabase.co',
+  '*.supabase.in',
+  '*.replicate.delivery',
+  'replicate.delivery',
+  '*.cloudfront.net',
+  '*.amazonaws.com',
+  'videos.pexels.com',
+  'images.pexels.com',
+  'images.unsplash.com',
+];
 
 /**
  * Extract Video Frame v6.0
@@ -34,6 +50,31 @@ serve(async (req) => {
 
     if (!videoUrl) throw new Error("videoUrl is required");
 
+    // SSRF guard — reject internal IPs / non-allowlist hosts before any fetch.
+    try {
+      assertSafeFetchUrl(videoUrl, { allowHosts: VIDEO_ALLOW_HOSTS });
+    } catch (e) {
+      if (e instanceof SSRFError) {
+        return new Response(
+          JSON.stringify({ error: `videoUrl host is not allowed (${e.reason})` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw e;
+    }
+    if (referenceImageUrl) {
+      try { assertSafeFetchUrl(referenceImageUrl, { allowHosts: VIDEO_ALLOW_HOSTS }); }
+      catch (e) {
+        if (e instanceof SSRFError) {
+          return new Response(
+            JSON.stringify({ error: `referenceImageUrl host is not allowed (${e.reason})` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw e;
+      }
+    }
+
     console.log(`[ExtractFrame] Extracting ${position} frame from ${videoUrl.substring(0, 60)}...`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -47,7 +88,12 @@ serve(async (req) => {
 
     const downloadAndStore = async (frameUrl: string): Promise<string | null> => {
       try {
-        const res = await fetch(frameUrl);
+        // Replicate-returned frame URLs are on replicate.delivery; allow that
+        // plus our other vendor CDNs.
+        const res = await safeFetch(frameUrl, undefined, {
+          allowHosts: VIDEO_ALLOW_HOSTS,
+          maxBodyBytes: 25 * 1024 * 1024,
+        });
         if (!res.ok) return null;
         const data = await res.arrayBuffer();
         const filename = `${projectId}/frame-${shotId}-${position}-${Date.now()}.jpg`;

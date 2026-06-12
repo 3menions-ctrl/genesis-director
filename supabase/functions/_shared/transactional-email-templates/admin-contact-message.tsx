@@ -23,7 +23,7 @@ function AdminContactMessage({
   submittedAt = new Date().toISOString(),
 }: Props) {
   return (
-    <EmailLayout preview={`New ${source} message: ${subject}`} footerNote="Internal admin notification — Apex Studio support inbox.">
+    <EmailLayout preview={`New ${source} message: ${subject}`} footerNote="Internal admin notification — Small Bridges support inbox.">
       <Text style={styles.h1}>New support message</Text>
       <Text style={styles.body}>
         <strong style={{ color: '#fff' }}>{fromName}</strong> &lt;{fromEmail}&gt; submitted a message via <strong style={{ color: '#fff' }}>{source}</strong>.
@@ -42,8 +42,8 @@ function AdminContactMessage({
 export const template: TemplateEntry = {
   component: AdminContactMessage,
   displayName: 'Admin: Contact Message',
-  subject: (d: Props) => `[Apex Support] ${d?.subject ?? 'New message'} — ${d?.fromName ?? 'Anonymous'}`,
-  to: 'cole@apex-studio.com',
+  subject: (d: Props) => `[Small Bridges Support] ${d?.subject ?? 'New message'} — ${d?.fromName ?? 'Anonymous'}`,
+  to: 'cole@smallbridges.com',
   previewData: {
     fromName: 'Jane Doe',
     fromEmail: 'jane@example.com',

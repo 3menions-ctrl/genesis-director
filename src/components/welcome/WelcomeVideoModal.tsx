@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
 
 // The Studio Storytelling Journey video URL
-const WELCOME_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
+const WELCOME_VIDEO_URL = 'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
 
 export function WelcomeVideoModal() {
   const { user, profile, refreshProfile } = useAuth();
@@ -106,7 +106,7 @@ export function WelcomeVideoModal() {
         className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform max-w-4xl w-[94vw] p-0 border-0 overflow-hidden bg-transparent shadow-none"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
-        <DialogTitle className="sr-only">Welcome to Apex-Studio</DialogTitle>
+        <DialogTitle className="sr-only">Welcome to Small Bridges</DialogTitle>
         {/* Outer glow */}
         <div className="absolute -inset-px rounded-3xl bg-gradient-to-b from-white/[0.15] to-white/[0.03] p-px">
           <div className="w-full h-full rounded-3xl bg-[hsl(240,10%,5%)]/95 backdrop-blur-2xl" />

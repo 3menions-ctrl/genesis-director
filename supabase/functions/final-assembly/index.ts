@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
  * 
  * Post-production orchestrator that:
  * 1. Validates all clips are complete
- * 2. Triggers simple-stitch for manifest creation
+ * 2. Triggers seamless-stitcher for manifest creation
  * 3. Updates project status to completed
  * 
  * CHECKPOINTS:
@@ -115,10 +115,10 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
-    // Step 3: Call simple-stitch for manifest creation
-    console.log(`[FinalAssembly] Invoking simple-stitch for manifest creation...`);
+    // Step 3: Call seamless-stitcher for manifest creation
+    console.log(`[FinalAssembly] Invoking seamless-stitcher for manifest creation...`);
     
-    const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+    const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/seamless-stitcher`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,13 +129,13 @@ serve(async (req) => {
 
     if (!stitchResponse.ok) {
       const errorText = await stitchResponse.text();
-      throw new Error(`simple-stitch failed: ${stitchResponse.status} ${errorText}`);
+      throw new Error(`seamless-stitcher failed: ${stitchResponse.status} ${errorText}`);
     }
 
     const stitchResult = await stitchResponse.json();
     
     if (!stitchResult.success) {
-      throw new Error(`simple-stitch returned error: ${stitchResult.error}`);
+      throw new Error(`seamless-stitcher returned error: ${stitchResult.error}`);
     }
 
     if (stitchResult.mode === 'server_stitching' && !stitchResult.finalVideoUrl) {

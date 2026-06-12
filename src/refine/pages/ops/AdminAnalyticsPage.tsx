@@ -382,7 +382,7 @@ export default function AdminAnalyticsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="text-2xl text-white font-light tabular-nums" style={{ fontFamily: "'Fraunces', serif" }}>
+                  <div className="text-2xl text-white font-light tabular-nums">
                     {fmtN(tierTotal)}
                   </div>
                   <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.3em]">accounts</div>
@@ -562,7 +562,7 @@ function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
       {loading || value == null ? (
         <Skeleton className="h-8 w-20 bg-white/[0.04]" />
       ) : (
-        <div className="text-3xl font-light text-white tabular-nums" style={{ fontFamily: "'Fraunces', serif" }}>
+        <div className="text-3xl font-light text-white tabular-nums">
           {value}
         </div>
       )}
@@ -580,7 +580,7 @@ function BigStat({ label, value, sub, tone, loading }: {
       {loading ? (
         <Skeleton className="h-9 w-24 bg-white/[0.04]" />
       ) : (
-        <div className={cn("text-4xl font-light tabular-nums", c)} style={{ fontFamily: "'Fraunces', serif" }}>
+        <div className={cn("text-4xl font-light tabular-nums", c)}>
           {value}
         </div>
       )}
@@ -593,8 +593,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
   return (
     <div>
       <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.3em] mb-1">{label}</div>
-      <div className={cn("text-xl font-light tabular-nums", accent ? "text-[#6FB6FF]" : "text-white")}
-        style={{ fontFamily: "'Fraunces', serif" }}>
+      <div className={cn("text-xl font-light tabular-nums", accent ? "text-[#6FB6FF]" : "text-white")}>
         {value}
       </div>
     </div>
@@ -853,7 +852,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               </button>
             </div>
           </div>
-          <SheetTitle className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+          <SheetTitle className="text-2xl font-light tracking-tight">
             {heading}
           </SheetTitle>
           <SheetDescription className="text-[12px] text-white/40 mt-1">

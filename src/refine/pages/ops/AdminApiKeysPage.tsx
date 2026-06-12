@@ -1,35 +1,74 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Org API keys — global admin view across workspaces. Revoke only; creation lives in WorkspaceApi. */
+import { Ban, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { supabase } from "@/integrations/supabase/client";
+
+interface KeyRow extends AdminRow {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  organization_id: string;
+  organizations?: { name: string } | null;
+}
 
 export default function AdminApiKeysPage() {
   return (
     <AdminPageShell
-      eyebrow="05 // SYSTEM"
+      eyebrow="13 // SYSTEM"
       code="API"
       title="API"
       italic="Keys."
-      description="Issue, scope, and rotate service API keys with per-key audit trail."
+      description="Workspace API keys across every org. Revoke compromised keys instantly."
     >
-      <AdminConsoleScaffold
-        intro="Every service-to-service token in one vault — scoped, revocable, rotated on schedule."
-        status="scoped"
+      <AdminConsoleV2<KeyRow>
+        intro="Every workspace-scoped API key, masked. Revoke a key and the next call from any client using it fails immediately."
+        query={{
+          table: "org_api_keys",
+          select: "id, name, prefix, scopes, last_used_at, revoked_at, created_at, organization_id, organizations(name)",
+          orderBy: { column: "created_at", ascending: false },
+        }}
+        searchKey="name"
+        searchPlaceholder="Search by key name…"
         signals={[
-        { label: "Active Keys", value: "—", tone: "blue" },
-        { label: "Rotated 30d", value: "—", tone: "emerald" },
-        { label: "Stale > 90d", value: "—", tone: "amber" },
-        { label: "Revoked", value: "—", tone: "rose" },
+          { label: "Total", value: (r) => r.length, tone: "blue" },
+          { label: "Active", value: (r) => r.filter((x) => !(x as KeyRow).revoked_at).length, tone: "emerald" },
+          { label: "Revoked", value: (r) => r.filter((x) => (x as KeyRow).revoked_at).length, tone: "rose" },
+          { label: "Never used", value: (r) => r.filter((x) => !(x as KeyRow).last_used_at).length, tone: "amber" },
         ]}
-        capabilities={[
-    { icon: KeyRound, title: "Key Issuance", description: "Mint scoped keys with TTL and label.", status: "queued" },
-    { icon: Shield, title: "Scope Editor", description: "Limit by route, RPC, or resource pattern.", status: "manual" },
-    { icon: RefreshCw, title: "Rotation Schedule", description: "Auto-rotate every N days with overlap window.", status: "manual" },
-    { icon: AlertTriangle, title: "Usage Anomaly", description: "Flag spikes or unusual ASN origin.", status: "manual" },
-    { icon: Trash2, title: "Instant Revoke", description: "Hard kill in <1s with audit entry.", status: "wired" },
-    { icon: History, title: "Audit Log", description: "Every issue / revoke / rotate captured.", status: "wired" },
+        columns={[
+          { key: "name", label: "Name", width: "220px" },
+          { key: "organizations", label: "Workspace", width: "180px",
+            render: (_, row) => row.organizations?.name ?? "—" },
+          { key: "prefix", label: "Prefix", width: "160px",
+            render: (v) => <code className="font-mono text-[11px] text-white/55">{String(v)}…</code> },
+          { key: "last_used_at", label: "Last used", width: "170px", hideOnMobile: true },
+          { key: "revoked_at", label: "Status", width: "120px",
+            render: (v) => v
+              ? <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-rose-300">Revoked</span>
+              : <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-300">Active</span> },
         ]}
-      primaryCta={{ label: "Issue key" }}
+        actions={[
+          { label: "Revoke", icon: Ban, variant: "destructive", confirm: "Revoke this API key? Any service using it will fail.",
+            show: (r) => !r.revoked_at,
+            onRun: async (r) => {
+              const { error } = await supabase
+                .from("org_api_keys").update({ revoked_at: new Date().toISOString() }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Permanently delete this revoked key record?",
+            show: (r) => !!r.revoked_at,
+            onRun: async (r) => {
+              const { error } = await supabase.from("org_api_keys").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        emptyTitle="No API keys issued"
+        emptyDescription="Workspace operators generate keys from /workspace/api — they appear here for global oversight."
       />
     </AdminPageShell>
   );

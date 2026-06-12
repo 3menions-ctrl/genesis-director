@@ -79,7 +79,6 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
                 Who is this{' '}
                 <span
                   className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
-                  style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   for?
                 </span>

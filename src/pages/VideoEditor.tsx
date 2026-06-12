@@ -5,6 +5,7 @@ import { EditorErrorScreen } from "@/components/editor/EditorErrorScreen";
 import { CustomTimelineProvider } from "@/hooks/useCustomTimeline";
 import { EditorChrome } from "@/components/editor/EditorChrome";
 import { EditorStudioAurora } from "@/components/editor/EditorStudioAurora";
+import { DesktopRecommendedBanner } from "@/components/ui/DesktopRecommendedBanner";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // Dynamic import — keep browser-render for WebCodecs export
@@ -46,7 +47,7 @@ function useBrowserRenderModule() {
 }
 
 export default function VideoEditor() {
-  usePageMeta({ title: "Editor — Apex Studio", description: "Multi-track timeline editor with templates, transitions, and broadcast-quality export." });
+  usePageMeta({ title: "Editor — Small Bridges", description: "Multi-track timeline editor with templates, transitions, and broadcast-quality export." });
 
   const navigate = useNavigate();
   const { mod: browserRender, loading } = useBrowserRenderModule();
@@ -55,6 +56,7 @@ export default function VideoEditor() {
 
   return (
     <CustomTimelineProvider>
+      <DesktopRecommendedBanner surface="Editor" />
       <EditorStudioAurora />
       <EditorChrome
         useBrowserRenderer={browserRender?.useBrowserRenderer}

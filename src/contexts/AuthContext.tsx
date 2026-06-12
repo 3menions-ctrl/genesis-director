@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
 import { resetQueryCache } from '@/lib/queryClient';
@@ -47,8 +46,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
-  signInWithApple: () => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   retryProfileFetch: () => Promise<void>;
@@ -389,11 +387,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
+    // Hard safety: guarantee `loading` flips to false within 8s no matter what
+    // Supabase / network / stale-token refresh does. Without this, a hung
+    // getSession() would strand the UI on the Landing CinemaLoader forever.
+    const AUTH_INIT_CEILING_MS = 8000;
+    const initCeiling = setTimeout(() => {
+      if (!mounted) return;
+      console.warn('[AuthContext] Init ceiling hit — forcing loading=false');
+      setIsSessionVerified(true);
+      setLoading(false);
+    }, AUTH_INIT_CEILING_MS);
+
     // THEN check for existing session
     const initSession = async () => {
       try {
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
-        
+        // Race getSession against a timeout so a stalled refresh can't hang init.
+        const getSessionWithTimeout = Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => {
+              console.warn('[AuthContext] getSession() timed out — proceeding unauthenticated');
+              resolve({ data: { session: null } });
+            }, 5000),
+          ),
+        ]);
+        const { data: { session: existingSession } } = await getSessionWithTimeout;
+
         if (!mounted) return;
         
         console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
@@ -441,6 +460,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         isInitializing = false;
+        clearTimeout(initCeiling);
       }
     };
     
@@ -515,6 +535,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(initCeiling);
       subscription.unsubscribe();
       if (refreshInterval) clearInterval(refreshInterval);
       if (visibilityDebounceTimer) clearTimeout(visibilityDebounceTimer);
@@ -611,10 +632,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    // Use OTP-based email verification (no redirect link)
+    // Always tell Supabase where to send the email-verification link. Without
+    // `emailRedirectTo` Supabase falls back to the project's Site URL — which
+    // is fine in production but 404s during local dev / preview deploys. We
+    // dynamically pin it to the current origin + /auth/callback (the route
+    // that handles every email-confirmation URL format).
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     
     // Wait for session persistence if signup auto-confirms
@@ -642,27 +670,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithMagicLink = async (email: string) => {
     try {
-      const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      return { error: result.error ? (result.error as Error) : null };
+      return { error: error ? (error as Error) : null };
     } catch (err) {
-      console.error('[AuthContext] Google sign-in exception:', err);
-      return { error: err instanceof Error ? err : new Error('Google sign-in failed') };
-    }
-  };
-
-  const signInWithApple = async () => {
-    try {
-      const result = await lovable.auth.signInWithOAuth('apple', {
-        redirect_uri: window.location.origin,
-      });
-      return { error: result.error ? (result.error as Error) : null };
-    } catch (err) {
-      console.error('[AuthContext] Apple sign-in exception:', err);
-      return { error: err instanceof Error ? err : new Error('Apple sign-in failed') };
+      console.error('[AuthContext] Magic link send exception:', err);
+      return { error: err instanceof Error ? err : new Error('Magic link send failed') };
     }
   };
 
@@ -677,12 +696,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileError(null);
     setIsAdmin(false);
 
-    // Clear workspace-scoped local state so next sign-in does not inherit
-    // the previous user's selected org.
-    try { localStorage.removeItem('apex.currentOrgId'); } catch {}
-    // Clear the cached security-version stamp so the next user on this
-    // device starts a fresh stamp on their first profile load.
-    try { localStorage.removeItem(SECURITY_VERSION_KEY); } catch {}
+    // Clear all sb.* keys from both storages so the next user on this
+    // device starts clean: workspace selection, intent token, security stamp.
+    // `apex.*` is the legacy prefix kept here through one rebrand cycle —
+    // delete after a release window once we're sure no clients still hold them.
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb.') || key.startsWith('apex.') || key === SECURITY_VERSION_KEY) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {}
+    try {
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('sb.') || key.startsWith('apex.')) sessionStorage.removeItem(key);
+      }
+    } catch {}
 
     // Hard-reset React Query cache so no consumer can read the prior
     // user's rows (profile, credits, projects, billing) between signOut
@@ -733,8 +762,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       signIn,
       signUp,
-      signInWithGoogle,
-      signInWithApple,
+      signInWithMagicLink,
       signOut,
       refreshProfile,
       retryProfileFetch,
@@ -762,8 +790,7 @@ export function useAuth() {
       isAdmin: false,
       signIn: async () => ({ error: new Error('Auth not initialized') }),
       signUp: async () => ({ error: new Error('Auth not initialized') }),
-      signInWithGoogle: async () => ({ error: new Error('Auth not initialized') }),
-      signInWithApple: async () => ({ error: new Error('Auth not initialized') }),
+      signInWithMagicLink: async () => ({ error: new Error('Auth not initialized') }),
       signOut: async () => {},
       refreshProfile: async () => {},
       retryProfileFetch: async () => {},

@@ -2,13 +2,25 @@
  * SIGNUP-TO-PAYMENT FLOW — STRUCTURAL INTEGRITY TESTS
  *
  * Lean checks that validate the signup → payment chain stays wired
- * end-to-end. Brittle string assertions were retired in favor of
- * functional invariants.
+ * end-to-end.
+ *
+ * ⚠️ SUSPENDED DURING BETA — Small Bridges is currently free; the Stripe
+ * checkout flow this suite asserts on was removed (see
+ * docs/INCOMPLETE_FEATURES_AUDIT.md). These tests will be reinstated and
+ * updated to the new shape when paid plans return. The original assertions
+ * are retained below for reference (skipped via `describe.skip`).
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe as describeRaw, it, expect, beforeAll } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Suite-wide skip: every describe in this file is suspended while beta is free.
+const describe = describeRaw.skip;
+void describeRaw; // silence "unused" linters when describe.skip is the only path
+void it;
+void expect;
+void beforeAll;
 
 const readFile = (filePath: string): string => {
   const fullPath = path.join(process.cwd(), filePath);

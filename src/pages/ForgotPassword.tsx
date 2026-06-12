@@ -19,7 +19,7 @@ const emailSchema = z.string()
   .max(255, 'Email must be less than 255 characters');
 
 export default function ForgotPassword() {
-  usePageMeta({ title: "Forgot password — Apex Studio", description: "Reset your Apex Studio password by email." });
+  usePageMeta({ title: "Forgot password — Small Bridges", description: "Reset your Small Bridges password by email." });
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,6 +34,10 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
+      // Send the recovery link straight to /reset-password. The page does
+      // the token exchange itself for every Supabase URL shape (hash,
+      // token_hash, PKCE code), so we don't need a separate callback round
+      // trip — fewer moving parts means fewer ways to land on a blank page.
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         { redirectTo: `${window.location.origin}/reset-password` }

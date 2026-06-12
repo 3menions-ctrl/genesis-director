@@ -91,7 +91,7 @@ export default function WorkspaceDanger() {
       const { error } = await supabase.rpc('fn_soft_delete_org', { _org_id: currentOrg.id, _confirm_name: confirm } as any);
       if (error) throw error;
       toast.success('Workspace deleted');
-      try { localStorage.removeItem('apex.currentOrgId'); } catch {}
+      try { localStorage.removeItem('smallbridges.currentOrgId'); } catch {}
       navigate('/projects');
     } catch (e: any) {
       toast.error(e?.message ?? 'Delete failed');

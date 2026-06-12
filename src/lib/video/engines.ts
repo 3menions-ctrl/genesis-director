@@ -7,6 +7,7 @@
  */
 
 export type EngineId =
+  | 'wan-25'
   | 'kling-v3'
   | 'seedance-2'
   | 'veo-3'
@@ -15,7 +16,7 @@ export type EngineId =
 
 export type EngineTier = 'standard' | 'pro' | 'cinema';
 
-export type EngineProvider = 'kling' | 'seedance' | 'veo3' | 'runway' | 'sora';
+export type EngineProvider = 'wan' | 'kling' | 'seedance' | 'veo3' | 'runway' | 'sora';
 
 export type EntitlementId = 'studio_cinema';
 
@@ -102,6 +103,42 @@ function tableCost(table: Record<number, number>, duration: number): number {
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
+  // -------- FREE --------
+  // Alibaba Wan 2.5 — the free-tier engine. Generous baseline quality,
+  // low credit cost so we can hand it to users on signup-grant credits
+  // without breaching the platform budget.
+  'wan-25': {
+    id: 'wan-25',
+    provider: 'wan',
+    tier: 'standard',
+    label: 'Wan 2.5 — Free',
+    shortLabel: 'Wan 2.5',
+    description:
+      "Alibaba's Wan 2.5 — the free-tier engine. Smooth motion, good prompt adherence, and bundled with every starter credit grant.",
+    durations: [5, 10],
+    maxDuration: 10,
+    supportsImageInput: true,
+    supportsAudio: false,
+    supportsAvatar: false,
+    etaSeconds: 110,
+    healthy: true,
+    upscale4kCredits: 10,
+    fps60Credits: 5,
+    pipelineId: 'pipe.wan.v25',
+    pipelineFunction: 'wan-pipeline',
+    maxScenesPerProject: 8,
+    recommendedScenes: 5,
+    defaultDuration: 5,
+    qualityProfiles: [
+      { id: 'hd24',  label: 'HD 1080p',         description: 'Wan 2.5 native, 1080p · 24fps',           resolution: '1080p', fps: 24, options: {},                                  recommended: true },
+      { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth motion via RIFE interpolation',     resolution: '1080p', fps: 60, options: { fps60: true } },
+    ],
+    // Low credit cost — chosen so a 100-credit signup grant covers ~10
+    // five-second clips, which is the right "show the magic" window
+    // before asking for a purchase.
+    baseCreditsFor: (d) => tableCost({ 5: 10, 10: 20 }, d),
+  },
+
   // -------- STANDARD --------
   'kling-v3': {
     id: 'kling-v3',
@@ -314,10 +351,11 @@ export function defaultQualityProfile(id: EngineId): QualityProfile {
  * `generate-single-clip` / `hollywood-pipeline`. All five engines now have
  * a dedicated native branch — no silent fallbacks.
  */
-export type BackendEngine = 'kling' | 'seedance' | 'veo' | 'runway' | 'sora';
+export type BackendEngine = 'wan' | 'kling' | 'seedance' | 'veo' | 'runway' | 'sora';
 
 export function engineToBackend(id: EngineId): BackendEngine {
   switch (id) {
+    case 'wan-25':      return 'wan';
     case 'seedance-2':  return 'seedance';
     case 'veo-3':       return 'veo';
     case 'runway-gen4': return 'runway';

@@ -32,7 +32,7 @@ export function EnginesDrawerContent({ selected, duration = 10, hasCinema = fals
           </span>
           The render engines
         </div>
-        <h2 className="font-light tracking-[-0.02em] text-white" style={{ fontFamily: "'Fraunces', serif", fontSize: "44px", lineHeight: "1" }}>
+        <h2 className="font-display font-light tracking-[-0.02em] text-white" style={{ fontFamily: "'Fraunces', serif", fontSize: "44px", lineHeight: "1" }}>
           Choose the <em className="bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent">cinema engine.</em>
         </h2>
         <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-white/55" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
@@ -75,7 +75,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-white font-medium" style={{ fontFamily: "Fraunces, serif" }}>{engine.label}</h3>
+            <h3 className="font-display text-white font-medium">{engine.label}</h3>
             {engine.requiresEntitlement && <Lock className="w-3 h-3 text-amber-400" />}
             {locked && <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-amber-400">Cinema only</span>}
           </div>

@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
 import { MessageUserButton } from '@/components/social/DirectMessagePanel';
-import { UniversalVideoPlayer } from '@/components/player';
+import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { 
   UserPlus, UserMinus, Video, Users, Heart, 
   Play, ArrowLeft, ExternalLink, X, Eye, Calendar,
@@ -21,7 +20,7 @@ import ProfileBackground from '@/components/profile/ProfileBackground';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 export default function UserProfile() {
-  usePageMeta({ title: "Creator profile — Apex Studio", description: "Public creator profile and reel from the Apex Studio community." });
+  usePageMeta({ title: "Creator profile — Small Bridges", description: "Public creator profile and reel from the Small Bridges community." });
 
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
@@ -53,8 +52,7 @@ export default function UserProfile() {
     return (
       <div className="min-h-screen bg-[#030303]">
         <ProfileBackground />
-        <AppHeader />
-        <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+<div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
           {/* Hero skeleton */}
           <div className="relative rounded-3xl overflow-hidden">
             <Skeleton className="h-[320px] rounded-3xl bg-white/[0.03]" />
@@ -73,8 +71,7 @@ export default function UserProfile() {
     return (
       <div className="min-h-screen bg-[#030303]">
         <ProfileBackground />
-        <AppHeader />
-        <div className="max-w-4xl mx-auto px-4 py-24 text-center">
+<div className="max-w-4xl mx-auto px-4 py-24 text-center">
           <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
             <Users className="w-8 h-8 text-muted-foreground" />
           </div>
@@ -98,9 +95,7 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen bg-[#030303] text-foreground">
       <ProfileBackground />
-      <AppHeader />
-
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+<main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-10">
 
         {/* ═══════════════════════════════════════════════════════════
             CINEMATIC HERO CARD
@@ -366,9 +361,9 @@ export default function UserProfile() {
               className="relative max-w-5xl w-full aspect-video rounded-2xl overflow-hidden bg-background ring-1 ring-white/[0.06] shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              <UniversalVideoPlayer
-                source={{ projectId: selectedVideoProject.id }}
-                mode="inline"
+              <BrandedVideoPlayer
+                projectId={selectedVideoProject.id}
+                skipIntro
                 autoPlay
                 className="w-full h-full"
               />

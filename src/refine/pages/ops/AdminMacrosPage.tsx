@@ -1,36 +1,96 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Support macros — reusable canned responses for customer support. */
+import { useState } from "react";
+import { MessageSquareText, Plus, Copy, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { AdminDialog, AdminField, inputClass, textareaClass } from "../../components/AdminFormPrimitives";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface MacroRow extends AdminRow {
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  shortcut: string | null;
+  use_count: number;
+  created_at: string;
+}
 
 export default function AdminMacrosPage() {
+  const [creating, setCreating] = useState(false);
   return (
     <AdminPageShell
-      eyebrow="09 // COMMS"
+      eyebrow="12 // COMMS"
       code="MCR"
       title="Support"
       italic="Macros."
-      description="Canned replies for the Inbox with variable interpolation and tag routing."
+      description="Canned responses, refund explanations, common policy answers."
     >
-      <AdminConsoleScaffold
-        intro="Triage faster — every common response saved, searchable, and one-key away in the Inbox."
-        status="scoped"
+      <AdminConsoleV2<MacroRow>
+        intro="A macro library for support replies. Copy → paste → personalize. Track which ones get used most."
+        query={{ table: "support_macros", orderBy: { column: "use_count", ascending: false } }}
+        searchKey="title"
         signals={[
-        { label: "Macros", value: "—", tone: "blue" },
-        { label: "Used 30d", value: "—", tone: "emerald" },
-        { label: "Avg Resolve", value: "—", tone: "amber" },
-        { label: "Languages", value: "—", tone: "neutral" },
+          { label: "Total macros", value: (r) => r.length, tone: "blue" },
+          { label: "Total uses", value: (r) => r.reduce((s, x) => s + ((x as MacroRow).use_count ?? 0), 0).toLocaleString(), tone: "emerald" },
+          { label: "Unused", value: (r) => r.filter((x) => (x as MacroRow).use_count === 0).length, tone: "amber" },
+          { label: "Tagged", value: (r) => r.filter((x) => ((x as MacroRow).tags?.length ?? 0) > 0).length, tone: "neutral" },
         ]}
-        capabilities={[
-    { icon: MessageSquareText, title: "Macro Library", description: "Categorized canned replies with markdown.", status: "queued" },
-    { icon: Sparkles, title: "Variable Interpolation", description: "Auto-fill {name}, {tier}, {amount}.", status: "manual" },
-    { icon: Tags, title: "Tag Routing", description: "Suggest macros based on inbound tag.", status: "manual" },
-    { icon: Languages, title: "Multilang", description: "Per-language variants with auto-detect.", status: "manual" },
-    { icon: BarChart3, title: "Usage Stats", description: "Most-used macros, satisfaction signal.", status: "manual" },
-    { icon: History, title: "Change Log", description: "Every edit captured for compliance.", status: "wired" },
+        columns={[
+          { key: "title", label: "Title", width: "260px" },
+          { key: "tags", label: "Tags", width: "200px",
+            render: (v) => Array.isArray(v) && v.length
+              ? <div className="flex flex-wrap gap-1">{v.map((t) => <span key={t} className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/55 border border-white/[0.06] rounded-full px-2 py-0.5">{t}</span>)}</div>
+              : <span className="text-white/25">—</span> },
+          { key: "body", label: "Body preview",
+            render: (v) => <span className="text-white/55 text-[12px]">{String(v).slice(0, 80)}…</span> },
+          { key: "use_count", label: "Uses", width: "80px", align: "right" },
         ]}
-      primaryCta={{ label: "New macro" }}
-      />
+        actions={[
+          { label: "Copy", icon: Copy,
+            onRun: async (r) => {
+              await navigator.clipboard.writeText(r.body);
+              await supabase.from("support_macros").update({ use_count: r.use_count + 1 }).eq("id", r.id);
+            }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this macro?",
+            onRun: async (r) => {
+              const { error } = await supabase.from("support_macros").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        primaryCta={{ label: "New macro", onClick: () => setCreating(true) }}
+        emptyTitle="No support macros yet"
+        emptyDescription="Save your common replies as macros. Copy to clipboard in one click."
+      >
+        {creating && <CreateMacro onClose={() => setCreating(false)} />}
+      </AdminConsoleV2>
     </AdminPageShell>
+  );
+}
+
+function CreateMacro({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [tags, setTags] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!title.trim() || !body.trim()) { toast.error("Title and body required"); return; }
+    setBusy(true);
+    const tagsArr = tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const { error } = await supabase.from("support_macros").insert({ title, body, tags: tagsArr });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Macro saved");
+    onClose();
+  };
+
+  return (
+    <AdminDialog title="New support macro" icon={Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Save">
+      <AdminField label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Refund — generation failed" /></AdminField>
+      <AdminField label="Body"><textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} placeholder="Hi {{name}}, sorry your generation failed…" /></AdminField>
+      <AdminField label="Tags" hint="Comma-separated"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="refund, billing" /></AdminField>
+    </AdminDialog>
   );
 }

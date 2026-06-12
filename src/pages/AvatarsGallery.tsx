@@ -67,7 +67,7 @@ const TAGS: { key: StyleTag; label: string }[] = [
 ];
 
 export default function AvatarsGallery() {
-  usePageMeta({ title: "Avatar Gallery — Apex Studio", description: "Browse and remix cinematic avatars made by the Apex Studio community." });
+  usePageMeta({ title: "Avatar Gallery — Small Bridges", description: "Browse and remix cinematic avatars made by the Small Bridges community." });
 
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<StyleTag>>(new Set());

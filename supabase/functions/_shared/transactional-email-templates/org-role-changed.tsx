@@ -14,7 +14,7 @@ function OrgRoleChanged({
   orgName = 'Your workspace',
   newRole = 'producer',
   changedBy = 'An admin',
-  workspaceUrl = 'https://apex-studio.ai/workspace',
+  workspaceUrl = 'https://smallbridges.com/workspace',
 }: Props) {
   return (
     <EmailLayout preview={`Your role in ${orgName} is now ${newRole}`}>
@@ -36,6 +36,6 @@ export const template: TemplateEntry = {
     orgName: 'Acme Studio',
     newRole: 'admin',
     changedBy: 'Sasha',
-    workspaceUrl: 'https://apex-studio.ai/workspace',
+    workspaceUrl: 'https://smallbridges.com/workspace',
   },
 }

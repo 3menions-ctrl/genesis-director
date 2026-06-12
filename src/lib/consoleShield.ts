@@ -36,7 +36,7 @@ const SUPPRESSED_PREFIXES = [
   '[AtomicToggle]',
   '[AtomicFrameSwitchEngine]',
   '[LookAheadBuffer]',
-  '[SimpleVideoPlayer]',
+  '[BrandedVideoPlayer]',
   '[Thumbnails]',
   '[Pipeline]',
   '[Watchdog]',

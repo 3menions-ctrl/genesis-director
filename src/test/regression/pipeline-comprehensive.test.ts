@@ -760,7 +760,7 @@ describe('Pipeline — Critical Edge Functions', () => {
     'continue-production',
     'pipeline-watchdog',
     'generate-script',
-    'simple-stitch',
+    'seamless-stitcher',
     'resume-pipeline',
     'retry-failed-clip',
     'cancel-project',

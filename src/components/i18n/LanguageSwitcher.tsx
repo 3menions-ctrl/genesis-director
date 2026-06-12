@@ -33,10 +33,10 @@ export function LanguageSwitcher({
 
   useEffect(() => {
     const onDisabled = () => setDisabled(true);
-    window.addEventListener("apex:i18n-disabled", onDisabled);
+    window.addEventListener('sb:i18n-disabled', onDisabled);
     const t = setInterval(() => setDisabled(isTranslationDisabled()), 5000);
     return () => {
-      window.removeEventListener("apex:i18n-disabled", onDisabled);
+      window.removeEventListener('sb:i18n-disabled', onDisabled);
       clearInterval(t);
     };
   }, []);
@@ -48,7 +48,7 @@ export function LanguageSwitcher({
       setDisabled(false);
     }
     void i18n.changeLanguage(code);
-    try { localStorage.setItem("apex.lang", code); } catch { /* noop */ }
+    try { localStorage.setItem('smallbridges.lang', code); } catch { /* noop */ }
   };
 
   return (

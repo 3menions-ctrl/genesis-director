@@ -39,7 +39,14 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const env: StripeEnv = body.environment === "live" ? "live" : "sandbox";
-    const returnUrl: string = body.returnUrl || `${new URL(req.url).origin}/settings/billing`;
+    // Open-redirect guard — same pattern as create-credit-checkout.
+    const { safeReturnUrl } = await import("../_shared/return-url.ts");
+    const fallback = `${new URL(req.url).origin}/settings/billing`;
+    const returnUrl: string = safeReturnUrl({
+      requested: typeof body.returnUrl === "string" ? body.returnUrl : null,
+      fallback,
+      requestUrl: req.url,
+    });
 
     const { data: sub } = await sb
       .from("subscriptions")

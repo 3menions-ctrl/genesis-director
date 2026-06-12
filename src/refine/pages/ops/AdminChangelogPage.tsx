@@ -1,36 +1,124 @@
-/** Auto-generated premium admin console page — Editorial Noir. */
-import { Activity, AlertCircle, AlertOctagon, AlertTriangle, Archive, BadgeCheck, Ban, BarChart3, Beaker, Bell, BellRing, BookOpen, Bug, Calendar, Clock, Copy, Cpu, Database, DollarSign, Download, Eye, EyeOff, FileArchive, FileBarChart, FileCheck, FileDown, FileLock, FileSignature, FileSpreadsheet, FileText, FileX, Filter, FlaskConical, Folder, Gauge, GitBranch, GitCommit, GitCompare, GitMerge, Globe, Heart, History, Inbox, KeyRound, KeySquare, Languages, Layers, LayoutDashboard, LayoutGrid, LayoutTemplate, LineChart, ListOrdered, Lock, LogOut, Mail, MailCheck, MailX, MapPin, Megaphone, MessageSquareText, Network, Pencil, PieChart, Power, Radio, Receipt, RefreshCw, Repeat, RotateCcw, Search, Server, Settings2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, StopCircle, Tag, Tags, Target, Terminal, ToggleRight, Trash2, TrendingUp, UploadCloud, UserCheck, UserCog, UserMinus, UserPlus, Users, Webhook, Wrench } from "lucide-react";
+/** Changelog — author public release notes. */
+import { useState } from "react";
+import { GitCommit, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { AdminConsoleScaffold } from "../../components/AdminConsoleScaffold";
+import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { AdminDialog, AdminField, inputClass, textareaClass } from "../../components/AdminFormPrimitives";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface ChangelogRow extends AdminRow {
+  id: string;
+  version: string | null;
+  title: string;
+  body_md: string;
+  category: string;
+  published: boolean;
+  published_at: string | null;
+  created_at: string;
+}
+
+const CATEGORY_TONE = {
+  feature: "text-emerald-300",
+  fix: "text-[#6FB6FF]",
+  improvement: "text-amber-300",
+  breaking: "text-rose-300",
+  security: "text-rose-300",
+} as const;
 
 export default function AdminChangelogPage() {
+  const [creating, setCreating] = useState(false);
   return (
     <AdminPageShell
-      eyebrow="09 // COMMS"
+      eyebrow="12 // COMMS"
       code="CHG"
       title="Changelog"
-      italic="Publisher."
-      description="Author release notes once — push to public site, in-app modal, and email digest."
+      italic="Curator."
+      description="Public release notes — what shipped, when, and to whom."
     >
-      <AdminConsoleScaffold
-        intro="Write the story of every release — surfaced in-product the moment a user logs in."
-        status="scoped"
+      <AdminConsoleV2<ChangelogRow>
+        intro="Compose release notes once, publish to the public changelog and the in-app announcements feed."
+        query={{ table: "changelog_entries", orderBy: { column: "created_at", ascending: false } }}
+        searchKey="title"
+        searchPlaceholder="Search entries…"
+        filters={[
+          { key: "category", label: "Category", type: "select", options: [
+            { value: "feature", label: "Feature" }, { value: "fix", label: "Fix" },
+            { value: "improvement", label: "Improvement" }, { value: "breaking", label: "Breaking" },
+            { value: "security", label: "Security" }] },
+        ]}
         signals={[
-        { label: "Releases", value: "—", tone: "blue" },
-        { label: "Drafts", value: "—", tone: "amber" },
-        { label: "Reads 7d", value: "—", tone: "emerald" },
-        { label: "Subscribers", value: "—", tone: "neutral" },
+          { label: "Total", value: (r) => r.length, tone: "blue" },
+          { label: "Published", value: (r) => r.filter((x) => (x as ChangelogRow).published).length, tone: "emerald" },
+          { label: "Drafts", value: (r) => r.filter((x) => !(x as ChangelogRow).published).length, tone: "amber" },
+          { label: "Breaking changes", value: (r) => r.filter((x) => (x as ChangelogRow).category === "breaking").length, tone: "rose" },
         ]}
-        capabilities={[
-    { icon: BookOpen, title: "Markdown Editor", description: "Rich editor with image + video embed.", status: "queued" },
-    { icon: Sparkles, title: "Highlight Tag", description: "Tag entries: Feature, Fix, Performance.", status: "manual" },
-    { icon: Globe, title: "Public Page", description: "Auto-publish to /changelog with RSS.", status: "manual" },
-    { icon: Bell, title: "In-App Modal", description: "Show on login until dismissed.", status: "manual" },
-    { icon: Mail, title: "Email Digest", description: "Weekly digest to opted-in subscribers.", status: "manual" },
-    { icon: Calendar, title: "Schedule Publish", description: "Time-zone-aware publish window.", status: "manual" },
+        columns={[
+          { key: "version", label: "Version", width: "100px",
+            render: (v) => v ? <code className="font-mono text-[11px] text-[#6FB6FF]">v{String(v)}</code> : "—" },
+          { key: "title", label: "Title" },
+          { key: "category", label: "Category", width: "120px",
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${CATEGORY_TONE[v as keyof typeof CATEGORY_TONE]}`}>{String(v)}</span> },
+          { key: "published", label: "Status", width: "100px" },
+          { key: "published_at", label: "Published", width: "170px", hideOnMobile: true },
         ]}
-      primaryCta={{ label: "New release" }}
-      />
+        actions={[
+          { label: "Publish", icon: Power, show: (r) => !r.published,
+            onRun: async (r) => {
+              const { error } = await supabase.from("changelog_entries").update({ published: true, published_at: new Date().toISOString() }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Unpublish", icon: Power, show: (r) => !!r.published,
+            onRun: async (r) => {
+              const { error } = await supabase.from("changelog_entries").update({ published: false, published_at: null }).eq("id", r.id);
+              if (error) throw error;
+            }},
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this entry?",
+            onRun: async (r) => {
+              const { error } = await supabase.from("changelog_entries").delete().eq("id", r.id);
+              if (error) throw error;
+            }},
+        ]}
+        primaryCta={{ label: "New entry", onClick: () => setCreating(true) }}
+        emptyTitle="No changelog entries yet"
+        emptyDescription="Write the first release note to keep your customers in the loop."
+      >
+        {creating && <CreateChangelog onClose={() => setCreating(false)} />}
+      </AdminConsoleV2>
     </AdminPageShell>
+  );
+}
+
+function CreateChangelog({ onClose }: { onClose: () => void }) {
+  const [version, setVersion] = useState("");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [category, setCategory] = useState("feature");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!title.trim() || !body.trim()) { toast.error("Title and body required"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("changelog_entries").insert({
+      version: version || null, title, body_md: body, category,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Entry created");
+    onClose();
+  };
+
+  return (
+    <AdminDialog title="New changelog entry" icon={Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Save draft">
+      <AdminField label="Version" hint="Semver, e.g. 2.4.0"><input value={version} onChange={(e) => setVersion(e.target.value)} className={inputClass} /></AdminField>
+      <AdminField label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} /></AdminField>
+      <AdminField label="Body (Markdown)"><textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} /></AdminField>
+      <AdminField label="Category">
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+          <option value="feature">Feature</option><option value="improvement">Improvement</option>
+          <option value="fix">Fix</option><option value="breaking">Breaking</option><option value="security">Security</option>
+        </select>
+      </AdminField>
+    </AdminDialog>
   );
 }

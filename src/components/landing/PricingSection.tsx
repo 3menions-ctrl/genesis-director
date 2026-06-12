@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight, Sparkles, Maximize2, X, Volume2, VolumeX, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from '@/components/player/UniversalHLSPlayer';
+import { BrandedVideoPlayer, type BrandedVideoPlayerHandle } from '@/components/intro/BrandedVideoPlayer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,7 +16,7 @@ const PRICING_STATS = [
 // Unique stitched final (does not duplicate Hoppy or any other landing asset).
 // HLS is unavailable, so we point hlsUrl at the mp4 — the player gracefully
 // falls back to direct mp4 playback after HLS init fails.
-const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4';
+const STORYTELLING_HLS_URL = 'https://videos.pexels.com/video-files/4761711/4761711-uhd_2560_1440_25fps.mp4';
 const STORYTELLING_MP4_FALLBACK = STORYTELLING_HLS_URL;
 
 export const INACTIVITY_TIMEOUT_MS = 15_000;
@@ -197,7 +197,7 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
   onClose: () => void;
   onVideoEnded: () => void;
 }) {
-  const playerRef = useRef<UniversalHLSPlayerHandle>(null);
+  const playerRef = useRef<BrandedVideoPlayerHandle>(null);
   const [isMuted, setIsMuted] = useState(true);
   const hasEndedRef = useRef(false);
 
@@ -260,18 +260,25 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
       {/* Video background layer — BEHIND all content (z-[1]) so page scrolls over it */}
       <div className="fixed inset-0 z-[1] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
         {/* Fullscreen HLS video — covers entire viewport */}
-        <UniversalHLSPlayer
+        <BrandedVideoPlayer
           ref={playerRef}
-          hlsUrl={STORYTELLING_HLS_URL}
-          fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
+          src={STORYTELLING_HLS_URL}
+          skipIntro
+          clickToImmerse={false}
           className="absolute inset-0 w-full h-full"
-          aspectRatio="auto"
           autoPlay
           muted={isMuted}
           loop={false}
           showControls={false}
           onEnded={stopPlayback}
-          onTimeUpdate={() => {}}
+          onError={() => {
+            // HLS failed → swap to the MP4 fallback.
+            const video = playerRef.current?.getVideoElement?.();
+            if (video) {
+              video.src = STORYTELLING_MP4_FALLBACK;
+              video.play().catch(() => { /* autoplay blocked */ });
+            }
+          }}
         />
         
         {/* Subtle overlay for content readability — lighter so video shows through */}
@@ -353,11 +360,12 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
                     <Sparkles className="w-8 h-8 text-white/55" />
                   </div>
                 ) : (
-                <UniversalHLSPlayer
-                  hlsUrl={STORYTELLING_HLS_URL}
-                  fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
+                <BrandedVideoPlayer
+                  src={STORYTELLING_HLS_URL}
+                  skipIntro
+                  clickToImmerse={false}
                   className="w-full h-full"
-                  showControls={true}
+                  showControls
                 />
                 )}
                 

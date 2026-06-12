@@ -6,7 +6,7 @@ import type { IntakeData } from "@/components/director/types";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 export default function DirectorStudio() {
-  usePageMeta({ title: "Director Studio — Apex Studio", description: "Direct multi-character, multi-scene cinematic productions inside Apex Studio." });
+  usePageMeta({ title: "Director Studio — Small Bridges", description: "Direct multi-character, multi-scene cinematic productions inside Small Bridges." });
 
   const [intake, setIntake] = useState<IntakeData | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(true);

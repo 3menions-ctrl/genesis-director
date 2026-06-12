@@ -8,9 +8,9 @@ function PaymentFailed() {
     <EmailLayout preview="We couldn't process your payment">
       <Text style={styles.h1}>Payment didn't go through.</Text>
       <Text style={styles.body}>
-        Your most recent charge for Apex Studio failed. To keep your subscription and access active, please update your payment method.
+        Your most recent charge for Small Bridges failed. To keep your subscription and access active, please update your payment method.
       </Text>
-      <Link href="https://apex-studio.ai/settings?section=billing" style={styles.button}>Update payment</Link>
+      <Link href="https://smallbridges.com/settings?section=billing" style={styles.button}>Update payment</Link>
       <Text style={styles.muted}>If you do nothing, your subscription will be canceled at the end of the billing period.</Text>
     </EmailLayout>
   )

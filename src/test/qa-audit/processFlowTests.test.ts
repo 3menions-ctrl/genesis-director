@@ -210,10 +210,10 @@ describe('P039-P043: Avatar Generation Pipeline', () => {
   });
 });
 
-// ============= P044: Simple Stitch =============
-describe('P044: Simple Stitch Flow', () => {
-  it('should have simple-stitch edge function', () => {
-    const stitchPath = path.join(process.cwd(), 'supabase/functions/simple-stitch');
+// ============= P044: Seamless Stitcher =============
+describe('P044: Seamless Stitcher Flow', () => {
+  it('should have seamless-stitcher edge function', () => {
+    const stitchPath = path.join(process.cwd(), 'supabase/functions/seamless-stitcher');
     expect(fs.existsSync(stitchPath)).toBe(true);
   });
 

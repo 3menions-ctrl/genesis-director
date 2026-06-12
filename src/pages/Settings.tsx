@@ -2,7 +2,6 @@ import { useState, useEffect, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -76,12 +75,9 @@ const SettingsContent = memo(function SettingsContent() {
   const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection);
 
   return (
-    <div className="min-h-screen bg-[hsl(220_14%_2%)] relative overflow-hidden font-body">
+    <div className="min-h-screen relative overflow-hidden font-body">
       {/* Cinematic atmosphere — matches CinemaLoader / Pipeline */}
-      <style>{`
-        @keyframes settingsAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-        @keyframes settingsTick { 0%,100%{opacity:.35} 50%{opacity:1} }
-      `}</style>
+      {/* `settingsAurora` and `settingsTick` keyframes live in src/index.css */}
       <div aria-hidden className="fixed inset-0 pointer-events-none z-0">
         {/* deep base */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_5%)_0%,hsl(220_14%_2%)_60%)]" />
@@ -113,10 +109,7 @@ const SettingsContent = memo(function SettingsContent() {
         {/* top hairline */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
-
-      <AppHeader />
-
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
+<main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
         {/* Cinematic header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -138,7 +131,7 @@ const SettingsContent = memo(function SettingsContent() {
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
             </span>
             <span className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
-              Apex-Studio · Settings
+              Small Bridges · Settings
             </span>
           </div>
 
@@ -268,7 +261,7 @@ const SettingsContent = memo(function SettingsContent() {
               {/* footer hairline */}
               <div className="mx-3 mt-2 mb-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               <div className="px-4 py-3 flex items-center justify-between text-[9.5px] uppercase tracking-[0.28em] text-muted-foreground">
-                <span>Apex · v1</span>
+                <span>Small Bridges · v1</span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]" style={{ animation: 'settingsTick 2.4s ease-in-out infinite' }} />
                   Live
@@ -360,7 +353,7 @@ const SettingsContent = memo(function SettingsContent() {
 });
 
 export default function Settings() {
-  usePageMeta({ title: "Settings — Apex Studio", description: "Manage your account, plan, integrations, and creator preferences." });
+  usePageMeta({ title: "Settings — Small Bridges", description: "Manage your account, plan, integrations, and creator preferences." });
 
   return (
     <ErrorBoundary>

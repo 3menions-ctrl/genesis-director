@@ -904,7 +904,7 @@ describe('13. Session Persistence', () => {
       clipCount: 1, clipDuration: 5,
       savedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(), // 25 hours ago
     };
-    localStorage.setItem('apex_create_draft', JSON.stringify(expired));
+    localStorage.setItem('sb_create_draft', JSON.stringify(expired));
     
     expect(loadDraft()).toBeNull();
   });
@@ -912,7 +912,7 @@ describe('13. Session Persistence', () => {
   it('handles corrupted localStorage gracefully', () => {
     const { loadDraft, hasDraft } = __mod_sessionPersistence;
     
-    localStorage.setItem('apex_create_draft', 'not-json{{{');
+    localStorage.setItem('sb_create_draft', 'not-json{{{');
     expect(loadDraft()).toBeNull();
     expect(hasDraft()).toBe(false);
   });

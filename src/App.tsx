@@ -747,9 +747,13 @@ const App = () => {
                   <Route path="create" element={<Navigate to="/studio" replace />} />
                   <Route path="editor" element={<VideoEditorPage />} />
                   <Route path="avatars" element={<Avatars />} />
-                  <Route path="templates" element={<Templates />} />
-                  <Route path="training-video" element={<TrainingVideo />} />
-                  <Route path="environments" element={<Environments />} />
+                  {/* Templates / Environments / Training-Video lazy imports
+                      were removed when the public routes folded into Studio.
+                      The admin sub-routes redirect into the public Studio
+                      equivalents so admins still reach the same surfaces. */}
+                  <Route path="templates" element={<Navigate to="/studio?drawer=templates" replace />} />
+                  <Route path="training-video" element={<Navigate to="/studio?tab=training" replace />} />
+                  <Route path="environments" element={<Navigate to="/studio?drawer=environments" replace />} />
                   <Route path="developers" element={<Developers />} />
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="projects" element={<AdminProjectsPage />} />

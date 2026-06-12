@@ -10,7 +10,7 @@ interface RequireAccountTypeProps {
   children: ReactNode;
   /** Account types allowed to access this route. */
   allow: AccountType[];
-  /** Path to redirect non-matching users to. Default `/create`. */
+  /** Path to redirect non-matching users to. Default `/studio`. */
   redirectTo?: string;
 }
 
@@ -21,7 +21,7 @@ interface RequireAccountTypeProps {
  * and /admin is gated to admin accounts. The DB still enforces RLS — this
  * is the UX layer that hides shells the user is not entitled to.
  */
-export function RequireAccountType({ children, allow, redirectTo = "/create" }: RequireAccountTypeProps) {
+export function RequireAccountType({ children, allow, redirectTo = "/studio" }: RequireAccountTypeProps) {
   const { profile, loading } = useAuth();
   const location = useLocation();
   const [graceElapsed, setGraceElapsed] = useState(false);

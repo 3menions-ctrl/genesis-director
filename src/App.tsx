@@ -840,7 +840,7 @@ const App = () => {
                 }>
                   <Route index element={<AdminDashboardPage />} />
                   <Route path="library" element={<Projects />} />
-                  <Route path="create" element={<Create />} />
+                  <Route path="create" element={<Navigate to="/studio" replace />} />
                   <Route path="editor" element={<VideoEditorPage />} />
                   <Route path="avatars" element={<Avatars />} />
                   <Route path="templates" element={<Templates />} />

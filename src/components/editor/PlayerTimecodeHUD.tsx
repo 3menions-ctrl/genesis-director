@@ -27,7 +27,7 @@ export function PlayerTimecodeHUD({
       style={{
         background: "linear-gradient(180deg, hsla(220, 14%, 8%, 0.72), hsla(220, 14%, 4%, 0.65))",
         boxShadow:
-          "inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 0 1px hsla(0,0%,100%,0.06), 0 8px 24px -8px hsla(0,0%,0%,0.7), 0 0 24px -6px hsla(215,100%,55%,0.35)",
+          "inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 0 1px hsla(0,0%,100%,0.06), 0 8px 24px -8px hsla(0,0%,0%,0.7), 0 0 24px -6px hsl(var(--accent) / 0.35)",
       }}
     >
       <span className="relative flex items-center justify-center w-2 h-2">
@@ -48,7 +48,7 @@ export function PlayerTimecodeHUD({
 
       <span
         className="font-mono text-[11px] tabular-nums tracking-[0.10em] text-foreground/95"
-        style={{ textShadow: "0 0 8px hsla(215,100%,75%,0.35)" }}
+        style={{ textShadow: "0 0 8px hsl(var(--accent) / 0.35)" }}
       >
         {hh}:{mm}:{ss}
         <span className="text-muted-foreground">:</span>

@@ -106,7 +106,7 @@ export function TextClipDialog({ open, onOpenChange }: TextClipDialogProps) {
         style={{
           background: "hsl(220, 14%, 7%)",
           border: "1px solid hsla(0, 0%, 100%, 0.08)",
-          boxShadow: "0 25px 60px hsla(0, 0%, 0%, 0.5), 0 0 40px hsla(215, 100%, 50%, 0.05)",
+          boxShadow: "0 25px 60px hsla(0, 0%, 0%, 0.5), 0 0 40px hsl(var(--accent) / 0.05)",
         }}
       >
         {/* Header */}
@@ -183,7 +183,7 @@ export function TextClipDialog({ open, onOpenChange }: TextClipDialogProps) {
                 color: "hsl(0, 0%, 85%)",
               }}
               placeholder="Enter your text..."
-              onFocus={(e) => (e.target.style.borderColor = "hsla(215, 100%, 50%, 0.4)")}
+              onFocus={(e) => (e.target.style.borderColor = "hsl(var(--accent) / 0.4)")}
               onBlur={(e) => (e.target.style.borderColor = "hsla(0, 0%, 100%, 0.08)")}
             />
           </div>
@@ -250,9 +250,9 @@ export function TextClipDialog({ open, onOpenChange }: TextClipDialogProps) {
                     onClick={() => setPosition(p.value as any)}
                     className="flex-1 h-8 rounded-lg flex items-center justify-center gap-1 text-[10px] font-semibold transition-all"
                     style={{
-                      background: position === p.value ? "hsla(215, 100%, 50%, 0.15)" : "hsla(0, 0%, 100%, 0.04)",
-                      border: `1px solid ${position === p.value ? "hsla(215, 100%, 50%, 0.3)" : "hsla(0, 0%, 100%, 0.08)"}`,
-                      color: position === p.value ? "hsl(215, 100%, 70%)" : "hsl(0, 0%, 50%)",
+                      background: position === p.value ? "hsl(var(--accent) / 0.15)" : "hsla(0, 0%, 100%, 0.04)",
+                      border: `1px solid ${position === p.value ? "hsl(var(--accent) / 0.3)" : "hsla(0, 0%, 100%, 0.08)"}`,
+                      color: position === p.value ? "hsl(var(--accent))" : "hsl(0, 0%, 50%)",
                     }}
                   >
                     {p.icon}
@@ -316,9 +316,9 @@ export function TextClipDialog({ open, onOpenChange }: TextClipDialogProps) {
             disabled={!text.trim()}
             className="h-8 px-5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all disabled:opacity-30"
             style={{
-              background: "hsl(215, 100%, 50%)",
+              background: "hsl(var(--accent))",
               color: "white",
-              boxShadow: "0 2px 12px hsla(215, 100%, 50%, 0.3)",
+              boxShadow: "0 2px 12px hsl(var(--accent) / 0.3)",
             }}
           >
             <Plus className="w-3.5 h-3.5" />

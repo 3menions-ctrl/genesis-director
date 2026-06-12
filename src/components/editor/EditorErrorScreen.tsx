@@ -11,7 +11,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
       className="h-screen w-screen flex flex-col items-center justify-center gap-10 relative overflow-hidden"
       style={{
         background:
-          'radial-gradient(1200px 700px at 50% 30%, hsla(215, 95%, 26%, 0.22), transparent 65%), radial-gradient(800px 560px at 50% 105%, hsla(0, 70%, 18%, 0.12), transparent 60%), radial-gradient(600px 500px at 0% 0%, hsla(220, 70%, 14%, 0.18), transparent 65%), linear-gradient(180deg, hsl(220, 16%, 3.4%) 0%, hsl(220, 14%, 2%) 100%)',
+          'radial-gradient(1200px 700px at 50% 30%, hsl(var(--accent) / 0.22), transparent 65%), radial-gradient(800px 560px at 50% 105%, hsla(0, 70%, 18%, 0.12), transparent 60%), radial-gradient(600px 500px at 0% 0%, hsla(220, 70%, 14%, 0.18), transparent 65%), linear-gradient(180deg, hsl(220, 16%, 3.4%) 0%, hsl(220, 14%, 2%) 100%)',
       }}
     >
       {/* Conic aurora sweep */}
@@ -20,7 +20,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
         className="pointer-events-none absolute -inset-[20%] opacity-[0.16]"
         style={{
           background:
-            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.24) 60deg, transparent 120deg, transparent 240deg, hsla(0,90%,55%,0.16) 300deg, transparent 360deg)',
+            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsl(var(--accent) / 0.24) 60deg, transparent 120deg, transparent 240deg, hsla(0,90%,55%,0.16) 300deg, transparent 360deg)',
           filter: 'blur(70px)',
         }}
         animate={{ rotate: 360 }}
@@ -43,7 +43,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
         className="absolute inset-0 opacity-[0.022] pointer-events-none"
         style={{
           backgroundImage:
-            'linear-gradient(hsla(215, 100%, 60%, 0.5) 1px, transparent 1px), linear-gradient(90deg, hsla(215, 100%, 60%, 0.5) 1px, transparent 1px)',
+            'linear-gradient(hsl(var(--accent) / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--accent) / 0.5) 1px, transparent 1px)',
           backgroundSize: '64px 64px',
           maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
         }}
@@ -62,7 +62,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
       {/* Hairlines */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsla(0,80%,55%,0.45)] to-transparent" />
       <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[hsla(0,80%,55%,0.16)] to-transparent blur-sm" />
-      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.3)] to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent) / 0.3)] to-transparent" />
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -191,7 +191,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => window.location.reload()}
-            className="gap-2 rounded-xl px-5 h-10 text-xs font-semibold tracking-[0.18em] uppercase border border-[hsla(215,100%,60%,0.45)] bg-gradient-to-b from-[hsl(215,100%,55%)] to-[hsl(210,100%,42%)] text-white shadow-[0_18px_50px_-15px_hsla(215,100%,55%,0.7)] hover:shadow-[0_22px_60px_-15px_hsla(215,100%,55%,0.9)] transition-shadow"
+            className="gap-2 rounded-xl px-5 h-10 text-xs font-semibold tracking-[0.18em] uppercase border border-[hsl(var(--accent) / 0.45)] bg-gradient-to-b from-[hsl(var(--accent))] to-[hsl(210,100%,42%)] text-white shadow-[0_18px_50px_-15px_hsl(var(--accent) / 0.7)] hover:shadow-[0_22px_60px_-15px_hsl(var(--accent) / 0.9)] transition-shadow"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Recalibrate
@@ -219,7 +219,7 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
           </span>
           <span className="w-px h-2.5 bg-white/10" />
           <span className="flex items-center gap-1.5">
-            <LifeBuoy className="w-2.5 h-2.5 text-[hsl(215,100%,72%)]" />
+            <LifeBuoy className="w-2.5 h-2.5 text-[hsl(var(--accent))]" />
             Recovery · Ready
           </span>
         </div>
@@ -228,11 +228,11 @@ export function EditorErrorScreen({ error }: { error: string | null }) {
       {/* Bottom signature */}
       <div className="absolute bottom-6 inset-x-0 flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <span className="w-6 h-px bg-gradient-to-r from-transparent to-[hsla(215,100%,60%,0.3)]" />
+          <span className="w-6 h-px bg-gradient-to-r from-transparent to-[hsl(var(--accent) / 0.3)]" />
           <span className="text-[8.5px] tracking-[0.5em] uppercase text-muted-foreground/40 font-medium">
             Cinema · Engineered
           </span>
-          <span className="w-6 h-px bg-gradient-to-l from-transparent to-[hsla(215,100%,60%,0.3)]" />
+          <span className="w-6 h-px bg-gradient-to-l from-transparent to-[hsl(var(--accent) / 0.3)]" />
         </div>
       </div>
     </div>

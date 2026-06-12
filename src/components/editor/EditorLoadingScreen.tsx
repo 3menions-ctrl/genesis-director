@@ -27,7 +27,7 @@ export function EditorLoadingScreen() {
         className="pointer-events-none absolute -inset-[20%] opacity-[0.18]"
         style={{
           background:
-            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.28) 60deg, transparent 120deg, transparent 240deg, hsla(200,100%,65%,0.22) 300deg, transparent 360deg)',
+            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsl(var(--accent) / 0.28) 60deg, transparent 120deg, transparent 240deg, hsla(200,100%,65%,0.22) 300deg, transparent 360deg)',
           filter: 'blur(60px)',
         }}
         animate={{ rotate: 360 }}
@@ -49,7 +49,7 @@ export function EditorLoadingScreen() {
         className="absolute inset-0 opacity-[0.022] pointer-events-none"
         style={{
           backgroundImage:
-            'linear-gradient(hsla(215, 100%, 60%, 0.5) 1px, transparent 1px), linear-gradient(90deg, hsla(215, 100%, 60%, 0.5) 1px, transparent 1px)',
+            'linear-gradient(hsl(var(--accent) / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--accent) / 0.5) 1px, transparent 1px)',
           backgroundSize: '64px 64px',
           maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
         }}
@@ -66,10 +66,10 @@ export function EditorLoadingScreen() {
       />
 
       {/* Top hairline */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.55)] to-transparent" />
-      <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.18)] to-transparent blur-sm" />
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent) / 0.55)] to-transparent" />
+      <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[hsl(var(--accent) / 0.18)] to-transparent blur-sm" />
       {/* Bottom hairline */}
-      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.35)] to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent) / 0.35)] to-transparent" />
 
       <motion.div
         initial={{ opacity: 0, y: 6 }}
@@ -84,8 +84,8 @@ export function EditorLoadingScreen() {
             aria-hidden
             className="absolute w-32 h-32 rounded-full"
             style={{
-              border: '1px solid hsla(215,100%,60%,0.12)',
-              boxShadow: '0 0 40px hsla(215,100%,55%,0.08) inset',
+              border: '1px solid hsl(var(--accent) / 0.12)',
+              boxShadow: '0 0 40px hsl(var(--accent) / 0.08) inset',
             }}
             animate={{ rotate: 360 }}
             transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
@@ -103,7 +103,7 @@ export function EditorLoadingScreen() {
             aria-hidden
             className="absolute w-24 h-24 rounded-full"
             style={{
-              border: '1px dashed hsla(215,100%,60%,0.18)',
+              border: '1px dashed hsl(var(--accent) / 0.18)',
             }}
             animate={{ rotate: -360 }}
             transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
@@ -116,25 +116,25 @@ export function EditorLoadingScreen() {
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             style={{
               background:
-                'radial-gradient(circle, hsla(215,100%,55%,0.35) 0%, transparent 70%)',
+                'radial-gradient(circle, hsl(var(--accent) / 0.35) 0%, transparent 70%)',
               filter: 'blur(8px)',
             }}
           />
           <motion.div
             animate={{
               boxShadow: [
-                '0 0 40px hsla(215, 100%, 55%, 0.20)',
-                '0 0 100px hsla(215, 100%, 55%, 0.45)',
-                '0 0 40px hsla(215, 100%, 55%, 0.20)',
+                '0 0 40px hsl(var(--accent) / 0.20)',
+                '0 0 100px hsl(var(--accent) / 0.45)',
+                '0 0 40px hsl(var(--accent) / 0.20)',
               ],
             }}
             transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
             className="w-16 h-16 rounded-2xl flex items-center justify-center relative z-10"
             style={{
               background:
-                'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,42%) 100%)',
+                'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(200,100%,42%) 100%)',
               boxShadow:
-                '0 0 0 1px hsla(215,100%,80%,0.45) inset, 0 1px 0 hsla(0,0%,100%,0.35) inset, 0 -1px 0 hsla(0,0%,0%,0.3) inset, 0 20px 60px -10px hsla(215,100%,50%,0.65)',
+                '0 0 0 1px hsl(var(--accent) / 0.45) inset, 0 1px 0 hsla(0,0%,100%,0.35) inset, 0 -1px 0 hsla(0,0%,0%,0.3) inset, 0 20px 60px -10px hsl(var(--accent) / 0.65)',
             }}
           >
             <motion.div
@@ -159,9 +159,9 @@ export function EditorLoadingScreen() {
               className="text-[9px] font-bold tracking-[0.28em] uppercase px-1.5 py-[3px] rounded-[4px] translate-y-[-3px]"
               style={{
                 background:
-                  'linear-gradient(180deg, hsla(215,100%,55%,0.22), hsla(215,100%,40%,0.08))',
+                  'linear-gradient(180deg, hsl(var(--accent) / 0.22), hsl(var(--accent) / 0.08))',
                 color: 'hsl(200, 100%, 82%)',
-                border: '1px solid hsla(215,100%,55%,0.3)',
+                border: '1px solid hsl(var(--accent) / 0.3)',
               }}
             >
               Pro
@@ -178,27 +178,27 @@ export function EditorLoadingScreen() {
 
         {/* Refined progress bar with end caps */}
         <div className="flex items-center gap-3">
-          <span className="w-1 h-1 rounded-full bg-[hsla(215,100%,60%,0.5)]" />
+          <span className="w-1 h-1 rounded-full bg-[hsl(var(--accent) / 0.5)]" />
           <div
             className="w-72 h-[2px] rounded-full overflow-hidden relative"
             style={{
               background: 'hsla(0,0%,100%,0.05)',
               boxShadow:
-                'inset 0 0 0 1px hsla(215,100%,60%,0.06), 0 0 20px hsla(215,100%,55%,0.08)',
+                'inset 0 0 0 1px hsl(var(--accent) / 0.06), 0 0 20px hsl(var(--accent) / 0.08)',
             }}
           >
             <motion.div
               className="absolute inset-y-0 w-1/3 rounded-full"
               style={{
                 background:
-                  'linear-gradient(90deg, transparent, hsl(215, 100%, 60%) 40%, hsl(195, 100%, 78%) 60%, transparent)',
-                boxShadow: '0 0 18px hsla(215,100%,55%,0.7)',
+                  'linear-gradient(90deg, transparent, hsl(var(--accent)) 40%, hsl(195, 100%, 78%) 60%, transparent)',
+                boxShadow: '0 0 18px hsl(var(--accent) / 0.7)',
               }}
               animate={{ x: ['-110%', '320%'] }}
               transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
             />
           </div>
-          <span className="w-1 h-1 rounded-full bg-[hsla(215,100%,60%,0.5)]" />
+          <span className="w-1 h-1 rounded-full bg-[hsl(var(--accent) / 0.5)]" />
         </div>
 
         {/* Diagnostic ticker */}
@@ -207,7 +207,7 @@ export function EditorLoadingScreen() {
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity }}
-              className="w-1 h-1 rounded-full bg-[hsl(215,100%,72%)]/80"
+              className="w-1 h-1 rounded-full bg-[hsl(var(--accent))]/80"
             />
             Engine
           </span>
@@ -216,7 +216,7 @@ export function EditorLoadingScreen() {
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
-              className="w-1 h-1 rounded-full bg-[hsl(215,100%,65%)]"
+              className="w-1 h-1 rounded-full bg-[hsl(var(--accent))]"
             />
             Codecs
           </span>
@@ -235,11 +235,11 @@ export function EditorLoadingScreen() {
       {/* Bottom signature */}
       <div className="absolute bottom-6 inset-x-0 flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <span className="w-6 h-px bg-gradient-to-r from-transparent to-[hsla(215,100%,60%,0.3)]" />
+          <span className="w-6 h-px bg-gradient-to-r from-transparent to-[hsl(var(--accent) / 0.3)]" />
           <span className="text-[8.5px] tracking-[0.5em] uppercase text-muted-foreground/40 font-medium">
             Cinema · Engineered
           </span>
-          <span className="w-6 h-px bg-gradient-to-l from-transparent to-[hsla(215,100%,60%,0.3)]" />
+          <span className="w-6 h-px bg-gradient-to-l from-transparent to-[hsl(var(--accent) / 0.3)]" />
         </div>
       </div>
     </div>

@@ -32,14 +32,14 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  video: "hsla(215, 100%, 60%, 0.14)",
+  video: "hsl(var(--accent) / 0.14)",
   image: "hsla(200, 100%, 60%, 0.14)",
   text: "hsla(195, 100%, 70%, 0.14)",
   audio: "hsla(210, 100%, 65%, 0.14)",
 };
 
 const TYPE_ACCENT: Record<string, string> = {
-  video: "hsl(215, 100%, 70%)",
+  video: "hsl(var(--accent))",
   image: "hsl(200, 100%, 70%)",
   text: "hsl(195, 100%, 75%)",
   audio: "hsl(210, 100%, 70%)",
@@ -90,7 +90,7 @@ function SectionCard({ title, icon, children, accent }: { title: string; icon: R
         className="flex items-center gap-2 px-3.5 py-2.5"
         style={{ boxShadow: "inset 0 -1px 0 hsla(0,0%,100%,0.04)" }}
       >
-        <span style={{ color: accent || "hsla(215, 100%, 75%, 0.7)" }}>{icon}</span>
+        <span style={{ color: accent || "hsl(var(--accent) / 0.7)" }}>{icon}</span>
         <span className="text-[10px] font-light uppercase tracking-[0.18em]" style={{ color: "hsla(0, 0%, 100%, 0.55)" }}>
           {title}
         </span>
@@ -122,8 +122,8 @@ function SliderRow({ label, value, displayValue, min, max, step, onChange, icon 
         <span className="text-[9px] font-light text-[hsla(0,0%,100%,0.45)] flex items-center gap-1.5 tracking-wide">
           {icon} {label}
         </span>
-        <span className="text-[9px] font-mono font-light tabular-nums text-[hsla(215,100%,80%,0.95)] px-2 py-0.5 rounded-full"
-          style={{ background: "hsla(215,100%,60%,0.10)", boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.05)" }}>
+        <span className="text-[9px] font-mono font-light tabular-nums text-[hsl(var(--accent) / 0.95)] px-2 py-0.5 rounded-full"
+          style={{ background: "hsl(var(--accent) / 0.10)", boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.05)" }}>
           {displayValue}
         </span>
       </div>
@@ -201,11 +201,11 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center"
             style={{
-              background: "hsla(215,100%,60%,0.06)",
+              background: "hsl(var(--accent) / 0.06)",
               backdropFilter: "blur(24px)",
-              boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.05), 0 0 32px -8px hsla(215,100%,60%,0.30)",
+              boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.05), 0 0 32px -8px hsl(var(--accent) / 0.30)",
             }}>
-            <Scissors className="w-6 h-6 text-[hsla(215,100%,75%,0.40)]" strokeWidth={1.5} />
+            <Scissors className="w-6 h-6 text-[hsl(var(--accent) / 0.40)]" strokeWidth={1.5} />
           </div>
           <div className="text-center space-y-1">
             <p className="text-[11px] font-light tracking-tight text-[hsla(0,0%,100%,0.50)]">No Clip Selected</p>
@@ -221,7 +221,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
         style={{ background: "hsla(220, 14%, 4%, 0.55)", backdropFilter: "blur(48px) saturate(180%)" }}>
         <div className="shrink-0 flex items-center gap-2 px-3.5 h-10"
           style={{ boxShadow: "inset 0 -1px 0 hsla(0,0%,100%,0.04)" }}>
-          <Scissors className="w-3.5 h-3.5 text-[hsla(215,100%,75%,0.65)]" strokeWidth={1.5} />
+          <Scissors className="w-3.5 h-3.5 text-[hsl(var(--accent) / 0.65)]" strokeWidth={1.5} />
           <span className="text-[11px] font-light tracking-tight text-[hsla(0,0%,100%,0.75)]">Properties</span>
         </div>
         <div className="flex-1 flex items-center justify-center p-4">
@@ -270,7 +270,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
         {/* Quick Actions */}
         <div className="flex items-center gap-1.5">
           {[
-            { icon: <Scissors className="w-3 h-3" strokeWidth={1.5} />, label: "Split", onClick: handleSplit, color: "hsla(215,100%,60%,0.10)", text: "hsla(215,100%,80%,0.85)" },
+            { icon: <Scissors className="w-3 h-3" strokeWidth={1.5} />, label: "Split", onClick: handleSplit, color: "hsl(var(--accent) / 0.10)", text: "hsl(var(--accent) / 0.85)" },
             { icon: <Copy className="w-3 h-3" strokeWidth={1.5} />, label: "Duplicate", onClick: handleDuplicate, color: "hsla(200,100%,60%,0.10)", text: "hsla(200,100%,80%,0.85)" },
             { icon: <Trash2 className="w-3 h-3" strokeWidth={1.5} />, label: "Delete", onClick: handleDelete, color: "hsla(0,70%,55%,0.10)", text: "hsla(0,70%,75%,0.85)" },
           ].map((action) => (
@@ -296,7 +296,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
           <Input
             value={selectedClip.name}
             onChange={(e) => updateClip({ name: e.target.value })}
-            className="h-8 text-[11px] font-light tracking-tight rounded-full px-3 bg-[hsla(0,0%,100%,0.025)] border-0 text-[hsla(0,0%,100%,0.85)] focus-visible:ring-1 focus-visible:ring-[hsla(215,100%,60%,0.40)]"
+            className="h-8 text-[11px] font-light tracking-tight rounded-full px-3 bg-[hsla(0,0%,100%,0.025)] border-0 text-[hsla(0,0%,100%,0.85)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--accent) / 0.40)]"
           />
           <div className="flex items-center gap-1.5 pt-1">
             {COLOR_LABELS.map((cl) => (
@@ -332,7 +332,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
         </SectionCard>
 
         {/* Visual Controls */}
-        <SectionCard title="Visual" icon={<Eye className="w-3 h-3" />} accent="hsl(215, 100%, 60%)">
+        <SectionCard title="Visual" icon={<Eye className="w-3 h-3" />} accent="hsl(var(--accent))">
           <SliderRow label="Opacity" value={currentOpacity * 100} displayValue={`${Math.round(currentOpacity * 100)}%`} min={0} max={100} step={1} onChange={(v) => updateClip({ opacity: v / 100 })} />
         </SectionCard>
 
@@ -345,7 +345,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
 
         {/* Speed */}
         {selectedClip.type === "video" && (
-          <SectionCard title="Speed" icon={<Gauge className="w-3 h-3" />} accent="hsl(215, 100%, 75%)">
+          <SectionCard title="Speed" icon={<Gauge className="w-3 h-3" />} accent="hsl(var(--accent))">
             <div className="grid grid-cols-3 gap-1">
               {SPEED_PRESETS.map((p) => (
                 <button
@@ -354,15 +354,15 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
                   className={cn(
                     "py-1.5 rounded-full text-[10px] font-mono font-light tabular-nums transition-all duration-300 hover:scale-[1.04]",
                     Math.abs(currentSpeed - p.value) < 0.01
-                      ? "text-[hsl(215,100%,85%)]"
+                      ? "text-[hsl(var(--accent))]"
                       : "text-[hsla(0,0%,100%,0.45)] hover:text-[hsla(0,0%,100%,0.80)] hover:bg-[hsla(0,0%,100%,0.04)]"
                   )}
                   style={{
                     background: Math.abs(currentSpeed - p.value) < 0.01
-                      ? "linear-gradient(180deg, hsla(215,100%,60%,0.22), hsla(215,100%,45%,0.10))"
+                      ? "linear-gradient(180deg, hsl(var(--accent) / 0.22), hsl(var(--accent) / 0.10))"
                       : "transparent",
                     boxShadow: Math.abs(currentSpeed - p.value) < 0.01
-                      ? "inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 14px hsla(215,100%,60%,0.40)"
+                      ? "inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 14px hsl(var(--accent) / 0.40)"
                       : "inset 0 1px 0 hsla(0,0%,100%,0.025)",
                   }}
                 >

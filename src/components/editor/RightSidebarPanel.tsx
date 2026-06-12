@@ -49,7 +49,7 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
             <SlidersHorizontal
-              className="w-3.5 h-3.5 text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
+              className="w-3.5 h-3.5 text-accent"
               strokeWidth={1.5}
             />
           </div>
@@ -64,17 +64,8 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
         </div>
       </div>
 
-      {/* Top-level tab bar — glass pill rail */}
-      <div
-        className="shrink-0 flex items-center mx-3 my-3 px-1 py-1 gap-0.5 rounded-full overflow-x-auto"
-        style={{
-          background: 'hsla(0,0%,100%,0.025)',
-          backdropFilter: 'blur(48px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-          boxShadow:
-            '0 8px 40px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
-        }}
-      >
+      {/* Top-level tab bar — Foundation glass pill rail */}
+      <div className="shrink-0 flex items-center mx-3 my-3 px-1 py-1 gap-0.5 rounded-full overflow-x-auto border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
         <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Tmpl" />
         <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Insp" badge={hasSelection} />
         <TopTabButton active={activeTab === "fx"} onClick={() => setActiveTab("fx")} icon={<Sparkles className="w-3 h-3" />} label="FX" />
@@ -111,23 +102,15 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
         <motion.span
           layoutId="editor-tab-active"
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-          className="absolute inset-0 -z-10 rounded-full"
-          style={{
-            background:
-              'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
-            boxShadow:
-              '0 0 18px hsla(215,100%,60%,0.35), 0 0 32px hsla(215,100%,60%,0.18), inset 0 1px 0 hsla(0,0%,100%,0.10)',
-          }}
+          className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.30)]"
         />
       )}
-      <span className={cn(active && "text-[hsl(215,100%,80%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]")}>
+      <span className={cn(active && "text-accent")}>
         {icon}
       </span>
       <span className="hidden xl:inline">{label}</span>
       {badge && (
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-[hsl(215,100%,60%)] animate-pulse shadow-[0_0_8px_hsla(215,100%,60%,0.6)]"
-        />
+        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
       )}
     </button>
   );

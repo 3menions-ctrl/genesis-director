@@ -140,8 +140,8 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
         <div className="p-3 space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsla(215, 100%, 60%, 0.15)" }}>
-              <Users className="w-3.5 h-3.5 text-[hsl(215,100%,75%)]" />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--accent) / 0.15)" }}>
+              <Users className="w-3.5 h-3.5 text-[hsl(var(--accent))]" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">Avatar Characters</span>
@@ -156,7 +156,7 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search avatars…"
-              className="w-full h-7 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-lg pl-7 pr-2 text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsla(215,80%,60%,0.4)]"
+              className="w-full h-7 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-lg pl-7 pr-2 text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsl(var(--accent) / 0.4)]"
             />
           </div>
 
@@ -176,8 +176,8 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
                   className={cn(
                     "rounded-xl overflow-hidden border transition-all group relative",
                     selectedAvatar?.id === avatar.id
-                      ? "border-[hsla(215,80%,60%,0.5)] ring-1 ring-[hsla(215,80%,60%,0.3)]"
-                      : "border-[hsla(0,0%,100%,0.06)] hover:border-[hsla(215,80%,60%,0.2)]"
+                      ? "border-[hsl(var(--accent) / 0.5)] ring-1 ring-[hsl(var(--accent) / 0.3)]"
+                      : "border-[hsla(0,0%,100%,0.06)] hover:border-[hsl(var(--accent) / 0.2)]"
                   )}
                 >
                   <div className="aspect-square bg-[hsla(0,0%,100%,0.03)]">
@@ -215,7 +215,7 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isGenerating}
                 placeholder={`What should ${selectedAvatar.name} do in this scene?`}
-                className="w-full h-16 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsla(215,80%,60%,0.4)] disabled:opacity-40"
+                className="w-full h-16 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsl(var(--accent) / 0.4)] disabled:opacity-40"
               />
 
               <button
@@ -224,9 +224,9 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
                 className={cn(
                   "w-full h-8 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all",
                   isGenerating
-                    ? "bg-[hsla(215,100%,60%,0.15)] text-[hsl(215,100%,75%)] cursor-wait"
+                    ? "bg-[hsl(var(--accent) / 0.15)] text-[hsl(var(--accent))] cursor-wait"
                     : prompt.trim()
-                    ? "bg-[hsl(215,100%,60%)] text-white hover:bg-[hsl(215,100%,65%)]"
+                    ? "bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--accent))]"
                     : "bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,40%)] cursor-not-allowed"
                 )}
               >

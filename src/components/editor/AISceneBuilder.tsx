@@ -34,7 +34,7 @@ const AI_ACTIONS: AIAction[] = [
     description: "Create a real video clip from text",
     icon: <Sparkles className="w-4 h-4" />,
     requiresClip: false,
-    color: "hsla(215, 80%, 55%, 0.15)",
+    color: "hsl(var(--accent) / 0.15)",
   },
   {
     id: "extend-clip",
@@ -289,9 +289,9 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, hsla(215, 80%, 55%, 0.2), hsla(160, 70%, 45%, 0.1))" }}
+              style={{ background: "linear-gradient(135deg, hsl(var(--accent) / 0.2), hsla(160, 70%, 45%, 0.1))" }}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[hsl(215,80%,65%)]" />
+              <Sparkles className="w-3.5 h-3.5 text-[hsl(var(--accent))]" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">AI Scene Generator</span>
@@ -311,10 +311,10 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                   className={cn(
                     "text-left p-2.5 rounded-xl border transition-all",
                     selectedAction === action.id
-                      ? "border-[hsla(215,80%,60%,0.4)] bg-[hsla(215,80%,60%,0.08)]"
+                      ? "border-[hsl(var(--accent) / 0.4)] bg-[hsl(var(--accent) / 0.08)]"
                       : disabled
                       ? "opacity-25 cursor-not-allowed border-transparent"
-                      : "border-[hsla(0,0%,100%,0.05)] hover:border-[hsla(215,80%,60%,0.2)]"
+                      : "border-[hsla(0,0%,100%,0.05)] hover:border-[hsl(var(--accent) / 0.2)]"
                   )}
                 >
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-1.5" style={{ background: action.color }}>
@@ -361,7 +361,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                   className={cn(
                     "flex-1 h-7 rounded-lg text-[10px] font-bold transition-all",
                     duration === d
-                      ? "bg-[hsl(215,100%,50%)] text-white"
+                      ? "bg-[hsl(var(--accent))] text-white"
                       : "bg-[hsla(0,0%,100%,0.04)] text-[hsl(0,0%,50%)] hover:text-[hsl(0,0%,70%)]"
                   )}
                 >
@@ -385,7 +385,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                 : selectedAction === "remix-scene" ? "Describe the new style or mood..."
                 : "Describe the scene you want to create..."
               }
-              className="w-full h-20 text-[11px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2.5 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsla(215,80%,60%,0.4)] transition-colors disabled:opacity-40"
+              className="w-full h-20 text-[11px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2.5 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsl(var(--accent) / 0.4)] transition-colors disabled:opacity-40"
             />
 
             {/* Generate button */}
@@ -395,9 +395,9 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
               className={cn(
                 "w-full h-9 rounded-xl text-[11px] font-bold flex items-center justify-center gap-2 transition-all",
                 isWorking
-                  ? "bg-[hsla(215,80%,55%,0.15)] text-[hsl(215,80%,65%)] cursor-wait"
+                  ? "bg-[hsl(var(--accent) / 0.15)] text-[hsl(var(--accent))] cursor-wait"
                   : prompt.trim()
-                  ? "bg-[hsl(215,100%,50%)] text-white hover:bg-[hsl(215,100%,55%)] active:scale-[0.98] shadow-lg shadow-[hsla(215,100%,50%,0.25)]"
+                  ? "bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--accent))] active:scale-[0.98] shadow-lg shadow-[hsl(var(--accent) / 0.25)]"
                   : "bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,40%)] cursor-not-allowed"
               )}
             >
@@ -433,7 +433,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                   <div className="h-1.5 rounded-full bg-[hsla(0,0%,100%,0.06)] overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
-                      style={{ background: "linear-gradient(90deg, hsl(215, 100%, 50%), hsl(160, 70%, 50%))" }}
+                      style={{ background: "linear-gradient(90deg, hsl(var(--accent)), hsl(160, 70%, 50%))" }}
                       animate={{ width: `${progress}%` }}
                       transition={{ duration: 0.5 }}
                     />
@@ -455,13 +455,13 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                 exit={{ opacity: 0, y: -8 }}
                 className="rounded-2xl p-3 space-y-2"
                 style={{
-                  background: "linear-gradient(135deg, hsla(215,100%,55%,0.06) 0%, hsla(215,100%,55%,0.015) 100%)",
-                  boxShadow: "inset 0 1px 0 hsla(215,100%,80%,0.08), inset 0 0 0 1px hsla(215,100%,55%,0.14)",
+                  background: "linear-gradient(135deg, hsl(var(--accent) / 0.06) 0%, hsl(var(--accent) / 0.015) 100%)",
+                  boxShadow: "inset 0 1px 0 hsl(var(--accent) / 0.08), inset 0 0 0 1px hsl(var(--accent) / 0.14)",
                 }}
               >
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3 h-3 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
-                  <span className="text-[9px] font-light tracking-[0.18em] uppercase text-[hsl(215,100%,75%)]">
+                  <CheckCircle2 className="w-3 h-3 text-[hsl(var(--accent))]" strokeWidth={1.5} />
+                  <span className="text-[9px] font-light tracking-[0.18em] uppercase text-[hsl(var(--accent))]">
                     {genState === "completed" ? "Clip Added to Timeline" : "Prompt Enhanced"}
                   </span>
                 </div>
@@ -498,10 +498,10 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                   setSelectedAction("generate-scene");
                 }}
                 disabled={isWorking}
-                className="w-full text-left p-2.5 rounded-xl border border-[hsla(0,0%,100%,0.05)] hover:border-[hsla(215,80%,60%,0.2)] hover:bg-[hsla(0,0%,100%,0.02)] transition-all group active:scale-[0.98] disabled:opacity-40"
+                className="w-full text-left p-2.5 rounded-xl border border-[hsla(0,0%,100%,0.05)] hover:border-[hsl(var(--accent) / 0.2)] hover:bg-[hsla(0,0%,100%,0.02)] transition-all group active:scale-[0.98] disabled:opacity-40"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,55%)] group-hover:text-[hsl(215,80%,60%)] transition-colors">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,55%)] group-hover:text-[hsl(var(--accent))] transition-colors">
                     {template.icon}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -512,7 +512,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                     <span className="text-[8px] font-mono text-[hsl(0,0%,40%)] bg-[hsla(0,0%,100%,0.05)] px-1.5 py-0.5 rounded">
                       {template.duration}s
                     </span>
-                    <ArrowRight className="w-3 h-3 text-[hsl(0,0%,30%)] group-hover:text-[hsl(215,80%,60%)] transition-colors" />
+                    <ArrowRight className="w-3 h-3 text-[hsl(0,0%,30%)] group-hover:text-[hsl(var(--accent))] transition-colors" />
                   </div>
                 </div>
               </button>

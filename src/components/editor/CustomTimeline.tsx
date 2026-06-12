@@ -70,7 +70,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
         marginLeft: HEADER_WIDTH,
         background: 'linear-gradient(180deg, hsla(220, 14%, 6%, 0.55) 0%, hsla(220, 14%, 4%, 0.55) 100%)',
         backdropFilter: 'blur(24px) saturate(160%)',
-        boxShadow: 'inset 0 -1px 0 hsla(215,100%,60%,0.10)',
+        boxShadow: 'inset 0 -1px 0 hsl(var(--accent) / 0.10)',
       }}
     >
       <div className="relative h-full" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
@@ -113,13 +113,13 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
   );
 
   const typeColors: Record<string, string> = {
-    video: 'hsla(215, 100%, 60%, 0.10)',
+    video: 'hsl(var(--accent) / 0.10)',
     audio: 'hsla(200, 100%, 60%, 0.10)',
     text: 'hsla(195, 100%, 65%, 0.10)',
   };
 
   const accentStrip: Record<string, string> = {
-    video: 'hsl(215, 100%, 60%)',
+    video: 'hsl(var(--accent))',
     audio: 'hsl(200, 100%, 60%)',
     text: 'hsl(195, 100%, 65%)',
   };
@@ -132,7 +132,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
         height: TRACK_HEIGHT,
         background: 'linear-gradient(90deg, hsla(220, 14%, 6%, 0.45) 0%, hsla(220, 14%, 4%, 0.35) 100%)',
         backdropFilter: 'blur(16px)',
-        boxShadow: 'inset -1px 0 0 hsla(215,100%,60%,0.06), inset 0 -1px 0 hsla(0,0%,100%,0.025)',
+        boxShadow: 'inset -1px 0 0 hsl(var(--accent) / 0.06), inset 0 -1px 0 hsla(0,0%,100%,0.025)',
       }}
     >
       {/* Color accent strip */}
@@ -168,7 +168,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleSolo}
             className={cn(
               "p-1 rounded-full transition-all duration-300 text-[8px] font-light w-5 h-5 flex items-center justify-center",
-              (track as any).solo ? "text-[hsl(215,100%,75%)] bg-[hsla(215,100%,60%,0.15)]" : "text-muted-foreground/30 hover:text-foreground hover:bg-glass-hover"
+              (track as any).solo ? "text-[hsl(var(--accent))] bg-[hsl(var(--accent) / 0.15)]" : "text-muted-foreground/30 hover:text-foreground hover:bg-glass-hover"
             )}
             title="Solo"
           >
@@ -179,7 +179,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleMute}
             className={cn(
               "p-1 rounded-full transition-all duration-300",
-              track.muted ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
+              track.muted ? "text-[hsl(var(--accent) / 0.85)] bg-[hsl(var(--accent) / 0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
             )}
           >
             {track.muted ? <VolumeX className="w-2.5 h-2.5" strokeWidth={1.5} /> : <Volume2 className="w-2.5 h-2.5" strokeWidth={1.5} />}
@@ -189,7 +189,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleLock}
             className={cn(
               "p-1 rounded-full transition-all duration-300",
-              track.locked ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
+              track.locked ? "text-[hsl(var(--accent) / 0.85)] bg-[hsl(var(--accent) / 0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
             )}
           >
             {track.locked ? <Lock className="w-2.5 h-2.5" strokeWidth={1.5} /> : <Unlock className="w-2.5 h-2.5" strokeWidth={1.5} />}
@@ -210,21 +210,21 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(215, 100%, 60%, 0.18)",
+  video: "hsl(var(--accent) / 0.18)",
   image: "hsla(200, 100%, 60%, 0.16)",
   text: "hsla(195, 100%, 70%, 0.16)",
   audio: "hsla(210, 100%, 65%, 0.18)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(215, 100%, 60%, 0.30)",
+  video: "hsl(var(--accent) / 0.30)",
   image: "hsla(200, 100%, 60%, 0.28)",
   text: "hsla(195, 100%, 70%, 0.28)",
   audio: "hsla(210, 100%, 65%, 0.30)",
 };
 
 const CLIP_ACCENT_COLORS: Record<string, string> = {
-  video: "hsla(215, 100%, 65%, 0.75)",
+  video: "hsl(var(--accent) / 0.75)",
   image: "hsla(200, 100%, 65%, 0.65)",
   text: "hsla(195, 100%, 75%, 0.65)",
   audio: "hsla(210, 100%, 70%, 0.65)",
@@ -275,7 +275,7 @@ function ClipBlock({
         background: hasThumb ? 'hsla(0, 0%, 0%, 0.35)' : (CLIP_COLORS[clip.type] || CLIP_COLORS.video),
         opacity,
         boxShadow: selected
-          ? `inset 0 0 0 1px hsl(215, 100%, 65%), 0 0 24px hsla(215, 100%, 60%, 0.45), inset 0 1px 0 hsla(0,0%,100%,0.10)`
+          ? `inset 0 0 0 1px hsl(var(--accent)), 0 0 24px hsl(var(--accent) / 0.45), inset 0 1px 0 hsla(0,0%,100%,0.10)`
           : `inset 0 0 0 1px ${CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video}, 0 4px 14px -4px hsla(0, 0%, 0%, 0.45), inset 0 1px 0 hsla(0,0%,100%,0.04)`,
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
@@ -348,8 +348,8 @@ function ClipBlock({
         <div
           className="absolute top-1 right-1 z-20 px-1.5 py-0.5 rounded-full text-[7px] font-light uppercase tracking-[0.10em] pointer-events-none"
           style={{
-            background: 'hsla(215, 100%, 60%, 0.20)',
-            color: 'hsla(215, 100%, 80%, 0.95)',
+            background: 'hsl(var(--accent) / 0.20)',
+            color: 'hsl(var(--accent) / 0.95)',
             boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08)',
           }}
         >
@@ -362,8 +362,8 @@ function ClipBlock({
         <div
           className="absolute bottom-1 left-1 z-20 px-1.5 py-0.5 rounded-full text-[7px] font-light tabular-nums pointer-events-none"
           style={{
-            background: 'hsla(215, 100%, 60%, 0.18)',
-            color: 'hsla(215, 100%, 80%, 0.95)',
+            background: 'hsl(var(--accent) / 0.18)',
+            color: 'hsl(var(--accent) / 0.95)',
             boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)',
           }}
         >
@@ -428,18 +428,18 @@ function ClipBlock({
       {/* Trim handles */}
       <div
         className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-l-xl z-20"
-        style={{ background: 'hsla(215, 100%, 75%, 0.55)', boxShadow: '0 0 8px hsla(215,100%,60%,0.55)' }}
+        style={{ background: 'hsl(var(--accent) / 0.55)', boxShadow: '0 0 8px hsl(var(--accent) / 0.55)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
       />
       <div
         className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-r-xl z-20"
-        style={{ background: 'hsla(215, 100%, 75%, 0.55)', boxShadow: '0 0 8px hsla(215,100%,60%,0.55)' }}
+        style={{ background: 'hsl(var(--accent) / 0.55)', boxShadow: '0 0 8px hsl(var(--accent) / 0.55)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimEnd(clip.id, trackId); }}
       />
 
       {/* Hover glow */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
-        style={{ background: 'linear-gradient(180deg, hsla(215, 100%, 60%, 0.08) 0%, transparent 60%)' }}
+        style={{ background: 'linear-gradient(180deg, hsl(var(--accent) / 0.08) 0%, transparent 60%)' }}
       />
     </div>
   );
@@ -460,7 +460,7 @@ const CLIP_LABEL_COLORS = [
   { name: "Orange", color: "hsl(30, 90%, 50%)" },
   { name: "Yellow", color: "hsl(50, 90%, 50%)" },
   { name: "Green", color: "hsl(142, 65%, 45%)" },
-  { name: "Blue", color: "hsl(215, 100%, 50%)" },
+  { name: "Blue", color: "hsl(var(--accent))" },
   { name: "Purple", color: "hsl(280, 65%, 55%)" },
   { name: "Pink", color: "hsl(340, 80%, 55%)" },
 ];
@@ -869,7 +869,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       className={cn("flex flex-col overflow-hidden select-none", className)}
       style={{
         background:
-          'radial-gradient(800px 400px at 50% 0%, hsla(215,100%,30%,0.10), transparent 60%), linear-gradient(180deg, hsl(220, 14%, 3.2%) 0%, hsl(220, 14%, 2.4%) 100%)',
+          'radial-gradient(800px 400px at 50% 0%, hsl(var(--accent) / 0.10), transparent 60%), linear-gradient(180deg, hsl(220, 14%, 3.2%) 0%, hsl(220, 14%, 2.4%) 100%)',
       }}
     >
       {/* ─── Toolbar — compact single row ─── */}
@@ -879,7 +879,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           background: 'linear-gradient(180deg, hsla(220, 14%, 6%, 0.55) 0%, hsla(220, 14%, 4%, 0.55) 100%)',
           backdropFilter: 'blur(36px) saturate(180%)',
           WebkitBackdropFilter: 'blur(36px) saturate(180%)',
-          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 -1px 0 hsla(215,100%,60%,0.08)',
+          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 -1px 0 hsl(var(--accent) / 0.08)',
         }}
       >
         {/* Tool selector — Select / Razor / Ripple */}
@@ -906,8 +906,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                       : "text-muted-foreground/45 hover:text-foreground hover:bg-glass-hover"
                   )}
                   style={state.activeTool === t.tool ? {
-                    background: 'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,48%))',
-                    boxShadow: '0 0 14px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+                    background: 'linear-gradient(180deg, hsl(var(--accent)), hsl(var(--accent)))',
+                    boxShadow: '0 0 14px hsl(var(--accent) / 0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
                   } : undefined}
                 >
                   {t.icon}
@@ -967,10 +967,10 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <TooltipTrigger asChild>
             <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
               className={cn("h-6 w-6 flex items-center justify-center rounded-full transition-all duration-300 shrink-0",
-                state.snapEnabled ? "text-[hsl(215,100%,80%)]" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-glass-hover")}
+                state.snapEnabled ? "text-[hsl(var(--accent))]" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-glass-hover")}
               style={state.snapEnabled ? {
-                background: 'hsla(215,100%,60%,0.14)',
-                boxShadow: '0 0 12px hsla(215,100%,60%,0.40), inset 0 1px 0 hsla(0,0%,100%,0.06)',
+                background: 'hsl(var(--accent) / 0.14)',
+                boxShadow: '0 0 12px hsl(var(--accent) / 0.40), inset 0 1px 0 hsla(0,0%,100%,0.06)',
               } : undefined}
             >
               <Magnet className="w-3 h-3" strokeWidth={1.5} />
@@ -991,7 +991,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                 };
                 dispatch({ type: "ADD_MARKER", marker });
               }}
-              className="h-6 w-6 flex items-center justify-center text-muted-foreground/30 hover:text-[hsl(215,100%,75%)] hover:bg-[hsla(215,100%,60%,0.08)] rounded-full transition-all duration-300 shrink-0"
+              className="h-6 w-6 flex items-center justify-center text-muted-foreground/30 hover:text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent) / 0.08)] rounded-full transition-all duration-300 shrink-0"
             >
               <Flag className="w-3 h-3" strokeWidth={1.5} />
             </button>
@@ -1046,8 +1046,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
               className="absolute top-0 left-0 h-full rounded-full"
               style={{
                 width: `${((state.zoom - 10) / 190) * 100}%`,
-                background: 'linear-gradient(90deg, hsl(215, 100%, 60%), hsl(200, 100%, 70%))',
-                boxShadow: '0 0 8px hsla(215,100%,60%,0.55)',
+                background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(200, 100%, 70%))',
+                boxShadow: '0 0 8px hsl(var(--accent) / 0.55)',
               }}
             />
           </div>

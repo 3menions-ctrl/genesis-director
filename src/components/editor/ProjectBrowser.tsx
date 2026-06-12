@@ -61,7 +61,7 @@ export function ProjectBrowser({
               }}
             >
               <div className="flex items-center gap-2.5">
-                <FolderOpen className="w-3.5 h-3.5 text-[hsl(215,100%,70%)]" strokeWidth={1.5} />
+                <FolderOpen className="w-3.5 h-3.5 text-[hsl(var(--accent))]" strokeWidth={1.5} />
                 <h2 className="text-[11px] font-light tracking-[0.22em] uppercase text-foreground/80 font-display">
                   Import from Project
                 </h2>
@@ -102,10 +102,10 @@ export function ProjectBrowser({
                         }`}
                         style={{
                           background: isLoaded
-                            ? 'linear-gradient(135deg, hsla(215,100%,55%,0.08) 0%, hsla(215,100%,55%,0.02) 100%)'
+                            ? 'linear-gradient(135deg, hsl(var(--accent) / 0.08) 0%, hsl(var(--accent) / 0.02) 100%)'
                             : 'hsla(0,0%,100%,0.015)',
                           boxShadow: isLoaded
-                            ? 'inset 0 1px 0 hsla(215,100%,80%,0.08), 0 0 0 1px hsla(215,100%,55%,0.15)'
+                            ? 'inset 0 1px 0 hsl(var(--accent) / 0.08), 0 0 0 1px hsl(var(--accent) / 0.15)'
                             : 'inset 0 1px 0 hsla(0,0%,100%,0.025)',
                         }}
                       >
@@ -143,10 +143,10 @@ export function ProjectBrowser({
                         <div className="shrink-0">
                           {isLoaded ? (
                             <span
-                              className="text-[9px] font-light tracking-[0.18em] uppercase text-[hsl(215,100%,75%)] px-2.5 py-1 rounded-full"
+                              className="text-[9px] font-light tracking-[0.18em] uppercase text-[hsl(var(--accent))] px-2.5 py-1 rounded-full"
                               style={{
-                                background: 'hsla(215,100%,55%,0.12)',
-                                boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.2)',
+                                background: 'hsl(var(--accent) / 0.12)',
+                                boxShadow: 'inset 0 0 0 1px hsl(var(--accent) / 0.2)',
                               }}
                             >
                               Loaded
@@ -154,7 +154,7 @@ export function ProjectBrowser({
                           ) : loadingClips ? (
                             <Loader2 className="w-3 h-3 animate-spin text-muted-foreground/50" strokeWidth={1.5} />
                           ) : (
-                            <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground/45 group-hover:text-[hsl(215,100%,75%)] transition-colors duration-300">
+                            <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground/45 group-hover:text-[hsl(var(--accent))] transition-colors duration-300">
                               Import →
                             </span>
                           )}

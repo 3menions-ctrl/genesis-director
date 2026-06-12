@@ -212,7 +212,7 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
             className={cn(
               "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all",
               activeTab === tab.key
-                ? "bg-[hsla(215,100%,50%,0.12)] text-[hsl(215,100%,65%)]"
+                ? "bg-[hsl(var(--accent) / 0.12)] text-[hsl(var(--accent))]"
                 : "text-[hsl(0,0%,45%)] hover:text-[hsl(0,0%,70%)] hover:bg-[hsla(0,0%,100%,0.04)]"
             )}
           >
@@ -230,9 +230,9 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               className="px-3 py-4 text-center rounded-xl border border-dashed"
-              style={{ borderColor: "hsla(215, 60%, 50%, 0.12)" }}
+              style={{ borderColor: "hsl(var(--accent) / 0.12)" }}
             >
-              <Sparkles className="w-5 h-5 text-[hsl(215,80%,60%)] opacity-30 mx-auto mb-2" />
+              <Sparkles className="w-5 h-5 text-[hsl(var(--accent))] opacity-30 mx-auto mb-2" />
               <p className="text-[10px] text-[hsl(0,0%,45%)] leading-relaxed">
                 Select a clip to apply cinematic effects
               </p>
@@ -259,7 +259,7 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
                     className={cn(
                       "text-left rounded-xl border overflow-hidden transition-all group",
                       hasSelection
-                        ? "hover:border-[hsla(215,80%,60%,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                        ? "hover:border-[hsl(var(--accent) / 0.3)] hover:scale-[1.02] active:scale-[0.98]"
                         : "opacity-30 cursor-not-allowed"
                     )}
                     style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}
@@ -327,13 +327,13 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
               className={cn(
                 "w-full text-left p-2.5 rounded-xl border transition-all group",
                 hasSelection
-                  ? "hover:border-[hsla(215,80%,60%,0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
+                  ? "hover:border-[hsl(var(--accent) / 0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
                   : "opacity-30 cursor-not-allowed"
               )}
               style={{ borderColor: "hsla(0, 0%, 100%, 0.05)" }}
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[hsla(215,80%,60%,0.1)] text-[hsl(215,80%,60%)]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[hsl(var(--accent) / 0.1)] text-[hsl(var(--accent))]">
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1">
@@ -356,7 +356,7 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
               className={cn(
                 "w-full text-left p-2.5 rounded-xl border transition-all group",
                 hasSelection
-                  ? "hover:border-[hsla(215,80%,60%,0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
+                  ? "hover:border-[hsl(var(--accent) / 0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
                   : "opacity-30 cursor-not-allowed"
               )}
               style={{ borderColor: "hsla(0, 0%, 100%, 0.05)" }}
@@ -382,7 +382,7 @@ export const CinematicFXPanel = memo(function CinematicFXPanel() {
               className={cn(
                 "w-full text-left p-2.5 rounded-xl border transition-all group",
                 hasSelection
-                  ? "hover:border-[hsla(215,80%,60%,0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
+                  ? "hover:border-[hsl(var(--accent) / 0.2)] hover:bg-[hsla(0,0%,100%,0.03)] active:scale-[0.98]"
                   : "opacity-30 cursor-not-allowed"
               )}
               style={{ borderColor: "hsla(0, 0%, 100%, 0.05)" }}

@@ -295,7 +295,7 @@ export const VideoScopes = memo(function VideoScopes({ visible }: { visible: boo
             className={cn(
               "px-2 py-0.5 rounded text-[9px] font-semibold transition-all",
               mode === m
-                ? "bg-[hsla(215,100%,50%,0.15)] text-[hsl(215,100%,70%)]"
+                ? "bg-[hsl(var(--accent) / 0.15)] text-[hsl(var(--accent))]"
                 : "text-[hsla(0,0%,100%,0.3)] hover:text-[hsla(0,0%,100%,0.6)]"
             )}
           >

@@ -8,7 +8,7 @@ import { useCustomTimeline } from "@/hooks/useCustomTimeline";
 
 const MINIMAP_HEIGHT = 20;
 const CLIP_TYPE_COLORS: Record<string, string> = {
-  video: "hsl(215, 100%, 50%)",
+  video: "hsl(var(--accent))",
   audio: "hsl(280, 65%, 55%)",
   text: "hsl(160, 65%, 50%)",
   image: "hsl(45, 85%, 55%)",

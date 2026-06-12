@@ -87,24 +87,24 @@ export const MediaSidebar = memo(function MediaSidebar({
             <TooltipContent side="right" className="text-[10px]">Expand media panel</TooltipContent>
           </Tooltip>
 
-          <div className="w-6 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.18)] to-transparent" />
+          <div className="w-6 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent) / 0.18)] to-transparent" />
 
           <Tooltip>
             <TooltipTrigger asChild>
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center relative"
                 style={{
-                  background: 'hsla(215,100%,60%,0.10)',
-                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 16px -4px hsla(215,100%,55%,0.35)',
+                  background: 'hsl(var(--accent) / 0.10)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 16px -4px hsl(var(--accent) / 0.35)',
                 }}
               >
-                <Layers className="w-4 h-4 text-[hsla(215,100%,75%,0.85)]" strokeWidth={1.5} />
+                <Layers className="w-4 h-4 text-[hsl(var(--accent) / 0.85)]" strokeWidth={1.5} />
                 {clipCount > 0 && (
                   <span
                     className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-light tabular-nums text-foreground px-0.5"
                     style={{
-                      background: 'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,48%))',
-                      boxShadow: '0 0 8px hsla(215,100%,55%,0.6), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+                      background: 'linear-gradient(180deg, hsl(var(--accent)), hsl(var(--accent)))',
+                      boxShadow: '0 0 8px hsl(var(--accent) / 0.6), inset 0 1px 0 hsla(0,0%,100%,0.18)',
                     }}
                   >
                     {clipCount}
@@ -115,7 +115,7 @@ export const MediaSidebar = memo(function MediaSidebar({
             <TooltipContent side="right" className="text-[10px]">{clipCount} clips available</TooltipContent>
           </Tooltip>
 
-          {loading && <Loader2 className="w-4 h-4 animate-spin text-[hsla(215,100%,50%,0.5)] mt-1" />}
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-[hsl(var(--accent) / 0.5)] mt-1" />}
         </div>
       ) : (
         <>
@@ -124,7 +124,7 @@ export const MediaSidebar = memo(function MediaSidebar({
             className="shrink-0 px-5 pt-5 pb-4 relative"
             style={{
               background:
-                'linear-gradient(180deg, hsla(215,100%,50%,0.045), transparent 80%)',
+                'linear-gradient(180deg, hsl(var(--accent) / 0.045), transparent 80%)',
             }}
           >
             {/* hairline accent — luminous editorial rule */}
@@ -146,7 +146,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[hsla(215,100%,60%,0.6)]" />}
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[hsl(var(--accent) / 0.6)]" />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -176,8 +176,8 @@ export const MediaSidebar = memo(function MediaSidebar({
                     boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.background = 'hsla(215,100%,60%,0.05)';
-                    e.currentTarget.style.boxShadow = 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 0 1px hsla(215,100%,60%,0.30), 0 0 18px -4px hsla(215,100%,60%,0.35)';
+                    e.currentTarget.style.background = 'hsl(var(--accent) / 0.05)';
+                    e.currentTarget.style.boxShadow = 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 0 1px hsl(var(--accent) / 0.30), 0 0 18px -4px hsl(var(--accent) / 0.35)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.background = 'hsla(0,0%,100%,0.025)';
@@ -233,16 +233,16 @@ export const MediaSidebar = memo(function MediaSidebar({
                     <motion.div
                       animate={{
                         boxShadow: [
-                          '0 0 15px hsla(215, 100%, 50%, 0)',
-                          '0 0 30px hsla(215, 100%, 50%, 0.12)',
-                          '0 0 15px hsla(215, 100%, 50%, 0)',
+                          '0 0 15px hsl(var(--accent) / 0)',
+                          '0 0 30px hsl(var(--accent) / 0.12)',
+                          '0 0 15px hsl(var(--accent) / 0)',
                         ]
                       }}
                       transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                       className="w-20 h-20 rounded-3xl flex items-center justify-center relative"
                       style={{
-                        background: 'linear-gradient(135deg, hsla(215, 100%, 50%, 0.08), hsla(215, 100%, 50%, 0.02))',
-                        border: '1px dashed hsla(215, 100%, 50%, 0.15)',
+                        background: 'linear-gradient(135deg, hsl(var(--accent) / 0.08), hsl(var(--accent) / 0.02))',
+                        border: '1px dashed hsl(var(--accent) / 0.15)',
                       }}
                     >
                       {search ? (
@@ -252,7 +252,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                           animate={{ y: [0, -3, 0] }}
                           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                         >
-                          <Upload className="w-8 h-8 text-[hsla(215,100%,60%,0.3)]" />
+                          <Upload className="w-8 h-8 text-[hsl(var(--accent) / 0.3)]" />
                         </motion.div>
                       )}
                     </motion.div>
@@ -260,7 +260,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                       animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
                       transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[hsla(215,100%,60%,0.35)] absolute -top-1 -right-1" />
+                      <Sparkles className="w-3.5 h-3.5 text-[hsl(var(--accent) / 0.35)] absolute -top-1 -right-1" />
                     </motion.div>
                   </div>
                   <div className="text-center space-y-2 px-6 max-w-[260px]">
@@ -278,7 +278,7 @@ export const MediaSidebar = memo(function MediaSidebar({
 
               {loading && filtered.length === 0 && (
                 <div className="flex flex-col items-center py-14 gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-[hsla(215,100%,60%,0.45)]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--accent) / 0.45)]" />
                   <p className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground font-light">Loading archive…</p>
                 </div>
               )}
@@ -373,7 +373,7 @@ const ClipGridCard = memo(function ClipGridCard({
       )}
       style={{
         boxShadow: isHovered
-          ? 'inset 0 0 0 1px hsla(215,100%,60%,0.45), 0 18px 42px -14px hsla(215,100%,55%,0.55), 0 0 0 1px hsla(0,0%,100%,0.02)'
+          ? 'inset 0 0 0 1px hsl(var(--accent) / 0.45), 0 18px 42px -14px hsl(var(--accent) / 0.55), 0 0 0 1px hsla(0,0%,100%,0.02)'
           : 'inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 6px 16px -8px hsla(0,0%,0%,0.5)',
         transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
       }}
@@ -449,9 +449,9 @@ const ClipGridCard = memo(function ClipGridCard({
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center"
           style={{
-            background: 'linear-gradient(180deg, hsl(215,100%,62%), hsl(215,100%,45%))',
+            background: 'linear-gradient(180deg, hsl(var(--accent)), hsl(var(--accent)))',
             boxShadow:
-              'inset 0 1px 0 hsla(0,0%,100%,0.28), 0 6px 16px -2px hsla(215,100%,55%,0.7), 0 0 0 1px hsla(0,0%,100%,0.06)',
+              'inset 0 1px 0 hsla(0,0%,100%,0.28), 0 6px 16px -2px hsl(var(--accent) / 0.7), 0 0 0 1px hsla(0,0%,100%,0.06)',
           }}
         >
           <Plus className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
@@ -484,7 +484,7 @@ const ClipListRow = memo(function ClipListRow({
       onClick={onAdd}
       className={cn(
         "w-full flex items-center gap-2.5 p-1.5 rounded-xl transition-all duration-300 group text-left relative",
-        "hover:bg-white/[0.035] hover:shadow-[0_12px_32px_-16px_hsla(215,100%,55%,0.5),inset_0_0_0_1px_hsla(215,100%,60%,0.18)]",
+        "hover:bg-white/[0.035] hover:shadow-[0_12px_32px_-16px_hsl(var(--accent) / 0.5),inset_0_0_0_1px_hsl(var(--accent) / 0.18)]",
         "active:scale-[0.99]"
       )}
     >
@@ -517,8 +517,8 @@ const ClipListRow = memo(function ClipListRow({
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{
-          background: 'linear-gradient(180deg, hsl(215,100%,62%), hsl(215,100%,45%))',
-          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.22), 0 4px 12px -2px hsla(215,100%,55%,0.55)',
+          background: 'linear-gradient(180deg, hsl(var(--accent)), hsl(var(--accent)))',
+          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.22), 0 4px 12px -2px hsl(var(--accent) / 0.55)',
         }}
       >
         <Plus className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />

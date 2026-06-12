@@ -248,9 +248,9 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
             style={{ zIndex: 25 }}
             animate={{
               boxShadow: [
-                'inset 0 0 30px hsla(215, 100%, 50%, 0.02), 0 0 15px hsla(215, 100%, 50%, 0.01)',
-                'inset 0 0 40px hsla(215, 100%, 50%, 0.05), 0 0 25px hsla(215, 100%, 50%, 0.03)',
-                'inset 0 0 30px hsla(215, 100%, 50%, 0.02), 0 0 15px hsla(215, 100%, 50%, 0.01)',
+                'inset 0 0 30px hsl(var(--accent) / 0.02), 0 0 15px hsl(var(--accent) / 0.01)',
+                'inset 0 0 40px hsl(var(--accent) / 0.05), 0 0 25px hsl(var(--accent) / 0.03)',
+                'inset 0 0 30px hsl(var(--accent) / 0.02), 0 0 15px hsl(var(--accent) / 0.01)',
               ],
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -266,30 +266,30 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
               <motion.div
                 animate={{
                   boxShadow: [
-                    '0 0 20px hsla(215, 100%, 50%, 0)',
-                    '0 0 40px hsla(215, 100%, 50%, 0.12)',
-                    '0 0 20px hsla(215, 100%, 50%, 0)',
+                    '0 0 20px hsl(var(--accent) / 0)',
+                    '0 0 40px hsl(var(--accent) / 0.12)',
+                    '0 0 20px hsl(var(--accent) / 0)',
                   ]
                 }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="w-28 h-28 rounded-3xl flex items-center justify-center relative"
                 style={{
-                  background: 'linear-gradient(135deg, hsla(215, 100%, 50%, 0.06), hsla(0, 0%, 100%, 0.02))',
-                  border: '1px solid hsla(215, 100%, 50%, 0.1)',
+                  background: 'linear-gradient(135deg, hsl(var(--accent) / 0.06), hsla(0, 0%, 100%, 0.02))',
+                  border: '1px solid hsl(var(--accent) / 0.1)',
                 }}
               >
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
-                  <MonitorPlay className="w-11 h-11 text-[hsla(215,100%,60%,0.3)]" />
+                  <MonitorPlay className="w-11 h-11 text-[hsl(var(--accent) / 0.3)]" />
                 </motion.div>
                 <motion.div animate={{ rotate: -360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="absolute inset-0">
-                  <Sparkles className="w-4 h-4 text-[hsla(215,100%,60%,0.4)] absolute -top-2 left-1/2 -translate-x-1/2" />
+                  <Sparkles className="w-4 h-4 text-[hsl(var(--accent) / 0.4)] absolute -top-2 left-1/2 -translate-x-1/2" />
                 </motion.div>
               </motion.div>
               <motion.div
                 animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0, 0.3] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 rounded-3xl"
-                style={{ border: '1px solid hsla(215, 100%, 50%, 0.15)' }}
+                style={{ border: '1px solid hsl(var(--accent) / 0.15)' }}
               />
             </div>
             <div className="text-center space-y-2">
@@ -371,11 +371,11 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
               style={{
                 background: state.isPlaying
                   ? 'hsla(0, 0%, 100%, 0.06)'
-                  : 'linear-gradient(135deg, hsla(215, 100%, 62%, 0.95) 0%, hsla(215, 100%, 52%, 0.95) 100%)',
+                  : 'linear-gradient(135deg, hsl(var(--accent) / 0.95) 0%, hsl(var(--accent) / 0.95) 100%)',
                 color: state.isPlaying ? 'hsla(0, 0%, 100%, 0.9)' : 'hsl(0, 0%, 100%)',
                 boxShadow: state.isPlaying
                   ? 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.08)'
-                  : 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsla(215, 100%, 55%, 0.45), 0 0 48px hsla(215, 100%, 55%, 0.2)',
+                  : 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsl(var(--accent) / 0.45), 0 0 48px hsl(var(--accent) / 0.2)',
               }}
             >
               {state.isPlaying ? <Pause className="w-4 h-4" strokeWidth={1.8} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={1.8} fill="currentColor" />}
@@ -432,11 +432,11 @@ function TransportButton({ onClick, tooltip, active, children }: { onClick: () =
           onClick={onClick}
           className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105",
-            active ? "text-[hsl(215,100%,75%)]" : "text-[hsla(0,0%,100%,0.4)] hover:text-[hsla(0,0%,100%,0.85)]"
+            active ? "text-[hsl(var(--accent))]" : "text-[hsla(0,0%,100%,0.4)] hover:text-[hsla(0,0%,100%,0.85)]"
           )}
           style={{
-            background: active ? 'hsla(215,100%,55%,0.1)' : 'transparent',
-            boxShadow: active ? 'inset 0 0 0 1px hsla(215,100%,55%,0.18)' : 'none',
+            background: active ? 'hsl(var(--accent) / 0.1)' : 'transparent',
+            boxShadow: active ? 'inset 0 0 0 1px hsl(var(--accent) / 0.18)' : 'none',
           }}
         >
           {children}

@@ -114,9 +114,9 @@ export default function AdminAuditLogPage() {
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-white/40">No audit events.</td></tr>
               )}
               {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
                   <td className="px-4 py-3 text-white/70 font-mono text-[12px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-[#0A84FF]/30 bg-[#0A84FF]/5 text-[#6FB6FF] font-mono text-[11px]">{r.action}</span></td>
+                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.action}</span></td>
                   <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.target_type ?? "—"}{r.target_id ? ` / ${r.target_id.slice(0,8)}…` : ""}</td>
                   <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.admin_id.slice(0,8)}…</td>
                   <td className="px-4 py-3 text-white/50 font-mono text-[11px] max-w-[420px] truncate">{JSON.stringify(r.details ?? {})}</td>

@@ -200,12 +200,12 @@ export default function UniverseDetail() {
                   <Link
                     key={c.id}
                     to={`/c/${c.id}`}
-                    className="group inline-flex items-center gap-2 px-3 h-9 rounded-full border border-white/[0.06] hover:border-white/15 bg-white/[0.015] hover:bg-white/[0.04] transition-colors"
+                    className="group inline-flex items-center gap-2 px-3 h-9 rounded-full border border-white/[0.06] hover:border-white/15 bg-white/[0.015] hover:bg-glass-hover transition-colors"
                   >
                     {c.avatar_url ? (
                       <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full" />
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-white/[0.05] flex items-center justify-center text-[9px] font-mono text-white/55">
+                      <div className="w-5 h-5 rounded-full bg-glass-hover flex items-center justify-center text-[9px] font-mono text-white/55">
                         {(c.display_name?.[0] || "?").toUpperCase()}
                       </div>
                     )}

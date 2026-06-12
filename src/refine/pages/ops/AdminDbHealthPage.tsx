@@ -59,7 +59,7 @@ export default function AdminDbHealthPage() {
         {TABLES.map(t => (
           <AdminSurface key={t} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Database className="w-4 h-4 text-[#6FB6FF]" />
+              <Database className="w-4 h-4 text-primary/80" />
               <span className="text-white/80 font-mono text-[12px]">{t}</span>
             </div>
             <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`}>

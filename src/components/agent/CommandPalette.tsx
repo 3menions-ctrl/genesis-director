@@ -149,7 +149,7 @@ export const CommandPalette = memo(function CommandPalette() {
                 placeholder="Type a command or search..."
                 className="flex-1 bg-transparent text-white text-sm placeholder:text-white/25 outline-none font-display"
               />
-              <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-1 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] text-white/30 font-mono">
+              <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-1 rounded-md bg-glass-active border border-white/[0.08] text-[10px] text-white/30 font-mono">
                 ESC
               </kbd>
             </div>
@@ -172,14 +172,14 @@ export const CommandPalette = memo(function CommandPalette() {
                           "w-full flex items-center gap-3 px-5 py-3 text-left transition-colors duration-100",
                           flatIdx === activeIndex
                             ? "bg-primary/10 text-white"
-                            : "text-white/60 hover:bg-white/[0.04]"
+                            : "text-white/60 hover:bg-glass-hover"
                         )}
                       >
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
                           flatIdx === activeIndex
                             ? "bg-primary/20 text-primary"
-                            : "bg-white/[0.04] text-white/30"
+                            : "bg-glass-hover text-white/30"
                         )}>
                           {cmd.icon}
                         </div>
@@ -208,10 +208,10 @@ export const CommandPalette = memo(function CommandPalette() {
             <div className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06]">
               <div className="flex items-center gap-3 text-[10px] text-white/20">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono">↑↓</kbd> Navigate
+                  <kbd className="px-1.5 py-0.5 rounded bg-glass-active font-mono">↑↓</kbd> Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono">↵</kbd> Select
+                  <kbd className="px-1.5 py-0.5 rounded bg-glass-active font-mono">↵</kbd> Select
                 </span>
               </div>
               <span className="text-[10px] text-white/15 flex items-center gap-1">

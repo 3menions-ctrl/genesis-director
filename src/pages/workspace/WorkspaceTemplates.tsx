@@ -95,7 +95,7 @@ export default function WorkspaceTemplates() {
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="font-display text-[15px] text-white/95 font-light tracking-[-0.01em] truncate">{r.name}</div>
                 {canDelete && (
-                  <button onClick={() => remove(r)} className="p-1.5 rounded-lg text-white/35 hover:text-[hsl(0,80%,76%)] hover:bg-white/[0.04] transition" aria-label="Delete">
+                  <button onClick={() => remove(r)} className="p-1.5 rounded-lg text-white/35 hover:text-[hsl(0,80%,76%)] hover:bg-glass-hover transition" aria-label="Delete">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}

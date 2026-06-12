@@ -67,7 +67,7 @@ export function BeatCutDrawer({ onApply }: { onApply?: (beats: number[]) => void
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-6 space-y-5">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-2xl border border-white/10 bg-glass flex items-center justify-center">
           <Music2 className="w-4 h-4 text-brand-light" />
         </div>
         <div>
@@ -92,7 +92,7 @@ export function BeatCutDrawer({ onApply }: { onApply?: (beats: number[]) => void
       {!trackName ? (
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full rounded-2xl border border-dashed border-white/[0.1] py-10 flex flex-col items-center gap-2 text-white/55 hover:text-white hover:bg-white/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+          className="w-full rounded-2xl border border-dashed border-white/[0.1] py-10 flex flex-col items-center gap-2 text-white/55 hover:text-white hover:bg-glass transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
         >
           <Upload className="w-5 h-5" />
           <div className="text-[14px] font-display">Drop an audio file</div>

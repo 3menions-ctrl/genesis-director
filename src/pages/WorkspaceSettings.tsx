@@ -160,7 +160,7 @@ export default function WorkspaceSettings() {
       </header>
 
       <Tabs defaultValue="members">
-        <TabsList className="bg-white/[0.03] border border-white/[0.05]">
+        <TabsList className="bg-glass border border-white/[0.05]">
           <TabsTrigger value="members" className="gap-2"><Users className="w-3.5 h-3.5" />Members ({members.length})</TabsTrigger>
           <TabsTrigger value="invites" className="gap-2"><Mail className="w-3.5 h-3.5" />Invites ({invites.length})</TabsTrigger>
           <TabsTrigger value="roles" className="gap-2"><Shield className="w-3.5 h-3.5" />Roles</TabsTrigger>
@@ -168,7 +168,7 @@ export default function WorkspaceSettings() {
 
         {/* MEMBERS */}
         <TabsContent value="members" className="mt-6">
-          <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.05] bg-glass overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.05] hover:bg-transparent">
@@ -244,7 +244,7 @@ export default function WorkspaceSettings() {
         {/* INVITES */}
         <TabsContent value="invites" className="mt-6 space-y-6">
           {canManage && (
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
+            <div className="rounded-2xl border border-white/[0.05] bg-glass p-5">
               <h3 className="text-[14px] font-medium text-white/90 mb-1">Invite a new member</h3>
               <p className="text-[12px] text-white/45 mb-4">They'll receive an email with a link to join this workspace.</p>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -272,7 +272,7 @@ export default function WorkspaceSettings() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.05] bg-glass overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.05] hover:bg-transparent">
@@ -315,7 +315,7 @@ export default function WorkspaceSettings() {
               const meta = ROLE_META[r];
               const Icon = meta.icon;
               return (
-                <div key={r} className={cn('rounded-2xl p-5 border border-white/[0.05] bg-white/[0.02]')}>
+                <div key={r} className={cn('rounded-2xl p-5 border border-white/[0.05] bg-glass')}>
                   <div className="flex items-center gap-2.5 mb-2">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${meta.tint}20` }}>
                       <Icon className="w-4 h-4" style={{ color: meta.tint }} strokeWidth={1.5} />

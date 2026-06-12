@@ -272,11 +272,11 @@ function ActionCardRow({ card }: { card: ActionCard }) {
   const toneClass =
     card.priority === "high"   ? "border-rose-400/30 bg-rose-400/[0.04]"
   : card.priority === "medium" ? "border-amber-400/25 bg-amber-400/[0.04]"
-  :                              "border-white/[0.06] bg-white/[0.02]";
+  :                              "border-white/[0.06] bg-glass";
   const eyebrow =
     card.priority === "high"   ? "text-rose-200"
   : card.priority === "medium" ? "text-amber-200"
-  :                              "text-[#6FB6FF]";
+  :                              "text-primary/80";
   const Icon = card.icon;
   return (
     <div className={cn("relative rounded-2xl border backdrop-blur-md p-5 overflow-hidden", toneClass)}>
@@ -286,7 +286,7 @@ function ActionCardRow({ card }: { card: ActionCard }) {
           "absolute left-0 top-3 bottom-3 w-px",
           card.priority === "high"   ? "bg-rose-300/60"
         : card.priority === "medium" ? "bg-amber-300/60"
-        :                              "bg-[#0A84FF]/40",
+        :                              "bg-primary/40",
         )}
       />
       <div className="flex items-start gap-4">
@@ -294,7 +294,7 @@ function ActionCardRow({ card }: { card: ActionCard }) {
           "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0",
           card.priority === "high"   ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
         : card.priority === "medium" ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-        :                              "border-[#0A84FF]/30 bg-[#0A84FF]/10 text-[#6FB6FF]",
+        :                              "border-primary/30 bg-primary/10 text-primary/80",
         )}>
           <Icon className="w-4 h-4" />
         </div>
@@ -320,16 +320,16 @@ function HubCard({ icon: Icon, title, sub, to }: { icon: React.ElementType; titl
   return (
     <Link
       to={to}
-      className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-[#0A84FF]/30 hover:bg-[#0A84FF]/[0.04] px-4 py-3.5 backdrop-blur-md transition-colors"
+      className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-primary/30 hover:bg-primary/[0.04] px-4 py-3.5 backdrop-blur-md transition-colors"
     >
-      <div className="w-9 h-9 rounded-xl border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/55 group-hover:text-[#0A84FF] group-hover:border-[#0A84FF]/40 transition-colors shrink-0">
+      <div className="w-9 h-9 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 group-hover:text-primary group-hover:border-primary/40 transition-colors shrink-0">
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[13px] text-white">{title}</div>
         <div className="text-[10px] text-white/40 truncate font-mono uppercase tracking-[0.22em]">{sub}</div>
       </div>
-      <ArrowUpRight className="w-3.5 h-3.5 text-white/35 group-hover:text-[#0A84FF]" />
+      <ArrowUpRight className="w-3.5 h-3.5 text-white/35 group-hover:text-primary" />
     </Link>
   );
 }

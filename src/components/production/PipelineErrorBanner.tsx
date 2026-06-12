@@ -260,7 +260,7 @@ export function PipelineErrorBanner({
       >
         {/* Header */}
         <div 
-          className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+          className="flex items-center justify-between p-4 cursor-pointer hover:bg-glass transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -354,7 +354,7 @@ export function PipelineErrorBanner({
                   <div className="space-y-3">
                     {/* Suggestion */}
                     {parsedError.suggestion && (
-                      <div className="flex items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="flex items-start gap-2 p-3 rounded-xl bg-glass border border-white/5">
                         <AlertCircle className="w-4 h-4 text-white/40 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-xs font-medium text-white/80 mb-1">Suggested Action</p>

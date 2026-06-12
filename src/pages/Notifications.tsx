@@ -24,13 +24,13 @@ const ICONS: Record<NotificationType, typeof Bell> = {
 };
 
 const COLORS: Record<NotificationType, string> = {
-  like: 'text-rose-300', comment: 'text-[#9DCBFF]', follow: 'text-emerald-300',
-  achievement: 'text-amber-300', challenge_complete: 'text-[#9DCBFF]',
-  message: 'text-[#9DCBFF]', universe_invite: 'text-pink-300',
+  like: 'text-rose-300', comment: 'text-primary/60', follow: 'text-emerald-300',
+  achievement: 'text-amber-300', challenge_complete: 'text-primary/60',
+  message: 'text-primary/60', universe_invite: 'text-pink-300',
   character_borrow_request: 'text-orange-300', level_up: 'text-amber-300',
   streak_milestone: 'text-orange-300', video_complete: 'text-emerald-300',
-  video_started: 'text-[#9DCBFF]', video_failed: 'text-rose-300',
-  low_credits: 'text-amber-300', mention: 'text-[#9DCBFF]',
+  video_started: 'text-primary/60', video_failed: 'text-rose-300',
+  low_credits: 'text-amber-300', mention: 'text-primary/60',
 };
 
 type Filter = 'all' | 'unread' | 'production' | 'rewards' | 'social' | 'billing';
@@ -132,8 +132,8 @@ export default function NotificationsPage() {
     <div className="min-h-screen text-foreground font-body relative overflow-hidden">
       {/* Atmospheric backdrop */}
       <div aria-hidden className="fixed inset-0 pointer-events-none opacity-60">
-        <div className="absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full bg-[#0A84FF]/[0.05] blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[480px] h-[480px] rounded-full bg-[#0A84FF]/[0.04] blur-[120px]" />
+        <div className="absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full bg-primary/[0.05] blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[480px] h-[480px] rounded-full bg-primary/[0.04] blur-[120px]" />
       </div>
 <main className="relative z-10 max-w-4xl mx-auto px-6 lg:px-10 py-10">
         {/* Back */}
@@ -146,7 +146,7 @@ export default function NotificationsPage() {
 
         {/* Hero */}
         <header className="mb-8">
-          <div className="text-[10px] uppercase tracking-[0.32em] text-[#9DCBFF] font-medium mb-3 inline-flex items-center gap-2">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-primary/60 font-medium mb-3 inline-flex items-center gap-2">
             <Bell className="w-3 h-3" /> Inbox
           </div>
           <h1 className="font-display text-[40px] sm:text-[52px] leading-[1.05] font-light tracking-tight">
@@ -170,8 +170,8 @@ export default function NotificationsPage() {
                   className={cn(
                     'px-3.5 py-1.5 rounded-xl border text-[12px] transition flex items-center gap-2',
                     active
-                      ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.10] text-foreground shadow-[0_0_20px_-10px_hsla(212,100%,55%,0.6)]'
-                      : 'border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground',
+                      ? 'border-primary/40 bg-primary/[0.10] text-foreground shadow-[0_0_20px_-10px_hsla(212,100%,55%,0.6)]'
+                      : 'border-white/[0.06] bg-glass text-muted-foreground hover:bg-glass-hover hover:text-foreground',
                   )}
                 >
                   <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{f.code}</span>
@@ -179,7 +179,7 @@ export default function NotificationsPage() {
                   {count > 0 && (
                     <span className={cn(
                       'text-[10px] tabular-nums px-1.5 rounded-full',
-                      active ? 'bg-[#0A84FF]/30 text-foreground' : 'bg-white/[0.06] text-muted-foreground',
+                      active ? 'bg-primary/30 text-foreground' : 'bg-glass-active text-muted-foreground',
                     )}>
                       {count}
                     </span>
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
                 onClick={() => markAllAsRead.mutate()}
                 variant="outline"
                 size="sm"
-                className="border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-foreground h-8"
+                className="border-white/[0.08] bg-glass hover:bg-glass-active text-foreground h-8"
               >
                 <Check className="w-3.5 h-3.5 mr-1.5" /> Mark all read
               </Button>
@@ -205,7 +205,7 @@ export default function NotificationsPage() {
                 onClick={() => clearAll.mutate()}
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-rose-300 hover:bg-white/[0.03] h-8"
+                className="text-muted-foreground hover:text-rose-300 hover:bg-glass h-8"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear all
               </Button>
@@ -217,12 +217,12 @@ export default function NotificationsPage() {
         {isLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[88px] rounded-2xl border border-white/[0.05] bg-white/[0.02] animate-pulse" />
+              <div key={i} className="h-[88px] rounded-2xl border border-white/[0.05] bg-glass animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] py-20 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center">
+          <div className="rounded-2xl border border-white/[0.06] bg-glass py-20 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl border border-white/[0.06] bg-glass flex items-center justify-center">
               <Bell className="w-6 h-6 text-muted-foreground" strokeWidth={1.4} />
             </div>
             <p className="font-display text-[20px] font-light text-foreground/90 mt-4">Quiet on this channel</p>
@@ -253,16 +253,16 @@ export default function NotificationsPage() {
                           'group relative rounded-2xl border transition cursor-pointer',
                           'p-5 flex gap-4 items-start',
                           !n.read
-                            ? 'border-[#0A84FF]/30 bg-[#0A84FF]/[0.05]'
-                            : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]',
+                            ? 'border-primary/30 bg-primary/[0.05]'
+                            : 'border-white/[0.06] bg-glass hover:bg-glass-hover',
                         )}
                       >
                         {!n.read && (
-                          <span className="absolute left-0 top-5 bottom-5 w-[2px] rounded-r-full bg-[#0A84FF]
+                          <span className="absolute left-0 top-5 bottom-5 w-[2px] rounded-r-full bg-primary
                                             shadow-[0_0_12px_hsla(212,100%,55%,0.8)]" />
                         )}
                         <div className={cn(
-                          'w-11 h-11 rounded-xl border border-white/[0.06] bg-white/[0.02]',
+                          'w-11 h-11 rounded-xl border border-white/[0.06] bg-glass',
                           'flex items-center justify-center shrink-0',
                         )}>
                           <Icon className={cn('w-4.5 h-4.5', color)} strokeWidth={1.6} />
@@ -283,7 +283,7 @@ export default function NotificationsPage() {
                             <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">{n.body}</p>
                           )}
                           {dest && (
-                            <p className="text-[11px] text-[#9DCBFF] mt-2 inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                            <p className="text-[11px] text-primary/60 mt-2 inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
                               Open <ArrowUpRight className="w-3 h-3" />
                             </p>
                           )}

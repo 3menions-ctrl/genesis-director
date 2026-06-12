@@ -36,7 +36,7 @@ export default memo(function AdminProductionPage() {
                 "relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-[11px] uppercase tracking-[0.18em] font-medium transition-all",
                 isActive
                   ? "text-white bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.4)] shadow-[0_8px_24px_-12px_hsla(215,100%,60%,0.6)]"
-                  : "text-white/45 hover:text-white border border-transparent hover:bg-white/[0.04]"
+                  : "text-white/45 hover:text-white border border-transparent hover:bg-glass-hover"
               )}
             >
               <Icon className="w-3.5 h-3.5" />

@@ -263,7 +263,7 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
                 {feature.highlights.map((highlight) => (
                   <span 
                     key={highlight}
-                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-medium bg-white/[0.03] border border-white/[0.05] text-white/35 group-hover:bg-white/[0.06] group-hover:border-white/[0.1] group-hover:text-white/65 transition-all duration-500"
+                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-medium bg-glass border border-white/[0.05] text-white/35 group-hover:bg-glass-active group-hover:border-white/[0.1] group-hover:text-white/65 transition-all duration-500"
                   >
                     {highlight}
                   </span>
@@ -287,7 +287,7 @@ const AdditionalFeature = memo(forwardRef<HTMLDivElement, { feature: typeof ADDI
         style={{ animationDelay: `${100 + index * 60}ms` }}
       >
         <div className="relative flex items-center gap-3.5 p-4 md:p-5 rounded-xl md:rounded-2xl overflow-hidden transition-all duration-500 border border-white/[0.04] hover:border-white/[0.1] bg-gradient-to-br from-white/[0.02] to-transparent hover:from-white/[0.04] hover:to-white/[0.01]">
-          <div className="relative w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center shrink-0 border border-white/[0.06] group-hover:bg-white/[0.07] group-hover:border-white/[0.12] transition-all duration-500">
+          <div className="relative w-10 h-10 rounded-xl bg-glass flex items-center justify-center shrink-0 border border-white/[0.06] group-hover:bg-white/[0.07] group-hover:border-white/[0.12] transition-all duration-500">
             <div className="text-white/35 group-hover:text-white/70 transition-colors duration-500">
               {feature.icon}
             </div>
@@ -312,7 +312,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <div className="text-center mb-20 md:mb-28 animate-fade-in">
-            <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.02] border border-white/[0.05] backdrop-blur-xl mb-8">
+            <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-glass border border-white/[0.05] backdrop-blur-xl mb-8">
               <Sparkles className="w-3.5 h-3.5 text-white/65" />
               <span className="text-[11px] text-white/35 tracking-[0.25em] uppercase font-medium">Production Suite</span>
             </div>

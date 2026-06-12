@@ -342,7 +342,7 @@ export function OnboardingWizard() {
           <button
             onClick={() => handleClose(false)}
             aria-label="Dismiss"
-            className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white/45 hover:text-white/85 hover:bg-white/[0.06] transition-colors"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white/45 hover:text-white/85 hover:bg-glass-active transition-colors"
           >
             <X className="w-3.5 h-3.5" strokeWidth={1.5} />
           </button>
@@ -358,7 +358,7 @@ export function OnboardingWizard() {
 
           {/* Progress */}
           <div className="mt-5 flex items-center gap-3">
-            <div className="flex-1 h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="flex-1 h-[3px] rounded-full bg-glass-active overflow-hidden">
               <div
                 className="h-full rounded-full transition-[width] duration-700 ease-out"
                 style={{
@@ -385,7 +385,7 @@ export function OnboardingWizard() {
               </div>
               <button
                 onClick={() => load()}
-                className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/70 hover:text-white px-2 py-1 rounded-full border border-white/[0.1] hover:bg-white/[0.05] transition-colors shrink-0"
+                className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/70 hover:text-white px-2 py-1 rounded-full border border-white/[0.1] hover:bg-glass-hover transition-colors shrink-0"
               >
                 Retry
               </button>
@@ -401,7 +401,7 @@ export function OnboardingWizard() {
                   <div
                     className={cn(
                       'group flex items-center gap-4 rounded-2xl px-4 py-3 transition-all duration-300',
-                      'border border-transparent hover:border-white/[0.08] hover:bg-white/[0.03]',
+                      'border border-transparent hover:border-white/[0.08] hover:bg-glass',
                     )}
                   >
                     <button
@@ -413,7 +413,7 @@ export function OnboardingWizard() {
                           'w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300',
                           done
                             ? 'bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,38%)] text-white shadow-[0_8px_24px_-10px_hsla(215,100%,55%,0.7)]'
-                            : 'bg-white/[0.04] text-white/55 border border-white/[0.06]',
+                            : 'bg-glass-hover text-white/55 border border-white/[0.06]',
                         )}
                       >
                         {done ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
@@ -440,7 +440,7 @@ export function OnboardingWizard() {
                         disabled={auto && !overridden}
                         className={cn(
                           'shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-full font-mono text-[9px] uppercase tracking-[0.22em] transition-colors',
-                          'border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/[0.06]',
+                          'border border-white/[0.08] text-white/55 hover:text-white hover:bg-glass-active',
                           (auto && !overridden) && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-white/55',
                           overridden && 'text-[hsl(215,100%,78%)] border-[hsl(215,100%,55%/0.3)]',
                         )}
@@ -471,7 +471,7 @@ export function OnboardingWizard() {
                       'relative inline-flex w-7 h-3.5 rounded-full transition-colors',
                       autoClear
                         ? 'bg-[hsl(215,100%,55%)]/70 border border-[hsl(215,100%,55%/0.4)]'
-                        : 'bg-white/[0.06] border border-white/[0.08]',
+                        : 'bg-glass-active border border-white/[0.08]',
                     )}
                   >
                     <span
@@ -569,7 +569,7 @@ export function OnboardingWizard() {
               'group inline-flex items-center gap-2 px-5 h-10 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition-all duration-300',
               allDone
                 ? 'bg-gradient-to-r from-[hsl(215,100%,55%)] to-[hsl(215,100%,42%)] text-white shadow-[0_10px_30px_-10px_hsla(215,100%,55%,0.7)] hover:brightness-110'
-                : 'bg-white/[0.05] text-white/85 border border-white/[0.08] hover:bg-white/[0.08]',
+                : 'bg-glass-hover text-white/85 border border-white/[0.08] hover:bg-glass-active',
               busy && 'opacity-60 cursor-wait',
             )}
           >
@@ -603,7 +603,7 @@ export function OnboardingWizard() {
             autoFocus
             rows={3}
             placeholder="e.g. Team invites sent via SSO, signal not detected"
-            className="w-full resize-none rounded-xl bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-[hsl(215,100%,55%/0.5)] focus:bg-white/[0.05] transition-colors font-light"
+            className="w-full resize-none rounded-xl bg-glass border border-white/[0.08] px-3 py-2.5 text-[13px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-[hsl(215,100%,55%/0.5)] focus:bg-glass-hover transition-colors font-light"
           />
           <div className="mt-1.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.22em] text-white/35">
             <span>Min 3 · Max 280</span>

@@ -163,12 +163,12 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Film className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -185,7 +185,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
               value={preferences.defaultQualityTier}
               onValueChange={(value) => updatePreference('defaultQualityTier', value)}
             >
-              <SelectTrigger className="bg-white/[0.05] border-white/10 text-white">
+              <SelectTrigger className="bg-glass-hover border-white/10 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-black/95 border-white/10">
@@ -219,7 +219,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
               value={preferences.defaultGenre}
               onValueChange={(value) => updatePreference('defaultGenre', value)}
             >
-              <SelectTrigger className="bg-white/[0.05] border-white/10 text-white">
+              <SelectTrigger className="bg-glass-hover border-white/10 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-black/95 border-white/10">
@@ -243,12 +243,12 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Palette className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -285,7 +285,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
           </div>
 
           {/* Compact Mode */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div>
               <p className="font-medium text-white">Compact Mode</p>
               <p className="text-sm text-white/50">Use a more condensed layout</p>
@@ -297,7 +297,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
           </div>
 
           {/* Tutorial Hints */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-amber-400" />
               <div>
@@ -318,12 +318,12 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Play className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -334,7 +334,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
 
         <div className="space-y-6">
           {/* Autoplay */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div>
               <p className="font-medium text-white">Autoplay Videos</p>
               <p className="text-sm text-white/50">Automatically play videos when visible</p>
@@ -376,7 +376,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
                     "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
                     preferences.defaultPlaybackSpeed === speed
                       ? "bg-white text-black"
-                      : "bg-white/[0.05] text-white/60 hover:text-white hover:bg-white/10"
+                      : "bg-glass-hover text-white/60 hover:text-white hover:bg-white/10"
                   )}
                 >
                   {speed}x

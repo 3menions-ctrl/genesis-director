@@ -105,7 +105,7 @@ function WelcomeOfferModalInner() {
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute right-4 top-4 z-50 w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center transition-colors"
+          className="absolute right-4 top-4 z-50 w-8 h-8 rounded-full bg-glass-hover hover:bg-white/[0.1] flex items-center justify-center transition-colors"
         >
           <X className="w-4 h-4 text-white/60" />
         </button>

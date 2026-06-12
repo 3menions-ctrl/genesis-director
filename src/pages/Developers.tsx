@@ -115,7 +115,7 @@ export default function Developers() {
             { name: 'Avatar image', endpoint: 'POST /avatars', credits: 5, sub: '~$0.50 per image' },
             { name: 'Photo edit', endpoint: 'POST /photo-edit', credits: 2, sub: '~$0.20 per edit' },
           ].map((p) => (
-            <div key={p.endpoint} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <div key={p.endpoint} className="rounded-2xl border border-white/[0.06] bg-glass p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">{p.name}</p>
               <p className="mt-2 font-mono text-[13px] text-white/85">{p.endpoint}</p>
               <p className="mt-4 text-3xl font-light text-white tabular-nums">{p.credits}<span className="text-base text-white/75 ml-1">cr</span></p>
@@ -136,7 +136,7 @@ export default function Developers() {
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.06] bg-glass overflow-hidden">
             {loading && <div className="p-8 text-center text-white/75 text-sm">Loading…</div>}
             {!loading && keys.length === 0 && (
               <div className="p-12 text-center">
@@ -173,11 +173,11 @@ export default function Developers() {
             <Activity className="w-5 h-5 text-white/50" /> Usage (last 30 days)
           </h2>
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">API calls</p>
               <p className="mt-2 text-3xl font-light text-white tabular-nums">{totals.calls}</p>
             </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Credits spent</p>
               <p className="mt-2 text-3xl font-light text-white tabular-nums">
                 {totals.credits}
@@ -185,7 +185,7 @@ export default function Developers() {
               </p>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.06] bg-glass overflow-hidden">
             {logs.length === 0 && <div className="p-8 text-center text-white/75 text-sm">No API requests yet.</div>}
             {logs.slice(0, 20).map((l, i) => (
               <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-white/[0.04] last:border-b-0 text-[12px]">

@@ -216,7 +216,7 @@ export default function ResetPassword() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-primary/70 transition-colors" />
                     <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                       value={password} onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pl-11 pr-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
+                      className="h-12 pl-11 pr-11 bg-glass-hover border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
                       maxLength={72} required
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -234,7 +234,7 @@ export default function ResetPassword() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/65 group-focus-within:text-primary/70 transition-colors" />
                     <Input id="confirmPassword" type="password" placeholder="••••••••"
                       value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-12 pl-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
+                      className="h-12 pl-11 bg-glass-hover border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
                       maxLength={72} required
                     />
                     {confirmPassword && password && (

@@ -225,7 +225,7 @@ export default function Crews() {
             )}
 
             {tab === "create" && (
-              <section className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 lg:p-10">
+              <section className="rounded-3xl border border-white/[0.08] bg-glass p-8 lg:p-10">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
                     <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-emerald-300/90 mb-3 inline-flex items-center gap-2">
@@ -244,7 +244,7 @@ export default function Crews() {
                         value={form.name}
                         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, slug: f.slug || slugFromName(e.target.value) }))}
                         placeholder="The Friday Cut"
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white/30"
+                        className="w-full bg-glass-hover border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white/30"
                       />
                     </FormField>
                     <FormField label="Slug">
@@ -252,7 +252,7 @@ export default function Crews() {
                         value={form.slug}
                         onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
                         placeholder="friday-cut"
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-white/30"
+                        className="w-full bg-glass-hover border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-white/30"
                       />
                     </FormField>
                     <FormField label="Description">
@@ -261,7 +261,7 @@ export default function Crews() {
                         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                         rows={3}
                         placeholder="A weekly noir scene cut on Fridays."
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white/30"
+                        className="w-full bg-glass-hover border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white/30"
                       />
                     </FormField>
                     <div className="flex items-center gap-3">
@@ -372,10 +372,10 @@ function SkeletonRow() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {[0, 1, 2].map((i) => (
         <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
-          <div className="aspect-[16/9] bg-white/[0.02] animate-pulse" />
+          <div className="aspect-[16/9] bg-glass animate-pulse" />
           <div className="p-4 space-y-2">
-            <div className="h-3 w-3/4 bg-white/[0.05] rounded animate-pulse" />
-            <div className="h-2 w-1/3 bg-white/[0.04] rounded animate-pulse" />
+            <div className="h-3 w-3/4 bg-glass-hover rounded animate-pulse" />
+            <div className="h-2 w-1/3 bg-glass-hover rounded animate-pulse" />
           </div>
         </div>
       ))}

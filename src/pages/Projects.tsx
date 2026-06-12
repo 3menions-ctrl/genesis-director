@@ -1049,14 +1049,14 @@ function ProjectsContentInner() {
           <div>
             {/* Skeleton hero */}
             <div className="mb-12 animate-pulse">
-              <div className="h-3 w-20 rounded bg-white/[0.04] mb-3" />
-              <div className="h-10 w-64 rounded bg-white/[0.06] mb-6" />
+              <div className="h-3 w-20 rounded bg-glass-hover mb-3" />
+              <div className="h-10 w-64 rounded bg-glass-active mb-6" />
               <div className="hairline" />
             </div>
             {/* Skeleton grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="aspect-[16/10] rounded-2xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
+                <div key={i} className="aspect-[16/10] rounded-2xl bg-glass border border-white/[0.04] animate-pulse" />
               ))}
             </div>
           </div>
@@ -1108,7 +1108,7 @@ function ProjectsContentInner() {
               <div className="flex items-end justify-between gap-6 flex-wrap">
                 <div className="min-w-0">
                   {/* Status pill */}
-                  <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+                  <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--success))] opacity-70 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--success))]" />
@@ -1207,7 +1207,7 @@ function ProjectsContentInner() {
                       >
                         <div className={cn(
                           "relative aspect-square rounded-2xl overflow-hidden",
-                          "bg-white/[0.02] border transition-all duration-700",
+                          "bg-glass border transition-all duration-700",
                           selectedPhotoEdit?.id === edit.id
                             ? "border-cyan-500/50 ring-2 ring-cyan-500/20"
                             : "border-white/[0.04] hover:border-cyan-500/20 hover:-translate-y-2 hover:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
@@ -1234,7 +1234,7 @@ function ProjectsContentInner() {
                   </div>
 
                   {selectedPhotoEdit && (
-                    <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="mt-4 rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-sm p-4 animate-fade-in">
                       <div className="flex items-start gap-4">
                         <div className="flex gap-3 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
@@ -1250,7 +1250,7 @@ function ProjectsContentInner() {
                             </div>
                           </div>
                         </div>
-                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-muted-foreground transition-colors flex-shrink-0">
+                        <button onClick={() => setSelectedPhotoEdit(null)} className="p-1.5 rounded-lg hover:bg-glass-active text-muted-foreground hover:text-muted-foreground transition-colors flex-shrink-0">
                           <X className="w-4 h-4" />
                         </button>
                       </div>

@@ -249,7 +249,7 @@ export function AppShell({ children }: AppShellProps) {
               )}
             </Link>
             <button
-              className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
+              className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-glass-active text-white/45 hover:text-white/80 transition-colors duration-200"
               onClick={() => setMobileOpen(false)}
               aria-label="Close sidebar"
             >
@@ -301,7 +301,7 @@ export function AppShell({ children }: AppShellProps) {
                   </div>
                 ) : (
                   gi > 0 && (
-                    <div aria-hidden className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+                    <div aria-hidden className="mx-auto my-2 h-px w-6 bg-glass-active" />
                   )
                 )}
                 <ul className="space-y-1">
@@ -401,7 +401,7 @@ export function AppShell({ children }: AppShellProps) {
                             'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                             active
                               ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.07)]'
-                              : 'text-white/55 hover:text-white hover:bg-white/[0.03]',
+                              : 'text-white/55 hover:text-white hover:bg-glass',
                             collapsed && 'lg:justify-center lg:px-0',
                           )}
                         >
@@ -484,7 +484,7 @@ export function AppShell({ children }: AppShellProps) {
               onClick={() => setShowBuyCredits(true)}
               className={cn(
                 'w-full group relative overflow-hidden flex items-center gap-2.5 h-11 rounded-full px-3.5 transition-colors duration-300',
-                'bg-white/[0.03] hover:bg-white/[0.05] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]',
+                'bg-glass hover:bg-glass-hover shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]',
                 collapsed && 'lg:justify-center lg:px-0',
               )}
             >
@@ -518,7 +518,7 @@ export function AppShell({ children }: AppShellProps) {
             <button
               onClick={() => setCollapsed((c) => !c)}
               className={cn(
-                'hidden lg:flex w-full items-center gap-2 h-8 rounded-full px-3 text-[11px] font-light text-white/35 hover:text-white/75 hover:bg-white/[0.03] transition-colors duration-300',
+                'hidden lg:flex w-full items-center gap-2 h-8 rounded-full px-3 text-[11px] font-light text-white/35 hover:text-white/75 hover:bg-glass transition-colors duration-300',
                 collapsed && 'lg:justify-center lg:px-0',
               )}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -567,7 +567,7 @@ export function AppShell({ children }: AppShellProps) {
             {/* Mobile menu */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.06] transition-all duration-300"
+              className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-white/55 hover:text-white hover:bg-glass-active transition-all duration-300"
               aria-label="Open menu"
             >
               <Menu className="w-4 h-4" strokeWidth={1.5} />
@@ -585,7 +585,7 @@ export function AppShell({ children }: AppShellProps) {
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="group flex items-center gap-2 h-10 pl-1.5 pr-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-500 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)] hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08),0_8px_24px_-12px_rgba(0,0,0,0.5)] hover:scale-[1.02]">
+                <button className="group flex items-center gap-2 h-10 pl-1.5 pr-3 rounded-full bg-glass hover:bg-glass-active transition-all duration-500 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)] hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08),0_8px_24px_-12px_rgba(0,0,0,0.5)] hover:scale-[1.02]">
                   <div className="relative">
                     <div className="absolute -inset-[2px] rounded-full bg-gradient-to-br from-[hsl(var(--primary)/0.4)] to-[hsl(var(--accent)/0.2)] opacity-0 group-hover:opacity-100 blur-[2px] transition-opacity duration-500" />
                     <div className="relative w-7 h-7 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-white/[0.10] to-white/[0.03] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)]">
@@ -627,7 +627,7 @@ export function AppShell({ children }: AppShellProps) {
                     {profile?.email}
                   </p>
                 </div>
-                <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
+                <DropdownMenuSeparator className="bg-glass-hover mx-1 my-1" />
                 {(isBusiness
                   ? [
                       { icon: UserIcon, label: 'Profile', path: '/profile' },
@@ -652,7 +652,7 @@ export function AppShell({ children }: AppShellProps) {
                   <DropdownMenuItem
                     key={path}
                     asChild
-                    className="text-[12px] text-white/55 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
+                    className="text-[12px] text-white/55 hover:text-white focus:text-white focus:bg-glass-active rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
                   >
                     <Link to={path}>
                       <Icon className="w-3.5 h-3.5 opacity-70" />
@@ -671,7 +671,7 @@ export function AppShell({ children }: AppShellProps) {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator className="bg-white/[0.05] mx-1 my-1" />
+                <DropdownMenuSeparator className="bg-glass-hover mx-1 my-1" />
                 <SignOutDialog>
                   <DropdownMenuItem
                     onSelect={(e) => e.preventDefault()}

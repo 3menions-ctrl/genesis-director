@@ -55,7 +55,7 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition"
+            className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-glass-active transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -69,8 +69,8 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-10 md:mb-14">
-              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl mb-6">
-                <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] backdrop-blur-2xl mb-6">
+                <span className="w-1 h-1 rounded-full bg-primary" />
                 <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
                   Choose your track
                 </span>
@@ -101,7 +101,7 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
                   }}
                   whileHover={{ y: -4 }}
                   onClick={() => onSelect(id)}
-                  className="group relative text-left p-7 md:p-8 rounded-3xl bg-white/[0.03] border border-white/[0.08] hover:border-[#0A84FF]/40 hover:bg-white/[0.05] backdrop-blur-2xl transition-all duration-500 overflow-hidden"
+                  className="group relative text-left p-7 md:p-8 rounded-3xl bg-glass border border-white/[0.08] hover:border-primary/40 hover:bg-glass-hover backdrop-blur-2xl transition-all duration-500 overflow-hidden"
                 >
                   <div
                     aria-hidden
@@ -112,13 +112,13 @@ export function CategoryChooserOverlay({ open, onClose, onSelect }: Props) {
                     }}
                   />
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-2xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center mb-6 group-hover:bg-[#0A84FF]/10 group-hover:border-[#0A84FF]/40 transition">
-                      <Icon className="w-5 h-5 text-white/80 group-hover:text-[#9DCBFF]" />
+                    <div className="w-12 h-12 rounded-2xl bg-glass-hover border border-white/[0.08] flex items-center justify-center mb-6 group-hover:bg-primary/10 group-hover:border-primary/40 transition">
+                      <Icon className="w-5 h-5 text-white/80 group-hover:text-primary/60" />
                     </div>
                     <h3 className="font-display text-2xl font-semibold text-white tracking-[-0.02em] mb-1.5">
                       {title}
                     </h3>
-                    <p className="text-[11px] font-medium text-[#0A84FF]/80 tracking-[0.22em] uppercase mb-4">
+                    <p className="text-[11px] font-medium text-primary/80 tracking-[0.22em] uppercase mb-4">
                       {tagline}
                     </p>
                     <p className="text-sm text-white/60 leading-relaxed font-light">

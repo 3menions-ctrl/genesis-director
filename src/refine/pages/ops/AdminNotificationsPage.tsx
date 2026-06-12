@@ -154,7 +154,7 @@ export default function AdminNotificationsPage() {
               key={k}
               onClick={() => setFilter(active ? "all" : k)}
               className={cn(
-                "relative group overflow-hidden text-left rounded-2xl border bg-[#070809]/60 backdrop-blur-xl p-5 transition-all",
+                "relative group overflow-hidden text-left rounded-2xl border bg-background/60 backdrop-blur-xl p-5 transition-all",
                 active ? "border-white/30 scale-[1.01]" : "border-white/8 hover:border-white/15"
               )}
               style={{ boxShadow: active ? `0 0 40px ${m.glow}, inset 0 0 0 1px ${m.tone}55` : `0 0 0 transparent` }}
@@ -211,7 +211,7 @@ export default function AdminNotificationsPage() {
           <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
           <span>Live · {filtered.length} event{filtered.length === 1 ? "" : "s"}</span>
           {filter !== "all" && (
-            <button onClick={() => setFilter("all")} className="text-[#0A84FF] hover:text-white transition-colors normal-case tracking-normal">
+            <button onClick={() => setFilter("all")} className="text-primary hover:text-white transition-colors normal-case tracking-normal">
               · clear filter
             </button>
           )}
@@ -226,7 +226,7 @@ export default function AdminNotificationsPage() {
           <button
             onClick={markAllRead}
             disabled={totalUnread === 0}
-            className="flex items-center gap-1.5 px-3 py-1 rounded border border-white/10 hover:border-[#0A84FF]/50 hover:text-[#0A84FF] text-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 rounded border border-white/10 hover:border-primary/50 hover:text-primary text-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <CheckCheck className="w-3 h-3" /> Mark all read
           </button>
@@ -234,7 +234,7 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* Feed */}
-      <div className="relative rounded-2xl border border-white/8 bg-[#070809]/60 backdrop-blur-xl overflow-hidden">
+      <div className="relative rounded-2xl border border-white/8 bg-background/60 backdrop-blur-xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-white/30">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -256,7 +256,7 @@ export default function AdminNotificationsPage() {
                   <button
                     onClick={() => handleOpen(n)}
                     className={cn(
-                      "group w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-white/[0.03] transition-colors relative",
+                      "group w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-glass transition-colors relative",
                       !n.read && "bg-white/[0.015]"
                     )}
                   >
@@ -300,7 +300,7 @@ export default function AdminNotificationsPage() {
                       <div className="text-[9px] uppercase tracking-[0.3em] text-white/25 font-mono mt-2">
                         {m.label}
                         {n.data?.href && (
-                          <span className="ml-3 text-[#0A84FF]/60 opacity-0 group-hover:opacity-100 transition-opacity normal-case tracking-normal">
+                          <span className="ml-3 text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity normal-case tracking-normal">
                             → Open
                           </span>
                         )}

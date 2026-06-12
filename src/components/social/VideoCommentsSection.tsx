@@ -99,7 +99,7 @@ const CommentItem = memo(function CommentItem({
   return (
     <div className={cn(
       "group flex gap-3 p-3 rounded-xl transition-colors",
-      "hover:bg-white/[0.02]",
+      "hover:bg-glass",
       isReply && "ml-10 border-l-2 border-white/10"
     )}>
       <Avatar className="w-9 h-9 shrink-0">

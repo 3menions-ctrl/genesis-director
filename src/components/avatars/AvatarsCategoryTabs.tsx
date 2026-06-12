@@ -47,7 +47,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                 "border backdrop-blur-sm",
                 isActive
                   ? "bg-[hsla(215,100%,55%,0.12)] text-white border-[hsla(215,100%,55%,0.4)] shadow-[0_0_20px_hsla(215,100%,55%,0.18)]"
-                  : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:bg-white/[0.05] hover:text-white/80 hover:border-white/[0.12]"
+                  : "bg-glass text-white/50 border-white/[0.06] hover:bg-glass-hover hover:text-white/80 hover:border-white/[0.12]"
               )}
             >
               <span>{type.name}</span>
@@ -57,7 +57,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
             </button>
           );
         })}
-        <div className="ml-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06]">
+        <div className="ml-2 px-3 py-1.5 rounded-full bg-glass border border-white/[0.06]">
           <span className="text-xs text-white/40">{totalCount} avatar{totalCount !== 1 ? 's' : ''}</span>
         </div>
       </div>
@@ -91,7 +91,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                   "border",
                   isActive
                     ? "bg-[hsla(215,100%,55%,0.1)] text-white border-[hsla(215,100%,55%,0.32)] shadow-sm"
-                    : "bg-white/[0.02] text-white/45 border-white/[0.06] hover:bg-white/[0.05] hover:text-white/75 hover:border-white/[0.1]"
+                    : "bg-glass text-white/45 border-white/[0.06] hover:bg-glass-hover hover:text-white/75 hover:border-white/[0.1]"
                 )}
               >
                 <span className="text-sm">{cat.icon}</span>
@@ -99,7 +99,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                 {count > 0 && cat.id !== 'all' && (
                   <span className={cn(
                     "text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
-                    isActive ? "bg-[hsla(215,100%,55%,0.22)] text-[hsl(215,100%,82%)]" : "bg-white/[0.06] text-white/30"
+                    isActive ? "bg-[hsla(215,100%,55%,0.22)] text-[hsl(215,100%,82%)]" : "bg-glass-active text-white/30"
                   )}>
                     {count}
                   </span>

@@ -85,10 +85,10 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
           <X className="w-4 h-4 text-white/50" />
         </button>
 
-        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-40 bg-white/[0.04] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-40 bg-glass-hover rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-glass-active border border-white/[0.08] mb-4">
             <Sparkles className="w-6 h-6 text-white/80" />
           </div>
           <h2 className="text-2xl font-semibold text-white mb-2">Start creating</h2>
@@ -103,7 +103,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
+              className="pl-11 h-12 rounded-xl bg-glass-hover border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
               required
             />
           </div>
@@ -114,7 +114,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-11 pr-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
+              className="pl-11 pr-11 h-12 rounded-xl bg-glass-hover border-white/[0.08] text-white placeholder:text-white/65 focus-visible:ring-white/20 focus-visible:border-white/20"
               required
               minLength={6}
             />
@@ -385,7 +385,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
 
             <div 
               onClick={() => onNavigate('/pricing')}
-              className="relative rounded-3xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.10] p-10 md:p-14 cursor-pointer transition-all duration-500 overflow-hidden group"
+              className="relative rounded-3xl bg-glass border border-white/[0.06] hover:border-white/[0.10] p-10 md:p-14 cursor-pointer transition-all duration-500 overflow-hidden group"
             >
               <div className="flex flex-col items-center text-center">
               <div className="text-[56px] md:text-[72px] font-bold tracking-tighter text-white leading-none font-['Sora'] mb-2">

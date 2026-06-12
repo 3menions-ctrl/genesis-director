@@ -84,7 +84,7 @@ export default function AdminFeatureFlagsPage() {
             label: "Audience",
             width: "120px",
             render: (v) => (
-              <span className="text-[10px] uppercase tracking-[0.18em] text-[#6FB6FF] font-mono">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-primary/80 font-mono">
                 {String(v)}
               </span>
             ),
@@ -183,9 +183,9 @@ function CreateFlagDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0A0A0C] p-6 space-y-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
-          <Plus className="w-4 h-4 text-[#6FB6FF]" />
+          <Plus className="w-4 h-4 text-primary/80" />
           <h2 className="font-display text-white text-lg">
             New feature flag
           </h2>
@@ -197,7 +197,7 @@ function CreateFlagDialog({
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="checkout.new_flow"
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40 font-mono"
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40 font-mono"
             />
           </label>
           <label className="block">
@@ -206,7 +206,7 @@ function CreateFlagDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enable the new checkout flow"
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40"
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -218,7 +218,7 @@ function CreateFlagDialog({
                 max={100}
                 value={rollout}
                 onChange={(e) => setRollout(Number(e.target.value))}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
               />
             </label>
             <label className="block">
@@ -226,7 +226,7 @@ function CreateFlagDialog({
               <select
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
               >
                 <option value="all">All</option>
                 <option value="admin">Admin</option>
@@ -247,7 +247,7 @@ function CreateFlagDialog({
           <button
             onClick={submit}
             disabled={busy || !key}
-            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-[#0A84FF]/50 disabled:opacity-40"
+            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-primary/50 disabled:opacity-40"
           >
             {busy ? "Creating…" : "Create flag"}
           </button>

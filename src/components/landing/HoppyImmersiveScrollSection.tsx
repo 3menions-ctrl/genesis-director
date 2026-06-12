@@ -243,9 +243,9 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.12] backdrop-blur-2xl mb-10"
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-glass-active border border-white/[0.12] backdrop-blur-2xl mb-10"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_12px_rgba(10,132,255,0.8)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_12px_rgba(10,132,255,0.8)]" />
               <span className="text-[10.5px] font-medium text-white/75 tracking-[0.32em] uppercase">
                 That was made with Small Bridges
               </span>

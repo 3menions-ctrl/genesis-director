@@ -64,7 +64,7 @@ export function PhotoTemplateGrid({ onSelectTemplate, isProcessing }: PhotoTempl
               "px-2.5 py-1 rounded-md text-xs font-medium transition-colors capitalize whitespace-nowrap flex-shrink-0",
               selectedCategory === cat
                 ? "bg-cyan-500/20 text-cyan-300"
-                : "text-white/30 hover:text-white/50 hover:bg-white/[0.03]"
+                : "text-white/30 hover:text-white/50 hover:bg-glass"
             )}
           >
             {cat}
@@ -81,7 +81,7 @@ export function PhotoTemplateGrid({ onSelectTemplate, isProcessing }: PhotoTempl
             disabled={isProcessing}
             className={cn(
               "w-full text-left p-2.5 sm:p-3 rounded-xl border transition-all group",
-              "bg-white/[0.02] border-white/[0.06] hover:border-cyan-500/30 hover:bg-cyan-500/[0.03] active:scale-[0.98]",
+              "bg-glass border-white/[0.06] hover:border-cyan-500/30 hover:bg-cyan-500/[0.03] active:scale-[0.98]",
               isProcessing && "opacity-50 cursor-not-allowed"
             )}
           >

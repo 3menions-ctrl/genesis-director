@@ -18,7 +18,7 @@ interface RefundRow extends AdminRow {
   processed_at: string | null;
 }
 
-const STATUS_TONE = { pending: "text-amber-300", approved: "text-[#6FB6FF]", denied: "text-rose-300", processed: "text-emerald-300" } as const;
+const STATUS_TONE = { pending: "text-amber-300", approved: "text-primary/80", denied: "text-rose-300", processed: "text-emerald-300" } as const;
 
 const formatCurrency = (cents: number, ccy: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: ccy.toUpperCase() }).format(cents / 100);

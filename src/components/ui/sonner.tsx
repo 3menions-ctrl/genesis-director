@@ -65,13 +65,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           description:
             "group-[.toast]:text-white/55 group-[.toast]:text-[13px] group-[.toast]:leading-relaxed group-[.toast]:mt-0.5",
           actionButton:
-            "group-[.toast]:bg-[#0A84FF] group-[.toast]:text-white group-[.toast]:rounded-full " +
+            "group-[.toast]:bg-primary group-[.toast]:text-white group-[.toast]:rounded-full " +
             "group-[.toast]:font-medium group-[.toast]:px-4 group-[.toast]:py-1.5 group-[.toast]:text-[12px] " +
-            "group-[.toast]:tracking-wide group-[.toast]:hover:bg-[#0A84FF]/90 " +
+            "group-[.toast]:tracking-wide group-[.toast]:hover:bg-primary/90 " +
             "group-[.toast]:transition-all group-[.toast]:duration-200 " +
             "group-[.toast]:shadow-[0_0_24px_rgba(10,132,255,0.35)]",
           cancelButton:
-            "group-[.toast]:bg-white/[0.05] group-[.toast]:text-white/70 group-[.toast]:rounded-full " +
+            "group-[.toast]:bg-glass-hover group-[.toast]:text-white/70 group-[.toast]:rounded-full " +
             "group-[.toast]:border group-[.toast]:border-white/[0.08] group-[.toast]:hover:bg-white/10 " +
             "group-[.toast]:transition-all group-[.toast]:duration-200",
           closeButton:
@@ -88,7 +88,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             SHELL + " group-[.toaster]:!border-amber-400/25 " +
             "group-[.toaster]:shadow-[0_0_60px_rgba(245,158,11,0.18),0_0_120px_rgba(245,158,11,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(245,158,11,0.10)]",
           info:
-            SHELL + " group-[.toaster]:!border-[#0A84FF]/30 " +
+            SHELL + " group-[.toaster]:!border-primary/30 " +
             "group-[.toaster]:shadow-[0_0_60px_rgba(10,132,255,0.18),0_0_120px_rgba(10,132,255,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(10,132,255,0.10)]",
           loading: SHELL,
         },
@@ -111,7 +111,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         ),
         info: (
           <AnimatedIcon glowColor="rgba(10, 132, 255, 0.45)">
-            <Info className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 10px rgba(10,132,255,0.55))" }} />
+            <Info className="h-[18px] w-[18px] text-primary/85" style={{ filter: "drop-shadow(0 0 10px rgba(10,132,255,0.55))" }} />
           </AnimatedIcon>
         ),
         loading: (
@@ -120,7 +120,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="flex items-center justify-center w-8 h-8"
           >
-            <Loader2 className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 8px rgba(10,132,255,0.45))" }} />
+            <Loader2 className="h-[18px] w-[18px] text-primary/85" style={{ filter: "drop-shadow(0 0 8px rgba(10,132,255,0.45))" }} />
           </motion.div>
         ),
       }}
@@ -152,11 +152,11 @@ const premiumToast = {
           className="flex items-center justify-center w-8 h-8 rounded-full"
           style={{ background: "radial-gradient(circle at center, rgba(10,132,255,0.45) 0%, transparent 70%)" }}
         >
-          <Sparkles className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 12px rgba(10,132,255,0.7))" }} />
+          <Sparkles className="h-[18px] w-[18px] text-primary/85" style={{ filter: "drop-shadow(0 0 12px rgba(10,132,255,0.7))" }} />
         </motion.div>
       ),
       className:
-        "font-display backdrop-blur-2xl bg-[hsl(220,14%,3%)/0.94] border border-[#0A84FF]/30 text-white " +
+        "font-display backdrop-blur-2xl bg-[hsl(220,14%,3%)/0.94] border border-primary/30 text-white " +
         "shadow-[0_0_80px_rgba(10,132,255,0.22),0_0_160px_rgba(10,132,255,0.08),0_30px_80px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(10,132,255,0.14)]",
     }),
   promise: toast.promise,

@@ -25,9 +25,9 @@ export function LibraryRail({
   return (
     <aside className="w-[280px] shrink-0 border-r border-white/[0.06] bg-[hsl(220,14%,2.5%)]/90 backdrop-blur-2xl flex flex-col">
       <div className="px-6 pt-7 pb-5 border-b border-white/[0.05] relative overflow-hidden">
-        <div className="absolute -top-12 -left-8 h-32 w-32 rounded-full bg-[#0A84FF]/20 blur-3xl pointer-events-none" />
+        <div className="absolute -top-12 -left-8 h-32 w-32 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45 relative">
-          <Sparkles className="h-3 w-3 text-[#0A84FF]" /> Library
+          <Sparkles className="h-3 w-3 text-primary" /> Library
         </div>
         <h2 className="font-serif text-[26px] mt-2 leading-[1.05] relative">Compose<br/>a film</h2>
         <p className="text-[11px] text-white/45 mt-2 relative">Tap a primitive to drop it on the canvas.</p>
@@ -69,12 +69,12 @@ export function LibraryRail({
             <button
               key={`${m.owner}/${m.name}`}
               onClick={() => onAddModel(m.owner, m.name, m.label ?? m.name)}
-              className="w-full text-left rounded-xl px-3 py-2.5 border border-white/[0.05] hover:border-[#0A84FF]/40 bg-white/[0.015] hover:bg-[#0A84FF]/[0.04] transition-all group"
+              className="w-full text-left rounded-xl px-3 py-2.5 border border-white/[0.05] hover:border-primary/40 bg-white/[0.015] hover:bg-primary/[0.04] transition-all group"
             >
               <div className="flex items-center justify-between">
                 <div className="text-[13px] font-medium font-serif">{m.label}</div>
                 {m.badge && (
-                  <span className="text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-md bg-[#0A84FF]/15 text-[#9CC2FF] border border-[#0A84FF]/30">
+                  <span className="text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary/60 border border-primary/30">
                     {m.badge}
                   </span>
                 )}

@@ -13,7 +13,7 @@ interface RoleRow extends AdminRow {
 }
 
 const ROLE_TONE: Record<string, string> = {
-  admin: "text-rose-300", moderator: "text-amber-300", support: "text-[#6FB6FF]", user: "text-white/65",
+  admin: "text-rose-300", moderator: "text-amber-300", support: "text-primary/80", user: "text-white/65",
 };
 
 export default function AdminRolesPage() {

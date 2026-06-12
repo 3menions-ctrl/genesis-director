@@ -100,7 +100,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
               <p className="text-white/65 text-[12px] leading-relaxed">
                 We&rsquo;ll review and reply within one business day. You&rsquo;ll see the additional credits in your ledger once granted.
               </p>
-              <Button onClick={close} className="mt-4 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08]">Close</Button>
+              <Button onClick={close} className="mt-4 bg-glass-hover border border-white/[0.08] hover:bg-glass-active">Close</Button>
             </div>
           </div>
         ) : (

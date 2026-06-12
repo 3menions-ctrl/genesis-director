@@ -91,7 +91,7 @@
                  {/* Hover glow for inactive */}
                  {!isActive && (
                    <motion.div
-                     className="absolute inset-0 rounded-full bg-white/[0.03] opacity-0 hover:opacity-100 transition-opacity"
+                     className="absolute inset-0 rounded-full bg-glass opacity-0 hover:opacity-100 transition-opacity"
                    />
                  )}
                  
@@ -118,7 +118,7 @@
                        "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
                        isActive 
                          ? "bg-white/25 text-white" 
-                         : "bg-white/[0.05] text-zinc-500"
+                         : "bg-glass-hover text-zinc-500"
                      )}
                      animate={{ 
                        scale: isActive ? [1, 1.15, 1] : 1,

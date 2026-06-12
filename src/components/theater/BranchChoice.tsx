@@ -209,7 +209,7 @@ export function BranchChoice({ branches, myVote, open, onClose }: Props) {
                         <span>{pct}%</span>
                         <span>{c.toLocaleString()} {c === 1 ? "vote" : "votes"}</span>
                       </div>
-                      <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-1 rounded-full bg-glass-active overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{

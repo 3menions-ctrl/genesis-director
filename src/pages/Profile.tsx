@@ -872,7 +872,7 @@ export default function Profile() {
                           href={value}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-white/[0.02] transition-colors"
+                          className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors"
                         >
                           <SocialIcon platform={key} />
                           <div className="min-w-0 flex-1">
@@ -1015,7 +1015,7 @@ export default function Profile() {
               {(["website","twitter","instagram","youtube","tiktok","github","linkedin","spotify","soundcloud"] as const).map((k) => (
                 <div key={k}>
                   <label className="text-[9px] font-mono uppercase tracking-[0.28em] text-white/45 mb-1.5 block capitalize">{k}</label>
-                  <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-white/[0.03] border border-white/[0.08] focus-within:border-primary/40 transition-colors">
+                  <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-glass border border-white/[0.08] focus-within:border-primary/40 transition-colors">
                     <SocialIcon platform={k} />
                     <input
                       value={linkDraft[k] ?? ""}
@@ -1095,7 +1095,7 @@ function HeroStat({
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        "group text-left rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors disabled:cursor-default",
+        "group text-left rounded-2xl border border-white/[0.06] bg-glass p-4 transition-colors disabled:cursor-default",
         onClick && "hover:border-white/15",
       )}
     >
@@ -1128,7 +1128,7 @@ function BigStat({
 
 function SmallStat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number | null }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-glass p-3">
       <div className="flex items-center gap-2 mb-2 text-[9px] font-mono uppercase tracking-[0.32em] text-white/45">
         <Icon className="w-3 h-3" />
         {label}
@@ -1142,7 +1142,7 @@ function SmallStat({ icon: Icon, label, value }: { icon: React.ElementType; labe
 
 function ActionRow({ to, icon: Icon, label, hint }: { to: string; icon: React.ElementType; label: string; hint?: string }) {
   return (
-    <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-white/[0.02] transition-colors">
+    <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors">
       <div className="w-8 h-8 rounded-lg border border-white/[0.06] flex items-center justify-center text-white/65 group-hover:text-white">
         <Icon className="w-3.5 h-3.5" />
       </div>
@@ -1244,7 +1244,7 @@ function SocialLinks({
     <div className="mt-5 flex flex-wrap items-center gap-2">
       {entries.map(([k, v]) => (
         <a key={k} href={v} target="_blank" rel="noreferrer noopener"
-           className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.06] hover:border-white/30 flex items-center justify-center text-white/65 hover:text-white transition-colors"
+           className="w-9 h-9 rounded-full bg-glass-hover border border-white/[0.06] hover:border-white/30 flex items-center justify-center text-white/65 hover:text-white transition-colors"
            aria-label={k}>
           <SocialIcon platform={k} />
         </a>
@@ -1252,7 +1252,7 @@ function SocialLinks({
       {isOwner && (
         <button
           onClick={onEdit}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/[0.04] border border-white/[0.06] hover:border-white/30 text-white/65 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-glass-hover border border-white/[0.06] hover:border-white/30 text-white/65 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors"
         >
           {entries.length === 0 ? <><Plus className="w-3 h-3" /> Add links</> : <><Edit2 className="w-3 h-3" /> Edit</>}
         </button>
@@ -1310,7 +1310,7 @@ function AchievementsPreview({ userId: _userId, stats }: { userId: string; stats
             >
               <div className={cn(
                 "w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center",
-                b.done ? "bg-primary/15 text-primary" : "bg-white/[0.04] text-white/45"
+                b.done ? "bg-primary/15 text-primary" : "bg-glass-hover text-white/45"
               )}>
                 <Icon className="w-4 h-4" />
               </div>
@@ -1352,7 +1352,7 @@ function InlineEdit({
       if (e.key === "Enter" && !multiline) onSave();
     },
     className: cn(
-      "flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.12] focus:border-primary/50 outline-none text-white placeholder:text-white/30 transition-colors",
+      "flex-1 px-3 py-2 rounded-xl bg-glass-hover border border-white/[0.12] focus:border-primary/50 outline-none text-white placeholder:text-white/30 transition-colors",
       large ? "text-[32px] font-light tracking-tight" : "text-[13px]",
       multiline && "resize-none",
     ),

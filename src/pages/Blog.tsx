@@ -189,7 +189,7 @@ export default function Blog() {
               className="mb-12"
             >
               <button onClick={() => setSelectedArticle(featured)} className="group w-full text-left">
-                <div className="relative rounded-3xl overflow-hidden bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300">
+                <div className="relative rounded-3xl overflow-hidden bg-glass border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300">
                   <div className="aspect-[21/9] relative">
                     <img src={featured.image} alt={featured.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
@@ -220,7 +220,7 @@ export default function Blog() {
                 transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
               >
                 <button onClick={() => setSelectedArticle(article)} className="group w-full text-left">
-                  <div className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.03] transition-all duration-300">
+                  <div className="rounded-2xl overflow-hidden bg-glass border border-white/[0.05] hover:border-white/[0.1] hover:bg-glass transition-all duration-300">
                     <div className="aspect-video relative">
                       <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />

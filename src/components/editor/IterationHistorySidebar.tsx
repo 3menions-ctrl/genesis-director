@@ -134,7 +134,7 @@ export function IterationHistorySidebar({ projectId, shotIndex, onUseTake, onReq
       <div className="flex items-center gap-2 px-3 py-3 border-b border-white/[0.05]">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="w-7 h-7 rounded-md border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] text-white/65 hover:text-white flex items-center justify-center"
+          className="w-7 h-7 rounded-md border border-white/[0.08] bg-glass hover:bg-glass-active text-white/65 hover:text-white flex items-center justify-center"
           aria-label={open ? 'Collapse' : 'Expand'}
         >
           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -179,7 +179,7 @@ export function IterationHistorySidebar({ projectId, shotIndex, onUseTake, onReq
                       'group w-full text-left rounded-xl overflow-hidden border transition-colors',
                       selectedId === take.id
                         ? 'border-brand bg-brand/[0.08]'
-                        : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]',
+                        : 'border-white/[0.06] bg-glass hover:bg-glass-hover',
                     )}
                   >
                     <div className="relative aspect-video bg-black overflow-hidden">

@@ -304,10 +304,10 @@ export const CINEMA_COMPONENTS = {
  */
 export function glassClasses(intensity: 'subtle' | 'light' | 'medium' | 'strong' = 'light'): string {
   const bgOpacity = {
-    subtle: 'bg-white/[0.02]',
-    light: 'bg-white/[0.04]',
-    medium: 'bg-white/[0.06]',
-    strong: 'bg-white/[0.08]',
+    subtle: 'bg-glass',
+    light: 'bg-glass-hover',
+    medium: 'bg-glass-active',
+    strong: 'bg-glass-active',
   };
   
   const borderOpacity = {
@@ -342,13 +342,13 @@ export function themeAccentClasses(
  * Standard cinema card classes
  */
 export const cinemaCardClasses = 
-  'bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl transition-all duration-200 hover:border-white/[0.12]';
+  'bg-glass backdrop-blur-xl border border-white/[0.08] rounded-2xl transition-all duration-200 hover:border-white/[0.12]';
 
 /**
  * Standard cinema button classes
  */
 export const cinemaButtonClasses = {
   primary: 'bg-gradient-to-r from-violet-500 to-cyan-500 text-white border-none shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all',
-  secondary: 'bg-white/[0.05] text-white/80 border border-white/[0.08] hover:bg-white/[0.08] transition-all',
-  ghost: 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05] transition-all',
+  secondary: 'bg-glass-hover text-white/80 border border-white/[0.08] hover:bg-glass-active transition-all',
+  ghost: 'bg-transparent text-white/60 hover:text-white hover:bg-glass-hover transition-all',
 };

@@ -103,7 +103,7 @@ function ContactSupportBlock() {
   const { user } = useAuth();
   if (user) return <SupportInboxModal />;
   return (
-    <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] text-center">
+    <div className="p-8 rounded-3xl bg-glass border border-white/[0.05] text-center">
       <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
       <h2 className="text-xl font-semibold text-foreground mb-2">Still need help?</h2>
       <p className="text-foreground/80 mb-6">
@@ -249,7 +249,7 @@ export default function HelpCenter() {
                       placeholder="Search for help..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-14 pl-12 pr-4 bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-white/20 focus:ring-0"
+                      className="h-14 pl-12 pr-4 bg-glass border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-white/20 focus:ring-0"
                     />
                   </div>
                 </motion.div>
@@ -266,7 +266,7 @@ export default function HelpCenter() {
                           <button
                             key={article.id || article.slug}
                             onClick={() => { select(article); setSearchQuery(''); }}
-                            className="group w-full text-left p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+                            className="group w-full text-left p-4 rounded-xl bg-glass border border-white/[0.05] hover:bg-glass-hover hover:border-white/[0.1] transition-all"
                           >
                             <div className="flex items-center justify-between">
                               <div>
@@ -311,7 +311,7 @@ export default function HelpCenter() {
                         <button
                           key={article.id || article.slug}
                           onClick={() => select(article)}
-                          className="group text-left p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+                          className="group text-left p-4 rounded-xl bg-glass border border-white/[0.05] hover:bg-glass-hover hover:border-white/[0.1] transition-all"
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -337,10 +337,10 @@ export default function HelpCenter() {
                         const Icon = chrome.icon;
                         const isExpanded = expandedCategory === category.id;
                         return (
-                          <div key={category.id} className="rounded-2xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
+                          <div key={category.id} className="rounded-2xl bg-glass border border-white/[0.05] overflow-hidden">
                             <button
                               onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
-                              className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors"
+                              className="w-full flex items-center justify-between p-5 hover:bg-glass transition-colors"
                             >
                               <div className="flex items-center gap-4">
                                 <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br', chrome.color)}>
@@ -367,7 +367,7 @@ export default function HelpCenter() {
                                       <button
                                         key={article.id || article.slug}
                                         onClick={() => select(article)}
-                                        className="group w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors"
+                                        className="group w-full flex items-center justify-between p-3 rounded-xl hover:bg-glass transition-colors"
                                       >
                                         <div className="flex items-center gap-3">
                                           <FileText className="w-4 h-4 text-muted-foreground" />

@@ -286,12 +286,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         className={cn(
           "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
           "bg-white/[0.015]",
-          "hover:bg-white/[0.04] hover:scale-[1.005]",
+          "hover:bg-glass-hover hover:scale-[1.005]",
           isActive && "ring-1 ring-[hsla(215,100%,60%,0.35)]"
         )}
         onClick={onPlay}
       >
-        <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-white/[0.02] shrink-0">
+        <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-glass shrink-0">
           {hasVideo && videoSrc ? (
             <ThumbWithFallback
               thumbnailUrl={project.thumbnail_url}
@@ -554,14 +554,14 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             )}>
               {clipCount > 0 && (
                 <>
-                  <span className="w-px h-2.5 bg-white/[0.08]" />
+                  <span className="w-px h-2.5 bg-glass-active" />
                   <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
                     <Layers className="w-2.5 h-2.5" strokeWidth={1.5} />
                     {clipCount} clip{clipCount !== 1 ? 's' : ''}
                   </span>
                 </>
               )}
-              <span className="w-px h-2.5 bg-white/[0.08]" />
+              <span className="w-px h-2.5 bg-glass-active" />
               <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
                 <Calendar className="w-2.5 h-2.5" strokeWidth={1.5} />
                 {formattedDate}
@@ -569,7 +569,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             </div>
             {project.is_public && (
               <>
-                <span className="w-px h-2.5 bg-white/[0.08]" />
+                <span className="w-px h-2.5 bg-glass-active" />
                 <Globe className="w-2.5 h-2.5 text-emerald-400/40" />
               </>
             )}
@@ -578,7 +578,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         {/* Scrub progress indicator — thin bar at bottom */}
         {isHovered && scrubProgress !== null && hasVideo && (
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] z-30 bg-white/[0.06]">
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] z-30 bg-glass-active">
             <div
               className="h-full bg-[hsla(215,100%,65%,0.85)] shadow-[0_0_12px_hsla(215,100%,60%,0.6)] transition-[width] duration-75 ease-linear"
               style={{ width: `${scrubProgress * 100}%` }}
@@ -667,7 +667,7 @@ const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; p
     return (
       <span ref={ref} className={cn(
         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-        glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
+        glass ? "bg-black/50 backdrop-blur-xl" : "bg-glass-hover"
       )}>
         <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
         <span className={cn(
@@ -708,15 +708,15 @@ function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename,
             <Pencil className="w-4 h-4" strokeWidth={1.5} />Open in Editor
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-glass-active rounded-xl py-2 px-2.5">
           {isPinned ? <PinOff className="w-4 h-4" strokeWidth={1.5} /> : <Pin className="w-4 h-4" strokeWidth={1.5} />}
           {isPinned ? 'Unpin' : 'Pin to Top'}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-glass-active rounded-xl py-2 px-2.5">
           <Pencil className="w-4 h-4" strokeWidth={1.5} />Rename
         </DropdownMenuItem>
         {hasVideo && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm font-light rounded-xl py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/70 focus:text-white focus:bg-white/[0.06]")}>
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm font-light rounded-xl py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/70 focus:text-white focus:bg-glass-active")}>
             {project.is_public ? <Globe className="w-4 h-4" strokeWidth={1.5} /> : <Lock className="w-4 h-4" strokeWidth={1.5} />}
             {project.is_public ? 'Public' : 'Share to Feed'}
           </DropdownMenuItem>
@@ -731,7 +731,7 @@ function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename,
             <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} strokeWidth={1.5} />Browser Stitch
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator className="bg-white/[0.05] my-0.5" />
+        <DropdownMenuSeparator className="bg-glass-hover my-0.5" />
         <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm font-light text-destructive focus:text-destructive/80 focus:bg-destructive/10 rounded-xl py-2 px-2.5">
           <Trash2 className="w-4 h-4" strokeWidth={1.5} />Delete
         </DropdownMenuItem>

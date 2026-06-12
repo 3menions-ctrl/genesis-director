@@ -39,8 +39,8 @@ export function MusicDrawerContent({ current, onSelect }: Props) {
       <div className="grid grid-cols-3 gap-2">
         {PRESETS.map(p => (
           <button key={p.label} onClick={() => setPrompt(p.prompt)}
-            className={cn("rounded-xl border border-white/[0.06] hover:border-[#0A84FF]/40 bg-white/[0.02] p-3 text-left transition-all")}>
-            <Music2 className="w-3.5 h-3.5 text-[#0A84FF] mb-1" />
+            className={cn("rounded-xl border border-white/[0.06] hover:border-primary/40 bg-glass p-3 text-left transition-all")}>
+            <Music2 className="w-3.5 h-3.5 text-primary mb-1" />
             <div className="text-white text-xs font-medium">{p.label}</div>
           </button>
         ))}
@@ -49,9 +49,9 @@ export function MusicDrawerContent({ current, onSelect }: Props) {
         <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40">Prompt</label>
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
           placeholder="Describe the score…"
-          className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/30 focus:border-[#0A84FF]/50 focus:outline-none text-sm resize-none" />
+          className="w-full p-4 rounded-xl bg-glass border border-white/[0.06] text-white placeholder:text-white/30 focus:border-primary/50 focus:outline-none text-sm resize-none" />
         <button onClick={() => generate(prompt)} disabled={busy}
-          className={cn("w-full h-11 rounded-xl bg-[#0A84FF] text-white font-medium text-sm hover:bg-[#0A84FF]/90 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition-all")}>
+          className={cn("w-full h-11 rounded-xl bg-primary text-white font-medium text-sm hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition-all")}>
           {busy ? <><Loader2 className="w-4 h-4 animate-spin" />Generating…</> : "Generate score"}
         </button>
       </div>

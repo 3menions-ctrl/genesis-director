@@ -117,7 +117,7 @@ export default function AdminSessionsPage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No sessions.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.user_id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr key={r.user_id} className="border-b border-white/[0.04] hover:bg-glass">
                   <td className="px-4 py-3">
                     <div className="text-white/90 text-[13px]">{r.display_name ?? "—"}</div>
                     <div className="text-white/40 font-mono text-[10px]">{r.email}</div>

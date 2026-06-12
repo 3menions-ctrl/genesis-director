@@ -365,7 +365,7 @@ export default function AdminUserDetailPage() {
                     className="w-16 h-16 rounded-2xl object-cover border border-white/[0.08]"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-glass-hover border border-white/[0.08] flex items-center justify-center">
                     <Users className="w-5 h-5 text-white/55" />
                   </div>
                 )}
@@ -455,7 +455,7 @@ export default function AdminUserDetailPage() {
                       <tr key={o.organization_id} className="border-b border-white/[0.03]">
                         <td className="px-6 py-3 text-white/90">{o.name}</td>
                         <td className="px-6 py-3 text-white/55">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#6FB6FF]">{o.role}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">{o.role}</span>
                         </td>
                         <td className="px-6 py-3 text-right text-white/45 font-mono text-[11px]">
                           {new Date(o.joined_at).toLocaleDateString()}
@@ -484,7 +484,7 @@ export default function AdminUserDetailPage() {
                           {new Date(a.created_at).toLocaleString()}
                         </td>
                         <td className="px-6 py-3">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#6FB6FF]">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">
                             {a.action.replace(/_/g, " ")}
                           </span>
                         </td>
@@ -571,7 +571,7 @@ export default function AdminUserDetailPage() {
                     )
                   }
                 />
-                <div className="h-px bg-white/[0.06] my-3" />
+                <div className="h-px bg-glass-active my-3" />
                 <ActionRow
                   icon={Trash2}
                   label="Delete account"
@@ -607,7 +607,7 @@ export default function AdminUserDetailPage() {
                   detail.roles.map((r) => (
                     <span
                       key={r}
-                      className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#6FB6FF] px-2 py-0.5 rounded border border-[#0A84FF]/30 bg-[#0A84FF]/[0.05]"
+                      className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80 px-2 py-0.5 rounded border border-primary/30 bg-primary/[0.05]"
                     >
                       {r}
                     </span>
@@ -633,7 +633,7 @@ function StatCell({
 }) {
   const toneClass =
     tone === "blue"
-      ? "text-[#6FB6FF]"
+      ? "text-primary/80"
       : tone === "emerald"
         ? "text-emerald-300"
         : tone === "amber"
@@ -691,7 +691,7 @@ function ActionRow({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-white/[0.015] hover:bg-white/[0.04] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left ${palette}`}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-white/[0.015] hover:bg-glass-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left ${palette}`}
     >
       <Icon className="w-3.5 h-3.5" />
       <span className="text-[12px] uppercase tracking-[0.18em] font-mono">{label}</span>

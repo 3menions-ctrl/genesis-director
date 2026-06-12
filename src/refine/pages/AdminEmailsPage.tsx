@@ -208,7 +208,7 @@ export default function AdminEmailsPage() {
               </thead>
               <tbody>
                 {filteredRows.map((r) => (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
                     <td className="px-4 py-3 text-white/80 font-mono text-xs">{r.template_name || "—"}</td>
                     <td className="px-4 py-3 text-white/70 text-xs">{r.recipient_email || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>

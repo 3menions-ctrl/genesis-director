@@ -1011,7 +1011,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                   placeholder="Search templates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-glass-hover border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }
@@ -1097,7 +1097,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                         'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                         active
                           ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
                       )}
                       style={active ? {
                         background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1115,7 +1115,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                       'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                       durationFilter === 'any'
                         ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
                     )}
                     style={durationFilter === 'any' ? {
                       background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1134,7 +1134,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
                           'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
                           active
                             ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
                         )}
                         style={active ? {
                           background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
@@ -1175,7 +1175,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
         {/* Empty State */}
         {sortedTemplates.length === 0 && (
           <div className="text-center py-16 animate-fade-in">
-            <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 rounded-xl bg-glass-hover flex items-center justify-center mx-auto mb-4">
               <Search className="w-6 h-6 text-foreground/80" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">No templates found</h3>

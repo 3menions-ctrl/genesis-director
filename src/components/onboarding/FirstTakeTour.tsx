@@ -128,7 +128,7 @@ export function FirstTakeTour() {
           <button
             onClick={() => close(true)}
             aria-label="Skip tour"
-            className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/[0.04] border border-white/10 text-white/55 hover:text-white hover:bg-white/[0.08] flex items-center justify-center"
+            className="absolute top-4 right-4 w-7 h-7 rounded-full bg-glass-hover border border-white/10 text-white/55 hover:text-white hover:bg-glass-active flex items-center justify-center"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -140,13 +140,13 @@ export function FirstTakeTour() {
                 <span
                   key={i}
                   className={`h-1 flex-1 rounded-full transition-colors ${
-                    i <= step ? 'bg-brand' : 'bg-white/[0.08]'
+                    i <= step ? 'bg-brand' : 'bg-glass-active'
                   }`}
                 />
               ))}
             </div>
 
-            <div className="w-12 h-12 rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center mb-5">
+            <div className="w-12 h-12 rounded-2xl border border-white/10 bg-glass flex items-center justify-center mb-5">
               <Icon className="w-5 h-5 text-brand-light" strokeWidth={1.5} />
             </div>
             <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/30 mb-3">

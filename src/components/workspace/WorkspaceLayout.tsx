@@ -215,7 +215,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
             )}
           </Link>
           <button
-            className="ml-auto md:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
+            className="ml-auto md:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-glass-active text-white/45 hover:text-white/80 transition-colors duration-200"
             onClick={() => setMobileOpen(false)}
             aria-label="Close sidebar"
           >
@@ -278,11 +278,11 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
                       key={o.id}
                       onClick={() => { switchOrg(o.id); setOrgSwitcherOpen(false); }}
                       className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.04] transition-colors',
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-glass-hover transition-colors',
                         isCurrent && 'bg-[hsl(215,60%,12%)]/40',
                       )}
                     >
-                      <div className="w-6 h-6 shrink-0 rounded-lg bg-white/[0.06] text-white/85 font-mono text-[9px] font-bold flex items-center justify-center">
+                      <div className="w-6 h-6 shrink-0 rounded-lg bg-glass-active text-white/85 font-mono text-[9px] font-bold flex items-center justify-center">
                         {o.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'OP'}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -299,7 +299,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
               <NavLink
                 to="/workspace/billing"
                 onClick={() => setOrgSwitcherOpen(false)}
-                className="flex items-center gap-2 px-3 py-2.5 border-t border-white/[0.06] hover:bg-white/[0.04] transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 hover:text-white/85"
+                className="flex items-center gap-2 px-3 py-2.5 border-t border-white/[0.06] hover:bg-glass-hover transition-colors font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 hover:text-white/85"
               >
                 <Plus className="w-3 h-3" strokeWidth={1.5} /> Workspace settings
               </NavLink>
@@ -317,7 +317,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
                 </div>
               )}
               {collapsed && gIdx > 0 && (
-                <div className="mx-3 my-3 h-px bg-white/[0.06]" />
+                <div className="mx-3 my-3 h-px bg-glass-active" />
               )}
               <ul className="space-y-1">
                 {group.items.map(({ to, label, Icon, minRole, description }) => {
@@ -421,7 +421,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
               to="/projects"
               title="Back to Studio"
               className={cn(
-                'flex items-center justify-center gap-2 h-9 rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] transition-colors font-light text-[11px] tracking-[-0.005em] text-white/60 hover:text-white/95',
+                'flex items-center justify-center gap-2 h-9 rounded-full border border-white/[0.06] bg-glass hover:bg-glass-active transition-colors font-light text-[11px] tracking-[-0.005em] text-white/60 hover:text-white/95',
                 collapsed ? 'justify-center flex-1' : 'flex-1',
               )}
             >
@@ -431,7 +431,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
             <button
               onClick={() => setCollapsed(c => !c)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/95 transition-colors"
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-glass hover:bg-glass-active text-white/55 hover:text-white/95 transition-colors"
             >
               {collapsed
                 ? <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -451,7 +451,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
              style={{ background: 'linear-gradient(180deg, hsla(220,16%,4%,0.78), hsla(220,16%,4%,0.55))' }}>
           <button
             onClick={() => setMobileOpen(true)}
-            className="w-8 h-8 -ml-1 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-white/60 hover:text-white transition-colors"
+            className="w-8 h-8 -ml-1 flex items-center justify-center rounded-full hover:bg-glass-active text-white/60 hover:text-white transition-colors"
             aria-label="Open menu"
           >
             <Menu className="w-4 h-4" strokeWidth={1.5} />

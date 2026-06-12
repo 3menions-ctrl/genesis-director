@@ -93,7 +93,7 @@ export default function WorkspaceAuditLog() {
       title="Audit log"
       description="Immutable record of every workspace action — credit movement, member changes and content events."
       actions={
-        <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] p-0.5">
+        <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-glass p-0.5">
           {(['all','workspace','credit'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 h-7 rounded-full font-mono text-[10px] uppercase tracking-[0.18em] transition ${filter === f ? 'bg-[hsl(215,100%,45%)]/25 text-[hsl(215,100%,82%)]' : 'text-white/45 hover:text-white/80'}`}>

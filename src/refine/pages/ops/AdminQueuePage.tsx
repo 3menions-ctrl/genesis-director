@@ -93,7 +93,7 @@ export default function AdminQueuePage() {
                 const ageMin = (Date.now() - new Date(r.updated_at).getTime()) / 60000;
                 const isStuck = ageMin > 10;
                 return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
                     <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <Badge variant={isStuck ? "destructive" : r.status === "generating" ? "default" : "secondary"} className="font-mono text-[10px]">

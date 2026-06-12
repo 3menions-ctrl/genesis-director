@@ -13,8 +13,8 @@ import type { WidgetConfig, WidgetScene, WidgetTriggers, WidgetRule, WidgetPosit
 import { AIWidgetAssist } from './AIWidgetAssist';
 
 /* ── dark glass tokens ── */
-const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
-const glassInput = 'bg-white/[0.06] border-white/[0.1] text-white/90 placeholder:text-white/25 focus-visible:ring-white/[0.15] focus-visible:border-white/[0.2]';
+const glass = 'bg-glass-hover border border-white/[0.08] backdrop-blur-sm';
+const glassInput = 'bg-glass-active border-white/[0.1] text-white/90 placeholder:text-white/25 focus-visible:ring-white/[0.15] focus-visible:border-white/[0.2]';
 const textPrimary = 'text-white/90';
 const textSecondary = 'text-white/50';
 const textMuted = 'text-white/30';
@@ -116,7 +116,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} hover:bg-white/[0.06] hover:border-white/[0.12] transition-all disabled:opacity-50`}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} hover:bg-glass-active hover:border-white/[0.12] transition-all disabled:opacity-50`}
         >
           <Save className="w-4 h-4" />
           {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -124,7 +124,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
       </div>
 
       <Tabs defaultValue="content">
-        <TabsList className="bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl w-full grid grid-cols-5">
+        <TabsList className="bg-glass-hover border border-white/[0.08] p-1 rounded-xl w-full grid grid-cols-5">
           {[
             { value: 'content', icon: FileText, label: 'Content' },
             { value: 'scenes', icon: Film, label: 'Scenes' },
@@ -172,7 +172,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
               ))}
             </div>
 
-            <div className="h-px bg-white/[0.06] my-6" />
+            <div className="h-px bg-glass-active my-6" />
             <p className={`${sectionLabel} mb-5`}>Behavior</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
@@ -184,8 +184,8 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                   <Label className={`text-xs ${textSecondary}`}>{label}</Label>
                   <Select value={value} onValueChange={v => updateConfig(key as any, v)}>
                     <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
-                      {options.map(o => <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{o.l}</SelectItem>)}
+                    <SelectContent className="bg-surface-1 border-white/[0.1]">
+                      {options.map(o => <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-glass-active focus:text-white">{o.l}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -198,13 +198,13 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
         <TabsContent value="scenes" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className={sectionLabel}>Video Scenes ({scenes.length})</p>
-            <button onClick={addScene} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+            <button onClick={addScene} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-glass-active transition-all`}>
               <Plus className="w-3.5 h-3.5" /> Add Scene
             </button>
           </div>
 
           {scenes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-12 text-center">
+            <div className="rounded-2xl border border-dashed border-white/[0.08] bg-glass p-12 text-center">
               <p className={`text-sm ${textSecondary}`}>No scenes yet. Add your first video scene.</p>
             </div>
           ) : (
@@ -215,7 +215,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                     <div className="flex items-center gap-2">
                       <GripVertical className={`w-4 h-4 ${textMuted}`} />
                       <span className={`text-sm font-medium ${textPrimary}`}>{scene.name}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] ${textMuted} uppercase tracking-wider`}>{scene.type}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md bg-glass-active ${textMuted} uppercase tracking-wider`}>{scene.type}</span>
                       {/* Video generation status badge */}
                       {scene.video_generation_status && scene.video_generation_status !== 'pending' && (
                         <span className={`text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1 ${
@@ -243,9 +243,9 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                       <Label className={`text-[10px] ${textMuted}`}>Type</Label>
                       <Select value={scene.type} onValueChange={v => updateScene(idx, { type: v as WidgetScene['type'] })}>
                         <SelectTrigger className={`h-9 ${glassInput}`}><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                        <SelectContent className="bg-surface-1 border-white/[0.1]">
                           {['hero', 'idle', 'engage', 'cta', 'exit_save', 'testimonial'].map(t => (
-                            <SelectItem key={t} value={t} className="text-white/80 focus:bg-white/[0.08] focus:text-white capitalize">{t.replace('_', ' ')}</SelectItem>
+                            <SelectItem key={t} value={t} className="text-white/80 focus:bg-glass-active focus:text-white capitalize">{t.replace('_', ' ')}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -272,12 +272,12 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                   {(scene.camera_movement || scene.lighting_style || scene.mood) && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {scene.camera_movement && (
-                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
                           <Camera className="w-2.5 h-2.5" /> {scene.camera_movement.substring(0, 40)}...
                         </span>
                       )}
                       {scene.lighting_style && (
-                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
                           <Lightbulb className="w-2.5 h-2.5" /> {scene.lighting_style.substring(0, 35)}...
                         </span>
                       )}
@@ -330,7 +330,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
             <div className={`rounded-2xl ${glass} p-5 space-y-4`}>
               <div className="flex items-center justify-between">
                 <p className={sectionLabel}>Event → Scene Rules</p>
-                <button onClick={addRule} className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+                <button onClick={addRule} className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-glass-active transition-all`}>
                   <Plus className="w-3 h-3" /> Add
                 </button>
               </div>
@@ -338,17 +338,17 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                 <div key={idx} className="flex items-center gap-2">
                   <Select value={rule.event} onValueChange={v => setRules(r => r.map((x, i) => i === idx ? { ...x, event: v as WidgetRule['event'] } : x))}>
                     <SelectTrigger className={`h-8 text-xs w-[130px] ${glassInput}`}><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                    <SelectContent className="bg-surface-1 border-white/[0.1]">
                       {['PAGE_VIEW', 'IDLE', 'SCROLL_DEPTH', 'EXIT_INTENT', 'CTA_HOVER'].map(e => (
-                        <SelectItem key={e} value={e} className="text-white/80 focus:bg-white/[0.08] focus:text-white text-xs">{e.replace('_', ' ')}</SelectItem>
+                        <SelectItem key={e} value={e} className="text-white/80 focus:bg-glass-active focus:text-white text-xs">{e.replace('_', ' ')}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <span className={`text-xs ${textMuted}`}>→</span>
                   <Select value={rule.scene_id || ''} onValueChange={v => setRules(r => r.map((x, i) => i === idx ? { ...x, scene_id: v } : x))}>
                     <SelectTrigger className={`h-8 text-xs flex-1 ${glassInput}`}><SelectValue placeholder="Select scene" /></SelectTrigger>
-                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
-                      {scenes.map(s => <SelectItem key={s.id} value={s.id} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{s.name}</SelectItem>)}
+                    <SelectContent className="bg-surface-1 border-white/[0.1]">
+                      {scenes.map(s => <SelectItem key={s.id} value={s.id} className="text-white/80 focus:bg-glass-active focus:text-white">{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <button className={`h-8 w-8 flex items-center justify-center rounded-lg ${textMuted} hover:text-red-400 hover:bg-red-500/10 transition-all`} onClick={() => setRules(r => r.filter((_, i) => i !== idx))}>
@@ -392,9 +392,9 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                 <Label className={`text-xs ${textSecondary}`}>Font Family</Label>
                 <Select value={config.font_family} onValueChange={v => updateConfig('font_family', v)}>
                   <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                  <SelectContent className="bg-surface-1 border-white/[0.1]">
                     {['Inter', 'system-ui', 'Georgia', 'monospace'].map(f => (
-                      <SelectItem key={f} value={f} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{f}</SelectItem>
+                      <SelectItem key={f} value={f} className="text-white/80 focus:bg-glass-active focus:text-white">{f}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -403,9 +403,9 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                 <Label className={`text-xs ${textSecondary}`}>Position</Label>
                 <Select value={config.position} onValueChange={v => updateConfig('position', v as WidgetPosition)}>
                   <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                  <SelectContent className="bg-surface-1 border-white/[0.1]">
                     {[{ v: 'bottom-right', l: 'Bottom Right' }, { v: 'bottom-left', l: 'Bottom Left' }, { v: 'top-right', l: 'Top Right' }, { v: 'top-left', l: 'Top Left' }, { v: 'center', l: 'Center' }].map(o => (
-                      <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{o.l}</SelectItem>
+                      <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-glass-active focus:text-white">{o.l}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -420,7 +420,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
               </div>
             </div>
 
-            <div className="h-px bg-white/[0.06] my-6" />
+            <div className="h-px bg-glass-active my-6" />
             <div className="space-y-1.5">
               <Label className={`text-xs ${textSecondary}`}>Allowed Domains (one per line)</Label>
               <textarea
@@ -438,11 +438,11 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
           <div className={`rounded-2xl ${glass} p-5`}>
             <div className="flex items-center justify-between mb-4">
               <p className={sectionLabel}>Embed Code (iframe)</p>
-              <button onClick={() => { navigator.clipboard.writeText(embedCode); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+              <button onClick={() => { navigator.clipboard.writeText(embedCode); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-glass-active transition-all`}>
                 <Copy className="w-3.5 h-3.5" /> Copy
               </button>
             </div>
-            <pre className={`bg-white/[0.03] rounded-xl p-4 text-[11px] font-mono ${textSecondary} overflow-x-auto whitespace-pre-wrap break-all leading-relaxed border border-white/[0.06]`}>
+            <pre className={`bg-glass rounded-xl p-4 text-[11px] font-mono ${textSecondary} overflow-x-auto whitespace-pre-wrap break-all leading-relaxed border border-white/[0.06]`}>
               {embedCode}
             </pre>
           </div>
@@ -452,10 +452,10 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
               <div className="flex items-center justify-between mb-4">
                 <p className={sectionLabel}>Landing Page URL</p>
                 <div className="flex gap-2">
-                  <button onClick={() => { navigator.clipboard.writeText(landingUrl); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+                  <button onClick={() => { navigator.clipboard.writeText(landingUrl); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-glass-active transition-all`}>
                     <Copy className="w-3.5 h-3.5" /> Copy
                   </button>
-                  <a href={`/w/${config.slug}`} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+                  <a href={`/w/${config.slug}`} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-glass-active transition-all`}>
                     <ExternalLink className="w-3.5 h-3.5" /> Preview
                   </a>
                 </div>

@@ -32,7 +32,7 @@ export function PageSkeleton({ variant = 'grid', className }: PageSkeletonProps)
         {/* Page title */}
         <div className="mb-8 space-y-2">
           <Skeleton className="h-8 w-48 bg-white/5" />
-          <Skeleton className="h-4 w-72 bg-white/[0.03]" />
+          <Skeleton className="h-4 w-72 bg-glass" />
         </div>
 
         {/* Toolbar */}
@@ -60,7 +60,7 @@ function GridSkeleton() {
           <Skeleton className="aspect-video w-full bg-white/5" />
           <div className="p-4 space-y-3">
             <Skeleton className="h-5 w-3/4 bg-white/5" />
-            <Skeleton className="h-4 w-1/2 bg-white/[0.03]" />
+            <Skeleton className="h-4 w-1/2 bg-glass" />
             <div className="flex gap-2">
               <Skeleton className="h-6 w-16 rounded-full bg-white/5" />
               <Skeleton className="h-6 w-20 rounded-full bg-white/5" />
@@ -80,7 +80,7 @@ function ListSkeleton() {
           <Skeleton className="h-16 w-24 rounded-md flex-shrink-0 bg-white/5" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-5 w-1/3 bg-white/5" />
-            <Skeleton className="h-4 w-2/3 bg-white/[0.03]" />
+            <Skeleton className="h-4 w-2/3 bg-glass" />
           </div>
           <div className="flex items-center gap-2">
             <Skeleton className="h-8 w-8 rounded-md bg-white/5" />
@@ -100,9 +100,9 @@ function DetailSkeleton() {
         <Skeleton className="aspect-video w-full rounded-xl bg-white/5" />
         <div className="space-y-4">
           <Skeleton className="h-8 w-3/4 bg-white/5" />
-          <Skeleton className="h-4 w-full bg-white/[0.03]" />
-          <Skeleton className="h-4 w-5/6 bg-white/[0.03]" />
-          <Skeleton className="h-4 w-4/6 bg-white/[0.03]" />
+          <Skeleton className="h-4 w-full bg-glass" />
+          <Skeleton className="h-4 w-5/6 bg-glass" />
+          <Skeleton className="h-4 w-4/6 bg-glass" />
         </div>
       </div>
       
@@ -151,8 +151,8 @@ function DashboardSkeleton() {
             <div key={i} className="flex items-center gap-4 p-4">
               <Skeleton className="h-10 w-10 rounded-full bg-white/5" />
               <Skeleton className="h-4 w-32 bg-white/5" />
-              <Skeleton className="h-4 w-24 ml-auto bg-white/[0.03]" />
-              <Skeleton className="h-4 w-16 bg-white/[0.03]" />
+              <Skeleton className="h-4 w-24 ml-auto bg-glass" />
+              <Skeleton className="h-4 w-16 bg-glass" />
             </div>
           ))}
         </div>
@@ -185,7 +185,7 @@ export function ClipsPageSkeleton() {
         <div className="flex items-center justify-between mb-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-40 bg-white/5" />
-            <Skeleton className="h-4 w-64 bg-white/[0.03]" />
+            <Skeleton className="h-4 w-64 bg-glass" />
           </div>
           <div className="flex gap-4">
             <Skeleton className="h-16 w-24 rounded-lg bg-white/5" />
@@ -222,7 +222,7 @@ export function ClipsPageSkeleton() {
                   <Skeleton className="aspect-video w-full bg-white/5" />
                   <div className="p-2 space-y-1">
                     <Skeleton className="h-3 w-12 bg-white/5" />
-                    <Skeleton className="h-3 w-16 bg-white/[0.03]" />
+                    <Skeleton className="h-3 w-16 bg-glass" />
                   </div>
                 </div>
               ))}
@@ -264,7 +264,7 @@ export function ProjectsPageSkeleton() {
                 <Skeleton className="h-5 w-3/4 bg-white/5" />
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-4 rounded-full bg-white/5" />
-                  <Skeleton className="h-4 w-20 bg-white/[0.03]" />
+                  <Skeleton className="h-4 w-20 bg-glass" />
                 </div>
                 <div className="flex gap-2">
                   <Skeleton className="h-6 w-16 rounded-full bg-white/5" />

@@ -150,7 +150,7 @@ function CastTile({ entry, index }: { entry: CastEntry; index: number }) {
       tabIndex={0}
       role="button"
       aria-label={`Cast member: ${entry.name}`}
-      className="group relative aspect-[3/4] rounded-md overflow-hidden border border-white/[0.06] bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+      className="group relative aspect-[3/4] rounded-md overflow-hidden border border-white/[0.06] bg-glass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
       style={{ animationDelay: `${index * 28}ms` }}
     >
       {entry.thumbnail_url ? (

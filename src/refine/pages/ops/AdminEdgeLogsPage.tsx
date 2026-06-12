@@ -77,9 +77,9 @@ export default function AdminEdgeLogsPage() {
               {pg.slice.map(r => {
                 const ok = r.status === "success" || r.status === "completed";
                 return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
                     <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-[#0A84FF]/30 bg-[#0A84FF]/5 text-[#6FB6FF] font-mono text-[11px]">{r.service}</span></td>
+                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.service}</span></td>
                     <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.operation}</td>
                     <td className="px-4 py-3"><Badge variant={ok ? "secondary" : "destructive"} className="font-mono text-[10px]">{r.status}</Badge></td>
                     <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</td>

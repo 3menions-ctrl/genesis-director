@@ -39,7 +39,7 @@ export const B2BUseCases = memo(function B2BUseCases() {
     <section id="features" className="relative z-10 py-24 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+          <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-4">
             Use cases
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -55,10 +55,10 @@ export const B2BUseCases = memo(function B2BUseCases() {
           {CASES.map((c) => (
             <div
               key={c.title}
-              className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300 p-6"
+              className="group relative rounded-2xl border border-white/[0.06] bg-glass hover:bg-glass-hover hover:border-white/[0.1] transition-all duration-300 p-6"
             >
-              <div className="w-10 h-10 rounded-xl bg-[#0A84FF]/10 border border-[#0A84FF]/20 flex items-center justify-center mb-5 group-hover:bg-[#0A84FF]/15 transition-colors">
-                <c.icon className="w-4 h-4 text-[#0A84FF]" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 group-hover:bg-primary/15 transition-colors">
+                <c.icon className="w-4 h-4 text-primary" />
               </div>
               <h3 className="text-base font-semibold text-white mb-2 tracking-tight">
                 {c.title}

@@ -118,7 +118,7 @@ export interface AdminRow {
 // ── Implementation ───────────────────────────────────────────────────────
 
 const toneText: Record<SignalTone, string> = {
-  blue: "text-[#6FB6FF]",
+  blue: "text-primary/80",
   amber: "text-amber-300",
   emerald: "text-emerald-300",
   rose: "text-rose-300",
@@ -272,7 +272,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             {primaryCta && (
               <button
                 onClick={primaryCta.onClick}
-                className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-white px-5 py-2.5 rounded-lg border border-[#0A84FF]/50 bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] shadow-[0_8px_24px_-10px_rgba(10,132,255,0.6)] hover:shadow-[0_12px_32px_-10px_rgba(10,132,255,0.8)] transition-shadow"
+                className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-white px-5 py-2.5 rounded-lg border border-primary/50 bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] shadow-[0_8px_24px_-10px_rgba(10,132,255,0.6)] hover:shadow-[0_12px_32px_-10px_rgba(10,132,255,0.8)] transition-shadow"
               >
                 {primaryCta.label}
                 <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -321,7 +321,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-[#0A84FF]/40"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-white/[0.06] bg-glass text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-primary/40"
               />
             </div>
           )}
@@ -332,7 +332,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
               onChange={(e) =>
                 setFilterState((s) => ({ ...s, [f.key]: e.target.value }))
               }
-              className="px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[12px] text-white/70 focus:outline-none focus:border-[#0A84FF]/40"
+              className="px-3 py-2.5 rounded-lg border border-white/[0.06] bg-glass text-[12px] text-white/70 focus:outline-none focus:border-primary/40"
             >
               <option value="">{f.label}: all</option>
               {f.options?.map((o) => (
@@ -354,7 +354,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             <p className="text-[11px] text-white/40 font-mono">{error}</p>
             <button
               onClick={refresh}
-              className="mt-4 text-[11px] uppercase tracking-[0.22em] text-[#6FB6FF] hover:text-white"
+              className="mt-4 text-[11px] uppercase tracking-[0.22em] text-primary/80 hover:text-white"
             >
               Retry
             </button>
@@ -406,7 +406,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                 {rows.map((row) => (
                   <tr
                     key={String(row.id)}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                    className="border-b border-white/[0.03] hover:bg-glass transition-colors"
                   >
                     {visibleColumns.map((c) => {
                       const raw = row[c.key];
@@ -477,7 +477,7 @@ function formatCell(v: unknown): ReactNode {
           "text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider",
           v
             ? "bg-emerald-500/[0.08] text-emerald-300 border border-emerald-400/20"
-            : "bg-white/[0.04] text-white/40 border border-white/[0.06]",
+            : "bg-glass-hover text-white/40 border border-white/[0.06]",
         )}
       >
         {v ? "true" : "false"}

@@ -53,7 +53,7 @@ export function SegmentedControl<T extends string>({
               <span
                 className={cn(
                   'text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-medium',
-                  isActive ? 'bg-primary/15 text-primary' : 'bg-white/[0.04] text-white/40'
+                  isActive ? 'bg-primary/15 text-primary' : 'bg-glass-hover text-white/40'
                 )}
               >
                 {item.count}

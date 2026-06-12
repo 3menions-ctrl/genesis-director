@@ -181,7 +181,7 @@ export function SeedanceAnimateDialog({ open, onOpenChange, mascot }: Props) {
             {/* Close */}
             <DialogClose
               aria-label="Close"
-              className="absolute right-4 top-4 z-20 rounded-full p-2 text-white/40 hover:text-white hover:bg-white/[0.06] transition"
+              className="absolute right-4 top-4 z-20 rounded-full p-2 text-white/40 hover:text-white hover:bg-glass-active transition"
             >
               <X className="w-4 h-4" />
             </DialogClose>

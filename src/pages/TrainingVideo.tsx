@@ -798,7 +798,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
+              className="p-4 rounded-xl border border-white/[0.08] bg-glass backdrop-blur-xl"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -816,7 +816,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 placeholder="Enter what your character will say..."
                 value={scriptText}
                 onChange={(e) => setScriptText(e.target.value.slice(0, 500))}
-                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground focus:border-emerald-500/50"
+                className="min-h-[80px] resize-none text-sm bg-glass border-white/[0.08] text-foreground placeholder:text-muted-foreground focus:border-emerald-500/50"
               />
             </motion.div>
 
@@ -825,7 +825,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
+              className="p-4 rounded-xl border border-white/[0.08] bg-glass backdrop-blur-xl"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className={cn(
@@ -849,7 +849,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                         "relative p-2 rounded-lg border text-center transition-all group",
                         isSelected 
                           ? "border-emerald-500/50 bg-emerald-500/10" 
-                          : "border-white/[0.08] bg-white/[0.02] hover:border-emerald-500/30"
+                          : "border-white/[0.08] bg-glass hover:border-emerald-500/30"
                       )}
                     >
                       <div className="text-xs font-medium truncate text-foreground">{voice.name}</div>
@@ -881,7 +881,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
+                className="p-4 rounded-xl border border-white/[0.08] bg-glass backdrop-blur-xl"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
@@ -921,7 +921,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
+                className="p-4 rounded-xl border border-white/[0.08] bg-glass backdrop-blur-xl"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
@@ -977,7 +977,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15 }}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl overflow-hidden"
+              className="rounded-xl border border-white/[0.08] bg-glass backdrop-blur-xl overflow-hidden"
             >
               <div className="p-2.5 border-b border-white/[0.08] flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1046,7 +1046,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               </div>
               
               {/* Quick Summary */}
-              <div className="p-2.5 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between text-[10px] text-muted-foreground">
+              <div className="p-2.5 border-t border-white/[0.08] bg-glass flex items-center justify-between text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Mic className="w-3 h-3" />
                   <span>{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
@@ -1064,7 +1064,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="rounded-xl border border-white/10 bg-white/[0.02] p-1 grid grid-cols-2 gap-1"
+                className="rounded-xl border border-white/10 bg-glass p-1 grid grid-cols-2 gap-1"
                 role="radiogroup"
                 aria-label="Video engine"
               >
@@ -1089,7 +1089,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                         'flex flex-col items-start px-3 py-2 rounded-lg transition-all text-left',
                         active
                           ? 'bg-primary/15 ring-1 ring-primary/40 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.5)]'
-                          : 'hover:bg-white/[0.04] text-muted-foreground',
+                          : 'hover:bg-glass-hover text-muted-foreground',
                         isGenerating && 'opacity-50 cursor-not-allowed',
                       )}
                     >
@@ -1116,7 +1116,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                 <button
                   type="button"
                   onClick={() => setSettingsOpen((v) => !v)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.03] transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-glass transition-colors"
                   aria-expanded={settingsOpen}
                 >
                   <span className="flex items-center gap-2">
@@ -1167,7 +1167,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                                     'h-7 rounded-md text-[10px] font-mono transition-all',
                                     active
                                       ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
-                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                      : 'bg-glass hover:bg-glass-active text-muted-foreground',
                                   )}
                                 >
                                   {d ? `${d}s` : 'Auto'}
@@ -1202,7 +1202,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                                     'h-7 rounded-md text-[10px] font-mono transition-all',
                                     active
                                       ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
-                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                      : 'bg-glass hover:bg-glass-active text-muted-foreground',
                                     locked && 'opacity-40 cursor-not-allowed',
                                   )}
                                 >
@@ -1235,7 +1235,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                                     'h-7 rounded-md text-[10px] font-mono transition-all',
                                     active
                                       ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
-                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                      : 'bg-glass hover:bg-glass-active text-muted-foreground',
                                   )}
                                 >
                                   {ar}
@@ -1262,7 +1262,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                                     'h-7 rounded-md text-[10px] capitalize transition-all',
                                     active
                                       ? 'bg-primary/20 ring-1 ring-primary/50 text-foreground'
-                                      : 'bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground',
+                                      : 'bg-glass hover:bg-glass-active text-muted-foreground',
                                   )}
                                 >
                                   {m}
@@ -1281,7 +1281,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                               'flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all',
                               characterLockStrict
                                 ? 'bg-primary/15 ring-1 ring-primary/40'
-                                : 'bg-white/[0.03] hover:bg-white/[0.06]',
+                                : 'bg-glass hover:bg-glass-active',
                             )}
                           >
                             <Lock className={cn('w-3.5 h-3.5', characterLockStrict ? 'text-primary' : 'text-muted-foreground')} />
@@ -1300,7 +1300,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
                               'flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all',
                               cameraFixed
                                 ? 'bg-primary/15 ring-1 ring-primary/40'
-                                : 'bg-white/[0.03] hover:bg-white/[0.06]',
+                                : 'bg-glass hover:bg-glass-active',
                             )}
                           >
                             <Camera className={cn('w-3.5 h-3.5', cameraFixed ? 'text-primary' : 'text-muted-foreground')} />

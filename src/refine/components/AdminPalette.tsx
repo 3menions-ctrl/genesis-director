@@ -222,7 +222,7 @@ export function AdminPalette() {
 
       {/* Card */}
       <div
-        className="relative w-[640px] max-w-[92vw] rounded-2xl border border-white/[0.08] bg-[#0a0b0d]/95 backdrop-blur-2xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
+        className="relative w-[640px] max-w-[92vw] rounded-2xl border border-white/[0.08] bg-background/95 backdrop-blur-2xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
       >
         {/* Brand rail */}
         <span
@@ -267,9 +267,9 @@ export function AdminPalette() {
                   <button
                     key={r.id}
                     onClick={() => activate(r)}
-                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] hover:border-[#0A84FF]/40 hover:bg-[#0A84FF]/[0.06] transition-colors"
+                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full bg-glass border border-white/[0.06] hover:border-primary/40 hover:bg-primary/[0.06] transition-colors"
                   >
-                    <Icon className="w-3 h-3 text-white/50 group-hover:text-[#0A84FF]" />
+                    <Icon className="w-3 h-3 text-white/50 group-hover:text-primary" />
                     <span className="text-[11px] text-white/75 truncate max-w-[180px]">{r.label}</span>
                   </button>
                 );
@@ -297,8 +297,8 @@ export function AdminPalette() {
                   className={cn(
                     "group w-full text-left px-5 py-3 flex items-center gap-3 transition-colors",
                     focused
-                      ? "bg-[#0A84FF]/[0.10]"
-                      : "hover:bg-white/[0.02]",
+                      ? "bg-primary/[0.10]"
+                      : "hover:bg-glass",
                   )}
                 >
                   {/* Avatar / thumbnail / icon */}
@@ -318,8 +318,8 @@ export function AdminPalette() {
                     <div className={cn(
                       "w-8 h-8 rounded-lg border flex items-center justify-center shrink-0",
                       focused
-                        ? "border-[#0A84FF]/40 bg-[#0A84FF]/10 text-[#0A84FF]"
-                        : "border-white/[0.06] bg-white/[0.02] text-white/55",
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-white/[0.06] bg-glass text-white/55",
                     )}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
@@ -336,13 +336,13 @@ export function AdminPalette() {
                   </div>
                   <span className={cn(
                     "text-[9px] font-mono uppercase tracking-[0.28em] shrink-0",
-                    focused ? "text-[#0A84FF]" : "text-white/25",
+                    focused ? "text-primary" : "text-white/25",
                   )}>
                     {r.kind}
                   </span>
                   <ArrowRight className={cn(
                     "w-3.5 h-3.5 shrink-0 transition-opacity",
-                    focused ? "opacity-100 text-[#0A84FF]" : "opacity-0",
+                    focused ? "opacity-100 text-primary" : "opacity-0",
                   )} />
                 </button>
               );

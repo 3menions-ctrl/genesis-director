@@ -124,7 +124,7 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
             onClick={toggleMode}
             className={cn(
               "relative flex items-center gap-1 p-1 rounded-full",
-              "bg-white/[0.03] border border-white/[0.08]",
+              "bg-glass border border-white/[0.08]",
               "hover:border-white/[0.15] transition-colors",
               className
             )}

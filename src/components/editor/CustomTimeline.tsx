@@ -168,7 +168,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleSolo}
             className={cn(
               "p-1 rounded-full transition-all duration-300 text-[8px] font-light w-5 h-5 flex items-center justify-center",
-              (track as any).solo ? "text-[hsl(215,100%,75%)] bg-[hsla(215,100%,60%,0.15)]" : "text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.04]"
+              (track as any).solo ? "text-[hsl(215,100%,75%)] bg-[hsla(215,100%,60%,0.15)]" : "text-muted-foreground/30 hover:text-foreground hover:bg-glass-hover"
             )}
             title="Solo"
           >
@@ -179,7 +179,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleMute}
             className={cn(
               "p-1 rounded-full transition-all duration-300",
-              track.muted ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-white/[0.04]"
+              track.muted ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
             )}
           >
             {track.muted ? <VolumeX className="w-2.5 h-2.5" strokeWidth={1.5} /> : <Volume2 className="w-2.5 h-2.5" strokeWidth={1.5} />}
@@ -189,7 +189,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
             onClick={onToggleLock}
             className={cn(
               "p-1 rounded-full transition-all duration-300",
-              track.locked ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-white/[0.04]"
+              track.locked ? "text-[hsla(215,100%,75%,0.85)] bg-[hsla(215,100%,60%,0.12)]" : "text-muted-foreground/30 hover:text-foreground/70 hover:bg-glass-hover"
             )}
           >
             {track.locked ? <Lock className="w-2.5 h-2.5" strokeWidth={1.5} /> : <Unlock className="w-2.5 h-2.5" strokeWidth={1.5} />}
@@ -903,7 +903,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                     "h-6 w-6 flex items-center justify-center rounded-full transition-all duration-300",
                     state.activeTool === t.tool
                       ? "text-white"
-                      : "text-muted-foreground/45 hover:text-foreground hover:bg-white/[0.05]"
+                      : "text-muted-foreground/45 hover:text-foreground hover:bg-glass-hover"
                   )}
                   style={state.activeTool === t.tool ? {
                     background: 'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,48%))',
@@ -923,15 +923,15 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         {/* Add tracks */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={() => addTrack("video")}
-            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
             <Plus className="w-2.5 h-2.5" strokeWidth={1.5} /><span className="hidden xl:inline">Video</span>
           </button>
           <button onClick={() => addTrack("audio")}
-            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
             <Music className="w-2.5 h-2.5" strokeWidth={1.5} /><span className="hidden xl:inline">Audio</span>
           </button>
           <button onClick={() => onOpenTextDialog?.()}
-            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+            className="h-6 px-2 flex items-center gap-1 text-[9px] font-light tracking-wide text-muted-foreground/55 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
             <Type className="w-2.5 h-2.5" strokeWidth={1.5} /><span className="hidden xl:inline">Text</span>
           </button>
         </div>
@@ -943,7 +943,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={undo} disabled={!canUndo}
-                className="h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.04] disabled:opacity-15 rounded-full transition-all duration-300">
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-glass-hover disabled:opacity-15 rounded-full transition-all duration-300">
                 <Undo2 className="w-3 h-3" strokeWidth={1.5} />
               </button>
             </TooltipTrigger>
@@ -952,7 +952,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={redo} disabled={!canRedo}
-                className="h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.04] disabled:opacity-15 rounded-full transition-all duration-300">
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-glass-hover disabled:opacity-15 rounded-full transition-all duration-300">
                 <Redo2 className="w-3 h-3" strokeWidth={1.5} />
               </button>
             </TooltipTrigger>
@@ -967,7 +967,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <TooltipTrigger asChild>
             <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
               className={cn("h-6 w-6 flex items-center justify-center rounded-full transition-all duration-300 shrink-0",
-                state.snapEnabled ? "text-[hsl(215,100%,80%)]" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]")}
+                state.snapEnabled ? "text-[hsl(215,100%,80%)]" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-glass-hover")}
               style={state.snapEnabled ? {
                 background: 'hsla(215,100%,60%,0.14)',
                 boxShadow: '0 0 12px hsla(215,100%,60%,0.40), inset 0 1px 0 hsla(0,0%,100%,0.06)',
@@ -1031,14 +1031,14 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={fitToView}
-                className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
                 <Maximize2 className="w-3 h-3" strokeWidth={1.5} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-[9px]">Fit to View</TooltipContent>
           </Tooltip>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+            className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
             <ZoomOut className="w-3 h-3" strokeWidth={1.5} />
           </button>
           <div className="w-14 h-1 rounded-full mx-1.5 relative shrink-0" style={{ background: 'hsla(0,0%,100%,0.06)' }}>
@@ -1052,7 +1052,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
             />
           </div>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-white/[0.04] rounded-full transition-all duration-300">
+            className="h-6 w-6 flex items-center justify-center text-muted-foreground/45 hover:text-foreground hover:bg-glass-hover rounded-full transition-all duration-300">
             <ZoomIn className="w-3 h-3" strokeWidth={1.5} />
           </button>
         </div>

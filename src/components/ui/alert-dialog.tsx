@@ -99,7 +99,7 @@ const AlertDialogCancel = React.forwardRef<
     ref={ref}
     className={cn(
       "inline-flex h-10 items-center justify-center rounded-full px-6 text-sm font-medium transition-all duration-200 mt-2 sm:mt-0",
-      "bg-white/[0.06] text-white/70 hover:bg-white/10 hover:text-white border border-white/[0.08]",
+      "bg-glass-active text-white/70 hover:bg-white/10 hover:text-white border border-white/[0.08]",
       className
     )}
     {...props}

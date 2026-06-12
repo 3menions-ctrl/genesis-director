@@ -221,7 +221,7 @@ export default function AdminUsersPage() {
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
-            className="pl-9 h-9 text-sm bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+            className="pl-9 h-9 text-sm bg-glass border-white/[0.06] text-white placeholder:text-white/20"
           />
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function AdminUsersPage() {
                   key={u.id}
                   className={cn(
                     "border-b border-white/[0.04] transition-colors",
-                    selected.has(u.id) ? "bg-[#0A84FF]/[0.05]" : "hover:bg-white/[0.02]",
+                    selected.has(u.id) ? "bg-primary/[0.05]" : "hover:bg-glass",
                   )}
                 >
                   <td className="w-10 py-3 pl-4">
@@ -275,7 +275,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="py-3 px-4 text-center text-sm text-white/40">{u.project_count}</td>
                   <td className="py-3 px-4 text-center">
-                    <Badge variant="secondary" className="text-[10px] font-medium bg-white/[0.04] text-white/50 border-white/[0.06]">{u.account_tier}</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-medium bg-glass-hover text-white/50 border-white/[0.06]">{u.account_tier}</Badge>
                   </td>
                   <td className="py-3 px-4 text-center">
                     {u.roles?.includes("admin") && (

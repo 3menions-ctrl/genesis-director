@@ -272,7 +272,7 @@ const Stage = memo(function Stage({ reel }: { reel: Reel }) {
           >
             {reel.title}
           </span>
-          <span className="px-2.5 py-1 rounded-full text-[10px] tracking-[0.32em] uppercase text-white bg-[#0A84FF]/85 border border-white/15 shadow-[0_0_24px_hsla(212,100%,55%,0.5)]">
+          <span className="px-2.5 py-1 rounded-full text-[10px] tracking-[0.32em] uppercase text-white bg-primary/85 border border-white/15 shadow-[0_0_24px_hsla(212,100%,55%,0.5)]">
             After · Small Bridges
           </span>
         </div>
@@ -282,7 +282,7 @@ const Stage = memo(function Stage({ reel }: { reel: Reel }) {
           <motion.span
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.6, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]"
+            className="w-1.5 h-1.5 rounded-full bg-destructive"
           />
           <span className="text-[10px] tracking-[0.4em] uppercase text-white/70">
             Native 4K · Audio
@@ -420,7 +420,7 @@ const Thumbs = memo(function Thumbs({
                 </span>
                 {isActive && (
                   <Play
-                    className="w-2.5 h-2.5 text-[#9DCBFF] shrink-0"
+                    className="w-2.5 h-2.5 text-primary/60 shrink-0"
                     fill="currentColor"
                   />
                 )}
@@ -482,9 +482,9 @@ export const BeforeAfterGallery = memo(function BeforeAfterGallery() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-8"
+              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-xl mb-8"
             >
-              <Sparkles className="w-3 h-3 text-[#9DCBFF]" />
+              <Sparkles className="w-3 h-3 text-primary/60" />
               <p className="text-[10px] font-medium text-white/55 tracking-[0.32em] uppercase">
                 Before · After · Vol. 02
               </p>

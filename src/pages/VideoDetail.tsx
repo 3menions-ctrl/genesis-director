@@ -203,7 +203,7 @@ export default function VideoDetailPage() {
 
               {/* Creator Info */}
               <div 
-                className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] cursor-pointer transition-colors"
+                className="flex items-center gap-3 p-3 rounded-xl bg-glass hover:bg-glass-hover cursor-pointer transition-colors"
                 onClick={() => navigate(`/user/${video.user_id}`)}
               >
                 <Avatar className="w-12 h-12">

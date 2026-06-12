@@ -36,7 +36,7 @@ export function CreditLowInline({ balance, required, className, context }: Credi
 
   const tone = insufficient
     ? 'border-amber-500/40 bg-amber-500/[0.06] text-amber-200'
-    : 'border-white/10 bg-white/[0.03] text-white/80';
+    : 'border-white/10 bg-glass text-white/80';
 
   return (
     <>
@@ -52,7 +52,7 @@ export function CreditLowInline({ balance, required, className, context }: Credi
         <span
           className={cn(
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-            insufficient ? 'bg-amber-500/20' : 'bg-white/[0.06]',
+            insufficient ? 'bg-amber-500/20' : 'bg-glass-active',
           )}
         >
           {insufficient ? <Coins className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -77,7 +77,7 @@ export function CreditLowInline({ balance, required, className, context }: Credi
             'h-8 shrink-0 rounded-lg px-3 font-mono text-[10px] uppercase tracking-[0.16em]',
             insufficient
               ? 'bg-amber-500 text-black hover:bg-amber-400'
-              : 'border-white/15 bg-transparent text-white/85 hover:bg-white/[0.05]',
+              : 'border-white/15 bg-transparent text-white/85 hover:bg-glass-hover',
           )}
         >
           Top up <ArrowRight className="ml-1 h-3 w-3" />

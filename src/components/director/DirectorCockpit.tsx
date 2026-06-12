@@ -63,7 +63,7 @@ export function DirectorCockpit({ intake, onReopenIntake }: Props) {
       />
 
       {/* 3-zone main */}
-      <div className="grid grid-cols-[320px_minmax(0,1fr)_360px] gap-px bg-white/[0.04]">
+      <div className="grid grid-cols-[320px_minmax(0,1fr)_360px] gap-px bg-glass-hover">
         <Notebook intake={intake} />
         <Stage
           intake={intake}
@@ -110,7 +110,7 @@ function CommandBar({
         </div>
         <button
           onClick={onReopenIntake}
-          className="text-white/95 text-lg italic hover:text-[#0A84FF] transition-colors flex items-center gap-2 group"
+          className="text-white/95 text-lg italic hover:text-primary transition-colors flex items-center gap-2 group"
           style={SERIF}
           title="Edit intake"
         >
@@ -120,7 +120,7 @@ function CommandBar({
       </div>
 
       {/* Mode toggle */}
-      <div className="flex items-center gap-1 bg-white/[0.04] border border-white/10 p-1">
+      <div className="flex items-center gap-1 bg-glass-hover border border-white/10 p-1">
         {(["auto", "director"] as const).map((m) => (
           <button
             key={m}
@@ -128,7 +128,7 @@ function CommandBar({
             className={cn(
               "px-5 h-8 text-[11px] tracking-[0.28em] transition-all",
               mode === m
-                ? "bg-[#0A84FF] text-white shadow-[0_0_18px_rgba(10,132,255,0.5)]"
+                ? "bg-primary text-white shadow-[0_0_18px_rgba(10,132,255,0.5)]"
                 : "text-white/55 hover:text-white"
             )}
             style={MONO}
@@ -140,16 +140,16 @@ function CommandBar({
 
       <div className="flex items-center gap-5">
         <div className="flex items-center gap-2 text-[11px]" style={MONO}>
-          <Coins className="h-3.5 w-3.5 text-[#0A84FF]" />
+          <Coins className="h-3.5 w-3.5 text-primary" />
           <span className="text-white/85">847 credits</span>
           <span className="text-white/35">·</span>
           <span className="text-white/55">$4.20 est.</span>
         </div>
         <div className="h-6 w-px bg-white/10" />
         <div className="flex items-center gap-2">
-          <div className="relative h-2 w-32 bg-white/[0.06] overflow-hidden">
+          <div className="relative h-2 w-32 bg-glass-active overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-[#0A84FF] shadow-[0_0_10px_rgba(10,132,255,0.7)]"
+              className="absolute inset-y-0 left-0 bg-primary shadow-[0_0_10px_rgba(10,132,255,0.7)]"
               style={{ width: `${(renderedCount / totalScenes) * 100}%` }}
             />
           </div>
@@ -158,7 +158,7 @@ function CommandBar({
           </span>
         </div>
         <Button
-          className="h-8 rounded-none bg-[#0A84FF] hover:bg-[#0A84FF] hover:shadow-[0_0_24px_rgba(10,132,255,0.55)] text-[10px] tracking-[0.28em] gap-2"
+          className="h-8 rounded-none bg-primary hover:bg-primary hover:shadow-[0_0_24px_rgba(10,132,255,0.55)] text-[10px] tracking-[0.28em] gap-2"
           style={MONO}
         >
           <Sparkles className="h-3.5 w-3.5" /> RENDER FILM
@@ -207,7 +207,7 @@ The suspect smirks.`}
       <Panel title="Continuity Manifest" badge="locked">
         <div className="grid grid-cols-3 gap-2 mt-2">
           {["wardrobe", "lighting", "location"].map((label, i) => (
-            <div key={label} className="aspect-square border border-white/10 bg-white/[0.04] relative overflow-hidden">
+            <div key={label} className="aspect-square border border-white/10 bg-glass-hover relative overflow-hidden">
               <div
                 className="absolute inset-0"
                 style={{
@@ -233,7 +233,7 @@ The suspect smirks.`}
           {Array.from({ length: 64 }).map((_, i) => (
             <div
               key={i}
-              className="flex-1 bg-[#0A84FF]/40"
+              className="flex-1 bg-primary/40"
               style={{ height: `${20 + Math.abs(Math.sin(i * 0.42)) * 80}%` }}
             />
           ))}
@@ -327,9 +327,9 @@ function Stage({
 
         {/* Chapter markers */}
         <div className="w-full max-w-[920px] mt-6">
-          <div className="relative h-1 bg-white/[0.06]">
+          <div className="relative h-1 bg-glass-active">
             <div
-              className="absolute inset-y-0 left-0 bg-[#0A84FF]/40"
+              className="absolute inset-y-0 left-0 bg-primary/40"
               style={{ width: `${((activeIndex + 0.5) / totalScenes) * 100}%` }}
             />
             {Array.from({ length: totalScenes }).map((_, i) => (
@@ -343,7 +343,7 @@ function Stage({
                   className={cn(
                     "h-3 w-3 rotate-45 border transition-all",
                     i === activeIndex
-                      ? "bg-[#0A84FF] border-[#0A84FF] shadow-[0_0_10px_2px_rgba(10,132,255,0.7)]"
+                      ? "bg-primary border-primary shadow-[0_0_10px_2px_rgba(10,132,255,0.7)]"
                       : "bg-[hsl(220,14%,2%)] border-white/30 group-hover:border-white"
                   )}
                 />
@@ -364,7 +364,7 @@ function Stage({
           </button>
           <button
             onClick={onPlayToggle}
-            className="h-11 w-11 rounded-full border border-white/20 hover:border-[#0A84FF] hover:text-white flex items-center justify-center transition-all hover:shadow-[0_0_20px_rgba(10,132,255,0.5)]"
+            className="h-11 w-11 rounded-full border border-white/20 hover:border-primary hover:text-white flex items-center justify-center transition-all hover:shadow-[0_0_20px_rgba(10,132,255,0.5)]"
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
           </button>
@@ -403,15 +403,15 @@ function Inspector({ scene, mode }: { scene: { n: number; title: string; duratio
       </div>
 
       <Panel title="Prompt">
-        <div className="border border-white/10 bg-white/[0.02] p-3 text-[12px] text-white/75 leading-relaxed" style={SERIF}>
+        <div className="border border-white/10 bg-glass p-3 text-[12px] text-white/75 leading-relaxed" style={SERIF}>
           Noir interrogation in a Tokyo police station. Rainy night, neon reflections, detective leans in. Tense, moody, cinematic.
         </div>
       </Panel>
 
-      <Panel title="Dialogue (verbatim)" icon={<Lock className="h-3 w-3 text-[#0A84FF]" />}>
+      <Panel title="Dialogue (verbatim)" icon={<Lock className="h-3 w-3 text-primary" />}>
         <Textarea
           defaultValue={`SATO\n  You said it was rain.\n  The witness said it was blood.`}
-          className="bg-white/[0.02] border-white/10 text-white/85 rounded-none text-[12px] min-h-[100px] focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
+          className="bg-glass border-white/10 text-white/85 rounded-none text-[12px] min-h-[100px] focus-visible:ring-1 focus-visible:ring-[#0A84FF]"
           style={MONO}
         />
       </Panel>
@@ -433,7 +433,7 @@ function Inspector({ scene, mode }: { scene: { n: number; title: string; duratio
             <div className="absolute inset-0 opacity-50" style={{ background: "radial-gradient(circle at 30% 40%, hsl(0 80% 50% / 0.6), transparent 50%)" }} />
             <div className="absolute bottom-1 left-1 text-[8px] text-white/70 tracking-widest" style={MONO}>LOCKED</div>
           </div>
-          <button className="aspect-square border border-dashed border-white/15 bg-white/[0.01] hover:border-[#0A84FF] hover:bg-[#0A84FF]/[0.05] transition-all flex flex-col items-center justify-center gap-1.5 text-white/40 hover:text-white">
+          <button className="aspect-square border border-dashed border-white/15 bg-white/[0.01] hover:border-primary hover:bg-primary/[0.05] transition-all flex flex-col items-center justify-center gap-1.5 text-white/40 hover:text-white">
             <Plus className="h-4 w-4" />
             <span className="text-[10px] tracking-widest" style={MONO}>UPLOAD</span>
           </button>
@@ -443,7 +443,7 @@ function Inspector({ scene, mode }: { scene: { n: number; title: string; duratio
       <Panel title="Continuity">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-white/75">
-            <Pin className="h-3.5 w-3.5 text-[#0A84FF]" />
+            <Pin className="h-3.5 w-3.5 text-primary" />
             <span style={SERIF}>Pin as continuity anchor</span>
           </div>
           <Switch checked={pin} onCheckedChange={setPin} />
@@ -451,7 +451,7 @@ function Inspector({ scene, mode }: { scene: { n: number; title: string; duratio
       </Panel>
 
       <div className="px-5 pb-6 pt-2 sticky bottom-0 bg-gradient-to-t from-[hsl(220,14%,3%)] via-[hsl(220,14%,3%)] to-transparent">
-        <Button className="w-full rounded-none h-12 bg-[#0A84FF] hover:bg-[#0A84FF] hover:shadow-[0_0_28px_rgba(10,132,255,0.6)] text-[11px] tracking-[0.32em] gap-2" style={MONO}>
+        <Button className="w-full rounded-none h-12 bg-primary hover:bg-primary hover:shadow-[0_0_28px_rgba(10,132,255,0.6)] text-[11px] tracking-[0.32em] gap-2" style={MONO}>
           <RefreshCw className="h-3.5 w-3.5" /> REGENERATE · 12 CREDITS
         </Button>
         <div className="text-center text-[10px] text-white/35 mt-2 tracking-widest" style={MONO}>
@@ -476,7 +476,7 @@ function SceneStrip({
         <span className="text-[10px] tracking-[0.3em] text-white/45" style={MONO}>SCENE STRIP</span>
         <div className="flex items-center gap-4 text-[10px] tracking-widest text-white/45" style={MONO}>
           <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-400" /> RENDERED</span>
-          <span className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 text-[#0A84FF] animate-spin" /> GENERATING</span>
+          <span className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 text-primary animate-spin" /> GENERATING</span>
           <span className="flex items-center gap-1.5"><Circle className="h-3 w-3 text-white/30" /> QUEUED</span>
           <span className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-amber-400" /> FALLBACK</span>
         </div>
@@ -498,7 +498,7 @@ function SceneCard({ scene, active, onClick }: { scene: Scene; active: boolean; 
     : Circle;
   const statusColor =
     scene.status === "rendered" ? "text-emerald-400"
-    : scene.status === "generating" ? "text-[#0A84FF]"
+    : scene.status === "generating" ? "text-primary"
     : scene.status === "warning" ? "text-amber-400"
     : "text-white/30";
 
@@ -508,11 +508,11 @@ function SceneCard({ scene, active, onClick }: { scene: Scene; active: boolean; 
       className={cn(
         "relative shrink-0 w-[200px] border bg-[hsl(220,14%,3%)] text-left transition-all",
         active
-          ? "border-[#0A84FF] shadow-[0_0_24px_rgba(10,132,255,0.35)]"
+          ? "border-primary shadow-[0_0_24px_rgba(10,132,255,0.35)]"
           : "border-white/10 hover:border-white/25"
       )}
     >
-      {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF]" />}
+      {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary" />}
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-1.5">
@@ -533,7 +533,7 @@ function SceneCard({ scene, active, onClick }: { scene: Scene; active: boolean; 
         />
         <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 0%) 100%)" }} />
         {scene.status === "generating" && scene.progress !== undefined && (
-          <div className="absolute top-2 right-2 h-7 w-7 rounded-full border border-[#0A84FF] flex items-center justify-center text-[9px] text-white" style={MONO}>
+          <div className="absolute top-2 right-2 h-7 w-7 rounded-full border border-primary flex items-center justify-center text-[9px] text-white" style={MONO}>
             {scene.progress}
           </div>
         )}
@@ -565,8 +565,8 @@ function AudioRail() {
         <Track label="Score" Icon={Music2} kind="score" />
         <Track label="Dialogue" Icon={Mic2} kind="dialogue" />
         {/* Playhead */}
-        <div className="absolute top-0 bottom-0 left-[34%] w-px bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.7)] pointer-events-none">
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-[#0A84FF]" />
+        <div className="absolute top-0 bottom-0 left-[34%] w-px bg-primary shadow-[0_0_8px_rgba(10,132,255,0.7)] pointer-events-none">
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-primary" />
         </div>
       </div>
     </div>
@@ -590,7 +590,7 @@ function Track({ label, Icon, kind }: { label: string; Icon: typeof Music2; kind
               key={i}
               className={cn(
                 "flex-1",
-                kind === "score" ? "bg-[#0A84FF]/55" : "bg-white/55"
+                kind === "score" ? "bg-primary/55" : "bg-white/55"
               )}
               style={{ height: `${h}%` }}
             />
@@ -620,7 +620,7 @@ function Panel({ title, badge, icon, children }: { title: string; badge?: string
           {icon}
         </div>
         {badge && (
-          <span className="text-[9px] tracking-widest text-[#0A84FF]/80 border border-[#0A84FF]/30 px-1.5 py-0.5" style={MONO}>
+          <span className="text-[9px] tracking-widest text-primary/80 border border-primary/30 px-1.5 py-0.5" style={MONO}>
             {badge.toUpperCase()}
           </span>
         )}
@@ -662,7 +662,7 @@ function DropdownRow({ label, value, Icon }: { label: string; value: string; Ico
   return (
     <button className="w-full flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-b-0 group">
       <div className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-white/40 group-hover:text-[#0A84FF]" />
+        <Icon className="h-3.5 w-3.5 text-white/40 group-hover:text-primary" />
         <span className="text-[10px] text-white/45 tracking-widest" style={MONO}>{label.toUpperCase()}</span>
       </div>
       <div className="flex items-center gap-2">

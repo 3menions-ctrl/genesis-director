@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Eye, MousePointerClick, Film, TrendingUp, Monitor, Smartphone, Tablet } from 'lucide-react';
 
 /* ── dark glass tokens ── */
-const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
+const glass = 'bg-glass-hover border border-white/[0.08] backdrop-blur-sm';
 const textPrimary = 'text-white/90';
 const textSecondary = 'text-white/50';
 const textMuted = 'text-white/30';
@@ -81,7 +81,7 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
         {statCards.map(({ label, value, icon: Icon }) => (
           <div key={label} className={`rounded-2xl ${glass} p-4`}>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-glass-active flex items-center justify-center">
                 <Icon className={`w-3.5 h-3.5 ${textSecondary}`} />
               </div>
             </div>
@@ -123,14 +123,14 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
         ) : (
           <div className="divide-y divide-white/[0.04] max-h-[400px] overflow-y-auto scrollbar-hide">
             {events.map(event => (
-              <div key={event.id} className="px-5 py-2.5 flex items-center justify-between text-sm hover:bg-white/[0.03] transition-colors">
+              <div key={event.id} className="px-5 py-2.5 flex items-center justify-between text-sm hover:bg-glass transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`w-1.5 h-1.5 rounded-full ${eventDotColors[event.event_type] || 'bg-white/30'}`} />
                   <span className={`font-medium ${textPrimary} text-xs`}>
                     {eventTypeLabels[event.event_type] || event.event_type}
                   </span>
                   {event.scene_id && (
-                    <span className={`text-[10px] ${textMuted} bg-white/[0.06] px-2 py-0.5 rounded-md font-mono`}>
+                    <span className={`text-[10px] ${textMuted} bg-glass-active px-2 py-0.5 rounded-md font-mono`}>
                       {event.scene_id.slice(0, 8)}
                     </span>
                   )}

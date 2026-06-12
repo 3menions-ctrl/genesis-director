@@ -192,7 +192,7 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
                 onClick={onClose}
-                className="flex-shrink-0 p-1.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all duration-200"
+                className="flex-shrink-0 p-1.5 rounded-full text-white/40 hover:text-white/80 hover:bg-glass-active transition-all duration-200"
               >
                 <X className="w-4 h-4" />
               </motion.button>

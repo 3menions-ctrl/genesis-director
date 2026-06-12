@@ -302,13 +302,13 @@ function LogoUploader({
         className={cn(
           'relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-8 transition-colors',
           dragging
-            ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.05]'
+            ? 'border-primary/60 bg-primary/[0.05]'
             : 'border-white/[0.08] bg-white/[0.015]',
           canEdit ? 'cursor-pointer hover:border-white/20' : 'cursor-not-allowed opacity-50',
         )}
       >
         {uploading ? (
-          <Loader2 className="w-5 h-5 text-[#6FB6FF] animate-spin" />
+          <Loader2 className="w-5 h-5 text-primary/80 animate-spin" />
         ) : (
           <UploadCloud className="w-5 h-5 text-white/45" />
         )}

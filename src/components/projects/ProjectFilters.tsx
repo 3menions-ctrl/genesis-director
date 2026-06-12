@@ -110,7 +110,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 "pl-11 pr-10 h-11 w-full rounded-full border-0",
                 "bg-white/[0.025]",
                 "text-white/90 placeholder:text-white/35 font-light tracking-[-0.005em]",
-                "focus:bg-white/[0.05] focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] focus-visible:ring-1 focus-visible:ring-[hsla(215,100%,60%,0.35)]",
+                "focus:bg-glass-hover focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] focus-visible:ring-1 focus-visible:ring-[hsla(215,100%,60%,0.35)]",
                 "transition-all duration-500"
               )}
             />
@@ -123,7 +123,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
               </button>
             )}
             {!searchQuery && (
-              <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-white/[0.04] text-[10px] text-white/40 font-mono">
+              <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-glass-hover text-[10px] text-white/40 font-mono">
                 /
               </kbd>
             )}
@@ -137,7 +137,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-11 px-4 gap-2 rounded-full border-0 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/[0.07] hover:scale-[1.02] transition-all duration-400 font-light tracking-[-0.005em]"
+                  className="h-11 px-4 gap-2 rounded-full border-0 bg-glass text-white/60 hover:text-white hover:bg-white/[0.07] hover:scale-[1.02] transition-all duration-400 font-light tracking-[-0.005em]"
                 >
                   {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" strokeWidth={1.5} /> : <SortAsc className="w-4 h-4" strokeWidth={1.5} />}
                   <span className="hidden sm:inline">{getSortLabel()}</span>
@@ -156,29 +156,29 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 <DropdownMenuLabel className="text-white/40 text-[10px] uppercase tracking-[0.15em] font-light px-3 py-2">Sort By</DropdownMenuLabel>
                 <DropdownMenuItem 
                   onClick={() => onSortByChange('updated')}
-                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white", sortBy === 'updated' && "bg-white/[0.06]")}
+                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white", sortBy === 'updated' && "bg-glass-active")}
                 >
                   {sortBy === 'updated' && <Check className="w-4 h-4 text-[hsl(215,100%,70%)]" strokeWidth={1.5} />}
                   <span className={sortBy !== 'updated' ? 'ml-6' : ''}>Last Updated</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => onSortByChange('created')}
-                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white", sortBy === 'created' && "bg-white/[0.06]")}
+                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white", sortBy === 'created' && "bg-glass-active")}
                 >
                   {sortBy === 'created' && <Check className="w-4 h-4 text-[hsl(215,100%,70%)]" strokeWidth={1.5} />}
                   <span className={sortBy !== 'created' ? 'ml-6' : ''}>Date Created</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => onSortByChange('name')}
-                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white", sortBy === 'name' && "bg-white/[0.06]")}
+                  className={cn("gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white", sortBy === 'name' && "bg-glass-active")}
                 >
                   {sortBy === 'name' && <Check className="w-4 h-4 text-[hsl(215,100%,70%)]" strokeWidth={1.5} />}
                   <span className={sortBy !== 'name' ? 'ml-6' : ''}>Name</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/[0.06]" />
+                <DropdownMenuSeparator className="bg-glass-active" />
                 <DropdownMenuItem 
                   onClick={() => onSortOrderChange(sortOrder === 'desc' ? 'asc' : 'desc')}
-                  className="gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white"
+                  className="gap-2 rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white"
                 >
                   {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" strokeWidth={1.5} /> : <SortAsc className="w-4 h-4" strokeWidth={1.5} />}
                   {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
@@ -193,7 +193,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                   variant="outline" 
                   size="sm" 
                   className={cn(
-                    "h-11 px-4 gap-2 rounded-full border-0 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/[0.07] hover:scale-[1.02] transition-all duration-400 font-light tracking-[-0.005em]",
+                    "h-11 px-4 gap-2 rounded-full border-0 bg-glass text-white/60 hover:text-white hover:bg-white/[0.07] hover:scale-[1.02] transition-all duration-400 font-light tracking-[-0.005em]",
                     statusFilter !== 'all' && "text-[hsl(215,100%,75%)] bg-[hsla(215,100%,60%,0.08)]"
                   )}
                 >
@@ -215,14 +215,14 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 <DropdownMenuCheckboxItem 
                   checked={statusFilter === 'all'}
                   onCheckedChange={() => onStatusFilterChange('all')}
-                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white"
+                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white"
                 >
                   All Projects
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem 
                   checked={statusFilter === 'completed'}
                   onCheckedChange={() => onStatusFilterChange('completed')}
-                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white"
+                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white"
                 >
                   <span className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -232,7 +232,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 <DropdownMenuCheckboxItem 
                   checked={statusFilter === 'processing'}
                   onCheckedChange={() => onStatusFilterChange('processing')}
-                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white"
+                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white"
                 >
                   <span className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[hsl(215,100%,65%)] shadow-[0_0_8px_hsla(215,100%,60%,0.6)]" />
@@ -242,7 +242,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 <DropdownMenuCheckboxItem 
                   checked={statusFilter === 'failed'}
                   onCheckedChange={() => onStatusFilterChange('failed')}
-                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-white/[0.06] focus:text-white"
+                  className="rounded-xl mx-1 font-light text-white/80 focus:bg-glass-active focus:text-white"
                 >
                   <span className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-red-400" />
@@ -253,13 +253,13 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
             </DropdownMenu>
 
             {/* View Toggle */}
-            <div className="flex items-center rounded-full bg-white/[0.03] p-1">
+            <div className="flex items-center rounded-full bg-glass p-1">
               <button
                 onClick={() => onViewModeChange('grid')}
                 className={cn(
                   "p-2 rounded-full transition-all duration-400",
                   viewMode === 'grid' 
-                    ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
+                    ? "bg-glass-active text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
                     : "text-white/40 hover:text-white/80"
                 )}
               >
@@ -270,7 +270,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 className={cn(
                   "p-2 rounded-full transition-all duration-400",
                   viewMode === 'list' 
-                    ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
+                    ? "bg-glass-active text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
                     : "text-white/40 hover:text-white/80"
                 )}
               >
@@ -284,7 +284,7 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
                 onClick={onToggleKeyboardHints}
                 className={cn(
                   "hidden lg:flex h-11 px-3 items-center gap-2 rounded-full transition-all duration-400",
-                  "bg-white/[0.03]",
+                  "bg-glass",
                   "text-white/40 hover:text-white/90 hover:bg-white/[0.07]",
                   showKeyboardHints && "text-[hsl(215,100%,75%)] bg-[hsla(215,100%,60%,0.08)]"
                 )}
@@ -301,23 +301,23 @@ export const ProjectFilters = memo(forwardRef<HTMLDivElement, ProjectFiltersProp
           <div className="mt-4 pt-4 animate-fade-in" style={{ borderTop: '1px solid hsla(0,0%,100%,0.04)' }}>
             <div className="flex flex-wrap gap-4 text-xs text-white/40 font-light">
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-md bg-white/[0.04] font-mono">/</kbd>
+                <kbd className="px-2 py-1 rounded-md bg-glass-hover font-mono">/</kbd>
                 <span>Search</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-md bg-white/[0.04] font-mono">⌘N</kbd>
+                <kbd className="px-2 py-1 rounded-md bg-glass-hover font-mono">⌘N</kbd>
                 <span>New Project</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-md bg-white/[0.04] font-mono">G</kbd>
+                <kbd className="px-2 py-1 rounded-md bg-glass-hover font-mono">G</kbd>
                 <span>Grid View</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-md bg-white/[0.04] font-mono">L</kbd>
+                <kbd className="px-2 py-1 rounded-md bg-glass-hover font-mono">L</kbd>
                 <span>List View</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-md bg-white/[0.04] font-mono">?</kbd>
+                <kbd className="px-2 py-1 rounded-md bg-glass-hover font-mono">?</kbd>
                 <span>Toggle Hints</span>
               </div>
             </div>

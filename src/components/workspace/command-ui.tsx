@@ -173,7 +173,7 @@ export function CmdButton({
 }) {
   const styles = {
     primary: 'rounded-full text-white shadow-[0_10px_28px_-10px_hsla(215,100%,55%,0.55),inset_0_1px_0_hsla(0,0%,100%,0.18)] hover:shadow-[0_16px_40px_-12px_hsla(215,100%,55%,0.7),inset_0_1px_0_hsla(0,0%,100%,0.22)] hover:scale-[1.015] active:scale-[0.985] disabled:opacity-50 disabled:hover:scale-100',
-    ghost:   'rounded-full border border-white/[0.08] bg-white/[0.03] text-white/85 hover:bg-white/[0.07] hover:border-white/[0.14] hover:text-white',
+    ghost:   'rounded-full border border-white/[0.08] bg-glass text-white/85 hover:bg-white/[0.07] hover:border-white/[0.14] hover:text-white',
     danger:  'rounded-full border border-[hsl(0,70%,55%)]/30 bg-[hsl(0,70%,40%)]/10 text-[hsl(0,80%,76%)] hover:bg-[hsl(0,70%,40%)]/20',
   }[variant];
   return (
@@ -205,9 +205,9 @@ export function DataInput({
     <input
       {...props}
       className={cn(
-        'w-full px-3.5 h-10 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[13px] text-white/90 font-light',
+        'w-full px-3.5 h-10 rounded-xl bg-glass border border-white/[0.08] text-[13px] text-white/90 font-light',
         'placeholder:text-white/30',
-        'focus:outline-none focus:border-[hsl(215,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(215,100%,55%)]/25 focus:bg-white/[0.05]',
+        'focus:outline-none focus:border-[hsl(215,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(215,100%,55%)]/25 focus:bg-glass-hover',
         'disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
         className,
       )}
@@ -223,9 +223,9 @@ export function DataTextarea({
     <textarea
       {...props}
       className={cn(
-        'w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[13px] text-white/90 font-light',
+        'w-full px-3.5 py-2.5 rounded-xl bg-glass border border-white/[0.08] text-[13px] text-white/90 font-light',
         'placeholder:text-white/30',
-        'focus:outline-none focus:border-[hsl(215,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(215,100%,55%)]/25 focus:bg-white/[0.05]',
+        'focus:outline-none focus:border-[hsl(215,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(215,100%,55%)]/25 focus:bg-glass-hover',
         'disabled:opacity-50 disabled:cursor-not-allowed transition-colors resize-y',
         className,
       )}
@@ -242,7 +242,7 @@ export function Pill({
   className?: string;
 }) {
   const tones = {
-    neutral: 'border-white/[0.08] bg-white/[0.04] text-white/75',
+    neutral: 'border-white/[0.08] bg-glass-hover text-white/75',
     amber:   'border-[hsl(215,100%,60%)]/30 bg-[hsl(215,100%,55%)]/10 text-[hsl(215,100%,80%)]',
     good:    'border-[hsl(140,70%,50%)]/30 bg-[hsl(140,70%,40%)]/10 text-[hsl(140,70%,75%)]',
     warn:    'border-[hsl(45,90%,55%)]/30 bg-[hsl(45,90%,40%)]/10 text-[hsl(45,90%,76%)]',

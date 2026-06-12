@@ -89,7 +89,7 @@ export const GridSkeleton = memo(function GridSkeleton({
             <div className="h-4 bg-white/5 rounded w-3/4 relative overflow-hidden">
               <Shimmer />
             </div>
-            <div className="h-3 bg-white/[0.03] rounded w-1/2 relative overflow-hidden">
+            <div className="h-3 bg-glass rounded w-1/2 relative overflow-hidden">
               <Shimmer />
             </div>
           </div>

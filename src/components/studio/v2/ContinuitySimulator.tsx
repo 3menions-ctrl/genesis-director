@@ -170,7 +170,7 @@ export function ContinuitySimulator({ scenes, cast, brief }: ContinuitySimulator
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     {idx === 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/50">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-glass-hover px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/50">
                         Anchor
                       </span>
                     ) : row.chained ? (
@@ -184,7 +184,7 @@ export function ContinuitySimulator({ scenes, cast, brief }: ContinuitySimulator
                         {row.willChain ? "Will chain" : "Chain breaks"}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/55">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-glass px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/55">
                         <Scissors className="h-2.5 w-2.5" />
                         Independent
                       </span>
@@ -247,7 +247,7 @@ function SourceBadge({ source }: { source: StartSource }) {
     sceneRef: "border-sky-400/30 bg-sky-400/[0.08] text-sky-300",
     briefRef: "border-indigo-400/30 bg-indigo-400/[0.08] text-indigo-300",
     cast:     "border-fuchsia-400/30 bg-fuchsia-400/[0.08] text-fuchsia-300",
-    none:     "border-white/15 bg-white/[0.04] text-white/55",
+    none:     "border-white/15 bg-glass-hover text-white/55",
   };
   return (
     <span className={cn(

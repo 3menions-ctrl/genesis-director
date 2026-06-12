@@ -791,7 +791,7 @@ export function EditorChrome({
                 <TooltipTrigger asChild>
                   <button
                     onClick={openBrowser}
-                    className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors"
+                    className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-glass-hover transition-colors"
                   >
                     <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
                     <span className="font-mono text-[10px] uppercase tracking-[0.22em]">{!autoLoadDone ? "Syncing" : "Import"}</span>
@@ -885,7 +885,7 @@ export function EditorChrome({
                   <button
                     onClick={() => saveProject(sessionTitle)}
                     disabled={saving}
-                    className="h-7 flex items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors disabled:opacity-40"
+                    className="h-7 flex items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-glass-hover transition-colors disabled:opacity-40"
                   >
                     {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" strokeWidth={1.5} />}
                     <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-[0.22em]">Save</span>
@@ -912,7 +912,7 @@ export function EditorChrome({
                     <button
                       onClick={handleStitch}
                       disabled={isRendering}
-                      className="h-7 flex items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors disabled:opacity-40"
+                      className="h-7 flex items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-glass-hover transition-colors disabled:opacity-40"
                     >
                       <Film className="w-3.5 h-3.5" strokeWidth={1.5} />
                       <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-[0.22em]">Stitch</span>
@@ -928,7 +928,7 @@ export function EditorChrome({
                   <button
                     onClick={handleOpenInOpenReel}
                     disabled={isRendering || isStitching}
-                    className="hidden lg:flex h-7 items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors disabled:opacity-40"
+                    className="hidden lg:flex h-7 items-center gap-1.5 rounded-full px-3 text-muted-foreground hover:text-foreground hover:bg-glass-hover transition-colors disabled:opacity-40"
                   >
                     <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
                     <span className="font-mono text-[10px] uppercase tracking-[0.22em]">OpenReel</span>

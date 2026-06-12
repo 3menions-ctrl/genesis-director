@@ -92,8 +92,8 @@ export default function AdminProvidersPage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && groups.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No provider activity in last 7 days.</td></tr>}
               {groups.map(g => (
-                <tr key={g.service} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-[#0A84FF]/30 bg-[#0A84FF]/5 text-[#6FB6FF] font-mono text-[11px]">{g.service}</span></td>
+                <tr key={g.service} className="border-b border-white/[0.04] hover:bg-glass">
+                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{g.service}</span></td>
                   <td className="px-4 py-3 text-right text-white/70 font-mono text-[11px] tabular-nums">{g.invocations}</td>
                   <td className={`px-4 py-3 text-right font-mono text-[11px] tabular-nums ${g.success_rate >= 95 ? "text-emerald-300" : g.success_rate >= 80 ? "text-amber-300" : "text-rose-300"}`}>{g.success_rate}%</td>
                   <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{g.avg_duration}s</td>

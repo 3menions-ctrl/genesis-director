@@ -71,11 +71,11 @@ export default function Unsubscribe() {
   return (
     <div className="min-h-screen bg-[hsl(220,14%,2%)] text-white font-body flex items-center justify-center p-6 relative overflow-hidden">
       <div aria-hidden className="absolute inset-0 pointer-events-none opacity-50">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[#0A84FF]/[0.06] blur-[120px]" />
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-primary/[0.06] blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/[0.06] bg-[hsl(220,14%,4%)]/80 backdrop-blur-xl p-8 sm:p-10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
-        <div className="text-[10px] uppercase tracking-[0.32em] text-[#9DCBFF] font-medium mb-3 inline-flex items-center gap-2">
+        <div className="text-[10px] uppercase tracking-[0.32em] text-primary/60 font-medium mb-3 inline-flex items-center gap-2">
           <MailX className="w-3 h-3" /> Email preferences
         </div>
 
@@ -111,7 +111,7 @@ export default function Unsubscribe() {
             <Button
               onClick={confirm}
               disabled={state.kind === 'submitting'}
-              className="w-full mt-6 bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white"
+              className="w-full mt-6 bg-primary hover:bg-primary/90 text-white"
             >
               {state.kind === 'submitting' ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Confirming…</>

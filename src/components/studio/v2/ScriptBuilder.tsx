@@ -438,7 +438,7 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
               </span>
               {display?.imageUrl
                 ? <img src={display.imageUrl} alt="" className="h-7 w-7 flex-shrink-0 rounded-md object-cover ring-1 ring-white/10" />
-                : <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white/[0.04] ring-1 ring-white/10">
+                : <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-glass-hover ring-1 ring-white/10">
                     <Mic2 className="h-3 w-3 text-white/30" />
                   </div>}
               <div className="min-w-0 flex-1">
@@ -448,7 +448,7 @@ function Timeline({ scenes, cast, activeId, resolved, onSelect }: {
                 <div className="truncate font-serif text-[11px] italic text-white/45">
                   {scene.dialogue ? `"${scene.dialogue.split("\n")[0]}"` : scene.beat || "Untitled beat"}
                 </div>
-                <div className="mt-1 h-[2px] w-full overflow-hidden rounded-full bg-white/[0.06]">
+                <div className="mt-1 h-[2px] w-full overflow-hidden rounded-full bg-glass-active">
                   <div className={cn(
                     "h-full rounded-full transition-all",
                     scene.status === "done" ? "bg-emerald-400/70"
@@ -571,7 +571,7 @@ function ReadThrough({ scenes, cast, onClose }: { scenes: SceneDraft[]; cast: Ca
       </div>
 
       <div className="border-t border-white/10 px-6 py-3">
-        <div className="mx-auto flex h-1.5 max-w-2xl overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="mx-auto flex h-1.5 max-w-2xl overflow-hidden rounded-full bg-glass-active">
           <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((i + 1) / scenes.length) * 100}%` }} />
         </div>
       </div>
@@ -647,7 +647,7 @@ function Toolbar({
               "inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors",
               chainSummary === "all-chained"
                 ? "bg-accent/15 text-accent"
-                : "text-white/60 hover:bg-white/[0.04] hover:text-white",
+                : "text-white/60 hover:bg-glass-hover hover:text-white",
             )}
             title="Chain every scene — inherit previous frame & identity"
           >
@@ -660,7 +660,7 @@ function Toolbar({
               "inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors",
               chainSummary === "all-independent"
                 ? "bg-amber-400/15 text-amber-300"
-                : "text-white/60 hover:bg-white/[0.04] hover:text-white",
+                : "text-white/60 hover:bg-glass-hover hover:text-white",
             )}
             title="Break every chain — render each scene as a standalone shot"
           >

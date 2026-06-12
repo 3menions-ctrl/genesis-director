@@ -120,7 +120,7 @@ export function ContactSalesDialog({ open, onOpenChange, tier = 'enterprise', so
             <div className="flex flex-wrap gap-2">
               {SIZE_OPTS.map(s => (
                 <button key={s} type="button" onClick={() => set('company_size', s)}
-                  className={`px-3 py-1.5 rounded-full text-xs border transition-all ${form.company_size === s ? 'bg-[#0A84FF]/15 border-[#0A84FF]/50 text-white' : 'bg-white/[0.02] border-white/[0.07] text-white/60 hover:text-white'}`}>
+                  className={`px-3 py-1.5 rounded-full text-xs border transition-all ${form.company_size === s ? 'bg-primary/15 border-primary/50 text-white' : 'bg-glass border-white/[0.07] text-white/60 hover:text-white'}`}>
                   {s}
                 </button>
               ))}
@@ -137,7 +137,7 @@ export function ContactSalesDialog({ open, onOpenChange, tier = 'enterprise', so
               <select
                 value={form.estimated_videos_per_month}
                 onChange={e => set('estimated_videos_per_month', e.target.value)}
-                className="w-full h-10 rounded-md bg-white/[0.03] border border-white/[0.07] text-sm text-white px-3 focus:outline-none focus:border-[#0A84FF]/50"
+                className="w-full h-10 rounded-md bg-glass border border-white/[0.07] text-sm text-white px-3 focus:outline-none focus:border-primary/50"
               >
                 <option value="">Select…</option>
                 {VOLUME_OPTS.map(v => <option key={v} value={v}>{v}</option>)}
@@ -157,7 +157,7 @@ export function ContactSalesDialog({ open, onOpenChange, tier = 'enterprise', so
 
           <div className="flex items-center justify-between gap-3 pt-2">
             <p className="text-[11px] text-white/30">We respond within one business day.</p>
-            <Button onClick={submit} disabled={submitting} className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white">
+            <Button onClick={submit} disabled={submitting} className="bg-primary hover:bg-primary/90 text-white">
               {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sending…</> : <><Send className="w-4 h-4 mr-2" />Request a call</>}
             </Button>
           </div>

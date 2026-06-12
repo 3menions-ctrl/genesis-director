@@ -126,7 +126,7 @@ export default function Crossover() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search effects — dancer, tiger, code, oil painting…"
-            className="w-full h-12 pl-11 pr-12 rounded-2xl bg-white/[0.02] border border-white/[0.06] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
+            className="w-full h-12 pl-11 pr-12 rounded-2xl bg-glass border border-white/[0.06] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
           />
           {search && (
             <button

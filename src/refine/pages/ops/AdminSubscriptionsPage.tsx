@@ -110,7 +110,7 @@ export default function AdminSubscriptionsPage() {
               {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && pg.slice.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">No subscriptions.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
                   <td className="px-4 py-3">
                     <Badge variant={r.status === "active" || r.status === "trialing" ? "default" : r.status === "past_due" ? "destructive" : "secondary"} className="font-mono text-[10px]">
                       {r.status}{r.cancel_at_period_end ? " · cancel" : ""}

@@ -43,7 +43,7 @@ export default function AdminEmailTemplatesPage() {
         columns={[
           { key: "name", label: "Name", width: "220px" },
           { key: "slug", label: "Slug", width: "200px",
-            render: (v) => <code className="font-mono text-[11px] text-[#6FB6FF]">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[11px] text-primary/80">{String(v)}</code> },
           { key: "subject", label: "Subject" },
           { key: "enabled", label: "Status", width: "100px" },
           { key: "updated_at", label: "Updated", width: "170px", hideOnMobile: true },

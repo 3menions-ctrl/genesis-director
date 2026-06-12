@@ -46,7 +46,7 @@
              {/* Glow effect */}
              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity scale-150" />
              
-             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
+             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
                <ChevronLeft className="w-6 h-6 md:w-7 md:h-7" />
              </div>
            </motion.button>
@@ -67,7 +67,7 @@
              {/* Glow effect */}
              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity scale-150" />
              
-             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
+             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
                <ChevronRight className="w-6 h-6 md:w-7 md:h-7" />
              </div>
            </motion.button>

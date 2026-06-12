@@ -196,7 +196,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             <Button
               onClick={() => setIsChangingPassword(true)}
               variant="outline"
-              className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white hover:border-white/[0.15] rounded-xl"
+              className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white hover:border-white/[0.15] rounded-xl"
             >
               Change Password
             </Button>
@@ -217,7 +217,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Enter new password"
-                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
+                  className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
                 />
                 <button
                   type="button"
@@ -238,7 +238,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Confirm new password"
-                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
+                  className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
                 />
                 <button
                   type="button"
@@ -304,7 +304,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
           <Button
             onClick={handleSignOutAllDevices}
             variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white rounded-xl"
+            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white rounded-xl"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out All
@@ -312,7 +312,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.05]">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
                 <Monitor className="w-4 h-4 text-emerald-400" />
@@ -354,7 +354,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             { label: '2FA Enabled', value: 'No', valueColor: 'text-white/40' },
             { label: 'Account Created', value: memberSince },
           ].map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <div key={i} className="p-4 rounded-xl bg-glass border border-white/[0.05]">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {item.icon}
@@ -376,7 +376,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-white/[0.04]")}>
+            <div className={cn(iconBoxClass, "bg-glass-hover")}>
               <Download className="w-5 h-5 text-white/30" />
             </div>
             <div>
@@ -388,7 +388,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             onClick={handleExportData}
             disabled={isExporting}
             variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white rounded-xl"
+            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white rounded-xl"
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -431,7 +431,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
 
       {/* Delete Account Dialog - FIXED: responsive */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-background/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
@@ -465,7 +465,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
                 placeholder="Type DELETE"
-                className="bg-white/[0.03] border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
+                className="bg-glass border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
               />
             </div>
           </div>

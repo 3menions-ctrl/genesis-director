@@ -265,7 +265,7 @@ function Rail({ reels, accent }: { reels: Reel[]; accent: string }) {
               {r.creator_avatar ? (
                 <img src={r.creator_avatar} alt="" className="w-3.5 h-3.5 rounded-full" />
               ) : (
-                <div className="w-3.5 h-3.5 rounded-full bg-white/[0.05]" />
+                <div className="w-3.5 h-3.5 rounded-full bg-glass-hover" />
               )}
               <span className="truncate">{r.creator_name ?? "Anonymous"}</span>
               <span aria-hidden className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: `hsl(${accent})` }} />

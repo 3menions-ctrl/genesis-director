@@ -53,11 +53,11 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-10 shadow-[0_8px_32px_-8px_rgba(10,132,255,0.25)]"
+        className="relative inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-glass border border-white/[0.08] backdrop-blur-2xl mb-10 shadow-[0_8px_32px_-8px_rgba(10,132,255,0.25)]"
       >
         <span className="relative flex w-1.5 h-1.5">
-          <span className="absolute inset-0 rounded-full bg-[#0A84FF] animate-ping opacity-75" />
-          <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
+          <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
+          <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-primary" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
           Small Bridges
@@ -151,7 +151,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           onClick={onSecondary}
           size="lg"
           variant="ghost"
-          className="group relative h-14 px-8 text-[15px] font-medium rounded-full text-white/95 bg-white/[0.04] backdrop-blur-xl border border-white/15 hover:border-white/30 hover:bg-white/[0.08] transition-all duration-300 hover:scale-[1.02] shadow-[0_20px_60px_-20px_rgba(10,132,255,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+          className="group relative h-14 px-8 text-[15px] font-medium rounded-full text-white/95 bg-glass-hover backdrop-blur-xl border border-white/15 hover:border-white/30 hover:bg-glass-active transition-all duration-300 hover:scale-[1.02] shadow-[0_20px_60px_-20px_rgba(10,132,255,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
         >
           <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'radial-gradient(120% 120% at 50% 0%, hsla(212,100%,55%,0.18), transparent 60%)' }} />
           <Clapperboard className="w-4 h-4 mr-2 text-white/85 group-hover:text-white transition-colors" />

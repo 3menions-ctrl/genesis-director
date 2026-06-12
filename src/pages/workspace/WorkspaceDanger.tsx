@@ -136,7 +136,7 @@ export default function WorkspaceDanger() {
             {members.map((m) => (
               <button key={m.user_id} onClick={() => setChosen(m.user_id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl border transition ${
-                  chosen === m.user_id ? 'border-[hsl(215,100%,55%)] bg-[hsl(215,100%,55%)]/10' : 'border-white/[0.08] hover:bg-white/[0.04]'
+                  chosen === m.user_id ? 'border-[hsl(215,100%,55%)] bg-[hsl(215,100%,55%)]/10' : 'border-white/[0.08] hover:bg-glass-hover'
                 }`}>
                 <div className="text-[13px] text-white/90">{m.label}</div>
                 <div className="font-mono text-[10px] text-white/75">{m.user_id.slice(0, 12)}…</div>

@@ -48,7 +48,7 @@ export default function AdminTeamPage() {
               <div className="flex items-center gap-3">
                 {row.profiles?.avatar_url
                   ? <img src={row.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full border border-white/[0.06]" />
-                  : <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06]" />}
+                  : <div className="w-8 h-8 rounded-full bg-glass-hover border border-white/[0.06]" />}
                 <div>
                   <div className="text-white/90 text-[13px]">{row.profiles?.display_name || row.profiles?.email || row.user_id.slice(0,8)}</div>
                   {row.profiles?.email && <div className="text-white/45 text-[11px]">{row.profiles.email}</div>}
@@ -56,7 +56,7 @@ export default function AdminTeamPage() {
               </div>
             )},
           { key: "role", label: "Role", width: "140px",
-            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">{String(v)}</span> },
+            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80">{String(v)}</span> },
           { key: "granted_at", label: "Granted", width: "180px" },
         ]}
         actions={[

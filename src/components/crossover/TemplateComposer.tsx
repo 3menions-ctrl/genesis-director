@@ -149,7 +149,7 @@ export function TemplateComposer({ template, onClose }: Props) {
             {/* Prompt readout */}
             <div>
               <Label>The prompt</Label>
-              <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-[12.5px] text-white/80 leading-relaxed max-h-[180px] overflow-y-auto">
+              <div className="relative rounded-2xl border border-white/[0.08] bg-glass p-4 text-[12.5px] text-white/80 leading-relaxed max-h-[180px] overflow-y-auto">
                 {composedPrompt}
                 <button
                   onClick={copyPrompt}
@@ -170,7 +170,7 @@ export function TemplateComposer({ template, onClose }: Props) {
                   onChange={(e) => setSubjectNote(e.target.value.slice(0, 200))}
                   rows={3}
                   placeholder="e.g. The dancer is wearing a glowing red jumpsuit. Or: make the warehouse look like a parking garage at midnight."
-                  className="w-full p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 resize-none transition-colors"
+                  className="w-full p-3 rounded-2xl bg-glass-hover border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 resize-none transition-colors"
                 />
                 <div className="mt-1 text-[10px] font-mono text-white/35 text-right">{subjectNote.length}/200</div>
               </div>

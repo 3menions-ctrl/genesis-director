@@ -96,8 +96,8 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
             <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#0A84FF]/[0.06] to-white/[0.01] p-6">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-[#0A84FF]/[0.10] border border-[#0A84FF]/30 flex items-center justify-center">
-                  <Gift className="w-4 h-4 text-[#9DCBFF]" />
+                <div className="w-10 h-10 rounded-xl bg-primary/[0.10] border border-primary/30 flex items-center justify-center">
+                  <Gift className="w-4 h-4 text-primary/60" />
                 </div>
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Your invite code</p>
@@ -113,23 +113,23 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
                   className="flex-1 min-w-[220px] bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white/85 font-mono"
                 />
                 <Button onClick={() => copy(link, 'Invite link')} variant="outline"
-                  className="border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-white">
+                  className="border-white/[0.08] bg-glass hover:bg-glass-active text-white">
                   <Copy className="w-4 h-4 mr-2" /> Copy
                 </Button>
-                <Button onClick={share} className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white">
+                <Button onClick={share} className="bg-primary hover:bg-primary/90 text-white">
                   <Share2 className="w-4 h-4 mr-2" /> Share
                 </Button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
                 <div className="flex items-center gap-2 text-white/45 text-[11px] uppercase tracking-[0.18em]">
                   <Users className="w-3 h-3" /> Friends joined
                 </div>
                 <p className="text-3xl font-display font-light text-white mt-2">{redemptions}</p>
               </div>
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
                 <div className="flex items-center gap-2 text-white/45 text-[11px] uppercase tracking-[0.18em]">
                   <Gift className="w-3 h-3" /> Rewards credited
                 </div>

@@ -56,7 +56,7 @@ export const SceneDNAPanel = memo(forwardRef<HTMLDivElement, SceneDNAPanelProps>
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "p-4 rounded-xl bg-white/[0.03] border border-white/10",
+        "p-4 rounded-xl bg-glass border border-white/10",
         className
       )}
     >
@@ -88,7 +88,7 @@ export const SceneDNAPanel = memo(forwardRef<HTMLDivElement, SceneDNAPanelProps>
           <TooltipProvider key={element.label}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors cursor-default">
+                  <div className="p-3 rounded-lg bg-glass border border-white/5 hover:border-white/10 transition-colors cursor-default">
                     <div className="flex items-center gap-2 mb-2">
                       <element.icon className="w-3.5 h-3.5 text-white/40" />
                       <span className="text-xs text-white/50">{element.label}</span>

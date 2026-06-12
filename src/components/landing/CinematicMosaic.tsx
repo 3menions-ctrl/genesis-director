@@ -83,7 +83,7 @@ const HeroStage = memo(function HeroStage({ index }: { index: number }) {
           <motion.span
             animate={{ opacity: [1, 0.35, 1] }}
             transition={{ duration: 1.6, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]"
+            className="w-1.5 h-1.5 rounded-full bg-destructive"
           />
           <span className="text-[10px] tracking-[0.4em] uppercase text-white/70">On Reel</span>
         </div>
@@ -263,9 +263,9 @@ export const CinematicMosaic = memo(function CinematicMosaic() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-8"
+              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-xl mb-8"
             >
-              <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+              <span className="w-1 h-1 rounded-full bg-primary" />
               <p className="text-[10px] font-medium text-white/55 tracking-[0.32em] uppercase">
                 The Reel · Vol. 01
               </p>

@@ -18,7 +18,7 @@ interface ReconcileRow extends AdminRow {
   report: unknown;
 }
 
-const STATUS_TONE = { in_progress: "text-[#6FB6FF]", success: "text-emerald-300", partial: "text-amber-300", failed: "text-rose-300" } as const;
+const STATUS_TONE = { in_progress: "text-primary/80", success: "text-emerald-300", partial: "text-amber-300", failed: "text-rose-300" } as const;
 
 export default function AdminReconcilePage() {
   const [starting, setStarting] = useState(false);
@@ -69,7 +69,7 @@ export default function AdminReconcilePage() {
         ]}
         columns={[
           { key: "job_type", label: "Job", width: "200px",
-            render: (v) => <code className="font-mono text-[12px] text-[#6FB6FF]">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[12px] text-primary/80">{String(v)}</code> },
           { key: "started_at", label: "Started", width: "180px" },
           { key: "scanned", label: "Scanned", width: "100px", align: "right" },
           { key: "matched", label: "Matched", width: "100px", align: "right" },

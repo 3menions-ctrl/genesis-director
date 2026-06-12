@@ -95,8 +95,8 @@ export default function AdminReferralsPage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No referral codes.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.code_id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                  <td className="px-4 py-3"><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-[#6FB6FF] font-mono text-[12px]">{r.code}</span></td>
+                <tr key={r.code_id} className="border-b border-white/[0.04] hover:bg-glass">
+                  <td className="px-4 py-3"><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></td>
                   <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0,8) + "…"}</td>
                   <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{r.total_redemptions}</td>
                   <td className="px-4 py-3 text-right"><Badge variant="default" className="font-mono text-[10px]">{r.credited_redemptions}</Badge></td>

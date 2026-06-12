@@ -229,11 +229,11 @@ function ChapterCopy({
       className="absolute max-w-4xl text-center"
     >
       {/* Eyebrow */}
-      <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.12] backdrop-blur-xl mb-7">
+      <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-glass-active border border-white/[0.12] backdrop-blur-xl mb-7">
         <motion.span
           animate={{ opacity: [1, 0.35, 1] }}
           transition={{ duration: 2.2, repeat: Infinity }}
-          className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]"
+          className="w-1.5 h-1.5 rounded-full bg-primary"
         />
         <span className="text-[10px] md:text-[11px] tracking-[0.4em] uppercase text-white/75">
           {chapter.eyebrow}

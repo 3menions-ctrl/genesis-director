@@ -19,7 +19,7 @@ interface ExperimentRow extends AdminRow {
   winner: string | null;
 }
 
-const STATUS_TONE = { draft: "text-white/55", live: "text-emerald-300", paused: "text-amber-300", concluded: "text-[#6FB6FF]" } as const;
+const STATUS_TONE = { draft: "text-white/55", live: "text-emerald-300", paused: "text-amber-300", concluded: "text-primary/80" } as const;
 
 export default function AdminExperimentsPage() {
   const [creating, setCreating] = useState(false);
@@ -48,7 +48,7 @@ export default function AdminExperimentsPage() {
         ]}
         columns={[
           { key: "key", label: "Key", width: "200px",
-            render: (v) => <code className="font-mono text-[12px] text-[#6FB6FF]">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[12px] text-primary/80">{String(v)}</code> },
           { key: "hypothesis", label: "Hypothesis" },
           { key: "variants", label: "Variants", width: "180px",
             render: (v) => Array.isArray(v) ? v.join(" · ") : "—" },

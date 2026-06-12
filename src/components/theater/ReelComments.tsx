@@ -242,7 +242,7 @@ export const ReelComments = memo(function ReelComments({ reelId }: Props) {
                   {c.author.avatar_url ? (
                     <img src={c.author.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-[12px] font-mono text-white/55">
+                    <div className="w-9 h-9 rounded-full bg-glass-hover border border-white/[0.08] flex items-center justify-center text-[12px] font-mono text-white/55">
                       {(c.author.display_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}

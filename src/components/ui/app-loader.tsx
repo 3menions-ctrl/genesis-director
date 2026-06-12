@@ -62,7 +62,7 @@ export const AppLoader = forwardRef<HTMLDivElement, AppLoaderProps>(
 
     // If global overlay is showing, render minimal placeholder
     if (isGlobalLoading) {
-      return <div ref={ref} className="fixed inset-0 bg-[#030303]" />;
+      return <div ref={ref} className="fixed inset-0 bg-background" />;
     }
 
     return (

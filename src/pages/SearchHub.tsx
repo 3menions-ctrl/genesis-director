@@ -139,7 +139,7 @@ export default function SearchHub() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search for a reel, director, universe, or crew…"
-              className="w-full h-16 pl-14 pr-12 rounded-2xl border border-white/[0.08] bg-white/[0.02] focus:bg-white/[0.04] focus:border-white/20 text-[18px] text-foreground placeholder:text-muted-foreground outline-none transition-colors"
+              className="w-full h-16 pl-14 pr-12 rounded-2xl border border-white/[0.08] bg-glass focus:bg-glass-hover focus:border-white/20 text-[18px] text-foreground placeholder:text-muted-foreground outline-none transition-colors"
             />
             {q && (
               <button
@@ -221,7 +221,7 @@ export default function SearchHub() {
                         {c.avatar_url ? (
                           <img src={c.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover border border-white/[0.06]" />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-white/[0.05] flex items-center justify-center text-muted-foreground font-mono">
+                          <div className="w-12 h-12 rounded-full bg-glass-hover flex items-center justify-center text-muted-foreground font-mono">
                             {(c.display_name?.[0] || "?").toUpperCase()}
                           </div>
                         )}

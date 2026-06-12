@@ -216,7 +216,7 @@ export default function PublicShare() {
 
           {/* Credits sidebar */}
           {share.show_credits && (
-            <aside className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+            <aside className="rounded-2xl border border-white/[0.07] bg-glass p-6">
               <div className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/30 mb-4">
                 Credits
               </div>

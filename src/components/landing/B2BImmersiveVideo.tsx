@@ -42,8 +42,8 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-6">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-xl mb-6">
+            <span className="w-1 h-1 rounded-full bg-primary" />
             <p className="text-[10px] font-medium text-white/55 tracking-[0.32em] uppercase">
               See it in motion
             </p>
@@ -95,7 +95,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
               <div className="flex-1 flex justify-center">
-                <div className="px-4 py-1 rounded-md bg-white/[0.04] text-[10px] tracking-widest uppercase text-white/65 font-mono">
+                <div className="px-4 py-1 rounded-md bg-glass-hover text-[10px] tracking-widest uppercase text-white/65 font-mono">
                   studio.smallbridges.com
                 </div>
               </div>
@@ -163,7 +163,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.55 }}
-            className="hidden md:flex absolute -right-6 bottom-1/4 items-center gap-3 px-4 py-3 rounded-2xl border border-[#0A84FF]/30 bg-[#0A84FF]/[0.08] backdrop-blur-xl shadow-[0_20px_60px_-20px_hsla(212,100%,50%,0.4)]"
+            className="hidden md:flex absolute -right-6 bottom-1/4 items-center gap-3 px-4 py-3 rounded-2xl border border-primary/30 bg-primary/[0.08] backdrop-blur-xl shadow-[0_20px_60px_-20px_hsla(212,100%,50%,0.4)]"
           >
             <div>
               <p className="text-[10px] uppercase tracking-widest text-white/50">Brand-locked</p>

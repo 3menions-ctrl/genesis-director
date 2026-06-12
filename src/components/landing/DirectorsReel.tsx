@@ -210,7 +210,7 @@ export function DirectorsReel() {
           </div>
 
           {/* Scrubber strip — clicking any chapter swaps the hero */}
-          <div className="grid grid-cols-4 lg:grid-cols-8 gap-px bg-white/[0.04]">
+          <div className="grid grid-cols-4 lg:grid-cols-8 gap-px bg-glass-hover">
             {CHAPTERS.map((c, i) => {
               const isActive = i === activeIdx;
               return (
@@ -219,7 +219,7 @@ export function DirectorsReel() {
                   onClick={() => setActiveIdx(i)}
                   className={[
                     'group relative text-left px-4 py-4 transition-colors focus-visible:outline-none',
-                    isActive ? 'bg-brand/10' : 'bg-black/40 hover:bg-white/[0.04]',
+                    isActive ? 'bg-brand/10' : 'bg-black/40 hover:bg-glass-hover',
                   ].join(' ')}
                   aria-label={`Swap to ${c.label}`}
                 >

@@ -44,7 +44,7 @@ export const AchievementsPreviewCard = memo(forwardRef<HTMLDivElement, Record<st
           </div>
           <div className="flex items-center gap-3">
             <div className="w-16">
-              <Progress value={progress} className="h-1.5 bg-white/[0.08]" />
+              <Progress value={progress} className="h-1.5 bg-glass-active" />
             </div>
             <span className="text-xs font-semibold text-white/60">{Math.round(progress)}%</span>
           </div>
@@ -93,7 +93,7 @@ export const AchievementsPreviewCard = memo(forwardRef<HTMLDivElement, Record<st
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: (recentUnlocked.length + i) * 0.05 }}
-                className="relative aspect-square rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col items-center justify-center p-2 opacity-50 hover:opacity-70 transition-opacity cursor-pointer"
+                className="relative aspect-square rounded-xl bg-glass border border-white/[0.06] flex flex-col items-center justify-center p-2 opacity-50 hover:opacity-70 transition-opacity cursor-pointer"
               >
                 <Lock className="w-5 h-5 text-white/25 mb-1.5" />
                 <p className="text-[10px] text-center text-white/40 font-medium leading-tight line-clamp-2">

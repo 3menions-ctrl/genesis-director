@@ -480,7 +480,7 @@ export default function Environments() {
                   placeholder="Search environments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
+                  className="pl-9 h-11 bg-glass-hover border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
                 />
               </div>
             }

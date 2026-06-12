@@ -45,7 +45,7 @@ export const GalleryHeroSection = memo(function GalleryHeroSection({
         )}
         style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}
       >
-        <div className="w-10 h-10 rounded-full bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-xl border border-white/[0.06] hover:border-white/20 flex items-center justify-center transition-all">
+        <div className="w-10 h-10 rounded-full bg-glass hover:bg-glass-active backdrop-blur-xl border border-white/[0.06] hover:border-white/20 flex items-center justify-center transition-all">
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
         </div>
         <span className="text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Back</span>

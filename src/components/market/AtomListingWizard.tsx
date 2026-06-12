@@ -229,7 +229,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                     value={name}
                     onChange={(e) => setName(e.target.value.slice(0, 120))}
                     placeholder={`${meta.label} name`}
-                    className="w-full h-11 px-4 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white placeholder:text-white/30 transition-colors"
+                    className="w-full h-11 px-4 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white placeholder:text-white/30 transition-colors"
                   />
                 </Field>
 
@@ -238,7 +238,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                     value={atomRef}
                     onChange={(e) => setAtomRef(e.target.value)}
                     placeholder={meta.refPlaceholder}
-                    className="w-full h-11 px-4 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white placeholder:text-white/30 font-mono transition-colors"
+                    className="w-full h-11 px-4 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white placeholder:text-white/30 font-mono transition-colors"
                   />
                 </Field>
 
@@ -248,7 +248,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                     onChange={(e) => setDescription(e.target.value.slice(0, 600))}
                     placeholder="What's special about it? When should a buyer use it?"
                     rows={3}
-                    className="w-full p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 resize-none transition-colors"
+                    className="w-full p-3 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 resize-none transition-colors"
                   />
                 </Field>
 
@@ -257,7 +257,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="noir, narrator, baritone"
-                    className="w-full h-11 px-4 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
+                    className="w-full h-11 px-4 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
                   />
                 </Field>
               </div>
@@ -275,7 +275,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                       step={10}
                       value={priceCredits}
                       onChange={(e) => setPriceCredits(Math.max(0, parseInt(e.target.value || "0", 10)))}
-                      className="w-32 h-11 px-3 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white tabular-nums font-mono transition-colors"
+                      className="w-32 h-11 px-3 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[14px] text-white tabular-nums font-mono transition-colors"
                     />
                     <span className="text-[11px] font-mono text-white/45">credits</span>
                   </div>
@@ -309,7 +309,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                         value={thumbnailUrl}
                         onChange={(e) => setThumbnailUrl(e.target.value)}
                         placeholder="https://…"
-                        className="flex-1 h-10 px-3 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[12px] text-white placeholder:text-white/30 font-mono transition-colors"
+                        className="flex-1 h-10 px-3 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[12px] text-white placeholder:text-white/30 font-mono transition-colors"
                       />
                     </div>
                   </Field>
@@ -320,7 +320,7 @@ export function AtomListingWizard({ open, onClose, defaultType, onPublished }: P
                         value={previewUrl}
                         onChange={(e) => setPreviewUrl(e.target.value)}
                         placeholder="https://…"
-                        className="flex-1 h-10 px-3 rounded-xl bg-white/[0.02] border border-white/[0.08] focus:border-primary/40 outline-none text-[12px] text-white placeholder:text-white/30 font-mono transition-colors"
+                        className="flex-1 h-10 px-3 rounded-xl bg-glass border border-white/[0.08] focus:border-primary/40 outline-none text-[12px] text-white placeholder:text-white/30 font-mono transition-colors"
                       />
                     </div>
                   </Field>
@@ -394,7 +394,7 @@ function StepProgress({ step }: { step: number }) {
           key={n}
           className={cn(
             "h-0.5 flex-1 rounded-full transition-colors",
-            n <= step ? "bg-primary" : "bg-white/[0.06]",
+            n <= step ? "bg-primary" : "bg-glass-active",
           )}
         />
       ))}

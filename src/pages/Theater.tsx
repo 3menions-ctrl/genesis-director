@@ -314,7 +314,7 @@ export default function Theater() {
                 </div>
 
                 {/* Creator card */}
-                <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-glass">
                   <Link to={`/c/${payload.creator.id}`} className="flex items-center gap-4 flex-1 min-w-0 group">
                     {payload.creator.avatar_url ? (
                       <img
@@ -323,7 +323,7 @@ export default function Theater() {
                         className="w-12 h-12 rounded-full object-cover border border-white/[0.08] group-hover:border-white/30 transition-colors"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/55 font-mono group-hover:border-white/30 transition-colors">
+                      <div className="w-12 h-12 rounded-full bg-glass-hover border border-white/[0.08] flex items-center justify-center text-white/55 font-mono group-hover:border-white/30 transition-colors">
                         {(payload.creator.display_name?.[0] || "?").toUpperCase()}
                       </div>
                     )}
@@ -364,7 +364,7 @@ export default function Theater() {
                       {showNotes ? "Hide director's notes" : "Show director's notes"}
                     </button>
                     {showNotes && (
-                      <div className="mt-3 p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                      <div className="mt-3 p-5 rounded-2xl border border-white/[0.06] bg-glass">
                         {payload.reel.prompt_snapshot && (
                           <>
                             <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/40 mb-2">Prompt</div>
@@ -448,7 +448,7 @@ export default function Theater() {
             <div className="mb-6 flex items-center gap-3">
               <Film className="w-3.5 h-3.5 text-white/45" />
               <span className="text-[11px] font-mono uppercase tracking-[0.32em] text-white/55">Up next</span>
-              <div className="h-px flex-1 bg-white/[0.05]" />
+              <div className="h-px flex-1 bg-glass-hover" />
               <Link to="/lobby" className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-white inline-flex items-center gap-1.5">
                 Back to lobby <ArrowRight className="w-3 h-3" />
               </Link>
@@ -497,8 +497,8 @@ function ActionRow({
       ? "border-rose-300/40 bg-rose-400/[0.08] text-rose-200"
       : accent === "amber"
         ? "border-amber-300/40 bg-amber-400/[0.08] text-amber-200"
-        : "border-[#0A84FF]/40 bg-[#0A84FF]/[0.08] text-[#6FB6FF]"
-    : "border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] text-white/75 hover:text-white";
+        : "border-primary/40 bg-primary/[0.08] text-primary/80"
+    : "border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-glass-hover text-white/75 hover:text-white";
   return (
     <button
       onClick={onClick}

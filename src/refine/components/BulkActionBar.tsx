@@ -34,7 +34,7 @@ export function BulkActionBar({ count, itemNoun = "item", onClear, children }: B
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none",
       )}
     >
-      <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0b0d]/95 backdrop-blur-2xl px-4 py-3 flex items-center gap-3 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.9)]">
+      <div className="relative rounded-2xl border border-white/[0.08] bg-background/95 backdrop-blur-2xl px-4 py-3 flex items-center gap-3 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.9)]">
         {/* Brand rail */}
         <span
           aria-hidden
@@ -88,8 +88,8 @@ export function BulkActionButton({
         tone === "rose"
           ? "border-rose-400/30 text-rose-200 hover:bg-rose-400/[0.10] hover:border-rose-300/50"
           : tone === "blue"
-          ? "border-[#0A84FF]/30 text-[#6FB6FF] hover:bg-[#0A84FF]/[0.10] hover:border-[#0A84FF]/50"
-          : "border-white/[0.08] text-white/75 hover:bg-white/[0.04] hover:border-white/20 hover:text-white",
+          ? "border-primary/30 text-primary/80 hover:bg-primary/[0.10] hover:border-primary/50"
+          : "border-white/[0.08] text-white/75 hover:bg-glass-hover hover:border-white/20 hover:text-white",
         disabled && "opacity-40 cursor-not-allowed",
       )}
     >

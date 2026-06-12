@@ -71,7 +71,7 @@ const Divider = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       className={`relative ${h} w-full origin-center`}
     >
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-[640px] h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_24px_6px_hsl(212_100%_52%/0.45)]" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_24px_6px_hsl(212_100%_52%/0.45)]" />
     </motion.div>
   );
 };
@@ -117,7 +117,7 @@ const Chapter = ({
         </span>
         <span className="block w-px h-10 bg-gradient-to-b from-[#0A84FF]/60 to-transparent" />
         <span
-          className="text-[10px] font-medium text-[#0A84FF]/70 tracking-[0.32em] uppercase rotate-180"
+          className="text-[10px] font-medium text-primary/70 tracking-[0.32em] uppercase rotate-180"
           style={{ writingMode: 'vertical-rl', fontFamily: "'Instrument Sans', sans-serif" }}
         >
           {kicker}
@@ -342,12 +342,12 @@ function LandingInner() {
         <motion.div
           animate={{ x: ['-10%', '10%', '-10%'], y: ['-5%', '5%', '-5%'] }}
           transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-1/4 left-1/4 w-[60vw] h-[60vw] rounded-full bg-[#0A84FF]/[0.08] blur-[140px]"
+          className="absolute -top-1/4 left-1/4 w-[60vw] h-[60vw] rounded-full bg-primary/[0.08] blur-[140px]"
         />
         <motion.div
           animate={{ x: ['8%', '-8%', '8%'], y: ['4%', '-4%', '4%'] }}
           transition={{ duration: 34, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-[#5AC8FA]/[0.05] blur-[160px]"
+          className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-primary/90/[0.05] blur-[160px]"
         />
       </div>
 

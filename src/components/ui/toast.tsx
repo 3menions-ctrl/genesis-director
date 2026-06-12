@@ -124,7 +124,7 @@ const ToastClose = React.forwardRef<
     ref={ref}
     className={cn(
       "absolute right-4 top-4 rounded-full p-1.5 opacity-50 transition-all duration-200 hover:opacity-100 focus:opacity-100 focus:outline-none",
-      "text-white/50 hover:text-white hover:bg-white/[0.06]",
+      "text-white/50 hover:text-white hover:bg-glass-active",
       className,
     )}
     toast-close=""

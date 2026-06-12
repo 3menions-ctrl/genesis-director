@@ -204,7 +204,7 @@ export default function WorkspaceApi() {
                   ? <Pill tone="bad">Revoked</Pill>
                   : <Pill tone="good">Active</Pill>}
                 {canManage && !k.revoked_at && (
-                  <button onClick={() => revokeKey(k)} className="p-2 rounded-lg text-white/75 hover:text-[hsl(0,80%,76%)] hover:bg-white/[0.04] transition" aria-label="Revoke">
+                  <button onClick={() => revokeKey(k)} className="p-2 rounded-lg text-white/75 hover:text-[hsl(0,80%,76%)] hover:bg-glass-hover transition" aria-label="Revoke">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -418,7 +418,7 @@ function WebhooksSection({ canManage }: { canManage: boolean }) {
                 <>
                   <button
                     onClick={() => testFire(h)}
-                    className="p-2 rounded-lg text-white/75 hover:text-white hover:bg-white/[0.04] transition"
+                    className="p-2 rounded-lg text-white/75 hover:text-white hover:bg-glass-hover transition"
                     title="Send test event"
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -431,7 +431,7 @@ function WebhooksSection({ canManage }: { canManage: boolean }) {
                   </button>
                   <button
                     onClick={() => remove(h)}
-                    className="p-2 rounded-lg text-white/75 hover:text-[hsl(0,80%,76%)] hover:bg-white/[0.04] transition"
+                    className="p-2 rounded-lg text-white/75 hover:text-[hsl(0,80%,76%)] hover:bg-glass-hover transition"
                     aria-label="Delete"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -463,7 +463,7 @@ function CreateWebhookForm({
     setEvents((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
   return (
-    <div className="mb-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+    <div className="mb-5 rounded-2xl border border-white/[0.06] bg-glass p-5 space-y-4">
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/55 mb-2">Endpoint URL</div>
         <DataInput

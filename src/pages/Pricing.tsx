@@ -439,7 +439,7 @@ function CreditDial({ credits, clips, popular }: { credits: number; clips: strin
           {credits === 0 ? '∞' : credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
         </span>
         <span className="mt-1 text-[9px] uppercase tracking-[0.28em] text-foreground/80 font-medium">credits</span>
-        <div className="w-7 h-px bg-white/[0.08] my-2" />
+        <div className="w-7 h-px bg-glass-active my-2" />
         <span className="text-[10px] text-muted-foreground tabular-nums">{clips} clips</span>
       </div>
     </div>
@@ -537,13 +537,13 @@ function PricingCard({
               'w-10 h-10 rounded-xl flex items-center justify-center border',
               pkg.popular
                 ? 'bg-[hsl(var(--primary)/0.15)] border-[hsl(var(--primary)/0.35)] text-[hsl(var(--primary))]'
-                : 'bg-white/[0.04] border-white/[0.08] text-muted-foreground',
+                : 'bg-glass-hover border-white/[0.08] text-muted-foreground',
             )}
           >
             {pkg.icon}
           </div>
           {isContact ? (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.10] bg-white/[0.04]">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.10] bg-glass-hover">
               Custom contract
             </div>
           ) : pkg.interval ? (
@@ -555,7 +555,7 @@ function PricingCard({
               Save {pkg.savingsPct}%
             </div>
           ) : (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.06] bg-white/[0.02]">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.06] bg-glass">
               Pay-as-you-go
             </div>
           )}
@@ -622,7 +622,7 @@ function PricingCard({
             'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
             pkg.popular
               ? 'text-black border border-white/20 bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]'
-              : 'bg-white/[0.05] hover:bg-white/[0.09] text-foreground/90 border border-white/[0.08] hover:border-white/[0.16]',
+              : 'bg-glass-hover hover:bg-white/[0.09] text-foreground/90 border border-white/[0.08] hover:border-white/[0.16]',
           )}
         >
           {/* Shimmer */}
@@ -653,7 +653,7 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
     <button
       type="button"
       onClick={() => setOpen((v) => !v)}
-      className="w-full text-left rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all px-5 py-4"
+      className="w-full text-left rounded-2xl border border-white/[0.06] bg-glass hover:bg-glass-hover hover:border-white/[0.12] transition-all px-5 py-4"
     >
       <div className="flex items-center justify-between gap-4">
         <span className="text-[14px] font-medium text-foreground/90">{q}</span>
@@ -760,7 +760,7 @@ export default function Pricing() {
           </Link>
           <Button
             onClick={() => navigate('/auth?mode=signup')}
-            className="h-9 rounded-full bg-white/[0.05] hover:bg-white/[0.09] text-foreground/85 text-[13px] border border-white/[0.08] backdrop-blur-md"
+            className="h-9 rounded-full bg-glass-hover hover:bg-white/[0.09] text-foreground/85 text-[13px] border border-white/[0.08] backdrop-blur-md"
           >
             Sign Up
           </Button>
@@ -772,7 +772,7 @@ export default function Pricing() {
         <div className="max-w-3xl mx-auto text-center">
           <motion.div key={segment} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             {/* Status pill */}
-            <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-7">
+            <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-7">
               <span className="text-[hsl(var(--primary))]">{meta.icon}</span>
               <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">
                 {meta.kicker}
@@ -814,7 +814,7 @@ export default function Pricing() {
             <div
               role="tablist"
               aria-label="Pricing audience"
-              className="inline-flex items-center gap-1 p-1 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl"
+              className="inline-flex items-center gap-1 p-1 rounded-full border border-white/[0.07] bg-glass backdrop-blur-xl"
             >
               {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => {
                 const m = SEGMENT_META[seg];
@@ -879,7 +879,7 @@ export default function Pricing() {
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5">
               <FileCheck2 className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
               <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">Compare</span>
             </div>
@@ -890,7 +890,7 @@ export default function Pricing() {
           </div>
 
           <div className="rounded-3xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-md overflow-hidden">
-            <div className="grid grid-cols-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground px-5 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="grid grid-cols-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground px-5 py-4 border-b border-white/[0.06] bg-glass">
               <div className="font-medium">Feature</div>
               {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
                 <div key={seg} className="text-center font-medium text-muted-foreground">
@@ -900,7 +900,7 @@ export default function Pricing() {
             </div>
             <div className="divide-y divide-white/[0.04]">
               {MATRIX_ROWS.map((row) => (
-                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 hover:bg-glass transition-colors">
                   <div className="text-[13px] text-muted-foreground font-medium">{row.label}</div>
                   {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
                     <div key={seg} className="text-center">
@@ -924,7 +924,7 @@ export default function Pricing() {
           />
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.08] bg-white/[0.04] mb-4">
+              <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.08] bg-glass-hover mb-4">
                 <Globe className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
                 <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">Enterprise</span>
               </div>
@@ -945,7 +945,7 @@ export default function Pricing() {
               </Button>
               <Button
                 onClick={() => setSegment('enterprise')}
-                className="h-12 px-6 rounded-full text-[13px] font-medium text-foreground/90 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.10]"
+                className="h-12 px-6 rounded-full text-[13px] font-medium text-foreground/90 bg-glass-hover hover:bg-white/[0.09] border border-white/[0.10]"
               >
                 See enterprise tiers
               </Button>
@@ -958,7 +958,7 @@ export default function Pricing() {
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5">
               <Headphones className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
               <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">FAQ</span>
             </div>

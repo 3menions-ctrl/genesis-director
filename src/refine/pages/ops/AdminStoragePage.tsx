@@ -79,7 +79,7 @@ export default function AdminStoragePage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No buckets.</td></tr>}
               {rows.map((r) => (
-                <tr key={r.bucket_id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr key={r.bucket_id} className="border-b border-white/[0.04] hover:bg-glass">
                   <td className="px-4 py-3 text-white/90 font-mono text-[12px]"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</td>
                   <td className="px-4 py-3">
                     <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
@@ -87,7 +87,7 @@ export default function AdminStoragePage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{Number(r.object_count).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-[#6FB6FF] font-mono tabular-nums text-[12px]">{bytes(Number(r.total_bytes))}</td>
+                  <td className="px-4 py-3 text-right text-primary/80 font-mono tabular-nums text-[12px]">{bytes(Number(r.total_bytes))}</td>
                   <td className="px-4 py-3 text-right text-white/40 font-mono text-[11px]">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</td>
                   <td className="px-4 py-3 pl-8 text-white/40 font-mono text-[11px] whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</td>
                 </tr>

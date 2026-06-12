@@ -143,7 +143,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
             <Button 
               size="sm"
               variant="ghost"
-              className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
+              className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-glass-active rounded-xl font-semibold"
               onClick={() => window.open(videoUrl, '_blank')}
             >
               <ExternalLink className="w-3.5 h-3.5" />

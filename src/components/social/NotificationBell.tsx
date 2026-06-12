@@ -33,20 +33,20 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
 
 const notificationColors: Record<NotificationType, string> = {
   like: 'text-rose-300',
-  comment: 'text-[#9DCBFF]',
+  comment: 'text-primary/60',
   follow: 'text-emerald-300',
   achievement: 'text-amber-300',
-  challenge_complete: 'text-[#9DCBFF]',
-  message: 'text-[#9DCBFF]',
+  challenge_complete: 'text-primary/60',
+  message: 'text-primary/60',
   universe_invite: 'text-pink-300',
   character_borrow_request: 'text-orange-300',
   level_up: 'text-amber-300',
   streak_milestone: 'text-orange-300',
   video_complete: 'text-emerald-300',
-  video_started: 'text-[#9DCBFF]',
+  video_started: 'text-primary/60',
   video_failed: 'text-rose-300',
   low_credits: 'text-amber-300',
-  mention: 'text-[#9DCBFF]',
+  mention: 'text-primary/60',
 };
 
 function deepLinkFor(n: Notification): string | null {
@@ -99,13 +99,13 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
             variant="ghost"
             size="icon"
             aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
-            className="relative h-9 w-9 rounded-xl text-white/75 hover:text-white hover:bg-white/[0.04] transition"
+            className="relative h-9 w-9 rounded-xl text-white/75 hover:text-white hover:bg-glass-hover transition"
           >
             <Bell className="h-[18px] w-[18px]" strokeWidth={1.6} />
             {unreadCount > 0 && (
               <span
                 className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full
-                           bg-[#0A84FF] text-white text-[10px] font-medium
+                           bg-primary text-white text-[10px] font-medium
                            flex items-center justify-center
                            shadow-[0_0_12px_-2px_hsla(212,100%,55%,0.8)]
                            ring-2 ring-[hsl(220,14%,2%)]"
@@ -124,14 +124,14 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.32em] text-[#9DCBFF] font-medium">Inbox</p>
+              <p className="text-[10px] uppercase tracking-[0.32em] text-primary/60 font-medium">Inbox</p>
               <p className="font-display text-[18px] font-light text-white mt-0.5">Notifications</p>
             </div>
             {unreadCount > 0 && (
               <Button
                 variant="ghost" size="sm"
                 onClick={() => markAllAsRead.mutate()}
-                className="text-[11px] text-white/55 hover:text-white hover:bg-white/[0.04] h-7"
+                className="text-[11px] text-white/55 hover:text-white hover:bg-glass-hover h-7"
               >
                 <Check className="w-3 h-3 mr-1" /> Mark all read
               </Button>
@@ -155,16 +155,16 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
                       className={cn(
                         'group relative px-5 py-3.5 flex gap-3 cursor-pointer transition',
                         'border-b border-white/[0.04] last:border-b-0',
-                        !n.read ? 'bg-[#0A84FF]/[0.04]' : 'hover:bg-white/[0.03]',
+                        !n.read ? 'bg-primary/[0.04]' : 'hover:bg-glass',
                       )}
                     >
                       {!n.read && (
-                        <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#0A84FF]
+                        <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary
                                           shadow-[0_0_10px_hsla(212,100%,55%,0.8)]" />
                       )}
                       <div className={cn(
                         'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                        'border border-white/[0.06] bg-white/[0.02]',
+                        'border border-white/[0.06] bg-glass',
                       )}>
                         <Icon className={cn('w-4 h-4', colorClass)} strokeWidth={1.6} />
                       </div>
@@ -174,7 +174,7 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
                             {n.title}
                           </p>
                           {dest && (
-                            <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-[#9DCBFF] transition shrink-0 mt-0.5" />
+                            <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-primary/60 transition shrink-0 mt-0.5" />
                           )}
                         </div>
                         {n.body && (
@@ -197,7 +197,7 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
               </div>
             ) : (
               <div className="px-5 py-12 text-center">
-                <div className="w-12 h-12 mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center">
+                <div className="w-12 h-12 mx-auto rounded-2xl border border-white/[0.06] bg-glass flex items-center justify-center">
                   <Bell className="w-5 h-5 text-white/35" strokeWidth={1.5} />
                 </div>
                 <p className="text-[13px] text-white/55 mt-3">You're all caught up</p>

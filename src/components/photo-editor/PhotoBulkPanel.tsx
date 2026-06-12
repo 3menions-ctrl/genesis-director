@@ -117,7 +117,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
                 "p-2 rounded-lg text-left transition-all text-[11px] sm:text-xs active:scale-[0.97]",
                 selectedTemplateId === t.id
                   ? "bg-cyan-500/20 border border-cyan-500/30 text-cyan-300"
-                  : "bg-white/[0.02] border border-white/[0.04] text-white/50 hover:border-white/10"
+                  : "bg-glass border border-white/[0.04] text-white/50 hover:border-white/10"
               )}
             >
               <span className="mr-1">{t.icon}</span>
@@ -135,7 +135,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
           onChange={e => { setCustomInstruction(e.target.value); setSelectedTemplateId(null); }}
           placeholder="e.g. Make all photos look professional with warm tones..."
           disabled={isRunning}
-          className="w-full h-16 sm:h-20 p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white text-xs resize-none placeholder:text-white/20"
+          className="w-full h-16 sm:h-20 p-2 rounded-lg bg-glass border border-white/[0.08] text-white text-xs resize-none placeholder:text-white/20"
         />
       </div>
 
@@ -152,7 +152,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
 
       {/* Results summary */}
       {results.length > 0 && !isRunning && (
-        <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+        <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg bg-glass border border-white/[0.06]">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <p className="text-xs text-white/60">
             {successCount} successful, {failCount} failed

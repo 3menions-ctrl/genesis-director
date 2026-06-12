@@ -88,7 +88,7 @@ export function HubShell({ accentHsl, eyebrow, children, fullBleed = false, hide
         className={cn(
           "sticky top-0 z-50 transition-all duration-300",
           scrolled
-            ? "bg-[#040506]/85 backdrop-blur-xl border-b border-white/[0.06]"
+            ? "bg-background/85 backdrop-blur-xl border-b border-white/[0.06]"
             : "bg-transparent border-b border-transparent",
         )}
       >
@@ -112,8 +112,8 @@ export function HubShell({ accentHsl, eyebrow, children, fullBleed = false, hide
                       "group relative inline-flex items-center gap-2 px-3.5 h-9 rounded-full transition-colors shrink-0",
                       "text-[12px] font-mono uppercase tracking-[0.22em]",
                       isActive
-                        ? "text-white bg-white/[0.05] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-                        : "text-white/45 hover:text-white hover:bg-white/[0.03]",
+                        ? "text-white bg-glass-hover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                        : "text-white/45 hover:text-white hover:bg-glass",
                     )
                   }
                 >
@@ -172,7 +172,7 @@ export function HubSectionLabel({ label, meta, icon: Icon }: { label: string; me
     <div className="flex items-center gap-3 mb-5">
       {Icon ? <Icon className="w-3.5 h-3.5 text-white/45" /> : <Layers className="w-3.5 h-3.5 text-white/45" />}
       <span className="text-[11px] font-mono uppercase tracking-[0.32em] text-white/55">{label}</span>
-      <div className="h-px flex-1 bg-white/[0.05]" />
+      <div className="h-px flex-1 bg-glass-hover" />
       {meta && <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/30">{meta}</span>}
     </div>
   );

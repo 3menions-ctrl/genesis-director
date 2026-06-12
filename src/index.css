@@ -6,7 +6,7 @@
    Landing Page — Glassmorphism Scope
    Only the page root is forced transparent. Per-component glass
    is applied via Tailwind classes in the components themselves
-   (backdrop-blur-2xl + bg-white/[0.03]) so we never blur text.
+   (backdrop-blur-2xl + bg-glass) so we never blur text.
    ============================================================ */
 .landing-glass-scope.landing-glass-scope {
   background-color: transparent !important;
@@ -2277,7 +2277,7 @@ img, a, button {
 
   /* Hairline divider */
   .hairline {
-    @apply h-px w-full bg-white/[0.06];
+    @apply h-px w-full bg-glass-active;
   }
 
   /* ───────────────────────────────────────────────────────────
@@ -2440,7 +2440,7 @@ img, a, button {
 
 /* Canonical text input / textarea. Replaces the hand-rolled
    `mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08]
-    bg-white/[0.02] focus:outline-none focus:border-[#0A84FF]/40`
+    bg-glass focus:outline-none focus:border-primary/40`
    block that appeared on every recent page. Restores a real keyboard
    focus ring (a11y) and standardizes the border treatment. */
 .ds-input {

@@ -260,7 +260,7 @@ export function AdminMessageCenter() {
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35">
           {statusCounts.new > 0
-            ? <span className="text-[#6FB6FF]">{statusCounts.new} awaiting response</span>
+            ? <span className="text-primary/80">{statusCounts.new} awaiting response</span>
             : 'all clear'}
         </div>
         <Button onClick={fetchMessages} variant="outline" size="sm" disabled={loading}>

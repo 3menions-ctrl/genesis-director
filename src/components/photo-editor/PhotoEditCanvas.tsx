@@ -17,7 +17,7 @@ export function PhotoEditCanvas({ originalUrl, editedUrl, isProcessing, onDownlo
 
   if (!originalUrl) {
     return (
-      <div className="aspect-square sm:aspect-[4/3] bg-white/[0.02] border border-white/[0.06] rounded-xl flex items-center justify-center">
+      <div className="aspect-square sm:aspect-[4/3] bg-glass border border-white/[0.06] rounded-xl flex items-center justify-center">
         <p className="text-white/20 text-sm">Select a photo to edit</p>
       </div>
     );

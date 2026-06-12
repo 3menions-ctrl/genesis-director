@@ -29,7 +29,7 @@ export const B2BPlatformPillars = memo(function B2BPlatformPillars() {
     <section className="relative z-10 py-24 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+          <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-4">
             Platform
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -44,8 +44,8 @@ export const B2BPlatformPillars = memo(function B2BPlatformPillars() {
               className="relative rounded-3xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent p-7 md:p-8"
             >
               <div className="flex items-start gap-5">
-                <div className="w-12 h-12 rounded-2xl bg-[#0A84FF]/10 border border-[#0A84FF]/20 flex items-center justify-center shrink-0">
-                  <p.icon className="w-5 h-5 text-[#0A84FF]" />
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <p.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-white tracking-tight mb-2">

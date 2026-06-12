@@ -257,7 +257,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
       </span>
       <button
         onClick={() => dispatch({ type: "SELECT_CLIP", clipId: null, trackId: null })}
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[hsla(0,0%,100%,0.35)] hover:text-[hsla(0,0%,100%,0.85)] hover:bg-white/[0.05] transition-all duration-300"
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[hsla(0,0%,100%,0.35)] hover:text-[hsla(0,0%,100%,0.85)] hover:bg-glass-hover transition-all duration-300"
       >
         <X className="w-3 h-3" strokeWidth={1.5} />
       </button>

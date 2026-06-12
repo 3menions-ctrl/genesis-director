@@ -370,7 +370,7 @@ export default function Lobby() {
                 <Link
                   key={d.id}
                   to={`/editor/${d.id}`}
-                  className="group rounded-xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] overflow-hidden transition-colors"
+                  className="group rounded-xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-glass-hover overflow-hidden transition-colors"
                 >
                   <div className="aspect-video bg-black/40">
                     {d.thumbnail_url ? (
@@ -557,7 +557,7 @@ function ReelCard({ reel, demo }: { reel: FeedRow; demo: boolean }) {
           {reel.creator_avatar ? (
             <img src={reel.creator_avatar} alt="" className="w-4 h-4 rounded-full" />
           ) : (
-            <div className="w-4 h-4 rounded-full bg-white/[0.05] flex items-center justify-center text-[8px]">
+            <div className="w-4 h-4 rounded-full bg-glass-hover flex items-center justify-center text-[8px]">
               {(reel.creator_name?.[0] || "?").toUpperCase()}
             </div>
           )}
@@ -622,7 +622,7 @@ function DailyChallengesCard({ rows }: { rows: DailyChallengeRow[] }) {
                 <span className="ml-auto text-white/40">+{c.xp_reward} xp</span>
               </div>
               <div className="text-[13px] text-white font-light leading-snug mb-3">{c.description}</div>
-              <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-1 rounded-full bg-glass-active overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -659,9 +659,9 @@ function CrossLinkStrip() {
           <Link
             key={l.to}
             to={l.to}
-            className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 hover:bg-white/[0.04] px-5 py-4 transition-colors"
+            className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 hover:bg-glass-hover px-5 py-4 transition-colors"
           >
-            <div className="w-10 h-10 rounded-xl border border-white/[0.10] bg-white/[0.02] flex items-center justify-center text-foreground/65 group-hover:text-primary group-hover:border-primary/40 transition-colors">
+            <div className="w-10 h-10 rounded-xl border border-white/[0.10] bg-glass flex items-center justify-center text-foreground/65 group-hover:text-primary group-hover:border-primary/40 transition-colors">
               <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">

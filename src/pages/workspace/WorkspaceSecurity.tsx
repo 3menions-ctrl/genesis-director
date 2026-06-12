@@ -116,7 +116,7 @@ export default function WorkspaceSecurity() {
         )}
         <ul className="space-y-2 mb-5">
           {domains.map((d) => (
-            <li key={d.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+            <li key={d.id} className="rounded-xl border border-white/[0.06] bg-glass p-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-white/90 font-display">{d.domain}</div>
@@ -125,7 +125,7 @@ export default function WorkspaceSecurity() {
                   </div>
                 </div>
                 {d.verified_at ? <Pill tone="good">VERIFIED</Pill> : <Pill tone="amber">PENDING</Pill>}
-                <button onClick={() => copy(`smallbridges-verify=${d.verification_token}`)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Copy TXT value">
+                <button onClick={() => copy(`smallbridges-verify=${d.verification_token}`)} className="p-1.5 rounded hover:bg-glass-hover" title="Copy TXT value">
                   <Copy className="w-3.5 h-3.5 text-white/50" />
                 </button>
                 {!d.verified_at && (
@@ -134,7 +134,7 @@ export default function WorkspaceSecurity() {
                   </CmdButton>
                 )}
                 {canEdit && (
-                  <button onClick={() => remove(d)} className="p-1.5 rounded hover:bg-white/[0.05]" title="Remove">
+                  <button onClick={() => remove(d)} className="p-1.5 rounded hover:bg-glass-hover" title="Remove">
                     <Trash2 className="w-3.5 h-3.5 text-white/75 hover:text-[hsl(0,80%,70%)]" />
                   </button>
                 )}

@@ -88,7 +88,7 @@ export default function AdminCohortsPage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.signup_date} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
+                  <tr key={r.signup_date} className="border-b border-white/[0.03] hover:bg-glass">
                     <td className="px-5 py-3 text-white/75 font-mono text-[12px]">{r.signup_date}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-white/85">{r.signups.toLocaleString()}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-emerald-300">{r.activations}</td>

@@ -164,12 +164,12 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
             placeholder="Search avatars..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30"
+            className="pl-10 bg-glass border-white/[0.08] text-white placeholder:text-white/30"
           />
         </div>
         
         <Select value={genderFilter} onValueChange={setGenderFilter}>
-          <SelectTrigger className="w-[130px] bg-white/[0.03] border-white/[0.08] text-white">
+          <SelectTrigger className="w-[130px] bg-glass border-white/[0.08] text-white">
             <SelectValue placeholder="Gender" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border">
@@ -186,7 +186,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
         </Select>
 
         <Select value={styleFilter} onValueChange={setStyleFilter}>
-          <SelectTrigger className="w-[150px] bg-white/[0.03] border-white/[0.08] text-white">
+          <SelectTrigger className="w-[150px] bg-glass border-white/[0.08] text-white">
             <SelectValue placeholder="Style" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border">
@@ -236,7 +236,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
                   "border",
                   selectedAvatar?.id === avatar.id
                     ? "border-violet-500 ring-2 ring-violet-500/30 bg-violet-500/10"
-                    : "border-white/[0.08] hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]"
+                    : "border-white/[0.08] hover:border-white/20 bg-glass hover:bg-glass-hover"
                 )}
                 style={{ animationDelay: `${index * 30}ms` }}
                 onClick={() => onSelect(avatar)}
@@ -307,7 +307,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
                       {avatar.tags.slice(0, 2).map((tag) => (
                         <span 
                           key={tag} 
-                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-white/40"
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-glass-hover text-white/40"
                         >
                           {tag}
                         </span>

@@ -104,17 +104,17 @@ export default function DeactivateAccount() {
               onChange={(e) => setReason(e.target.value)}
               placeholder="Help us improve by sharing why you're leaving..."
               rows={3}
-              className="bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground/40 resize-none rounded-xl text-sm"
+              className="bg-glass border-white/[0.08] text-foreground placeholder:text-muted-foreground/40 resize-none rounded-xl text-sm"
             />
           </div>
 
           {/* Confirmation checkbox */}
-          <label className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] cursor-pointer select-none group">
+          <label className="flex items-start gap-3 p-4 rounded-xl bg-glass border border-white/[0.06] cursor-pointer select-none group">
             <input
               type="checkbox"
               checked={confirmed}
               onChange={(e) => setConfirmed(e.target.checked)}
-              className="mt-0.5 rounded border-white/20 bg-white/[0.05] text-destructive focus:ring-destructive/30"
+              className="mt-0.5 rounded border-white/20 bg-glass-hover text-destructive focus:ring-destructive/30"
             />
             <div>
               <p className="text-sm font-medium text-foreground">I understand and want to proceed</p>

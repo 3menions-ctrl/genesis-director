@@ -122,7 +122,7 @@ const SettingsContent = memo(function SettingsContent() {
               variant="ghost"
               size="icon"
               onClick={() => window.history.back()}
-              className="h-9 w-9 rounded-full border border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover:border-white/[0.16] backdrop-blur-md transition-all"
+              className="h-9 w-9 rounded-full border border-white/[0.07] bg-glass text-muted-foreground hover:text-foreground hover:bg-glass-active hover:border-white/[0.16] backdrop-blur-md transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -224,7 +224,7 @@ const SettingsContent = memo(function SettingsContent() {
                           'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 shrink-0',
                           isActive
                             ? 'bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.25)]'
-                            : 'bg-white/[0.03] border border-white/[0.06]'
+                            : 'bg-glass border border-white/[0.06]'
                         )}
                       >
                         <Icon
@@ -274,7 +274,7 @@ const SettingsContent = memo(function SettingsContent() {
           <div className="lg:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white/[0.025] border border-white/[0.07] backdrop-blur-2xl transition-all hover:bg-white/[0.04]"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white/[0.025] border border-white/[0.07] backdrop-blur-2xl transition-all hover:bg-glass-hover"
             >
               <div className="flex items-center gap-3.5">
                 {currentSection && (
@@ -302,7 +302,7 @@ const SettingsContent = memo(function SettingsContent() {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <nav className="mt-2 space-y-1 p-2.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl">
+                  <nav className="mt-2 space-y-1 p-2.5 rounded-2xl bg-glass border border-white/[0.06] backdrop-blur-2xl">
                     {SECTIONS.map((section) => {
                       const isActive = activeSection === section.id;
                       return (
@@ -313,12 +313,12 @@ const SettingsContent = memo(function SettingsContent() {
                             "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left transition-all",
                             isActive
                               ? "bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.22)] text-foreground"
-                              : "text-muted-foreground hover:text-foreground/85 hover:bg-white/[0.03] border border-transparent"
+                              : "text-muted-foreground hover:text-foreground/85 hover:bg-glass border border-transparent"
                           )}
                         >
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
-                            isActive ? 'bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.22)]' : 'bg-white/[0.04]'
+                            isActive ? 'bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.22)]' : 'bg-glass-hover'
                           )}>
                             <section.icon className={cn('w-4 h-4', isActive ? 'text-[hsl(215,100%,75%)]' : 'text-muted-foreground')} strokeWidth={1.5} />
                           </div>

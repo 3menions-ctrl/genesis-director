@@ -76,7 +76,7 @@ export const DegradationBanner = memo(forwardRef<HTMLDivElement, DegradationBann
       >
         {/* Header */}
         <div 
-          className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
+          className="flex items-center justify-between p-3 cursor-pointer hover:bg-glass transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3">

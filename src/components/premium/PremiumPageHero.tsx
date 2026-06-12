@@ -88,7 +88,7 @@ export const PremiumPageHero = memo(function PremiumPageHero({
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0">
           {/* Status pill + diagnostic */}
-          <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]">
+          <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]">
             <span className="relative flex h-1.5 w-1.5">
               <span
                 className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping"
@@ -205,7 +205,7 @@ export const PremiumHeroButton = memo(function PremiumHeroButton({
     return (
       <button
         onClick={onClick}
-        className="group relative h-11 px-5 rounded-full font-medium text-[13px] inline-flex items-center gap-2 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md text-white/80 hover:text-white transition-all"
+        className="group relative h-11 px-5 rounded-full font-medium text-[13px] inline-flex items-center gap-2 border border-white/[0.08] bg-glass hover:bg-glass-active backdrop-blur-md text-white/80 hover:text-white transition-all"
       >
         {Icon && <Icon className="w-4 h-4" />}
         {children}

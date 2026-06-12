@@ -20,7 +20,7 @@ interface ChangelogRow extends AdminRow {
 
 const CATEGORY_TONE = {
   feature: "text-emerald-300",
-  fix: "text-[#6FB6FF]",
+  fix: "text-primary/80",
   improvement: "text-amber-300",
   breaking: "text-rose-300",
   security: "text-rose-300",
@@ -55,7 +55,7 @@ export default function AdminChangelogPage() {
         ]}
         columns={[
           { key: "version", label: "Version", width: "100px",
-            render: (v) => v ? <code className="font-mono text-[11px] text-[#6FB6FF]">v{String(v)}</code> : "—" },
+            render: (v) => v ? <code className="font-mono text-[11px] text-primary/80">v{String(v)}</code> : "—" },
           { key: "title", label: "Title" },
           { key: "category", label: "Category", width: "120px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${CATEGORY_TONE[v as keyof typeof CATEGORY_TONE]}`}>{String(v)}</span> },

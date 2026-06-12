@@ -33,7 +33,7 @@ interface SupportThread {
 
 const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   new: { label: 'Awaiting reply', tone: 'text-amber-300' },
-  read: { label: 'Acknowledged', tone: 'text-[#6FB6FF]' },
+  read: { label: 'Acknowledged', tone: 'text-primary/80' },
   replied: { label: 'Replied', tone: 'text-emerald-300' },
   resolved: { label: 'Resolved', tone: 'text-white/55' },
 };
@@ -127,10 +127,10 @@ export default function SupportInbox() {
                 >
                   <button
                     onClick={() => setExpanded(isExpanded ? null : t.id)}
-                    className="w-full px-6 py-5 flex items-start gap-4 text-left hover:bg-white/[0.02] transition-colors"
+                    className="w-full px-6 py-5 flex items-start gap-4 text-left hover:bg-glass transition-colors"
                   >
                     <div
-                      className={`w-9 h-9 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center shrink-0 ${
+                      className={`w-9 h-9 rounded-xl border border-white/[0.06] bg-glass flex items-center justify-center shrink-0 ${
                         hasReply ? 'text-emerald-300' : 'text-white/45'
                       }`}
                     >
@@ -209,8 +209,8 @@ function Bubble({
       <div
         className={`rounded-2xl border p-4 ${
           align === 'right'
-            ? 'border-[#0A84FF]/25 bg-[#0A84FF]/[0.04]'
-            : 'border-white/[0.06] bg-white/[0.02]'
+            ? 'border-primary/25 bg-primary/[0.04]'
+            : 'border-white/[0.06] bg-glass'
         }`}
       >
         <p className="text-white/85 text-[13px] leading-relaxed whitespace-pre-line">{body}</p>

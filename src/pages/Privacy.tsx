@@ -51,7 +51,7 @@ const Privacy = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="space-y-8 text-white/60"
           >
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Introduction</h2>
               <p>
                 Small Bridges LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
@@ -65,7 +65,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">2. Information We Collect</h2>
               
               <h3 className="text-lg font-medium text-white mt-4 mb-2">Personal Information</h3>
@@ -98,7 +98,7 @@ const Privacy = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">3. Legal Bases for Processing (GDPR)</h2>
               <p className="mb-4">
                 If you are located in the European Economic Area (EEA), United Kingdom, or Switzerland, 
@@ -112,7 +112,7 @@ const Privacy = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">4. How We Use Your Information</h2>
               <p className="mb-4">We use collected information to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
@@ -128,7 +128,7 @@ const Privacy = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">5. Third-Party AI Services and Data Sharing</h2>
               <p className="mb-4">
                 Our Service utilizes third-party artificial intelligence providers to generate video content. 
@@ -156,7 +156,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">6. AI Model Training</h2>
               <p className="mb-4">
                 We may use anonymized and aggregated data to improve our AI models and Service quality. 
@@ -170,7 +170,7 @@ const Privacy = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">7. Data Sharing and Disclosure</h2>
               <p className="mb-4">We may share your information with:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
@@ -185,7 +185,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">8. International Data Transfers</h2>
               <p className="mb-4">
                 Your information may be transferred to and processed in countries other than your own, 
@@ -203,7 +203,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">9. Data Security</h2>
               <p>
                 We implement industry-standard technical and organizational security measures to protect 
@@ -222,7 +222,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">10. Data Retention</h2>
               <p>
                 We retain your personal information for as long as your account is active or as needed 
@@ -239,7 +239,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">11. Your Rights Under GDPR and Other Laws</h2>
               <p className="mb-4">
                 Depending on your location, you may have the following rights regarding your personal data:
@@ -262,7 +262,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">12. California Privacy Rights (CCPA)</h2>
               <p className="mb-4">
                 If you are a California resident, you have additional rights under the California Consumer 
@@ -282,7 +282,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">13. Children's Privacy</h2>
               <p>
                 Our Service is available to users 13 years of age and older. Users between 13 and 18 
@@ -299,7 +299,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">14. Cookies and Tracking Technologies</h2>
               <p className="mb-4">
                 We use cookies and similar technologies to enhance your experience, analyze usage, and 
@@ -317,7 +317,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">15. Third-Party Links</h2>
               <p>
                 The Service may contain links to third-party websites or services that are not owned or 
@@ -326,7 +326,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">16. Do Not Track and Global Privacy Control</h2>
               <p>
                 Some browsers transmit "Do Not Track" (DNT) or Global Privacy Control (GPC) signals.
@@ -337,7 +337,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">17. Automated Decision-Making</h2>
               <p>
                 We do not engage in solely automated decision-making, including profiling, that
@@ -347,7 +347,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">18. Data Breach Notification</h2>
               <p>
                 In the event of a personal data breach that is likely to result in a risk to your
@@ -359,7 +359,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">19. Changes to This Policy</h2>
               <p>
                 We may update this Privacy Policy periodically. We will notify you of material changes 
@@ -369,7 +369,7 @@ const Privacy = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">20. Contact Information</h2>
               <p className="mb-4">
                 For questions, concerns, or requests regarding this Privacy Policy or our data practices, 

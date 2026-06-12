@@ -107,10 +107,10 @@ function Eyebrow({ n, kicker }: { n: string; kicker: string }) {
       transition={{ duration: 0.8 }}
       className="flex justify-center mb-6"
     >
-      <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl">
+      <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-2xl">
         <span className="text-[10px] font-medium text-muted-foreground tracking-[0.32em] uppercase">{n}</span>
-        <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
-        <span className="text-[10px] font-medium text-[#0A84FF]/85 tracking-[0.32em] uppercase">{kicker}</span>
+        <span className="w-1 h-1 rounded-full bg-primary" />
+        <span className="text-[10px] font-medium text-primary/85 tracking-[0.32em] uppercase">{kicker}</span>
       </div>
     </motion.div>
   );
@@ -300,7 +300,7 @@ function StatsBand() {
   ];
   return (
     <section className="relative px-6 py-20 border-b border-white/[0.05] bg-gradient-to-b from-black/30 via-transparent to-transparent">
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.05] rounded-3xl overflow-hidden border border-white/[0.06]">
+      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-px bg-glass-hover rounded-3xl overflow-hidden border border-white/[0.06]">
         {items.map((it, i) => (
           <motion.div
             key={it.label}
@@ -458,9 +458,9 @@ function Hero({ onEnter }: { onEnter: () => void }) {
       {/* Aurora */}
       <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none">
         <motion.div animate={{ x: ['-6%', '8%', '-6%'], y: ['-3%', '4%', '-3%'] }} transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-1/3 left-1/4 w-[60vw] h-[60vw] rounded-full bg-[#0A84FF]/[0.18] blur-[160px]" />
+          className="absolute -top-1/3 left-1/4 w-[60vw] h-[60vw] rounded-full bg-primary/[0.18] blur-[160px]" />
         <motion.div animate={{ x: ['6%', '-6%', '6%'], y: ['3%', '-3%', '3%'] }} transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-[#5AC8FA]/[0.10] blur-[180px]" />
+          className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-primary/90/[0.10] blur-[180px]" />
       </div>
 
       {/* Twinkling starfield */}
@@ -551,8 +551,8 @@ function Hero({ onEnter }: { onEnter: () => void }) {
 
       <motion.div style={{ y: titleY }} className="relative w-full max-w-7xl mx-auto px-6 pb-32 pt-44">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
+          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] backdrop-blur-2xl mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           <span className="text-[10.5px] font-medium text-foreground/80 tracking-[0.32em] uppercase">A guided tour · 11 chapters</span>
         </motion.div>
 
@@ -588,7 +588,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
             <span className="relative z-10">Enter the Studio</span>
             <ArrowRight className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </MagneticButton>
-          <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all inline-flex items-center gap-2 border border-white/[0.08]">
+          <a href="#engines" className="h-14 px-10 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground hover:bg-glass-active transition-all inline-flex items-center gap-2 border border-white/[0.08]">
             <Play className="w-3.5 h-3.5" /> Take the tour
           </a>
         </motion.div>
@@ -596,7 +596,7 @@ function Hero({ onEnter }: { onEnter: () => void }) {
         {/* Footer strip — chapters list */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 1 }}
           className="mt-24 hidden md:flex items-center gap-6 text-[10.5px] tracking-[0.28em] uppercase text-muted-foreground">
-          <span className="text-[#0A84FF]/80">01 · Engines</span>
+          <span className="text-primary/80">01 · Engines</span>
           <span>02 · Capabilities</span>
           <span>03 · Cast</span>
           <span>04 · Worlds</span>
@@ -629,7 +629,7 @@ function FilmstripTicker() {
       <motion.div className="flex gap-12 w-max" animate={{ x: ['0%', '-33.333%'] }} transition={{ duration: 50, ease: 'linear', repeat: Infinity }}>
         {row.map((t, i) => (
           <div key={i} className="flex items-center gap-3 text-[12.5px] uppercase tracking-[0.28em] text-muted-foreground">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+            <span className="w-1 h-1 rounded-full bg-primary" />
             {t}
           </div>
         ))}
@@ -737,23 +737,23 @@ function EnginesSection() {
               onClick={() => setActive(i)}
               className={`group w-full text-left p-5 rounded-2xl border transition-all duration-500 ${
                 i === active
-                  ? 'border-[#0A84FF]/40 bg-gradient-to-br from-[#0A84FF]/[0.08] to-transparent'
-                  : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'
+                  ? 'border-primary/40 bg-gradient-to-br from-[#0A84FF]/[0.08] to-transparent'
+                  : 'border-white/[0.06] bg-glass hover:border-white/[0.12]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${
-                    i === active ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.15]' : 'border-white/[0.08] bg-white/[0.04]'
+                    i === active ? 'border-primary/40 bg-primary/[0.15]' : 'border-white/[0.08] bg-glass-hover'
                   }`}>
-                    <e.icon className="w-4 h-4 text-[#0A84FF]" />
+                    <e.icon className="w-4 h-4 text-primary" />
                   </div>
                   <div>
                     <div className="font-display text-lg text-foreground tracking-tight">{e.name}</div>
                     <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{e.role}</div>
                   </div>
                 </div>
-                <ChevronRight className={`w-4 h-4 transition-transform ${i === active ? 'text-[#0A84FF] translate-x-0.5' : 'text-foreground/30'}`} />
+                <ChevronRight className={`w-4 h-4 transition-transform ${i === active ? 'text-primary translate-x-0.5' : 'text-foreground/30'}`} />
               </div>
             </button>
           ))}
@@ -778,12 +778,12 @@ function EnginesSection() {
                   <span className="text-[10px] uppercase tracking-[0.24em] text-foreground/80">Live · Engine demo</span>
                 </div>
                 <div className="absolute bottom-6 left-6 right-6">
-                  <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/85 mb-2">{E.role}</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.32em] text-primary/85 mb-2">{E.role}</div>
                   <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-3">{E.name}</h3>
                   <p className="text-muted-foreground text-sm md:text-base font-light leading-relaxed max-w-2xl">{E.desc}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-glass-active">
                 {E.spec.map(([k, v]) => (
                   <div key={k} className="bg-background/80 p-4">
                     <div className="text-[9.5px] uppercase tracking-[0.26em] text-muted-foreground mb-1">{k}</div>
@@ -888,7 +888,7 @@ function BentoCard({ children, className = '' }: { children: React.ReactNode; cl
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-5%' }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-glass ${className}`}
     >
       {children}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
@@ -901,7 +901,7 @@ function BentoCard({ children, className = '' }: { children: React.ReactNode; cl
 function BentoBadge({ icon: Icon, label }: { icon: any; label: string }) {
   return (
     <div className="absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/55 border border-white/10 backdrop-blur-md">
-      <Icon className="w-3 h-3 text-[#0A84FF]" />
+      <Icon className="w-3 h-3 text-primary" />
       <span className="text-[9.5px] tracking-[0.22em] uppercase text-foreground/80">{label}</span>
     </div>
   );
@@ -987,7 +987,7 @@ function AvatarRow({ items, direction }: { items: { img: string; name: string }[
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
               <div className="text-[12px] tracking-[0.18em] uppercase text-foreground/90">{a.name}</div>
-              <div className="text-[9.5px] tracking-[0.24em] uppercase text-[#0A84FF]/80">Locked</div>
+              <div className="text-[9.5px] tracking-[0.24em] uppercase text-primary/80">Locked</div>
             </div>
           </div>
         ))}
@@ -1163,22 +1163,22 @@ function ScenesReel() {
                       <Pause className="w-3.5 h-3.5" />
                     </button>
                     <div className="flex-1 h-1 rounded-full bg-white/15 overflow-hidden">
-                      <motion.div className="h-full bg-[#0A84FF] origin-left"
+                      <motion.div className="h-full bg-primary origin-left"
                         animate={{ scaleX: [0, 1] }}
                         transition={{ duration: 8, ease: 'linear', repeat: Infinity }} />
                     </div>
                     <span className="text-[11px] font-mono text-muted-foreground">00:0{i + 2} / 00:08</span>
                   </div>
                 </div>
-                <div aria-hidden className="absolute -inset-x-10 -bottom-10 h-24 bg-[#0A84FF]/20 blur-3xl -z-10" />
+                <div aria-hidden className="absolute -inset-x-10 -bottom-10 h-24 bg-primary/20 blur-3xl -z-10" />
               </div>
               <div className="lg:col-span-5">
-                <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-4">Example {i + 1}</div>
+                <div className="text-[10px] tracking-[0.32em] uppercase text-primary/80 mb-4">Example {i + 1}</div>
                 <h3 className="font-display text-4xl md:text-5xl text-foreground tracking-[-0.02em] mb-5">{s.title}</h3>
                 <p className="text-muted-foreground text-base md:text-lg font-light leading-relaxed mb-8">{s.body}</p>
                 <div className="flex flex-wrap gap-2">
                   {['Anamorphic', 'Native audio', 'Identity-locked', 'Auto-graded'].map((t) => (
-                    <span key={t} className="px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">{t}</span>
+                    <span key={t} className="px-3 py-1 rounded-full bg-glass-hover border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">{t}</span>
                   ))}
                 </div>
               </div>
@@ -1217,7 +1217,7 @@ function PipelineSection() {
 
       <div ref={ref} className="relative max-w-5xl mx-auto mt-20">
         {/* spine */}
-        <div aria-hidden className="absolute left-[19px] md:left-1/2 md:-translate-x-px top-0 bottom-0 w-px bg-white/[0.08]" />
+        <div aria-hidden className="absolute left-[19px] md:left-1/2 md:-translate-x-px top-0 bottom-0 w-px bg-glass-active" />
         <motion.div aria-hidden style={{ height: fillH }}
           className="absolute left-[19px] md:left-1/2 md:-translate-x-px top-0 w-px bg-gradient-to-b from-[#0A84FF] via-[#5AC8FA] to-transparent shadow-[0_0_30px_rgba(10,132,255,0.6)]" />
 
@@ -1233,11 +1233,11 @@ function PipelineSection() {
                 transition={{ duration: 0.8, delay: i * 0.04 }}
                 className="relative pl-12 md:pl-0 md:grid md:grid-cols-2 md:gap-12 items-center"
               >
-                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-1 w-[40px] h-[40px] rounded-full bg-background border border-[#0A84FF]/40 flex items-center justify-center shadow-[0_0_30px_rgba(10,132,255,0.35)]">
-                  <s.icon className="w-4 h-4 text-[#0A84FF]" />
+                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-1 w-[40px] h-[40px] rounded-full bg-background border border-primary/40 flex items-center justify-center shadow-[0_0_30px_rgba(10,132,255,0.35)]">
+                  <s.icon className="w-4 h-4 text-primary" />
                 </div>
                 <div className={`md:row-start-1 ${right ? 'md:col-start-2 md:pl-12' : 'md:col-start-1 md:pr-12 md:text-right'}`}>
-                  <div className="text-[10px] tracking-[0.32em] uppercase text-[#0A84FF]/80 mb-2">Stage {String(i + 1).padStart(2, '0')}</div>
+                  <div className="text-[10px] tracking-[0.32em] uppercase text-primary/80 mb-2">Stage {String(i + 1).padStart(2, '0')}</div>
                   <h4 className="font-display text-2xl md:text-3xl text-foreground tracking-tight mb-2">{s.t}</h4>
                   <p className="text-muted-foreground text-[14px] leading-relaxed font-light max-w-md md:inline-block">{s.sub}</p>
                 </div>
@@ -1270,14 +1270,14 @@ function EditorMockupSection() {
             className="relative rounded-3xl overflow-hidden border border-white/[0.08] bg-background shadow-[0_60px_140px_-40px_rgba(10,132,255,0.35)]"
           >
             {/* Window chrome */}
-            <div className="flex items-center gap-2 px-4 h-9 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="flex items-center gap-2 px-4 h-9 border-b border-white/[0.06] bg-glass">
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <div className="ml-4 text-[10.5px] tracking-[0.22em] uppercase text-muted-foreground font-mono">small bridges / editor / brand-film-v3</div>
               <div className="ml-auto flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 <span>4K · 23.976</span>
-                <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                <span className="w-1 h-1 rounded-full bg-primary" />
                 <span>Auto-Sync</span>
               </div>
             </div>
@@ -1304,7 +1304,7 @@ function EditorMockupSection() {
                 </button>
                 <span className="text-[11px] font-mono text-muted-foreground">00:00:24:12</span>
                 <div className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden">
-                  <motion.div className="h-full bg-[#0A84FF] origin-left"
+                  <motion.div className="h-full bg-primary origin-left"
                     animate={{ scaleX: [0, 1] }} transition={{ duration: 12, ease: 'linear', repeat: Infinity }} />
                 </div>
                 <span className="text-[11px] font-mono text-muted-foreground">/ 00:01:36:00</span>
@@ -1342,10 +1342,10 @@ function EditorMockupSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-5%' }}
               transition={{ duration: 0.7 }}
-              className="flex gap-4 p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02]"
+              className="flex gap-4 p-5 rounded-2xl border border-white/[0.06] bg-glass"
             >
-              <div className="w-10 h-10 shrink-0 rounded-lg bg-[#0A84FF]/[0.12] border border-[#0A84FF]/20 flex items-center justify-center">
-                <f.icon className="w-4 h-4 text-[#0A84FF]" />
+              <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/[0.12] border border-primary/20 flex items-center justify-center">
+                <f.icon className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <div className="font-display text-lg text-foreground tracking-tight">{f.t}</div>
@@ -1431,7 +1431,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
         className="relative max-w-5xl mx-auto mt-16"
       >
         {/* Glow halo */}
-        <div aria-hidden className="absolute -inset-12 -z-10 bg-[#0A84FF]/20 blur-[120px]" />
+        <div aria-hidden className="absolute -inset-12 -z-10 bg-primary/20 blur-[120px]" />
 
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.10] bg-gradient-to-b from-white/[0.05] to-white/[0.01] backdrop-blur-2xl shadow-[0_60px_160px_-40px_rgba(10,132,255,0.45)]">
           {/* Window chrome */}
@@ -1445,15 +1445,15 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
 
           <div className="p-8 md:p-12">
             {/* Brief input */}
-            <div className="text-[10.5px] uppercase tracking-[0.32em] text-[#0A84FF]/80 mb-3">Step 01 · Brief</div>
+            <div className="text-[10.5px] uppercase tracking-[0.32em] text-primary/80 mb-3">Step 01 · Brief</div>
             <div className="font-display text-3xl md:text-5xl text-foreground tracking-[-0.02em] leading-tight">
               Tell me about your film.
             </div>
 
             <div className="mt-8 relative rounded-2xl border border-white/[0.10] bg-background/40 backdrop-blur-xl p-5">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-[#0A84FF]/[0.15] border border-[#0A84FF]/30 flex items-center justify-center shrink-0">
-                  <Wand2 className="w-4 h-4 text-[#0A84FF]" />
+                <div className="w-10 h-10 rounded-xl bg-primary/[0.15] border border-primary/30 flex items-center justify-center shrink-0">
+                  <Wand2 className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-h-[80px]">
                   <AnimatePresence mode="wait">
@@ -1469,19 +1469,19 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                       <motion.span
                         animate={{ opacity: [1, 0, 1] }}
                         transition={{ duration: 1, repeat: Infinity }}
-                        className="inline-block w-[2px] h-5 bg-[#0A84FF] ml-1 align-middle"
+                        className="inline-block w-[2px] h-5 bg-primary ml-1 align-middle"
                       />
                     </motion.div>
                   </AnimatePresence>
                 </div>
                 <div className="hidden md:flex items-center gap-2 shrink-0">
-                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-muted-foreground">
+                  <button className="w-10 h-10 rounded-lg bg-glass-hover border border-white/[0.08] flex items-center justify-center text-muted-foreground">
                     <Mic2 className="w-4 h-4" />
                   </button>
-                  <button className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-muted-foreground">
+                  <button className="w-10 h-10 rounded-lg bg-glass-hover border border-white/[0.08] flex items-center justify-center text-muted-foreground">
                     <ImageIcon className="w-4 h-4" />
                   </button>
-                  <button className="h-10 px-4 rounded-lg bg-[#0A84FF] text-foreground text-[12px] font-medium tracking-wide flex items-center gap-2">
+                  <button className="h-10 px-4 rounded-lg bg-primary text-foreground text-[12px] font-medium tracking-wide flex items-center gap-2">
                     Generate <Send className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1497,8 +1497,8 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                   { i: Languages, l: 'EN · ES · JA' },
                   { i: Hash, l: '9:16 · 1:1 · 16:9' },
                 ].map((p) => (
-                  <span key={p.l} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">
-                    <p.i className="w-3 h-3 text-[#0A84FF]" /> {p.l}
+                  <span key={p.l} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] text-[11px] text-muted-foreground tracking-wide">
+                    <p.i className="w-3 h-3 text-primary" /> {p.l}
                   </span>
                 ))}
               </div>
@@ -1509,7 +1509,7 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
               <div className="rounded-2xl border border-white/[0.06] bg-background/30 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">Cast</div>
-                  <div className="text-[10.5px] uppercase tracking-[0.22em] text-[#0A84FF]/80">2 selected</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.22em] text-primary/80">2 selected</div>
                 </div>
                 <div className="flex -space-x-3">
                   {[avEmma, avMarcus, avZara, avHiroshi, avCamila].map((src, i) => (
@@ -1517,17 +1517,17 @@ function CreatePageMockup({ onSignup }: { onSignup: () => void }) {
                       <img src={src} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  <button className="w-12 h-12 rounded-full bg-white/[0.04] border-2 border-black ring-1 ring-white/10 flex items-center justify-center text-muted-foreground text-lg">+</button>
+                  <button className="w-12 h-12 rounded-full bg-glass-hover border-2 border-black ring-1 ring-white/10 flex items-center justify-center text-muted-foreground text-lg">+</button>
                 </div>
               </div>
               <div className="rounded-2xl border border-white/[0.06] bg-background/30 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground">World</div>
-                  <div className="text-[10.5px] uppercase tracking-[0.22em] text-[#0A84FF]/80">Neon Noir</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.22em] text-primary/80">Neon Noir</div>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[envNeon, envCherry, envSpace, envGolden].map((src, i) => (
-                    <div key={i} className={`relative aspect-square rounded-md overflow-hidden border ${i === 0 ? 'border-[#0A84FF]/60' : 'border-white/[0.08]'}`}>
+                    <div key={i} className={`relative aspect-square rounded-md overflow-hidden border ${i === 0 ? 'border-primary/60' : 'border-white/[0.08]'}`}>
                       <img src={src} alt="" className="w-full h-full object-cover" />
                       {i === 0 && <div className="absolute inset-0 ring-2 ring-inset ring-[#0A84FF]/60 rounded-md" />}
                     </div>
@@ -1579,8 +1579,8 @@ function FinalCTA({ onEnter }: { onEnter: () => void }) {
         transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
         className="max-w-3xl mx-auto text-center"
       >
-        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
-          <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-2xl mb-8">
+          <span className="w-1 h-1 rounded-full bg-primary" />
           <span className="text-[10.5px] font-medium text-muted-foreground tracking-[0.32em] uppercase">The doors are open</span>
         </div>
         <h2 className="font-display text-5xl md:text-7xl font-bold text-foreground tracking-[-0.035em] mb-8 leading-[1.02]">
@@ -1741,7 +1741,7 @@ function KineticCollage() {
               {/* Tag chip */}
               {t.tag && (
                 <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/65 border border-white/15 backdrop-blur-md">
-                  <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                  <span className="w-1 h-1 rounded-full bg-primary" />
                   <span className="text-[8.5px] uppercase tracking-[0.22em] text-foreground/85 truncate">{t.tag}</span>
                 </div>
               )}

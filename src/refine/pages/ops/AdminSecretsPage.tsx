@@ -30,7 +30,7 @@ const SPEC: SecretSpec[] = [
 ];
 
 const CATEGORY_TONE: Record<SecretSpec["category"], string> = {
-  auth: "text-rose-300", ai: "text-[#6FB6FF]", payments: "text-emerald-300",
+  auth: "text-rose-300", ai: "text-primary/80", payments: "text-emerald-300",
   email: "text-amber-300", integrations: "text-violet-300", monitoring: "text-white/55",
 };
 
@@ -136,7 +136,7 @@ export default function AdminSecretsPage() {
               <a
                 href="https://supabase.com/dashboard/project/_/settings/functions"
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-[#6FB6FF] hover:text-white"
+                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-primary/80 hover:text-white"
               >
                 Open Supabase secrets dashboard <ExternalLink className="w-3 h-3" />
               </a>

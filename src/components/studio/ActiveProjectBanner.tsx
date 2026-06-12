@@ -257,7 +257,7 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
             
             <button
               onClick={() => setIsDismissed(true)}
-              className="p-2 rounded-full hover:bg-white/[0.06] transition-all duration-300 text-white/40 hover:text-white/70"
+              className="p-2 rounded-full hover:bg-glass-active transition-all duration-300 text-white/40 hover:text-white/70"
               title="Dismiss"
             >
               <X className="w-4 h-4" strokeWidth={1.5} />

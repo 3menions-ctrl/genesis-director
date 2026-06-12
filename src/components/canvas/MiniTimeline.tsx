@@ -39,7 +39,7 @@ export function MiniTimeline({
             );
           })}
         </div>
-        <Button onClick={onRender} className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white">
+        <Button onClick={onRender} className="bg-primary hover:bg-primary/90 text-white">
           <Play className="h-3.5 w-3.5 mr-1" /> Render
         </Button>
         <Button onClick={onOpenEditor} variant="outline" className="border-white/15">

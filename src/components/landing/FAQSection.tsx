@@ -68,7 +68,7 @@ const FAQSection = memo(forwardRef<HTMLElement, Record<string, never>>(
                 <AccordionItem 
                   key={i} 
                   value={`item-${i}`}
-                  className="border-0 bg-white/[0.02] rounded-2xl px-6 data-[state=open]:bg-white/[0.04]"
+                  className="border-0 bg-glass rounded-2xl px-6 data-[state=open]:bg-glass-hover"
                 >
                   <AccordionTrigger className="py-5 text-left text-white hover:no-underline text-base font-medium">
                     {faq.question}

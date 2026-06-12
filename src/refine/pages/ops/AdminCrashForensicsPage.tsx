@@ -89,7 +89,7 @@ export default function AdminCrashForensicsPage() {
                 </thead>
                 <tbody>
                   {entries.slice().reverse().map(e => (
-                    <tr key={e.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={e.id} className="border-b border-white/[0.04] hover:bg-glass">
                       <td className="px-6 py-2 text-white/50 font-mono text-[10px] whitespace-nowrap">{new Date(e.timestamp).toLocaleTimeString()}</td>
                       <td className="px-6 py-2">
                         <Badge variant={e.severity === "error" ? "destructive" : e.severity === "warning" ? "secondary" : "default"} className="font-mono text-[10px]">{e.severity}</Badge>

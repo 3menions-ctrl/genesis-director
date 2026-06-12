@@ -64,9 +64,9 @@ function iconFor(type: AdminNotifType) {
 }
 
 function tonesFor(severity: AdminNotif["severity"]) {
-  if (severity === "critical") return { ring: "border-[#FF3B30]/60 text-[#FF3B30] bg-[#FF3B30]/10", dot: "#FF3B30", glow: "0_0_8px_#FF3B30" };
-  if (severity === "warn") return { ring: "border-[#FFB020]/50 text-[#FFB020] bg-[#FFB020]/10", dot: "#FFB020", glow: "0_0_8px_#FFB020" };
-  return { ring: "border-[#0A84FF]/40 text-[#0A84FF] bg-[#0A84FF]/10", dot: "#0A84FF", glow: "0_0_8px_#0A84FF" };
+  if (severity === "critical") return { ring: "border-[#FF3B30]/60 text-destructive bg-destructive/10", dot: "#FF3B30", glow: "0_0_8px_#FF3B30" };
+  if (severity === "warn") return { ring: "border-[#FFB020]/50 text-warning bg-warning/10", dot: "#FFB020", glow: "0_0_8px_#FFB020" };
+  return { ring: "border-primary/40 text-primary bg-primary/10", dot: "#0A84FF", glow: "0_0_8px_#0A84FF" };
 }
 
 function timeAgo(iso: string) {
@@ -166,7 +166,7 @@ export function AdminNotificationBell() {
         className={cn(
           "relative w-8 h-8 rounded-full border flex items-center justify-center transition-colors",
           bellTone.border,
-          unread > 0 ? "text-white" : "text-white/50 hover:text-[#0A84FF] hover:border-[#0A84FF]/50",
+          unread > 0 ? "text-white" : "text-white/50 hover:text-primary hover:border-primary/50",
           bellTone.glow,
         )}
         aria-label="Admin notifications"
@@ -185,7 +185,7 @@ export function AdminNotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-3 w-[380px] max-h-[520px] rounded-2xl border border-white/10 bg-[#070809]/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+          className="absolute right-0 mt-3 w-[380px] max-h-[520px] rounded-2xl border border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col overflow-hidden"
           style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}
         >
           <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
@@ -202,7 +202,7 @@ export function AdminNotificationBell() {
             {unread > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-[10px] uppercase tracking-[0.2em] text-white/40 hover:text-[#0A84FF] font-mono flex items-center gap-1 transition-colors"
+                className="text-[10px] uppercase tracking-[0.2em] text-white/40 hover:text-primary font-mono flex items-center gap-1 transition-colors"
               >
                 <Check className="w-3 h-3" />
                 Mark all
@@ -234,10 +234,10 @@ export function AdminNotificationBell() {
                       <button
                         onClick={() => handleClick(n)}
                         className={cn(
-                          "w-full text-left px-5 py-3 flex gap-3 hover:bg-white/[0.03] transition-colors",
-                          !n.read && n.severity === "critical" && "bg-[#FF3B30]/[0.06]",
-                          !n.read && n.severity === "warn" && "bg-[#FFB020]/[0.05]",
-                          !n.read && (!n.severity || n.severity === "info") && "bg-[#0A84FF]/[0.04]",
+                          "w-full text-left px-5 py-3 flex gap-3 hover:bg-glass transition-colors",
+                          !n.read && n.severity === "critical" && "bg-destructive/[0.06]",
+                          !n.read && n.severity === "warn" && "bg-warning/[0.05]",
+                          !n.read && (!n.severity || n.severity === "info") && "bg-primary/[0.04]",
                         )}
                       >
                         <div

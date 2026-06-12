@@ -118,8 +118,8 @@ export function ReactionRail({ reelId }: Props) {
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="shrink-0 w-20 flex flex-col items-center gap-1.5">
-                <div className="w-16 h-16 rounded-full bg-white/[0.04] animate-pulse" />
-                <div className="h-2 w-12 bg-white/[0.04] rounded animate-pulse" />
+                <div className="w-16 h-16 rounded-full bg-glass-hover animate-pulse" />
+                <div className="h-2 w-12 bg-glass-hover rounded animate-pulse" />
               </div>
             ))
           : reactions.map((r) => (

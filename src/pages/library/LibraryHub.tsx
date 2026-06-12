@@ -157,7 +157,7 @@ function AtomCard({
         }}
       />
       <div className="relative">
-        <div className="w-11 h-11 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md flex items-center justify-center mb-5">
+        <div className="w-11 h-11 rounded-2xl border border-white/10 bg-glass backdrop-blur-md flex items-center justify-center mb-5">
           <Icon className="w-4 h-4 text-brand-light" strokeWidth={1.5} />
         </div>
         <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/30 mb-2">
@@ -194,7 +194,7 @@ function SurfaceCard({
 }) {
   return (
     <div className="rounded-3xl border border-white/[0.07] bg-white/[0.015] p-7 lg:p-8 flex items-start gap-5">
-      <div className="w-11 h-11 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-2xl border border-white/10 bg-glass flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-brand-light" strokeWidth={1.5} />
       </div>
       <div className="flex-1 min-w-0">

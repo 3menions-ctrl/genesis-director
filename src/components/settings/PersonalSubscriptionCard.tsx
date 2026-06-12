@@ -16,8 +16,8 @@ export function PersonalSubscriptionCard() {
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#0A84FF]/[0.10] border border-[#0A84FF]/30 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-[#9DCBFF]" />
+          <div className="w-12 h-12 rounded-2xl bg-primary/[0.10] border border-primary/30 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-primary/60" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Plan</p>
@@ -30,7 +30,7 @@ export function PersonalSubscriptionCard() {
         <div className="flex gap-2">
           <Button
             onClick={() => navigate('/credits')}
-            className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white"
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             <Sparkles className="w-4 h-4 mr-2" /> Manage credits{' '}
             <ArrowRight className="w-3.5 h-3.5 ml-1" />

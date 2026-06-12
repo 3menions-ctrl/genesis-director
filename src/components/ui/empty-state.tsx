@@ -68,7 +68,7 @@ export function EmptyState({
       {Icon && (
         <div
           className={cn(
-            'rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center mb-5',
+            'rounded-2xl border border-white/[0.06] bg-glass flex items-center justify-center mb-5',
             isFull ? 'w-14 h-14' : 'w-10 h-10',
           )}
         >
@@ -125,7 +125,7 @@ export function EmptyState({
                 <button
                   onClick={e.onClick}
                   disabled={!e.onClick}
-                  className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 transition-colors text-[13px] text-white/75 leading-relaxed disabled:cursor-default disabled:hover:bg-white/[0.02] disabled:hover:border-white/[0.06]"
+                  className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-glass hover:bg-glass-hover hover:border-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 transition-colors text-[13px] text-white/75 leading-relaxed disabled:cursor-default disabled:hover:bg-glass disabled:hover:border-white/[0.06]"
                 >
                   {e.label}
                 </button>

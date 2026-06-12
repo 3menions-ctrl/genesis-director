@@ -91,7 +91,7 @@ function FilmFrame({
           }}
           className="absolute top-1/2 -right-[18px] -translate-y-1/2 origin-left h-px w-[18px] bg-gradient-to-r from-[#0A84FF] to-[#0A84FF]/0"
         >
-          <span className="absolute -top-[3px] right-0 w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_10px_2px_hsl(212_100%_52%/0.7)]" />
+          <span className="absolute -top-[3px] right-0 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_2px_hsl(212_100%_52%/0.7)]" />
         </motion.div>
       )}
     </motion.div>
@@ -136,8 +136,8 @@ export function FrameChainingSection() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-center"
         >
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-glass border border-white/[0.08] mb-8">
+            <span className="w-1 h-1 rounded-full bg-primary" />
             <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">
               Frame Chaining · Long-form
             </span>
@@ -181,7 +181,7 @@ export function FrameChainingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-15%' }}
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="relative max-w-3xl mx-auto rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 md:p-8"
+          className="relative max-w-3xl mx-auto rounded-2xl border border-white/[0.08] bg-glass p-6 md:p-8"
         >
           <div className="flex items-baseline justify-between mb-4">
             <span className="text-[10.5px] font-medium text-white/55 tracking-[0.32em] uppercase font-mono">
@@ -189,7 +189,7 @@ export function FrameChainingSection() {
             </span>
             <RuntimeDisplay seconds={seconds} reduceMotion={reduceMotion} />
           </div>
-          <div className="relative h-2 rounded-full bg-white/[0.05] overflow-hidden">
+          <div className="relative h-2 rounded-full bg-glass-hover overflow-hidden">
             <motion.div
               style={{ width: barWidth }}
               className="absolute inset-y-0 left-0 rounded-full"
@@ -228,7 +228,7 @@ export function FrameChainingSection() {
               className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5"
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                <span className="w-1 h-1 rounded-full bg-primary" />
                 <span className="text-[10px] font-medium text-white/55 tracking-[0.28em] uppercase">
                   {pill.k}
                 </span>

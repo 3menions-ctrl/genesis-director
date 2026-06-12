@@ -141,7 +141,7 @@ export default function WorkspaceBilling() {
                   value={inquiryReason}
                   onChange={(e) => setInquiryReason(e.target.value)}
                   placeholder="What kind of output volume are you targeting? Any compliance asks?"
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40 resize-none"
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40 resize-none"
                   disabled={!canManage}
                 />
               </label>
@@ -158,9 +158,9 @@ export default function WorkspaceBilling() {
 
       <Section icon={Sparkles} label="What happens when paid plans launch?" sublabel="Plain answers.">
         <ul className="space-y-2.5 text-[13px] text-white/65 leading-relaxed">
-          <li className="flex gap-3"><span className="text-[#0A84FF] mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" /> Anyone who signed up during beta keeps their work and their account.</li>
-          <li className="flex gap-3"><span className="text-[#0A84FF] mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" /> We&rsquo;ll email at least 30 days before any paid plan turns on, and we&rsquo;ll tell you what stays free.</li>
-          <li className="flex gap-3"><span className="text-[#0A84FF] mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" /> Workspace-tier features (audit log export, SSO, custom roles) ship together when paid plans launch.</li>
+          <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> Anyone who signed up during beta keeps their work and their account.</li>
+          <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> We&rsquo;ll email at least 30 days before any paid plan turns on, and we&rsquo;ll tell you what stays free.</li>
+          <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> Workspace-tier features (audit log export, SSO, custom roles) ship together when paid plans launch.</li>
         </ul>
       </Section>
     </WorkspacePage>
@@ -179,9 +179,9 @@ function UsageCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+    <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Icon className="w-3.5 h-3.5 text-[#6FB6FF]" />
+        <Icon className="w-3.5 h-3.5 text-primary/80" />
         <span className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/40">{label}</span>
       </div>
       <div className="text-2xl font-light tabular-nums text-white">

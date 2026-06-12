@@ -48,7 +48,7 @@ export default function AdminAbusePage() {
         ]}
         columns={[
           { key: "kind", label: "Kind", width: "140px",
-            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">{String(v).replace("_", " ")}</span> },
+            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80">{String(v).replace("_", " ")}</span> },
           { key: "pattern", label: "Pattern" },
           { key: "reason", label: "Reason" },
           { key: "hits", label: "Hits", width: "80px", align: "right" },

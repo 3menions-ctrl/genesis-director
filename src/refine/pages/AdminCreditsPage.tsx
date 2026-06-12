@@ -55,7 +55,7 @@ export default function AdminCreditsPage() {
         { label: "Purchases / Refunds", value: `${purchases} / ${refunds}`, tone: "amber", sub: "txn split" },
       ]}
     >
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] backdrop-blur-md">
+      <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-glass backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -67,7 +67,7 @@ export default function AdminCreditsPage() {
             </thead>
             <tbody>
               {txns.map((t) => (
-                <tr key={t.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                <tr key={t.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
                   <td className="py-3 px-4">
                     <Badge variant="outline" className={cn("text-[10px] border-white/10",
                       t.transaction_type === "purchase" ? "text-success" : t.transaction_type === "refund" ? "text-warning" : "text-white/50"

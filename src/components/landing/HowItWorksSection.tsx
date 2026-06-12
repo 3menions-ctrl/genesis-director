@@ -89,7 +89,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] mb-6"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-medium text-white/50 tracking-wide uppercase">Production Pipeline</span>
@@ -220,13 +220,13 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
             {/* Navigation arrows */}
             <button
               onClick={goPrev}
-              className="absolute left-0 md:-left-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
+              className="absolute left-0 md:-left-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-glass-hover hover:bg-glass-active hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={goNext}
-              className="absolute right-0 md:-right-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
+              className="absolute right-0 md:-right-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-glass-hover hover:bg-glass-active hover:border-white/[0.2] flex items-center justify-center text-white/75 hover:text-white transition-all duration-300"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -254,7 +254,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
           </div>
 
           {/* Progress bar */}
-          <div className="mt-6 h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
+          <div className="mt-6 h-[2px] rounded-full bg-glass-hover overflow-hidden">
             <motion.div
               className="h-full rounded-full"
               style={{ background: `linear-gradient(90deg, ${LAYERS[0].color}, ${layer.color})` }}
@@ -266,11 +266,11 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
           {/* Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-white/[0.05]">
             <p className="text-xs text-white/55 tracking-wide">
-              Powered by <span className="text-[#0A84FF]/80 font-medium">Seedance 2.0</span> — orchestrated by Small Bridges
+              Powered by <span className="text-primary/80 font-medium">Seedance 2.0</span> — orchestrated by Small Bridges
             </p>
             <Link
               to="/how-it-works"
-              className="group/cta inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium text-white/60 bg-white/[0.04] border border-white/[0.08] hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-300"
+              className="group/cta inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium text-white/60 bg-glass-hover border border-white/[0.08] hover:text-white hover:bg-glass-active hover:border-white/[0.15] transition-all duration-300"
             >
               Explore the full pipeline
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/cta:translate-x-0.5" />

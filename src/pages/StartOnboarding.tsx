@@ -444,12 +444,12 @@ export default function StartOnboarding() {
         <div className="flex items-center gap-2">
           <LanguageSwitcher
             variant="ghost" size="sm" showLabel
-            className="h-9 px-3 text-white/65 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] backdrop-blur-xl rounded-full"
+            className="h-9 px-3 text-white/65 hover:text-white bg-glass-hover hover:bg-glass-active border border-white/[0.06] backdrop-blur-xl rounded-full"
           />
           <button
             onClick={() => navigate('/')}
             aria-label="Close"
-            className="w-9 h-9 inline-flex items-center justify-center rounded-full text-white/65 hover:text-white hover:bg-white/[0.08] backdrop-blur-md border border-white/[0.06] transition-all"
+            className="w-9 h-9 inline-flex items-center justify-center rounded-full text-white/65 hover:text-white hover:bg-glass-active backdrop-blur-md border border-white/[0.06] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -466,7 +466,7 @@ export default function StartOnboarding() {
       {/* Chapter bar */}
       <div className="relative z-30 max-w-3xl mx-auto px-6 mt-10 md:mt-12">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF]/85 font-sans font-medium">
+          <p className="text-[10px] tracking-[0.32em] uppercase text-primary/60/85 font-sans font-medium">
             {meta.chapter} · {accountType}
           </p>
           <p className="text-[10px] tracking-[0.32em] uppercase text-white/40 font-sans font-medium">
@@ -478,7 +478,7 @@ export default function StartOnboarding() {
             const filled = i <= stepIdx;
             const active = i === stepIdx;
             return (
-              <div key={s} className="relative flex-1 h-[2px] rounded-full overflow-hidden bg-white/[0.06]">
+              <div key={s} className="relative flex-1 h-[2px] rounded-full overflow-hidden bg-glass-active">
                 <motion.div
                   className="h-full origin-left"
                   style={{ background: filled ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
@@ -669,8 +669,8 @@ export default function StartOnboarding() {
                 </Field>
 
                 {user ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
-                    <Check className="w-5 h-5 text-[#9DCBFF]" />
+                  <div className="rounded-2xl border border-white/10 bg-glass p-5 flex items-center gap-3">
+                    <Check className="w-5 h-5 text-primary/60" />
                     <div className="text-sm">
                       <p className="font-medium">Signed in as {user.email}</p>
                       <p className="text-white/45 text-xs mt-0.5">Continue to wrap up.</p>
@@ -703,7 +703,7 @@ export default function StartOnboarding() {
                         <button
                           type="button" onClick={() => setShowPassword(s => !s)}
                           aria-label={showPassword ? 'Hide password' : 'Show password'}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-md text-white/45 hover:text-white hover:bg-white/[0.06] transition"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-md text-white/45 hover:text-white hover:bg-glass-active transition"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -722,8 +722,8 @@ export default function StartOnboarding() {
             {currentStep === 'verify' && (
               <div className="space-y-8 max-w-lg mx-auto">
                 {user ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex items-center gap-3">
-                    <Check className="w-5 h-5 text-[#9DCBFF]" />
+                  <div className="rounded-2xl border border-white/10 bg-glass p-5 flex items-center gap-3">
+                    <Check className="w-5 h-5 text-primary/60" />
                     <div className="text-sm">
                       <p className="font-medium">Verified.</p>
                       <p className="text-white/45 text-xs mt-0.5">Continue to finish.</p>
@@ -763,7 +763,7 @@ export default function StartOnboarding() {
                           className={cn(
                             'w-12 h-14 text-center text-xl font-semibold rounded-xl tabular-nums',
                             'bg-white/[0.035] border border-white/10 text-white outline-none',
-                            'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-white/[0.05] transition-all',
+                            'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-glass-hover transition-all',
                             otpCode[i] && 'border-[hsla(212,100%,55%,0.45)] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
                           )}
                           autoFocus={i === 0}
@@ -772,8 +772,8 @@ export default function StartOnboarding() {
                     </div>
                     {errors.otp && <p className="text-[11px] text-rose-400 text-center">{errors.otp}</p>}
                     <div className="text-center space-y-3">
-                      <div className="flex items-start gap-2 text-left rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5 max-w-sm mx-auto">
-                        <Mail className="w-3.5 h-3.5 text-[#9DCBFF] mt-0.5 shrink-0" />
+                      <div className="flex items-start gap-2 text-left rounded-xl bg-glass border border-white/[0.06] px-3.5 py-2.5 max-w-sm mx-auto">
+                        <Mail className="w-3.5 h-3.5 text-primary/60 mt-0.5 shrink-0" />
                         <div className="space-y-1">
                           <p className="text-[11px] text-white/60 leading-relaxed">
                             Codes arrive in under a minute. If you don't see it, check your <span className="text-white/80 font-medium">Spam</span> or <span className="text-white/80 font-medium">Promotions</span> folder.
@@ -802,7 +802,7 @@ export default function StartOnboarding() {
                 {/* Business: optional invites + billing on the same final step */}
                 {accountType === 'business' && (
                   <div className="pt-8 mt-2 border-t border-white/[0.06] space-y-6">
-                    <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/85 text-center">Optional · finalize later in workspace</p>
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-primary/60/85 text-center">Optional · finalize later in workspace</p>
 
                     <div>
                       <Field label="Invite teammates by email">
@@ -834,14 +834,14 @@ export default function StartOnboarding() {
                                 setForm(f => ({ ...f, invited_emails: [...f.invited_emails, v], invite_input: '' }));
                               }
                             }}
-                            className="h-12 px-5 rounded-xl bg-white/[0.06] border border-white/10 text-sm font-medium hover:bg-white/[0.10] transition"
+                            className="h-12 px-5 rounded-xl bg-glass-active border border-white/10 text-sm font-medium hover:bg-white/[0.10] transition"
                           >Add</button>
                         </div>
                       </Field>
                       {form.invited_emails.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {form.invited_emails.map(em => (
-                            <span key={em} className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs">
+                            <span key={em} className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-glass-hover border border-white/10 text-xs">
                               {em}
                               <button
                                 type="button"
@@ -1039,7 +1039,7 @@ function AudienceSwitch({ value, onChange }: { value: AccountType; onChange: (v:
     { id: 'business', label: 'Business',  Icon: Briefcase },
   ];
   return (
-    <div className="relative inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl font-sans">
+    <div className="relative inline-flex items-center gap-1 p-1 rounded-full bg-glass-hover border border-white/[0.08] backdrop-blur-2xl font-sans">
       {opts.map(o => {
         const active = value === o.id;
         return (
@@ -1077,7 +1077,7 @@ function AudienceSwitch({ value, onChange }: { value: AccountType; onChange: (v:
  * ================================================================= */
 
 const inputCls =
-  'w-full h-12 px-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-white/[0.05] transition-all font-sans';
+  'w-full h-12 px-4 rounded-xl bg-glass border border-white/10 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-[hsla(212,100%,60%,0.55)] focus:bg-glass-hover transition-all font-sans';
 
 function Block({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -1127,16 +1127,16 @@ function ChipGrid({
               className={cn(
                 'group relative min-h-[110px] p-4 rounded-2xl border text-left flex flex-col gap-2 overflow-hidden font-sans',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] shadow-[0_0_32px_-8px_hsla(212,100%,55%,0.55)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15',
+                  ? 'border-primary/55 bg-primary/[0.10] shadow-[0_0_32px_-8px_hsla(212,100%,55%,0.55)]'
+                  : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
               {Icon && (
                 <div className={cn(
                   'w-9 h-9 rounded-xl flex items-center justify-center border transition-colors',
-                  active ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.18]' : 'border-white/[0.08] bg-white/[0.04]',
+                  active ? 'border-primary/55 bg-primary/[0.18]' : 'border-white/[0.08] bg-glass-hover',
                 )}>
-                  <Icon className="w-4 h-4 text-[#9DCBFF]" />
+                  <Icon className="w-4 h-4 text-primary/60" />
                 </div>
               )}
               <p className="text-sm font-semibold text-white">{label}</p>
@@ -1180,11 +1180,11 @@ function PillGrid({
               className={cn(
                 'h-11 px-4 rounded-full text-[13px] font-medium transition-all border inline-flex items-center gap-2',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.12] text-white shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]'
-                  : 'border-white/[0.08] bg-white/[0.02] text-white/70 hover:border-white/15 hover:text-white',
+                  ? 'border-primary/55 bg-primary/[0.12] text-white shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-glass text-white/70 hover:border-white/15 hover:text-white',
               )}
             >
-              {active && <Check className="w-3 h-3 text-[#9DCBFF]" />}
+              {active && <Check className="w-3 h-3 text-primary/60" />}
               {label}
             </motion.button>
           );
@@ -1220,8 +1220,8 @@ function RadioCards({
               className={cn(
                 'relative p-4 rounded-2xl border text-left transition-all',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] shadow-[0_0_32px_-8px_hsla(212,100%,55%,0.55)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15',
+                  ? 'border-primary/55 bg-primary/[0.10] shadow-[0_0_32px_-8px_hsla(212,100%,55%,0.55)]'
+                  : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
               <p className="text-sm font-semibold text-white">{label}</p>
@@ -1265,8 +1265,8 @@ function SegmentScale({
               className={cn(
                 'relative h-[78px] px-3 rounded-2xl border flex flex-col items-center justify-center transition-all',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15',
+                  ? 'border-primary/55 bg-primary/[0.10] shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
               <p className="text-[12.5px] font-semibold text-white">{label}</p>
@@ -1275,7 +1275,7 @@ function SegmentScale({
                 {options.map((_, j) => (
                   <span key={j} className={cn(
                     'flex-1 h-0.5 rounded-full transition-colors',
-                    j <= i && active ? 'bg-[#5AC8FA]' : 'bg-white/[0.08]',
+                    j <= i && active ? 'bg-primary/90' : 'bg-glass-active',
                   )} />
                 ))}
               </div>
@@ -1316,7 +1316,7 @@ function BetaFreePlanCard({ onContinue }: { onContinue: () => void }) {
               'Paid plans launch later. We’ll email at least 30 days in advance.',
             ].map((l) => (
               <li key={l} className="flex gap-3 text-[13px] text-white/65 leading-relaxed">
-                <span className="mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" />
+                <span className="mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" />
                 {l}
               </li>
             ))}
@@ -1348,18 +1348,18 @@ function PlanGrid({
               className={cn(
                 'relative p-5 rounded-2xl border text-left transition-all overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.55)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15',
+                  ? 'border-primary/55 bg-primary/[0.08] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.55)]'
+                  : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
               {p.popular && (
-                <span className="absolute top-4 right-4 text-[9.5px] tracking-[0.22em] uppercase text-[#9DCBFF] bg-[#0A84FF]/[0.15] border border-[#0A84FF]/30 rounded-full px-2 py-0.5">
+                <span className="absolute top-4 right-4 text-[9.5px] tracking-[0.22em] uppercase text-primary/60 bg-primary/[0.15] border border-primary/30 rounded-full px-2 py-0.5">
                   Popular
                 </span>
               )}
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/[0.08] bg-white/[0.04]">
-                  <Icon className="w-4 h-4 text-[#9DCBFF]" />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/[0.08] bg-glass-hover">
+                  <Icon className="w-4 h-4 text-primary/60" />
                 </div>
                 <div>
                   <p className="text-base font-semibold text-white">{p.name}</p>
@@ -1374,7 +1374,7 @@ function PlanGrid({
               <ul className="space-y-1.5">
                 {p.features.slice(0, 4).map(f => (
                   <li key={f} className="flex items-start gap-2 text-[12px] text-white/65">
-                    <Check className="w-3 h-3 mt-1 text-[#9DCBFF] shrink-0" /> {f}
+                    <Check className="w-3 h-3 mt-1 text-primary/60 shrink-0" /> {f}
                   </li>
                 ))}
               </ul>

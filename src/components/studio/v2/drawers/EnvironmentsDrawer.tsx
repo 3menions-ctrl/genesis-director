@@ -26,7 +26,7 @@ export function EnvironmentsDrawerContent({ selectedId, onSelect }: Props) {
     <div className="p-7">
       {loading ? (
         <div className="grid grid-cols-2 gap-3">
-          {Array.from({length:6}).map((_,i)=>(<div key={i} className="aspect-video rounded-xl bg-white/[0.04] animate-pulse" />))}
+          {Array.from({length:6}).map((_,i)=>(<div key={i} className="aspect-video rounded-xl bg-glass-hover animate-pulse" />))}
         </div>
       ) : rows.length === 0 ? (
         <div className="text-center py-12 text-white/40 text-sm">No environments yet.</div>
@@ -35,7 +35,7 @@ export function EnvironmentsDrawerContent({ selectedId, onSelect }: Props) {
           {rows.map(env => (
             <button key={env.id} onClick={() => onSelect(env)}
               className={cn("group relative aspect-video rounded-xl overflow-hidden border-2 transition-all",
-                selectedId === env.id ? "border-[#0A84FF] shadow-[0_0_24px_rgba(10,132,255,0.4)]" : "border-white/[0.06] hover:border-white/20")}>
+                selectedId === env.id ? "border-primary shadow-[0_0_24px_rgba(10,132,255,0.4)]" : "border-white/[0.06] hover:border-white/20")}>
               {env.thumbnail_url ? (
                 <img src={env.thumbnail_url} alt={env.template_name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               ) : (

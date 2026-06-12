@@ -33,14 +33,14 @@ interface Props {
 }
 
 const toneText: Record<string, string> = {
-  blue: "text-[#6FB6FF]", amber: "text-amber-300",
+  blue: "text-primary/80", amber: "text-amber-300",
   emerald: "text-emerald-300", rose: "text-rose-300", neutral: "text-white",
 };
 
 const statusBadge: Record<string, { color: string; label: string }> = {
   online:        { color: "text-emerald-300 border-emerald-400/40 bg-emerald-500/[0.06]", label: "ONLINE" },
   commissioning: { color: "text-amber-300 border-amber-400/40 bg-amber-500/[0.06]",       label: "COMMISSIONING" },
-  scoped:        { color: "text-[#6FB6FF] border-[#0A84FF]/40 bg-[#0A84FF]/[0.06]",       label: "SCOPED" },
+  scoped:        { color: "text-primary/80 border-primary/40 bg-primary/[0.06]",       label: "SCOPED" },
 };
 
 export function AdminConsoleScaffold({
@@ -76,7 +76,7 @@ export function AdminConsoleScaffold({
               )}
               {primaryCta && (
                 <a href={primaryCta.href} onClick={primaryCta.onClick}
-                  className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-white px-5 py-2.5 rounded-lg border border-[#0A84FF]/50 bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] shadow-[0_8px_24px_-10px_rgba(10,132,255,0.6)] hover:shadow-[0_12px_32px_-10px_rgba(10,132,255,0.8)] transition-shadow">
+                  className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-white px-5 py-2.5 rounded-lg border border-primary/50 bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] shadow-[0_8px_24px_-10px_rgba(10,132,255,0.6)] hover:shadow-[0_12px_32px_-10px_rgba(10,132,255,0.8)] transition-shadow">
                   {primaryCta.label}
                   <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
@@ -110,13 +110,13 @@ export function AdminConsoleScaffold({
             const Icon = c.icon;
             const statusDot = c.status === "live" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"
                             : c.status === "queued" ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                            : c.status === "wired" ? "bg-[#0A84FF] shadow-[0_0_6px_rgba(10,132,255,0.6)]"
+                            : c.status === "wired" ? "bg-primary shadow-[0_0_6px_rgba(10,132,255,0.6)]"
                             : "bg-white/30";
             return (
-              <div key={i} className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 hover:border-[#0A84FF]/30 hover:bg-white/[0.035] transition-all">
+              <div key={i} className="group relative rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-md p-5 hover:border-primary/30 hover:bg-white/[0.035] transition-all">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/[0.03] flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-[#6FB6FF]" />
+                  <div className="w-10 h-10 rounded-xl border border-white/10 bg-glass flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-primary/80" />
                   </div>
                   <span className={cn("w-1.5 h-1.5 rounded-full", statusDot)} title={c.status} />
                 </div>
@@ -134,13 +134,13 @@ export function AdminConsoleScaffold({
       {manifest && (
         <section className="rounded-2xl border border-white/[0.06] bg-[radial-gradient(circle_at_top_right,rgba(10,132,255,0.08),transparent_60%)] p-8">
           <div className="flex items-center gap-3 mb-5">
-            <Lock className="w-3.5 h-3.5 text-[#6FB6FF]" />
+            <Lock className="w-3.5 h-3.5 text-primary/80" />
             <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45">{manifest.title}</span>
           </div>
           <ul className="space-y-2.5">
             {manifest.lines.map((l, i) => (
               <li key={i} className="flex items-start gap-3 text-[13px] text-white/60 leading-relaxed">
-                <span className="text-[#0A84FF] mt-[7px] w-1 h-1 rounded-full bg-[#0A84FF] shrink-0" />
+                <span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" />
                 {l}
               </li>
             ))}

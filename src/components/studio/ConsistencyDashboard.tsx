@@ -87,7 +87,7 @@ export const ConsistencyDashboard = memo(forwardRef<HTMLDivElement, ConsistencyD
 
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors group">
+          <button className="w-full flex items-center justify-between p-3 rounded-xl bg-glass border border-white/10 hover:bg-glass-hover transition-colors group">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                 <Dna className="w-4 h-4 text-violet-400" />

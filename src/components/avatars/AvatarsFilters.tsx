@@ -104,12 +104,12 @@ export const AvatarsFilters = memo(forwardRef<HTMLDivElement, AvatarsFiltersProp
             <div className="space-y-2">
               <Label className="text-[9px] font-light tracking-[0.2em] uppercase text-white/45">Gender</Label>
               <Select value={genderFilter} onValueChange={onGenderChange}>
-                <SelectTrigger className="rounded-full border-0 bg-white/[0.03] text-white text-xs font-light shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_0_1px_hsla(0,0%,100%,0.05)]">
+                <SelectTrigger className="rounded-full border-0 bg-glass text-white text-xs font-light shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_0_1px_hsla(0,0%,100%,0.05)]">
                   <SelectValue placeholder="Gender" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-0" style={{ background: 'hsla(220,14%,6%,0.96)', backdropFilter: 'blur(32px) saturate(180%)', boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 16px 40px -12px hsla(0,0%,0%,0.7)' }}>
                   {AVATAR_GENDERS.map((g) => (
-                    <SelectItem key={g.id} value={g.id} className="text-white/85 text-xs font-light focus:bg-white/[0.06] focus:text-white rounded-lg">
+                    <SelectItem key={g.id} value={g.id} className="text-white/85 text-xs font-light focus:bg-glass-active focus:text-white rounded-lg">
                       {g.name}
                     </SelectItem>
                   ))}
@@ -120,12 +120,12 @@ export const AvatarsFilters = memo(forwardRef<HTMLDivElement, AvatarsFiltersProp
             <div className="space-y-2">
               <Label className="text-[9px] font-light tracking-[0.2em] uppercase text-white/45">Style</Label>
               <Select value={styleFilter} onValueChange={onStyleChange}>
-                <SelectTrigger className="rounded-full border-0 bg-white/[0.03] text-white text-xs font-light shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_0_1px_hsla(0,0%,100%,0.05)]">
+                <SelectTrigger className="rounded-full border-0 bg-glass text-white text-xs font-light shadow-[inset_0_1px_0_hsla(0,0%,100%,0.04),inset_0_0_0_1px_hsla(0,0%,100%,0.05)]">
                   <SelectValue placeholder="Style" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-0" style={{ background: 'hsla(220,14%,6%,0.96)', backdropFilter: 'blur(32px) saturate(180%)', boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 16px 40px -12px hsla(0,0%,0%,0.7)' }}>
                   {AVATAR_STYLES.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="text-white/85 text-xs font-light focus:bg-white/[0.06] focus:text-white rounded-lg">
+                    <SelectItem key={s.id} value={s.id} className="text-white/85 text-xs font-light focus:bg-glass-active focus:text-white rounded-lg">
                       {s.name}
                     </SelectItem>
                   ))}
@@ -138,7 +138,7 @@ export const AvatarsFilters = memo(forwardRef<HTMLDivElement, AvatarsFiltersProp
                 variant="ghost"
                 size="sm"
                 onClick={onClearFilters}
-                className="w-full rounded-full text-[10px] font-light tracking-[0.16em] uppercase text-white/55 hover:text-white hover:bg-white/[0.04]"
+                className="w-full rounded-full text-[10px] font-light tracking-[0.16em] uppercase text-white/55 hover:text-white hover:bg-glass-hover"
               >
                 Clear All Filters
               </Button>

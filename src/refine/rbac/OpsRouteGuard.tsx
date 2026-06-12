@@ -18,7 +18,7 @@ export function OpsRouteGuard({ children, scope }: Props) {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-4 h-4 text-[#0A84FF] animate-spin" />
+        <Loader2 className="w-4 h-4 text-primary animate-spin" />
         <span className="ml-3 text-[10px] uppercase tracking-[0.32em] text-white/40 font-mono">
           Verifying scope: {required}
         </span>
@@ -41,13 +41,13 @@ export function OpsRouteGuard({ children, scope }: Props) {
               You don't have access to this surface
             </h1>
             <p className="text-sm text-white/50">
-              This page requires the <span className="text-[#0A84FF] font-mono">{required}</span> scope.
+              This page requires the <span className="text-primary font-mono">{required}</span> scope.
               Ask the super-admin to grant it on your operator account.
             </p>
           </div>
           <Link
             to="/admin"
-            className="inline-block text-[10px] font-mono uppercase tracking-[0.28em] text-[#0A84FF] hover:underline"
+            className="inline-block text-[10px] font-mono uppercase tracking-[0.28em] text-primary hover:underline"
           >
             ← Back to telemetry
           </Link>

@@ -75,10 +75,10 @@ export const SeedanceSection = memo(function SeedanceSection({
           <div className="relative grid md:grid-cols-[1.2fr,1fr] gap-10 md:gap-14 items-center">
             {/* LEFT — title + copy */}
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-glass-hover backdrop-blur-2xl">
                 <span className="relative flex w-1.5 h-1.5">
-                  <span className="absolute inset-0 rounded-full animate-ping bg-[#0A84FF] opacity-60" />
-                  <span className="relative w-1.5 h-1.5 rounded-full bg-[#0A84FF]" />
+                  <span className="absolute inset-0 rounded-full animate-ping bg-primary opacity-60" />
+                  <span className="relative w-1.5 h-1.5 rounded-full bg-primary" />
                 </span>
                 <span className="text-[10px] tracking-[0.34em] uppercase text-white/75 font-medium">
                   Now Live · Generation Engine
@@ -142,7 +142,7 @@ export const SeedanceSection = memo(function SeedanceSection({
                 </button>
                 <a
                   href="#features"
-                  className="h-12 px-5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] inline-flex items-center transition-all"
+                  className="h-12 px-5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-glass-active inline-flex items-center transition-all"
                 >
                   See it in motion
                 </a>
@@ -165,7 +165,7 @@ export const SeedanceSection = memo(function SeedanceSection({
                     WebkitBackdropFilter: 'blur(20px) saturate(160%)',
                   }}
                 >
-                  <s.icon className="w-3.5 h-3.5 text-[#9DCBFF] mb-3" />
+                  <s.icon className="w-3.5 h-3.5 text-primary/60 mb-3" />
                   <p
                     className="font-display text-2xl md:text-3xl font-bold tracking-tight"
                     style={{

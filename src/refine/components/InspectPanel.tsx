@@ -91,7 +91,7 @@ export function InspectPanel({
         tabIndex={-1}
         className={cn(
           "absolute right-0 top-0 bottom-0 flex flex-col",
-          "bg-[#070809]/95 backdrop-blur-2xl border-l border-white/[0.06]",
+          "bg-background/95 backdrop-blur-2xl border-l border-white/[0.06]",
           "shadow-[-40px_0_80px_-40px_rgba(0,0,0,0.9)]",
           "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           "outline-none",
@@ -109,7 +109,7 @@ export function InspectPanel({
         <header className="shrink-0 px-6 py-5 border-b border-white/[0.05] flex items-start gap-4">
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <div className="text-[9px] uppercase tracking-[0.32em] text-[#0A84FF]/80 font-mono mb-2">
+              <div className="text-[9px] uppercase tracking-[0.32em] text-primary/80 font-mono mb-2">
                 {eyebrow}
               </div>
             )}
@@ -130,7 +130,7 @@ export function InspectPanel({
             {deepLinkTo && (
               <Link
                 to={deepLinkTo}
-                className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-[#0A84FF]/40 hover:text-[#0A84FF] text-white/55 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-primary/40 hover:text-primary text-white/55 flex items-center justify-center transition-colors"
                 title="Open full page"
               >
                 <ExternalLink className="w-3.5 h-3.5" />

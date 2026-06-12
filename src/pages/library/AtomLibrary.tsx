@@ -218,7 +218,7 @@ function AtomTile({
 
   return (
     <div
-      className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.02] transition-all hover:border-white/15"
+      className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/[0.07] bg-glass transition-all hover:border-white/15"
       style={{ animationDelay: `${index * 25}ms` }}
     >
       {heroUrl && !isVideo ? (

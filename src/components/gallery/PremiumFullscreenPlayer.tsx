@@ -182,7 +182,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
               {/* Navigation buttons */}
               <div className="flex items-center justify-center gap-4">
                 <button 
-                  className="w-10 h-10 rounded-full bg-white/[0.05] hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
+                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePrev();
@@ -196,7 +196,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                 </span>
                 
                 <button 
-                  className="w-10 h-10 rounded-full bg-white/[0.05] hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
+                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNext();

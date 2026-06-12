@@ -186,14 +186,14 @@ export const TemplatePreviewPlayer = memo(function TemplatePreviewPlayer({
         <div className="px-5 pb-5 pt-4 space-y-4">
           {/* Stat chips */}
           <div className="flex items-center gap-2 text-[11px] text-white/55">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.06]">
               <Film className="w-3 h-3" /> {clipCount} clips
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.06]">
               <Clock className="w-3 h-3" /> {fmt(totalSec)}
             </span>
             {template.mood && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] capitalize">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.06] capitalize">
                 <Sparkles className="w-3 h-3" /> {template.mood}
               </span>
             )}
@@ -268,7 +268,7 @@ export const TemplatePreviewPlayer = memo(function TemplatePreviewPlayer({
               size="sm"
               variant="outline"
               onClick={() => setPlaying((p) => !p)}
-              className="bg-white/[0.04] border-white/10 text-white hover:bg-white/[0.08] hover:text-white"
+              className="bg-glass-hover border-white/10 text-white hover:bg-glass-active hover:text-white"
             >
               {playing ? (
                 <><Pause className="w-3.5 h-3.5 mr-1.5" /> Pause</>
@@ -281,7 +281,7 @@ export const TemplatePreviewPlayer = memo(function TemplatePreviewPlayer({
               size="sm"
               variant="ghost"
               onClick={() => { setT(0); setPlaying(true); }}
-              className="text-white/60 hover:text-white hover:bg-white/[0.05]"
+              className="text-white/60 hover:text-white hover:bg-glass-hover"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Restart
             </Button>

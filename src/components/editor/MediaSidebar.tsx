@@ -150,7 +150,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all duration-300"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-glass-active transition-all duration-300"
                     >
                       <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
@@ -196,7 +196,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
                     viewMode === "grid"
-                      ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
+                      ? "bg-glass-active text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
                       : "text-muted-foreground hover:text-muted-foreground"
                   )}
                   aria-label="Grid view"
@@ -208,7 +208,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
                     viewMode === "list"
-                      ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
+                      ? "bg-glass-active text-foreground shadow-[inset_0_1px_0_hsla(0,0%,100%,0.10)]"
                       : "text-muted-foreground hover:text-muted-foreground"
                   )}
                   aria-label="List view"

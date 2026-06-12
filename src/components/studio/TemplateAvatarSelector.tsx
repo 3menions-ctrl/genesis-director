@@ -295,7 +295,7 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
           placeholder="Search avatars..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30"
+          className="pl-10 bg-glass border-white/[0.08] text-white placeholder:text-white/30"
         />
       </div>
 

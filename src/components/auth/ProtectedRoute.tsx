@@ -226,7 +226,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   if ((authPhase === 'initializing' || authPhase === 'verifying') && !hasRenderedChildren.current) {
     // If global overlay is showing, render a minimal placeholder instead of another CinemaLoader
     if (navLoadingState.isLoading) {
-      return <div className="fixed inset-0 bg-[#030303]" />;
+      return <div className="fixed inset-0 bg-background" />;
     }
     return (
       <CinemaLoader 
@@ -241,7 +241,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // Redirecting state - show loader instead of null to prevent flash
   if (authPhase === 'redirecting') {
     if (navLoadingState.isLoading) {
-      return <div className="fixed inset-0 bg-[#030303]" />;
+      return <div className="fixed inset-0 bg-background" />;
     }
     return (
       <CinemaLoader 
@@ -255,7 +255,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // Wait for profile on INITIAL mount only - never block navigation between routes
   if (user?.id && !profile?.id && isInitialMount && !hasRenderedChildren.current && authPhase === 'ready') {
     if (navLoadingState.isLoading) {
-      return <div className="fixed inset-0 bg-[#030303]" />;
+      return <div className="fixed inset-0 bg-background" />;
     }
     return (
       <CinemaLoader 
@@ -270,7 +270,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // If onboarding not completed, show loader while redirecting (instead of null)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     if (navLoadingState.isLoading) {
-      return <div className="fixed inset-0 bg-[#030303]" />;
+      return <div className="fixed inset-0 bg-background" />;
     }
     return (
       <CinemaLoader 

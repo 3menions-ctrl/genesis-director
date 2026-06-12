@@ -59,7 +59,7 @@ function estimateRemaining(completed: number, total: number): string {
 // Premium stat pill with glassmorphism
 function StatPill({ label, value, accent, icon: Icon }: { label: string; value: string | number; accent?: string; icon?: React.ElementType }) {
   return (
-    <div className="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
+    <div className="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-glass border border-white/[0.06] backdrop-blur-sm hover:bg-glass-active hover:border-white/[0.1] transition-all duration-300">
       {/* Subtle gradient overlay on hover */}
       <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
       {Icon && <Icon className={cn("w-3.5 h-3.5 relative z-10", accent || "text-white/25")} />}
@@ -202,7 +202,7 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
                     ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border-emerald-500/25"
                     : generatingClips > 0
                       ? "bg-gradient-to-br from-violet-500/15 to-purple-500/10 border-violet-500/25"
-                      : "bg-white/[0.03] border-white/[0.06]",
+                      : "bg-glass border-white/[0.06]",
                 )}
                 animate={generatingClips > 0 ? { scale: [1, 1.04, 1] } : {}}
                 transition={{ duration: 2.5, repeat: Infinity }}
@@ -247,7 +247,7 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="relative h-2 rounded-full bg-white/[0.03] overflow-hidden">
+            <div className="relative h-2 rounded-full bg-glass overflow-hidden">
               {/* Glow underneath */}
               <div
                 className={cn(
@@ -309,7 +309,7 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
                   onClick={onResume}
                   disabled={isResuming}
                   size="sm"
-                  className="bg-white/[0.06] border border-white/[0.1] text-white hover:bg-white/[0.1] text-xs font-bold rounded-xl h-10 px-5"
+                  className="bg-glass-active border border-white/[0.1] text-white hover:bg-white/[0.1] text-xs font-bold rounded-xl h-10 px-5"
                 >
                   <RotateCcw className={cn("w-3.5 h-3.5 mr-2", isResuming && "animate-spin")} />
                   Resume
@@ -362,7 +362,7 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
             {transitions!.map((t, idx) => (
               <div key={idx} className="flex items-center">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold bg-white/[0.03] border border-white/[0.05] text-white/30">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold bg-glass border border-white/[0.05] text-white/30">
                   {t.fromIndex + 1}
                 </div>
                 <div className="flex items-center mx-1.5">
@@ -376,7 +376,7 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
                   )}>{t.overallScore}</span>
                 </div>
                 {idx === transitions!.length - 1 && (
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold bg-white/[0.03] border border-white/[0.05] text-white/30">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold bg-glass border border-white/[0.05] text-white/30">
                     {t.toIndex + 1}
                   </div>
                 )}

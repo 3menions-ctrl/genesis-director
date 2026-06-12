@@ -195,7 +195,7 @@ const FailedClipsPanelInner = memo(forwardRef<HTMLDivElement, FailedClipsPanelPr
         {/* Header */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between p-3 hover:bg-glass transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
@@ -241,7 +241,7 @@ const FailedClipsPanelInner = memo(forwardRef<HTMLDivElement, FailedClipsPanelPr
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-3"
+                      className="rounded-lg border border-white/10 bg-glass p-3 space-y-3"
                     >
                       {/* Error Header */}
                       <div className="flex items-start gap-3">
@@ -264,7 +264,7 @@ const FailedClipsPanelInner = memo(forwardRef<HTMLDivElement, FailedClipsPanelPr
                       </div>
 
                       {/* Suggestion */}
-                      <div className="flex items-start gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-glass border border-white/5">
                         <Sparkles className="w-3 h-3 text-violet-400 mt-0.5 shrink-0" />
                         <p className="text-xs text-white/60">{errorInfo.suggestion}</p>
                       </div>

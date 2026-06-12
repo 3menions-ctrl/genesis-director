@@ -165,7 +165,7 @@ const AvatarCard = forwardRef<HTMLDivElement, {
             {avatar.tags.slice(0, 3).map((tag) => (
               <span
                 key={`${avatar.id}-${tag}`}
-                className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full bg-white/[0.05] text-white/40 border border-white/[0.08]"
+                className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full bg-glass-hover text-white/40 border border-white/[0.08]"
               >
                 {tag}
               </span>
@@ -296,7 +296,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
   if (safeAvatars.length === 0) {
     return (
       <div className="text-center py-16 px-4">
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
+        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
           <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white/20" />
         </div>
         <p className="text-white/50 mb-2 text-sm md:text-base">No avatars found</p>

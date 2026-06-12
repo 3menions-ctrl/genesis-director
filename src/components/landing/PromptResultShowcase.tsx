@@ -182,7 +182,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
         >
         {pair.sourceImage ? (
             <>
-              <div className="absolute inset-0 bg-[#0a0a0f]">
+              <div className="absolute inset-0 bg-background">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={`source-img-${currentIdx}`}
@@ -198,7 +198,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
               </div>
               {/* BEFORE label */}
               <div className="absolute bottom-4 left-4 z-10">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-glass-active backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
                   <ImageIcon className="w-3 h-3" />
                   Source Image
                 </span>
@@ -206,9 +206,9 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
             </>
           ) : (
             <>
-              <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center p-8 md:p-12">
+              <div className="absolute inset-0 bg-background flex items-center justify-center p-8 md:p-12">
                 <div className="max-w-md text-center space-y-5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1]">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-glass-hover border border-white/[0.1]">
                     <Type className="w-3.5 h-3.5 text-white/50" />
                     <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Your Prompt</span>
                   </div>
@@ -232,7 +232,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
               </div>
               {/* BEFORE label */}
               <div className="absolute bottom-4 left-4">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-glass-active backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
                   <Type className="w-3 h-3" />
                   Prompt
                 </span>

@@ -31,7 +31,7 @@ export const B2BFinalCTA = memo(function B2BFinalCTA({ onPrimary, onSecondary }:
             onClick={onSecondary}
             variant="ghost"
             size="lg"
-            className="h-14 px-8 text-base font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06]"
+            className="h-14 px-8 text-base font-medium rounded-full text-white/70 hover:text-white hover:bg-glass-active"
           >
             Book a demo
           </Button>

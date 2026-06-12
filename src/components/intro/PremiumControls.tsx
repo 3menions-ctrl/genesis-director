@@ -622,7 +622,7 @@ function PanelRow({ label, active, onClick }: { label: string; active: boolean; 
         "w-full text-left px-3 h-8 rounded-lg text-[11px] font-mono uppercase tracking-[0.22em] transition-colors flex items-center justify-between",
         active
           ? "bg-primary/15 text-primary"
-          : "text-white/75 hover:bg-white/[0.05] hover:text-white",
+          : "text-white/75 hover:bg-glass-hover hover:text-white",
       )}
     >
       <span>{label}</span>

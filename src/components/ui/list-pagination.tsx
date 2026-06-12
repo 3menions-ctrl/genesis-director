@@ -71,7 +71,7 @@ export function ListPagination({ page, totalPages, total, pageSize, onPageChange
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
           aria-label="Previous page"
-          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-glass text-white/70 hover:text-white hover:bg-glass-active disabled:opacity-30 disabled:cursor-not-allowed transition"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
@@ -87,7 +87,7 @@ export function ListPagination({ page, totalPages, total, pageSize, onPageChange
                 'h-8 min-w-[2rem] px-2 inline-flex items-center justify-center rounded-md font-mono text-[11px] tabular-nums transition',
                 p === page
                   ? 'bg-white/[0.10] text-white border border-white/15 shadow-[0_0_18px_-8px_hsla(212,100%,55%,0.5)]'
-                  : 'border border-white/[0.06] bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/[0.06]',
+                  : 'border border-white/[0.06] bg-glass text-white/60 hover:text-white hover:bg-glass-active',
               )}
             >
               {p}
@@ -98,7 +98,7 @@ export function ListPagination({ page, totalPages, total, pageSize, onPageChange
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
           aria-label="Next page"
-          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-glass text-white/70 hover:text-white hover:bg-glass-active disabled:opacity-30 disabled:cursor-not-allowed transition"
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </button>

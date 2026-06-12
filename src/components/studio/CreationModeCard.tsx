@@ -44,8 +44,8 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
         "group relative flex flex-col items-start p-7 rounded-3xl text-left transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden animate-fade-in border-0",
         "hover:-translate-y-1",
         isSelected
-          ? "bg-white/[0.05] shadow-[0_0_0_1px_hsla(215,100%,60%,0.35),0_30px_80px_-30px_hsla(215,100%,50%,0.35)]"
-          : "bg-white/[0.022] hover:bg-white/[0.04] hover:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
+          ? "bg-glass-hover shadow-[0_0_0_1px_hsla(215,100%,60%,0.35),0_30px_80px_-30px_hsla(215,100%,50%,0.35)]"
+          : "bg-white/[0.022] hover:bg-glass-hover hover:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
       )}
       style={{
         animationDelay: `${delay * 80}ms`,
@@ -93,7 +93,7 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
 
       {/* Badge */}
       {(isPopular || isNew) && !isSelected && (
-        <div className="absolute top-4 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-light uppercase tracking-[0.18em] flex items-center gap-1 bg-white/[0.05] text-white/60">
+        <div className="absolute top-4 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-light uppercase tracking-[0.18em] flex items-center gap-1 bg-glass-hover text-white/60">
           {isNew ? <Sparkles className="w-2.5 h-2.5" strokeWidth={1.5} /> : <TrendingUp className="w-2.5 h-2.5" strokeWidth={1.5} />}
           {isNew ? 'New' : 'Popular'}
         </div>

@@ -35,7 +35,7 @@ function AssetCard({ a, onRemove, onFavorite }: { a: MediaAsset; onRemove: (id: 
   const isImage = a.media_type === 'image';
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] transition-colors">
+    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-glass hover:border-white/[0.14] transition-colors">
       <div className="relative aspect-[16/10] bg-black/40">
         {isImage && (
           <img src={a.asset_url} alt={a.title ?? a.prompt ?? 'image'} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
@@ -148,12 +148,12 @@ export default function MediaLibrary() {
       {loading && assets.length === 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-[16/10] animate-pulse rounded-2xl border border-white/[0.04] bg-white/[0.03]" />
+            <div key={i} className="aspect-[16/10] animate-pulse rounded-2xl border border-white/[0.04] bg-glass" />
           ))}
         </div>
       ) : assets.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-28 text-center">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-white/[0.08] bg-glass">
             <Library className="h-8 w-8 text-muted-foreground" strokeWidth={1.25} />
           </div>
           <h2 className="font-display text-2xl font-semibold text-foreground">Your library is empty</h2>

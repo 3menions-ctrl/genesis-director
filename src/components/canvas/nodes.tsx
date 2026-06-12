@@ -20,7 +20,7 @@ function H({ side }: { side: 'l' | 'r' }) {
     <Handle
       type={side === 'l' ? 'target' : 'source'}
       position={side === 'l' ? Position.Left : Position.Right}
-      className="!w-3 !h-3 !bg-[#0A84FF] !border-2 !border-background"
+      className="!w-3 !h-3 !bg-primary !border-2 !border-background"
     />
   );
 }
@@ -54,7 +54,7 @@ export function ModelNode({ data }: NodeProps) {
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {chips.map((c) => (
-              <span key={c} className="text-[9px] uppercase tracking-[0.16em] px-1.5 py-0.5 rounded bg-[#0A84FF]/12 text-[#9CC2FF] border border-[#0A84FF]/25">
+              <span key={c} className="text-[9px] uppercase tracking-[0.16em] px-1.5 py-0.5 rounded bg-primary/12 text-primary/60 border border-primary/25">
                 {c}
               </span>
             ))}
@@ -112,7 +112,7 @@ export function DialogueNode({ data }: NodeProps) {
         {d.lines.length === 0 && <div className="text-white/40 text-xs">No lines yet</div>}
         {d.lines.slice(0, 3).map((l, i) => (
           <div key={i} className="text-xs mb-1">
-            <span className="text-[#0A84FF] font-medium">{l.speaker}:</span>{' '}
+            <span className="text-primary font-medium">{l.speaker}:</span>{' '}
             <span className="text-white/80">{l.text}</span>
           </div>
         ))}
@@ -161,12 +161,12 @@ export function RenderNode({ data }: NodeProps) {
       <div className={HEADER}><Film className="h-3 w-3" /> Render</div>
       <div className={BODY}>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[#0A84FF]" />
+          <Sparkles className="h-4 w-4 text-primary" />
           <span className="font-medium capitalize">{status}</span>
         </div>
         {typeof d.progress === 'number' && (
           <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full bg-[#0A84FF]" style={{ width: `${d.progress}%` }} />
+            <div className="h-full bg-primary" style={{ width: `${d.progress}%` }} />
           </div>
         )}
       </div>

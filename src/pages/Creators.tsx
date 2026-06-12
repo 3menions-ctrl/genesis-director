@@ -285,7 +285,7 @@ export default function Creators() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search directors by name…"
-            className="w-full h-12 pl-11 pr-12 rounded-2xl bg-white/[0.02] border border-white/[0.06] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
+            className="w-full h-12 pl-11 pr-12 rounded-2xl bg-glass border border-white/[0.06] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
           />
           {searchQuery && (
             <button
@@ -373,7 +373,7 @@ function CreatorTile({
           {creator.avatar_url ? (
             <img src={creator.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-white/[0.08]" />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-[12px] font-mono text-white/55">
+            <div className="w-9 h-9 rounded-full bg-glass-hover border border-white/[0.08] flex items-center justify-center text-[12px] font-mono text-white/55">
               {(creator.display_name?.[0] || "?").toUpperCase()}
             </div>
           )}

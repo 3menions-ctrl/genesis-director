@@ -164,7 +164,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.08] bg-[#0a0b0d]/95 backdrop-blur-2xl shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
+        className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.08] bg-background/95 backdrop-blur-2xl shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
       >
         {/* Accent rail */}
         <span
@@ -205,7 +205,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
         ) : (
           <div className="p-6 space-y-6">
             {/* PREVIEW STRIP — visible across all steps */}
-            <div className="flex items-center gap-4 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+            <div className="flex items-center gap-4 p-3 rounded-2xl border border-white/[0.06] bg-glass">
               {project.thumbnail_url ? (
                 <img src={project.thumbnail_url} alt="" className="w-20 h-14 rounded-lg object-cover border border-white/[0.06] shrink-0" />
               ) : (
@@ -253,7 +253,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="noir, ai, short film, monologue"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                    className="w-full bg-glass-hover border border-white/[0.08] rounded-lg px-3 h-10 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
                   />
                   <p className="text-[10px] text-white/35 mt-1.5 font-mono">comma-separated · up to 12</p>
                 </Field>
@@ -263,7 +263,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
                     placeholder="What were you going for? Inspirations, surprises, intent. Surfaces on the Theater overlay."
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                    className="w-full bg-glass-hover border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
                   />
                 </Field>
               </div>
@@ -346,7 +346,7 @@ function WorldOption({ selected, name, glyph, accent, onClick }: { selected: boo
       onClick={onClick}
       className={cn(
         "group relative rounded-2xl border px-4 py-3 transition-colors text-left",
-        selected ? "border-white/30 bg-white/[0.05]" : "border-white/[0.06] bg-white/[0.015] hover:border-white/15 hover:bg-white/[0.03]",
+        selected ? "border-white/30 bg-glass-hover" : "border-white/[0.06] bg-white/[0.015] hover:border-white/15 hover:bg-glass",
       )}
       style={selected ? { boxShadow: `0 0 28px -8px hsla(${accent} / 0.45)` } : undefined}
     >

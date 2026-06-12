@@ -79,7 +79,7 @@ export const GamificationStatsCard = memo(forwardRef<HTMLDivElement, Record<stri
             
             {stat.progress !== undefined && (
               <div className="mt-3">
-                <Progress value={stat.progress} className="h-1.5 bg-white/[0.08]" />
+                <Progress value={stat.progress} className="h-1.5 bg-glass-active" />
                 <p className="text-xs text-white/40 mt-1.5">{stat.subtext}</p>
               </div>
             )}

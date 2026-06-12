@@ -296,7 +296,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-4 group hover:bg-white/[0.04] transition-all"
+            className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-glass p-4 group hover:bg-glass-hover transition-all"
           >
             <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br", stat.color)} />
             <div className="relative">
@@ -324,13 +324,13 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
               <CreditCard className="w-5 h-5 text-white/40" />
             </div>
             <div>
@@ -364,13 +364,13 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02]"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
               <History className="w-5 h-5 text-white/40" />
             </div>
             <div>
@@ -409,12 +409,12 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors"
+                className="flex items-center justify-between px-6 py-4 hover:bg-glass transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center",
-                    tx.amount >= 0 ? "bg-emerald-500/10" : "bg-white/[0.05]"
+                    tx.amount >= 0 ? "bg-emerald-500/10" : "bg-glass-hover"
                   )}>
                     {getTransactionIcon(tx.transaction_type, tx.amount)}
                   </div>

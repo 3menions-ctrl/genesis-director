@@ -218,7 +218,7 @@ function StudioGrid({ openStudio }: { openStudio: (k: "score" | "karaoke" | "she
           <button
             key={t.kind}
             onClick={() => openStudio(t.kind)}
-            className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] px-5 py-4 text-left transition-colors"
+            className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-glass-hover px-5 py-4 text-left transition-colors"
           >
             <div
               className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0"

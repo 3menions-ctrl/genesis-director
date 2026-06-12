@@ -99,7 +99,7 @@ export function AdminHubShell({
               className={cn(
                 "relative flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-mono uppercase tracking-[0.22em] transition-colors",
                 isActive
-                  ? "text-white bg-[#0A84FF]/[0.10] shadow-[inset_0_0_0_1px_rgba(10,132,255,0.20)]"
+                  ? "text-white bg-primary/[0.10] shadow-[inset_0_0_0_1px_rgba(10,132,255,0.20)]"
                   : "text-white/45 hover:text-white hover:bg-white/[0.025]",
               )}
             >
@@ -108,14 +108,14 @@ export function AdminHubShell({
                 <span className={cn(
                   "text-[9px] tracking-normal px-1.5 py-0.5 rounded-full",
                   isActive
-                    ? "bg-[#0A84FF]/20 text-[#6FB6FF]"
-                    : "bg-white/[0.05] text-white/45",
+                    ? "bg-primary/20 text-primary/80"
+                    : "bg-glass-hover text-white/45",
                 )}>
                   {t.badge}
                 </span>
               )}
               {t.suggested && !isActive && (
-                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_6px_#0A84FF]" />
+                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#0A84FF]" />
               )}
             </button>
           );

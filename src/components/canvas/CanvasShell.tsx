@@ -107,14 +107,14 @@ function Inner() {
     <div className="flex flex-col h-screen bg-[hsl(220,14%,2%)] text-foreground relative overflow-hidden">
       {/* Aurora ambience */}
       <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute -top-32 left-1/3 h-[420px] w-[620px] rounded-full bg-[#0A84FF]/10 blur-[140px]" />
+        <div className="absolute -top-32 left-1/3 h-[420px] w-[620px] rounded-full bg-primary/10 blur-[140px]" />
         <div className="absolute top-1/3 -right-24 h-[360px] w-[420px] rounded-full bg-[#22d3ee]/[0.06] blur-[120px]" />
       </div>
 
       <header className="relative px-7 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[hsl(220,14%,2%)]/60 backdrop-blur-2xl">
         <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/45">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_12px_#0A84FF]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_#0A84FF]" />
             Director Canvas
           </div>
           <h1 className="font-serif text-[28px] leading-[1.05] mt-0.5 bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">

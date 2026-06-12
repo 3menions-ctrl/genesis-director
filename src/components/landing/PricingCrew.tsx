@@ -140,7 +140,7 @@ function CrewCard({ crew, index }: { crew: Crew; index: number }) {
           <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-brand-light">
             {crew.code}
           </span>
-          <span className="h-px flex-1 bg-white/[0.06]" />
+          <span className="h-px flex-1 bg-glass-active" />
         </div>
         <h3
           className="font-display text-[24px] sm:text-[28px] text-white leading-tight"

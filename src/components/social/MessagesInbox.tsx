@@ -14,7 +14,7 @@ import { useConversations } from '@/hooks/useConversations';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-const glassCard = "backdrop-blur-xl bg-white/[0.02] border border-white/[0.08]";
+const glassCard = "backdrop-blur-xl bg-glass border border-white/[0.08]";
 
 interface Conversation {
   recipientId: string;
@@ -41,7 +41,7 @@ const ConversationItem = memo(function ConversationItem({
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
-        "hover:bg-white/[0.06]",
+        "hover:bg-glass-active",
         isActive && "bg-primary/10 border border-primary/20"
       )}
     >
@@ -116,7 +116,7 @@ export function MessagesInbox({ className }: { className?: string }) {
             placeholder="Search conversations..."
             className={cn(
               "pl-10 h-10",
-              "bg-white/[0.04] hover:bg-white/[0.06]",
+              "bg-glass-hover hover:bg-glass-active",
               "border-white/[0.08] focus:border-primary/50",
               "text-white placeholder:text-white/40",
               "rounded-xl"

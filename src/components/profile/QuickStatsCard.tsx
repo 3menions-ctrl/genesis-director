@@ -49,7 +49,7 @@ export const QuickStatsCard = memo(forwardRef<HTMLDivElement, Record<string, nev
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
-            className="relative p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] transition-all group overflow-hidden"
+            className="relative p-4 rounded-xl bg-glass border border-white/[0.06] hover:bg-glass-hover transition-all group overflow-hidden"
           >
             {/* Gradient accent */}
             <div className={cn(

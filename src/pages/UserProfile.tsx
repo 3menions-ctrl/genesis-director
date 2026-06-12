@@ -50,16 +50,16 @@ export default function UserProfile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#030303]">
+      <div className="min-h-screen bg-background">
         <ProfileBackground />
 <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
           {/* Hero skeleton */}
           <div className="relative rounded-3xl overflow-hidden">
-            <Skeleton className="h-[320px] rounded-3xl bg-white/[0.03]" />
+            <Skeleton className="h-[320px] rounded-3xl bg-glass" />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="aspect-video rounded-2xl bg-white/[0.03]" />
+              <Skeleton key={i} className="aspect-video rounded-2xl bg-glass" />
             ))}
           </div>
         </div>
@@ -69,16 +69,16 @@ export default function UserProfile() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#030303]">
+      <div className="min-h-screen bg-background">
         <ProfileBackground />
 <div className="max-w-4xl mx-auto px-4 py-24 text-center">
-          <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 rounded-full bg-glass border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
             <Users className="w-8 h-8 text-muted-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-3">Creator Not Found</h1>
           <p className="text-foreground/80 mb-8 max-w-sm mx-auto">This profile doesn't exist or hasn't been made public yet.</p>
           <Link to="/creators">
-            <Button variant="outline" className="gap-2 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/[0.05]">
+            <Button variant="outline" className="gap-2 border-white/10 text-muted-foreground hover:text-foreground hover:bg-glass-hover">
               <ArrowLeft className="w-4 h-4" />
               Browse Creators
             </Button>
@@ -93,7 +93,7 @@ export default function UserProfile() {
   const memberSince = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-[#030303] text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <ProfileBackground />
 <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-10">
 
@@ -156,7 +156,7 @@ export default function UserProfile() {
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-glass border border-white/[0.06]"
                     >
                       <stat.icon className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="text-sm font-bold text-foreground">{stat.value}</span>
@@ -175,7 +175,7 @@ export default function UserProfile() {
                         className={cn(
                           "gap-2 rounded-xl h-10 px-6 font-semibold text-sm transition-all duration-300",
                           profile.is_following
-                            ? "bg-white/[0.06] hover:bg-white/[0.1] text-muted-foreground border border-white/[0.1]"
+                            ? "bg-glass-active hover:bg-white/[0.1] text-muted-foreground border border-white/[0.1]"
                             : "bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-foreground shadow-[0_0_24px_rgba(124,58,237,0.25)]"
                         )}
                       >
@@ -194,7 +194,7 @@ export default function UserProfile() {
                   )}
                   {isOwnProfile && (
                     <Link to="/profile">
-                      <Button className="gap-2 rounded-xl h-10 px-6 bg-white/[0.06] hover:bg-white/[0.1] text-muted-foreground border border-white/[0.08]">
+                      <Button className="gap-2 rounded-xl h-10 px-6 bg-glass-active hover:bg-white/[0.1] text-muted-foreground border border-white/[0.08]">
                         <ExternalLink className="w-4 h-4" />
                         Edit Profile
                       </Button>
@@ -229,7 +229,7 @@ export default function UserProfile() {
           {videosLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="aspect-video rounded-2xl bg-white/[0.03]" />
+                <Skeleton key={i} className="aspect-video rounded-2xl bg-glass" />
               ))}
             </div>
           ) : videos && videos.length > 0 ? (
@@ -248,7 +248,7 @@ export default function UserProfile() {
                       transition={{ delay: index * 0.04, duration: 0.4 }}
                       className={cn(
                         "group relative aspect-video rounded-2xl overflow-hidden",
-                        "bg-white/[0.02] border border-white/[0.06]",
+                        "bg-glass border border-white/[0.06]",
                         "hover:border-violet-500/20 transition-all duration-500",
                         playableUrl ? "cursor-pointer" : "cursor-not-allowed opacity-50",
                       )}
@@ -278,7 +278,7 @@ export default function UserProfile() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-white/[0.03] flex items-center justify-center">
+                        <div className="w-full h-full bg-glass flex items-center justify-center">
                           <Video className="w-8 h-8 text-foreground/10" />
                         </div>
                       )}
@@ -318,8 +318,8 @@ export default function UserProfile() {
               </AnimatePresence>
             </div>
           ) : (
-            <div className="rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] p-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+            <div className="rounded-2xl backdrop-blur-xl bg-glass border border-white/[0.06] p-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-glass border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
                 <Film className="w-7 h-7 text-foreground/15" />
               </div>
               <p className="text-foreground/80 text-sm mb-1">No public videos yet</p>

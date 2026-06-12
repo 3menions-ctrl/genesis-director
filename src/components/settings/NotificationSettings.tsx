@@ -123,7 +123,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
@@ -152,14 +152,14 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6",
+          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Video className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -169,7 +169,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <div>
@@ -183,7 +183,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-rose-400" />
               <div>
@@ -205,14 +205,14 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6",
+          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Coins className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -222,7 +222,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <Coins className="w-5 h-5 text-amber-400" />
               <div>
@@ -250,7 +250,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
                       "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                       preferences.lowCreditsThreshold === threshold
                         ? "bg-white text-black"
-                        : "bg-white/[0.05] text-white/60 hover:text-white hover:bg-white/10"
+                        : "bg-glass-hover text-white/60 hover:text-white hover:bg-white/10"
                     )}
                   >
                     {threshold}
@@ -268,14 +268,14 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6",
+          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Clock className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -284,7 +284,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-[hsl(215,100%,72%)]" />
             <div>
@@ -305,14 +305,14 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6",
+          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
             <Megaphone className="w-5 h-5 text-white/40" />
           </div>
           <div>
@@ -322,7 +322,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-cyan-400" />
               <div>
@@ -336,7 +336,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-blue-400" />
               <div>
@@ -350,7 +350,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-white/40" />
               <div>

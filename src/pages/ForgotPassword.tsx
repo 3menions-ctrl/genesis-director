@@ -94,7 +94,7 @@ export default function ForgotPassword() {
                 <p className="text-white/50 text-sm mb-1">
                   If an account exists with <span className="text-white font-medium">{email}</span>, you'll receive a reset link.
                 </p>
-                <div className="flex items-start gap-2 text-left rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5 mt-4 mb-2 max-w-xs mx-auto">
+                <div className="flex items-start gap-2 text-left rounded-xl bg-glass border border-white/[0.06] px-3.5 py-2.5 mt-4 mb-2 max-w-xs mx-auto">
                   <Mail className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
                   <p className="text-[11px] text-white/60 leading-relaxed">
                     Links arrive in under a minute. If you don't see it, check your <span className="text-white/80 font-medium">Spam</span> or <span className="text-white/80 font-medium">Promotions</span> folder.
@@ -102,7 +102,7 @@ export default function ForgotPassword() {
                 </div>
                 <div className="space-y-3">
                   <Button onClick={() => setSubmitted(false)} variant="outline"
-                    className="w-full h-11 rounded-xl border-white/[0.08] text-white hover:bg-white/[0.05]">
+                    className="w-full h-11 rounded-xl border-white/[0.08] text-white hover:bg-glass-hover">
                     Try Again
                   </Button>
                   <Link to="/auth" className="block">
@@ -127,7 +127,7 @@ export default function ForgotPassword() {
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); setError(null); }}
                       className={cn(
-                        "h-12 pl-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25",
+                        "h-12 pl-11 bg-glass-hover border-white/[0.08] text-white placeholder:text-white/25",
                         "focus:border-primary/40 focus:ring-2 focus:ring-primary/10 rounded-xl transition-all"
                       )}
                       maxLength={255}

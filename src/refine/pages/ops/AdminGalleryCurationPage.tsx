@@ -49,7 +49,7 @@ export default function AdminGalleryCurationPage() {
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v
               ? <img src={String(v)} alt="" className="w-12 h-8 rounded-md object-cover border border-white/[0.06]" />
-              : <div className="w-12 h-8 rounded-md bg-white/[0.03] border border-white/[0.06]" /> },
+              : <div className="w-12 h-8 rounded-md bg-glass border border-white/[0.06]" /> },
           { key: "title", label: "Title" },
           { key: "category", label: "Category", width: "140px" },
           { key: "sort_order", label: "Order", width: "80px", align: "right" },

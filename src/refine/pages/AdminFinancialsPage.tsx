@@ -35,9 +35,9 @@ function StatPill({ icon: Icon, label, value, sub, accent }: {
 }) {
   const c = { primary: "text-primary", success: "text-success", warning: "text-warning", destructive: "text-destructive", info: "text-info" }[accent || "primary"];
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-glass p-5 space-y-3">
       <div className="flex items-center gap-2.5">
-        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-white/[0.04]", c)}><Icon className="w-4 h-4" /></div>
+        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-glass-hover", c)}><Icon className="w-4 h-4" /></div>
         <span className="text-xs font-medium text-white/40 uppercase tracking-wider">{label}</span>
       </div>
       <div>
@@ -163,7 +163,7 @@ export default function AdminFinancialsPage() {
               </thead>
               <tbody>
                 {purchases.map((p) => (
-                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
                     <td className="py-3 px-5 text-xs text-white/60">{new Date(p.created_at).toLocaleString()}</td>
                     <td className="py-3 px-5 text-xs text-white/80">{emailById[p.user_id] || p.user_id.slice(0, 8)}</td>
                     <td className="py-3 px-5 text-sm text-right text-success font-mono">+{p.amount}</td>
@@ -200,9 +200,9 @@ export default function AdminFinancialsPage() {
               </thead>
               <tbody>
                 {profitData.map((row, idx) => (
-                  <tr key={idx} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <tr key={idx} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
                     <td className="py-3 px-5 text-sm text-white/70">{new Date(row.date).toLocaleDateString()}</td>
-                    <td className="py-3 px-5"><Badge variant="secondary" className="text-[10px] bg-white/[0.04] text-white/50">{row.service}</Badge></td>
+                    <td className="py-3 px-5"><Badge variant="secondary" className="text-[10px] bg-glass-hover text-white/50">{row.service}</Badge></td>
                     <td className="py-3 px-5 text-sm text-right text-white/40">{row.total_operations.toLocaleString()}</td>
                     <td className="py-3 px-5 text-sm text-right text-success">{fmt(row.estimated_revenue_cents)}</td>
                     <td className="py-3 px-5 text-sm text-right text-destructive">{fmt(row.total_real_cost_cents)}</td>

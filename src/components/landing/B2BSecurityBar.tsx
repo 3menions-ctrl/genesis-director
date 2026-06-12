@@ -32,7 +32,7 @@ export const B2BSecurityBar = memo(function B2BSecurityBar() {
         >
           <div className="grid md:grid-cols-[1fr_2fr] gap-8 items-center">
             <div>
-              <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-3">
+              <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-3">
                 Enterprise-ready
               </p>
               <h3 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight leading-[1.1]">
@@ -47,10 +47,10 @@ export const B2BSecurityBar = memo(function B2BSecurityBar() {
               {BADGES.map((b) => (
                 <div
                   key={b.label}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02]"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-glass"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#0A84FF]/10 border border-[#0A84FF]/20 flex items-center justify-center shrink-0">
-                    <b.icon className="w-4 h-4 text-[#0A84FF]" />
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <b.icon className="w-4 h-4 text-primary" />
                   </div>
                   <span className="text-xs font-medium text-white/75 tracking-tight">
                     {b.label}

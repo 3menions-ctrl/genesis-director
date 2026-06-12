@@ -148,7 +148,7 @@ export function DirectorShell({ children, topSlot }: Props) {
                   background: "hsla(0,0%,100%,0.03)",
                   backdropFilter: "blur(8px)",
                 }}>
-                <Sparkles className="w-3 h-3 text-[#9DCBFF]" />
+                <Sparkles className="w-3 h-3 text-primary/60" />
                 <span className="text-[9.5px] tracking-[0.3em] uppercase text-white/65 font-medium">
                   Workspace
                 </span>
@@ -277,7 +277,7 @@ export function DirectorShell({ children, topSlot }: Props) {
                 <p className="relative mt-1 text-[11.5px] leading-snug text-white/60 font-light">
                   Hand-crafted shots, identity-locked actors, score in sync.
                 </p>
-                <NavLink to="/create" className="relative mt-3 inline-flex items-center gap-1 text-[10.5px] tracking-[0.2em] uppercase text-[#9DCBFF] hover:text-white transition-colors">
+                <NavLink to="/create" className="relative mt-3 inline-flex items-center gap-1 text-[10.5px] tracking-[0.2em] uppercase text-primary/60 hover:text-white transition-colors">
                   Begin <ArrowRight className="w-3 h-3" />
                 </NavLink>
               </div>
@@ -329,7 +329,7 @@ export function DirectorShell({ children, topSlot }: Props) {
               <button
                 onClick={() => setCollapsed(c => !c)}
                 className={cn(
-                  "w-full flex items-center gap-2 h-8 rounded-full px-3 text-[9.5px] uppercase tracking-[0.24em] text-white/35 hover:text-white/70 hover:bg-white/[0.04] transition-all",
+                  "w-full flex items-center gap-2 h-8 rounded-full px-3 text-[9.5px] uppercase tracking-[0.24em] text-white/35 hover:text-white/70 hover:bg-glass-hover transition-all",
                   collapsed && "justify-center px-0",
                 )}
                 aria-label={collapsed ? "Expand" : "Collapse"}

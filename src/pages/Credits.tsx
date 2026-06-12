@@ -122,7 +122,7 @@ export default function Credits() {
         {/* Request more credits */}
         <section className="rounded-3xl border border-white/[0.06] bg-white/[0.015] p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Sparkles className="w-4 h-4 text-[#6FB6FF]" />
+            <Sparkles className="w-4 h-4 text-primary/80" />
             <h2 className="text-[18px] text-white font-display font-light">
               Need more credits?
             </h2>
@@ -240,7 +240,7 @@ export default function Credits() {
                         {new Date(t.created_at).toLocaleString()}
                       </td>
                       <td className="px-6 py-3">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80">
                           {t.transaction_type}
                         </span>
                       </td>
@@ -279,7 +279,7 @@ function _UnusedLocalStat({
 }) {
   const toneClass =
     tone === 'blue'
-      ? 'text-[#6FB6FF]'
+      ? 'text-primary/80'
       : tone === 'emerald'
         ? 'text-emerald-300'
         : 'text-white';

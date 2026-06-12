@@ -100,7 +100,7 @@ export default function AdminOnboardingAnalyticsPage() {
                     <span className="text-white/70 font-mono">{stage.label}</span>
                     <span className="text-white/50 font-mono tabular-nums">{stage.n.toLocaleString()} · {pct.toFixed(1)}%</span>
                   </div>
-                  <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div className="h-2 rounded-full bg-glass-hover overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${Math.min(100, pct)}%` }} />
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export default function AdminOnboardingAnalyticsPage() {
                 {byAccountType.map(([k, v]) => (
                   <tr key={k} className="border-b border-white/[0.04]">
                     <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
-                    <td className="py-2 text-right text-[#6FB6FF] font-mono tabular-nums text-[12px]">{v}</td>
+                    <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,7 +132,7 @@ export default function AdminOnboardingAnalyticsPage() {
                 {byUseCase.map(([k, v]) => (
                   <tr key={k} className="border-b border-white/[0.04]">
                     <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
-                    <td className="py-2 text-right text-[#6FB6FF] font-mono tabular-nums text-[12px]">{v}</td>
+                    <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
                   </tr>
                 ))}
               </tbody>

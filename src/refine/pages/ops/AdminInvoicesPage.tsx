@@ -122,7 +122,7 @@ export default function AdminInvoicesPage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
               {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No invoices.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
                   <td className="px-4 py-3 text-white/70 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3"><Badge variant="secondary" className="font-mono text-[10px]">{r.transaction_type}</Badge></td>
                   <td className={`px-4 py-3 text-right font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>{r.amount > 0 ? "+" : ""}{r.amount}</td>

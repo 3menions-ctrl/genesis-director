@@ -16,7 +16,7 @@ interface GdprRow extends AdminRow {
   completed_at: string | null;
 }
 
-const STATUS_TONE = { pending: "text-amber-300", in_progress: "text-[#6FB6FF]", completed: "text-emerald-300", rejected: "text-rose-300" } as const;
+const STATUS_TONE = { pending: "text-amber-300", in_progress: "text-primary/80", completed: "text-emerald-300", rejected: "text-rose-300" } as const;
 
 export default function AdminGdprPage() {
   return (
@@ -53,7 +53,7 @@ export default function AdminGdprPage() {
         columns={[
           { key: "email", label: "Email", width: "240px" },
           { key: "kind", label: "Kind", width: "120px",
-            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6FB6FF]">{String(v)}</span> },
+            render: (v) => <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80">{String(v)}</span> },
           { key: "status", label: "Status", width: "130px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${STATUS_TONE[v as keyof typeof STATUS_TONE]}`}>{String(v).replace("_", " ")}</span> },
           { key: "created_at", label: "Received", width: "170px" },

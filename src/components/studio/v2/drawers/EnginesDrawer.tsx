@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const TIER_CHIP: Record<string, string> = {
   standard: "bg-white/10 text-white/70",
-  pro: "bg-[#0A84FF]/20 text-[#0A84FF]",
+  pro: "bg-primary/20 text-primary",
   cinema: "bg-amber-500/15 text-amber-400",
 };
 
@@ -25,10 +25,10 @@ export function EnginesDrawerContent({ selected, duration = 10, hasCinema = fals
 
       {/* Editorial hero */}
       <div className="relative mb-6 border-b border-white/[0.06] pb-7">
-        <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-[#0A84FF]/30 bg-[#0A84FF]/[0.08] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[#0A84FF]">
+        <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border border-primary/30 bg-primary/[0.08] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-primary">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inset-0 animate-ping rounded-full bg-[#0A84FF] opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#0A84FF]" />
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
           </span>
           The render engines
         </div>
@@ -44,7 +44,7 @@ export function EnginesDrawerContent({ selected, duration = 10, hasCinema = fals
         <div key={tier} className="space-y-2">
           <div className="flex items-center gap-3 mt-4">
             <span className={cn("text-[10px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full", TIER_CHIP[tier])}>{tier}</span>
-            <div className="flex-1 h-px bg-white/[0.06]" />
+            <div className="flex-1 h-px bg-glass-active" />
             <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-white/30">{engines.filter(e => e.tier === tier).length} engines</span>
           </div>
           {engines.filter(e => e.tier === tier).map(e => (
@@ -67,7 +67,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
       title={locked ? `${engine.shortLabel} requires Studio Cinema` : undefined}
       className={cn(
         "w-full text-left rounded-2xl border p-5 transition-all relative overflow-hidden",
-        selected ? "border-[#0A84FF] bg-[#0A84FF]/[0.06] shadow-[0_0_32px_rgba(10,132,255,0.2)]" : "border-white/[0.06] hover:border-white/20 bg-white/[0.02]",
+        selected ? "border-primary bg-primary/[0.06] shadow-[0_0_32px_rgba(10,132,255,0.2)]" : "border-white/[0.06] hover:border-white/20 bg-glass",
         !engine.healthy && "opacity-40 cursor-not-allowed",
         locked && "opacity-60",
       )}
@@ -81,7 +81,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
           </div>
           <p className="text-[13px] text-white/50 leading-relaxed">{engine.description}</p>
           <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-white/[0.06] bg-black/30 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            <Layers className="h-3 w-3 text-[#0A84FF]" /> {engine.pipelineId}
+            <Layers className="h-3 w-3 text-primary" /> {engine.pipelineId}
             <span className="text-white/25">·</span>
             <span className="text-white/40 normal-case tracking-normal">{engine.pipelineFunction}()</span>
           </div>
@@ -96,7 +96,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
             {engine.qualityProfiles.map(q => (
               <span key={q.id} className={cn(
                 "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-wider",
-                q.recommended ? "border-[#0A84FF]/40 bg-[#0A84FF]/[0.08] text-[#9DCBFF]" : "border-white/[0.06] bg-white/[0.02] text-white/45",
+                q.recommended ? "border-primary/40 bg-primary/[0.08] text-primary/60" : "border-white/[0.06] bg-glass text-white/45",
               )}>
                 {q.recommended && <Sparkles className="h-3 w-3" />}
                 {q.resolution} · {q.fps}fps
@@ -111,7 +111,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
               <div className="text-[10px] uppercase tracking-wider text-white/40">credits</div>
             </>
           )}
-          {selected && <div className="mt-2 inline-flex items-center justify-end"><Check className="w-4 h-4 text-[#0A84FF]" /></div>}
+          {selected && <div className="mt-2 inline-flex items-center justify-end"><Check className="w-4 h-4 text-primary" /></div>}
         </div>
       </div>
     </button>
@@ -120,7 +120,7 @@ function EngineRow({ engine, selected, duration, locked, onSelect }: { engine: E
 
 function Badge({ icon, label }: { icon?: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.04] text-[11px] font-mono uppercase tracking-wider text-white/50">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-glass-hover border border-white/[0.04] text-[11px] font-mono uppercase tracking-wider text-white/50">
       {icon}{label}
     </span>
   );

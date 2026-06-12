@@ -374,7 +374,7 @@ function ListingCard({ listing, seller, onBuy, buying, isOwn }: { listing: Listi
             {seller?.avatar_url ? (
               <img src={seller.avatar_url} alt="" className="w-5 h-5 rounded-full" />
             ) : (
-              <div className="w-5 h-5 rounded-full bg-white/[0.05] flex items-center justify-center text-[9px] font-mono text-muted-foreground">
+              <div className="w-5 h-5 rounded-full bg-glass-hover flex items-center justify-center text-[9px] font-mono text-muted-foreground">
                 {(seller?.display_name?.[0] ?? listing.is_demo ? "D" : "?").toString().toUpperCase()}
               </div>
             )}
@@ -388,7 +388,7 @@ function ListingCard({ listing, seller, onBuy, buying, isOwn }: { listing: Listi
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/[0.04] border border-white/[0.06] text-[12px] font-mono tabular-nums text-foreground">
+          <div className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-glass-hover border border-white/[0.06] text-[12px] font-mono tabular-nums text-foreground">
             <Coins className="w-3.5 h-3.5 text-amber-300" />
             {listing.price_credits.toLocaleString()}
           </div>
@@ -422,7 +422,7 @@ function ActionTile({ icon: Icon, title, sub, onClick, accent }: { icon: React.E
   return (
     <button
       onClick={onClick}
-      className="group w-full flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] px-5 py-4 text-left transition-colors"
+      className="group w-full flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-glass-hover px-5 py-4 text-left transition-colors"
     >
       <div
         className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0"
@@ -534,7 +534,7 @@ function PatronsTab() {
             {c.avatar ? (
               <img src={c.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-white/[0.05] flex items-center justify-center text-muted-foreground font-mono">
+              <div className="w-12 h-12 rounded-full bg-glass-hover flex items-center justify-center text-muted-foreground font-mono">
                 {c.name[0]?.toUpperCase()}
               </div>
             )}

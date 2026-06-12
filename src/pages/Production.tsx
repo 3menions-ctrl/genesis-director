@@ -1371,7 +1371,7 @@ const transitionsData = useMemo(() =>
                 actions={
                   <button
                     onClick={() => navigate('/projects')}
-                    className="h-9 px-4 rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-sm text-white/70 hover:text-white transition-colors"
+                    className="h-9 px-4 rounded-full border border-white/[0.08] bg-glass hover:bg-glass-active text-sm text-white/70 hover:text-white transition-colors"
                   >
                     Back to library
                   </button>

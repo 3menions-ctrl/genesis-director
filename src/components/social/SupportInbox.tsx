@@ -183,7 +183,7 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
         <div className="space-y-2 pr-2">
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-xl bg-white/[0.03]" />
+              <Skeleton key={i} className="h-16 rounded-xl bg-glass" />
             ))
           ) : tickets.length === 0 ? (
             <div className="text-center py-8">

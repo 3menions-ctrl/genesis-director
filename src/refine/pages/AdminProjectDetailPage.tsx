@@ -270,7 +270,7 @@ export default function AdminProjectDetailPage() {
                     className="w-32 h-20 rounded-xl object-cover border border-white/[0.08] shrink-0"
                   />
                 ) : (
-                  <div className="w-32 h-20 rounded-xl border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/35 shrink-0">
+                  <div className="w-32 h-20 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/35 shrink-0">
                     <ImageOff className="w-5 h-5" />
                   </div>
                 )}
@@ -306,7 +306,7 @@ export default function AdminProjectDetailPage() {
                     {k}
                     {tab === k && (
                       <span
-                        className="absolute bottom-[-1px] left-3 right-3 h-px bg-[#0A84FF]"
+                        className="absolute bottom-[-1px] left-3 right-3 h-px bg-primary"
                       />
                     )}
                   </button>
@@ -338,7 +338,7 @@ export default function AdminProjectDetailPage() {
               {detail.owner.id ? (
                 <Link
                   to={`/admin/users/${detail.owner.id}`}
-                  className="group flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-white/[0.03] transition-colors"
+                  className="group flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-glass transition-colors"
                 >
                   {detail.owner.avatar_url ? (
                     <img
@@ -347,7 +347,7 @@ export default function AdminProjectDetailPage() {
                       className="w-10 h-10 rounded-full object-cover border border-white/[0.08]"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/55 text-[12px] font-mono">
+                    <div className="w-10 h-10 rounded-full border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 text-[12px] font-mono">
                       {(detail.owner.email?.[0] || detail.owner.display_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
@@ -359,7 +359,7 @@ export default function AdminProjectDetailPage() {
                       {detail.owner.email}
                     </div>
                   </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-white/35 group-hover:text-[#0A84FF]" />
+                  <ExternalLink className="w-3.5 h-3.5 text-white/35 group-hover:text-primary" />
                 </Link>
               ) : (
                 <div className="text-[12px] text-white/40">No owner attached.</div>
@@ -421,7 +421,7 @@ export default function AdminProjectDetailPage() {
 
 function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "amber" | "emerald" | "rose" }) {
   const toneClass: Record<string, string> = {
-    blue:    "border-[#0A84FF]/30 bg-[#0A84FF]/10 text-[#6FB6FF]",
+    blue:    "border-primary/30 bg-primary/10 text-primary/80",
     amber:   "border-amber-400/30 bg-amber-400/10 text-amber-200",
     emerald: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
     rose:    "border-rose-400/30 bg-rose-400/10 text-rose-200",
@@ -452,7 +452,7 @@ function ActionRow({
       disabled={disabled}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors",
-        "border-white/[0.06] bg-white/[0.015] hover:border-[#0A84FF]/30 hover:bg-[#0A84FF]/[0.05]",
+        "border-white/[0.06] bg-white/[0.015] hover:border-primary/30 hover:bg-primary/[0.05]",
         tone === "rose" && "hover:border-rose-400/30 hover:bg-rose-400/[0.05]",
         disabled && "opacity-40 cursor-not-allowed hover:border-white/[0.06] hover:bg-white/[0.015]",
       )}

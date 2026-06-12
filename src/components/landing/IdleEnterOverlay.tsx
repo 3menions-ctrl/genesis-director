@@ -109,7 +109,7 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
           <button
             onClick={dismiss}
             aria-label="Close"
-            className="absolute top-6 right-6 w-10 h-10 rounded-full inline-flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all z-10"
+            className="absolute top-6 right-6 w-10 h-10 rounded-full inline-flex items-center justify-center text-white/60 hover:text-white hover:bg-glass-active transition-all z-10"
           >
             <X className="w-5 h-5" />
           </button>
@@ -127,9 +127,9 @@ export const IdleEnterOverlay = memo(function IdleEnterOverlay() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6 border border-white/10 bg-white/[0.03] backdrop-blur"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6 border border-white/10 bg-glass backdrop-blur"
             >
-              <Sparkles className="w-3 h-3 text-[#9DCBFF]" />
+              <Sparkles className="w-3 h-3 text-primary/60" />
               <span className="text-[10px] tracking-[0.32em] uppercase text-white/65 font-medium">
                 Choose your path
               </span>

@@ -21,9 +21,9 @@ export function AdminDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0A0A0C] p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-[#6FB6FF]" />}
+          {Icon && <Icon className="w-4 h-4 text-primary/80" />}
           <h2 className="text-white text-lg font-display font-light">{title}</h2>
         </div>
         <div className="space-y-3">{children}</div>

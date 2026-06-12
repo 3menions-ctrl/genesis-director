@@ -51,7 +51,7 @@ const Terms = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="space-y-8 text-white/60"
           >
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
               <p>
                 By accessing and using Small Bridges ("Service"), operated by Small Bridges-studio LLC, a Missouri 
@@ -61,7 +61,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">2. Description of Service</h2>
               <p className="mb-4">
                 Small Bridges is a software-as-a-service (SaaS) platform that provides AI-powered video 
@@ -84,7 +84,7 @@ const Terms = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">3. Eligibility and Age Requirements</h2>
               <p className="mb-4">
                 You must be at least 13 years of age to use this Service. If you are between 13 and 18 
@@ -104,7 +104,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">4. User Accounts</h2>
               <p className="mb-4">
                 To access certain features of the Service, you must create an account. You agree to:
@@ -118,13 +118,13 @@ const Terms = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">5. Credits and Payments</h2>
               <p className="mb-4">
                 The Service operates on a credit-based payment model. By purchasing credits, you expressly 
                 acknowledge and agree to the following terms:
               </p>
-              <p className="mb-4 p-4 bg-white/[0.03] rounded-xl border border-white/[0.1]">
+              <p className="mb-4 p-4 bg-glass rounded-xl border border-white/[0.1]">
                 <strong className="text-white">IMPORTANT - NO REFUND POLICY:</strong> ALL CREDIT PURCHASES 
                 ARE FINAL AND NON-REFUNDABLE. Credits cannot be refunded, transferred, or exchanged for cash 
                 once purchased. This policy applies regardless of whether credits have been used or remain 
@@ -145,7 +145,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">6. User Content</h2>
               <p className="mb-4">
                 You retain ownership of original content you create using our Service, subject to any 
@@ -161,7 +161,7 @@ const Terms = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">7. Prohibited Uses</h2>
               <p className="mb-4">You agree not to use the Service to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
@@ -178,7 +178,7 @@ const Terms = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">8. Intellectual Property</h2>
               <p>
                 The Service, including its original content, features, functionality, AI models, algorithms, 
@@ -188,7 +188,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">9. GDPR and International Users</h2>
               <p className="mb-4">
                 If you are located in the European Economic Area (EEA), United Kingdom, or Switzerland, 
@@ -206,7 +206,7 @@ const Terms = () => {
               </ul>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">10. Third-Party AI Technology Disclaimer</h2>
               <p className="mb-4">
                 <strong className="text-white">IMPORTANT NOTICE REGARDING AI-GENERATED CONTENT:</strong>
@@ -231,7 +231,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">11. Disclaimer of Warranties</h2>
               <p className="mb-4 text-white/80">
                 THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF 
@@ -256,7 +256,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">12. Limitation of Liability</h2>
               <p className="mb-4 text-white/80">
                 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL Small Bridges LLC, 
@@ -287,7 +287,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">13. Indemnification</h2>
               <p>
                 You agree to indemnify, defend, and hold harmless Small Bridges-studio LLC and its officers, 
@@ -299,7 +299,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">14. Dispute Resolution and Arbitration</h2>
               <p className="mb-4">
                 <strong className="text-white">PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS, 
@@ -332,7 +332,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">15. Termination</h2>
               <p>
                 We reserve the right to suspend or terminate your account and access to the Service at 
@@ -343,7 +343,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">16. Changes to Terms</h2>
               <p>
                 We may update these Terms at any time. We will notify you of material changes by 
@@ -353,7 +353,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">17. Governing Law</h2>
               <p>
                 These Terms shall be governed by and construed in accordance with the laws of the 
@@ -361,7 +361,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">18. DMCA Copyright Policy</h2>
               <p className="mb-4">
                 We respect the intellectual property rights of others and comply with the Digital
@@ -387,7 +387,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">19. Electronic Communications and Notices</h2>
               <p>
                 You consent to receive communications from us electronically, including by email and
@@ -398,7 +398,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">20. Force Majeure</h2>
               <p>
                 We shall not be liable for any failure or delay in performance caused by events
@@ -409,7 +409,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">21. Assignment</h2>
               <p>
                 You may not assign or transfer these Terms or any rights or obligations hereunder,
@@ -420,7 +420,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">22. Severability and Waiver</h2>
               <p className="mb-4">
                 If any provision of these Terms is held by a court of competent jurisdiction to be
@@ -435,7 +435,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">23. Export Controls and Sanctions</h2>
               <p>
                 You represent that you are not located in, under the control of, or a national or
@@ -445,7 +445,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">24. Entire Agreement</h2>
               <p>
                 These Terms, together with our{' '}
@@ -457,7 +457,7 @@ const Terms = () => {
               </p>
             </section>
 
-            <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">25. Contact Information</h2>
               <p className="mb-4">
                 For any questions about these Terms, please contact us:

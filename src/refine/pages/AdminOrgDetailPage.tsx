@@ -216,7 +216,7 @@ export default function AdminOrgDetailPage() {
                   className="w-16 h-16 rounded-xl object-cover border border-white/[0.08] shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-xl border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/55 shrink-0">
+                <div className="w-16 h-16 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 shrink-0">
                   <Building2 className="w-6 h-6" />
                 </div>
               )}
@@ -250,7 +250,7 @@ export default function AdminOrgDetailPage() {
                   )}
                 >
                   {k}
-                  {tab === k && <span className="absolute bottom-[-1px] left-3 right-3 h-px bg-[#0A84FF]" />}
+                  {tab === k && <span className="absolute bottom-[-1px] left-3 right-3 h-px bg-primary" />}
                 </button>
               ))}
             </div>
@@ -289,12 +289,12 @@ function MembersTab({ members, invites }: { members: Member[]; invites: Invite[]
               <Link
                 key={m.user_id}
                 to={`/admin/users/${m.user_id}`}
-                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:border-[#0A84FF]/25 hover:bg-[#0A84FF]/[0.04] transition-colors"
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:border-primary/25 hover:bg-primary/[0.04] transition-colors"
               >
                 {m.avatar_url ? (
                   <img src={m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08] shrink-0" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/55 text-[11px] font-mono shrink-0">
+                  <div className="w-8 h-8 rounded-full border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 text-[11px] font-mono shrink-0">
                     {(m.display_name?.[0] || m.email?.[0] || "?").toUpperCase()}
                   </div>
                 )}
@@ -304,7 +304,7 @@ function MembersTab({ members, invites }: { members: Member[]; invites: Invite[]
                 </div>
                 {m.role === "owner" && <Crown className="w-3.5 h-3.5 text-amber-300" />}
                 <Pill tone={roleTone(m.role)}>{m.role}</Pill>
-                <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-[#0A84FF]" />
+                <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-primary" />
               </Link>
             ))}
           </div>
@@ -350,7 +350,7 @@ function ProjectsTab({ projects }: { projects: RecentProject[] }) {
         <Link
           key={p.id}
           to={`/admin/projects/${p.id}`}
-          className="group rounded-xl border border-white/[0.05] bg-white/[0.015] hover:border-[#0A84FF]/25 hover:bg-[#0A84FF]/[0.04] overflow-hidden transition-colors"
+          className="group rounded-xl border border-white/[0.05] bg-white/[0.015] hover:border-primary/25 hover:bg-primary/[0.04] overflow-hidden transition-colors"
         >
           <div className="aspect-video bg-black/40">
             {p.thumbnail_url ? (
@@ -378,7 +378,7 @@ function MetadataTab({ org }: { org: OrgDetail["org"] }) {
     ["ID", <span className="font-mono text-white/75">{org.id}</span>],
     ["Slug", <span className="font-mono text-white/75">/{org.slug}</span>],
     ["Industry", org.industry ?? "—"],
-    ["Website", org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-[#6FB6FF] hover:underline">{org.website}</a> : "—"],
+    ["Website", org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
     ["Created by", <span className="font-mono text-white/75">{org.created_by.slice(0, 8)}…</span>],
     ["Created", new Date(org.created_at).toLocaleString()],
     ["Updated", new Date(org.updated_at).toLocaleString()],
@@ -397,7 +397,7 @@ function MetadataTab({ org }: { org: OrgDetail["org"] }) {
 
 function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "amber" | "emerald" | "rose" | "neutral" }) {
   const toneClass: Record<string, string> = {
-    blue:    "border-[#0A84FF]/30 bg-[#0A84FF]/10 text-[#6FB6FF]",
+    blue:    "border-primary/30 bg-primary/10 text-primary/80",
     amber:   "border-amber-400/30 bg-amber-400/10 text-amber-200",
     emerald: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
     rose:    "border-rose-400/30 bg-rose-400/10 text-rose-200",
@@ -415,10 +415,10 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "
 
 function Stat({ label, value, sub, tone = "neutral" }: { label: string; value: string; sub?: string; tone?: "blue" | "amber" | "emerald" | "neutral" }) {
   const toneMap: Record<string, string> = {
-    blue: "text-[#6FB6FF]", amber: "text-amber-300", emerald: "text-emerald-300", neutral: "text-white",
+    blue: "text-primary/80", amber: "text-amber-300", emerald: "text-emerald-300", neutral: "text-white",
   };
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-glass p-4">
       <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35 mb-2">{label}</div>
       <div className={cn("text-2xl font-display font-light tabular-nums", toneMap[tone])}>{value}</div>
       {sub && <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.22em]">{sub}</div>}

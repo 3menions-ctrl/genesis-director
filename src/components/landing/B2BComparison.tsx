@@ -22,7 +22,7 @@ export const B2BComparison = memo(function B2BComparison() {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+          <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-4">
             The shift
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight leading-[1.05]">
@@ -53,7 +53,7 @@ export const B2BComparison = memo(function B2BComparison() {
           <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-3 px-6 md:px-10 py-5 border-b border-white/[0.06] text-[10px] uppercase tracking-[0.2em] text-white/35 font-medium">
             <div />
             <div className="text-center">The old way</div>
-            <div className="text-center text-[#0A84FF]">With Small Bridges</div>
+            <div className="text-center text-primary">With Small Bridges</div>
           </div>
 
           {ROWS.map((row, i) => (
@@ -75,7 +75,7 @@ export const B2BComparison = memo(function B2BComparison() {
                 <span className="text-center line-through decoration-white/15">{row.old}</span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs md:text-sm">
-                <Check className="w-3.5 h-3.5 text-[#0A84FF] shrink-0" strokeWidth={2.5} />
+                <Check className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2.5} />
                 <span className="text-center text-white font-medium">{row.us}</span>
               </div>
             </motion.div>

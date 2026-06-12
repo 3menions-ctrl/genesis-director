@@ -16,11 +16,11 @@ export const B2BROISection = memo(function B2BROISection() {
     <section className="relative z-10 py-24 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#0A84FF]/15 via-transparent to-[#0A84FF]/5 p-10 md:p-16">
-          <div className="absolute -top-32 -right-32 w-[24rem] h-[24rem] rounded-full bg-[#0A84FF]/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-32 -left-32 w-[24rem] h-[24rem] rounded-full bg-[#0A84FF]/10 blur-3xl pointer-events-none" />
+          <div className="absolute -top-32 -right-32 w-[24rem] h-[24rem] rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-[24rem] h-[24rem] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
           <div className="relative text-center mb-12">
-            <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-3">
+            <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-3">
               The numbers
             </p>
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -36,7 +36,7 @@ export const B2BROISection = memo(function B2BROISection() {
             {STATS.map((s) => (
               <div
                 key={s.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur px-5 py-6 text-center"
+                className="rounded-2xl border border-white/10 bg-glass backdrop-blur px-5 py-6 text-center"
               >
                 <div className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
                   {s.value}

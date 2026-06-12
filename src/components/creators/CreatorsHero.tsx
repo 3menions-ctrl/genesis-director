@@ -89,7 +89,7 @@ export const CreatorsHero = memo(forwardRef<HTMLDivElement, CreatorsHeroProps>(f
                     <div className="text-[10px] text-white/30 uppercase tracking-widest">Creators</div>
                   </div>
                 </div>
-                <div className="w-px h-8 bg-white/[0.06]" />
+                <div className="w-px h-8 bg-glass-active" />
               </>
             )}
 

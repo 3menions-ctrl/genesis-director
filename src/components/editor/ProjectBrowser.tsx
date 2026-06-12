@@ -70,7 +70,7 @@ export function ProjectBrowser({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-7 w-7 p-0 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300"
+                className="h-7 w-7 p-0 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-glass-hover transition-all duration-300"
               >
                 <X className="w-3.5 h-3.5" strokeWidth={1.5} />
               </Button>

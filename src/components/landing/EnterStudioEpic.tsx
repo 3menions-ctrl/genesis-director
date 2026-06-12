@@ -300,8 +300,8 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-14 md:mb-20"
         >
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-7">
-            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" style={{ boxShadow: '0 0 8px #0A84FF' }} />
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-glass border border-white/[0.08] backdrop-blur-2xl mb-7">
+            <span className="w-1 h-1 rounded-full bg-primary" style={{ boxShadow: '0 0 8px #0A84FF' }} />
             <span className="text-[10.5px] font-medium text-white/65 tracking-[0.32em] uppercase">
               The Studio
             </span>
@@ -408,7 +408,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               <h3 className="font-display mt-5 text-white text-3xl md:text-5xl font-light tracking-[-0.02em]">
                 <span className="italic">The Small Bridges Premiere</span>
                 <span className="opacity-50"> · </span>
-                <span className="font-mono text-base md:text-xl tracking-[0.18em] align-middle text-[#ffd98a]">Reel 01</span>
+                <span className="font-mono text-base md:text-xl tracking-[0.18em] align-middle text-warning/85">Reel 01</span>
               </h3>
             </div>
 
@@ -498,7 +498,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   ['Kling V3','Seedance 2.0','Native lip-sync','Face-lock identity','Cinematic scoring','Multi-character dialogue','12-second clips','Continuity engine','Stitch-ready exports','Verbatim scripts','MusicGen scores','Two-engine routing']
                     .map((w, i) => (
                       <span key={`${dup}-${i}`} className="inline-flex items-center gap-3 px-5 text-[11px] font-mono uppercase tracking-[0.32em] text-white/75">
-                        <span className="text-[#ffd98a]">★</span> {w}
+                        <span className="text-warning/85">★</span> {w}
                       </span>
                     ))
                 ))}
@@ -598,7 +598,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.55), transparent)' }} />
             <div className="flex items-baseline justify-between mb-5">
               <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Sonic engine</p>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">MusicGen · Lip-sync</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-primary/60/70 font-mono">MusicGen · Lip-sync</p>
             </div>
             <h3 className="font-display text-white text-2xl md:text-3xl font-medium tracking-[-0.02em] mb-6">
               Score, voice, and duck — automatically.
@@ -828,7 +828,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
               style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.5), transparent)' }} />
             <div className="flex items-baseline justify-between mb-6">
               <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Generation engines</p>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9DCBFF]/70 font-mono">Pick per shot</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-primary/60/70 font-mono">Pick per shot</p>
             </div>
             <div className="space-y-3">
               {[
@@ -841,7 +841,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  className="group relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 rounded-2xl bg-white/[0.015] hover:bg-white/[0.04] transition-all duration-500 border border-white/[0.04] hover:border-[hsla(212,100%,60%,0.25)]"
+                  className="group relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 rounded-2xl bg-white/[0.015] hover:bg-glass-hover transition-all duration-500 border border-white/[0.04] hover:border-[hsla(212,100%,60%,0.25)]"
                 >
                   <div className="w-10 shrink-0 text-[11px] font-mono tracking-[0.2em] text-white/30 tabular-nums">0{i + 1}</div>
                   <div className="flex-1 min-w-0">
@@ -857,7 +857,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                   </div>
                   <div className="flex flex-wrap gap-1.5 sm:max-w-[210px] sm:justify-end">
                     {eng.badges.map((b) => (
-                      <span key={b} className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-white/65 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">{b}</span>
+                      <span key={b} className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-white/65 px-2 py-0.5 rounded-full bg-glass-hover border border-white/[0.06]">{b}</span>
                     ))}
                   </div>
                 </motion.div>
@@ -885,11 +885,11 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                className="group relative p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.045] border border-white/[0.05] hover:border-[hsla(212,100%,60%,0.22)] transition-all duration-500 overflow-hidden"
+                className="group relative p-4 rounded-2xl bg-glass hover:bg-white/[0.045] border border-white/[0.05] hover:border-[hsla(212,100%,60%,0.22)] transition-all duration-500 overflow-hidden"
               >
                 <span aria-hidden className="absolute -top-px left-4 right-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(212,100%,75%,0.5), transparent)', opacity: 0.6 }} />
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+                  <span className="w-1 h-1 rounded-full bg-primary" />
                   <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/55">{f.k}</p>
                 </div>
                 <p className="text-white/82 text-[13.5px] font-light leading-snug tracking-[-0.005em]">{f.v}</p>
@@ -965,7 +965,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
         >
           <div className="px-7 md:px-10 pt-8 md:pt-10 flex items-baseline justify-between">
             <p className="text-[10px] uppercase tracking-[0.36em] text-white/40 font-mono">Casting hall</p>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-[#ffd98a]/80 font-mono">Three under the light</p>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-warning/85/80 font-mono">Three under the light</p>
           </div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 px-7 md:px-10 pt-6 pb-16">

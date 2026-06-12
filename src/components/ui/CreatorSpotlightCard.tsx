@@ -57,7 +57,7 @@ export const CreatorSpotlightCard = memo(forwardRef<HTMLDivElement, CreatorSpotl
         <div className="relative p-5">
           {/* Thumbnail preview */}
           {thumbnailUrl && (
-            <div className="relative aspect-video rounded-xl overflow-hidden mb-4 bg-white/[0.03]">
+            <div className="relative aspect-video rounded-xl overflow-hidden mb-4 bg-glass">
               <img 
                 src={thumbnailUrl} 
                 alt={displayName}
@@ -83,7 +83,7 @@ export const CreatorSpotlightCard = memo(forwardRef<HTMLDivElement, CreatorSpotl
 
           {/* Creator info */}
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.06] border border-white/[0.1] flex-shrink-0 group-hover:border-primary/30 transition-colors duration-500">
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-glass-active border border-white/[0.1] flex-shrink-0 group-hover:border-primary/30 transition-colors duration-500">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
               ) : (

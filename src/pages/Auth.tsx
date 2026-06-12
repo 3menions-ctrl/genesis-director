@@ -407,7 +407,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] backdrop-blur-md mb-6">
                   <span className="w-1 h-1 rounded-full bg-[hsl(212,100%,55%)] shadow-[0_0_8px_hsl(212,100%,55%)]" />
                   <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Small Bridges Pro</span>
                 </div>
@@ -585,7 +585,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 className={cn(
                                   'w-10 h-14 text-center text-lg font-semibold text-white rounded-xl tabular-nums',
                                   'bg-white/[0.035] border border-white/[0.08]',
-                                  'focus:border-[hsl(212,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/20 focus:bg-white/[0.06]',
+                                  'focus:border-[hsl(212,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/20 focus:bg-glass-active',
                                   'outline-none transition-all duration-200',
                                   'hover:border-white/[0.15]',
                                   otpCode[i] && 'border-[hsl(212,100%,55%)]/40 bg-[hsl(212,100%,55%)]/[0.05] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
@@ -596,7 +596,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           </div>
                           
                           {/* Security badge */}
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] mb-6 backdrop-blur-md">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] mb-6 backdrop-blur-md">
                             <ShieldCheck className="w-3.5 h-3.5 text-[hsl(212,100%,62%)]" />
                             <span className="text-[11px] tracking-wide text-white/65">End-to-end secure</span>
                           </div>
@@ -605,7 +605,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             <p className="text-white/35 text-[12px] leading-relaxed">
                               Enter the code from your email to verify your account.
                             </p>
-                            <div className="flex items-start gap-2 text-left rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
+                            <div className="flex items-start gap-2 text-left rounded-xl bg-glass border border-white/[0.06] px-3.5 py-2.5">
                               <Mail className="w-3.5 h-3.5 text-[hsl(212,100%,62%)] mt-0.5 shrink-0" />
                               <div className="space-y-1">
                                 <p className="text-[11px] text-white/60 leading-relaxed">
@@ -728,7 +728,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         {/* Header */}
                         <div className="mb-7">
                           <motion.div
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-5"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-glass-hover border border-white/[0.08] backdrop-blur-md mb-5"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.1, type: 'spring' }}
@@ -788,7 +788,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 }}
                                 className={cn(
                                   'h-12 pl-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
-                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-glass-hover',
                                   'rounded-xl transition-all duration-300',
                                   'hover:border-white/[0.12] hover:bg-white/[0.035]',
                                   errors.email && 'border-destructive/50 focus:ring-destructive/15',
@@ -828,7 +828,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 }}
                                 className={cn(
                                   'h-12 pl-11 pr-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
-                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-glass-hover',
                                   'rounded-xl transition-all duration-300',
                                   'hover:border-white/[0.12] hover:bg-white/[0.035]',
                                   errors.password && 'border-destructive/50',
@@ -884,7 +884,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   }}
                                   className={cn(
                                     'h-12 pl-11 pr-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
-                                    'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                    'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-glass-hover',
                                     'rounded-xl transition-all duration-300',
                                     'hover:border-white/[0.12] hover:bg-white/[0.035]',
                                     errors.confirmPassword && 'border-destructive/50',

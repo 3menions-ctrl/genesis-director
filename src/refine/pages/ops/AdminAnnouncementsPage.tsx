@@ -21,7 +21,7 @@ interface AnnouncementRow extends AdminRow {
 }
 
 const SEVERITY_TONE = {
-  info: "text-[#6FB6FF]",
+  info: "text-primary/80",
   success: "text-emerald-300",
   warning: "text-amber-300",
   critical: "text-rose-300",
@@ -111,21 +111,21 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0A0A0C] p-6 space-y-4">
-        <div className="flex items-center gap-2"><Megaphone className="w-4 h-4 text-[#6FB6FF]" />
+      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4">
+        <div className="flex items-center gap-2"><Megaphone className="w-4 h-4 text-primary/80" />
           <h2 className="font-display text-white text-lg">New announcement</h2></div>
         <FormField label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40" /></FormField>
+          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
         <FormField label="Body"><textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
-          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40 resize-none" /></FormField>
+          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40 resize-none" /></FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Severity"><select value={severity} onChange={(e) => setSeverity(e.target.value as any)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40">
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40">
             <option value="info">Info</option><option value="success">Success</option>
             <option value="warning">Warning</option><option value="critical">Critical</option>
           </select></FormField>
           <FormField label="Audience"><select value={audience} onChange={(e) => setAudience(e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40">
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40">
             <option value="all">All</option><option value="admin">Admin</option>
             <option value="business">Business</option><option value="enterprise">Enterprise</option>
             <option value="personal">Personal</option>
@@ -133,14 +133,14 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
         </div>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="CTA label"><input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Learn more"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40" /></FormField>
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
           <FormField label="CTA URL"><input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://…"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-white focus:outline-none focus:border-[#0A84FF]/40" /></FormField>
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
         </div>
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2 rounded-lg border border-white/[0.08]">Cancel</button>
           <button onClick={submit} disabled={busy}
-            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-[#0A84FF]/50 disabled:opacity-40">
+            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-primary/50 disabled:opacity-40">
             {busy ? "Publishing…" : "Publish"}
           </button>
         </div>

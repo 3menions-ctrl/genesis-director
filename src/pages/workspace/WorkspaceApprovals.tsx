@@ -122,7 +122,7 @@ export default function WorkspaceApprovals() {
                 {pending.map(row => (
                   <li key={row.id} className="p-5 flex flex-col md:flex-row gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-14 h-14 rounded-xl border border-white/[0.06] bg-white/[0.03] flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-14 h-14 rounded-xl border border-white/[0.06] bg-glass flex items-center justify-center overflow-hidden shrink-0">
                         {row.project_thumb
                           ? <img src={row.project_thumb} alt="" className="w-full h-full object-cover" />
                           : <Film className="w-4 h-4 text-white/65" />}

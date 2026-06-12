@@ -271,7 +271,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           <Button
             onClick={() => setIsEditing(true)}
             variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white hover:border-white/[0.15] rounded-xl transition-all"
+            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white hover:border-white/[0.15] rounded-xl transition-all"
           >
             <Edit3 className="w-4 h-4 mr-2" />
             Edit Profile
@@ -380,7 +380,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.display_name}
                 onChange={(e) => handleInputChange('display_name', e.target.value)}
                 placeholder="How should we call you?"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.display_name || '—'}</p>
@@ -394,7 +394,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.full_name}
                 onChange={(e) => handleInputChange('full_name', e.target.value)}
                 placeholder="Your full name"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.full_name || '—'}</p>
@@ -432,7 +432,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.company}
                 onChange={(e) => handleInputChange('company', e.target.value)}
                 placeholder="Your company name"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.company || '—'}</p>
@@ -449,7 +449,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.role}
                 onChange={(e) => handleInputChange('role', e.target.value)}
                 placeholder="Your role or title"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.role || '—'}</p>
@@ -464,7 +464,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 onChange={(e) => handleInputChange('use_case', e.target.value)}
                 placeholder="Tell us about your use case..."
                 rows={3}
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 resize-none rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 resize-none rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.use_case || '—'}</p>
@@ -491,7 +491,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             { label: 'Account Tier', value: tierInfo.label, icon: <Crown className={cn("w-4 h-4", tierInfo.color)} />, valueColor: tierInfo.color },
             { label: 'Status', value: 'Active', icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />, valueColor: 'text-emerald-400' },
           ].map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-colors">
+            <div key={i} className="p-4 rounded-xl bg-glass border border-white/[0.05] hover:border-white/[0.1] transition-colors">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {item.icon}
@@ -526,7 +526,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.05]">
             <div className="pr-4">
               <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
               <p className="text-xs text-white/35 mt-0.5">Stop usage-pattern analytics on your account. Your data stays private to you regardless.</p>
@@ -538,7 +538,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             />
           </div>
 
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+          <div className="p-4 rounded-xl bg-glass border border-white/[0.05]">
             <p className="text-sm font-medium text-white">No public ranking</p>
             <p className="text-xs text-white/35 mt-0.5">
               Leaderboards, XP and ranking points have been removed. Your credits, usage and activity are visible only to you.
@@ -581,7 +581,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
       {/* Email Change Dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-white/[0.08] rounded-2xl max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-background/98 backdrop-blur-2xl border-white/[0.08] rounded-2xl max-w-md mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center">
@@ -595,7 +595,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="p-4 rounded-xl bg-glass border border-white/[0.06]">
               <p className="text-xs text-white/30 uppercase tracking-wider">Current email</p>
               <p className="text-white font-medium mt-1 text-sm">{user?.email}</p>
             </div>
@@ -610,7 +610,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                   setEmailError('');
                 }}
                 placeholder="Enter new email address"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl"
               />
               {emailError && (
                 <p className="text-xs text-red-400 flex items-center gap-1">

@@ -33,7 +33,7 @@ export function DialogueEditor({
       <div className="flex gap-1 p-1 rounded-lg bg-white/5 w-fit">
         {(['storyboard', 'conversation'] as const).map((m) => (
           <button key={m} onClick={() => switchMode(m)}
-            className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider ${data.mode === m ? 'bg-[#0A84FF] text-white' : 'text-white/60'}`}>
+            className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider ${data.mode === m ? 'bg-primary text-white' : 'text-white/60'}`}>
             {m}
           </button>
         ))}

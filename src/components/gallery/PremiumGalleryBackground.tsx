@@ -55,7 +55,7 @@ const shouldReduceMotion = () => {
    return (
      <div className="fixed inset-0 overflow-hidden">
        {/* Base layer - Deep black */}
-       <div className="absolute inset-0 bg-[#030303]" />
+       <div className="absolute inset-0 bg-background" />
        
        {/* Animated mesh gradient orbs */}
        <motion.div 

@@ -89,7 +89,7 @@ const WaveformDisplay = memo(function WaveformDisplay({
 }) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-8 w-full bg-white/[0.02] rounded flex items-center justify-center">
+      <div className="h-8 w-full bg-glass rounded flex items-center justify-center">
         <span className="text-[10px] text-white/20">No waveform</span>
       </div>
     );
@@ -98,7 +98,7 @@ const WaveformDisplay = memo(function WaveformDisplay({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   
   return (
-    <div className="relative h-8 w-full bg-white/[0.02] rounded overflow-hidden">
+    <div className="relative h-8 w-full bg-glass rounded overflow-hidden">
       {/* Waveform bars */}
       <div className="absolute inset-0 flex items-center gap-px px-1">
         {Array.from({ length: 50 }).map((_, i) => {
@@ -153,10 +153,10 @@ const TrackControl = memo(function TrackControl({
       className={cn(
         "flex flex-col gap-2 p-3 rounded-xl border transition-colors",
         state.isLoading
-          ? "bg-white/[0.02] border-white/[0.05]"
+          ? "bg-glass border-white/[0.05]"
           : state.error
           ? "bg-red-500/5 border-red-500/20"
-          : "bg-white/[0.02] border-white/[0.08] hover:border-white/[0.12]"
+          : "bg-glass border-white/[0.08] hover:border-white/[0.12]"
       )}
     >
       {/* Track header */}
@@ -328,7 +328,7 @@ export const AudioMixerPanel = memo(function AudioMixerPanel({
       {/* Header - always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-glass transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-cyan-500/20">

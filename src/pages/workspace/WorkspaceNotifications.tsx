@@ -141,7 +141,7 @@ export default function WorkspaceNotifications() {
                         <button
                           disabled={!canEdit}
                           onClick={() => toggleEnabled(r.key)}
-                          className={`relative inline-flex h-5 w-9 rounded-full transition border ${p.enabled ? 'bg-[hsl(215,100%,45%)] border-[hsl(215,100%,55%)]/50' : 'bg-white/[0.06] border-white/[0.08]'} disabled:opacity-50`}
+                          className={`relative inline-flex h-5 w-9 rounded-full transition border ${p.enabled ? 'bg-[hsl(215,100%,45%)] border-[hsl(215,100%,55%)]/50' : 'bg-glass-active border-white/[0.08]'} disabled:opacity-50`}
                           aria-pressed={p.enabled}
                           aria-label={`Toggle ${r.event}`}
                         >

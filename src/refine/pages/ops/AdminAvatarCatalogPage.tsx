@@ -45,7 +45,7 @@ export default function AdminAvatarCatalogPage() {
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v
               ? <img src={String(v)} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/[0.06]" />
-              : <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06]" /> },
+              : <div className="w-10 h-10 rounded-lg bg-glass border border-white/[0.06]" /> },
           { key: "name", label: "Name", width: "200px" },
           { key: "slug", label: "Slug", width: "180px",
             render: (v) => <code className="font-mono text-[11px] text-white/55">{String(v)}</code> },

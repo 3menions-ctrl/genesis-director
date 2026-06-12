@@ -273,7 +273,7 @@ export default function CrewDetail() {
                 to={`/c/${m.user_id}`}
                 className="group rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 px-3 py-4 text-center transition-colors"
               >
-                <div className="relative w-14 h-14 rounded-full mx-auto mb-2 overflow-hidden border border-white/[0.08] bg-white/[0.05]">
+                <div className="relative w-14 h-14 rounded-full mx-auto mb-2 overflow-hidden border border-white/[0.08] bg-glass-hover">
                   {m.avatar_url ? (
                     <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (

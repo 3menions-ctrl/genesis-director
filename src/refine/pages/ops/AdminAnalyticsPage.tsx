@@ -246,7 +246,7 @@ export default function AdminAnalyticsPage() {
       description="Real-time growth, retention, monetization and activation across the entire platform."
       actions={
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/[0.02] p-0.5">
+          <div className="flex items-center rounded-full border border-white/10 bg-glass p-0.5">
             {WINDOWS.map((w) => (
               <button
                 key={w}
@@ -254,7 +254,7 @@ export default function AdminAnalyticsPage() {
                 className={cn(
                   "px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] rounded-full transition-colors",
                   windowDays === w
-                    ? "bg-[#0A84FF]/15 text-[#6FB6FF]"
+                    ? "bg-primary/15 text-primary/80"
                     : "text-white/40 hover:text-white/70",
                 )}
               >
@@ -264,7 +264,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <button
             onClick={() => load(windowDays)}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.02] text-white/50 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 bg-glass text-white/50 hover:text-primary/80 hover:border-primary/40 transition-colors"
             aria-label="Refresh"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
@@ -313,7 +313,7 @@ export default function AdminAnalyticsPage() {
       <AdminSectionLabel label="Activity" meta={`${windowDays}-day window · click any day to inspect`} />
       <AdminSurface className="mb-10">
         {loading ? (
-          <Skeleton className="h-[320px] w-full bg-white/[0.04]" />
+          <Skeleton className="h-[320px] w-full bg-glass-hover" />
         ) : (
           <div className="h-[320px] cursor-pointer">
             <ResponsiveContainer width="100%" height="100%">
@@ -367,7 +367,7 @@ export default function AdminAnalyticsPage() {
             <Layers className="h-3 w-3" /> Tier mix
           </div>
           {loading ? (
-            <Skeleton className="h-48 w-full bg-white/[0.04]" />
+            <Skeleton className="h-48 w-full bg-glass-hover" />
           ) : (
             <>
               <div className="h-44 relative">
@@ -541,7 +541,7 @@ function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
   accent: "blue" | "emerald" | "amber";
   onClick?: () => void;
 }) {
-  const tone = { blue: "text-[#6FB6FF]", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
+  const tone = { blue: "text-primary/80", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
   return (
     <div
       onClick={onClick}
@@ -549,18 +549,18 @@ function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === "Enter") onClick(); } : undefined}
       className={cn(
-        "rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-5 relative overflow-hidden group",
-        onClick && "cursor-pointer transition-colors hover:border-[#0A84FF]/30",
+        "rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-md p-5 relative overflow-hidden group",
+        onClick && "cursor-pointer transition-colors hover:border-primary/30",
       )}
     >
       <div aria-hidden className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(20px)" }} />
       <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
         <Icon className={cn("h-3 w-3", tone)} /> {label}
-        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-[#6FB6FF] transition-colors" />}
+        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-primary/80 transition-colors" />}
       </div>
       {loading || value == null ? (
-        <Skeleton className="h-8 w-20 bg-white/[0.04]" />
+        <Skeleton className="h-8 w-20 bg-glass-hover" />
       ) : (
         <div className="text-3xl font-light text-white tabular-nums">
           {value}
@@ -573,12 +573,12 @@ function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
 function BigStat({ label, value, sub, tone, loading }: {
   label: string; value: string; sub?: string; tone: "blue" | "emerald" | "rose"; loading: boolean;
 }) {
-  const c = { blue: "text-[#6FB6FF]", emerald: "text-emerald-300", rose: "text-rose-300" }[tone];
+  const c = { blue: "text-primary/80", emerald: "text-emerald-300", rose: "text-rose-300" }[tone];
   return (
     <div>
       <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-2">{label}</div>
       {loading ? (
-        <Skeleton className="h-9 w-24 bg-white/[0.04]" />
+        <Skeleton className="h-9 w-24 bg-glass-hover" />
       ) : (
         <div className={cn("text-4xl font-light tabular-nums", c)}>
           {value}
@@ -593,7 +593,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
   return (
     <div>
       <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.3em] mb-1">{label}</div>
-      <div className={cn("text-xl font-light tabular-nums", accent ? "text-[#6FB6FF]" : "text-white")}>
+      <div className={cn("text-xl font-light tabular-nums", accent ? "text-primary/80" : "text-white")}>
         {value}
       </div>
     </div>
@@ -642,7 +642,7 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
       {loading ? (
         <div className="space-y-2.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-7 w-full bg-white/[0.04]" />
+            <Skeleton key={i} className="h-7 w-full bg-glass-hover" />
           ))}
         </div>
       ) : rows.length === 0 ? (
@@ -786,7 +786,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
                       aria-label="Pick date"
                     >
                       <CalendarIcon className="h-3 w-3" />
@@ -834,7 +834,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               {exportPayload && exportPayload.rows.length > 0 && (
                 <button
                   onClick={() => downloadCsv(exportPayload, { filtered: activeFilterCount > 0 })}
-                  className="h-8 px-3.5 inline-flex items-center gap-2 rounded-full border border-[#0A84FF]/40 bg-[#0A84FF]/10 text-[10px] font-mono uppercase tracking-[0.22em] text-[#6FB6FF] hover:bg-[#0A84FF]/20 hover:border-[#0A84FF]/70 transition-colors"
+                  className="h-8 px-3.5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-[10px] font-mono uppercase tracking-[0.22em] text-primary/80 hover:bg-primary/20 hover:border-primary/70 transition-colors"
                   aria-label={`Export ${exportPayload.rows.length} rows as CSV`}
                   title={activeFilterCount > 0
                     ? `Download ${exportPayload.rows.length} filtered rows`
@@ -842,7 +842,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 >
                   <Download className="h-3 w-3" />
                   Export CSV
-                  <span className="text-[9px] text-[#6FB6FF]/60">
+                  <span className="text-[9px] text-primary/80/60">
                     · {exportPayload.rows.length}{activeFilterCount > 0 ? " filtered" : ""}
                   </span>
                 </button>
@@ -882,7 +882,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                       onChange={(e) =>
                         setFilters((f) => ({ ...f, [c.key]: e.target.value }))
                       }
-                      className="h-7 px-2 rounded-md bg-white/[0.04] border border-white/10 text-[11px] font-mono text-white/80 hover:border-white/20 focus:outline-none focus:border-[#0A84FF]/60"
+                      className="h-7 px-2 rounded-md bg-glass-hover border border-white/10 text-[11px] font-mono text-white/80 hover:border-white/20 focus:outline-none focus:border-primary/60"
                     >
                       <option value="__all__">All</option>
                       {opts.map((o) => (
@@ -907,7 +907,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
         <div className="flex-1 overflow-auto px-2">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-5 w-5 animate-spin text-[#6FB6FF]" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary/80" />
             </div>
           ) : error ? (
             <div className="m-6 rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4 text-rose-300 text-sm flex items-start gap-3">
@@ -935,7 +935,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               </TableHeader>
               <TableBody>
                 {filteredRows.map((row, i) => (
-                  <TableRow key={i} className="border-white/[0.04] hover:bg-white/[0.02]">
+                  <TableRow key={i} className="border-white/[0.04] hover:bg-glass">
                     {payload.columns.map((c) => (
                       <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
                         {formatCell(c.key, row[c.key])}
@@ -956,7 +956,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               ) : activeFilterCount > 0 ? (
                 <button
                   onClick={() => onLoadMore?.()}
-                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-[#6FB6FF] hover:border-[#0A84FF]/40 transition-colors"
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
                 >
                   Load next {DRILL_PAGE_SIZE}
                 </button>
@@ -994,7 +994,7 @@ function formatCell(key: string, value: unknown): string {
 
 // ── Funnel ─────────────────────────────────────────────────────────────
 function FunnelView({ steps, loading }: { steps: { step: string; users: number }[]; loading: boolean }) {
-  if (loading) return <Skeleton className="h-48 w-full bg-white/[0.04]" />;
+  if (loading) return <Skeleton className="h-48 w-full bg-glass-hover" />;
   if (!steps.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No funnel data</div>;
   const top = steps[0]?.users || 1;
   return (
@@ -1020,7 +1020,7 @@ function FunnelView({ steps, loading }: { steps: { step: string; users: number }
                 )}
               </div>
             </div>
-            <div className="h-7 rounded-md bg-white/[0.03] overflow-hidden relative">
+            <div className="h-7 rounded-md bg-glass overflow-hidden relative">
               <div className="absolute inset-y-0 left-0 transition-all"
                 style={{
                   width: `${pct}%`,
@@ -1039,7 +1039,7 @@ function FunnelView({ steps, loading }: { steps: { step: string; users: number }
 
 // ── Cohort retention matrix ────────────────────────────────────────────
 function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: number; weeks: number[] }[]; loading: boolean }) {
-  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (loading) return <Skeleton className="h-56 w-full bg-glass-hover" />;
   if (!cohorts.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No cohorts in window</div>;
   return (
     <div className="overflow-x-auto">
@@ -1061,7 +1061,7 @@ function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: n
               {c.weeks.map((v, i) => (
                 <td key={i} className="py-1 px-0.5">
                   {v < 0 ? (
-                    <div className="h-7 rounded-sm bg-white/[0.02]" />
+                    <div className="h-7 rounded-sm bg-glass" />
                   ) : (
                     <div
                       className="h-7 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
@@ -1087,7 +1087,7 @@ function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: n
 // ── Hour-of-day × DOW heatmap ──────────────────────────────────────────
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function Heatmap({ data, loading }: { data?: { matrix: number[][]; max: number }; loading: boolean }) {
-  if (loading) return <Skeleton className="h-56 w-full bg-white/[0.04]" />;
+  if (loading) return <Skeleton className="h-56 w-full bg-glass-hover" />;
   if (!data || data.max === 0) return <div className="py-10 text-center text-[12px] text-white/30 italic">No clip activity in window</div>;
   return (
     <div className="overflow-x-auto">
@@ -1121,7 +1121,7 @@ function Heatmap({ data, loading }: { data?: { matrix: number[][]; max: number }
 
 // ── Failure breakdown ──────────────────────────────────────────────────
 function FailureBars({ rows, loading }: { rows: { category: string; count: number }[]; loading: boolean }) {
-  if (loading) return <Skeleton className="h-40 w-full bg-white/[0.04]" />;
+  if (loading) return <Skeleton className="h-40 w-full bg-glass-hover" />;
   if (!rows.length) return <div className="py-10 text-center text-[12px] text-emerald-300/60 italic">No failures in window</div>;
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
@@ -1145,7 +1145,7 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
   if (loading) {
     return (
       <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full bg-white/[0.04]" />)}
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full bg-glass-hover" />)}
       </div>
     );
   }
@@ -1165,7 +1165,7 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
       </TableHeader>
       <TableBody>
         {rows.map((u, i) => (
-          <TableRow key={u.id} className="border-white/[0.04] hover:bg-white/[0.02]">
+          <TableRow key={u.id} className="border-white/[0.04] hover:bg-glass">
             <TableCell className="text-[12px] text-white/40 font-mono tabular-nums">
               {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : i + 1}
             </TableCell>
@@ -1177,7 +1177,7 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
             <TableCell className="text-[12px] text-white/75 font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
             <TableCell className="text-[12px] text-amber-300 font-mono tabular-nums text-right">{u.spend.toLocaleString()}</TableCell>
             <TableCell className="w-[160px]">
-              <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-glass-hover overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${(u.spend / maxSpend) * 100}%` }} />
               </div>
             </TableCell>

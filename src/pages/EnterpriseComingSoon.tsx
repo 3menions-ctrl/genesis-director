@@ -255,7 +255,7 @@ export default function EnterpriseComingSoon() {
                         className={`h-10 rounded-lg text-[11px] font-medium transition-all border ${
                           form.company_size === s.id
                             ? 'border-[hsl(215,100%,60%)]/50 bg-[hsl(215,100%,55%)]/[0.12] text-white shadow-[0_0_20px_hsla(215,100%,55%,0.2)]'
-                            : 'border-white/[0.06] bg-white/[0.02] text-white/55 hover:border-white/[0.12] hover:text-white/80'
+                            : 'border-white/[0.06] bg-glass text-white/55 hover:border-white/[0.12] hover:text-white/80'
                         }`}
                       >
                         {s.label}
@@ -277,7 +277,7 @@ export default function EnterpriseComingSoon() {
                     rows={3}
                     maxLength={500}
                     placeholder="Brand films, performance ads, sales videos at scale…"
-                    className="w-full rounded-xl bg-white/[0.02] border border-white/[0.06] px-4 py-3 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:border-[hsl(215,100%,60%)]/40 focus:bg-white/[0.04] transition-all resize-none"
+                    className="w-full rounded-xl bg-glass border border-white/[0.06] px-4 py-3 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:border-[hsl(215,100%,60%)]/40 focus:bg-glass-hover transition-all resize-none"
                   />
                 </div>
               </div>
@@ -339,7 +339,7 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         maxLength={255}
-        className={`w-full h-12 rounded-xl bg-white/[0.02] border px-4 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:bg-white/[0.04] transition-all ${
+        className={`w-full h-12 rounded-xl bg-glass border px-4 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:bg-glass-hover transition-all ${
           error
             ? 'border-rose-400/40 focus:border-rose-400/60'
             : 'border-white/[0.06] focus:border-[hsl(215,100%,60%)]/40'

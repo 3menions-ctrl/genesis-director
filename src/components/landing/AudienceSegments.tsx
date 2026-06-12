@@ -339,9 +339,9 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-16 md:mb-24"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#0A84FF]/30 bg-[#0A84FF]/[0.06] mb-6 backdrop-blur-xl">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/[0.06] mb-6 backdrop-blur-xl">
             <motion.span
-              className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]"
+              className="w-1.5 h-1.5 rounded-full bg-primary"
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
@@ -400,7 +400,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
                   key={f.id}
                   type="button"
                   onClick={() => setActiveIdx(i)}
-                  className="group relative text-left py-2.5 pl-4 pr-3 rounded-xl transition-colors duration-300 hover:bg-white/[0.03]"
+                  className="group relative text-left py-2.5 pl-4 pr-3 rounded-xl transition-colors duration-300 hover:bg-glass"
                 >
                   {isActive && (
                     <motion.span
@@ -439,12 +439,12 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
             {/* corner HUD readouts */}
             <div className="absolute top-3 left-3 text-[9px] font-mono tracking-[0.28em] uppercase text-white/45 z-20">
               <div>CH 0{activeIdx + 1} / {FEATURES.length.toString().padStart(2, '0')}</div>
-              <div className="text-[#0A84FF]/80 mt-1">{active.eyebrow.toUpperCase()}</div>
+              <div className="text-primary/80 mt-1">{active.eyebrow.toUpperCase()}</div>
             </div>
             <div className="absolute top-3 right-3 text-[9px] font-mono tracking-[0.28em] uppercase text-white/45 text-right z-20">
               <div className="flex items-center gap-1.5 justify-end">
                 <motion.span
-                  className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]"
+                  className="w-1.5 h-1.5 rounded-full bg-primary"
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1.4, repeat: Infinity }}
                 />
@@ -475,8 +475,8 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
                   transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   className="flex items-center gap-2 mb-5"
                 >
-                  <span className="w-8 h-px bg-[#0A84FF]" />
-                  <span className="text-[10px] font-mono tracking-[0.34em] uppercase text-[#0A84FF]">
+                  <span className="w-8 h-px bg-primary" />
+                  <span className="text-[10px] font-mono tracking-[0.34em] uppercase text-primary">
                     {active.eyebrow}
                   </span>
                 </motion.div>
@@ -500,7 +500,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
                   transition={{ delay: 0.7, duration: 0.6 }}
                   className="mt-8 flex items-center gap-3 text-[10px] font-mono tracking-[0.3em] uppercase text-white/35"
                 >
-                  <span className="text-[#0A84FF]">●</span>
+                  <span className="text-primary">●</span>
                   <span>Sig {String(activeIdx + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}</span>
                   <span className="flex-1 h-px bg-gradient-to-r from-white/20 to-transparent" />
                 </motion.div>
@@ -548,7 +548,7 @@ export function AudienceSegments({ onStart: _onStart }: AudienceSegmentsProps) {
           </div>
           <div className="mt-3 flex items-center justify-between text-[10px] font-mono tracking-[0.3em] uppercase text-white/35">
             <span>00 · Studio Engine</span>
-            <span className="text-[#0A84FF]/80">{paused ? '❚❚ HOLD' : '▶ AUTOPLAY'}</span>
+            <span className="text-primary/80">{paused ? '❚❚ HOLD' : '▶ AUTOPLAY'}</span>
             <span>{String(FEATURES.length).padStart(2, '0')} · Loop</span>
           </div>
         </div>

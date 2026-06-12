@@ -70,7 +70,7 @@ export function AdminPageShell({
         <div className="relative p-8 lg:p-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-5">
-              <span className="px-3 py-1 rounded-full border border-[#0A84FF]/40 bg-[#0A84FF]/5 text-[#0A84FF] text-[9px] font-bold tracking-[0.28em] uppercase font-mono">
+              <span className="px-3 py-1 rounded-full border border-primary/40 bg-primary/5 text-primary text-[9px] font-bold tracking-[0.28em] uppercase font-mono">
                 {eyebrow}
               </span>
               <span className="h-px w-10 bg-white/15" />
@@ -85,7 +85,7 @@ export function AdminPageShell({
               {italic && (
                 <>
                   {" "}
-                  <span className="italic text-[#0A84FF] font-light">{italic}</span>
+                  <span className="italic text-primary font-light">{italic}</span>
                 </>
               )}
             </h1>
@@ -107,7 +107,7 @@ export function AdminPageShell({
           <div className="relative border-t border-white/[0.05] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.05]">
             {stats.map((s, i) => {
               const toneMap: Record<string, string> = {
-                blue: "text-[#6FB6FF]", amber: "text-amber-300", emerald: "text-emerald-300",
+                blue: "text-primary/80", amber: "text-amber-300", emerald: "text-emerald-300",
                 rose: "text-rose-300", neutral: "text-white",
               };
               return (
@@ -146,7 +146,7 @@ export function AdminSectionLabel({ label, meta }: { label: string; meta?: strin
 export function AdminSurface({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div className={cn(
-      "rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6",
+      "rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-md p-6",
       className,
     )}>
       {children}
@@ -176,7 +176,7 @@ export function AdminEmptyState({
       </div>
       <div className="relative z-10 flex flex-col items-center">
         {Icon && (
-          <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md flex items-center justify-center mb-5 shadow-[0_8px_24px_-12px_hsl(var(--brand)/0.4)]">
+          <div className="w-14 h-14 rounded-2xl border border-white/10 bg-glass backdrop-blur-md flex items-center justify-center mb-5 shadow-[0_8px_24px_-12px_hsl(var(--brand)/0.4)]">
             <Icon className="w-5 h-5 text-brand-light" />
           </div>
         )}

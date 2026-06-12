@@ -219,11 +219,11 @@ function DesktopChrome({ poster }: { poster?: string | null }) {
     <>
       <Poster url={poster} />
       {/* Window chrome */}
-      <div className="absolute inset-x-0 top-0 h-7 bg-white/[0.04] backdrop-blur border-b border-white/[0.06] flex items-center px-3 gap-1.5">
+      <div className="absolute inset-x-0 top-0 h-7 bg-glass-hover backdrop-blur border-b border-white/[0.06] flex items-center px-3 gap-1.5">
         <span className="w-2.5 h-2.5 rounded-full bg-rose-500/85" />
         <span className="w-2.5 h-2.5 rounded-full bg-amber-400/85" />
         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/85" />
-        <div className="flex-1 mx-3 h-4 rounded-md bg-white/[0.04] border border-white/[0.05]" />
+        <div className="flex-1 mx-3 h-4 rounded-md bg-glass-hover border border-white/[0.05]" />
       </div>
     </>
   );

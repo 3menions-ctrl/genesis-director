@@ -115,7 +115,7 @@ export const ProjectsCategoryTabs = memo(function ProjectsCategoryTabs({
                   "text-[10px] font-light tabular-nums px-2 py-0.5 rounded-full transition-all duration-500",
                   isActive 
                     ? "bg-[hsla(215,100%,60%,0.18)] text-[hsl(215,100%,75%)]"
-                    : "bg-white/[0.04] text-white/30"
+                    : "bg-glass-hover text-white/30"
                 )}>
                   {count}
                 </span>

@@ -9,8 +9,8 @@ import cinematicHeroImg from '@/assets/scenes/cinematic-hero-preview.jpg';
 import fourthWallImg from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
 import minimalEmbedImg from '@/assets/scenes/minimal-embed-preview.jpg';
 
-const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
-const glassInput = 'bg-white/[0.06] border border-white/[0.1] text-white/90 placeholder:text-white/25 focus:ring-1 focus:ring-white/[0.15] focus:border-white/[0.2] outline-none';
+const glass = 'bg-glass-hover border border-white/[0.08] backdrop-blur-sm';
+const glassInput = 'bg-glass-active border border-white/[0.1] text-white/90 placeholder:text-white/25 focus:ring-1 focus:ring-white/[0.15] focus:border-white/[0.2] outline-none';
 
 const STYLES = [
   {
@@ -303,7 +303,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
     <div className={cn('rounded-2xl overflow-hidden transition-all', glass)}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-glass transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
@@ -347,7 +347,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
                     'flex flex-col items-start gap-0 rounded-xl border text-left transition-all overflow-hidden',
                     selectedStyle === style.id
                       ? 'border-violet-500/40 bg-violet-500/10 ring-1 ring-violet-500/20'
-                      : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1]',
+                      : 'border-white/[0.06] bg-glass hover:bg-glass-hover hover:border-white/[0.1]',
                     isGenerating && 'opacity-50 cursor-not-allowed'
                   )}
                 >
@@ -440,7 +440,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
                           status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
                           status === 'failed' ? 'bg-red-500/20 text-red-300' :
                           status === 'generating' ? 'bg-violet-500/10 text-violet-300' :
-                          'bg-white/[0.04] text-white/20'
+                          'bg-glass-hover text-white/20'
                         )}>
                           {status === 'pending' ? 'queued' : status}
                         </span>
@@ -459,7 +459,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
             className={cn(
               'w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm font-medium transition-all',
               isGenerating || !concept.trim()
-                ? 'bg-white/[0.06] text-white/30 cursor-not-allowed'
+                ? 'bg-glass-active text-white/30 cursor-not-allowed'
                 : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/20'
             )}
           >

@@ -88,7 +88,7 @@ function JunketRow({ q, a, index }: { q: string; a: string; index: number }) {
       {/* Question — italic Fraunces, with portrait-ring journalist label */}
       <div className="md:text-right">
         <div className="flex md:justify-end items-center gap-2 mb-3">
-          <span className="w-6 h-6 rounded-full border border-white/15 bg-white/[0.03] flex items-center justify-center text-[10px] font-mono text-white/45 tabular-nums">
+          <span className="w-6 h-6 rounded-full border border-white/15 bg-glass flex items-center justify-center text-[10px] font-mono text-white/45 tabular-nums">
             Q
           </span>
           <span className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/35">

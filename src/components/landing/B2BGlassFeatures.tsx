@@ -106,7 +106,7 @@ export const B2BGlassFeatures = memo(function B2BGlassFeatures() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+          <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-4">
             Platform
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] max-w-3xl mx-auto">
@@ -172,7 +172,7 @@ export const B2BWorkflow = memo(function B2BWorkflow() {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+          <p className="text-[11px] font-medium text-primary tracking-[0.22em] uppercase mb-4">
             Workflow
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -197,7 +197,7 @@ export const B2BWorkflow = memo(function B2BWorkflow() {
             >
               <div className="flex items-center justify-between mb-5">
                 <span className="text-[10px] font-mono text-white/65 tracking-[0.2em]">{s.n}</span>
-                <s.icon className="w-4 h-4 text-[#0A84FF]" />
+                <s.icon className="w-4 h-4 text-primary" />
               </div>
               <h3 className="font-display text-lg font-semibold text-white tracking-tight mb-2">
                 {s.title}

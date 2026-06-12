@@ -53,7 +53,7 @@ export const DailyChallengesCard = memo(forwardRef<HTMLDivElement, Record<string
                 "relative p-4 rounded-xl transition-all overflow-hidden",
                 isComplete 
                   ? "bg-emerald-500/10 border border-emerald-500/20" 
-                  : "bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04]"
+                  : "bg-glass border border-white/[0.06] hover:bg-glass-hover"
               )}
             >
               <div className="flex items-center gap-4">
@@ -61,7 +61,7 @@ export const DailyChallengesCard = memo(forwardRef<HTMLDivElement, Record<string
                   "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
                   isComplete 
                     ? "bg-emerald-500/20" 
-                    : "bg-white/[0.05]"
+                    : "bg-glass-hover"
                 )}>
                   {isComplete ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -83,7 +83,7 @@ export const DailyChallengesCard = memo(forwardRef<HTMLDivElement, Record<string
                         value={progressPercent} 
                         className={cn(
                           "h-1.5",
-                          isComplete ? "bg-emerald-500/20" : "bg-white/[0.08]"
+                          isComplete ? "bg-emerald-500/20" : "bg-glass-active"
                         )}
                       />
                     </div>

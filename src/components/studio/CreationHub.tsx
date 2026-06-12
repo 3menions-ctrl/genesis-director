@@ -902,7 +902,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.5} />
                           <span className="text-xs text-white/85 truncate font-light tracking-[-0.005em]">{uploadedFileName}</span>
                         </div>
-                        <button onClick={clearUpload} className="text-white/60 hover:text-white p-1.5 rounded-full hover:bg-white/[0.08] transition-all duration-300">
+                        <button onClick={clearUpload} className="text-white/60 hover:text-white p-1.5 rounded-full hover:bg-glass-active transition-all duration-300">
                           <X className="w-4 h-4" strokeWidth={1.5} />
                         </button>
                       </div>
@@ -952,7 +952,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
               <div className="relative">
                 {/* Soft prompt frame */}
                 <div
-                  className="relative rounded-3xl p-6 sm:p-7 transition-all duration-700 focus-within:bg-white/[0.04]"
+                  className="relative rounded-3xl p-6 sm:p-7 transition-all duration-700 focus-within:bg-glass-hover"
                   style={{
                     background: 'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
                     boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04), inset 0 1px 0 hsla(0,0%,100%,0.05)',
@@ -1001,7 +1001,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     />
                     {/* Scenes stepper — explicit, no cycling */}
                     <div
-                      className="h-10 inline-flex items-center gap-1 rounded-full bg-white/[0.03] hover:bg-white/[0.05] transition-colors duration-300 pl-2 pr-1"
+                      className="h-10 inline-flex items-center gap-1 rounded-full bg-glass hover:bg-glass-hover transition-colors duration-300 pl-2 pr-1"
                       title={`Number of scenes (1 – ${maxClips})`}
                     >
                       <Hash className="w-3.5 h-3.5 text-white/45" strokeWidth={1.5} />
@@ -1033,7 +1033,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         all scenes when clicked (apply-to-all). Shows only
                         engine-supported values. */}
                     <div
-                      className="h-10 inline-flex items-center gap-0.5 rounded-full bg-white/[0.03] pl-2 pr-1"
+                      className="h-10 inline-flex items-center gap-0.5 rounded-full bg-glass pl-2 pr-1"
                       title={`Default scene duration · ${engineCaps.label} supports ${clipDurationOptions.join('/')}s`}
                     >
                       <Clock className="w-3.5 h-3.5 text-white/45 mr-1" strokeWidth={1.5} />
@@ -1051,7 +1051,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                               'h-8 px-3 inline-flex items-center justify-center rounded-full text-[11.5px] font-light tracking-[-0.005em] transition-all duration-300 tabular-nums',
                               active
                                 ? 'text-[hsl(215,100%,82%)] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)]'
-                                : 'text-white/55 hover:text-white/90 hover:bg-white/[0.05]'
+                                : 'text-white/55 hover:text-white/90 hover:bg-glass-hover'
                             )}
                             style={active ? {
                               background: 'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
@@ -1068,7 +1068,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
                     {/* Live total runtime readout */}
                     <div
-                      className="h-10 hidden sm:inline-flex items-center gap-1.5 px-3.5 rounded-full bg-white/[0.02] text-[11.5px] font-light tracking-[-0.005em] text-white/55"
+                      className="h-10 hidden sm:inline-flex items-center gap-1.5 px-3.5 rounded-full bg-glass text-[11.5px] font-light tracking-[-0.005em] text-white/55"
                       title="Total runtime (scenes × per-scene duration)"
                     >
                       <Timer className="w-3.5 h-3.5 text-white/40" strokeWidth={1.5} />
@@ -1083,7 +1083,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         'h-10 w-10 inline-flex items-center justify-center rounded-full border-0 transition-all duration-500 hover:scale-105',
                         enableNarration
                           ? 'text-[hsl(215,100%,80%)]'
-                          : 'bg-white/[0.03] text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
+                          : 'bg-glass text-white/40 hover:text-white/80 hover:bg-glass-active'
                       )}
                       style={enableNarration ? {
                         background: 'linear-gradient(180deg, hsla(215,100%,60%,0.20) 0%, hsla(215,100%,55%,0.08) 100%)',
@@ -1100,7 +1100,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           'h-10 inline-flex items-center gap-1.5 px-4 rounded-full border-0 text-[12px] font-light tracking-[-0.005em] transition-all duration-500 hover:scale-[1.02]',
                           showAdvanced
                             ? 'bg-white/[0.07] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06)]'
-                            : 'bg-white/[0.03] text-white/55 hover:text-white/90 hover:bg-white/[0.06]'
+                            : 'bg-glass text-white/55 hover:text-white/90 hover:bg-glass-active'
                         )}
                         title="Advanced"
                       >
@@ -1246,7 +1246,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           }}
                         >
                           <SelectTrigger
-                            className="h-8 w-[88px] bg-white/[0.025] hover:bg-white/[0.05] border-0 rounded-full pl-3 pr-2 text-[11px] font-light tabular-nums text-white/80 focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-colors"
+                            className="h-8 w-[88px] bg-white/[0.025] hover:bg-glass-hover border-0 rounded-full pl-3 pr-2 text-[11px] font-light tabular-nums text-white/80 focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-colors"
                             aria-label={`Scene ${idx + 1} duration`}
                             title={`Scene ${idx + 1} · ${engineCaps.label}`}
                           >
@@ -1277,7 +1277,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FieldShell label="Genre">
                           <Select value={genre} onValueChange={setGenre}>
-                            <SelectTrigger className="bg-white/[0.03] border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-white/[0.05] focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
+                            <SelectTrigger className="bg-glass border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-glass-hover focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1289,7 +1289,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         </FieldShell>
                         <FieldShell label="Mood">
                           <Select value={mood} onValueChange={setMood}>
-                            <SelectTrigger className="bg-white/[0.03] border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-white/[0.05] focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
+                            <SelectTrigger className="bg-glass border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-glass-hover focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1332,7 +1332,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             <Layers className="w-3.5 h-3.5 opacity-70" strokeWidth={1.5} /> Templates
             <ChevronRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" strokeWidth={1.5} />
           </a>
-          <span className="w-px h-3 bg-white/[0.08]" />
+          <span className="w-px h-3 bg-glass-active" />
           <a href="/training-video" className="group inline-flex items-center gap-1.5 hover:text-white transition-colors duration-400">
             <Film className="w-3.5 h-3.5 opacity-70" strokeWidth={1.5} /> Training
             <ChevronRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" strokeWidth={1.5} />

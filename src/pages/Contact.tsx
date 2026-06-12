@@ -129,7 +129,7 @@ const Contact = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="lg:col-span-3"
           >
-            <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="p-8 rounded-3xl bg-glass border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
                 <Send className="w-5 h-5 text-white/75" />
                 Send us a message
@@ -147,7 +147,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Your name"
                       required
-                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
                   
@@ -162,7 +162,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="you@example.com"
                       required
-                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
                 </div>
@@ -177,7 +177,7 @@ const Contact = () => {
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="How can we help?"
                     required
-                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                    className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
                   />
                 </div>
                 
@@ -192,7 +192,7 @@ const Contact = () => {
                     placeholder="Tell us more about your inquiry..."
                     rows={5}
                     required
-                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
+                    className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
                   />
                 </div>
                 
@@ -214,12 +214,12 @@ const Contact = () => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="lg:col-span-2 space-y-6"
           >
-            <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="p-6 rounded-3xl bg-glass border border-white/[0.05]">
               <h2 className="text-lg font-semibold text-white mb-6">Other ways to reach us</h2>
               
               <div className="space-y-5">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
                     <Mail className="w-5 h-5 text-white/50" />
                   </div>
                   <div>
@@ -237,7 +237,7 @@ const Contact = () => {
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
                     <Building className="w-5 h-5 text-white/50" />
                   </div>
                   <div>
@@ -255,7 +255,7 @@ const Contact = () => {
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
                     <Clock className="w-5 h-5 text-white/50" />
                   </div>
                   <div>
@@ -269,7 +269,7 @@ const Contact = () => {
             </div>
             
             {/* FAQ Card */}
-            <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="p-6 rounded-3xl bg-glass border border-white/[0.05]">
               <h3 className="font-medium text-white mb-2">Frequently Asked Questions</h3>
               <p className="text-white/75 text-sm mb-4">
                 Before reaching out, you might find your answer in our FAQ section.
@@ -277,7 +277,7 @@ const Contact = () => {
               <Button 
                 variant="ghost" 
                 asChild
-                className="w-full h-10 rounded-full border border-white/[0.08] bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.05]"
+                className="w-full h-10 rounded-full border border-white/[0.08] bg-glass text-white/70 hover:text-white hover:bg-glass-hover"
               >
                 <Link to="/#faq">View FAQ</Link>
               </Button>

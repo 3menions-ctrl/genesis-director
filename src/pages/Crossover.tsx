@@ -20,7 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
 import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -101,7 +100,6 @@ export default function Crossover() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <StudioAurora intensity="subtle" />
       <PageShell width="wide" pad>
         <StudioHero
           eyebrow="Small Bridges · Crossover"

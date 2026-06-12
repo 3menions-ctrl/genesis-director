@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -93,7 +92,6 @@ export default function WorldDetail() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <StudioAurora hue={parseInt(accent.split(" ")[0] || "213", 10)} intensity="subtle" />
       <PageShell width="wide" pad>
       {loading ? (
         <div className="flex items-center justify-center py-24 gap-3 text-white/55">

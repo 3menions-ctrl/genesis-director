@@ -50,7 +50,6 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSafeNavigation } from "@/lib/navigation";
 import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
@@ -407,7 +406,6 @@ export default function Profile() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <StudioAurora intensity="subtle" />
 
       {/* ─────────────────────────────────────────────────────────────
           HERO — cover + avatar overlay

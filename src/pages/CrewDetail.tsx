@@ -20,7 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
 import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
@@ -183,7 +182,6 @@ export default function CrewDetail() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <StudioAurora hue={160} intensity="subtle" />
       <PageShell width="wide" pad>
       {loading ? (
         <div className="flex items-center justify-center py-24 gap-3 text-white/55">

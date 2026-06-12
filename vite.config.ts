@@ -123,6 +123,10 @@ export default defineConfig(({ mode }) => ({
           "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
           "vendor-query": ["@tanstack/react-query"],
           "vendor-motion": ["framer-motion"],
+          // Heavy SDKs split off the main bundle.
+          "vendor-observability": ["@sentry/react", "posthog-js", "web-vitals"],
+          "vendor-forms": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "vendor-charts": ["recharts"],
         },
       },
     },

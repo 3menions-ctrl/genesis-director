@@ -37,6 +37,9 @@ export function OAuthProviders({ next, showGithub = false, className }: Props) {
   const sign = async (provider: Provider) => {
     setBusy(provider);
     try {
+      // Flag a fresh sign-in so the post-auth intro plays when the
+      // user lands back on /auth after the OAuth round-trip.
+      window.sessionStorage.setItem("sb:auth-just-signed-in", "1");
       const redirectTo = new URL("/auth/callback", window.location.origin);
       if (next && next.startsWith("/")) redirectTo.searchParams.set("next", next);
       const { error } = await supabase.auth.signInWithOAuth({
@@ -50,12 +53,14 @@ export function OAuthProviders({ next, showGithub = false, className }: Props) {
         },
       });
       if (error) {
+        window.sessionStorage.removeItem("sb:auth-just-signed-in");
         toast.error(`${provider} sign-in didn't go through — try again.`);
         setBusy(null);
         return;
       }
       // signInWithOAuth navigates the page; nothing else to do.
     } catch {
+      window.sessionStorage.removeItem("sb:auth-just-signed-in");
       toast.error("Sign-in didn't go through — try again.");
       setBusy(null);
     }

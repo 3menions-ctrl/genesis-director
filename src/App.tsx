@@ -40,7 +40,7 @@ import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
 
-import { CommandPalette } from "@/components/agent/CommandPalette";
+import { CommandCenter } from "@/components/foundation/CommandCenter";
 
 // Lazy load all pages for code splitting
 // Tiny adapter to redirect legacy plural URLs (e.g. /universes/abc) to their
@@ -170,6 +170,12 @@ const Avatars = lazy(() => import("./pages/Avatars"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
+
+// ─── FOUNDATION SPINE ──────────────────────────────────────────────────────
+// Six canonical surfaces. Other routes redirect into these.
+const Library = lazy(() => import("./pages/Library"));
+const Reel = lazy(() => import("./pages/Reel"));
+const Account = lazy(() => import("./pages/Account"));
 
 // Entertainment Hub (public watch experience — the Netflix half)
 const Lobby = lazy(() => import("./pages/Lobby"));
@@ -439,6 +445,29 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+
+                {/* ── Foundation spine — canonical surfaces ───────────── */}
+                <Route path="/library" element={
+                  <RouteContainer fallbackMessage="Pulling up your library…">
+                    <ProtectedRoute>
+                      <Library />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/r/:id" element={
+                  <RouteContainer fallbackMessage="Loading the reel…">
+                    <Reel />
+                  </RouteContainer>
+                } />
+                <Route path="/account" element={
+                  <RouteContainer fallbackMessage="Loading your account…">
+                    <ProtectedRoute>
+                      <Account />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                {/* Legacy → canonical redirects */}
+                <Route path="/reel/:id" element={<LegacyParamRedirect to="/r" />} />
                 <Route path="/media" element={
                   <RouteContainer fallbackMessage="Loading media library...">
                     <ProtectedRoute>
@@ -927,8 +956,8 @@ const App = () => {
                 {/* "On this day" — surfaces a year/month/week-old project
                     as a remix nudge. Fires once per day per user. */}
                 <OnThisDayNudge />
-                {/* Command Palette (Cmd+K) */}
-                <CommandPalette />
+                {/* Command Center (Cmd+K / "/") — primary navigation surface */}
+                <CommandCenter />
               </StudioProvider>
               </WorkspaceProvider>
               </CreditsProvider>

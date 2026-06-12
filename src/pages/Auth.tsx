@@ -43,8 +43,15 @@ import { OAuthProviders } from "@/components/auth/OAuthProviders";
 import { AuthHeroStage } from "@/components/auth/AuthHeroStage";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
 import { AuthErrorBanner, classifyAuthError, type AuthErrorCue } from "@/components/auth/AuthErrorBanner";
+import { IntroOverlay } from "@/components/intro/IntroOverlay";
 import { sfx } from "@/lib/sound";
 import { celebrate } from "@/lib/celebrate";
+
+// sessionStorage flag set the moment a fresh sign-in starts (password,
+// OTP verify, or OAuth start). On the Auth page mount, if user+profile
+// arrive AND this flag is present, we play the "THE CROSSING" intro
+// before redirecting. The flag is cleared after the intro fires once.
+const INTRO_FLAG = "sb:auth-just-signed-in";
 
 // ── Schemas ────────────────────────────────────────────────────────────
 const emailSchema = z
@@ -112,22 +119,44 @@ export default function Auth() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
 
+  // Intro state. `pendingDest` holds where to navigate after the intro
+  // completes; while it's set, the auto-redirect effect doesn't fire.
+  const [introOpen, setIntroOpen] = useState(false);
+  const [pendingDest, setPendingDest] = useState<string | null>(null);
+
   const strength = useMemo(() => passwordStrength(password), [password]);
 
-  // ── Auto-redirect after sign in ─────────────────────────────────────
+  // ── Auto-redirect (or stage the intro) after sign in ───────────────
   useEffect(() => {
     if (authLoading || !user || !profile) return;
-    if (isAdmin) {
-      navigate("/admin", { replace: true });
+    if (introOpen) return; // intro already running
+
+    const dest = isAdmin
+      ? "/admin"
+      : !profile.onboarding_completed
+        ? nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : "/onboarding"
+        : (nextParam || "/library");
+
+    // If this is a fresh sign-in (flag was set on submit / OAuth start),
+    // play the cinematic intro before redirecting.
+    const freshSignIn =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(INTRO_FLAG) === "1";
+
+    if (freshSignIn) {
+      window.sessionStorage.removeItem(INTRO_FLAG);
+      setPendingDest(dest);
+      setIntroOpen(true);
       return;
     }
-    if (!profile.onboarding_completed) {
-      const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : "/onboarding";
-      navigate(target, { replace: true });
-      return;
-    }
-    navigate(nextParam || "/projects", { replace: true });
-  }, [authLoading, user, profile, isAdmin, nextParam, navigate]);
+
+    navigate(dest, { replace: true });
+  }, [authLoading, user, profile, isAdmin, nextParam, navigate, introOpen]);
+
+  const completeIntroAndGo = useCallback(() => {
+    setIntroOpen(false);
+    if (pendingDest) navigate(pendingDest, { replace: true });
+  }, [pendingDest, navigate]);
 
   // ── Submit ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(
@@ -165,6 +194,7 @@ export default function Auth() {
             sfx.play("error");
             return;
           }
+          window.sessionStorage.setItem(INTRO_FLAG, "1");
           sfx.play("success");
         } else {
           const { error } = await signUp(trimmed, password);
@@ -203,6 +233,7 @@ export default function Auth() {
         return;
       }
       sfx.play("success");
+      window.sessionStorage.setItem(INTRO_FLAG, "1");
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) celebrate("first-publish", u.id);
       toast.success("You're in. Welcome to the studio.");
@@ -234,6 +265,7 @@ export default function Auth() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
+      <IntroOverlay open={introOpen} onComplete={completeIntroAndGo} />
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">

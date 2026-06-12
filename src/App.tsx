@@ -206,11 +206,31 @@ const EnterpriseComingSoon = lazy(() => import("./pages/EnterpriseComingSoon"));
 // Route change tracker component
 function RouteChangeTracker() {
   const location = useLocation();
-  
+
   useEffect(() => {
     crashForensics.recordRoute(location.pathname);
+    // Feed the concierge so the next-likely route gets pre-warmed.
+    void import("@/lib/concierge").then(({ recordVisit, nextLikelyRoutes }) => {
+      recordVisit(location.pathname);
+      const nexts = nextLikelyRoutes(location.pathname);
+      if (nexts.length === 0) return;
+      // Schedule the prefetcher during browser idle time so first paint
+      // for the current page isn't delayed.
+      const schedule = (cb: () => void) => {
+        const ric = (globalThis as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+        if (typeof ric === "function") ric(cb); else setTimeout(cb, 500);
+      };
+      schedule(() => {
+        void import("@/lib/routePreload").then((mod) => {
+          for (const p of nexts) {
+            try { (mod as { prefetchByPath?: (p: string) => void }).prefetchByPath?.(p); }
+            catch { /* noop */ }
+          }
+        });
+      });
+    });
   }, [location.pathname]);
-  
+
   return null;
 }
 

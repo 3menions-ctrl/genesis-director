@@ -29,6 +29,13 @@ export function registerPrefetch(routePath: string, fn: PrefetchFn): void {
   REGISTRY.set(routePath, fn);
 }
 
+/** Programmatic prefetch by pathname — used by the Concierge to warm
+ *  the next-likely route during idle time. */
+export function prefetchByPath(pathname: string): void {
+  const fn = lookup(pathname);
+  if (fn) { void fn(); }
+}
+
 /** Match a concrete pathname against the registry, returning the best
  *  matching prefetcher (longest matching prefix). */
 function lookup(pathname: string): PrefetchFn | undefined {

@@ -64,16 +64,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Create',
+    label: 'Make',
     items: [
-      { label: 'Create', to: '/create', icon: Sparkles,  hue: 215 },
+      { label: 'Studio', to: '/studio', icon: Sparkles,  hue: 215, match: (p) => p === '/studio' || p.startsWith('/studio') || p === '/create' },
       { label: 'Editor', to: '/editor', icon: Scissors,  hue: 215 },
     ],
   },
   {
     label: 'Library',
     items: [
-      { label: 'Projects',  to: '/projects',  icon: Film,   hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
+      { label: 'Library',   to: '/library',   icon: Film,   hue: 215, match: (p) => p === '/library' || p.startsWith('/library') || p === '/projects' },
       { label: 'Media',     to: '/media',     icon: Library, hue: 215, match: (p) => p === '/media' || p.startsWith('/media') },
       { label: 'Templates', to: '/templates', icon: Layers, hue: 215 },
     ],
@@ -236,7 +236,7 @@ export function AppShell({ children }: AppShellProps) {
           />
           {/* Brand — height matches topbar (56px) for perfect cross-axis alignment */}
           <div className={cn('relative flex h-[56px] shrink-0 items-center gap-3 px-4 border-b border-white/[0.04]', collapsed && 'lg:justify-center lg:px-0')}>
-            <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
+            <Link to="/library" className="group flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
                 <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
@@ -269,7 +269,7 @@ export function AppShell({ children }: AppShellProps) {
           {/* Create CTA */}
           <div className={cn('px-3 pt-1 pb-4', collapsed && 'lg:px-2')}>
             <button
-              onClick={() => navigateTo('/create')}
+              onClick={() => navigateTo('/studio')}
               className={cn(
                 'group relative w-full overflow-hidden rounded-full flex items-center justify-center gap-2 h-10 text-[12.5px] font-medium tracking-[-0.01em] transition-all duration-500',
                 'bg-gradient-to-b from-white/[0.10] to-white/[0.04] hover:from-white/[0.14] hover:to-white/[0.06]',

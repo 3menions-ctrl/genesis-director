@@ -27,6 +27,8 @@ import { CursorSpotlight } from "@/components/ui/cursor-spotlight";
 import { CompanionPanel } from "@/components/companion/CompanionPanel";
 import { ConcentrationOverlay } from "@/components/focus/ConcentrationMode";
 import { TimeOfDayAura } from "@/components/studio/TimeOfDayAura";
+import { VoicePalette } from "@/components/agent/VoicePalette";
+import { OnThisDayNudge } from "@/components/nudge/OnThisDayNudge";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -911,6 +913,11 @@ const App = () => {
                 {/* Concentration mode — dims the world around the canvas
                     when the user starts creating. Esc returns. */}
                 <ConcentrationOverlay />
+                {/* Voice palette — Cmd/Ctrl+Shift+Space, speech → prompt. */}
+                <VoicePalette />
+                {/* "On this day" — surfaces a year/month/week-old project
+                    as a remix nudge. Fires once per day per user. */}
+                <OnThisDayNudge />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

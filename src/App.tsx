@@ -203,6 +203,7 @@ const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
 // Public sharing — unauthenticated, viral
 const PublicShare = lazy(() => import("./pages/PublicShare"));
 const EmbedPlayer = lazy(() => import("./pages/EmbedPlayer"));
+const HiddenRoom = lazy(() => import("./pages/HiddenRoom"));
 const EnterpriseComingSoon = lazy(() => import("./pages/EnterpriseComingSoon"));
 
 // Route change tracker component
@@ -810,7 +811,15 @@ const App = () => {
                     <WidgetEmbed />
                   </RouteContainer>
                 } />
-                
+                {/* The Hidden Room — /loft — unmarked, not in any nav,
+                    excluded from sitemap.xml. Daily-generated cinematic
+                    installation; seed = userId × calendar date. */}
+                <Route path="/loft" element={
+                  <RouteContainer fallbackMessage="">
+                    <HiddenRoom />
+                  </RouteContainer>
+                } />
+
                 {/* Admin — Refine-powered */}
                 <Route path="/admin" element={
                   <RouteContainer fallbackMessage="Booting the bridge…">

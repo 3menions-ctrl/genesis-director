@@ -140,8 +140,13 @@ export function useSocial() {
         });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followers-count'] });
-      queryClient.invalidateQueries({ queryKey: ['following-count'] });
+      // Scope by user id so we don't invalidate other users' cached
+      // counts. The followed user's followers and our own following are
+      // both affected; the realtime channel covers cross-tab sync.
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['followers-count', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['following-count', user.id] });
+      }
     },
   });
 
@@ -159,8 +164,13 @@ export function useSocial() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followers-count'] });
-      queryClient.invalidateQueries({ queryKey: ['following-count'] });
+      // Scope by user id so we don't invalidate other users' cached
+      // counts. The followed user's followers and our own following are
+      // both affected; the realtime channel covers cross-tab sync.
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['followers-count', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['following-count', user.id] });
+      }
     },
   });
 
@@ -235,7 +245,9 @@ export function useDirectMessages(otherUserId?: string) {
     if (!user || !otherUserId) return;
 
     const channel = supabase
-      .channel(`dm-${user.id}-${otherUserId}`)
+      // User-scoped, sorted ids so both sides of the conversation share
+      // the same channel topic (audit gap K19).
+      .channel(`dm-${[user.id, otherUserId].sort().join('-')}`)
       .on(
         'postgres_changes',
         {

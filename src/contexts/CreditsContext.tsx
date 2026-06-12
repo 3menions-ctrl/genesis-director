@@ -13,7 +13,7 @@
  *      credit_transactions for this user and refetch whenever anything moves.
  */
 import {
-  createContext, useCallback, useContext, useEffect, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,6 +61,16 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     return { balance: b, held: h, available: Number(payload.available ?? Math.max(b - h, 0)) };
   }, []);
 
+  // Hold balance/held in refs so the `refresh` callback identity doesn't
+  // change on every ledger event. The old code had balance + held in
+  // useCallback deps, which made `refresh` re-fire downstream effects
+  // (notably the realtime subscription) every time credits changed —
+  // each ledger event tore down + recreated the channel.
+  const balanceRef = useRef(balance);
+  const heldRef = useRef(held);
+  useEffect(() => { balanceRef.current = balance; }, [balance]);
+  useEffect(() => { heldRef.current = held; }, [held]);
+
   const refresh = useCallback(async () => {
     if (!user) {
       setBalance(0); setHeld(0); setLoading(false);
@@ -73,11 +83,12 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       return s;
     } catch (e) {
       setError((e as Error).message);
-      return { balance, held, available: Math.max(balance - held, 0) };
+      const b = balanceRef.current, h = heldRef.current;
+      return { balance: b, held: h, available: Math.max(b - h, 0) };
     } finally {
       setLoading(false);
     }
-  }, [user, readState, balance, held]);
+  }, [user, readState]);
 
   const reconcile = useCallback(async () => {
     if (!user) return { balance: 0, held: 0, available: 0 };
@@ -139,10 +150,16 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
   const available = Math.max(balance - held, 0);
 
+  // Memoize the context value so consumers don't re-render on every
+  // CreditsProvider parent render. The audit flagged this as a primary
+  // re-render storm source.
+  const value = useMemo(
+    () => ({ balance, held, available, loading, error, refresh, reconcile }),
+    [balance, held, available, loading, error, refresh, reconcile],
+  );
+
   return (
-    <CreditsContext.Provider value={{
-      balance, held, available, loading, error, refresh, reconcile,
-    }}>
+    <CreditsContext.Provider value={value}>
       {children}
     </CreditsContext.Provider>
   );

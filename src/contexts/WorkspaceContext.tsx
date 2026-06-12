@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryClient } from '@/lib/queryClient';
 
 export type OrgRole = 'owner' | 'admin' | 'producer' | 'reviewer' | 'viewer';
 
@@ -86,6 +87,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const switchOrg = useCallback((orgId: string) => {
     setCurrentOrgId(orgId);
     try { localStorage.setItem(STORAGE_KEY, orgId); } catch {}
+    // Invalidate every workspace-scoped query so dependent surfaces don't
+    // flash the previous org's data. Audit gap K3 — fixes the bug where
+    // /workspace/projects continued to show the old org's rows after
+    // switching until the user navigated.
+    try {
+      queryClient.removeQueries({
+        predicate: (q) => {
+          const k = q.queryKey;
+          if (!Array.isArray(k)) return false;
+          const head = String(k[0] ?? '');
+          return (
+            head.startsWith('workspace') ||
+            head.startsWith('org') ||
+            head === 'projects' ||
+            head === 'media' ||
+            head === 'brand-kits' ||
+            head === 'avatars'
+          );
+        },
+      });
+    } catch { /* best-effort */ }
   }, []);
 
   const createOrg = useCallback(async (name: string) => {
@@ -109,8 +131,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return ROLE_RANK[currentOrg.role] >= ROLE_RANK[minRole];
   }, [currentOrg]);
 
+  // Memoize the context value so every consumer doesn't re-render on
+  // every WorkspaceProvider parent render. Audit gap K16.
+  const value = useMemo(
+    () => ({ organizations, currentOrg, loading, switchOrg, refresh: fetchOrgs, createOrg, hasPermission }),
+    [organizations, currentOrg, loading, switchOrg, fetchOrgs, createOrg, hasPermission],
+  );
+
   return (
-    <WorkspaceContext.Provider value={{ organizations, currentOrg, loading, switchOrg, refresh: fetchOrgs, createOrg, hasPermission }}>
+    <WorkspaceContext.Provider value={value}>
       {children}
     </WorkspaceContext.Provider>
   );

@@ -63,8 +63,12 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
 
+    // Channel name MUST be user-scoped — two open tabs of this hook would
+    // otherwise collide on the same Supabase realtime topic and one tab
+    // would silently lose updates. Audit gap K19.
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(`notifications-${user.id}`)
+      // INSERT — new notification fan-out.
       .on(
         'postgres_changes',
         {
@@ -81,6 +85,23 @@ export function useNotifications() {
           }
         }
       )
+      // UPDATE — read flag changes, etc. Replaces the onSuccess
+      // invalidations that used to fire from each mutation.
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+        },
+      )
+      // DELETE — single delete or clear-all.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+        },
+      )
       .subscribe();
 
     return () => {
@@ -88,18 +109,18 @@ export function useNotifications() {
     };
   }, [user?.id]);
 
-  // Mark as read mutation
+  // Mark as read mutation. We do NOT invalidate here — the realtime
+  // channel (user-scoped above) will pick up the UPDATE and fire the
+  // single invalidation. Calling invalidate from both onSuccess AND the
+  // realtime listener caused a double-refetch on every read action.
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId);
-      
+
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     },
   });
 
@@ -116,9 +137,8 @@ export function useNotifications() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    },
+    // No invalidation here — the realtime channel above observes the
+    // delete and fires the single invalidate. Avoids double-refetch.
   });
 
   // Delete one
@@ -127,9 +147,8 @@ export function useNotifications() {
       const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    },
+    // No invalidation here — the realtime channel above observes the
+    // delete and fires the single invalidate. Avoids double-refetch.
   });
 
   // Clear all
@@ -139,9 +158,8 @@ export function useNotifications() {
       const { error } = await supabase.from('notifications').delete().eq('user_id', user.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    },
+    // No invalidation here — the realtime channel above observes the
+    // delete and fires the single invalidate. Avoids double-refetch.
   });
 
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;

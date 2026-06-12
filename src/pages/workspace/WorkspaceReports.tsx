@@ -6,6 +6,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, CmdButton, Pill, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type ReportKey = 'usage_summary' | 'member_burn' | 'project_ledger' | 'spend_events';
 
 const REPORTS: { key: ReportKey; label: string; sub: string }[] = [
@@ -23,6 +24,8 @@ function defaultRange() {
 }
 
 export default function WorkspaceReports() {
+  usePageMeta({ title: "Workspace Reports — Small Bridges" });
+
   const { currentOrg } = useWorkspace();
   const [range, setRange] = useState(defaultRange());
   const [busy, setBusy] = useState<string | null>(null);

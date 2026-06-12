@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 const MAX_LOGO_BYTES = 4 * 1024 * 1024; // 4MB
 
@@ -26,6 +27,8 @@ const PRESET_COLORS = [
 ];
 
 export default function WorkspaceBrand() {
+  usePageMeta({ title: "Workspace Brand — Small Bridges" });
+
   const { currentOrg, hasPermission, refresh } = useWorkspace();
   const canEdit = hasPermission('producer');
 

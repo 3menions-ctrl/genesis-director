@@ -7,6 +7,7 @@ import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill, CmdButton, DataTextarea } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface ApprovalRow {
   id: string;
   project_id: string;
@@ -21,6 +22,8 @@ interface ApprovalRow {
 }
 
 export default function WorkspaceApprovals() {
+  usePageMeta({ title: "Workspace Approvals — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const { user } = useAuth();
   const canReview = hasPermission('reviewer');

@@ -10,6 +10,7 @@ import { Surface, Section, CmdButton, Pill, Field, DataInput } from '@/component
 import { toast } from 'sonner';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 type OAuthProvider = 'google_drive' | 'notion';
 
 interface OAuthRow {
@@ -205,6 +206,8 @@ function OAuthIntegration({
 }
 
 export default function WorkspaceIntegrations() {
+  usePageMeta({ title: "Workspace Integrations — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const canEdit = hasPermission('admin');
   const [searchParams, setSearchParams] = useSearchParams();

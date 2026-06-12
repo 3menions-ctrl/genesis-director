@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Surface, Section, MetricCard } from '@/components/workspace/command-ui';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface MemberRow {
   user_id: string;
   display_name: string;
@@ -15,6 +16,8 @@ interface MemberRow {
 }
 
 export default function WorkspaceAnalytics() {
+  usePageMeta({ title: "Workspace Analytics — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const canView = hasPermission('admin');
   const [loading, setLoading] = useState(true);

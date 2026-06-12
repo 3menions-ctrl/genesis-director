@@ -15,6 +15,7 @@ import { Play, ExternalLink } from 'lucide-react';
 import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { supabase } from '@/integrations/supabase/client';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface ProjectRow {
   id: string;
   title: string | null;
@@ -23,6 +24,8 @@ interface ProjectRow {
 }
 
 export default function EmbedPlayer() {
+  usePageMeta({ title: "Embed Player — Small Bridges" });
+
   const { slug = '' } = useParams<{ slug: string }>();
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [loading, setLoading] = useState(true);

@@ -8,6 +8,7 @@ import { Surface, CmdButton, DataInput, DataTextarea, Field, Pill } from '@/comp
 import { toast } from 'sonner';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface TplRow {
   id: string;
   name: string;
@@ -18,6 +19,8 @@ interface TplRow {
 }
 
 export default function WorkspaceTemplates() {
+  usePageMeta({ title: "Workspace Templates — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const { user } = useAuth();
   const canCreate = hasPermission('producer');

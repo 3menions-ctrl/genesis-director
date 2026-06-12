@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { LandingPageRenderer } from '@/components/scenes/LandingPageRenderer';
 import type { WidgetConfig, WidgetScene } from '@/types/widget';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 function getVisitorSession(): string {
   const key = 'fw_session';
   let session = sessionStorage.getItem(key);
@@ -21,6 +22,8 @@ function getDeviceType(): 'desktop' | 'mobile' | 'tablet' {
 }
 
 export default function WidgetLanding() {
+  usePageMeta({ title: "Widget Landing — Small Bridges" });
+
   const { slug } = useParams<{ slug: string }>();
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [loading, setLoading] = useState(true);

@@ -6,7 +6,10 @@
 import Create from '@/pages/Create';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceCreate() {
+  usePageMeta({ title: "Workspace Create — Small Bridges" });
+
   return (
     <WorkspaceLayout fullBleed>
       <Create />

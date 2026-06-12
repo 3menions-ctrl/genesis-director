@@ -7,6 +7,7 @@ import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill, CmdButton } from '@/components/workspace/command-ui';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface OrgProject {
   id: string;
   title: string;
@@ -17,6 +18,8 @@ interface OrgProject {
 }
 
 export default function WorkspaceProjects() {
+  usePageMeta({ title: "Workspace Projects — Small Bridges" });
+
   const { currentOrg } = useWorkspace();
   const [rows, setRows] = useState<OrgProject[]>([]);
   const [loading, setLoading] = useState(true);

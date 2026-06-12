@@ -5,7 +5,10 @@
 import VideoEditor from '@/pages/VideoEditor';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceEditor() {
+  usePageMeta({ title: "Workspace Editor — Small Bridges" });
+
   return (
     <WorkspaceLayout fullBleed>
       <VideoEditor />

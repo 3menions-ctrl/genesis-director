@@ -6,7 +6,10 @@
 import Avatars from '@/pages/Avatars';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceAvatars() {
+  usePageMeta({ title: "Workspace Avatars — Small Bridges" });
+
   return (
     <WorkspaceLayout fullBleed>
       <Avatars />

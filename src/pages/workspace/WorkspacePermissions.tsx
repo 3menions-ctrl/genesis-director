@@ -2,6 +2,7 @@ import { ShieldCheck } from 'lucide-react';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, Pill } from '@/components/workspace/command-ui';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const ROLES = ['owner', 'admin', 'producer', 'reviewer', 'viewer'] as const;
 
 const MATRIX: { capability: string; allowed: typeof ROLES[number][] }[] = [
@@ -18,6 +19,8 @@ const MATRIX: { capability: string; allowed: typeof ROLES[number][] }[] = [
 ];
 
 export default function WorkspacePermissions() {
+  usePageMeta({ title: "Workspace Permissions — Small Bridges" });
+
   return (
     <WorkspacePage
       icon={ShieldCheck}

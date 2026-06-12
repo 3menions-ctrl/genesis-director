@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const TABS: Array<{ id: 'all' | MediaKind; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'image', label: 'Images' },
@@ -95,6 +96,8 @@ function AssetCard({ a, onRemove, onFavorite }: { a: MediaAsset; onRemove: (id: 
 }
 
 export default function MediaLibrary() {
+  usePageMeta({ title: "Media Library — Small Bridges" });
+
   const [tab, setTab] = useState<'all' | MediaKind>('all');
   const { assets, loading, error, remove, toggleFavorite, refresh } = useMediaLibrary({
     mediaType: tab === 'all' ? null : tab,

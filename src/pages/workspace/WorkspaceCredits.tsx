@@ -8,7 +8,10 @@ import { Surface, MetricCard, CmdButton, Pill, Field, DataInput } from '@/compon
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceCredits() {
+  usePageMeta({ title: "Workspace Credits — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const canEdit = hasPermission('admin');
   const balance = currentOrg?.credits_balance ?? 0;

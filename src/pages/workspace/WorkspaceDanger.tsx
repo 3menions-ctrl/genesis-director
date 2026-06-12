@@ -8,7 +8,10 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceDanger() {
+  usePageMeta({ title: "Workspace Danger — Small Bridges" });
+
   const { currentOrg, hasPermission, organizations, refresh } = useWorkspace();
   const canDelete = hasPermission('owner');
   const navigate = useNavigate();

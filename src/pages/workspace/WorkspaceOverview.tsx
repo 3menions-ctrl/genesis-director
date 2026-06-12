@@ -12,6 +12,7 @@ import {
 } from '@/components/workspace/command-ui';
 import { cn } from '@/lib/utils';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface Snapshot {
   members: number;
   invitesPending: number;
@@ -29,6 +30,8 @@ const PLAN_HEADLINE: Record<string, { label: string; cta: string }> = {
 };
 
 export default function WorkspaceOverview() {
+  usePageMeta({ title: "Workspace Overview — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);

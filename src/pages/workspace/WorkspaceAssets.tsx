@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface BrandAsset {
   id: string;
   organization_id: string;
@@ -42,6 +43,8 @@ function detectKind(file: File): BrandAsset['kind'] {
 }
 
 export default function WorkspaceAssets() {
+  usePageMeta({ title: "Workspace Assets — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const { user } = useAuth();
   const canUpload = hasPermission('producer');

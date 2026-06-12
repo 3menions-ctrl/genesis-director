@@ -14,6 +14,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, CmdButton, DataInput, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface OrgUsageStats {
   members: number;
   projects: number;
@@ -21,6 +22,8 @@ interface OrgUsageStats {
 }
 
 export default function WorkspaceBilling() {
+  usePageMeta({ title: "Workspace Billing — Small Bridges" });
+
   const { user } = useAuth();
   const { currentOrg, hasPermission } = useWorkspace();
   const canManage = hasPermission('admin');

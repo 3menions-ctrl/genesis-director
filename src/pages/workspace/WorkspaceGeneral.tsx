@@ -6,9 +6,12 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, Field, CmdButton, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const SLUG_RE = /^[a-z0-9-]{3,40}$/;
 
 export default function WorkspaceGeneral() {
+  usePageMeta({ title: "Workspace General — Small Bridges" });
+
   const { currentOrg, hasPermission, refresh } = useWorkspace();
   const canEdit = hasPermission('admin');
   const [name, setName] = useState('');

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface Member {
   id: string; user_id: string; role: OrgRole; joined_at: string;
   monthly_credit_limit: number | null;
@@ -31,6 +32,8 @@ const ROLE_META: Record<OrgRole, { label: string; icon: typeof Crown; descriptio
 };
 
 export default function WorkspaceTeam() {
+  usePageMeta({ title: "Workspace Team — Small Bridges" });
+
   const { currentOrg, hasPermission, refresh } = useWorkspace();
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);

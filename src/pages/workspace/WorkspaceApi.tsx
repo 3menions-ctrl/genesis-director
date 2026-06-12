@@ -8,6 +8,7 @@ import { Section, CmdButton, DataInput, Pill } from '@/components/workspace/comm
 import { toast } from 'sonner';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface KeyRow {
   id: string;
   name: string;
@@ -52,6 +53,8 @@ function randomToken(len = 36) {
 }
 
 export default function WorkspaceApi() {
+  usePageMeta({ title: "Workspace Api — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const { user } = useAuth();
   const canManage = hasPermission('admin');

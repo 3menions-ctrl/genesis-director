@@ -6,6 +6,7 @@ import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill } from '@/components/workspace/command-ui';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type LedgerKind = 'credit' | 'workspace';
 interface LedgerRow {
   id: string;
@@ -18,6 +19,8 @@ interface LedgerRow {
 }
 
 export default function WorkspaceAuditLog() {
+  usePageMeta({ title: "Workspace Audit Log — Small Bridges" });
+
   const { currentOrg } = useWorkspace();
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [loading, setLoading] = useState(true);

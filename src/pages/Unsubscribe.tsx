@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, MailX, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
@@ -17,6 +18,8 @@ type State =
   | { kind: 'error'; message: string };
 
 export default function Unsubscribe() {
+  usePageMeta({ title: "Unsubscribe — Small Bridges" });
+
   const [params] = useSearchParams();
   const token = params.get('token');
   const [state, setState] = useState<State>({ kind: 'validating' });

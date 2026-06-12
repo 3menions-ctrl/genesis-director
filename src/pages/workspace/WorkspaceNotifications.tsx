@@ -7,6 +7,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, Pill, CmdButton } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
 type ChannelKey = 'email' | 'in_app';
 
 interface RouteSpec {
@@ -39,6 +40,8 @@ function defaultPrefs(): PrefsMap {
 }
 
 export default function WorkspaceNotifications() {
+  usePageMeta({ title: "Workspace Notifications — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const { user } = useAuth();
   const canEdit = hasPermission('admin');

@@ -7,6 +7,7 @@ import { Section, Pill, CmdButton, Field, DataInput } from '@/components/workspa
 import { toast } from 'sonner';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
+import { usePageMeta } from '@/hooks/usePageMeta';
 interface OrgDomain {
   id: string;
   domain: string;
@@ -15,6 +16,8 @@ interface OrgDomain {
 }
 
 export default function WorkspaceSecurity() {
+  usePageMeta({ title: "Workspace Security — Small Bridges" });
+
   const { currentOrg, hasPermission } = useWorkspace();
   const canEdit = hasPermission('admin');
   const [require2fa, setRequire2fa] = useState(false);

@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
 import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
+import { useRenderCompleteNotifier } from "@/hooks/useRenderCompleteNotifier";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import logoImage from "@/assets/small-bridges-logo.webp";
 
@@ -40,6 +41,11 @@ export function FoundationShell({ children, bare = false }: Props) {
   const { balance } = useCredits();
   const location = useLocation();
   const reducedMotion = useReducedMotion();
+
+  // Global render-complete listener: any Foundation surface gets the
+  // Slack-grade toast when a film finishes. Hook is a no-op when the
+  // user is signed out.
+  useRenderCompleteNotifier();
 
   const triggerCommand = useCallback(() => openCommandCenter(), []);
 

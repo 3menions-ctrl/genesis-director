@@ -1,21 +1,20 @@
 /**
- * Lobby — /lobby
- *
- * The entertainment hub. Sits inside the standard Small Bridges AppShell + PageShell
- * so the workspace sidebar is always present and the visual identity
- * matches the Create page (StudioAurora backdrop, cinematic gradient hero,
- * glass-pill StudioTabs).
+ * LobbyFilms — Films tab content for the unified /lobby Foundation
+ * surface. Renders the daily-sketch hero, channel-world tabs, featured
+ * rail, trending grid, drafts shelf, daily challenges, and cross-link
+ * strip. EditorialCanvas in the parent provides the chrome and
+ * SpineBackdrop provides the atmosphere; this body just renders content.
  *
  * Sections:
- *   • Hero — gradient title + today's prompt
- *   • Channel Worlds — premium glass tab strip
- *   • Featured rail — auto-playing video card spanning the page
- *   • Trending grid — masonry of public reels
- *   • Drafts shelf — viewer's unfinished work (signed-in only)
+ *   - Hero — gradient title + today's prompt
+ *   - Channel Worlds — premium glass tab strip
+ *   - Featured rail — auto-playing video card spanning the page
+ *   - Trending grid — masonry of public reels
+ *   - Drafts shelf — viewer's unfinished work (signed-in only)
  *
- * When the DB is empty the page renders a curated demo set so the surface
- * never looks unfinished. Real reels replace demos the moment they're
- * published.
+ * When the DB is empty the page renders a curated demo set so the
+ * surface never looks unfinished. Real reels replace demos the moment
+ * they're published.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -27,8 +26,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { PageShell } from "@/components/shell";
-import { StudioAurora } from "@/components/studio/StudioAurora";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { Spinner } from "@/components/ui/Spinner";

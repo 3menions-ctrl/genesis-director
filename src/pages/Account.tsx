@@ -23,6 +23,7 @@ import {
   Bell,
   Briefcase,
   Loader2,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -46,8 +47,15 @@ const ProfilePanel = lazy(() => import("./Profile"));
 const SettingsPanel = lazy(() => import("./Settings"));
 const CreditsPanel = lazy(() => import("./Credits"));
 const NotificationsPanel = lazy(() => import("./Notifications"));
+const MessagesPanel = lazy(() => import("./account/MessagesPanel"));
 
-type Tab = "profile" | "settings" | "credits" | "notifications" | "workspace";
+type Tab =
+  | "profile"
+  | "messages"
+  | "notifications"
+  | "credits"
+  | "settings"
+  | "workspace";
 
 const TABS: Array<{
   id: Tab;
@@ -56,9 +64,10 @@ const TABS: Array<{
   hint?: string;
 }> = [
   { id: "profile",       label: "Profile",       Icon: UserIcon },
-  { id: "settings",      label: "Settings",      Icon: Sliders },
-  { id: "credits",       label: "Credits",       Icon: CreditCard },
+  { id: "messages",      label: "Messages",      Icon: Mail },
   { id: "notifications", label: "Notifications", Icon: Bell },
+  { id: "credits",       label: "Credits",       Icon: CreditCard },
+  { id: "settings",      label: "Settings",      Icon: Sliders },
   { id: "workspace",     label: "Workspace",     Icon: Briefcase, hint: "→ /workspace" },
 ];
 
@@ -74,7 +83,13 @@ export default function Account() {
 
   const tab = useMemo<Tab>(() => {
     const raw = params.get("tab");
-    if (raw === "settings" || raw === "credits" || raw === "notifications" || raw === "workspace") {
+    if (
+      raw === "messages" ||
+      raw === "notifications" ||
+      raw === "credits" ||
+      raw === "settings" ||
+      raw === "workspace"
+    ) {
       return raw as Tab;
     }
     return "profile";
@@ -175,9 +190,10 @@ export default function Account() {
               >
                 <Suspense fallback={<PanelSkeleton />}>
                   {tab === "profile" && <ProfilePanel />}
-                  {tab === "settings" && <SettingsPanel />}
-                  {tab === "credits" && <CreditsPanel />}
+                  {tab === "messages" && <MessagesPanel />}
                   {tab === "notifications" && <NotificationsPanel />}
+                  {tab === "credits" && <CreditsPanel />}
+                  {tab === "settings" && <SettingsPanel />}
                   {tab === "workspace" && <WorkspaceHint />}
                 </Suspense>
               </motion.div>

@@ -64,10 +64,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const StartOnboarding = lazy(() => import("./pages/StartOnboarding"));
 const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
-const Credits = lazy(() => import("./pages/Credits"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
-const Notifications = lazy(() => import("./pages/Notifications"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
 const WorkspaceTeam = lazy(() => import("./pages/workspace/WorkspaceTeam"));
@@ -198,7 +196,6 @@ const DirectorCards = lazy(() => import("./pages/DirectorCards"));
 // Entertainment Hub (music parallel surface)
 const MusicHub = lazy(() => import("./pages/MusicHub"));
 const SupportInbox = lazy(() => import("./pages/SupportInbox"));
-const Messages = lazy(() => import("./pages/Messages"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
@@ -410,27 +407,12 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
-                <Route path="/messages" element={
-                  <RouteContainer fallbackMessage="Threading messages…">
-                    <ProtectedRoute>
-                      <AppShell><Messages /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/notifications" element={
-                  <RouteContainer fallbackMessage="Loading inbox…">
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/credits" element={
-                  <RouteContainer fallbackMessage="Loading Cinema plans…">
-                    <ProtectedRoute>
-                      <AppShell><Credits /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Inbox cluster — Messages, Notifications, Credits all
+                    live as tabs inside /account now. Standalone routes
+                    redirect to their tab. */}
+                <Route path="/messages" element={<Navigate to="/account?tab=messages" replace />} />
+                <Route path="/notifications" element={<Navigate to="/account?tab=notifications" replace />} />
+                <Route path="/credits" element={<Navigate to="/account?tab=credits" replace />} />
                 
                 {/* Protected routes - each with isolated error boundary */}
                 <Route path="/projects" element={

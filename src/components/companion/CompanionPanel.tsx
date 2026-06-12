@@ -55,25 +55,75 @@ export function CompanionPanel() {
     const content = text.trim();
     if (!content) return;
     const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content };
-    setMessages((m) => [...m, userMsg]);
+    const assistantId = `a-${Date.now() + 1}`;
+    setMessages((m) => [...m, userMsg, { id: assistantId, role: "assistant", content: "" }]);
     setDraft("");
     setSending(true);
+
     try {
-      // The actual streaming + AIProvider integration lands in the
-      // next wave. For now we stub a friendly placeholder so the
-      // UI is testable end-to-end.
-      await new Promise((r) => setTimeout(r, 700));
-      setMessages((m) => [
-        ...m,
-        {
-          id: `a-${Date.now()}`,
-          role: "assistant",
-          content:
-            "I'll have a real answer for you once Phase 8 wave 2 lands — for now, take that prompt and try it in the studio. Want me to open it for you?",
+      // Stream the response from the hoppy-chat edge function.
+      const { data: { session } } = await (await import("@/integrations/supabase/client"))
+        .supabase.auth.getSession();
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hoppy-chat`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: session ? `Bearer ${session.access_token}` : "",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
         },
-      ]);
+        body: JSON.stringify({
+          messages: [...messages, userMsg].map((m) => ({
+            role: m.role, content: m.content,
+          })),
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error(`upstream ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+
+      // Parse the OpenAI-compatible SSE stream: `data: { ... }` lines,
+      // terminator `data: [DONE]`. Extract the `choices[0].delta.content`
+      // from each chunk and append to the assistant message.
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(payload);
+            const piece = parsed?.choices?.[0]?.delta?.content;
+            if (typeof piece === "string" && piece) {
+              accumulated += piece;
+              setMessages((m) =>
+                m.map((msg) => msg.id === assistantId ? { ...msg, content: accumulated } : msg)
+              );
+            }
+          } catch { /* skip malformed line */ }
+        }
+      }
+    } catch {
+      setMessages((m) =>
+        m.map((msg) => msg.id === assistantId
+          ? { ...msg, content: "I lost the line for a second — try that again?" }
+          : msg)
+      );
     } finally {
       setSending(false);
+      // Pulse Hoppy when an answer arrives.
+      try { window.dispatchEvent(new CustomEvent("sb:hoppy:react")); } catch { /* noop */ }
     }
   };
 

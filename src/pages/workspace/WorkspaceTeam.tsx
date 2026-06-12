@@ -3,7 +3,6 @@ import { Users, Mail, Trash2, Crown, Shield, Film, Eye, MessageSquare, Plus, Cop
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Section, Field, CmdButton, DataInput, Pill } from '@/components/workspace/command-ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -150,8 +149,7 @@ export default function WorkspaceTeam() {
   };
 
   return (
-    <WorkspaceLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* ── Dispatch invite ───────────────────────── */}
         {canManage && (
           <Section icon={Mail} label="Dispatch invite" sublabel="Recipient receives an email with a join link.">
@@ -345,6 +343,5 @@ export default function WorkspaceTeam() {
           </div>
         </Section>
       </div>
-    </WorkspaceLayout>
   );
 }

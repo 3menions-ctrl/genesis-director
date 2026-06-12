@@ -3,7 +3,6 @@ import { Upload, Image as ImageIcon, Trash2, Loader2, FileText, Type, Box, Exter
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Surface, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -114,8 +113,7 @@ export default function WorkspaceAssets() {
   };
 
   return (
-    <WorkspaceLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* ── Ingest band ────────────────────────────────────── */}
         <Surface>
           <div className="flex items-start justify-between gap-6 flex-wrap">
@@ -222,6 +220,5 @@ export default function WorkspaceAssets() {
           )}
         </section>
       </div>
-    </WorkspaceLayout>
   );
 }

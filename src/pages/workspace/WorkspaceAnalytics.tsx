@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { BarChart3, Film, Sparkles, TrendingUp, Lock } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Surface, Section, MetricCard } from '@/components/workspace/command-ui';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -93,23 +92,20 @@ export default function WorkspaceAnalytics() {
 
   if (!canView) {
     return (
-      <WorkspaceLayout>
-        <Surface className="text-center py-14">
-          <Lock className="w-6 h-6 mx-auto text-[hsl(220,8%,40%)] mb-3" strokeWidth={1.4} />
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,14%,82%)]">
-            Access denied
-          </p>
-          <p className="text-[12px] text-[hsl(220,8%,55%)] mt-2 font-light">
-            Telemetry is restricted to admins and owners.
-          </p>
-        </Surface>
-      </WorkspaceLayout>
+      <Surface className="text-center py-14">
+        <Lock className="w-6 h-6 mx-auto text-[hsl(220,8%,40%)] mb-3" strokeWidth={1.4} />
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(220,14%,82%)]">
+          Access denied
+        </p>
+        <p className="text-[12px] text-[hsl(220,8%,55%)] mt-2 font-light">
+          Telemetry is restricted to admins and owners.
+        </p>
+      </Surface>
     );
   }
 
   return (
-    <WorkspaceLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard icon={Sparkles}    label="Credits · 30d" value={loading ? '—' : totals.credits.toLocaleString()} sub="WORKSPACE BURN" accent />
           <MetricCard icon={Film}        label="Projects · 30d" value={loading ? '—' : totals.projects.toString()}     sub="OUTPUT VOLUME" />
@@ -179,6 +175,5 @@ export default function WorkspaceAnalytics() {
           )}
         </Section>
       </div>
-    </WorkspaceLayout>
   );
 }

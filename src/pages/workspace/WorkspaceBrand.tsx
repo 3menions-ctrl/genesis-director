@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Palette, Save, Loader2, Mic2, Image as ImageIcon, Wand2, UploadCloud, Trash2 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import {
   Section, Field, CmdButton, DataInput,
 } from '@/components/workspace/command-ui';
@@ -86,8 +85,7 @@ export default function WorkspaceBrand() {
   };
 
   return (
-    <WorkspaceLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <Section
           icon={Palette}
           label="Palette · Hex registry"
@@ -214,7 +212,6 @@ export default function WorkspaceBrand() {
           </div>
         )}
       </div>
-    </WorkspaceLayout>
   );
 }
 

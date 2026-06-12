@@ -15,6 +15,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import MockupPreview from "./pages/MockupPreview";
 import { RequireAccountType } from "@/components/auth/RequireAccountType";
 import { EnterpriseGate } from "@/components/auth/EnterpriseGate";
+import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 // WorldChatButton removed - now a dedicated page
@@ -514,72 +515,46 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
-                {/* Business workspace admin hub — separate from app /admin */}
-                <Route path="/workspace" element={
-                  <RouteContainer fallbackMessage="Spinning up your workspace…">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceOverview /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                <Route path="/workspace/team" element={
-                  <RouteContainer fallbackMessage="Loading team…">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceTeam /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                <Route path="/workspace/brand" element={
-                  <RouteContainer fallbackMessage="Loading brand kit...">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceBrand /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                <Route path="/workspace/assets" element={
-                  <RouteContainer fallbackMessage="Loading assets…">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceAssets /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                <Route path="/workspace/billing" element={
-                  <RouteContainer fallbackMessage="Loading billing…">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceBilling /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                <Route path="/workspace/analytics" element={
-                  <RouteContainer fallbackMessage="Loading analytics…">
-                    <RequireAccountType allow={["business","enterprise","admin"]}>
-                      <EnterpriseGate><WorkspaceAnalytics /></EnterpriseGate>
-                    </RequireAccountType>
-                  </RouteContainer>
-                } />
-                {/* New workspace pages */}
+                {/* Business workspace admin hub — separate from app /admin.
+                    Every workspace route is wrapped at this layer:
+                      RouteContainer → RequireAccountType → EnterpriseGate
+                      → WorkspaceLayout → page
+                    Three pages (Create, Editor, Avatars) want full-bleed
+                    canvases; the rest use the default padded shell. Lifting
+                    WorkspaceLayout into the route definition fixes the
+                    pre-existing bug where 14 pages rendered with no chrome. */}
                 {([
-                  ['projects',      WorkspaceProjects],
-                  ['avatars',       WorkspaceAvatars],
-                  ['create',        WorkspaceCreate],
-                  ['editor',        WorkspaceEditor],
-                  ['templates',     WorkspaceTemplates],
-                  ['approvals',     WorkspaceApprovals],
-                  ['permissions',   WorkspacePermissions],
-                  ['audit',         WorkspaceAuditLog],
-                  ['credits',       WorkspaceCredits],
-                  ['reports',       WorkspaceReports],
-                  ['integrations',  WorkspaceIntegrations],
-                  ['api',           WorkspaceApi],
-                  ['notifications', WorkspaceNotifications],
-                  ['general',       WorkspaceGeneral],
-                  ['security',      WorkspaceSecurity],
-                  ['danger',        WorkspaceDanger],
-                ] as const).map(([slug, Comp]) => (
-                  <Route key={slug} path={`/workspace/${slug}`} element={
-                    <RouteContainer fallbackMessage="Spinning up your workspace…">
+                  ['',              WorkspaceOverview,    false, "Spinning up your workspace…"],
+                  ['team',          WorkspaceTeam,        false, "Loading team…"],
+                  ['brand',         WorkspaceBrand,       false, "Loading brand kit…"],
+                  ['assets',        WorkspaceAssets,      false, "Loading assets…"],
+                  ['billing',       WorkspaceBilling,     false, "Loading billing…"],
+                  ['analytics',     WorkspaceAnalytics,   false, "Loading analytics…"],
+                  ['projects',      WorkspaceProjects,    false, "Loading workspace projects…"],
+                  ['avatars',       WorkspaceAvatars,     true,  "Loading workspace cast…"],
+                  ['create',        WorkspaceCreate,      true,  "Entering workspace studio…"],
+                  ['editor',        WorkspaceEditor,      true,  "Loading workspace editor…"],
+                  ['templates',     WorkspaceTemplates,   false, "Loading templates…"],
+                  ['approvals',     WorkspaceApprovals,   false, "Loading approvals…"],
+                  ['permissions',   WorkspacePermissions, false, "Loading permissions…"],
+                  ['audit',         WorkspaceAuditLog,    false, "Loading audit log…"],
+                  ['credits',       WorkspaceCredits,     false, "Loading workspace credits…"],
+                  ['reports',       WorkspaceReports,     false, "Loading reports…"],
+                  ['integrations',  WorkspaceIntegrations,false, "Loading integrations…"],
+                  ['api',           WorkspaceApi,         false, "Loading API keys…"],
+                  ['notifications', WorkspaceNotifications,false,"Loading workspace inbox…"],
+                  ['general',       WorkspaceGeneral,     false, "Loading workspace settings…"],
+                  ['security',      WorkspaceSecurity,    false, "Loading security…"],
+                  ['danger',        WorkspaceDanger,      false, "Loading danger zone…"],
+                ] as const).map(([slug, Comp, fullBleed, fallback]) => (
+                  <Route key={slug || 'overview'} path={`/workspace${slug ? `/${slug}` : ''}`} element={
+                    <RouteContainer fallbackMessage={fallback}>
                       <RequireAccountType allow={["business","enterprise","admin"]}>
-                        <EnterpriseGate><Comp /></EnterpriseGate>
+                        <EnterpriseGate>
+                          <WorkspaceLayout fullBleed={fullBleed}>
+                            <Comp />
+                          </WorkspaceLayout>
+                        </EnterpriseGate>
                       </RequireAccountType>
                     </RouteContainer>
                   } />

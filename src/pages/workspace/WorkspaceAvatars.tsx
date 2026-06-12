@@ -1,18 +1,12 @@
 /**
  * WorkspaceAvatars — mounts the full Avatars studio inside the
- * /workspace shell so business users never leave their workspace
- * context (org, role, brand kit) to manage avatars.
+ * /workspace shell. WorkspaceLayout is applied at the route level in
+ * App.tsx (with fullBleed), so the page only renders its child.
  */
 import Avatars from '@/pages/Avatars';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
-
 import { usePageMeta } from '@/hooks/usePageMeta';
+
 export default function WorkspaceAvatars() {
   usePageMeta({ title: "Workspace Avatars — Small Bridges" });
-
-  return (
-    <WorkspaceLayout fullBleed>
-      <Avatars />
-    </WorkspaceLayout>
-  );
+  return <Avatars />;
 }

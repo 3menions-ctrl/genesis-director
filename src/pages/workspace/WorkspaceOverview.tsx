@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import {
   Surface, Section, MetricCard, CmdButton, Pill,
 } from '@/components/workspace/command-ui';
@@ -99,8 +98,7 @@ export default function WorkspaceOverview() {
   );
 
   return (
-    <WorkspaceLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* ── Briefing band ───────────────────────────────────── */}
         <Surface className="relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
@@ -178,8 +176,7 @@ export default function WorkspaceOverview() {
             </div>
           </Section>
         </section>
-      </div>
-    </WorkspaceLayout>
+    </div>
   );
 }
 

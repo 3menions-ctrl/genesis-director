@@ -35,6 +35,16 @@ export function useReelPublisher() {
         if (error) throw error;
         const out = data as unknown as { reel_id: string };
         setLastReelId(out.reel_id);
+
+        // First-publish celebration — fires once per user.
+        try {
+          const { celebrate } = await import("@/lib/celebrate");
+          const { data: { user } } = await supabase.auth.getUser();
+          celebrate("first-publish", user?.id);
+          // Also pulse Hoppy so the companion acknowledges the moment.
+          try { window.dispatchEvent(new CustomEvent("sb:hoppy:react")); } catch { /* noop */ }
+        } catch { /* celebrate is non-critical */ }
+
         toast.success(
           opts.toastWorldLabel
             ? `Reel published in ${opts.toastWorldLabel}`

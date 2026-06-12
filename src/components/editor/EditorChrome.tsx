@@ -659,7 +659,7 @@ export function EditorChrome({
 
   if (isMobile) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-5 p-6">
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-5 p-6">
         <Logo size="lg" />
         <div className="text-center space-y-2">
           <div className="flex items-center gap-2 justify-center text-muted-foreground">
@@ -670,8 +670,8 @@ export function EditorChrome({
             Small Bridges requires a desktop browser for the best editing experience.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/projects")}>
-          Back to Projects
+        <Button variant="outline" size="sm" onClick={() => navigate("/library")}>
+          Back to Library
         </Button>
       </div>
     );
@@ -679,8 +679,10 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden relative bg-background text-foreground">
-        {/* Backdrop is mounted by VideoEditor (EditorStudioAurora) — keep this container transparent so the aurora bleeds through */}
+      <div className="h-screen w-screen flex flex-col overflow-hidden relative text-foreground">
+        {/* Backdrop is mounted by VideoEditor via FoundationShell bare —
+            the SpineBackdrop reads through this transparent container so
+            the Editor sits in the same room as Studio / Library. */}
         {isRendering && (
           <div className="absolute top-0 left-0 right-0 h-px z-20">
             <motion.div
@@ -705,19 +707,13 @@ export function EditorChrome({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => navigate("/projects")}
-                  className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                  style={{
-                    background: 'hsla(0,0%,100%,0.025)',
-                    backdropFilter: 'blur(48px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-                    boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05)',
-                  }}
+                  onClick={() => navigate("/library")}
+                  className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl hover:border-accent/40"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">Back to Projects</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Back to Library</TooltipContent>
             </Tooltip>
 
             {/* Brand mark — luminous circular icon, glowing like Create's active tab */}
@@ -743,8 +739,8 @@ export function EditorChrome({
                   <span className="absolute inset-0 rounded-full bg-[hsl(215,100%,60%)] animate-ping opacity-60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(215,100%,60%)]" />
                 </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-muted-foreground/70">
-                  Small Bridges Editor · Live
+                <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/70">
+                  ◆ Small Bridges · editor · Live
                 </span>
               </div>
               {isRenamingSession ? (

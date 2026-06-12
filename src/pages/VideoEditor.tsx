@@ -4,7 +4,7 @@ import { EditorLoadingScreen } from "@/components/editor/EditorLoadingScreen";
 import { EditorErrorScreen } from "@/components/editor/EditorErrorScreen";
 import { CustomTimelineProvider } from "@/hooks/useCustomTimeline";
 import { EditorChrome } from "@/components/editor/EditorChrome";
-import { EditorStudioAurora } from "@/components/editor/EditorStudioAurora";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { DesktopRecommendedBanner } from "@/components/ui/DesktopRecommendedBanner";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -55,13 +55,18 @@ export default function VideoEditor() {
   if (loading) return <EditorLoadingScreen />;
 
   return (
-    <CustomTimelineProvider>
-      <DesktopRecommendedBanner surface="Editor" />
-      <EditorStudioAurora />
-      <EditorChrome
-        useBrowserRenderer={browserRender?.useBrowserRenderer}
-        navigate={navigate}
-      />
-    </CustomTimelineProvider>
+    // FoundationShell bare mounts SpineBackdrop and nothing else, so the
+    // Editor inherits the canonical one-room atmosphere without the
+    // editorial top bar (which would compete with the Editor's own
+    // toolbar). EditorChrome renders into the z-10 content layer.
+    <FoundationShell bare>
+      <CustomTimelineProvider>
+        <DesktopRecommendedBanner surface="Editor" />
+        <EditorChrome
+          useBrowserRenderer={browserRender?.useBrowserRenderer}
+          navigate={navigate}
+        />
+      </CustomTimelineProvider>
+    </FoundationShell>
   );
 }

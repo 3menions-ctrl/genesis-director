@@ -164,7 +164,6 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 // ExtractThumbnails removed — orphan utility with no nav entry
-const Create = lazy(() => import("./pages/CreateCanvas"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
@@ -201,8 +200,6 @@ const DirectorCards = lazy(() => import("./pages/DirectorCards"));
 const MusicHub = lazy(() => import("./pages/MusicHub"));
 const SupportInbox = lazy(() => import("./pages/SupportInbox"));
 const Messages = lazy(() => import("./pages/Messages"));
-// Director Studio — multi-scene cockpit creation experience
-const DirectorStudio = lazy(() => import("./pages/DirectorStudio"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
@@ -600,20 +597,12 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                <Route path="/create" element={
-                  <RouteContainer fallbackMessage="Entering Director Studio...">
-                    <ProtectedRoute>
-                      <AppShell><Create /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/director" element={
-                  <RouteContainer fallbackMessage="Loading director…">
-                    <ProtectedRoute>
-                      <AppShell><DirectorStudio /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Studio is the single workshop. /create, /director, and
+                    any /studio/* legacy nested URL fold into it. */}
+                <Route path="/create" element={<Navigate to="/studio" replace />} />
+                <Route path="/create/legacy" element={<Navigate to="/studio" replace />} />
+                <Route path="/director" element={<Navigate to="/studio" replace />} />
+                <Route path="/studio/*" element={<Navigate to="/studio" replace />} />
                 <Route path="/me/year" element={
                   <RouteContainer fallbackMessage="Loading your year...">
                     <ProtectedRoute>
@@ -624,15 +613,6 @@ const App = () => {
                 <Route path="/music" element={
                   <RouteContainer fallbackMessage="Loading music…">
                     <AppShell><MusicHub /></AppShell>
-                  </RouteContainer>
-                } />
-                {/* /studio is rendered above (line 328) — only nested URLs need a legacy redirect. */}
-                <Route path="/studio/*" element={<Navigate to="/create" replace />} />
-                <Route path="/create/legacy" element={
-                  <RouteContainer fallbackMessage="Preparing studio...">
-                    <ProtectedRoute>
-                      <AppShell><Create /></AppShell>
-                    </ProtectedRoute>
                   </RouteContainer>
                 } />
                 

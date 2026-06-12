@@ -149,16 +149,12 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
 
-const ScriptReview = lazy(() => import("./pages/ScriptReview"));
 const Production = lazy(() => import("./pages/Production"));
 
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
-const Templates = lazy(() => import("./pages/Templates"));
-const Environments = lazy(() => import("./pages/Environments"));
 // Discover removed - redirects to /creators
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
-const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 // ExtractThumbnails removed — orphan utility with no nav entry
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
@@ -182,7 +178,6 @@ const Creators = lazy(() => import("./pages/Creators"));
 // Entertainment Hub (atom marketplace)
 const Market = lazy(() => import("./pages/Market"));
 // Crossover — next-gen VFX template library (break-out effects)
-const Crossover = lazy(() => import("./pages/Crossover"));
 // Entertainment Hub (universes — shared worldbuilding)
 const UniverseDetail = lazy(() => import("./pages/UniverseDetail"));
 const Universes = lazy(() => import("./pages/Universes"));
@@ -579,14 +574,10 @@ const App = () => {
                 } />
                 <Route path="/avatars" element={<Navigate to="/cast" replace />} />
                 
-                {/* Script Review Route */}
-                <Route path="/script-review" element={
-                  <RouteContainer fallbackMessage="Loading script review...">
-                    <ProtectedRoute>
-                      <AppShell><ScriptReview /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Script Review now lives as a step inside the Studio
+                    pipeline — generate → script ready → review → render.
+                    Standalone route folds into /studio. */}
+                <Route path="/script-review" element={<Navigate to="/studio" replace />} />
                 
                 {/* Production Pipeline Routes - supports both query params and path params */}
                 <Route path="/production" element={
@@ -623,32 +614,13 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Templates Gallery */}
-                <Route path="/templates" element={
-                  <RouteContainer fallbackMessage="Pulling templates…">
-                    <ProtectedRoute>
-                      <AppShell><Templates /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                
-                {/* Training Video Mode */}
-                <Route path="/training-video" element={
-                  <RouteContainer fallbackMessage="Loading training mode...">
-                    <ProtectedRoute>
-                      <AppShell><TrainingVideo /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                
-                {/* Environments DNA */}
-                <Route path="/environments" element={
-                  <RouteContainer fallbackMessage="Loading environments…">
-                    <ProtectedRoute>
-                      <AppShell><Environments /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Templates / Environments / Training are pickers and
+                    modes that live inside Studio. The standalone routes
+                    redirect with hints so Studio can preselect once the
+                    drawer / mode embedding lands. */}
+                <Route path="/templates" element={<Navigate to="/studio?drawer=templates" replace />} />
+                <Route path="/environments" element={<Navigate to="/studio?drawer=environments" replace />} />
+                <Route path="/training-video" element={<Navigate to="/studio?tab=training" replace />} />
 
                 {/* Legacy Cast routes — both fold into /cast tabs. */}
                 <Route path="/mascots" element={<Navigate to="/cast?tab=mascots" replace />} />
@@ -671,12 +643,8 @@ const App = () => {
                   </RouteContainer>
                 } />
                 <Route path="/market" element={<Navigate to="/lobby?tab=market" replace />} />
-                {/* Crossover — VFX template library (50 break-out effects) */}
-                <Route path="/crossover" element={
-                  <RouteContainer fallbackMessage="Loading Crossover...">
-                    <AppShell><Crossover /></AppShell>
-                  </RouteContainer>
-                } />
+                {/* Crossover is a creation mode — folds into Studio as a tab. */}
+                <Route path="/crossover" element={<Navigate to="/studio?tab=crossover" replace />} />
                 <Route path="/crews" element={
                   <RouteContainer fallbackMessage="Rallying your crew…">
                     <AppShell><Crews /></AppShell>

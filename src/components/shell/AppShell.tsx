@@ -76,14 +76,12 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Library',   to: '/library',   icon: Film,   hue: 215, match: (p) => p === '/library' || p.startsWith('/library') || p === '/projects' },
       { label: 'Media',     to: '/media',     icon: Library, hue: 215, match: (p) => p === '/media' || p.startsWith('/media') },
-      { label: 'Templates', to: '/templates', icon: Layers, hue: 215 },
     ],
   },
   {
     label: 'Cast',
     items: [
       { label: 'Cast',     to: '/cast',           icon: UserIcon,      hue: 215, match: (p) => p === '/cast' || p.startsWith('/cast') || p === '/avatars' || p === '/avatars-gallery' || p === '/mascots' },
-      { label: 'Training', to: '/training-video', icon: GraduationCap, hue: 215 },
     ],
   },
 ];

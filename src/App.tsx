@@ -157,8 +157,6 @@ const Production = lazy(() => import("./pages/Production"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
-const Mascots = lazy(() => import("./pages/Mascots"));
-const AvatarsGallery = lazy(() => import("./pages/AvatarsGallery"));
 // Discover removed - redirects to /creators
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
@@ -171,10 +169,11 @@ const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
 // ─── FOUNDATION SPINE ──────────────────────────────────────────────────────
-// Six canonical surfaces. Other routes redirect into these.
+// Canonical surfaces on Foundation design. Other routes redirect into these.
 const Library = lazy(() => import("./pages/Library"));
 const Reel = lazy(() => import("./pages/Reel"));
 const Account = lazy(() => import("./pages/Account"));
+const Cast = lazy(() => import("./pages/Cast"));
 
 // Entertainment Hub (public watch experience — the Netflix half)
 const Lobby = lazy(() => import("./pages/Lobby"));
@@ -589,14 +588,17 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Avatar Selection Page */}
-                <Route path="/avatars" element={
-                  <RouteContainer fallbackMessage="Calling cast to set…">
+                {/* Cast — Foundation surface that absorbs /avatars,
+                    /avatars-gallery, and /mascots into one talent locker
+                    with People · Mascots · Brand tabs. */}
+                <Route path="/cast" element={
+                  <RouteContainer fallbackMessage="Opening the locker…">
                     <ProtectedRoute>
-                      <AppShell><Avatars /></AppShell>
+                      <Cast />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
+                <Route path="/avatars" element={<Navigate to="/cast" replace />} />
                 
                 {/* Script Review Route */}
                 <Route path="/script-review" element={
@@ -669,23 +671,9 @@ const App = () => {
                   </RouteContainer>
                 } />
 
-                {/* Brand Mascot Pack */}
-                <Route path="/mascots" element={
-                  <RouteContainer fallbackMessage="Loading mascot pack...">
-                    <ProtectedRoute>
-                      <AppShell><Mascots /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-
-                {/* Avatar Gallery — style-tagged cast */}
-                <Route path="/avatars-gallery" element={
-                  <RouteContainer fallbackMessage="Loading avatar gallery...">
-                    <ProtectedRoute>
-                      <AppShell><AvatarsGallery /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy Cast routes — both fold into /cast tabs. */}
+                <Route path="/mascots" element={<Navigate to="/cast?tab=mascots" replace />} />
+                <Route path="/avatars-gallery" element={<Navigate to="/cast" replace />} />
                 
                 {/* Consumer social hub sunset — redirect to projects */}
                 <Route path="/creators" element={

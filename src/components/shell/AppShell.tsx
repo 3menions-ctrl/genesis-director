@@ -81,8 +81,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Cast',
     items: [
-      { label: 'Avatars',  to: '/avatars',        icon: UserIcon,      hue: 215 },
-      { label: 'Mascots',  to: '/mascots',        icon: Smile,         hue: 215 },
+      { label: 'Cast',     to: '/cast',           icon: UserIcon,      hue: 215, match: (p) => p === '/cast' || p.startsWith('/cast') || p === '/avatars' || p === '/avatars-gallery' || p === '/mascots' },
       { label: 'Training', to: '/training-video', icon: GraduationCap, hue: 215 },
     ],
   },

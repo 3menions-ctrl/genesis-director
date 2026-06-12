@@ -12,7 +12,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import MockupPreview from "./pages/MockupPreview";
 import { RequireAccountType } from "@/components/auth/RequireAccountType";
 import { EnterpriseGate } from "@/components/auth/EnterpriseGate";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
@@ -302,7 +301,6 @@ const App = () => {
                     <Landing />
                   </RouteContainer>
                 } />
-                <Route path="/mockup" element={<MockupPreview />} />
                 <Route path="/auth" element={
                   <RouteContainer fallbackMessage="Loading authentication…">
                     <Auth />

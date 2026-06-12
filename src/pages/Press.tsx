@@ -292,7 +292,7 @@ export default function Press() {
                     <img src="/small-bridges-logo.webp" alt="Small Bridges" className="w-12 h-12 object-contain" />
                     <div className="text-left">
                       <div className="font-semibold">Small Bridges</div>
-                      <div className="text-sm text-muted-foreground">smallbridges.com</div>
+                      <div className="text-sm text-muted-foreground">smallbridges.co</div>
                     </div>
                   </div>
                 </div>
@@ -536,9 +536,9 @@ export default function Press() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button size="lg" variant="secondary" className="gap-2 h-14 px-8 text-base rounded-2xl" asChild>
-                    <a href="mailto:smallbridges.com@smallbridges.com">
+                    <a href="mailto:smallbridges.co@smallbridges.co">
                       <Mail className="w-5 h-5" />
-                      smallbridges.com@smallbridges.com
+                      smallbridges.co@smallbridges.co
                     </a>
                   </Button>
                 </div>

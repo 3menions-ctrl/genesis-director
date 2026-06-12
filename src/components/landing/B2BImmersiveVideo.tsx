@@ -96,7 +96,7 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
               <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
               <div className="flex-1 flex justify-center">
                 <div className="px-4 py-1 rounded-md bg-glass-hover text-[10px] tracking-widest uppercase text-white/65 font-mono">
-                  studio.smallbridges.com
+                  studio.smallbridges.co
                 </div>
               </div>
               <button

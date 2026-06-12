@@ -47,7 +47,7 @@ serve(async (req) => {
     if (error) throw error;
 
     const slug = data as string;
-    const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+    const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
 
     return new Response(
       JSON.stringify({ slug, url: `${siteUrl}/p/${slug}` }),

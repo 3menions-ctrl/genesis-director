@@ -72,7 +72,7 @@ function isPrivateV6(addr: string): boolean {
 }
 
 export interface SafeFetchOpts {
-  // Hostname or wildcard pattern (e.g. "*.smallbridges.com").
+  // Hostname or wildcard pattern (e.g. "*.smallbridges.co").
   allowHosts?: string[];
   // Hard cap on response body size (bytes). Default 50 MB.
   maxBodyBytes?: number;

@@ -12,7 +12,7 @@
 //   * Its origin must match one of:
 //     - the calling request's origin (current frontend)
 //     - any host in PUBLIC_SITE_URL env (canonical domain)
-//     - `smallbridges.com` / `*.smallbridges.com`
+//     - `smallbridges.co` / `*.smallbridges.co`
 //   * Otherwise fall back to the provided default.
 // ──────────────────────────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ export function safeReturnUrl(opts: {
   const siteOrigin = envSiteOrigin();
 
   const allowedHosts = [
-    "smallbridges.com",
-    "*.smallbridges.com",
+    "smallbridges.co",
+    "*.smallbridges.co",
     "*.lovable.app",       // preview / staging domains
     "*.pages.dev",         // Cloudflare Pages preview
     "*.vercel.app",        // (in case of dual-deploy during migration)

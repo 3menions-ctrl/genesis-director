@@ -127,7 +127,7 @@ serve(async (req) => {
           return json({ ok: false, error: "no_email_on_record" }, 400);
         }
         const siteUrl =
-          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
         const { data, error } = await admin.auth.admin.generateLink({
           type: "recovery",
           email: profile.email,
@@ -156,7 +156,7 @@ serve(async (req) => {
           return json({ ok: false, error: "no_email_on_record" }, 400);
         }
         const siteUrl =
-          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
         const { error } = await admin.auth.admin.generateLink({
           type: "magiclink",
           email: profile.email,
@@ -183,7 +183,7 @@ serve(async (req) => {
           return json({ ok: false, error: "no_email_on_record" }, 400);
         }
         const siteUrl =
-          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+          Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
         const { data, error } = await admin.auth.admin.generateLink({
           type: "magiclink",
           email: profile.email,

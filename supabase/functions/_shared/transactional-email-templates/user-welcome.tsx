@@ -19,12 +19,12 @@ function UserWelcome({ displayName = 'there', starterCredits = 100 }: Props) {
       <Text style={styles.body}>
         Try a sample prompt, drop in your own concept, or browse the templates to find your starting point.
       </Text>
-      <Link href="https://smallbridges.com/create" style={styles.button}>
+      <Link href="https://smallbridges.co/create" style={styles.button}>
         Open the studio
       </Link>
       <Text style={styles.muted}>
         Need more credits? Ask us anytime from your{' '}
-        <Link href="https://smallbridges.com/credits" style={{ color: '#6FB6FF' }}>
+        <Link href="https://smallbridges.co/credits" style={{ color: '#6FB6FF' }}>
           Credits page
         </Link>{' '}
         — we hand-allocate top-ups during beta.

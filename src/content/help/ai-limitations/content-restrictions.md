@@ -33,5 +33,5 @@ Attempts to bypass filters may result in account suspension.
 
 ### Reporting Violations
 
-Report inappropriate content: **smallbridges.com@smallbridges.com**
+Report inappropriate content: **smallbridges.co@smallbridges.co**
         

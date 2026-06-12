@@ -326,7 +326,7 @@ const Terms = () => {
               </p>
               <p>
                 <strong className="text-white">Opt-Out Right:</strong> You may opt out of this arbitration 
-                provision by sending written notice to smallbridges.com@smallbridges.com within 30 days of first 
+                provision by sending written notice to smallbridges.co@smallbridges.co within 30 days of first 
                 accepting these Terms. Your notice must include your name, address, email, and a clear 
                 statement that you wish to opt out of arbitration.
               </p>
@@ -380,7 +380,7 @@ const Terms = () => {
               </ul>
               <p className="mt-4">
                 Send notices to our DMCA Designated Agent at{' '}
-                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">smallbridges.com@smallbridges.com</a>.
+                <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">smallbridges.co@smallbridges.co</a>.
                 We may, in appropriate circumstances and at our discretion, terminate the accounts of
                 users who are repeat infringers. Knowingly submitting a materially false notice may
                 result in liability under 17 U.S.C. § 512(f).
@@ -393,7 +393,7 @@ const Terms = () => {
                 You consent to receive communications from us electronically, including by email and
                 in-Service notices. Electronic communications satisfy any legal requirement that such
                 communications be in writing. Notices to us must be sent to{' '}
-                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">smallbridges.com@smallbridges.com</a>{' '}
+                <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">smallbridges.co@smallbridges.co</a>{' '}
                 and are effective upon our confirmed receipt.
               </p>
             </section>
@@ -466,8 +466,8 @@ const Terms = () => {
                 <p><strong className="text-white">Small Bridges-studio LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
-                    smallbridges.com@smallbridges.com
+                  <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">
+                    smallbridges.co@smallbridges.co
                   </a>
                 </p>
               </div>

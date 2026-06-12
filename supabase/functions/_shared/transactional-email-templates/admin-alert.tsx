@@ -35,7 +35,7 @@ function AdminAlert({ title = 'Admin alert', body = '', severity = 'info', href,
       ))}
       {href && (<>
         <Hr style={{ borderColor: '#1A1F28', margin: '16px 0' }} />
-        <Text style={styles.muted}>Open: https://smallbridges.com{href}</Text>
+        <Text style={styles.muted}>Open: https://smallbridges.co{href}</Text>
       </>)}
     </EmailLayout>
   )
@@ -45,6 +45,6 @@ export const template: TemplateEntry = {
   component: AdminAlert,
   displayName: 'Admin: Generic Alert',
   subject: (d: Props) => `[Small Bridges${d?.severity === 'critical' ? ' · CRITICAL' : d?.severity === 'warn' ? ' · WARN' : ''}] ${d?.title || 'Admin alert'}`,
-  to: 'smallbridges.com@smallbridges.com',
+  to: 'cole@smallbridges.co',
   previewData: { title: 'Stuck pipeline job', body: 'Project abc12345 stuck for 42 minutes.', severity: 'warn', href: '/admin/projects' },
 }

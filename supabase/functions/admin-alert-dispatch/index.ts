@@ -13,7 +13,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const ADMIN_EMAIL = 'smallbridges.com@smallbridges.com'
+const ADMIN_EMAIL = 'cole@smallbridges.co'
 
 type Kind =
   | 'signup' | 'purchase' | 'support' | 'inquiry'

@@ -11,7 +11,7 @@ supabase secrets set KEY_NAME=value
 | Secret | How to get it |
 |---|---|
 | `OAUTH_STATE_SECRET` | `openssl rand -hex 32` — used to HMAC-sign the OAuth `state` param. |
-| `PUBLIC_SITE_URL` | The public origin users hit (e.g. `https://smallbridges.com`). Used for redirect bounces. |
+| `PUBLIC_SITE_URL` | The public origin users hit (e.g. `https://smallbridges.co`). Used for redirect bounces. |
 
 ## Google Drive
 

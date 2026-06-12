@@ -31,7 +31,7 @@ export function EmailLayout({
               {footerNote || 'You receive this because you have an active Small Bridges account.'}
             </Text>
             <Text style={{ color: MUTED, fontSize: 11, lineHeight: '1.6', marginTop: 8 }}>
-              <Link href="https://smallbridges.com/settings?section=notifications" style={{ color: MUTED, textDecoration: 'underline' }}>
+              <Link href="https://smallbridges.co/settings?section=notifications" style={{ color: MUTED, textDecoration: 'underline' }}>
                 Manage email preferences
               </Link>
               {' · '}

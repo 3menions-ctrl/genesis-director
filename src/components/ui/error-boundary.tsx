@@ -211,7 +211,7 @@ function ReportThisIssueButton({
       await supabase.from('support_messages').insert({
         user_id: user?.id ?? null,
         name: user?.email?.split('@')[0] ?? 'Anonymous',
-        email: user?.email ?? 'anonymous@smallbridges.com',
+        email: user?.email ?? 'anonymous@smallbridges.co',
         source: 'app_crash',
         subject: `App crash — ${error?.name ?? 'Error'}: ${(error?.message ?? '').slice(0, 100)}`,
         message:

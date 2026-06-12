@@ -6,12 +6,12 @@ interface PageMeta {
   /**
    * Self-referencing canonical path for this route, e.g. "/blog".
    * If omitted, the current location pathname is used.
-   * Final URL is resolved against https://smallbridges.com.
+   * Final URL is resolved against https://smallbridges.co.
    */
   canonicalPath?: string;
 }
 
-const SITE_ORIGIN = 'https://smallbridges.com';
+const SITE_ORIGIN = 'https://smallbridges.co';
 
 /**
  * Sets document title, meta description, and a self-referencing canonical

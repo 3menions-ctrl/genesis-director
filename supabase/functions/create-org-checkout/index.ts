@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       lookupPriceId(stripe, plan.seatPriceId),
     ]);
 
-    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://smallbridges.com";
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://smallbridges.co";
     const { safeReturnUrl } = await import("../_shared/return-url.ts");
     const finalReturnUrl = safeReturnUrl({
       requested: returnUrl,

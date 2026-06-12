@@ -21,7 +21,7 @@ const corsHeaders = {
  *   OAUTH_STATE_SECRET                     — required, used to HMAC the state
  *   GOOGLE_OAUTH_CLIENT_ID                 — Google Drive
  *   NOTION_OAUTH_CLIENT_ID                 — Notion
- *   PUBLIC_SITE_URL                        — e.g. https://smallbridges.com (callback redirect base)
+ *   PUBLIC_SITE_URL                        — e.g. https://smallbridges.co (callback redirect base)
  */
 
 const PROVIDERS = {
@@ -113,7 +113,7 @@ serve(async (req) => {
     }
 
     const siteUrl =
-      Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+      Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
     const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/oauth-callback`;
 
     const state = await signState(

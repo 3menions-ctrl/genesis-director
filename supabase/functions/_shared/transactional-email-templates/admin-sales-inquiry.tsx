@@ -67,7 +67,7 @@ export const template: TemplateEntry = {
   component: AdminSalesInquiry,
   displayName: 'Admin: Sales Inquiry',
   subject: (d: Props) => `[Small Bridges Sales] ${d?.companyName ?? 'New inquiry'} — ${d?.tierInterest ?? 'enterprise'}`,
-  to: 'smallbridges.com@smallbridges.com',
+  to: 'cole@smallbridges.co',
   previewData: {
     fullName: 'Jane Doe',
     workEmail: 'jane@acme.com',

@@ -41,5 +41,5 @@ You **cannot** get a refund for:
 
 ### Questions?
 
-Contact **smallbridges.com@smallbridges.com** BEFORE purchasing if you have concerns.
+Contact **smallbridges.co@smallbridges.co** BEFORE purchasing if you have concerns.
         

@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const { safeReturnUrl } = await import("../_shared/return-url.ts");
     const origin = req.headers.get("origin")
       || Deno.env.get("PUBLIC_SITE_URL")
-      || "https://smallbridges.com";
+      || "https://smallbridges.co";
     const refreshUrl = safeReturnUrl({
       requested: typeof body.returnUrl === "string" ? body.returnUrl : null,
       fallback: `${origin}/workspace/credits?connect=refresh`,

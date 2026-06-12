@@ -92,7 +92,7 @@ serve(async (req) => {
 
   // Always have a destination to bounce the user back to.
   const fallback =
-    Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.com";
+    Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
   let returnUrl = `${fallback}/workspace/integrations`;
 
   try {

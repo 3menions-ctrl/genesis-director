@@ -43,7 +43,7 @@ export const template: TemplateEntry = {
   component: AdminContactMessage,
   displayName: 'Admin: Contact Message',
   subject: (d: Props) => `[Small Bridges Support] ${d?.subject ?? 'New message'} — ${d?.fromName ?? 'Anonymous'}`,
-  to: 'cole@smallbridges.com',
+  to: 'cole@smallbridges.co',
   previewData: {
     fromName: 'Jane Doe',
     fromEmail: 'jane@example.com',

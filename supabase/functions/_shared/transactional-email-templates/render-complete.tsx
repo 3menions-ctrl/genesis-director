@@ -8,7 +8,7 @@ interface Props {
   projectUrl?: string
 }
 
-function RenderComplete({ projectTitle = 'Your project', projectUrl = 'https://smallbridges.com/projects' }: Props) {
+function RenderComplete({ projectTitle = 'Your project', projectUrl = 'https://smallbridges.co/projects' }: Props) {
   return (
     <EmailLayout preview={`${projectTitle} is ready to watch`}>
       <Text style={styles.h1}>Your render is ready.</Text>
@@ -25,5 +25,5 @@ export const template: TemplateEntry = {
   component: RenderComplete,
   displayName: 'Render Complete',
   subject: (d: Props) => `🎬 ${d?.projectTitle ?? 'Your project'} is ready`,
-  previewData: { projectTitle: 'Neon City Chase', projectUrl: 'https://smallbridges.com/projects' },
+  previewData: { projectTitle: 'Neon City Chase', projectUrl: 'https://smallbridges.co/projects' },
 }

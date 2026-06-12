@@ -15,7 +15,7 @@ const corsHeaders = {
  * Required edge secrets:
  *   VAPID_PUBLIC_KEY  — same key shipped to clients via VITE_VAPID_PUBLIC_KEY
  *   VAPID_PRIVATE_KEY — kept server-side
- *   VAPID_SUBJECT     — `mailto:hello@smallbridges.com` style contact
+ *   VAPID_SUBJECT     — `mailto:hello@smallbridges.co` style contact
  *
  * Caller body:
  *   { userId, title, body, url?: '/path/in/app' }
@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY");
     const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY");
-    const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@smallbridges.com";
+    const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@smallbridges.co";
     if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
       return new Response(
         JSON.stringify({ ok: false, reason: "vapid_missing" }),

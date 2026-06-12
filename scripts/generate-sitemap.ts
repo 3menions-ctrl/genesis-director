@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
-const BASE_URL = "https://smallbridges.com";
+const BASE_URL = "https://smallbridges.co";
 const today = new Date().toISOString().slice(0, 10);
 
 interface SitemapEntry {

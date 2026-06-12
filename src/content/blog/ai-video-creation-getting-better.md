@@ -24,7 +24,7 @@ Modern models are beginning to grasp "world physics." This means they understand
 
 At the forefront of this technological surge is the emergence of models like **Kling V3**, which has set a new benchmark for temporal consistency. Temporal consistency—the ability of a video to maintain the details of a character or object across every frame without flickering—was once the "uncanny valley" of AI.
 
-The Kling V3 architecture excels by processing video data in a way that prioritizes structural integrity. When a creator utilizes [Small Bridges](https://smallbridges.com) to deploy this model, the result is a cinematic output that rivals traditional live-action b-roll. The platform’s integration of Kling V3 allows for:
+The Kling V3 architecture excels by processing video data in a way that prioritizes structural integrity. When a creator utilizes [Small Bridges](https://smallbridges.co) to deploy this model, the result is a cinematic output that rivals traditional live-action b-roll. The platform’s integration of Kling V3 allows for:
 
 *   **Complex Fluid Dynamics:** Realistic movement of water, smoke, and fire.
 *   **Anatomical Accuracy:** Eliminating the "extra finger" or distorted limb issues common in earlier iterations.

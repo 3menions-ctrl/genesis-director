@@ -256,8 +256,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise these rights, please contact us at{' '}
-                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
-                  smallbridges.com@smallbridges.com
+                <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">
+                  smallbridges.co@smallbridges.co
                 </a>. We will respond to your request within 30 days (or as required by applicable law).
               </p>
             </section>
@@ -276,8 +276,8 @@ const Privacy = () => {
               </ul>
               <p className="mt-4">
                 To exercise your California privacy rights, contact us at{' '}
-                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
-                  smallbridges.com@smallbridges.com
+                <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">
+                  smallbridges.co@smallbridges.co
                 </a>.
               </p>
             </section>
@@ -293,8 +293,8 @@ const Privacy = () => {
               <p className="mt-4">
                 If you are a parent or guardian and believe your child under 13 has provided us with 
                 personal information, please contact us at{' '}
-                <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
-                  smallbridges.com@smallbridges.com
+                <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">
+                  smallbridges.co@smallbridges.co
                 </a>.
               </p>
             </section>
@@ -379,8 +379,8 @@ const Privacy = () => {
                 <p><strong className="text-white">Small Bridges LLC</strong></p>
                 <p>State of Formation: Missouri, United States</p>
                 <p>Email:{' '}
-                  <a href="mailto:smallbridges.com@smallbridges.com" className="text-white hover:underline">
-                    smallbridges.com@smallbridges.com
+                  <a href="mailto:smallbridges.co@smallbridges.co" className="text-white hover:underline">
+                    smallbridges.co@smallbridges.co
                   </a>
                 </p>
                 <p className="text-white/70 text-sm mt-2">

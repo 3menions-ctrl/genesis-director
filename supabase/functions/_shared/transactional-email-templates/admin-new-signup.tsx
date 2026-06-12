@@ -45,7 +45,7 @@ export const template: TemplateEntry = {
   component: AdminNewSignup,
   displayName: 'Admin: New Signup',
   subject: (d: Props) => `[Small Bridges] New signup — ${d?.fullName || d?.email || 'unknown'}`,
-  to: 'smallbridges.com@smallbridges.com',
+  to: 'cole@smallbridges.co',
   previewData: {
     email: 'jane@example.com',
     fullName: 'Jane Doe',

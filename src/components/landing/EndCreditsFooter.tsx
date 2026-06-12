@@ -132,10 +132,10 @@ export function EndCreditsFooter() {
             <FooterLink to="/help">Help center</FooterLink>
             <FooterLink to="/settings/support">Support inbox</FooterLink>
             <a
-              href="mailto:hello@smallbridges.com"
+              href="mailto:hello@smallbridges.co"
               className="text-[12px] text-white/55 hover:text-white transition-colors"
             >
-              hello@smallbridges.com
+              hello@smallbridges.co
             </a>
           </FooterCol>
           <FooterCol title="Legal">

@@ -12,7 +12,7 @@ function LowCredits({ balance = 0 }: Props) {
       <Text style={styles.body}>
         Your balance dropped to <strong style={{ color: '#fff' }}>{balance} credits</strong>. Top up now so your next scene generates without interruption.
       </Text>
-      <Link href="https://smallbridges.com/settings?section=billing" style={styles.button}>Buy credits</Link>
+      <Link href="https://smallbridges.co/settings?section=billing" style={styles.button}>Buy credits</Link>
       <Text style={styles.muted}>Credits never expire. $0.10 per credit, pay-as-you-go.</Text>
     </EmailLayout>
   )

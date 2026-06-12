@@ -69,7 +69,7 @@ export default function EmbedPlayer() {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white/55 text-[12px] font-mono uppercase tracking-[0.3em] gap-2">
         <span>Reel not found</span>
         <a
-          href="https://smallbridges.com"
+          href="https://smallbridges.co"
           className="text-brand-light hover:text-white inline-flex items-center gap-1"
           target="_blank" rel="noopener noreferrer"
         >
@@ -101,7 +101,7 @@ export default function EmbedPlayer() {
 
       {/* Branded "Made on Small Bridges" pill — links back to the full share page. */}
       <a
-        href={`https://smallbridges.com/p/${slug}`}
+        href={`https://smallbridges.co/p/${slug}`}
         target="_blank"
         rel="noopener noreferrer"
         className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-mono uppercase tracking-[0.28em] text-white/80 hover:text-white"

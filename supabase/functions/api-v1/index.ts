@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
           error: 'Insufficient credits',
           required: cost,
           available: balance,
-          purchase_url: 'https://smallbridges.com/pricing',
+          purchase_url: 'https://smallbridges.co/pricing',
         },
         402
       );

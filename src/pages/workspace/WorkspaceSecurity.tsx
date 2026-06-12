@@ -168,7 +168,7 @@ export default function WorkspaceSecurity() {
         </p>
         <div className="flex gap-2">
           <a
-            href="mailto:smallbridges.com@smallbridges.com?subject=SAML SSO setup"
+            href="mailto:smallbridges.co@smallbridges.co?subject=SAML SSO setup"
             target="_blank" rel="noreferrer"
           >
             <CmdButton variant="primary">

@@ -9,13 +9,13 @@ Open the Supabase dashboard:
 1. **Project** → **Authentication** → **URL Configuration**
 2. **Site URL** — set this to your *production* origin:
    ```
-   https://smallbridges.com
+   https://smallbridges.co
    ```
    This is the fallback Supabase uses when no `emailRedirectTo` is provided.
 3. **Redirect URLs (allowlist)** — add every origin you'll be testing from. The OR pattern matters: each value is allowed verbatim, plus `**` wildcards for path matching. Recommended set:
    ```
-   https://smallbridges.com/auth/callback
-   https://smallbridges.com/**
+   https://smallbridges.co/auth/callback
+   https://smallbridges.co/**
    https://*.lovable.app/**
    https://*.vercel.app/**
    http://localhost:7777/**

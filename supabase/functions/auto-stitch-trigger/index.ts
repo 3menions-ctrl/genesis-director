@@ -87,7 +87,7 @@ async function notifyRenderComplete(params: {
           recipientEmail: profile.email,
           templateData: {
             projectTitle: title,
-            projectUrl: `https://smallbridges.com/production/${projectId}`,
+            projectUrl: `https://smallbridges.co/production/${projectId}`,
           },
         },
       });

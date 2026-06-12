@@ -24,6 +24,7 @@ import { GlobalAtomListingWizard } from "@/components/market/GlobalAtomListingWi
 import { GlobalConfirmHost } from "@/components/ui/global-confirm";
 import { SkipToContent } from "@/components/a11y/SkipToContent";
 import { CursorSpotlight } from "@/components/ui/cursor-spotlight";
+import { CompanionPanel } from "@/components/companion/CompanionPanel";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -880,6 +881,9 @@ const App = () => {
                 <GlobalAtomListingWizard />
                 {/* Global confirm dialog — replaces native window.confirm() */}
                 <GlobalConfirmHost />
+                {/* Hoppy — the persistent AI companion. Skipped for
+                    pre-auth marketing routes via internal gating. */}
+                <CompanionPanel />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

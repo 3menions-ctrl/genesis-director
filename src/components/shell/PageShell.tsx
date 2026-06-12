@@ -28,10 +28,16 @@ interface PageShellProps {
 /**
  * PageShell — consistent page chrome for in-app pages.
  * Provides editorial vertical rhythm and centered max-width.
+ *
+ * Rendered as a `<section>` because AppShell already owns the single
+ * `<main>` landmark for the route — two `<main>` elements per page
+ * confuses screen readers and trips the a11y audit.
  */
 export function PageShell({ children, width = 'wide', className, pad = true }: PageShellProps) {
   return (
-    <main
+    <section
+      role="region"
+      aria-label="Page content"
       className={cn(
         // min-h-dvh holds the layout open during route swaps so the
         // sidebar/header stay anchored and content does not collapse
@@ -46,7 +52,7 @@ export function PageShell({ children, width = 'wide', className, pad = true }: P
       )}
     >
       {children}
-    </main>
+    </section>
   );
 }
 

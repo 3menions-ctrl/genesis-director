@@ -14,15 +14,26 @@ export const GlobalLoadingOverlay = memo(forwardRef<HTMLDivElement, Record<strin
     const { state } = useNavigationLoading();
     const [isVisible, setIsVisible] = useState(false);
   
-  // Manage visibility with delay to prevent flash on fast navigations
+  // Manage visibility with delay to prevent flash on fast navigations.
+  // Both branches must register a cleanup so the timer is cleared whether
+  // the next state flip is true OR the component unmounts mid-delay.
+  // The old code only returned cleanup from the `else` branch — if the
+  // overlay was unmounted while still in the `setIsVisible(true)` state,
+  // a subsequent `state.isLoading` flip would fire setIsVisible on an
+  // unmounted component.
   useEffect(() => {
+    let cancelled = false;
     if (state.isLoading) {
       setIsVisible(true);
-    } else {
-      // Small delay before hiding to complete fade-out
-      const timer = setTimeout(() => setIsVisible(false), 300);
-      return () => clearTimeout(timer);
+      return () => { cancelled = true; };
     }
+    const timer = setTimeout(() => {
+      if (!cancelled) setIsVisible(false);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [state.isLoading]);
 
   // Cleanup callback for memory management

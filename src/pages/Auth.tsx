@@ -285,10 +285,22 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       } else {
         const { error } = await signUp(trimmedEmail, password);
         if (error) {
-          if (error.message.includes('already registered')) {
+          const msg = error.message || '';
+          const lc  = msg.toLowerCase();
+          if (lc.includes('already registered') || lc.includes('user already registered')) {
             toast.error('This email is already registered. Try logging in instead.');
+          } else if (lc.includes('rate limit') || lc.includes('over_email_send_rate_limit') || lc.includes('too many')) {
+            toast.error("We've hit our email-send limit for now — try again in an hour. (Not your fault.)");
+          } else if (lc.includes('invalid email') || lc.includes('email_address_invalid') || lc.includes('email address') && lc.includes('invalid')) {
+            toast.error("That email address looks invalid. Try another.");
+          } else if (lc.includes('password')) {
+            toast.error("Password didn't meet the requirements. Use 6+ characters.");
+          } else if (lc.includes('database error saving new user') || lc.includes('database error')) {
+            toast.error("Couldn't save the account — refresh and try again.");
           } else {
-            toast.error('Signup failed. Please try again with a different email.');
+            // Last resort. Include the underlying message so support can
+            // diagnose without re-reproducing.
+            toast.error(`Sign-up failed: ${msg.slice(0, 120) || 'unknown error'}`);
           }
         } else {
           setPendingEmailConfirmation(trimmedEmail);

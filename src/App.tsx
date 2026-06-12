@@ -26,6 +26,7 @@ import { SkipToContent } from "@/components/a11y/SkipToContent";
 import { CursorSpotlight } from "@/components/ui/cursor-spotlight";
 import { CompanionPanel } from "@/components/companion/CompanionPanel";
 import { ConcentrationOverlay } from "@/components/focus/ConcentrationMode";
+import { TimeOfDayAura } from "@/components/studio/TimeOfDayAura";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -252,6 +253,8 @@ const App = () => {
                 reduced-motion devices internally. Adds "the room is lit
                 by my attention" feel. */}
             <CursorSpotlight />
+            {/* Time-of-day aura — soft hue tint that shifts with local time. */}
+            <TimeOfDayAura />
             {/* Boot checkpoint markers */}
             <BootCheckpointMarker />
             {/* Route change tracker for forensics */}

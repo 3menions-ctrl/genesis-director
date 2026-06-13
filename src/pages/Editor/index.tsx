@@ -82,20 +82,29 @@ function EditorAutoPick() {
     let cancelled = false;
     void (async () => {
       try {
-        const { data } = await supabase
+        // List query (not .maybeSingle()) so we get a clear answer:
+        // empty array = no projects; populated = pick the first.
+        // The user_id filter is intentional — clicking "Editor" should
+        // open something YOU own, not a shared workspace project.
+        const { data, error } = await supabase
           .from("movie_projects")
-          .select("id")
+          .select("id, updated_at")
           .eq("user_id", user.id)
           .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
         if (cancelled) return;
-        if (data?.id) {
-          setRedirectTo(`/editor/${data.id}`);
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.error("[Editor auto-pick] supabase query failed", error);
+          setNoProjects(true);
+        } else if (data && data.length > 0) {
+          setRedirectTo(`/editor/${data[0].id}`);
         } else {
           setNoProjects(true);
         }
-      } catch {
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("[Editor auto-pick] threw", e);
         if (!cancelled) setNoProjects(true);
       } finally {
         if (!cancelled) setLoading(false);
@@ -131,9 +140,11 @@ function EditorAutoPick() {
         ) : noProjects ? (
           <EditorEmptyState
             title="No films yet."
-            sub="Direct your first reel in Studio. Once it has a clip, the cutting room opens to it automatically."
+            sub="Direct your first reel in Studio. Once it has a clip, the cutting room opens to it automatically. Already have projects? Browse them in your Library and click one to edit."
             ctaTo="/studio"
             ctaLabel="Open Studio"
+            secondaryTo="/library"
+            secondaryLabel="Browse Library"
           />
         ) : null}
       </div>
@@ -146,11 +157,15 @@ function EditorEmptyState({
   sub,
   ctaTo,
   ctaLabel,
+  secondaryTo,
+  secondaryLabel,
 }: {
   title: string;
   sub: string;
   ctaTo: string;
   ctaLabel: string;
+  secondaryTo?: string;
+  secondaryLabel?: string;
 }) {
   return (
     <div className="text-center max-w-md px-6">
@@ -172,23 +187,43 @@ function EditorEmptyState({
       <p className="mt-6 text-[15px] leading-relaxed font-light text-muted-foreground/70">
         {sub}
       </p>
-      <Link
-        to={ctaTo}
-        className="group/cta mt-8 inline-flex items-center gap-2 text-[14.5px] text-accent"
-      >
-        <Sparkles className="h-4 w-4" strokeWidth={1.5} />
-        <span className="relative">
-          {ctaLabel}
-          <span
-            aria-hidden
-            className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent to-accent/40 transition-transform duration-500 ease-out group-hover/cta:scale-x-100"
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+        <Link
+          to={ctaTo}
+          className="group/cta inline-flex items-center gap-2 text-[14.5px] text-accent"
+        >
+          <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+          <span className="relative">
+            {ctaLabel}
+            <span
+              aria-hidden
+              className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent to-accent/40 transition-transform duration-500 ease-out group-hover/cta:scale-x-100"
+            />
+          </span>
+          <ArrowUpRight
+            className="h-3.5 w-3.5 transition-transform group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5"
+            strokeWidth={1.5}
           />
-        </span>
-        <ArrowUpRight
-          className="h-3.5 w-3.5 transition-transform group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5"
-          strokeWidth={1.5}
-        />
-      </Link>
+        </Link>
+        {secondaryTo && secondaryLabel && (
+          <Link
+            to={secondaryTo}
+            className="group/sec inline-flex items-center gap-2 text-[14.5px] text-foreground/80 hover:text-foreground transition-colors"
+          >
+            <span className="relative">
+              {secondaryLabel}
+              <span
+                aria-hidden
+                className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 ease-out group-hover/sec:scale-x-100"
+              />
+            </span>
+            <ArrowUpRight
+              className="h-3.5 w-3.5 transition-transform group-hover/sec:translate-x-0.5 group-hover/sec:-translate-y-0.5"
+              strokeWidth={1.5}
+            />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

@@ -42,7 +42,11 @@ import {
   Gauge,
 } from "lucide-react";
 import { getClipProperty } from "@/lib/editor/types";
-import { setClipProperty } from "@/lib/editor/store";
+import { setClipProperty, addKeyframeAtPlayhead, clearKeyframes } from "@/lib/editor/store";
+import { useEditor } from "@/hooks/editor/useEditor";
+import { toast } from "sonner";
+import { Diamond } from "lucide-react";
+import type { AnimatableProperty } from "@/lib/editor/types";
 
 function fmtTimecode(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) sec = 0;
@@ -656,6 +660,21 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
   const speed = getClipProperty(clip, "speed");
   const muted = getClipProperty(clip, "muted");
   const soloed = getClipProperty(clip, "soloed");
+  const { playheadSec } = useEditor();
+
+  const kfCount = (prop: AnimatableProperty) =>
+    (clip.keyframes ?? []).filter((k) => k.property === prop).length;
+
+  const animate = (prop: AnimatableProperty, value: number) => {
+    const ok = addKeyframeAtPlayhead(clip.id, prop, value);
+    if (ok) {
+      toast.message(`◇ Keyframe set on ${prop}`, {
+        description: `${value.toFixed(2)} at ${(playheadSec - clip.timelineStartSec).toFixed(2)}s`,
+      });
+    } else {
+      toast.message("Move the playhead inside this clip first");
+    }
+  };
   return (
     <div className="shrink-0 px-5 pb-3 space-y-3">
       {/* Mute / Solo row — quick toggles before the slider field */}
@@ -693,7 +712,7 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
           <span>solo</span>
         </button>
       </div>
-      <PropertySlider
+      <AnimatableSlider
         label="Volume"
         Icon={Volume2}
         min={0}
@@ -702,8 +721,11 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
         value={volume}
         display={`${Math.round(volume * 100)}%`}
         onChange={(v) => setClipProperty(clip.id, { volume: v })}
+        kfCount={kfCount("volume")}
+        onAddKeyframe={() => animate("volume", volume)}
+        onClearKeyframes={() => clearKeyframes(clip.id, "volume")}
       />
-      <PropertySlider
+      <AnimatableSlider
         label="Opacity"
         Icon={Eye}
         min={0}
@@ -712,8 +734,11 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
         value={opacity}
         display={`${Math.round(opacity * 100)}%`}
         onChange={(v) => setClipProperty(clip.id, { opacity: v })}
+        kfCount={kfCount("opacity")}
+        onAddKeyframe={() => animate("opacity", opacity)}
+        onClearKeyframes={() => clearKeyframes(clip.id, "opacity")}
       />
-      <PropertySlider
+      <AnimatableSlider
         label="Scale"
         Icon={Maximize2}
         min={0.5}
@@ -722,6 +747,9 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
         value={scale}
         display={`${scale.toFixed(2)}×`}
         onChange={(v) => setClipProperty(clip.id, { scale: v })}
+        kfCount={kfCount("scale")}
+        onAddKeyframe={() => animate("scale", scale)}
+        onClearKeyframes={() => clearKeyframes(clip.id, "scale")}
       />
       <div className="grid grid-cols-2 gap-x-3">
         <PropertySlider
@@ -773,6 +801,99 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AnimatableSlider — PropertySlider + a diamond keyframe button at the
+// right. Click ◇ to capture the current value at the playhead. The
+// button glows accent + shows a count when keyframes already exist.
+// Shift-click clears every keyframe for the property.
+// ─────────────────────────────────────────────────────────────────────────────
+function AnimatableSlider({
+  label,
+  Icon,
+  min,
+  max,
+  step,
+  value,
+  display,
+  onChange,
+  kfCount,
+  onAddKeyframe,
+  onClearKeyframes,
+}: {
+  label: string;
+  Icon: typeof Volume2;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  display: string;
+  onChange: (v: number) => void;
+  kfCount: number;
+  onAddKeyframe: () => void;
+  onClearKeyframes: () => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="flex items-center gap-3">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" strokeWidth={1.5} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2 mb-1">
+          <span className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>
+            {label}
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-foreground/90">
+            {display}
+          </span>
+        </div>
+        <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent to-accent/55"
+            style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+          />
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            aria-label={label}
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          if (e.shiftKey) onClearKeyframes();
+          else onAddKeyframe();
+        }}
+        title={
+          kfCount === 0
+            ? "Add keyframe at playhead"
+            : `${kfCount} keyframes · click to add another · ⇧click to clear`
+        }
+        aria-label="Add keyframe at playhead"
+        className={cn(
+          "shrink-0 inline-flex items-center gap-1 h-5 px-1 rounded transition-colors",
+          kfCount > 0
+            ? "text-accent bg-[hsl(var(--accent)/0.10)]"
+            : "text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04]",
+        )}
+      >
+        <Diamond
+          className="h-3 w-3"
+          strokeWidth={1.8}
+          fill={kfCount > 0 ? "currentColor" : "none"}
+        />
+        {kfCount > 0 && (
+          <span className={cn(TYPE_META, "font-mono tabular-nums")}>{kfCount}</span>
+        )}
+      </button>
     </div>
   );
 }

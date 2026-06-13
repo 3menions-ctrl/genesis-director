@@ -71,6 +71,13 @@ const SHORTCUTS: Group[] = [
     ],
   },
   {
+    title: "Animate",
+    items: [
+      { keys: ["◇"], label: "Click the diamond in Inspector to capture a keyframe at playhead" },
+      { keys: ["⇧ ◇"], label: "Clear all keyframes for that property" },
+    ],
+  },
+  {
     title: "Markers · In/Out",
     items: [
       { keys: ["M"], label: "Drop marker at playhead" },

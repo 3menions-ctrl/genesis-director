@@ -47,6 +47,9 @@ import {
   redo,
   copySelected,
   pasteFromClipboard,
+  addKeyframeAtPlayhead,
+  removeKeyframe,
+  clearKeyframes,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -92,5 +95,8 @@ export function useEditor() {
     redo,
     copySelected,
     pasteFromClipboard,
+    addKeyframeAtPlayhead,
+    removeKeyframe,
+    clearKeyframes,
   };
 }

@@ -15,7 +15,7 @@ import { Play, Pause, Film, AlertCircle, Columns2, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
-import { ASPECT_RATIOS, getClipProperty } from "@/lib/editor/types";
+import { ASPECT_RATIOS, getClipProperty, getClipPropertyAt } from "@/lib/editor/types";
 import { setPlayhead } from "@/lib/editor/store";
 
 interface Props {
@@ -272,10 +272,10 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     const onTime = () => {
       if (!activeClip) return;
       setPlayhead(activeClip.timelineStartSec + v.currentTime);
-      // Live fade-in / fade-out applied as inline opacity. Bypasses
-      // React re-renders so the curve is frame-rate-perfect.
+      // Live opacity = keyframed-opacity × fade-envelope.
+      // Live scale + volume read directly from any keyframes too.
       const rel = v.currentTime;
-      const baseOpacity = getClipProperty(activeClip, "opacity");
+      const baseOpacity = getClipPropertyAt(activeClip, "opacity", rel);
       const fadeIn = getClipProperty(activeClip, "fadeInSec");
       const fadeOut = getClipProperty(activeClip, "fadeOutSec");
       let mult = 1;
@@ -285,6 +285,13 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         mult = Math.min(mult, Math.max(0, fromEnd / fadeOut));
       }
       v.style.opacity = String(baseOpacity * mult);
+      // Keyframed scale — composes with mirror flip if active.
+      const liveScale = getClipPropertyAt(activeClip, "scale", rel);
+      const mirror = getClipProperty(activeClip, "mirror");
+      v.style.transform = `scale(${liveScale})${mirror ? " scaleX(-1)" : ""}`;
+      // Keyframed volume — clamped to HTMLVideoElement's 0..1 range.
+      const liveVol = getClipPropertyAt(activeClip, "volume", rel);
+      v.volume = Math.max(0, Math.min(1, liveVol));
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);

@@ -144,6 +144,17 @@ export function getClipProperty<K extends keyof ClipProperties>(
 
 export type ClipKind = "video" | "title";
 
+/** Properties that can carry keyframes (numeric, time-varying). */
+export type AnimatableProperty = "opacity" | "scale" | "volume";
+
+export interface Keyframe {
+  id: string;
+  property: AnimatableProperty;
+  /** Seconds relative to the clip's start (not timeline-absolute). */
+  time: number;
+  value: number;
+}
+
 export interface EditorClip {
   id: string;
   /** "video" by default — title clips live on V2 and render as a
@@ -162,8 +173,45 @@ export interface EditorClip {
   titleColor?: string;
   /** Per-clip overrides — sparse; missing keys fall back to defaults. */
   properties?: Partial<ClipProperties>;
+  /** Keyframes that animate properties over the clip's local time. */
+  keyframes?: Keyframe[];
   /** Available takes — first is the active canonical take. */
   takes: EditorTake[];
+}
+
+/**
+ * Compute the effective value of an animatable property at a given
+ * RELATIVE time within the clip (0 .. clip.durationSec). Linearly
+ * interpolates between the surrounding keyframes; falls back to the
+ * static clip property when no keyframes exist or the time is
+ * outside the keyframe range and only one side exists.
+ */
+export function getClipPropertyAt(
+  clip: EditorClip,
+  prop: AnimatableProperty,
+  relativeTime: number,
+): number {
+  const kfs = (clip.keyframes ?? [])
+    .filter((k) => k.property === prop)
+    .sort((a, b) => a.time - b.time);
+  if (kfs.length === 0) return getClipProperty(clip, prop);
+  let before: Keyframe | null = null;
+  let after: Keyframe | null = null;
+  for (const k of kfs) {
+    if (k.time <= relativeTime) before = k;
+    else if (after === null) {
+      after = k;
+      break;
+    }
+  }
+  if (before && after) {
+    if (after.time === before.time) return before.value;
+    const t = (relativeTime - before.time) / (after.time - before.time);
+    return before.value + (after.value - before.value) * t;
+  }
+  if (before) return before.value;
+  if (after) return after.value;
+  return getClipProperty(clip, prop);
 }
 
 export interface EditorTake {

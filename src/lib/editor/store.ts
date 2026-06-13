@@ -12,12 +12,14 @@
  * triggering a tree-wide re-render 60 times per second.
  */
 import type {
+  AnimatableProperty,
   EditorClip,
   EditorMarker,
   EditorProject,
   EditorState,
   EditorView,
   HistoryEntry,
+  Keyframe,
   TimelineTool,
 } from "./types";
 import { INITIAL_EDITOR_STATE } from "./types";
@@ -568,6 +570,101 @@ export function insertTitleAtPlayhead(initialText: string = "TITLE"): string | n
   };
   historize(project, { selectedClipId: newClip.id, selectedClipIds: [newClip.id] });
   return newClip.id;
+}
+
+// ─── Keyframes ───────────────────────────────────────────────────────────────
+/**
+ * Add (or update) a keyframe for `property` at the current playhead's
+ * position INSIDE the given clip. If a keyframe already exists at
+ * roughly the same time (within 0.05s) on this property, it gets
+ * its value replaced — so dragging a slider with the keyframe button
+ * "live" updates the captured value instead of stacking duplicates.
+ */
+export function addKeyframeAtPlayhead(
+  clipId: string,
+  property: AnimatableProperty,
+  value: number,
+): boolean {
+  if (!state.project) return false;
+  let captured = false;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        const relativeTime = Math.max(
+          0,
+          Math.min(c.durationSec, state.playheadSec - c.timelineStartSec),
+        );
+        if (state.playheadSec < c.timelineStartSec || state.playheadSec > c.timelineStartSec + c.durationSec) {
+          // Playhead is outside the clip — nothing to capture.
+          return c;
+        }
+        captured = true;
+        const existing = (c.keyframes ?? []).filter(
+          (k) => k.property === property,
+        );
+        const near = existing.find((k) => Math.abs(k.time - relativeTime) < 0.05);
+        if (near) {
+          return {
+            ...c,
+            keyframes: (c.keyframes ?? []).map((k) =>
+              k.id === near.id ? { ...k, value } : k,
+            ),
+          };
+        }
+        const kf: Keyframe = {
+          id: `kf-${Math.floor(performance.now())}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+          property,
+          time: relativeTime,
+          value,
+        };
+        return { ...c, keyframes: [...(c.keyframes ?? []), kf] };
+      }),
+    })),
+  };
+  if (!captured) return false;
+  historize(project, undefined, `kf:${clipId}:${property}`);
+  return true;
+}
+
+export function removeKeyframe(clipId: string, keyframeId: string): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) =>
+        c.id !== clipId
+          ? c
+          : {
+              ...c,
+              keyframes: (c.keyframes ?? []).filter((k) => k.id !== keyframeId),
+            },
+      ),
+    })),
+  };
+  historize(project, undefined, `kf:remove:${clipId}`);
+}
+
+export function clearKeyframes(clipId: string, property: AnimatableProperty): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) =>
+        c.id !== clipId
+          ? c
+          : {
+              ...c,
+              keyframes: (c.keyframes ?? []).filter((k) => k.property !== property),
+            },
+      ),
+    })),
+  };
+  historize(project, undefined, `kf:clear:${clipId}:${property}`);
 }
 
 /**

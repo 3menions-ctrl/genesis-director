@@ -57,6 +57,9 @@ import cherryBlossomImg from '@/assets/environments/cherry-blossom.jpg';
 import cozyCabinImg from '@/assets/environments/cozy-cabin.jpg';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { FoundationShell } from '@/components/foundation/FoundationShell';
+import { EditorialCanvas } from '@/components/foundation/EditorialCanvas';
+import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
 // Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
   { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, professional', sample: 'Welcome to our training program. Today we will explore best practices for success.' },
@@ -1385,10 +1388,23 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 // Wrapper with error boundary for fault isolation
 export default function TrainingVideo() {
   usePageMeta({ title: "Training — Small Bridges", description: "Watch in-depth tutorials and creator masterclasses for Small Bridges." });
+  const liveRenderTimecode = useLiveRenderTimecode();
 
   return (
     <ErrorBoundary>
-      <TrainingVideoContent />
+      <FoundationShell>
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+          <EditorialCanvas
+            maxWidth="100%"
+            chrome={{
+              crumbs: ["Small Bridges", "training"],
+              timecode: liveRenderTimecode ?? "TRAINING · LIVE",
+            }}
+          >
+            <TrainingVideoContent />
+          </EditorialCanvas>
+        </div>
+      </FoundationShell>
     </ErrorBoundary>
   );
 }

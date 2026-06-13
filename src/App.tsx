@@ -164,6 +164,13 @@ const Reel = lazy(() => import("./pages/Reel"));
 const Account = lazy(() => import("./pages/Account"));
 const Cast = lazy(() => import("./pages/Cast"));
 
+// Standalone creation-adjacent surfaces — restored after the earlier merge
+// proved too aggressive. Each is a deep workflow / browse, not a tab.
+const Templates = lazy(() => import("./pages/Templates"));
+const Environments = lazy(() => import("./pages/Environments"));
+const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
+const Crossover = lazy(() => import("./pages/Crossover"));
+
 // Entertainment Hub (public watch experience — the Netflix half)
 const Lobby = lazy(() => import("./pages/Lobby"));
 const WorldDetail = lazy(() => import("./pages/WorldDetail"));
@@ -600,9 +607,30 @@ const App = () => {
                     modes that live inside Studio. The standalone routes
                     redirect with hints so Studio can preselect once the
                     drawer / mode embedding lands. */}
-                <Route path="/templates" element={<Navigate to="/studio?drawer=templates" replace />} />
-                <Route path="/environments" element={<Navigate to="/studio?drawer=environments" replace />} />
-                <Route path="/training-video" element={<Navigate to="/studio?tab=training" replace />} />
+                {/* Templates · Environments · Training — standalone
+                    creation-adjacent surfaces. Each is its own browse +
+                    workflow; standalone respects the depth. */}
+                <Route path="/templates" element={
+                  <RouteContainer fallbackMessage="Pulling templates…">
+                    <ProtectedRoute>
+                      <Templates />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/environments" element={
+                  <RouteContainer fallbackMessage="Loading environments…">
+                    <ProtectedRoute>
+                      <Environments />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/training-video" element={
+                  <RouteContainer fallbackMessage="Loading training mode...">
+                    <ProtectedRoute>
+                      <TrainingVideo />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
 
                 {/* Legacy Cast routes — both fold into /cast tabs. */}
                 <Route path="/mascots" element={<Navigate to="/cast?tab=mascots" replace />} />
@@ -627,7 +655,13 @@ const App = () => {
                   </RouteContainer>
                 } />
                 {/* Crossover is a creation mode — folds into Studio as a tab. */}
-                <Route path="/crossover" element={<Navigate to="/studio?tab=crossover" replace />} />
+                {/* Crossover — standalone VFX template library
+                    (50 break-out effects). Distinct from Studio modes. */}
+                <Route path="/crossover" element={
+                  <RouteContainer fallbackMessage="Loading Crossover...">
+                    <Crossover />
+                  </RouteContainer>
+                } />
                 <Route path="/crews" element={
                   <RouteContainer fallbackMessage="Rallying your crew…">
                     <AppShell><Crews /></AppShell>

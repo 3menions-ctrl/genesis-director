@@ -19,7 +19,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { PageShell } from "@/components/shell";
 import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -31,6 +30,9 @@ import {
   TemplateComposer, type CrossoverTemplate,
 } from "@/components/crossover/TemplateComposer";
 import { cn } from "@/lib/utils";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 
 type CategoryKey = "all" | "vertical_ui" | "desktop_ui" | "social_feed" | "retro_holo" | "surreal";
 
@@ -98,11 +100,20 @@ export default function Crossover() {
     setSelected(featured);
   };
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
-    <div className="relative min-h-screen flex flex-col">
-      <PageShell width="wide" pad>
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "crossover"],
+            timecode: liveRenderTimecode ?? `${templates.length} TEMPLATES`,
+          }}
+        >
         <StudioHero
-          eyebrow="Small Bridges · Crossover"
+          eyebrow="Tonight"
           title="Break"
           accent="the screen."
           subtitle="50 next-gen clip templates. Dancers leap out of TikTok. Tigers pounce through TVs. Code rains onto people who walk out of monitors. Pick a template, tweak, render."
@@ -182,14 +193,15 @@ export default function Crossover() {
             </motion.div>
           </AnimatePresence>
         )}
-      </PageShell>
+        </EditorialCanvas>
+      </div>
 
       <AnimatePresence>
         {selected && (
           <TemplateComposer template={selected} onClose={() => setSelected(null)} />
         )}
       </AnimatePresence>
-    </div>
+    </FoundationShell>
   );
 }
 

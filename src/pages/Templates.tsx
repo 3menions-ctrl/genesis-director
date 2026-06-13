@@ -62,6 +62,9 @@ import pageBurstImg from '@/assets/templates/page-burst.jpg';
 import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { FoundationShell } from '@/components/foundation/FoundationShell';
+import { EditorialCanvas } from '@/components/foundation/EditorialCanvas';
+import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
 interface Template {
   id: string;
   name: string;
@@ -1211,10 +1214,23 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 // Wrapper with error boundary for fault isolation
 export default function Templates() {
   usePageMeta({ title: "Templates — Small Bridges", description: "Cinematic, animated, and breakout templates ready to launch your next scene." });
+  const liveRenderTimecode = useLiveRenderTimecode();
 
   return (
     <ErrorBoundary>
-      <TemplatesContent />
+      <FoundationShell>
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+          <EditorialCanvas
+            maxWidth="100%"
+            chrome={{
+              crumbs: ["Small Bridges", "templates"],
+              timecode: liveRenderTimecode ?? "TEMPLATES · LIVE",
+            }}
+          >
+            <TemplatesContent />
+          </EditorialCanvas>
+        </div>
+      </FoundationShell>
     </ErrorBoundary>
   );
 }

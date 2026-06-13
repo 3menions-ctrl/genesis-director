@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
-import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +39,9 @@ import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
 import { EXTENDED_ENVIRONMENTS } from '@/data/environment-extensions';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { FoundationShell } from '@/components/foundation/FoundationShell';
+import { EditorialCanvas } from '@/components/foundation/EditorialCanvas';
+import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
 // Environment presets with unique epic ideas - 20 stunning environments
 const BASE_PRESETS = [
   // TRENDING - What creators love
@@ -454,13 +456,20 @@ export default function Environments() {
     toast.success(`Applied "${environment.name}" environment`);
   };
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
-    <div className="min-h-screen">
-      <AppHeader />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Premium editorial header */}
-        <div className="pt-16 sm:pt-20">
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "environments"],
+            timecode: liveRenderTimecode ?? `${ENVIRONMENT_PRESETS.length} PRESETS`,
+          }}
+        >
+      <main className="max-w-7xl mx-auto">
+        <div>
           <PremiumPageHero
             eyebrow="Atmospheres · Live"
             titlePrefix="Cinematic"
@@ -547,6 +556,8 @@ export default function Environments() {
           </motion.div>
         )}
       </main>
-    </div>
+        </EditorialCanvas>
+      </div>
+    </FoundationShell>
   );
 }

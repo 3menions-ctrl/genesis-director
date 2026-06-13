@@ -13,6 +13,7 @@
  */
 import type {
   AnimatableProperty,
+  ClipTransition,
   EditorClip,
   EditorMarker,
   EditorProject,
@@ -21,8 +22,9 @@ import type {
   HistoryEntry,
   Keyframe,
   TimelineTool,
+  TransitionKind,
 } from "./types";
-import { INITIAL_EDITOR_STATE } from "./types";
+import { INITIAL_EDITOR_STATE, TRANSITION_DEFAULT_SEC } from "./types";
 
 const HISTORY_MAX = 50;
 
@@ -310,6 +312,9 @@ export function deleteSelected(): boolean {
       ...s,
       clips: s.clips.filter((c) => !set_.has(c.id)),
     })),
+    transitions: (state.project.transitions ?? []).filter(
+      (t) => !set_.has(t.fromClipId) && !set_.has(t.toClipId),
+    ),
   };
   historize(recompute(project), { selectedClipId: null, selectedClipIds: [] });
   return true;
@@ -956,6 +961,125 @@ export function applyEdits(edits: {
   historize(recompute(project));
 }
 
+// ─── Transitions (between-clip crossfades on V1) ─────────────────────────────
+/** Add a transition at the boundary between two adjacent V1 clips. If
+ *  one already exists for that boundary, replace it. Duration is
+ *  clamped to half the shorter of the two clip durations so it always
+ *  fits inside both clips. */
+export function addTransition(
+  fromClipId: string,
+  toClipId: string,
+  kind: TransitionKind = "fade",
+  durationSec: number = TRANSITION_DEFAULT_SEC,
+): string | null {
+  if (!state.project) return null;
+  const allClips = state.project.scenes.flatMap((s) => s.clips);
+  const from = allClips.find((c) => c.id === fromClipId);
+  const to = allClips.find((c) => c.id === toClipId);
+  if (!from || !to) return null;
+  const maxDur = Math.max(0.05, Math.min(from.durationSec, to.durationSec) / 2);
+  const dur = Math.max(0.05, Math.min(maxDur, durationSec));
+  const id = `xfade-${Math.floor(performance.now())}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+  const transition: ClipTransition = { id, fromClipId, toClipId, durationSec: dur, kind };
+  const existing = state.project.transitions ?? [];
+  const filtered = existing.filter(
+    (t) => !(t.fromClipId === fromClipId && t.toClipId === toClipId),
+  );
+  const project: EditorProject = {
+    ...state.project,
+    transitions: [...filtered, transition],
+  };
+  historize(project, { selectedTransitionId: id, selectedClipId: null, selectedClipIds: [] });
+  return id;
+}
+
+export function updateTransition(
+  id: string,
+  patch: { durationSec?: number; kind?: TransitionKind },
+): void {
+  if (!state.project) return;
+  const existing = state.project.transitions ?? [];
+  const cur = existing.find((t) => t.id === id);
+  if (!cur) return;
+  const allClips = state.project.scenes.flatMap((s) => s.clips);
+  const from = allClips.find((c) => c.id === cur.fromClipId);
+  const to = allClips.find((c) => c.id === cur.toClipId);
+  const maxDur = from && to
+    ? Math.max(0.05, Math.min(from.durationSec, to.durationSec) / 2)
+    : 5;
+  const next: ClipTransition = {
+    ...cur,
+    durationSec:
+      patch.durationSec !== undefined
+        ? Math.max(0.05, Math.min(maxDur, patch.durationSec))
+        : cur.durationSec,
+    kind: patch.kind ?? cur.kind,
+  };
+  const project: EditorProject = {
+    ...state.project,
+    transitions: existing.map((t) => (t.id === id ? next : t)),
+  };
+  const last = state.history.past[state.history.past.length - 1];
+  const burst = last?.label === `xfade:${id}` && state.project !== last.project;
+  if (burst) {
+    set({ project });
+  } else {
+    historize(project, undefined, `xfade:${id}`);
+  }
+}
+
+export function removeTransition(id: string): void {
+  if (!state.project) return;
+  const existing = state.project.transitions ?? [];
+  if (!existing.some((t) => t.id === id)) return;
+  const project: EditorProject = {
+    ...state.project,
+    transitions: existing.filter((t) => t.id !== id),
+  };
+  historize(project, {
+    selectedTransitionId: state.selectedTransitionId === id ? null : state.selectedTransitionId,
+  });
+}
+
+export function selectTransition(id: string | null): void {
+  if (state.selectedTransitionId === id) return;
+  set({
+    selectedTransitionId: id,
+    selectedClipId: id ? null : state.selectedClipId,
+    selectedClipIds: id ? [] : state.selectedClipIds,
+  });
+}
+
+// ─── Playback chrome (speed / loop / theater / fullscreen) ──────────────────
+export function setPlaybackSpeed(speed: number): void {
+  const clamped = Math.max(0.05, Math.min(8, speed));
+  if (state.playbackSpeed === clamped) return;
+  set({ playbackSpeed: clamped });
+}
+
+export function toggleLoopRegion(): void {
+  set({ loopRegion: !state.loopRegion });
+}
+
+export function setLoopRegion(loop: boolean): void {
+  if (state.loopRegion === loop) return;
+  set({ loopRegion: loop });
+}
+
+export function toggleTheaterMode(): void {
+  set({ theaterMode: !state.theaterMode });
+}
+
+export function setTheaterMode(on: boolean): void {
+  if (state.theaterMode === on) return;
+  set({ theaterMode: on });
+}
+
+export function setFullscreen(on: boolean): void {
+  if (state.isFullscreen === on) return;
+  set({ isFullscreen: on });
+}
+
 /** Remove a clip from the timeline. Ripple closes the gap. */
 export function deleteClip(clipId: string): void {
   if (!state.project) return;
@@ -965,6 +1089,9 @@ export function deleteClip(clipId: string): void {
       ...s,
       clips: s.clips.filter((c) => c.id !== clipId),
     })),
+    transitions: (state.project.transitions ?? []).filter(
+      (t) => t.fromClipId !== clipId && t.toClipId !== clipId,
+    ),
   };
   const next = recompute(project);
   historize(next, {

@@ -55,6 +55,16 @@ import {
   setTrackVolume,
   setTrackMuted,
   setIsPlaying,
+  addTransition,
+  updateTransition,
+  removeTransition,
+  selectTransition,
+  setPlaybackSpeed,
+  toggleLoopRegion,
+  setLoopRegion,
+  toggleTheaterMode,
+  setTheaterMode,
+  setFullscreen,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -108,5 +118,15 @@ export function useEditor() {
     setTrackVolume,
     setTrackMuted,
     setIsPlaying,
+    addTransition,
+    updateTransition,
+    removeTransition,
+    selectTransition,
+    setPlaybackSpeed,
+    toggleLoopRegion,
+    setLoopRegion,
+    toggleTheaterMode,
+    setTheaterMode,
+    setFullscreen,
   };
 }

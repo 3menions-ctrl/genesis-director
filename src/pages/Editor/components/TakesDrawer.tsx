@@ -58,12 +58,23 @@ function fmtTimecode(sec: number): string {
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import { supabase } from "@/integrations/supabase/client";
-import type { EditorClip, EditorProject, EditorTake } from "@/lib/editor/types";
+import type {
+  ClipTransition,
+  EditorClip,
+  EditorProject,
+  EditorTake,
+  TransitionKind,
+} from "@/lib/editor/types";
+import { TRANSITION_KINDS, TRANSITION_LABELS } from "@/lib/editor/types";
 import {
   switchActiveTake,
   appendPendingTake,
   selectClip,
+  selectTransition,
+  updateTransition,
+  removeTransition,
 } from "@/lib/editor/store";
+import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
   project: EditorProject;
@@ -81,6 +92,7 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
   const [composerOpen, setComposerOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { selectedTransitionId } = useEditor();
 
   const clip = useMemo(() => {
     if (!selectedClipId) return null;
@@ -90,6 +102,19 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
     }
     return null;
   }, [project, selectedClipId]);
+
+  const transition: ClipTransition | null = useMemo(() => {
+    if (!selectedTransitionId) return null;
+    return (project.transitions ?? []).find((t) => t.id === selectedTransitionId) ?? null;
+  }, [project.transitions, selectedTransitionId]);
+  const transitionClips = useMemo(() => {
+    if (!transition) return null;
+    const all = project.scenes.flatMap((s) => s.clips);
+    return {
+      from: all.find((c) => c.id === transition.fromClipId) ?? null,
+      to: all.find((c) => c.id === transition.toClipId) ?? null,
+    };
+  }, [project, transition]);
 
   // Auto-open the drawer the moment a clip gets selected; auto-close
   // it on deselection. In embedded mode (persistent right rail) we
@@ -201,7 +226,48 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
     );
   }
 
-  if (!clip) return null;
+  // Transition takes priority — when a transition is selected, the
+  // right rail surfaces TransitionInspector instead of the clip body.
+  // Stays in embedded mode (persistent rail) only.
+  if (embedded && transition && transitionClips?.from && transitionClips?.to) {
+    return (
+      <aside
+        aria-label="Transition inspector"
+        className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col overflow-hidden"
+      >
+        <TransitionInspector
+          transition={transition}
+          fromClip={transitionClips.from}
+          toClip={transitionClips.to}
+        />
+      </aside>
+    );
+  }
+
+  if (!clip) {
+    if (embedded) {
+      return (
+        <aside
+          aria-label="Inspector"
+          className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col overflow-hidden"
+        >
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+            <Sparkles className="h-5 w-5 text-muted-foreground/45" strokeWidth={1.4} />
+            <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55 tracking-[0.30em]")}>
+              ◆ Inspector
+            </p>
+            <p
+              className="mt-2 font-display italic text-[15px] text-foreground/75"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Select a clip or transition
+            </p>
+          </div>
+        </aside>
+      );
+    }
+    return null;
+  }
 
   // ── Embedded (persistent right rail) ────────────────────────────────
   if (embedded) {
@@ -1059,5 +1125,154 @@ function TakeRow({
         </div>
       </button>
     </li>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TransitionInspector — shown in the right rail when a between-clip
+// transition is selected. Kind picker (grid of glyphs), duration
+// slider with live preview, and a destructive Remove button at the
+// bottom.
+// ─────────────────────────────────────────────────────────────────────────────
+function TransitionInspector({
+  transition,
+  fromClip,
+  toClip,
+}: {
+  transition: ClipTransition;
+  fromClip: EditorClip;
+  toClip: EditorClip;
+}) {
+  const maxDur = Math.max(0.05, Math.min(fromClip.durationSec, toClip.durationSec) / 2);
+  return (
+    <>
+      <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
+            <Sparkles className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+            <span>◆ Transition</span>
+          </div>
+          <h3
+            className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {TRANSITION_LABELS[transition.kind]}
+          </h3>
+          <p className="mt-1 text-[12px] text-muted-foreground/60 line-clamp-2">
+            Between <span className="text-foreground/85">clip {fromClip.index + 1}</span>
+            {" → "}
+            <span className="text-foreground/85">clip {toClip.index + 1}</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => selectTransition(null)}
+          className="text-muted-foreground/55 hover:text-foreground transition-colors"
+          aria-label="Close transition inspector"
+        >
+          <X className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+      </header>
+
+      <div className="shrink-0 mx-5 mb-3 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      {/* Duration slider */}
+      <div className="shrink-0 px-5 pb-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.24em]")}>
+            ◆ Duration
+          </span>
+          <span className="font-mono tabular-nums text-[12px] text-foreground/85">
+            {transition.durationSec.toFixed(2)}s
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0.05}
+          max={maxDur}
+          step={0.01}
+          value={Math.min(maxDur, transition.durationSec)}
+          onChange={(e) =>
+            updateTransition(transition.id, { durationSec: parseFloat(e.target.value) })
+          }
+          className="w-full accent-foreground/85"
+          aria-label="Transition duration"
+        />
+        <div className="mt-1 flex items-center justify-between text-[10px] font-mono text-muted-foreground/45">
+          <span>0.05s</span>
+          <span>max {maxDur.toFixed(2)}s</span>
+        </div>
+      </div>
+
+      <div className="shrink-0 mx-5 mb-3 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      {/* Kind grid */}
+      <div className="shrink-0 px-5 pb-2">
+        <span className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.24em]")}>
+          ◆ Style
+        </span>
+      </div>
+      <div className="flex-1 overflow-y-auto px-3 pb-2 scrollbar-hide">
+        <div className="grid grid-cols-2 gap-1.5">
+          {TRANSITION_KINDS.map((k) => (
+            <KindButton
+              key={k}
+              kind={k}
+              active={transition.kind === k}
+              onClick={() => updateTransition(transition.id, { kind: k })}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="shrink-0 mx-5 my-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      <div className="shrink-0 px-5 pb-5">
+        <button
+          type="button"
+          onClick={() => {
+            removeTransition(transition.id);
+            selectTransition(null);
+          }}
+          className={cn(
+            "w-full h-9 rounded-md",
+            "text-[11px] font-mono uppercase tracking-[0.22em] text-rose-300",
+            "bg-rose-500/[0.06] hover:bg-rose-500/[0.12] ring-1 ring-inset ring-rose-500/30",
+            "transition-colors",
+          )}
+        >
+          Remove transition
+        </button>
+      </div>
+    </>
+  );
+}
+
+function KindButton({
+  kind,
+  active,
+  onClick,
+}: {
+  kind: TransitionKind;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={TRANSITION_LABELS[kind]}
+      className={cn(
+        "h-9 px-2 rounded-md flex items-center justify-between",
+        "text-[11px] font-mono uppercase tracking-[0.14em]",
+        "transition-colors ring-1 ring-inset",
+        active
+          ? "bg-[hsl(212_100%_60%/0.16)] text-accent ring-accent/50"
+          : "bg-white/[0.02] text-foreground/75 ring-white/[0.06] hover:bg-white/[0.05]",
+      )}
+    >
+      <span className="truncate">{TRANSITION_LABELS[kind]}</span>
+      {active && <Check className="h-3 w-3 text-accent" strokeWidth={2} />}
+    </button>
   );
 }

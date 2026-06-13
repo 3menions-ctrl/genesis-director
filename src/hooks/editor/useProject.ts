@@ -233,6 +233,7 @@ export function useProject(projectId: string | undefined) {
           genre: pr.genre,
           setting: pr.setting,
           scenes,
+          transitions: [],
         };
         setProject(project);
       } catch (e) {

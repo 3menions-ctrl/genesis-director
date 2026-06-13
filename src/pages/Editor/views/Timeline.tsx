@@ -52,7 +52,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
-import type { EditorClip, EditorMarker, EditorProject } from "@/lib/editor/types";
+import type {
+  ClipTransition,
+  EditorClip,
+  EditorMarker,
+  EditorProject,
+  TransitionKind,
+} from "@/lib/editor/types";
+import { TRANSITION_KINDS, TRANSITION_LABELS } from "@/lib/editor/types";
 import {
   moveClip as moveClipMut,
   trimClip as trimClipMut,
@@ -70,6 +77,10 @@ import {
   setInPoint,
   setOutPoint,
   removeMarker,
+  addTransition as addTransitionMut,
+  updateTransition as updateTransitionMut,
+  removeTransition as removeTransitionMut,
+  selectTransition as selectTransitionMut,
 } from "@/lib/editor/store";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { useAudioWaveform } from "@/hooks/editor/useAudioWaveform";
@@ -130,7 +141,7 @@ export function Timeline({
   const reducedMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const { tool, snapEnabled, markers, inSec, outSec } = useEditor();
+  const { tool, snapEnabled, markers, inSec, outSec, selectedTransitionId } = useEditor();
 
   // Live hover state — floating timecode + faint shadow line while
   // the mouse is over the track. Null when not hovering.
@@ -440,6 +451,20 @@ export function Timeline({
                     </AnimatePresence>
                   </Reorder.Group>
                 </div>
+
+                {/* Transition handles — overlay V1 boundaries with a
+                    click-target. Click adds a default fade; click an
+                    existing one selects it; drag widens; right-click
+                    swaps the kind. The handles z-index above the
+                    Reorder.Group via absolute positioning. */}
+                <TransitionLayer
+                  top={V_OVERLAY_HEIGHT + TRACK_GAP}
+                  height={V_TRACK_HEIGHT}
+                  clips={localOrder}
+                  transitions={project.transitions ?? []}
+                  pxPerSec={pxPerSec}
+                  selectedTransitionId={selectedTransitionId}
+                />
 
                 {/* A1 — synthetic audio shadows matching V1 positions.
                     Bg uses a horizontal gradient so the row reads as
@@ -1077,6 +1102,277 @@ function MusicTrack({
       >
         ◆ Music · score
       </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TransitionLayer — every V1 clip boundary gets a chip. Empty chips
+// say "+ add transition" on hover; existing transitions render as a
+// diamond glyph with their duration label, draggable to widen or
+// shorten. Right-click swaps the kind.
+//
+// Geometry:
+//   x = (fromClip.timelineStartSec + fromClip.durationSec) * pxPerSec
+//   width spans [x - half, x + half] where half = (durationSec/2) * pxPerSec
+// ─────────────────────────────────────────────────────────────────────────────
+function TransitionLayer({
+  top,
+  height,
+  clips,
+  transitions,
+  pxPerSec,
+  selectedTransitionId,
+}: {
+  top: number;
+  height: number;
+  clips: EditorClip[];
+  transitions: ClipTransition[];
+  pxPerSec: number;
+  selectedTransitionId: string | null;
+}) {
+  if (clips.length < 2) return null;
+  const byBoundary = new Map<string, ClipTransition>();
+  for (const t of transitions) byBoundary.set(`${t.fromClipId}->${t.toClipId}`, t);
+
+  const handles: React.ReactNode[] = [];
+  for (let i = 0; i < clips.length - 1; i++) {
+    const from = clips[i];
+    const to = clips[i + 1];
+    const x = (from.timelineStartSec + from.durationSec) * pxPerSec;
+    const t = byBoundary.get(`${from.id}->${to.id}`);
+    handles.push(
+      <TransitionHandle
+        key={`${from.id}->${to.id}`}
+        positionPx={x}
+        height={height}
+        pxPerSec={pxPerSec}
+        fromClip={from}
+        toClip={to}
+        transition={t ?? null}
+        selected={!!t && selectedTransitionId === t.id}
+      />,
+    );
+  }
+  return (
+    <div
+      className="absolute left-0 right-0 pointer-events-none"
+      style={{ top, height, zIndex: 6 }}
+    >
+      {handles}
+    </div>
+  );
+}
+
+function TransitionHandle({
+  positionPx,
+  height,
+  pxPerSec,
+  fromClip,
+  toClip,
+  transition,
+  selected,
+}: {
+  positionPx: number;
+  height: number;
+  pxPerSec: number;
+  fromClip: EditorClip;
+  toClip: EditorClip;
+  transition: ClipTransition | null;
+  selected: boolean;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<{
+    startX: number;
+    startDur: number;
+    id: string;
+  } | null>(null);
+
+  const widthPx = transition
+    ? Math.max(18, transition.durationSec * pxPerSec)
+    : 18;
+  const maxDur = Math.max(0.1, Math.min(fromClip.durationSec, toClip.durationSec) / 2);
+
+  const onClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (menuOpen) return;
+    if (transition) {
+      selectTransitionMut(transition.id);
+    } else {
+      addTransitionMut(fromClip.id, toClip.id, "fade", 0.4);
+      toast.message(`Transition added · ${fromClip.id.slice(0, 6)} → ${toClip.id.slice(0, 6)}`, {
+        description: "Right-click to change kind · drag the edges to widen",
+      });
+    }
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!transition) {
+      addTransitionMut(fromClip.id, toClip.id, "fade", 0.4);
+    }
+    setMenuOpen(true);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!transition) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.target as Element).setPointerCapture(e.pointerId);
+    setDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startDur: transition.durationSec,
+      id: transition.id,
+    };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current || !transition) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const next = Math.max(0.1, Math.min(maxDur, dragRef.current.startDur + (dx * 2) / pxPerSec));
+    updateTransitionMut(dragRef.current.id, { durationSec: next });
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    try {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignored */
+    }
+    dragRef.current = null;
+    setDragging(false);
+  };
+
+  const pickKind = (k: TransitionKind) => {
+    if (transition) updateTransitionMut(transition.id, { kind: k });
+    setMenuOpen(false);
+  };
+
+  return (
+    <div
+      className="absolute pointer-events-auto"
+      style={{
+        left: positionPx - widthPx / 2,
+        top: 0,
+        width: widthPx,
+        height,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        title={
+          transition
+            ? `${TRANSITION_LABELS[transition.kind]} · ${transition.durationSec.toFixed(2)}s — drag to widen, right-click to change kind`
+            : "Click to add fade · right-click for transition menu"
+        }
+        className={cn(
+          "group absolute inset-0 flex items-center justify-center rounded-md transition-all",
+          transition
+            ? cn(
+                "ring-1 ring-inset shadow-[0_4px_18px_-6px_hsl(220_80%_55%/0.45)]",
+                selected
+                  ? "bg-[hsl(212_100%_60%/0.30)] ring-accent/85"
+                  : "bg-[hsl(212_100%_60%/0.18)] ring-accent/55 hover:bg-[hsl(212_100%_60%/0.26)]",
+                dragging && "cursor-ew-resize",
+              )
+            : cn(
+                "bg-white/[0.04] ring-1 ring-inset ring-white/[0.10]",
+                "opacity-0 group-hover:opacity-100",
+                "hover:bg-accent/15 hover:ring-accent/40 hover:opacity-100",
+                "focus-visible:opacity-100",
+              ),
+        )}
+        aria-label={transition ? `${transition.kind} transition` : "Add transition"}
+      >
+        {/* The diamond glyph + label */}
+        <div className="flex items-center gap-1 select-none pointer-events-none">
+          <span
+            className={cn(
+              "block",
+              transition ? "text-accent" : "text-foreground/65 opacity-0 group-hover:opacity-100",
+            )}
+          >
+            ◆
+          </span>
+          {transition && widthPx >= 64 && (
+            <span
+              className={cn(
+                TYPE_META,
+                "font-mono tabular-nums text-foreground/85 tracking-[0.18em]",
+              )}
+            >
+              {transition.durationSec.toFixed(2)}s
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Right-click menu — kind picker */}
+      {menuOpen && (
+        <div
+          className={cn(
+            "absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50",
+            "min-w-[180px] rounded-md border border-white/[0.10]",
+            "bg-[hsl(220_30%_6%/0.96)] backdrop-blur-sm shadow-[0_20px_50px_-12px_hsl(0_0%_0%/0.7)]",
+            "py-1",
+          )}
+          onMouseLeave={() => setMenuOpen(false)}
+        >
+          <div className={cn(TYPE_META, "px-3 py-1 text-muted-foreground/65 tracking-[0.24em]")}>
+            ◆ Transition
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {TRANSITION_KINDS.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pickKind(k);
+                }}
+                className={cn(
+                  "w-full text-left px-3 py-1.5 flex items-center justify-between",
+                  "text-[12px] font-mono uppercase tracking-[0.10em]",
+                  transition?.kind === k
+                    ? "bg-[hsl(212_100%_60%/0.18)] text-accent"
+                    : "text-foreground/80 hover:bg-white/[0.04]",
+                )}
+              >
+                <span>{TRANSITION_LABELS[k]}</span>
+                {transition?.kind === k && (
+                  <span className="text-accent">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {transition && (
+            <>
+              <div className="h-px bg-white/[0.06] my-1" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTransitionMut(transition.id);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[12px] font-mono uppercase tracking-[0.10em] text-rose-300 hover:bg-rose-500/[0.10]"
+              >
+                Remove transition
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

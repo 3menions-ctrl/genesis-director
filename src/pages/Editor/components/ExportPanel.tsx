@@ -118,6 +118,17 @@ export function ExportPanel({ project, open, onClose }: Props) {
               projectId: project.id,
               aspectRatio: job.aspect,
               reframe: job.aspect !== native,
+              // Per-boundary transition data — the FFmpeg xfade
+              // filter on the backend consumes this to render the
+              // exact transitions the user authored on the timeline.
+              // Backwards-compatible: an older final-assembly that
+              // ignores the field just renders hard cuts.
+              transitions: (project.transitions ?? []).map((t) => ({
+                fromClipId: t.fromClipId,
+                toClipId: t.toClipId,
+                kind: t.kind,
+                durationSec: t.durationSec,
+              })),
             },
           });
           if (error) throw error;

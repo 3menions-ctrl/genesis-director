@@ -80,7 +80,89 @@ export interface EditorProject {
   genre: string | null;
   setting: string | null;
   scenes: EditorScene[];
+  /** Between-clip transitions on V1. Keyed by (fromClipId, toClipId)
+   *  — at most one transition per boundary. Empty array = hard cuts. */
+  transitions: ClipTransition[];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Transitions — what happens at a V1 boundary
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Names match the ffmpeg xfade filter so the seamless-stitcher
+ *  can apply the same transition on export without translation. */
+export type TransitionKind =
+  | "fade"
+  | "dissolve"
+  | "wipeleft"
+  | "wiperight"
+  | "wipeup"
+  | "wipedown"
+  | "slideleft"
+  | "slideright"
+  | "slideup"
+  | "slidedown"
+  | "circleopen"
+  | "circleclose"
+  | "radial"
+  | "smoothleft"
+  | "smoothright"
+  | "fadeblack"
+  | "fadewhite";
+
+export const TRANSITION_KINDS: TransitionKind[] = [
+  "fade",
+  "dissolve",
+  "wipeleft",
+  "wiperight",
+  "wipeup",
+  "wipedown",
+  "slideleft",
+  "slideright",
+  "slideup",
+  "slidedown",
+  "circleopen",
+  "circleclose",
+  "radial",
+  "smoothleft",
+  "smoothright",
+  "fadeblack",
+  "fadewhite",
+];
+
+export const TRANSITION_LABELS: Record<TransitionKind, string> = {
+  fade: "Fade",
+  dissolve: "Dissolve",
+  wipeleft: "Wipe ←",
+  wiperight: "Wipe →",
+  wipeup: "Wipe ↑",
+  wipedown: "Wipe ↓",
+  slideleft: "Slide ←",
+  slideright: "Slide →",
+  slideup: "Slide ↑",
+  slidedown: "Slide ↓",
+  circleopen: "Circle open",
+  circleclose: "Circle close",
+  radial: "Radial",
+  smoothleft: "Smooth ←",
+  smoothright: "Smooth →",
+  fadeblack: "Fade to black",
+  fadewhite: "Fade to white",
+};
+
+export interface ClipTransition {
+  id: string;
+  /** Outgoing clip id. */
+  fromClipId: string;
+  /** Incoming clip id. */
+  toClipId: string;
+  /** Duration of the crossfade in seconds. Clamped at runtime to
+   *  min(fromClipDuration, toClipDuration) / 2. */
+  durationSec: number;
+  kind: TransitionKind;
+}
+
+export const TRANSITION_DEFAULT_SEC = 0.4;
 
 export interface EditorScene {
   id: string;
@@ -312,6 +394,19 @@ export interface EditorState {
   /** True while the program player is playing back. Lifted here so
    *  every panel (audio mixer, status bar, etc) can react in lockstep. */
   isPlaying: boolean;
+  /** Playback speed multiplier for the program monitor.
+   *  Discrete values: 0.25 / 0.5 / 0.75 / 1 / 1.25 / 1.5 / 2 / 4. */
+  playbackSpeed: number;
+  /** Loop between inSec and outSec when both are set. */
+  loopRegion: boolean;
+  /** Theater mode hides left/right panes and the inspector to give
+   *  the player the entire viewport. */
+  theaterMode: boolean;
+  /** True while the browser is in fullscreen for the program monitor. */
+  isFullscreen: boolean;
+  /** Currently-selected transition (for the inspector). Mutually
+   *  exclusive with selectedClipId — selecting one clears the other. */
+  selectedTransitionId: string | null;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -337,4 +432,11 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   trackVolumes: { V1: 1.0, A1: 1.0, A2: 1.0 },
   trackMuted: { V1: false, A1: false, A2: false },
   isPlaying: false,
+  playbackSpeed: 1,
+  loopRegion: false,
+  theaterMode: false,
+  isFullscreen: false,
+  selectedTransitionId: null,
 };
+
+export const PLAYBACK_SPEEDS: number[] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];

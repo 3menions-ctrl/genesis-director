@@ -11,12 +11,47 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Pause, Film, AlertCircle, Columns2, Square } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Film,
+  AlertCircle,
+  Columns2,
+  Square,
+  Maximize2,
+  Minimize2,
+  PictureInPicture2,
+  Volume2,
+  VolumeX,
+  Volume1,
+  Volume,
+  Camera,
+  Repeat,
+  Gauge,
+  SkipBack,
+  SkipForward,
+  Rewind,
+  FastForward,
+  ChevronsLeft,
+  ChevronsRight,
+  Crosshair,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
-import { ASPECT_RATIOS, getClipProperty, getClipPropertyAt } from "@/lib/editor/types";
-import { setPlayhead } from "@/lib/editor/store";
+import {
+  ASPECT_RATIOS,
+  PLAYBACK_SPEEDS,
+  getClipProperty,
+  getClipPropertyAt,
+} from "@/lib/editor/types";
+import {
+  setPlayhead,
+  setInPoint as setInPointMut,
+  setOutPoint as setOutPointMut,
+  clearInOut as clearInOutMut,
+  setMasterVolume,
+} from "@/lib/editor/store";
 import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
@@ -246,7 +281,20 @@ function VuMeter({ isPlaying, volume }: { isPlaying: boolean; volume: number }) 
 
 export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const reducedMotion = useReducedMotion();
+  /**
+   * Container ref — what `Element.requestFullscreen()` targets so the
+   * whole player surface (frame + transport + HUD) goes fullscreen
+   * together, not just the bare <video>. Native video fullscreen
+   * loses our HUD overlays and the custom transport.
+   */
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  /**
+   * Secondary "B" buffer used to render the INCOMING clip during a
+   * between-clip transition (crossfade). Outside of a transition
+   * window this element stays hidden + paused. See xfadeInfo below.
+   */
+  const videoBRef = useRef<HTMLVideoElement | null>(null);
   const [monitorMode, setMonitorMode] = useState<MonitorMode>("program");
   const {
     masterVolume,
@@ -255,6 +303,17 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     trackMuted,
     isPlaying: storeIsPlaying,
     setIsPlaying,
+    playbackSpeed,
+    loopRegion,
+    inSec,
+    outSec,
+    theaterMode,
+    toggleTheaterMode,
+    isFullscreen,
+    setFullscreen,
+    setPlaybackSpeed,
+    toggleLoopRegion,
+    setMasterMuted,
   } = useEditor();
   /**
    * Intent-to-play flag. Survives across clip-src changes so that when
@@ -286,6 +345,32 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     return clips.length - 1;
   }, [clips, playheadSec]);
   const activeClip = clips[activeIdx];
+
+  /**
+   * Crossfade descriptor — non-null when the playhead is currently
+   * inside a transition window between activeClip → next clip.
+   *
+   * Geometry: the crossfade overlaps the END of outgoing with the
+   * START of incoming, durationSec wide. So at progress = 0 we're at
+   * (out.timelineStartSec + out.durationSec - dur), and at progress
+   * = 1 we're exactly at the boundary. After the boundary, activeClip
+   * has advanced and xfadeInfo flips back to null.
+   */
+  const xfadeInfo = useMemo(() => {
+    if (!activeClip) return null;
+    const next = clips[activeIdx + 1];
+    if (!next) return null;
+    const transition = (project.transitions ?? []).find(
+      (t) => t.fromClipId === activeClip.id && t.toClipId === next.id,
+    );
+    if (!transition) return null;
+    const xfadeStart =
+      activeClip.timelineStartSec + activeClip.durationSec - transition.durationSec;
+    const rel = playheadSec - xfadeStart;
+    if (rel < 0) return null;
+    const progress = Math.min(1, rel / Math.max(0.01, transition.durationSec));
+    return { transition, progress, next, xfadeStart };
+  }, [activeClip, activeIdx, clips, playheadSec, project.transitions]);
 
   // Local mirror of store isPlaying — the JSX reads it for the
   // play/pause icon. The store is the source of truth so the
@@ -458,7 +543,10 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
           masterVolume,
       ),
     );
-    v.playbackRate = Math.max(0.1, Math.min(4, getClipProperty(activeClip, "speed")));
+    v.playbackRate = Math.max(
+      0.05,
+      Math.min(8, getClipProperty(activeClip, "speed") * playbackSpeed),
+    );
 
     // Solo logic + mute composition: any per-clip / per-track / master
     // mute kills the audio. Solo (per-clip) overrides — when any
@@ -471,7 +559,49 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
       trackMuted.V1 ||
       explicitMute ||
       (anySoloed && !isThisSoloed);
-  }, [activeClip, allClips, trackVolumes, trackMuted, masterVolume, masterMuted]);
+  }, [activeClip, allClips, trackVolumes, trackMuted, masterVolume, masterMuted, playbackSpeed]);
+
+  // ── B-buffer crossfade ────────────────────────────────────────────
+  // When entering a transition window, mount the next clip onto the B
+  // buffer, start it from 0, and let opacity ramp drive the visual.
+  // The cap inside the timeupdate handler still fires at the boundary
+  // so activeClip advances normally; the B-buffer is just a visual
+  // pre-roll.
+  useEffect(() => {
+    const v = videoBRef.current;
+    if (!v) return;
+    if (!xfadeInfo) {
+      // Outside any xfade window — make sure B is paused + hidden.
+      try {
+        v.pause();
+      } catch {
+        /* ignored */
+      }
+      return;
+    }
+    // We're in an xfade. Sync B's time + ensure it's playing if A is.
+    const wantTime = xfadeInfo.progress * xfadeInfo.transition.durationSec;
+    if (v.readyState >= 1 && Math.abs(v.currentTime - wantTime) > 0.25) {
+      try {
+        v.currentTime = wantTime;
+      } catch {
+        /* ignored */
+      }
+    }
+    v.muted = true; // outgoing clip's audio carries until boundary
+    v.playbackRate = Math.max(0.05, Math.min(8, playbackSpeed));
+    if (storeIsPlaying && v.paused) {
+      void v.play().catch(() => {
+        /* autoplay blocked — fine, the fade still works visually */
+      });
+    } else if (!storeIsPlaying && !v.paused) {
+      try {
+        v.pause();
+      } catch {
+        /* ignored */
+      }
+    }
+  }, [xfadeInfo, storeIsPlaying, playbackSpeed]);
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -490,19 +620,263 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }
   };
 
-  // Space toggles play (input-aware)
+  // ── Playback chrome — fullscreen, theater, PiP, snapshot, loop ────
+  // FULLSCREEN. requestFullscreen() targets the container so HUD +
+  // transport survive. We sync the store's isFullscreen flag with the
+  // browser's actual state via fullscreenchange so external toggles
+  // (Esc key) keep the store consistent.
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void el.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+  useEffect(() => {
+    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, [setFullscreen]);
+
+  // PICTURE-IN-PICTURE
+  const togglePiP = useCallback(async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      if (document.pictureInPictureElement === v) {
+        await document.exitPictureInPicture();
+      } else {
+        await v.requestPictureInPicture?.();
+      }
+    } catch {
+      /* the browser refused — feature not supported on this codec */
+    }
+  }, []);
+
+  // SNAPSHOT — grab the current frame as a PNG download
+  const snapshot = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    try {
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // tainted canvas (cross-origin) — fall back to thumbnail
+      return;
+    }
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const tc = Math.floor(playheadSec * 30);
+      a.href = url;
+      a.download = `${project.title.replace(/\s+/g, "-").toLowerCase()}-frame-${tc}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }, "image/png");
+  }, [playheadSec, project.title]);
+
+  // GOTO timecode — prompt and seek
+  const promptGoto = useCallback(() => {
+    const v = window.prompt(
+      "Go to timecode (MM:SS, MM:SS:FF, or seconds)",
+      `${Math.floor(playheadSec / 60).toString().padStart(2, "0")}:${Math.floor(playheadSec % 60)
+        .toString()
+        .padStart(2, "0")}`,
+    );
+    if (!v) return;
+    const parts = v.split(":").map((p) => parseFloat(p));
+    let target = playheadSec;
+    if (parts.length === 1) target = parts[0];
+    else if (parts.length === 2) target = parts[0] * 60 + parts[1];
+    else if (parts.length >= 3) target = parts[0] * 60 + parts[1] + parts[2] / 30;
+    if (Number.isFinite(target)) {
+      intentToPlayRef.current = false;
+      setPlayhead(Math.max(0, target));
+    }
+  }, [playheadSec]);
+
+  // JKL transport — J reverse / K pause / L forward. Multi-tap each
+  // direction doubles speed up to 4× to match Avid/Premiere behavior.
+  const jklSpeedRef = useRef<{ dir: -1 | 0 | 1; speed: number }>({ dir: 0, speed: 1 });
+  const reverseLoopRef = useRef<number | null>(null);
+  const stopReverse = useCallback(() => {
+    if (reverseLoopRef.current !== null) {
+      cancelAnimationFrame(reverseLoopRef.current);
+      reverseLoopRef.current = null;
+    }
+  }, []);
+  const driveReverse = useCallback(
+    (speed: number) => {
+      stopReverse();
+      const v = videoRef.current;
+      if (!v) return;
+      try {
+        v.pause();
+      } catch {
+        /* ignored */
+      }
+      let last = performance.now();
+      const tick = () => {
+        const now = performance.now();
+        const dt = (now - last) / 1000;
+        last = now;
+        setPlayhead(Math.max(0, playheadSec - speed * dt));
+        reverseLoopRef.current = requestAnimationFrame(tick);
+      };
+      reverseLoopRef.current = requestAnimationFrame(tick);
+    },
+    [stopReverse, playheadSec],
+  );
+  useEffect(() => stopReverse, [stopReverse]);
+
+  const handleJ = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (jklSpeedRef.current.dir === -1) {
+      jklSpeedRef.current.speed = Math.min(4, jklSpeedRef.current.speed * 2);
+    } else {
+      jklSpeedRef.current = { dir: -1, speed: 1 };
+    }
+    setPlaybackSpeed(jklSpeedRef.current.speed);
+    intentToPlayRef.current = false;
+    driveReverse(jklSpeedRef.current.speed);
+  }, [setPlaybackSpeed, driveReverse]);
+
+  const handleK = useCallback(() => {
+    jklSpeedRef.current = { dir: 0, speed: 1 };
+    setPlaybackSpeed(1);
+    stopReverse();
+    const v = videoRef.current;
+    if (!v) return;
+    intentToPlayRef.current = false;
+    try {
+      v.pause();
+    } catch {
+      /* ignored */
+    }
+  }, [setPlaybackSpeed, stopReverse]);
+
+  const handleL = useCallback(() => {
+    stopReverse();
+    const v = videoRef.current;
+    if (!v) return;
+    if (jklSpeedRef.current.dir === 1) {
+      jklSpeedRef.current.speed = Math.min(4, jklSpeedRef.current.speed * 2);
+    } else {
+      jklSpeedRef.current = { dir: 1, speed: 1 };
+    }
+    setPlaybackSpeed(jklSpeedRef.current.speed);
+    intentToPlayRef.current = true;
+    void v.play().catch(() => {
+      intentToPlayRef.current = false;
+    });
+  }, [setPlaybackSpeed, stopReverse]);
+
+  // LOOP REGION — when loopRegion is on and the playhead reaches
+  // outSec (or end), wrap back to inSec (or 0). Implemented as a
+  // separate effect off playheadSec so it works regardless of which
+  // player surface is driving playback.
+  useEffect(() => {
+    if (!loopRegion) return;
+    const lo = inSec ?? 0;
+    const hi = outSec ?? project.durationSec ?? 0;
+    if (hi <= lo) return;
+    if (playheadSec >= hi - 0.02) {
+      setPlayhead(lo);
+    }
+  }, [loopRegion, playheadSec, inSec, outSec, project.durationSec]);
+
+  // ── Keyboard map ──────────────────────────────────────────────────
+  // Space toggles play. F = fullscreen. Shift+T = theater. P = PiP.
+  // J/K/L = transport. Shift+S = snapshot. Shift+M = mute. Cmd+L =
+  // loop. Cmd+G = goto timecode. (Period/comma frame-step lives in
+  // Timeline; this handler does NOT swallow those.)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-      e.preventDefault();
-      togglePlay();
+      const meta = e.metaKey || e.ctrlKey;
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlay();
+        return;
+      }
+      // J/K/L — must NOT trigger when the user is also holding cmd
+      // since cmd+L is the loop shortcut.
+      if (!meta && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        handleJ();
+        return;
+      }
+      if (!meta && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        handleK();
+        return;
+      }
+      if (!meta && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        handleL();
+        return;
+      }
+      if (!meta && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+      if (!meta && e.shiftKey && (e.key === "T")) {
+        e.preventDefault();
+        toggleTheaterMode();
+        return;
+      }
+      if (!meta && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        void togglePiP();
+        return;
+      }
+      if (!meta && e.shiftKey && (e.key === "S")) {
+        e.preventDefault();
+        snapshot();
+        return;
+      }
+      if (!meta && e.shiftKey && (e.key === "M")) {
+        e.preventDefault();
+        setMasterMuted(!masterMuted);
+        return;
+      }
+      if (meta && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        toggleLoopRegion();
+        return;
+      }
+      if (meta && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        promptGoto();
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [
+    handleJ,
+    handleK,
+    handleL,
+    toggleFullscreen,
+    toggleTheaterMode,
+    togglePiP,
+    snapshot,
+    promptGoto,
+    toggleLoopRegion,
+    masterMuted,
+    setMasterMuted,
+  ]);
 
   const aspect = ASPECT_RATIOS[project.aspectRatio];
   const totalSec = project.durationSec || 1;
@@ -527,9 +901,63 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   );
 
   return (
-    <section className="relative flex flex-col h-full min-h-0">
-      {/* Monitor mode toggle — top-right corner */}
-      <div className="absolute top-3 right-4 z-30">
+    <section ref={containerRef} className={cn(
+      "relative flex flex-col h-full min-h-0",
+      // When in fullscreen we paint the entire viewport black so any
+      // gap around the aspect-locked frame reads as a cinema mat,
+      // not as the editor chrome bleeding through.
+      isFullscreen && "bg-black",
+    )}>
+      {/* Monitor mode + chrome toggles — top-right corner */}
+      <div className="absolute top-3 right-4 z-30 flex items-center gap-1.5">
+        <ChromeButton
+          active={loopRegion}
+          onClick={toggleLoopRegion}
+          title="Loop between in / out (Cmd+L)"
+          ariaLabel="Toggle loop region"
+          icon={<Repeat className="h-3 w-3" strokeWidth={1.5} />}
+          label="loop"
+        />
+        <SpeedDropdown speed={playbackSpeed} setSpeed={setPlaybackSpeed} />
+        <ChromeButton
+          onClick={snapshot}
+          title="Snapshot current frame (Shift+S)"
+          ariaLabel="Snapshot current frame"
+          icon={<Camera className="h-3 w-3" strokeWidth={1.5} />}
+        />
+        <ChromeButton
+          onClick={promptGoto}
+          title="Go to timecode (Cmd+G)"
+          ariaLabel="Go to timecode"
+          icon={<Crosshair className="h-3 w-3" strokeWidth={1.5} />}
+        />
+        <ChromeButton
+          onClick={() => void togglePiP()}
+          title="Picture-in-picture (P)"
+          ariaLabel="Picture-in-picture"
+          icon={<PictureInPicture2 className="h-3 w-3" strokeWidth={1.5} />}
+        />
+        <ChromeButton
+          active={theaterMode}
+          onClick={toggleTheaterMode}
+          title="Theater mode (Shift+T)"
+          ariaLabel="Theater mode"
+          icon={<Square className="h-3 w-3" strokeWidth={1.5} />}
+          label="theater"
+        />
+        <ChromeButton
+          active={isFullscreen}
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+          ariaLabel="Fullscreen"
+          icon={
+            isFullscreen ? (
+              <Minimize2 className="h-3 w-3" strokeWidth={1.5} />
+            ) : (
+              <Maximize2 className="h-3 w-3" strokeWidth={1.5} />
+            )
+          }
+        />
         <button
           type="button"
           onClick={() =>
@@ -607,19 +1035,59 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
               </div>
             )}
             {activeClip?.videoUrl ? (
-              <video
-                ref={videoRef}
-                src={activeClip.videoUrl}
-                poster={activeClip.thumbnailUrl ?? project.thumbnailUrl ?? undefined}
-                className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform,filter] duration-150"
-                style={{
-                  opacity: opacityStyle,
-                  transform: `scale(${scaleStyle})${mirrorStyle ? " scaleX(-1)" : ""}`,
-                  filter: filterStyle || undefined,
-                }}
-                playsInline
-                preload="auto"
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={activeClip.videoUrl}
+                  poster={activeClip.thumbnailUrl ?? project.thumbnailUrl ?? undefined}
+                  className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform,filter] duration-150"
+                  style={{
+                    opacity: xfadeInfo ? opacityStyle * (1 - xfadeInfo.progress) : opacityStyle,
+                    transform: `scale(${scaleStyle})${mirrorStyle ? " scaleX(-1)" : ""}`,
+                    filter: filterStyle || undefined,
+                  }}
+                  playsInline
+                  preload="auto"
+                />
+                {/* B buffer — incoming clip during a between-clip
+                    transition. Mounted only when a transition is
+                    active so we don't pre-load every clip's source on
+                    every project. Opacity ramp drives the visual. */}
+                {xfadeInfo?.next.videoUrl && (
+                  <video
+                    ref={videoBRef}
+                    key={`xfade-b-${xfadeInfo.next.id}`}
+                    src={xfadeInfo.next.videoUrl}
+                    poster={xfadeInfo.next.thumbnailUrl ?? undefined}
+                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                    style={{ opacity: xfadeInfo.progress }}
+                    playsInline
+                    preload="auto"
+                    muted
+                  />
+                )}
+                {/* Transition overlay for "fadeblack" / "fadewhite" —
+                    a solid pane that peaks at the boundary then ramps
+                    back out, giving the canonical black/white wipe
+                    feel without depending on the B buffer. */}
+                {xfadeInfo &&
+                  (xfadeInfo.transition.kind === "fadeblack" ||
+                    xfadeInfo.transition.kind === "fadewhite") && (
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background:
+                          xfadeInfo.transition.kind === "fadewhite"
+                            ? "hsl(0 0% 100%)"
+                            : "hsl(0 0% 0%)",
+                        opacity:
+                          1 -
+                          Math.abs(2 * xfadeInfo.progress - 1) /* peaks at 1.0 mid-fade */,
+                      }}
+                    />
+                  )}
+              </>
             ) : clips.length > 0 ? (
               <div
                 className="absolute inset-0 flex flex-col items-center justify-center bg-cover bg-center"
@@ -698,7 +1166,22 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
 
       {/* TRANSPORT (drives the Program monitor) */}
       <div className="relative shrink-0 px-6 pb-3">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* JKL transport cluster — prev-clip / reverse / pause / forward / next-clip */}
+          <TransportButton
+            onClick={() => {
+              const prev = clips[activeIdx - 1];
+              if (prev) setPlayhead(prev.timelineStartSec);
+            }}
+            disabled={activeIdx <= 0}
+            title="Previous clip"
+            icon={<SkipBack className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
+          <TransportButton
+            onClick={handleJ}
+            title="JKL reverse (J — tap again to double speed)"
+            icon={<Rewind className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
           <button
             type="button"
             onClick={togglePlay}
@@ -710,6 +1193,7 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
               "disabled:opacity-40 disabled:cursor-not-allowed",
             )}
             aria-label={isPlaying ? "Pause" : "Play"}
+            title={isPlaying ? "Pause (Space, K)" : "Play (Space, L)"}
           >
             {isPlaying ? (
               <Pause className="h-4 w-4 text-foreground" strokeWidth={1.6} />
@@ -717,6 +1201,32 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
               <Play className="h-4 w-4 text-foreground ml-0.5" strokeWidth={1.6} />
             )}
           </button>
+          <TransportButton
+            onClick={handleL}
+            title="JKL forward (L — tap again to double speed)"
+            icon={<FastForward className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
+          <TransportButton
+            onClick={() => {
+              const next = clips[activeIdx + 1];
+              if (next) setPlayhead(next.timelineStartSec);
+            }}
+            disabled={activeIdx >= clips.length - 1}
+            title="Next clip"
+            icon={<SkipForward className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
+
+          {/* Frame step + in/out */}
+          <TransportButton
+            onClick={() => setPlayhead(Math.max(0, playheadSec - 1 / 30))}
+            title="Step back 1 frame (,)"
+            icon={<ChevronsLeft className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
+          <TransportButton
+            onClick={() => setPlayhead(Math.min(totalSec, playheadSec + 1 / 30))}
+            title="Step forward 1 frame (.)"
+            icon={<ChevronsRight className="h-3.5 w-3.5" strokeWidth={1.6} />}
+          />
 
           {/* L/R VU meters — pseudo levels driven by clip × master */}
           <VuMeter
@@ -730,7 +1240,15 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
             }
           />
 
-          <div className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+          {/* Scrub bar with clip dividers + transition pip markers */}
+          <div
+            className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pct = (e.clientX - rect.left) / rect.width;
+              setPlayhead(Math.max(0, Math.min(totalSec, pct * totalSec)));
+            }}
+          >
             <div
               className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent via-accent to-accent/60"
               style={{ width: `${Math.min(100, Math.max(0, playheadPct))}%` }}
@@ -746,13 +1264,211 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                   />
                 );
               })}
+            {(project.transitions ?? []).map((t) => {
+              const from = clips.find((c) => c.id === t.fromClipId);
+              if (!from) return null;
+              const center = (from.timelineStartSec + from.durationSec) / totalSec;
+              const half = t.durationSec / 2 / totalSec;
+              return (
+                <span
+                  key={t.id}
+                  className="absolute top-0 bottom-0 bg-accent/55"
+                  style={{
+                    left: `${Math.max(0, (center - half) * 100)}%`,
+                    width: `${Math.min(100, (half * 2) * 100)}%`,
+                  }}
+                />
+              );
+            })}
+            {inSec !== null && (
+              <span
+                className="absolute top-0 bottom-0 w-px bg-emerald-300"
+                style={{ left: `${(inSec / totalSec) * 100}%` }}
+              />
+            )}
+            {outSec !== null && (
+              <span
+                className="absolute top-0 bottom-0 w-px bg-rose-300"
+                style={{ left: `${(outSec / totalSec) * 100}%` }}
+              />
+            )}
           </div>
 
+          {/* Master mute + volume */}
+          <button
+            type="button"
+            onClick={() => setMasterMuted(!masterMuted)}
+            title={masterMuted ? "Unmute (Shift+M)" : "Mute (Shift+M)"}
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-foreground/75 hover:text-foreground hover:bg-white/[0.05]"
+            aria-label={masterMuted ? "Unmute" : "Mute"}
+          >
+            {masterMuted ? (
+              <VolumeX className="h-3.5 w-3.5" strokeWidth={1.5} />
+            ) : masterVolume > 0.66 ? (
+              <Volume2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            ) : masterVolume > 0.33 ? (
+              <Volume1 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            ) : (
+              <Volume className="h-3.5 w-3.5" strokeWidth={1.5} />
+            )}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1.5}
+            step={0.01}
+            value={masterMuted ? 0 : masterVolume}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (masterMuted && v > 0) setMasterMuted(false);
+              setMasterVolume(v);
+            }}
+            className="w-20 accent-foreground/85"
+            aria-label="Master volume"
+            title={`Volume ${Math.round((masterMuted ? 0 : masterVolume) * 100)}%`}
+          />
+
           <div className={cn(TYPE_META, "font-mono tabular-nums text-foreground/80 shrink-0")}>
-            {fmtTC(playheadSec)}
+            {fmtTC(playheadSec)} / {fmtTC(totalSec)}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ChromeButton — top-right chrome toggle. Accent ring when active.
+// ─────────────────────────────────────────────────────────────────────────────
+function ChromeButton({
+  active,
+  onClick,
+  title,
+  ariaLabel,
+  icon,
+  label,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  title: string;
+  ariaLabel: string;
+  icon: React.ReactNode;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={ariaLabel}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2 h-7 rounded-md transition-colors",
+        "text-[11px] font-mono uppercase tracking-[0.18em]",
+        active
+          ? "bg-[hsl(var(--accent)/0.12)] text-accent ring-1 ring-inset ring-accent/40"
+          : "text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04]",
+      )}
+    >
+      {icon}
+      {label && <span>{label}</span>}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SpeedDropdown — discrete playback speeds (matches NLE conventions).
+// ─────────────────────────────────────────────────────────────────────────────
+function SpeedDropdown({
+  speed,
+  setSpeed,
+}: {
+  speed: number;
+  setSpeed: (s: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Playback speed"
+        aria-label="Playback speed"
+        className={cn(
+          "inline-flex items-center gap-1.5 px-2 h-7 rounded-md transition-colors",
+          "text-[11px] font-mono uppercase tracking-[0.18em]",
+          speed !== 1
+            ? "bg-[hsl(var(--accent)/0.12)] text-accent ring-1 ring-inset ring-accent/40"
+            : "text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04]",
+        )}
+      >
+        <Gauge className="h-3 w-3" strokeWidth={1.5} />
+        <span>{speed === 1 ? "1×" : `${speed}×`}</span>
+      </button>
+      {open && (
+        <div
+          className={cn(
+            "absolute right-0 top-full mt-1 z-50",
+            "min-w-[120px] rounded-md border border-white/[0.10]",
+            "bg-[hsl(220_30%_6%/0.96)] backdrop-blur-sm shadow-[0_20px_50px_-12px_hsl(0_0%_0%/0.7)]",
+            "py-1",
+          )}
+          onMouseLeave={() => setOpen(false)}
+        >
+          {PLAYBACK_SPEEDS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                setSpeed(s);
+                setOpen(false);
+              }}
+              className={cn(
+                "w-full text-left px-3 py-1.5 flex items-center justify-between",
+                "text-[12px] font-mono uppercase tracking-[0.10em]",
+                s === speed
+                  ? "bg-[hsl(212_100%_60%/0.18)] text-accent"
+                  : "text-foreground/80 hover:bg-white/[0.04]",
+              )}
+            >
+              <span>{s}×</span>
+              {s === speed && <span className="text-accent">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TransportButton — round-corner button for transport actions
+// ─────────────────────────────────────────────────────────────────────────────
+function TransportButton({
+  onClick,
+  disabled,
+  title,
+  icon,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  title: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={cn(
+        "inline-flex items-center justify-center h-7 w-7 rounded-md",
+        "text-foreground/70 hover:text-foreground hover:bg-white/[0.04]",
+        "transition-colors",
+        "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+      )}
+      aria-label={title}
+    >
+      {icon}
+    </button>
   );
 }

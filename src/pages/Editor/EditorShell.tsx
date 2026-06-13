@@ -51,6 +51,7 @@ const EMPTY_PROJECT: EditorProject = {
   genre: null,
   setting: null,
   scenes: [],
+  transitions: [],
 };
 import { ExportPanel } from "./components/ExportPanel";
 import { CommentsPanel } from "./components/CommentsPanel";

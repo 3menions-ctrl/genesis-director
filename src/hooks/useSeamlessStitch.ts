@@ -30,6 +30,17 @@ import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+/** Per-boundary transition descriptor — when the stitcher honors
+ *  this, each transition runs at the requested kind + duration
+ *  between the named clips. When it doesn't, the stitcher falls
+ *  back to the global transitionType/transitionDuration. */
+export interface BoundaryTransition {
+  fromClipId: string;
+  toClipId: string;
+  kind: string;
+  durationSec: number;
+}
+
 interface Args {
   projectId: string;
   /** Used as suggested filename. */
@@ -40,6 +51,11 @@ interface Args {
   transitionDuration?: number;
   /** Override xfade transition name (default "fade"). Try: "fade", "dissolve", "wipeleft", "slidedown". */
   transitionType?: string;
+  /** Per-boundary transitions (preferred). When present the stitcher
+   *  applies the right kind + duration at each clip junction; the
+   *  global transitionType/transitionDuration are used only as a
+   *  fallback for boundaries with no explicit entry. */
+  transitions?: BoundaryTransition[];
   /** Force a re-stitch even if a cached output exists. */
   forceRestitch?: boolean;
 }
@@ -51,11 +67,12 @@ interface Args {
  */
 interface EditorArgs {
   sessionId: string;
-  clips: { url: string; duration?: number }[];
+  clips: { url: string; duration?: number; clipId?: string }[];
   title?: string;
   includeIntro?: boolean;
   transitionDuration?: number;
   transitionType?: string;
+  transitions?: BoundaryTransition[];
   forceRestitch?: boolean;
 }
 
@@ -82,6 +99,7 @@ export function useSeamlessStitch() {
           includeIntro: args.includeIntro ?? true,
           transitionDuration: args.transitionDuration,
           transitionType: args.transitionType,
+          transitions: args.transitions,
           forceRestitch: args.forceRestitch,
         },
       },
@@ -165,6 +183,7 @@ export function useSeamlessStitch() {
               includeIntro: args.includeIntro ?? false,
               transitionDuration: args.transitionDuration,
               transitionType: args.transitionType,
+              transitions: args.transitions,
               forceRestitch: args.forceRestitch,
             },
           },

@@ -35,17 +35,14 @@ import logoImage from "@/assets/small-bridges-logo.webp";
 
 interface Props {
   children: ReactNode;
-  /** Hide the top bar AND the rail (full-bleed surfaces like the Editor). */
+  /** Hide the LeftRail too (full-bleed surfaces like the Editor). */
   bare?: boolean;
-  /**
-   * Hide just the top bar but keep the LeftRail and the page shift.
-   * Used by cover-led surfaces (e.g. Profile) where the page art
-   * starts at the viewport edge.
-   */
+  /** Legacy — no longer renders a top bar anywhere. Kept for back-compat. */
   noHeader?: boolean;
 }
 
-export function FoundationShell({ children, bare = false, noHeader = false }: Props) {
+export function FoundationShell({ children, bare = false, noHeader }: Props) {
+  void noHeader; // no longer rendered; LeftRail + Cmd+K replace it
   const { profile, user } = useAuth();
   const { balance } = useCredits();
   const location = useLocation();
@@ -105,7 +102,7 @@ export function FoundationShell({ children, bare = false, noHeader = false }: Pr
           railOpen && "md:pl-[320px]",
         )}
       >
-      {!noHeader && (
+      {false && (
       <motion.header
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}

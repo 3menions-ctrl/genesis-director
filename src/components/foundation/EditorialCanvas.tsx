@@ -202,6 +202,9 @@ export function EditorialCanvas({
   bodyClassName,
   style,
 }: CanvasProps) {
+  void chrome; // chrome strip retired — pages render their own floating eyebrow
+  void GRAIN_SVG_URL; // grain now lives in SpineBackdrop; kept for back-compat callers
+
   const reducedMotion = useReducedMotion();
   const Wrapper = enter ? motion.div : "div";
   const motionProps = enter
@@ -212,6 +215,10 @@ export function EditorialCanvas({
       }
     : {};
 
+  // Container-less. The glass card (border, gradient bg, shadow,
+  // grain, ring, corner brackets, chrome strip) has been retired.
+  // EditorialCanvas is now just a max-width centering wrapper with
+  // padding so page content floats directly on the SpineBackdrop.
   return (
     <Wrapper
       {...(motionProps as object)}
@@ -222,42 +229,8 @@ export function EditorialCanvas({
       }}
     >
       {atmosphere && <EditorialAtmosphere />}
-
-      <div
-        className={cn(
-          "group/canvas relative overflow-hidden rounded-[28px] border border-border/40",
-          "bg-gradient-to-b from-card/50 via-card/20 to-card/5 backdrop-blur-2xl",
-          // outer drop + accent glow + inner top hairline
-          "shadow-[0_80px_200px_-50px_hsl(0_0%_0%/0.7),0_30px_80px_-30px_hsl(215_100%_50%/0.18),inset_0_1px_0_0_hsl(var(--foreground)/0.06)]",
-        )}
-      >
-        {/* SVG fractal grain — keeps gradients off banding */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.025] mix-blend-overlay"
-          style={{ backgroundImage: GRAIN_SVG_URL }}
-        />
-        {/* Inner luminous frame */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-px rounded-[27px] ring-1 ring-inset ring-[hsl(var(--foreground)/0.04)]"
-        />
-        {/* Corner registration brackets */}
-        <div aria-hidden className="pointer-events-none absolute left-4 top-4 h-3 w-3 border-l border-t border-accent/40" />
-        <div aria-hidden className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r border-t border-accent/40" />
-        <div aria-hidden className="pointer-events-none absolute left-4 bottom-4 h-3 w-3 border-l border-b border-accent/40" />
-        <div aria-hidden className="pointer-events-none absolute right-4 bottom-4 h-3 w-3 border-r border-b border-accent/40" />
-
-        {chrome && <EditorialChrome {...chrome} />}
-
-        <div
-          className={cn(
-            "px-6 py-8 md:px-12 md:py-12 xl:px-16 xl:py-14",
-            bodyClassName,
-          )}
-        >
-          {children}
-        </div>
+      <div className={cn("relative", bodyClassName)}>
+        {children}
       </div>
     </Wrapper>
   );

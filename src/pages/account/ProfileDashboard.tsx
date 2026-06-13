@@ -84,6 +84,29 @@ const EMPTY_DASHBOARD: DashboardData = {
 
 const BIO_MAX = 280;
 
+// Shared grain — same SVG fractal noise used in the cover and the
+// backdrop so the whole page has one continuous film-stock texture.
+const GRAIN_URL =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05   0 0 0 0 0.08   0 0 0 0 0.12   0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
+
+/**
+ * Deterministic 3-hue identity from a userId. Used by both the cover
+ * (when there's no avatar) and the ProfileBackdrop (always) so the
+ * whole page shares one colour vocabulary tied to the user.
+ */
+function useUserHue(userId: string) {
+  return useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < userId.length; i++) {
+      h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+    }
+    const primary = h % 360;
+    const secondary = (primary + 60 + ((h >> 8) % 80)) % 360;
+    const tertiary = (primary + 180 + ((h >> 16) % 60)) % 360;
+    return { primary, secondary, tertiary };
+  }, [userId]);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -258,7 +281,16 @@ export default function ProfileDashboard() {
   const bioInitial = (profile as { bio?: string | null } | null)?.bio ?? "";
 
   return (
-    <div className="relative">
+    <div className="relative isolate overflow-hidden">
+      {/* PROFILE BACKDROP — owns the entire page atmosphere so the
+          cover and the dashboard feel like one continuous canvas.
+          Sits behind everything; content gets relative + z-10 below. */}
+      <ProfileBackdrop
+        avatarUrl={profile?.avatar_url ?? null}
+        userId={user?.id ?? ""}
+        reducedMotion={reducedMotion ?? false}
+      />
+
       <CoverHero
         avatarUrl={profile?.avatar_url ?? null}
         displayName={displayName}
@@ -272,8 +304,8 @@ export default function ProfileDashboard() {
       />
 
       {/* Everything below is container-less. Just typography on the
-          canvas. The cover gradient tails into the page bg seamlessly. */}
-      <div className="relative mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 -mt-12 sm:-mt-16 space-y-24">
+          canvas. The cover gradient tails into the backdrop seamlessly. */}
+      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 -mt-12 sm:-mt-16 space-y-24">
         <BioSection
           initial={bioInitial}
           userId={user?.id ?? ""}
@@ -285,6 +317,141 @@ export default function ProfileDashboard() {
         <AchievementsFloat achievements={achievements} />
         {data.recentReels.length > 0 && <RecentReels reels={data.recentReels} />}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProfileBackdrop — the page-wide atmosphere. Lives behind everything
+// (z-0 inside this dashboard's isolation) and stitches the cover and
+// the dashboard sections together with shared colour, grain, and a
+// persistent soft echo of the user's avatar.
+//
+// Layers (top → bottom):
+//   1. Hue-tinted vertical wash that runs the full page height
+//   2. Soft echo of the avatar at very low opacity carried down the
+//      page (or procedural mesh when there's no avatar)
+//   3. Accent halo bleeding into the area where the cover ends
+//   4. Two off-canvas ambient blooms (secondary + tertiary hues)
+//   5. Subtle vertical light beam down the middle column
+//   6. Continuous fractal grain
+// ─────────────────────────────────────────────────────────────────────────────
+function ProfileBackdrop({
+  avatarUrl,
+  userId,
+  reducedMotion,
+}: {
+  avatarUrl: string | null;
+  userId: string;
+  reducedMotion: boolean;
+}) {
+  const hue = useUserHue(userId);
+  void reducedMotion; // backdrop is static — no motion to gate
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+    >
+      {/* 1. Hue-tinted base wash — full page. Slides from the
+            primary hue through the secondary into the canvas grey.
+            Opacity capped so the SpineBackdrop's deep navy still
+            reads beneath. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(180deg, hsl(${hue.primary} 38% 7%) 0%, hsl(${hue.primary} 28% 5%) 38%, hsl(${hue.secondary} 24% 4%) 72%, hsl(220 30% 3%) 100%)`,
+          opacity: 0.75,
+        }}
+      />
+
+      {/* 2. Avatar echo — the same portrait carried down the page at
+            very low opacity. The cover handles the dramatic top; the
+            backdrop carries a softer trail through the rest of the
+            scroll so the page never loses its subject. */}
+      {avatarUrl && (
+        <div
+          className="absolute inset-x-0 top-0"
+          style={{
+            height: "180vh",
+            backgroundImage: `url(${avatarUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+            filter: "blur(180px) saturate(1.35) brightness(0.45)",
+            opacity: 0.28,
+          }}
+        />
+      )}
+
+      {/* 3. Accent halo — anchored at the seam between cover and
+            dashboard. Where the cover's photo dissolves, this halo
+            picks up to keep the energy alive. */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{
+          top: "55vh",
+          width: "140vw",
+          height: "90vh",
+          background: `radial-gradient(50% 60% at 50% 30%, hsl(${hue.primary} 75% 50% / 0.20) 0%, hsl(${hue.primary} 65% 40% / 0.07) 40%, transparent 70%)`,
+          filter: "blur(50px)",
+        }}
+      />
+
+      {/* 4a. Side bloom — secondary hue, left mid-page */}
+      <div
+        className="absolute"
+        style={{
+          top: "100vh",
+          left: "-15vw",
+          width: "65vw",
+          height: "55vh",
+          background: `radial-gradient(circle, hsl(${hue.secondary} 70% 50% / 0.16) 0%, transparent 60%)`,
+          filter: "blur(90px)",
+        }}
+      />
+
+      {/* 4b. Side bloom — tertiary hue, right lower-page */}
+      <div
+        className="absolute"
+        style={{
+          top: "160vh",
+          right: "-15vw",
+          width: "65vw",
+          height: "55vh",
+          background: `radial-gradient(circle, hsl(${hue.tertiary} 65% 45% / 0.13) 0%, transparent 60%)`,
+          filter: "blur(90px)",
+        }}
+      />
+
+      {/* 5. Vertical light beam down the middle — gives the page a
+            subtle "stage spot" feel that ties the cover portrait to
+            the dashboard sections beneath. Very subtle (~4%). */}
+      <div
+        className="absolute inset-y-0 left-1/2 -translate-x-1/2"
+        style={{
+          width: "44vw",
+          background: `linear-gradient(180deg, transparent 0%, hsl(${hue.primary} 65% 55% / 0.05) 22%, hsl(${hue.primary} 65% 55% / 0.04) 78%, transparent 100%)`,
+          filter: "blur(80px)",
+        }}
+      />
+
+      {/* 6. Continuous grain — same SVG as the cover so the texture
+            reads as one unbroken film stock all the way down. */}
+      <div
+        className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
+        style={{ backgroundImage: GRAIN_URL }}
+      />
+
+      {/* 7. Bottom vignette — lets the page end naturally on the
+            SpineBackdrop's deep canvas without a hard cut. */}
+      <div
+        className="absolute bottom-0 inset-x-0"
+        style={{
+          height: "30vh",
+          background:
+            "linear-gradient(to bottom, transparent 0%, hsl(220 30% 3% / 0.85) 100%)",
+        }}
+      />
     </div>
   );
 }
@@ -313,16 +480,14 @@ function CoverHero({
   userId: string;
   reducedMotion: boolean;
 }) {
-  const procedural = useMemo(() => {
-    let h = 0;
-    for (let i = 0; i < userId.length; i++) {
-      h = (h * 31 + userId.charCodeAt(i)) >>> 0;
-    }
-    const hue1 = h % 360;
-    const hue2 = (hue1 + 60 + ((h >> 8) % 80)) % 360;
-    const hue3 = (hue1 + 180 + ((h >> 16) % 60)) % 360;
-    return `radial-gradient(80% 70% at 15% 30%, hsl(${hue1} 70% 55% / 0.7) 0%, transparent 60%), radial-gradient(70% 70% at 80% 70%, hsl(${hue2} 65% 45% / 0.55) 0%, transparent 65%), radial-gradient(100% 80% at 50% 50%, hsl(${hue3} 55% 35% / 0.45) 0%, transparent 70%), hsl(220 30% 6%)`;
-  }, [userId]);
+  const hue = useUserHue(userId);
+  // Procedural fallback (no avatar) — same 3 hues the backdrop uses,
+  // so the cover and the page beneath share one identity.
+  const procedural = useMemo(
+    () =>
+      `radial-gradient(80% 70% at 15% 30%, hsl(${hue.primary} 70% 55% / 0.7) 0%, transparent 60%), radial-gradient(70% 70% at 80% 70%, hsl(${hue.secondary} 65% 45% / 0.55) 0%, transparent 65%), radial-gradient(100% 80% at 50% 50%, hsl(${hue.tertiary} 55% 35% / 0.45) 0%, transparent 70%), hsl(220 30% 6%)`,
+    [hue],
+  );
 
   return (
     <motion.section
@@ -330,7 +495,7 @@ function CoverHero({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
-        "relative w-full overflow-hidden",
+        "relative z-10 w-full overflow-hidden",
         "h-[clamp(560px,76vh,820px)]",
       )}
     >
@@ -371,13 +536,16 @@ function CoverHero({
         />
       )}
 
-      {/* Multi-layer overlays — vignettes + bottom fade */}
+      {/* Multi-layer overlays — vignettes + dissolve to backdrop.
+          Bottom stops fade to TRANSPARENT (not solid canvas) so the
+          backdrop's hue-tinted ambient layer emerges below the cover
+          instead of an abrupt cut to black. */}
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, hsl(220 30% 4% / 0.55) 0%, hsl(220 30% 4% / 0.15) 28%, hsl(220 30% 4% / 0.20) 60%, hsl(220 30% 4% / 0.72) 85%, hsl(220 30% 4% / 1.00) 100%)",
+            "linear-gradient(to bottom, hsl(220 30% 4% / 0.55) 0%, hsl(220 30% 4% / 0.15) 28%, hsl(220 30% 4% / 0.18) 55%, hsl(220 30% 4% / 0.45) 82%, hsl(220 30% 4% / 0.0) 100%)",
         }}
       />
       <div
@@ -391,10 +559,7 @@ function CoverHero({
       <div
         aria-hidden
         className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05   0 0 0 0 0.08   0 0 0 0 0.12   0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
+        style={{ backgroundImage: GRAIN_URL }}
       />
 
       {/* CONTENT — content is constrained but unboxed */}

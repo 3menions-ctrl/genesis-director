@@ -28,9 +28,30 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { usePresence } from "@/hooks/editor/usePresence";
+import type { EditorProject } from "@/lib/editor/types";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
 import { TakesDrawer } from "./components/TakesDrawer";
+
+/**
+ * Synthetic empty project — used when no real project is loaded
+ * (fresh /editor visit, sign-out, query-still-loading, etc).
+ * Every region of the editor renders against this so the user
+ * ALWAYS sees the NLE surface — never a separate empty page.
+ */
+const EMPTY_PROJECT: EditorProject = {
+  id: "no-project",
+  title: "Open a project",
+  aspectRatio: "16:9",
+  status: "empty",
+  thumbnailUrl: null,
+  durationSec: 0,
+  scriptContent: null,
+  mood: null,
+  genre: null,
+  setting: null,
+  scenes: [],
+};
 import { ExportPanel } from "./components/ExportPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
@@ -70,6 +91,12 @@ export function EditorShell() {
   } = useEditor();
   void view;
   void setView;
+
+  // Synthetic project keeps the four-region layout always rendered.
+  // Components see empty scenes/clips and render their inline empty
+  // states; nothing about the user's "I am in the editor" feeling
+  // ever depends on whether a row was returned by supabase yet.
+  const displayProject = project ?? EMPTY_PROJECT;
 
   const [exportOpen, setExportOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -273,16 +300,16 @@ export function EditorShell() {
           presenceCount={presence.count}
         />
 
-        {/* MAIN — three-column layout, always visible */}
+        {/* MAIN — three-column layout, ALWAYS visible (even with no
+            project). Each component handles empty scenes/clips with
+            its own inline empty state so the user is "in the editor"
+            from the first paint. */}
         <div className="relative flex-1 min-h-0 flex">
-          {loading && !project && <LoadingState />}
-          {error && !project && <ErrorState message={error} />}
-
-          {project && focus === "edit" && (
+          {focus === "edit" && (
             <>
               {/* LEFT — scenes */}
               <LeftScenes
-                project={project}
+                project={displayProject}
                 selectedSceneId={selectedSceneId}
               />
 
@@ -290,7 +317,7 @@ export function EditorShell() {
               <div className="flex-1 min-w-0 flex flex-col">
                 <div className="flex-1 min-h-0">
                   <PlayerCanvas
-                    project={project}
+                    project={displayProject}
                     selectedClipId={selectedClipId}
                     playheadSec={playheadSec}
                   />
@@ -300,7 +327,7 @@ export function EditorShell() {
                   style={{ height: 320 }}
                 >
                   <Timeline
-                    project={project}
+                    project={displayProject}
                     selectedClipId={selectedClipId}
                     selectedClipIds={selectedClipIds}
                     playheadSec={playheadSec}
@@ -311,24 +338,52 @@ export function EditorShell() {
 
               {/* RIGHT — inspector */}
               <TakesDrawer
-                project={project}
+                project={displayProject}
                 selectedClipId={selectedClipId}
                 embedded
               />
             </>
           )}
 
-          {project && focus === "storyboard" && (
+          {focus === "storyboard" && (
             <div className="flex-1 min-w-0 flex flex-col">
-              <Storyboard project={project} selectedSceneId={selectedSceneId} />
+              <Storyboard
+                project={displayProject}
+                selectedSceneId={selectedSceneId}
+              />
+            </div>
+          )}
+
+          {/* Soft loading shimmer in the center when fetching the
+              project — keeps the four-region layout visible behind
+              while the network catches up. */}
+          {loading && !project && (
+            <div
+              className="absolute inset-0 z-30 pointer-events-none flex items-start justify-center pt-10"
+              aria-hidden
+            >
+              <div className="rounded-md px-3 py-1.5 bg-[hsl(220_30%_4%/0.70)] backdrop-blur border border-white/[0.06] flex items-center gap-2 text-[12px] text-muted-foreground/70 pointer-events-auto">
+                <Loader2 className="h-3 w-3 text-accent animate-spin" strokeWidth={1.5} />
+                <span>Opening project…</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error banner — non-blocking, sits above the layout. */}
+          {error && !project && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+              <div className="rounded-md px-3 py-1.5 bg-rose-500/15 border border-rose-400/30 flex items-center gap-2 text-[12px] text-rose-200">
+                <AlertOctagon className="h-3 w-3" strokeWidth={1.5} />
+                <span>Project didn&rsquo;t load: {error}</span>
+              </div>
             </div>
           )}
         </div>
 
         {/* Persistent bottom status bar — always visible */}
-        {project && (
+        {(
           <StatusBar
-            project={project}
+            project={displayProject}
             playheadSec={playheadSec}
             selectedClipIds={selectedClipIds}
             presenceCount={presence.count}

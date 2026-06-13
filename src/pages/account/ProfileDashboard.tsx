@@ -247,45 +247,57 @@ export default function ProfileDashboard() {
   }, [data.joinedDate]);
 
   return (
-    <div className="space-y-8">
-      {/* HERO — avatar, display name, key meta */}
-      <Hero
+    <div className="relative">
+      {/* COVER — full-bleed cinematic banner. The portrait IS the page. */}
+      <CoverHero
         avatarUrl={profile?.avatar_url ?? null}
         displayName={profile?.display_name ?? user?.email?.split("@")[0] ?? "Director"}
         email={user?.email ?? null}
         memberFor={memberFor}
         followerCount={data.followerCount}
+        totalFilms={data.totalFilms}
         balance={balance ?? 0}
+        userId={user?.id ?? ""}
         reducedMotion={reducedMotion ?? false}
       />
 
-      {/* STATS GRID — big numbers, animated counters */}
-      <StatsGrid data={data} loading={loading} reducedMotion={reducedMotion ?? false} />
+      {/* DASHBOARD — constrained content cascades below the cover */}
+      <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 sm:px-6 lg:px-10 space-y-10 -mt-16 sm:-mt-20">
+        {/* STATS GRID — big numbers, animated counters. Sits over the
+            tail of the cover gradient so it reads as part of the
+            composition, not a separate section. */}
+        <StatsGrid data={data} loading={loading} reducedMotion={reducedMotion ?? false} />
 
-      {/* TWO-COLUMN: Heatmap + Achievements */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-        <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
-        <AchievementsCard achievements={achievements} />
+        {/* TWO-COLUMN: Heatmap + Achievements */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+          <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
+          <AchievementsCard achievements={achievements} />
+        </div>
+
+        {/* RECENT REELS */}
+        {data.recentReels.length > 0 && (
+          <RecentReels reels={data.recentReels} />
+        )}
       </div>
-
-      {/* RECENT REELS */}
-      {data.recentReels.length > 0 && (
-        <RecentReels reels={data.recentReels} />
-      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero
+// CoverHero — full-bleed cinematic banner. The director's portrait is
+// the page. The avatar fills the background (blurred + cover-scaled),
+// crisp foreground content rides the bottom-left, the name is
+// massive italic Fraunces, the gradient masks any awkward crops.
 // ─────────────────────────────────────────────────────────────────────────────
-function Hero({
+function CoverHero({
   avatarUrl,
   displayName,
   email,
   memberFor,
   followerCount,
+  totalFilms,
   balance,
+  userId,
   reducedMotion,
 }: {
   avatarUrl: string | null;
@@ -293,129 +305,263 @@ function Hero({
   email: string | null;
   memberFor: string | null;
   followerCount: number;
+  totalFilms: number;
   balance: number;
+  userId: string;
   reducedMotion: boolean;
 }) {
+  // Deterministic procedural gradient when no avatar — same input ID
+  // produces the same colors so the cover doesn't shimmer between
+  // visits. Three angles, three hues, layered radial gradients.
+  const procedural = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < userId.length; i++) {
+      h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+    }
+    const hue1 = h % 360;
+    const hue2 = (hue1 + 60 + ((h >> 8) % 80)) % 360;
+    const hue3 = (hue1 + 180 + ((h >> 16) % 60)) % 360;
+    return `radial-gradient(80% 70% at 15% 30%, hsl(${hue1} 70% 55% / 0.7) 0%, transparent 60%), radial-gradient(70% 70% at 80% 70%, hsl(${hue2} 65% 45% / 0.55) 0%, transparent 65%), radial-gradient(100% 80% at 50% 50%, hsl(${hue3} 55% 35% / 0.45) 0%, transparent 70%), hsl(220 30% 6%)`;
+  }, [userId]);
+
   return (
     <motion.section
-      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE_PREMIUM }}
+      initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
-        "relative overflow-hidden rounded-3xl",
-        "border border-white/[0.07]",
-        "bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-[hsl(220_30%_4%/0.85)]",
-        "backdrop-blur-xl",
-        "shadow-[0_30px_80px_-40px_hsl(0_0%_0%/0.7),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
+        "relative w-full overflow-hidden",
+        "h-[clamp(520px,72vh,780px)]",
       )}
     >
-      {/* Accent halo */}
+      {/* BACKGROUND PHOTO — avatar zoomed and blurred to cover.
+          When no avatar, a deterministic mesh gradient stands in. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-[20%] opacity-50"
+        className="absolute inset-0"
+        style={
+          avatarUrl
+            ? {
+                backgroundImage: `url(${avatarUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center 30%",
+                transform: "scale(1.15)",
+                filter: "blur(48px) brightness(0.55) saturate(1.1)",
+              }
+            : { background: procedural }
+        }
+      />
+      {/* Ken-burns slow zoom — adds life without distracting */}
+      {avatarUrl && !reducedMotion && (
+        <motion.div
+          aria-hidden
+          className="absolute inset-0"
+          initial={{ scale: 1.02 }}
+          animate={{ scale: 1.18 }}
+          transition={{
+            duration: 32,
+            ease: "linear",
+            repeat: Infinity,
+            repeatType: "mirror",
+          }}
+          style={{
+            backgroundImage: `url(${avatarUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center 30%",
+            filter: "blur(48px) brightness(0.55) saturate(1.1)",
+          }}
+        />
+      )}
+
+      {/* Multi-layer gradient overlays — top vignette, side
+          vignette, bottom fade-to-canvas so the dashboard reads as
+          one continuous composition with the cover. */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(50% 50% at 20% 40%, hsl(var(--accent) / 0.20) 0%, transparent 70%)",
-          filter: "blur(40px)",
+            "linear-gradient(to bottom, hsl(220 30% 4% / 0.55) 0%, hsl(220 30% 4% / 0.15) 28%, hsl(220 30% 4% / 0.20) 60%, hsl(220 30% 4% / 0.70) 85%, hsl(220 30% 4% / 0.98) 100%)",
         }}
       />
-      {/* Top hairline */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to right, hsl(220 30% 4% / 0.65) 0%, transparent 35%, transparent 65%, hsl(220 30% 4% / 0.35) 100%)",
+        }}
+      />
+      {/* Subtle film grain on top of the photo for premium texture */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05   0 0 0 0 0.08   0 0 0 0 0.12   0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+        }}
       />
 
-      <div className="relative px-7 py-7 sm:px-9 sm:py-9 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-5 sm:gap-6">
-          {/* Avatar */}
-          <div
+      {/* CONTENT — content lives in a constrained container even though
+          the cover itself is full-bleed, so text never crowds the
+          viewport edge. */}
+      <div className="absolute inset-0 mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10">
+        {/* TOP-RIGHT — share + edit chips */}
+        <div className="absolute top-6 right-4 sm:right-6 lg:right-10 flex items-center gap-2">
+          <Link
+            to="/account?tab=settings"
             className={cn(
-              "relative shrink-0 h-[88px] w-[88px] sm:h-[104px] sm:w-[104px]",
-              "rounded-full overflow-hidden",
-              "border-2 border-white/[0.10]",
-              "bg-gradient-to-br from-white/[0.06] to-[hsl(220_30%_8%)]",
-              "shadow-[0_24px_60px_-20px_hsl(0_0%_0%/0.6),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
+              "inline-flex items-center gap-2 rounded-full px-4 h-9",
+              "border border-white/[0.12] bg-white/[0.04] backdrop-blur-md",
+              "text-[12.5px] text-foreground/90 transition-all",
+              "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.10)]",
             )}
           >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center font-display italic text-[40px] text-foreground/85">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            {/* Pulse ring */}
-            <span
-              aria-hidden
-              className="absolute -inset-1.5 rounded-full pointer-events-none"
-              style={{
-                background:
-                  "conic-gradient(from 0deg, transparent 0deg, hsl(var(--accent) / 0.5) 90deg, transparent 180deg)",
-                animation: reducedMotion
-                  ? "none"
-                  : "spin 6s linear infinite",
-                mask: "radial-gradient(circle, transparent 47%, black 49%)",
-                WebkitMask: "radial-gradient(circle, transparent 47%, black 49%)",
-              }}
-            />
-          </div>
-
-          {/* Name + meta */}
-          <div className="min-w-0">
-            <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em]")}>
-              ◆ Director
-            </div>
-            <h1
-              className="mt-2 font-display italic font-light leading-[1.02] tracking-tight text-[clamp(2rem,4vw,2.8rem)]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/65 bg-clip-text text-transparent">
-                {displayName}.
-              </span>
-            </h1>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              {email && (
-                <span className={cn(TYPE_META, "text-muted-foreground/60")}>
-                  {email}
-                </span>
-              )}
-              {memberFor && (
-                <>
-                  <span className="text-muted-foreground/25">·</span>
-                  <span className={cn(TYPE_META, "text-muted-foreground/60")}>
-                    member {memberFor}
-                  </span>
-                </>
-              )}
-              <span className="text-muted-foreground/25">·</span>
-              <span className={cn(TYPE_META, "text-accent")}>
-                {followerCount.toLocaleString()} followers
-              </span>
-            </div>
-          </div>
+            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+            <span>Edit profile</span>
+          </Link>
         </div>
 
-        {/* Right cluster — credits chip */}
-        <div className="lg:self-center shrink-0">
-          <Link
-            to="/account?tab=credits"
-            className={cn(
-              "inline-flex items-center gap-3 rounded-2xl px-5 py-3.5",
-              "border border-accent/30 bg-gradient-to-br from-accent/15 to-accent/5",
-              "transition-all hover:border-accent/55 hover:from-accent/22",
-            )}
-          >
-            <Coins className="h-5 w-5 text-accent" strokeWidth={1.5} />
-            <div className="leading-tight">
-              <div className={cn(TYPE_META, "text-accent/85")}>
-                Credits
+        {/* BOTTOM-LEFT — the entire identity stack */}
+        <div className="absolute bottom-24 sm:bottom-28 left-4 sm:left-6 lg:left-10 right-4 sm:right-6 lg:right-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-end gap-5 sm:gap-7 min-w-0">
+              {/* CRISP PORTRAIT — sits in front of the blurred bg so the
+                  same image reads twice: huge & atmospheric, then
+                  intimate & sharp. */}
+              <div
+                className={cn(
+                  "relative shrink-0",
+                  "h-[120px] w-[120px] sm:h-[150px] sm:w-[150px] lg:h-[180px] lg:w-[180px]",
+                  "rounded-full overflow-hidden",
+                  "border-[3px] border-white/[0.18]",
+                  "bg-gradient-to-br from-white/[0.06] to-[hsl(220_30%_8%)]",
+                  "shadow-[0_30px_80px_-20px_hsl(0_0%_0%/0.85),inset_0_2px_0_hsl(0_0%_100%/0.08)]",
+                )}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="h-full w-full flex items-center justify-center font-display italic text-[clamp(3.5rem,5vw,5rem)] text-foreground/90"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {/* Rotating accent ring */}
+                <span
+                  aria-hidden
+                  className="absolute -inset-2 rounded-full pointer-events-none"
+                  style={{
+                    background:
+                      "conic-gradient(from 0deg, transparent 0deg, hsl(var(--accent) / 0.55) 70deg, transparent 160deg)",
+                    animation: reducedMotion ? "none" : "spin 8s linear infinite",
+                    mask: "radial-gradient(circle, transparent 49%, black 51%)",
+                    WebkitMask: "radial-gradient(circle, transparent 49%, black 51%)",
+                  }}
+                />
               </div>
-              <div className="font-mono text-[20px] tabular-nums text-foreground tracking-tight">
-                {balance.toLocaleString()}
+
+              {/* NAME + META */}
+              <div className="min-w-0 pb-2">
+                <div
+                  className={cn(
+                    TYPE_META,
+                    "text-foreground/65 tracking-[0.34em] flex items-center gap-2.5",
+                  )}
+                >
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 rounded-full bg-accent/60 animate-ping opacity-60" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                  </span>
+                  <span>◆ Director · Live</span>
+                </div>
+                <h1
+                  className="mt-3 font-display italic font-light leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Fraunces', serif",
+                    fontSize: "clamp(2.8rem, 7vw, 6rem)",
+                    textShadow: "0 6px 30px hsl(0 0% 0% / 0.55)",
+                  }}
+                >
+                  <span className="bg-gradient-to-b from-white via-white/95 to-white/65 bg-clip-text text-transparent">
+                    {displayName}.
+                  </span>
+                </h1>
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
+                  <span className={cn(TYPE_META, "text-foreground/65")}>
+                    {totalFilms.toLocaleString()} {totalFilms === 1 ? "film" : "films"}
+                  </span>
+                  <span className="text-foreground/20">·</span>
+                  <span className={cn(TYPE_META, "text-accent")}>
+                    {followerCount.toLocaleString()} followers
+                  </span>
+                  {memberFor && (
+                    <>
+                      <span className="text-foreground/20">·</span>
+                      <span className={cn(TYPE_META, "text-foreground/65")}>
+                        member {memberFor}
+                      </span>
+                    </>
+                  )}
+                  {email && (
+                    <>
+                      <span className="text-foreground/20">·</span>
+                      <span className={cn(TYPE_META, "text-foreground/55")}>
+                        {email}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 text-accent/70 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
-          </Link>
+
+            {/* RIGHT CLUSTER — credits chip + jump to studio */}
+            <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-2.5 lg:items-end">
+              <Link
+                to="/account?tab=credits"
+                className={cn(
+                  "group/credits inline-flex items-center gap-3 rounded-2xl px-5 py-3.5",
+                  "border border-accent/40 bg-gradient-to-br from-[hsl(var(--accent)/0.18)] via-[hsl(var(--accent)/0.06)] to-transparent",
+                  "backdrop-blur-md transition-all",
+                  "hover:border-accent/60 hover:from-[hsl(var(--accent)/0.26)]",
+                )}
+              >
+                <Coins className="h-5 w-5 text-accent" strokeWidth={1.5} />
+                <div className="leading-tight">
+                  <div className={cn(TYPE_META, "text-accent/85")}>Credits</div>
+                  <div className="font-mono text-[20px] tabular-nums text-foreground tracking-tight">
+                    {balance.toLocaleString()}
+                  </div>
+                </div>
+                <ArrowRight
+                  className="h-4 w-4 text-accent/70 transition-transform group-hover/credits:translate-x-0.5"
+                  strokeWidth={1.5}
+                />
+              </Link>
+              <Link
+                to="/studio"
+                className={cn(
+                  "group/studio inline-flex items-center gap-2 rounded-2xl px-5 py-3.5",
+                  "border border-white/[0.10] bg-white/[0.04] backdrop-blur-md",
+                  "transition-all",
+                  "hover:border-white/[0.20] hover:bg-white/[0.07]",
+                )}
+              >
+                <Sparkles className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
+                <span className="text-[13.5px] text-foreground/95">Direct a new film</span>
+                <ArrowRight
+                  className="h-4 w-4 text-foreground/55 transition-transform group-hover/studio:translate-x-0.5"
+                  strokeWidth={1.5}
+                />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </motion.section>

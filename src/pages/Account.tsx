@@ -146,6 +146,19 @@ export default function Account() {
   const displayName =
     profile?.display_name ?? user?.email?.split("@")[0] ?? "there";
 
+  // ── Profile gets the full-bleed cinematic treatment ─────────────────
+  // No breadcrumb chrome, no "Your studio / Hello" hero — the cover
+  // photo IS the page. The dashboard owns its own layout edge-to-edge.
+  if (tab === "profile") {
+    return (
+      <FoundationShell>
+        <Suspense fallback={<PanelSkeleton />}>
+          <ProfileDashboard />
+        </Suspense>
+      </FoundationShell>
+    );
+  }
+
   return (
     <FoundationShell>
       <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
@@ -207,7 +220,6 @@ export default function Account() {
                 transition={{ duration: 0.42, ease: EASE_PREMIUM, delay: 0.05 }}
               >
                 <Suspense fallback={<PanelSkeleton />}>
-                  {tab === "profile" && <ProfileDashboard />}
                   {tab === "messages" && <MessagesPanel />}
                   {tab === "notifications" && <NotificationsPanel />}
                   {tab === "credits" && <CreditsPanel />}

@@ -123,15 +123,32 @@ export function ProjectChooser() {
 
         <div className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-3">
           <Link
-            to="/studio"
-            className="group/new inline-flex items-center gap-2 text-[14.5px] text-accent"
+            to="/editor/demo"
+            className="group/demo inline-flex items-center gap-2 text-[14.5px] text-accent"
           >
-            <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+            <Film className="h-4 w-4" strokeWidth={1.5} />
+            <span className="relative">
+              Open the demo reel
+              <span
+                aria-hidden
+                className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent to-accent/40 transition-transform duration-500 ease-out group-hover/demo:scale-x-100"
+              />
+            </span>
+            <ArrowUpRight
+              className="h-3.5 w-3.5 transition-transform group-hover/demo:translate-x-0.5 group-hover/demo:-translate-y-0.5"
+              strokeWidth={1.5}
+            />
+          </Link>
+          <Link
+            to="/studio"
+            className="group/new inline-flex items-center gap-2 text-[14.5px] text-foreground/80 hover:text-foreground transition-colors"
+          >
+            <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.5} />
             <span className="relative">
               New project in Studio
               <span
                 aria-hidden
-                className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent to-accent/40 transition-transform duration-500 ease-out group-hover/new:scale-x-100"
+                className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 ease-out group-hover/new:scale-x-100"
               />
             </span>
             <ArrowUpRight
@@ -156,6 +173,13 @@ export function ProjectChooser() {
             />
           </Link>
         </div>
+
+        {/* Hint pill — the most important affordance on the page when
+            the user is staring at an empty project list. */}
+        <p className={cn(TYPE_META, "mt-4 text-muted-foreground/45 max-w-md")}>
+          New here? Open the demo reel — every view, every panel, every
+          keyboard shortcut, instantly populated.
+        </p>
       </motion.div>
 
       {/* Hairline separator */}

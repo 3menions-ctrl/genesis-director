@@ -28,6 +28,7 @@ import {
   type EditorScene,
   type EditorTake,
 } from "@/lib/editor/types";
+import { buildDemoProject, isDemoId } from "@/lib/editor/demoProject";
 
 interface MovieProjectRow {
   id: string;
@@ -83,6 +84,14 @@ export function useProject(projectId: string | undefined) {
   useEffect(() => {
     if (!projectId) {
       setProject(null);
+      return;
+    }
+    // /editor/demo short-circuits supabase — fully synthetic data
+    // loads instantly so every editor view is visibly populated for
+    // first-time visitors and contributors who don't have a project
+    // of their own yet.
+    if (isDemoId(projectId)) {
+      setProject(buildDemoProject());
       return;
     }
     let cancelled = false;

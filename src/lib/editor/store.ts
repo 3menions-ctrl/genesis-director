@@ -458,6 +458,8 @@ export function setClipProperty(
     speed?: number;
     muted?: boolean;
     soloed?: boolean;
+    filter?: string;
+    mirror?: boolean;
     titleText?: string;
     titleColor?: string;
   },
@@ -493,6 +495,8 @@ function buildPropertyMutation(
     speed?: number;
     muted?: boolean;
     soloed?: boolean;
+    filter?: string;
+    mirror?: boolean;
     titleText?: string;
     titleColor?: string;
   },
@@ -517,9 +521,10 @@ function buildPropertyMutation(
         ] as const) {
           if (patch[k] !== undefined) propPatch[k] = patch[k];
         }
-        for (const k of ["muted", "soloed"] as const) {
+        for (const k of ["muted", "soloed", "mirror"] as const) {
           if (patch[k] !== undefined) propPatch[k] = patch[k];
         }
+        if (patch.filter !== undefined) propPatch.filter = patch.filter;
         if (Object.keys(propPatch).length > 0) {
           next.properties = { ...(c.properties ?? {}), ...propPatch };
         }

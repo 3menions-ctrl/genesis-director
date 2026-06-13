@@ -115,6 +115,10 @@ export interface ClipProperties {
   muted: boolean;
   /** When any clip is soloed, every non-soloed clip plays muted. */
   soloed: boolean;
+  /** CSS filter string applied to the video — empty = none */
+  filter: string;
+  /** Horizontal flip — transform: scaleX(-1) */
+  mirror: boolean;
 }
 
 export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
@@ -126,6 +130,8 @@ export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
   speed: 1.0,
   muted: false,
   soloed: false,
+  filter: "",
+  mirror: false,
 };
 
 /** Read a property with fall-through to the default. */

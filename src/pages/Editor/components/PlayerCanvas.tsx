@@ -361,6 +361,8 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const playheadPct = (playheadSec / totalSec) * 100;
   const opacityStyle = activeClip ? getClipProperty(activeClip, "opacity") : 1;
   const scaleStyle = activeClip ? getClipProperty(activeClip, "scale") : 1;
+  const filterStyle = activeClip ? getClipProperty(activeClip, "filter") : "";
+  const mirrorStyle = activeClip ? getClipProperty(activeClip, "mirror") : false;
 
   const activeTitles = useMemo(
     () =>
@@ -451,8 +453,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                 ref={videoRef}
                 src={activeClip.videoUrl}
                 poster={activeClip.thumbnailUrl ?? project.thumbnailUrl ?? undefined}
-                className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform] duration-150"
-                style={{ opacity: opacityStyle, transform: `scale(${scaleStyle})` }}
+                className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform,filter] duration-150"
+                style={{
+                  opacity: opacityStyle,
+                  transform: `scale(${scaleStyle})${mirrorStyle ? " scaleX(-1)" : ""}`,
+                  filter: filterStyle || undefined,
+                }}
                 playsInline
                 preload="metadata"
               />

@@ -67,6 +67,7 @@ const SHORTCUTS: Group[] = [
       { keys: ["B"], label: "Blade — split clip at playhead" },
       { keys: ["H"], label: "Hand / pan tool" },
       { keys: ["N"], label: "Toggle snap" },
+      { keys: ["F"], label: "Effects palette (looks · motion · transitions)" },
     ],
   },
   {

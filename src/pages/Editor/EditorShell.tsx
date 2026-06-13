@@ -40,6 +40,7 @@ import { PlayerCanvas } from "./components/PlayerCanvas";
 import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { StatusBar } from "./components/StatusBar";
 import { MarkersPanel } from "./components/MarkersPanel";
+import { EffectsPalette } from "./components/EffectsPalette";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -75,6 +76,7 @@ export function EditorShell() {
   const [scriptOpen, setScriptOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [markersPanelOpen, setMarkersPanelOpen] = useState(false);
+  const [effectsOpen, setEffectsOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -173,6 +175,11 @@ export function EditorShell() {
       if ((e.key === "M") && e.shiftKey) {
         e.preventDefault();
         setMarkersPanelOpen((o) => !o);
+        return;
+      }
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        setEffectsOpen((o) => !o);
         return;
       }
       if (e.key === "c" || e.key === "C") {
@@ -347,6 +354,16 @@ export function EditorShell() {
         open={markersPanelOpen}
         onClose={() => setMarkersPanelOpen(false)}
       />
+
+      {/* Effects palette — F to toggle */}
+      {project && (
+        <EffectsPalette
+          project={project}
+          selectedClipIds={selectedClipIds}
+          open={effectsOpen}
+          onClose={() => setEffectsOpen(false)}
+        />
+      )}
     </div>
   );
 }

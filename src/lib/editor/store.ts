@@ -97,6 +97,14 @@ export function resetEditor(): void {
   for (const l of listeners) l();
 }
 
+/** Update the project's scriptContent in memory. Persistence happens
+ *  separately — the caller (Script view) writes to supabase. */
+export function setScriptContent(content: string): void {
+  if (!state.project) return;
+  if (state.project.scriptContent === content) return;
+  set({ project: { ...state.project, scriptContent: content } });
+}
+
 // ─── Playhead + zoom ─────────────────────────────────────────────────────────
 export function setPlayhead(sec: number): void {
   const clamped = Math.max(0, sec);

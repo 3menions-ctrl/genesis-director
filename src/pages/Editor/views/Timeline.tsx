@@ -79,6 +79,10 @@ export function Timeline({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
+  // Live hover state — floating timecode + faint shadow line while
+  // the mouse is over the track. Null when not hovering.
+  const [hoverSec, setHoverSec] = useState<number | null>(null);
+
   const clips: EditorClip[] = useMemo(
     () => project.scenes.flatMap((s) => s.clips),
     [project],
@@ -114,6 +118,15 @@ export function Timeline({
     setPlayhead(Math.max(0, x / pxPerSec));
   };
 
+  // Live hover: floating timecode + shadow line on the track
+  const onTrackMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    setHoverSec(Math.max(0, x / pxPerSec));
+  };
+  const onTrackLeave = () => setHoverSec(null);
+
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -138,6 +151,16 @@ export function Timeline({
         const next = e.key === "ArrowLeft"
           ? Math.max(0, playheadSec - step)
           : Math.min(totalSec, playheadSec + step);
+        setPlayhead(next);
+      } else if (e.key === "," || e.key === ".") {
+        // Frame-step at the project's assumed 30fps. Pro editors
+        // need this all day; the keys are unshifted so it's
+        // ergonomic for repeated taps.
+        e.preventDefault();
+        const frame = 1 / 30;
+        const next = e.key === ","
+          ? Math.max(0, playheadSec - frame)
+          : Math.min(totalSec, playheadSec + frame);
         setPlayhead(next);
       }
     };
@@ -201,6 +224,8 @@ export function Timeline({
               ref={trackRef}
               data-track
               onClick={onTrackClick}
+              onMouseMove={onTrackMove}
+              onMouseLeave={onTrackLeave}
               className={cn(
                 "relative mt-3",
                 "bg-white/[0.015] rounded-lg",
@@ -247,6 +272,15 @@ export function Timeline({
               </Reorder.Group>
 
               <Playhead positionPx={playheadPx + 1} trackHeight={TRACK_HEIGHT} />
+
+              {/* Hover shadow line + floating timecode chip */}
+              {hoverSec !== null && (
+                <HoverIndicator
+                  positionPx={hoverSec * pxPerSec}
+                  sec={hoverSec}
+                  trackHeight={TRACK_HEIGHT}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -415,6 +449,7 @@ function ClipBlock({
   reducedMotion: boolean;
 }) {
   const [trimming, setTrimming] = useState<null | "left" | "right">(null);
+  const [trimDelta, setTrimDelta] = useState(0); // signed seconds, live during trim
   const draftDurationRef = useRef<number>(clip.durationSec);
 
   const onClipPointerDown = (e: React.PointerEvent) => {
@@ -449,6 +484,7 @@ function ClipBlock({
         : startDur - deltaSec;
       const clamped = Math.max(0.5, next);
       draftDurationRef.current = clamped;
+      setTrimDelta(clamped - startDur);
       trimClipMut(clip.id, clamped);
     };
     const onUp = (ev: PointerEvent) => {
@@ -456,6 +492,7 @@ function ClipBlock({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       setTrimming(null);
+      setTrimDelta(0);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -552,7 +589,69 @@ function ClipBlock({
           <Film className="h-3 w-3 text-foreground/55" strokeWidth={1.4} />
         </div>
       )}
+
+      {/* Trim delta chip — appears mid-trim, floats on the edge being
+          dragged so the user reads "+0.5s" / "-1.2s" without looking
+          at the duration label. */}
+      {trimming && (
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -top-7 z-30",
+            trimming === "right" ? "right-0" : "left-0",
+            "px-1.5 py-0.5 rounded",
+            "border border-accent/45 bg-[hsl(220_30%_4%/0.92)] backdrop-blur",
+            "font-mono text-[10.5px] tabular-nums whitespace-nowrap",
+            trimDelta > 0 ? "text-emerald-300" : "text-rose-300",
+          )}
+        >
+          {trimDelta > 0 ? "+" : ""}
+          {trimDelta.toFixed(2)}s · {draftDurationRef.current.toFixed(1)}s total
+        </div>
+      )}
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HoverIndicator — faint vertical line + floating mono timecode chip
+// that follows the mouse over the track. Read-only; the playhead
+// commits on click.
+// ─────────────────────────────────────────────────────────────────────────────
+function HoverIndicator({
+  positionPx,
+  sec,
+  trackHeight,
+}: {
+  positionPx: number;
+  sec: number;
+  trackHeight: number;
+}) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute top-0 z-10"
+      style={{ left: positionPx, height: trackHeight }}
+    >
+      <div
+        className="absolute top-0 bottom-0 w-px"
+        style={{
+          background: "hsl(var(--foreground) / 0.35)",
+        }}
+      />
+      <div
+        className={cn(
+          "absolute -top-6 left-2",
+          "px-1.5 py-0.5 rounded",
+          "border border-white/[0.10] bg-[hsl(220_30%_4%/0.92)] backdrop-blur",
+          "font-mono text-[10px] tabular-nums text-foreground/95",
+          "shadow-[0_8px_20px_-8px_hsl(0_0%_0%/0.6)]",
+          "whitespace-nowrap",
+        )}
+      >
+        {fmtTC(sec)}
+      </div>
+    </div>
   );
 }
 
@@ -619,7 +718,9 @@ function TimelineFooter({
         <span className="text-muted-foreground/45">/ {fmtTC(totalSec)}</span>
       </div>
       <div className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.30em] hidden md:block")}>
-        {selectedClipId ? "drag clip body to reorder · drag edges to trim · ⌫ to delete" : "click a clip to select · ⌘+scroll to zoom"}
+        {selectedClipId
+          ? "drag clip body to reorder · drag edges to trim · , . step a frame"
+          : "click a clip to select · ⌘+scroll to zoom · , . step a frame"}
       </div>
     </footer>
   );

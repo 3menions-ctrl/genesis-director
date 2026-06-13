@@ -35,6 +35,7 @@ const SHORTCUTS: Group[] = [
     title: "Playback",
     items: [
       { keys: ["Space"], label: "Play / pause" },
+      { keys: [",", "."], label: "Step playhead one frame" },
       { keys: ["←", "→"], label: "Step playhead 1s" },
       { keys: ["Shift", "←/→"], label: "Step playhead 0.1s" },
       { keys: ["Alt", "←/→"], label: "Step playhead 5s" },

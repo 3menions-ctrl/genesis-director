@@ -468,31 +468,16 @@ export function EditorShell() {
                     playheadSec={playheadSec}
                   />
                 </div>
-                {/* Timeline strip — height adapts to the active view:
-                      • Stage view  → 120px (thin scrub strip, player
-                        gets the lion's share of the canvas)
-                      • Timeline view → flex-1 (timeline takes the
-                        majority so the editor is the workhorse)
-                      • Theater     → 120px (overrides everything;
-                        the program monitor is the room)
-                    Smooth transition between states matches the
-                    foundation's motion language. */}
+                {/* Timeline strip — fixed 320px in normal editing
+                    mode, 120px in theater mode (the program monitor
+                    rules the room there). A previous attempt made
+                    this adapt to the view (Stage 120, Timeline flex-1)
+                    but the shrink-0 + conditional flex-1 conflicted
+                    and broke playback area sizing. Reverted until
+                    we can land a verified, CSS-clean alternative. */}
                 <div
-                  className={cn(
-                    "shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)]",
-                    "transition-[height,flex] duration-300 ease-out",
-                    currentView === "timeline" && !theaterMode && "flex-1",
-                  )}
-                  style={{
-                    height:
-                      theaterMode
-                        ? 120
-                        : currentView === "stage"
-                        ? 120
-                        : currentView === "timeline"
-                        ? undefined /* let flex-1 take over */
-                        : 320,
-                  }}
+                  className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)] transition-[height] duration-300 ease-out"
+                  style={{ height: theaterMode ? 120 : 320 }}
                 >
                   <Timeline
                     project={displayProject}

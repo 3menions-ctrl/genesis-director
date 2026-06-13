@@ -39,6 +39,7 @@ import { LeftScenes } from "./components/LeftScenes";
 import { PlayerCanvas } from "./components/PlayerCanvas";
 import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { StatusBar } from "./components/StatusBar";
+import { MarkersPanel } from "./components/MarkersPanel";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -73,6 +74,7 @@ export function EditorShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [markersPanelOpen, setMarkersPanelOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -164,6 +166,13 @@ export function EditorShell() {
       if (e.key === "q" || e.key === "Q") {
         e.preventDefault();
         setQueueOpen((o) => !o);
+        return;
+      }
+      // Shift+M opens the markers panel (M without shift drops a
+      // marker — handled in Timeline view).
+      if ((e.key === "M") && e.shiftKey) {
+        e.preventDefault();
+        setMarkersPanelOpen((o) => !o);
         return;
       }
       if (e.key === "c" || e.key === "C") {
@@ -332,6 +341,12 @@ export function EditorShell() {
       )}
 
       <RenderQueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
+
+      {/* Markers panel — ⇧M to toggle */}
+      <MarkersPanel
+        open={markersPanelOpen}
+        onClose={() => setMarkersPanelOpen(false)}
+      />
     </div>
   );
 }

@@ -37,6 +37,9 @@ import {
   Type as TypeIcon,
   ArrowRightToLine,
   ArrowLeftToLine,
+  VolumeX,
+  Headphones,
+  Gauge,
 } from "lucide-react";
 import { getClipProperty } from "@/lib/editor/types";
 import { setClipProperty } from "@/lib/editor/store";
@@ -650,8 +653,46 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
   const scale = getClipProperty(clip, "scale");
   const fadeInSec = getClipProperty(clip, "fadeInSec");
   const fadeOutSec = getClipProperty(clip, "fadeOutSec");
+  const speed = getClipProperty(clip, "speed");
+  const muted = getClipProperty(clip, "muted");
+  const soloed = getClipProperty(clip, "soloed");
   return (
     <div className="shrink-0 px-5 pb-3 space-y-3">
+      {/* Mute / Solo row — quick toggles before the slider field */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setClipProperty(clip.id, { muted: !muted })}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11px] font-mono uppercase tracking-[0.18em] transition-colors",
+            muted
+              ? "bg-rose-400/15 text-rose-300 ring-1 ring-inset ring-rose-400/40"
+              : "text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04]",
+          )}
+          aria-label={muted ? "Unmute clip" : "Mute clip"}
+        >
+          {muted ? (
+            <VolumeX className="h-3 w-3" strokeWidth={1.6} />
+          ) : (
+            <Volume2 className="h-3 w-3" strokeWidth={1.6} />
+          )}
+          <span>{muted ? "muted" : "audio"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setClipProperty(clip.id, { soloed: !soloed })}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11px] font-mono uppercase tracking-[0.18em] transition-colors",
+            soloed
+              ? "bg-amber-400/15 text-amber-300 ring-1 ring-inset ring-amber-400/40"
+              : "text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04]",
+          )}
+          aria-label={soloed ? "Unsolo clip" : "Solo clip"}
+        >
+          <Headphones className="h-3 w-3" strokeWidth={1.6} />
+          <span>solo</span>
+        </button>
+      </div>
       <PropertySlider
         label="Volume"
         Icon={Volume2}
@@ -703,6 +744,34 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
           display={fadeOutSec > 0 ? `${fadeOutSec.toFixed(1)}s` : "—"}
           onChange={(v) => setClipProperty(clip.id, { fadeOutSec: v })}
         />
+      </div>
+
+      {/* Speed — playback rate */}
+      <PropertySlider
+        label="Speed"
+        Icon={Gauge}
+        min={0.25}
+        max={4}
+        step={0.05}
+        value={speed}
+        display={`${speed.toFixed(2)}×`}
+        onChange={(v) => setClipProperty(clip.id, { speed: v })}
+      />
+      <div className="flex items-center gap-1 mt-1">
+        {[0.5, 1, 2].map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setClipProperty(clip.id, { speed: s })}
+            className={cn(
+              TYPE_META,
+              "px-1.5 h-5 rounded text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.04] font-mono transition-colors",
+              Math.abs(speed - s) < 0.025 && "text-accent bg-[hsl(var(--accent)/0.10)]",
+            )}
+          >
+            {s}×
+          </button>
+        ))}
       </div>
     </div>
   );

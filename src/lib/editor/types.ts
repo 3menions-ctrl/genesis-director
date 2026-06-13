@@ -109,6 +109,12 @@ export interface ClipProperties {
   fadeInSec: number;
   /** Optional crossfade-out seconds */
   fadeOutSec: number;
+  /** 0.25 – 4.0 — applied as HTMLVideoElement.playbackRate */
+  speed: number;
+  /** Force-mute this clip even when volume > 0 */
+  muted: boolean;
+  /** When any clip is soloed, every non-soloed clip plays muted. */
+  soloed: boolean;
 }
 
 export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
@@ -117,6 +123,9 @@ export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
   scale: 1.0,
   fadeInSec: 0,
   fadeOutSec: 0,
+  speed: 1.0,
+  muted: false,
+  soloed: false,
 };
 
 /** Read a property with fall-through to the default. */

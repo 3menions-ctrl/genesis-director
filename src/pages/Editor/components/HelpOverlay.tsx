@@ -73,6 +73,7 @@ const SHORTCUTS: Group[] = [
     title: "Markers · In/Out",
     items: [
       { keys: ["M"], label: "Drop marker at playhead" },
+      { keys: ["⇧", "M"], label: "Open markers panel" },
       { keys: ["I"], label: "Set In point at playhead" },
       { keys: ["O"], label: "Set Out point at playhead" },
       { keys: ["dbl-click marker"], label: "Remove marker" },

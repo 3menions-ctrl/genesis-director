@@ -320,12 +320,20 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }
   }, [playheadSec, activeClip]);
 
-  // Apply per-clip volume
+  // Apply per-clip volume + mute + solo + speed
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !activeClip) return;
     v.volume = Math.max(0, Math.min(1, getClipProperty(activeClip, "volume")));
-  }, [activeClip]);
+    v.playbackRate = Math.max(0.1, Math.min(4, getClipProperty(activeClip, "speed")));
+
+    // Solo logic — if any clip in the project is soloed and THIS
+    // clip isn't, mute its audio. Solo overrides per-clip volume.
+    const anySoloed = allClips.some((c) => getClipProperty(c, "soloed"));
+    const isThisSoloed = getClipProperty(activeClip, "soloed");
+    const explicitMute = getClipProperty(activeClip, "muted");
+    v.muted = explicitMute || (anySoloed && !isThisSoloed);
+  }, [activeClip, allClips]);
 
   const togglePlay = () => {
     const v = videoRef.current;

@@ -455,6 +455,9 @@ export function setClipProperty(
     scale?: number;
     fadeInSec?: number;
     fadeOutSec?: number;
+    speed?: number;
+    muted?: boolean;
+    soloed?: boolean;
     titleText?: string;
     titleColor?: string;
   },
@@ -487,6 +490,9 @@ function buildPropertyMutation(
     scale?: number;
     fadeInSec?: number;
     fadeOutSec?: number;
+    speed?: number;
+    muted?: boolean;
+    soloed?: boolean;
     titleText?: string;
     titleColor?: string;
   },
@@ -501,7 +507,17 @@ function buildPropertyMutation(
         if (patch.titleText !== undefined) next.titleText = patch.titleText;
         if (patch.titleColor !== undefined) next.titleColor = patch.titleColor;
         const propPatch: Partial<EditorClip["properties"]> = {};
-        for (const k of ["volume", "opacity", "scale", "fadeInSec", "fadeOutSec"] as const) {
+        for (const k of [
+          "volume",
+          "opacity",
+          "scale",
+          "fadeInSec",
+          "fadeOutSec",
+          "speed",
+        ] as const) {
+          if (patch[k] !== undefined) propPatch[k] = patch[k];
+        }
+        for (const k of ["muted", "soloed"] as const) {
           if (patch[k] !== undefined) propPatch[k] = patch[k];
         }
         if (Object.keys(propPatch).length > 0) {

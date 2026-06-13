@@ -441,10 +441,15 @@ export function Timeline({
                   </Reorder.Group>
                 </div>
 
-                {/* A1 — synthetic audio shadows matching V1 positions */}
+                {/* A1 — synthetic audio shadows matching V1 positions.
+                    Bg uses a horizontal gradient so the row reads as
+                    a real audio bus even at points where there is no
+                    clip yet. */}
                 <div
                   className={cn(
-                    "absolute left-0 right-0 bg-white/[0.014] rounded-md",
+                    "absolute left-0 right-0 rounded-md",
+                    "bg-gradient-to-b from-white/[0.03] to-white/[0.015]",
+                    "ring-1 ring-inset ring-white/[0.04]",
                   )}
                   style={{
                     top: V_OVERLAY_HEIGHT + TRACK_GAP + V_TRACK_HEIGHT + TRACK_GAP,
@@ -461,8 +466,12 @@ export function Timeline({
                   ))}
                 </div>
 
-                {/* A2 — music track (empty placeholder for v1) */}
-                <EmptyTrack
+                {/* A2 — music / score track. Procedural soft band that
+                    spans the whole timeline width so the user reads
+                    "here's where music goes" even when empty. Will
+                    render real music clips when the music ingest
+                    pipeline lands. */}
+                <MusicTrack
                   top={
                     V_OVERLAY_HEIGHT +
                     TRACK_GAP +
@@ -473,7 +482,6 @@ export function Timeline({
                   }
                   height={A_MUSIC_HEIGHT}
                   width={trackWidthPx}
-                  hint="Music + score land here"
                 />
 
                 {/* Playhead spans every track */}
@@ -1002,7 +1010,8 @@ function TrackHeader({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EmptyTrack — visual placeholder for V2 (overlays) and A2 (music)
+// EmptyTrack — visual placeholder for V2 (overlays). A2 has its own
+// MusicTrack below.
 // ─────────────────────────────────────────────────────────────────────────────
 function EmptyTrack({
   top,
@@ -1022,6 +1031,51 @@ function EmptyTrack({
     >
       <span className={cn(TYPE_META, "ml-3 text-muted-foreground/30 tracking-[0.30em]")}>
         {hint}
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MusicTrack — A2's continuous "music goes here" band that spans the
+// full timeline width. Renders as a soft horizontal band with a
+// faint pulse so the row reads as ready-to-accept-music, not "broken
+// and empty." When real music clips land, they overlay this band.
+// ─────────────────────────────────────────────────────────────────────────────
+function MusicTrack({
+  top,
+  height,
+  width,
+}: {
+  top: number;
+  height: number;
+  width: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute left-0 rounded-md overflow-hidden",
+        "bg-gradient-to-r from-amber-200/[0.04] via-amber-200/[0.08] to-amber-200/[0.04]",
+        "ring-1 ring-inset ring-amber-200/[0.06]",
+      )}
+      style={{ top, height, width }}
+    >
+      {/* Decorative wave shimmer so the row obviously means "music" */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-50"
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, transparent 0, transparent 32px, hsl(45 80% 70% / 0.06) 32px, hsl(45 80% 70% / 0.06) 33px)",
+        }}
+      />
+      <span
+        className={cn(
+          TYPE_META,
+          "absolute left-3 top-1/2 -translate-y-1/2 text-amber-200/55 tracking-[0.30em]",
+        )}
+      >
+        ◆ Music · score
       </span>
     </div>
   );
@@ -1127,12 +1181,26 @@ function AudioShadow({
       className={cn(
         "absolute top-0 bottom-0 rounded-sm overflow-hidden ring-1 ring-inset transition-all",
         isActive
-          ? "ring-accent/70 bg-[hsl(var(--accent)/0.10)]"
-          : "ring-white/[0.06] hover:ring-white/[0.14] bg-white/[0.025]",
+          ? "ring-accent/70 bg-[hsl(var(--accent)/0.14)]"
+          : "ring-white/[0.10] hover:ring-white/[0.20] bg-white/[0.06]",
       )}
       style={{ left: leftPx, width: widthPx }}
+      title={`Audio · clip ${clip.index + 1} · ${clip.durationSec.toFixed(1)}s`}
     >
-      <div className="absolute inset-0 flex items-center justify-evenly px-0.5">
+      {/* Top label — clip number + duration, mix-blend-difference so
+          it reads against any waveform. */}
+      <div className="absolute top-0.5 left-1 pointer-events-none">
+        <span
+          className={cn(
+            TYPE_META,
+            "font-mono tabular-nums tracking-[0.18em] mix-blend-difference",
+            isActive ? "text-accent" : "text-foreground/85",
+          )}
+        >
+          A{String(clip.index + 1).padStart(2, "0")}
+        </span>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-evenly px-0.5 pt-3">
         {bars.map((h, i) => (
           <span
             key={i}

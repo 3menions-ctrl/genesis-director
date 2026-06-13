@@ -19,16 +19,21 @@ import type {
   EditorTake,
 } from "./types";
 
+// Public sample MP4s that actually return 200 (the previous Google
+// commondatastorage bucket started 403-ing — confirmed via curl in
+// June 2026). Each clip in the demo cycles through these so the
+// player has a real video to play. media.w3.org URLs are stable and
+// support range requests for scrub.
 const PUBLIC_SAMPLES = [
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4",
+  "https://media.w3.org/2010/05/bunny/trailer.mp4",
+  "https://media.w3.org/2010/05/sintel/trailer.mp4",
+  "https://media.w3.org/2010/05/video/movie_300.mp4",
+  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
+  "https://media.w3.org/2010/05/bunny/trailer.mp4",
+  "https://media.w3.org/2010/05/sintel/trailer.mp4",
+  "https://media.w3.org/2010/05/video/movie_300.mp4",
+  "https://www.w3schools.com/html/mov_bbb.mp4",
 ];
 
 interface ClipSeed {

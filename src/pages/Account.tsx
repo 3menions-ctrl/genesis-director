@@ -151,7 +151,7 @@ export default function Account() {
   // photo IS the page. The dashboard owns its own layout edge-to-edge.
   if (tab === "profile") {
     return (
-      <FoundationShell>
+      <FoundationShell noHeader>
         <Suspense fallback={<PanelSkeleton />}>
           <ProfileDashboard />
         </Suspense>

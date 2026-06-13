@@ -35,11 +35,17 @@ import logoImage from "@/assets/small-bridges-logo.webp";
 
 interface Props {
   children: ReactNode;
-  /** Hide the top bar entirely (full-bleed surfaces). */
+  /** Hide the top bar AND the rail (full-bleed surfaces like the Editor). */
   bare?: boolean;
+  /**
+   * Hide just the top bar but keep the LeftRail and the page shift.
+   * Used by cover-led surfaces (e.g. Profile) where the page art
+   * starts at the viewport edge.
+   */
+  noHeader?: boolean;
 }
 
-export function FoundationShell({ children, bare = false }: Props) {
+export function FoundationShell({ children, bare = false, noHeader = false }: Props) {
   const { profile, user } = useAuth();
   const { balance } = useCredits();
   const location = useLocation();
@@ -99,6 +105,7 @@ export function FoundationShell({ children, bare = false }: Props) {
           railOpen && "md:pl-[320px]",
         )}
       >
+      {!noHeader && (
       <motion.header
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -219,6 +226,7 @@ export function FoundationShell({ children, bare = false }: Props) {
           </div>
         </div>
       </motion.header>
+      )}
 
       <main className="relative z-10">{children}</main>
       </div>

@@ -28,6 +28,7 @@ import { TemplateAvatarSelector } from './TemplateAvatarSelector';
 import { AvatarTemplate } from '@/types/avatar-templates';
 import { useCast } from '@/hooks/useCast';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
+import { CastPanel } from '@/components/studio/CastPanel';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -250,29 +251,37 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
 
   // ── Cast hydration ──────────────────────────────────────────────────
-  // CreationHub is the actual generation surface. The CastPanel above
-  // surfaces the director's selected cast; we lift the lead actor
-  // (cast[0]) into selectedAvatar so the existing pipeline picks them
-  // up. Re-runs whenever the cast lead changes or templates finish
-  // loading.
+  // CreationHub renders the cast panel inline so the director sees the
+  // selected talent in context. The lead actor (cast[0]) is lifted into
+  // selectedAvatar so the existing pipeline (avatar mode + breakout
+  // templates) picks them up. The first time a lead is added we also
+  // flip selectedMode to 'avatar' so the inline UI updates immediately
+  // — otherwise the director casts a talent and nothing visible
+  // changes because the surface is still in text-to-video mode.
   const { cast } = useCast();
   const { allTemplates, isLoading: castTemplatesLoading } =
     useAvatarTemplatesQuery(undefined, { includePlaceholders: true });
+  const leadIdFromCast = cast[0]?.id;
   useEffect(() => {
     if (castTemplatesLoading) return;
     if (cast.length === 0) {
-      // Director cleared the cast — release the selectedAvatar so the
-      // mode picker isn't locked into a previous lead.
       if (selectedAvatar) setSelectedAvatar(null);
       return;
     }
-    const leadId = cast[0]?.id;
-    if (!leadId) return;
-    if (selectedAvatar?.id === leadId) return;
-    const lead = (allTemplates ?? []).find((t) => t.id === leadId);
-    if (lead) setSelectedAvatar(lead);
+    if (!leadIdFromCast) return;
+    if (selectedAvatar?.id === leadIdFromCast) return;
+    const lead = (allTemplates ?? []).find((t) => t.id === leadIdFromCast);
+    if (lead) {
+      setSelectedAvatar(lead);
+      // Only flip to avatar mode the first time a lead is hydrated —
+      // doesn't fight a director who deliberately switches to image-to-
+      // video or text-to-video later with the same cast still in place.
+      setSelectedMode((prev) =>
+        prev === 'avatar' ? prev : ('avatar' as VideoGenerationMode),
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cast[0]?.id, castTemplatesLoading]);
+  }, [leadIdFromCast, castTemplatesLoading]);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [genre, setGenre] = useState('cinematic');
@@ -660,6 +669,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     <div className={cn('relative pb-24', isInitializing && 'opacity-0', className)}>
       <div className="max-w-3xl mx-auto">
         <ActiveProjectBanner className="mb-6" />
+
+        {/* Cast panel — inline, in-context. Empty state is a quiet
+            invite to /avatars; populated state shows the roster with
+            the lead pre-selected for the generation pipeline. The
+            panel is the source of truth for selectedAvatar — when the
+            director removes the lead, selectedAvatar releases. */}
+        <CastPanel className="mb-6" />
 
         {/* Template applied — minimal chip */}
         {appliedSettings?.templateName && (

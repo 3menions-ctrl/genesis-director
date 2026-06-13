@@ -24,6 +24,7 @@ import {
   Briefcase,
   Loader2,
   Mail,
+  Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -48,6 +49,7 @@ const SettingsPanel = lazy(() => import("./Settings"));
 const CreditsPanel = lazy(() => import("./Credits"));
 const NotificationsPanel = lazy(() => import("./Notifications"));
 const MessagesPanel = lazy(() => import("./account/MessagesPanel"));
+const DevelopersPanel = lazy(() => import("./account/DevelopersPanel"));
 
 type Tab =
   | "profile"
@@ -55,6 +57,7 @@ type Tab =
   | "notifications"
   | "credits"
   | "settings"
+  | "developers"
   | "workspace";
 
 const TABS: Array<{
@@ -68,6 +71,7 @@ const TABS: Array<{
   { id: "notifications", label: "Notifications", Icon: Bell },
   { id: "credits",       label: "Credits",       Icon: CreditCard },
   { id: "settings",      label: "Settings",      Icon: Sliders },
+  { id: "developers",    label: "Developers",    Icon: Code2 },
   { id: "workspace",     label: "Workspace",     Icon: Briefcase, hint: "→ /workspace" },
 ];
 
@@ -88,6 +92,7 @@ export default function Account() {
       raw === "notifications" ||
       raw === "credits" ||
       raw === "settings" ||
+      raw === "developers" ||
       raw === "workspace"
     ) {
       return raw as Tab;
@@ -194,6 +199,7 @@ export default function Account() {
                   {tab === "notifications" && <NotificationsPanel />}
                   {tab === "credits" && <CreditsPanel />}
                   {tab === "settings" && <SettingsPanel />}
+                  {tab === "developers" && <DevelopersPanel />}
                   {tab === "workspace" && <WorkspaceHint />}
                 </Suspense>
               </motion.div>

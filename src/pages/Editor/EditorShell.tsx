@@ -22,10 +22,12 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
 import type { EditorView } from "@/lib/editor/types";
+import { usePresence } from "@/hooks/editor/usePresence";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
 import { TakesDrawer } from "./components/TakesDrawer";
 import { ExportPanel } from "./components/ExportPanel";
+import { CommentsPanel } from "./components/CommentsPanel";
 import { Stage } from "./views/Stage";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
@@ -56,6 +58,8 @@ export function EditorShell() {
   } = useEditor();
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const presence = usePresence(project?.id);
 
   // Global view-switcher keys (1/2/3/4) — ignored when an input has focus
   useEffect(() => {
@@ -69,6 +73,12 @@ export function EditorShell() {
       if (e.key === "e" || e.key === "E") {
         e.preventDefault();
         setExportOpen(true);
+        return;
+      }
+      // C toggles comments
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        setCommentsOpen((o) => !o);
         return;
       }
       const v = VIEW_BY_KEY[e.code];
@@ -97,6 +107,8 @@ export function EditorShell() {
           view={view}
           onViewChange={setView}
           onOpenExport={() => setExportOpen(true)}
+          onToggleComments={() => setCommentsOpen((o) => !o)}
+          presenceCount={presence.count}
         />
 
         {/* View body */}
@@ -133,6 +145,16 @@ export function EditorShell() {
           project={project}
           open={exportOpen}
           onClose={() => setExportOpen(false)}
+        />
+      )}
+
+      {/* Comments — bottom-left, press C to toggle */}
+      {project && (
+        <CommentsPanel
+          projectId={project.id}
+          open={commentsOpen}
+          onClose={() => setCommentsOpen(false)}
+          playheadSec={playheadSec}
         />
       )}
     </div>

@@ -12,7 +12,7 @@
  *   - Aspect ratio + duration pill (typography only) on the far right
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Eye, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { EditorProject, EditorView } from "@/lib/editor/types";
@@ -24,6 +24,8 @@ interface Props {
   view: EditorView;
   onViewChange: (view: EditorView) => void;
   onOpenExport: () => void;
+  onToggleComments: () => void;
+  presenceCount: number;
 }
 
 function fmtDuration(sec: number): string {
@@ -33,7 +35,14 @@ function fmtDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function TopStatusBar({ project, view, onViewChange, onOpenExport }: Props) {
+export function TopStatusBar({
+  project,
+  view,
+  onViewChange,
+  onOpenExport,
+  onToggleComments,
+  presenceCount,
+}: Props) {
   return (
     <header className="relative z-30 px-6 pt-6 pb-5 sm:px-9 lg:px-12">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -115,6 +124,30 @@ export function TopStatusBar({ project, view, onViewChange, onOpenExport }: Prop
                   {fmtDuration(project.durationSec)}
                 </div>
               </div>
+              {/* Presence chip — N people viewing (incl. self) */}
+              {presenceCount > 1 && (
+                <div className="inline-flex items-center gap-1.5 text-foreground/80">
+                  <Eye className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+                  <span className="font-mono text-[12.5px] tabular-nums">{presenceCount}</span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/55")}>viewing</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onToggleComments}
+                className="group/com inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-foreground transition-colors"
+                aria-label="Toggle comments (C)"
+              >
+                <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
+                <span className="relative">
+                  Comments
+                  <span
+                    aria-hidden
+                    className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 group-hover/com:scale-x-100"
+                  />
+                </span>
+                <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>C</span>
+              </button>
               <button
                 type="button"
                 onClick={onOpenExport}

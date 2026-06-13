@@ -1,31 +1,32 @@
 /**
- * ClipFilmstrip — renders multiple sample frames from a clip's
- * video as a horizontal tiled strip. Used inside ClipBlock on V1
- * so the timeline shows actual video frames rather than a single
- * static thumbnail.
+ * ClipFilmstrip — render real video frames inside a timeline clip block.
  *
- * How it works:
- *   1. Mount a hidden <video> + offscreen <canvas>.
- *   2. Compute N evenly-spaced timestamps across the clip's
- *      durationSec (we extract N frames where N ≈ widthPx / 80,
- *      clamped to 1..8 so super-narrow blocks get one frame and
- *      super-wide ones don't drown).
- *   3. For each timestamp: seek the video, wait for `seeked`,
- *      draw to canvas, toBlob → object URL.
- *   4. Render the URLs as <img> tiles filling the clip width.
- *   5. Frames are cached in module-level Map keyed by
- *      (clipId, durationSec) so re-mounts during scroll / reorder
- *      don't re-extract.
+ * Previous incarnation tried to extract frames via canvas drawImage,
+ * which fails silently on every CORS-restricted source (W3 samplers,
+ * Replicate delivery URLs, picsum, etc). Result: no frames ever
+ * shown, regardless of zoom level.
  *
- * Gotchas this handles:
- *   - CORS: video element doesn't need crossOrigin for <video>
- *     playback, BUT canvas drawImage from a CORS-tainted source
- *     throws SecurityError. We attempt with crossOrigin="anonymous"
- *     first; on failure fall back to NOT setting it and just
- *     showing the first-frame thumbnail tiled. No throw bubbles.
- *   - Timeouts: 8s ceiling per frame; if the video doesn't seek in
- *     time, give up on that frame.
- *   - Cleanup: revoke object URLs on unmount to free GPU memory.
+ * This version uses a fundamentally simpler approach: render N actual
+ * <video> elements directly inside the clip block, each seeked to a
+ * different timestamp via currentTime. Video PLAYBACK does NOT need
+ * CORS (only canvas readback does), so the frames render reliably
+ * regardless of host.
+ *
+ * Tradeoffs:
+ *   - Each tile element is a real <video>. preload="metadata" so only
+ *     headers + seek-target frames load — bytes are small.
+ *   - Browsers cap concurrent video element loads, but ~8 per clip ×
+ *     N clips in viewport is comfortably under typical limits.
+ *   - The same video src across the clip's tiles means the browser
+ *     reuses cached bytes — only one network fetch per clip, not N.
+ *
+ * Fallback chain:
+ *   1. videoUrl set → render N video tiles seeked to evenly-spaced
+ *      timestamps within the clip duration.
+ *   2. No videoUrl but fallbackThumbnailUrl set → render N tiles of
+ *      the static thumbnail with offset background position.
+ *   3. Nothing → render N gradient tiles so the strip is still
+ *      visible even on empty clips.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -34,132 +35,8 @@ interface Props {
   videoUrl: string | null;
   durationSec: number;
   widthPx: number;
-  /** Optional pre-existing thumbnail to show until frames extract. */
+  /** Optional thumbnail when the video URL is missing or fails. */
   fallbackThumbnailUrl: string | null;
-}
-
-// Module-level cache so frames don't re-extract on every re-mount.
-// Keyed by clipId + duration so trim changes invalidate cleanly.
-const frameCache = new Map<string, { urls: string[]; revoke: () => void }>();
-const inflight = new Map<string, Promise<string[]>>();
-
-export function ClipFilmstrip({
-  clipId,
-  videoUrl,
-  durationSec,
-  widthPx,
-  fallbackThumbnailUrl,
-}: Props) {
-  const [frames, setFrames] = useState<string[]>(() => {
-    const cached = frameCache.get(cacheKey(clipId, durationSec));
-    return cached?.urls ?? [];
-  });
-
-  const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
-
-  useEffect(() => {
-    if (!videoUrl) return;
-    const key = cacheKey(clipId, durationSec);
-    if (frameCache.has(key)) {
-      setFrames(frameCache.get(key)!.urls);
-      return;
-    }
-    if (inflight.has(key)) {
-      void inflight.get(key)!.then((urls) => {
-        if (mounted.current) setFrames(urls);
-      });
-      return;
-    }
-    const promise = extractFrames(videoUrl, durationSec, framesForWidth(widthPx));
-    inflight.set(key, promise);
-    void promise.then((urls) => {
-      inflight.delete(key);
-      if (urls.length > 0) {
-        frameCache.set(key, {
-          urls,
-          revoke: () => urls.forEach((u) => URL.revokeObjectURL(u)),
-        });
-      }
-      if (mounted.current) setFrames(urls);
-    });
-    // We intentionally DO NOT depend on widthPx — re-extracting on
-    // every zoom would thrash. The initial count is computed for
-    // the width at first paint; tile stretching handles the rest.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipId, videoUrl, durationSec]);
-
-  // Extraction failed (CORS / canvas tainted / unsupported codec) →
-  // fall back to a TILED thumbnail strip so the row always reads
-  // as "video frames" rather than a single static image. The tiles
-  // use the thumbnail offset across the strip to fake a film-strip
-  // feel even when the actual frames aren't extractable.
-  if (frames.length === 0) {
-    if (fallbackThumbnailUrl) {
-      const tileCount = framesForWidth(widthPx);
-      return (
-        <div className="absolute inset-0 flex pointer-events-none" aria-hidden>
-          {Array.from({ length: tileCount }, (_, i) => (
-            <div
-              key={i}
-              className="h-full flex-1 min-w-0 overflow-hidden relative"
-              style={{
-                // Slight horizontal offset per tile to suggest a
-                // sequence of frames panning across.
-                backgroundImage: `url(${fallbackThumbnailUrl})`,
-                backgroundSize: `${tileCount * 100}% 100%`,
-                backgroundPosition: `${(i / Math.max(1, tileCount - 1)) * 100}% center`,
-                backgroundRepeat: "no-repeat",
-              }}
-            >
-              {i > 0 && (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-0 bottom-0 w-px bg-black/30"
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  }
-
-  return (
-    <div
-      className="absolute inset-0 flex pointer-events-none"
-      aria-hidden
-    >
-      {frames.map((url, i) => (
-        <div
-          key={i}
-          className="h-full flex-1 min-w-0 overflow-hidden relative"
-        >
-          <img
-            src={url}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            draggable={false}
-          />
-          {i > 0 && (
-            <span
-              aria-hidden
-              className="absolute left-0 top-0 bottom-0 w-px bg-black/30"
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function cacheKey(clipId: string, durationSec: number): string {
-  return `${clipId}@${durationSec.toFixed(2)}`;
 }
 
 function framesForWidth(widthPx: number): number {
@@ -170,131 +47,128 @@ function framesForWidth(widthPx: number): number {
   return 8;
 }
 
-async function extractFrames(
-  videoUrl: string,
-  durationSec: number,
-  count: number,
-): Promise<string[]> {
-  // Two attempts: with crossOrigin first (so canvas drawImage doesn't
-  // taint), then without (some hosts don't return ACAO). On total
-  // failure we return [] and the caller shows the static thumbnail.
-  try {
-    const urls = await extractFramesAttempt(videoUrl, durationSec, count, true);
-    if (urls.length > 0) return urls;
-  } catch {
-    /* fall through */
-  }
-  try {
-    return await extractFramesAttempt(videoUrl, durationSec, count, false);
-  } catch {
-    return [];
-  }
-}
-
-function extractFramesAttempt(
-  videoUrl: string,
-  durationSec: number,
-  count: number,
-  useCrossOrigin: boolean,
-): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement("video");
-    if (useCrossOrigin) video.crossOrigin = "anonymous";
-    video.src = videoUrl;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      reject(new Error("no 2d context"));
-      return;
-    }
-
-    const urls: string[] = [];
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("extraction timeout"));
-    }, 12_000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      try {
-        video.src = "";
-        video.load();
-      } catch {
-        /* ignored */
-      }
-    }
-
-    video.onloadedmetadata = () => {
-      // Use the video's actual duration (might differ from the
-      // editor's trimmed durationSec). We sample within the editor's
-      // declared window so we never seek past natural end.
-      const usableDur = Math.min(
-        video.duration || durationSec,
-        durationSec,
-      );
-      canvas.width = Math.min(320, video.videoWidth || 320);
-      canvas.height = Math.min(180, video.videoHeight || 180);
-
-      const stamps = framesAtStamps(usableDur, count);
-      let i = 0;
-
-      const captureNext = () => {
-        if (i >= stamps.length) {
-          cleanup();
-          resolve(urls);
-          return;
-        }
-        const t = stamps[i++];
-        // Seek; the seeked handler captures + advances.
-        try {
-          video.currentTime = t;
-        } catch {
-          /* will fall through to next on error */
-          captureNext();
-        }
-      };
-
-      const onSeeked = () => {
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob) urls.push(URL.createObjectURL(blob));
-              captureNext();
-            },
-            "image/jpeg",
-            0.72,
-          );
-        } catch {
-          // Canvas tainted — bail this attempt.
-          cleanup();
-          reject(new Error("canvas tainted"));
-        }
-      };
-
-      video.onseeked = onSeeked;
-      captureNext();
-    };
-    video.onerror = () => {
-      cleanup();
-      reject(new Error("video load failed"));
-    };
-  });
-}
-
-/** Evenly-spaced sample timestamps avoiding the very first frame
- *  (often a black frame) and the very last (often a fade-out). */
+/** Evenly spaced sample timestamps avoiding the very first frame
+ *  (often black) and the very last (often a fade-out). */
 function framesAtStamps(durationSec: number, count: number): number[] {
   if (count <= 1) {
     return [Math.min(0.5, durationSec * 0.5)];
   }
-  // Sample between 5% and 95% of the duration.
   const start = durationSec * 0.05;
   const end = durationSec * 0.95;
   const stride = (end - start) / (count - 1);
   return Array.from({ length: count }, (_, i) => start + i * stride);
+}
+
+export function ClipFilmstrip({
+  clipId,
+  videoUrl,
+  durationSec,
+  widthPx,
+  fallbackThumbnailUrl,
+}: Props) {
+  const count = framesForWidth(widthPx);
+  const stamps = framesAtStamps(durationSec, count);
+
+  return (
+    <div
+      className="absolute inset-0 flex pointer-events-none"
+      aria-hidden
+    >
+      {stamps.map((t, i) => (
+        <FrameTile
+          key={`${clipId}-${i}`}
+          videoUrl={videoUrl}
+          fallbackThumbnailUrl={fallbackThumbnailUrl}
+          seekTo={t}
+          isFirst={i === 0}
+          tileIndex={i}
+          tileCount={stamps.length}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** One tile in the strip — a video element seeked to a specific
+ *  timestamp. Falls back to thumbnail / gradient. */
+function FrameTile({
+  videoUrl,
+  fallbackThumbnailUrl,
+  seekTo,
+  isFirst,
+  tileIndex,
+  tileCount,
+}: {
+  videoUrl: string | null;
+  fallbackThumbnailUrl: string | null;
+  seekTo: number;
+  isFirst: boolean;
+  tileIndex: number;
+  tileCount: number;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onLoaded = () => {
+      try {
+        v.currentTime = seekTo;
+      } catch {
+        /* ignored */
+      }
+    };
+    const onError = () => setVideoFailed(true);
+    v.addEventListener("loadedmetadata", onLoaded);
+    v.addEventListener("error", onError);
+    return () => {
+      v.removeEventListener("loadedmetadata", onLoaded);
+      v.removeEventListener("error", onError);
+    };
+  }, [seekTo]);
+
+  return (
+    <div className="h-full flex-1 min-w-0 overflow-hidden relative">
+      {videoUrl && !videoFailed ? (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="absolute inset-0 w-full h-full object-cover"
+          muted
+          playsInline
+          preload="metadata"
+          // Don't try to play — we just want the seek-to-stamp frame.
+          autoPlay={false}
+          controls={false}
+        />
+      ) : fallbackThumbnailUrl ? (
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${fallbackThumbnailUrl})`,
+            backgroundSize: `${tileCount * 100}% 100%`,
+            backgroundPosition: `${(tileIndex / Math.max(1, tileCount - 1)) * 100}% center`,
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+      ) : (
+        // Final fallback: a vertical gradient so the strip still
+        // reads as a tile rather than a void.
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, hsl(220 28% 10%) 0%, hsl(220 32% 7%) 100%)",
+          }}
+        />
+      )}
+      {!isFirst && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-px bg-black/30"
+        />
+      )}
+    </div>
+  );
 }

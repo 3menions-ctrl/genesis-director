@@ -19,6 +19,7 @@ import { useParams } from "react-router-dom";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useProject } from "@/hooks/editor/useProject";
+import { useScriptDocument } from "@/hooks/editor/useScriptDocument";
 import { usePersistence } from "@/hooks/editor/usePersistence";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,13 @@ export default function Editor() {
 
   useProject(effectiveId);
   usePersistence(effectiveId);
+  // Load + subscribe to the ScriptDocument constitution. New surfaces
+  // (ShotInspectorCard, cost preview, Script v3, Director Chat typed
+  // writes) read from the document store. Legacy surfaces continue
+  // through useProject's EditorProject path so this is purely
+  // additive — both stores live side by side during the integration
+  // sweep.
+  useScriptDocument(effectiveId);
 
   return (
     <FoundationShell bare>

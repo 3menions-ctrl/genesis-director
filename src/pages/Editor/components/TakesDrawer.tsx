@@ -20,7 +20,20 @@
  * float over the timeline / stage content and a hairless overlay
  * would mush into the canvas behind it.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  getDocumentState as getDocumentStoreState,
+  subscribeDocument as subscribeDocumentStore,
+  setShotApproval as setShotApprovalMut,
+} from "@/lib/editor/document-store";
+import { findShot as findShotInDoc } from "@/lib/editor/script-document";
+import { enqueueShot as enqueueShotMut } from "@/lib/editor/generation/orchestrator";
+import {
+  buildEngineInput as buildEngineInputFn,
+  selectEngineForShot as selectEngineForShotFn,
+} from "@/lib/editor/generation/pipeline";
+import { buildChainContext as buildChainContextFn } from "@/lib/editor/generation/chains";
+import { ShotInspectorCard } from "./ShotInspectorCard";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Wand2,
@@ -275,6 +288,12 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
         aria-label="Inspector"
         className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col overflow-hidden"
       >
+        {/* Shot inspector mounts AT THE TOP when the selected clip
+            id matches a Shot in the document — that's the path the
+            generation-document flow walks. Legacy InspectorBody
+            stays below for properties, takes drawer, keyframes,
+            etc. until those land on the document too. */}
+        <DocumentShotMount selectedClipId={selectedClipId} />
         <InspectorBody
           clip={clip}
           composerOpen={composerOpen}
@@ -1273,5 +1292,54 @@ function KindButton({
       <span className="truncate">{TRANSITION_LABELS[kind]}</span>
       {active && <Check className="h-3 w-3 text-accent" strokeWidth={2} />}
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DocumentShotMount — bridges the editor's selectedClipId to the
+// document's Shot model. When the selected clip id matches a Shot,
+// renders the ShotInspectorCard above the legacy inspector.
+// ─────────────────────────────────────────────────────────────────────────────
+function DocumentShotMount({
+  selectedClipId,
+}: {
+  selectedClipId: string | null;
+}) {
+  const docState = useSyncExternalStore(
+    subscribeDocumentStore,
+    getDocumentStoreState,
+    getDocumentStoreState,
+  );
+  const doc = docState.doc;
+  const shot = useMemo(
+    () => (doc && selectedClipId ? findShotInDoc(doc, selectedClipId) : null),
+    [doc, selectedClipId],
+  );
+
+  if (!shot || !doc) return null;
+
+  const handleApproveAndRender = (shotId: string) => {
+    setShotApprovalMut(shotId, "ready", { reason: "Approved via inspector" });
+    const target = findShotInDoc(doc, shotId);
+    if (!target) return;
+    const chainCtx = buildChainContextFn(doc, shotId);
+    const inputs = buildEngineInputFn(target, doc, chainCtx);
+    const engine = selectEngineForShotFn(target, doc);
+    enqueueShotMut({
+      projectId: doc.meta.projectId,
+      shotId,
+      inputs,
+      engine,
+      tier: doc.capabilities.qualityTier,
+    });
+  };
+
+  return (
+    <div className="shrink-0 border-b border-white/[0.04] px-4 py-4">
+      <ShotInspectorCard
+        shotId={shot.id}
+        onApproveAndRender={handleApproveAndRender}
+      />
+    </div>
   );
 }

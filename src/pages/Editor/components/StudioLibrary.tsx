@@ -33,6 +33,11 @@ import {
   type EffectCategory,
   type ProjectTemplate,
 } from "@/lib/editor/library";
+import {
+  getDocumentState,
+  flushNow as forceFlush,
+} from "@/lib/editor/document-store";
+import { recommendedEngineForTemplate as recommendedEngineForTemplateFn } from "@/lib/editor/model-catalog";
 import { toast } from "sonner";
 
 interface Props {
@@ -82,6 +87,54 @@ export function StudioLibrary({ open, onClose }: Props) {
       transitionDurationSec: template.transition.durationSec,
       playbackSpeed: template.playbackSpeed,
     });
+
+    // ALSO write the template into the ScriptDocument so the cost
+    // preview, suggested engines (recommendedEngineForTemplate), and
+    // the Script tab's pacing guidance all read the same source.
+    // Best-effort — a project without a loaded document silently
+    // skips this; the legacy clip-level effects still apply.
+    try {
+      const doc = getDocumentState().doc;
+      if (doc) {
+        const templateIdMap: Record<string, import("@/lib/editor/script-document").TemplateId> = {
+          "the-trailer": "trailer",
+          "music-video": "music-video",
+          documentary: "documentary",
+          "wedding-cinematic": "wedding-cinematic",
+          "tiktok-reel": "tiktok-reel",
+          "brand-promo": "brand-promo",
+          "festival-indie": "festival-indie",
+          "brutalist-drop": "brutalist-drop",
+        };
+        const newTemplate: import("@/lib/editor/script-document").VideoTemplate = {
+          id: templateIdMap[template.id] ?? "custom",
+          name: template.name,
+          pacing:
+            template.playbackSpeed >= 1.1
+              ? "punchy"
+              : template.playbackSpeed >= 0.95
+              ? "medium"
+              : "languid",
+          defaultTransition: {
+            kind: template.transition.kind,
+            durationSec: template.transition.durationSec,
+          },
+          averageShotLengthSec: template.transition.kind === "fade" ? 6 : 5,
+          structureGuide: template.description,
+        };
+        doc.template = newTemplate;
+        // Hint at the recommended engine — only when the user hasn't
+        // already overridden the default per project.
+        const recommended = recommendedEngineForTemplateFn(newTemplate.id);
+        doc.capabilities.defaultEngine = recommended;
+        // Mark dirty so the change persists.
+        forceFlush();
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[StudioLibrary] doc template write failed:", e);
+    }
+
     toast.message(`${template.name} applied`, {
       description: `${result.clipsTouched} clips · ${result.boundariesTouched} transitions · ${template.playbackSpeed}× playback`,
     });

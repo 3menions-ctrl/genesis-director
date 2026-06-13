@@ -58,6 +58,7 @@ import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
 import { CreatePanel } from "./components/CreatePanel";
+import { BudgetPanel } from "./components/BudgetPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -117,6 +118,7 @@ export function EditorShell() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -401,6 +403,12 @@ export function EditorShell() {
         setCreateOpen((o) => !o);
         return;
       }
+      // Cmd+B — open the Budget panel (cost preview).
+      if ((e.metaKey || e.ctrlKey) && (e.key === "b" || e.key === "B")) {
+        e.preventDefault();
+        setBudgetOpen((o) => !o);
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -642,6 +650,12 @@ export function EditorShell() {
         project={displayProject}
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+      />
+
+      {/* Budget panel — Cmd+B */}
+      <BudgetPanel
+        open={budgetOpen}
+        onClose={() => setBudgetOpen(false)}
       />
     </div>
   );

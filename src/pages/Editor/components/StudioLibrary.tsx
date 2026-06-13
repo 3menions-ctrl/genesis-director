@@ -14,11 +14,17 @@
  * undoable from the Versions panel.
  */
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X, Sparkles, Film, Wand2, ChevronRight } from "lucide-react";
+import { Film, Wand2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
+import {
+  Surface,
+  SurfaceHeader,
+  SurfaceBody,
+  SurfaceFooter,
+  SurfaceKbdHint,
+} from "./Surface";
 import {
   PREMIUM_EFFECTS,
   NEUTRAL_EFFECT,
@@ -45,23 +51,9 @@ const CATEGORY_LABEL: Record<EffectCategory, string> = {
 const CATEGORY_ORDER: EffectCategory[] = ["color", "film", "atmosphere"];
 
 export function StudioLibrary({ open, onClose }: Props) {
-  const reducedMotion = useReducedMotion();
   const [tab, setTab] = useState<Tab>("effects");
   const { selectedClipIds, applyEffectToClips, applyProjectTemplate } = useEditor();
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        const t = e.target as HTMLElement | null;
-        const tag = t?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  useEffect(() => void 0, [open]);
 
   const applyEffect = (effect: CinematicEffect) => {
     const targetIds = selectedClipIds.length > 0 ? selectedClipIds : undefined;
@@ -97,99 +89,58 @@ export function StudioLibrary({ open, onClose }: Props) {
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.65)] backdrop-blur-sm"
+    <Surface open={open} onClose={onClose} size="xl" labelledBy="library-title">
+      <SurfaceHeader
+        id="library-title"
+        eyebrow="◆ Studio Library"
+        title="Curated · the looks the field reaches for."
+        description="Twelve effects. Eight templates. Every one earned by being the answer to “what would a working DP actually use here.”"
+        onClose={onClose}
+      />
+
+      {/* Tabs */}
+      <div className="relative shrink-0 px-7 pt-4 flex items-center gap-1">
+        <TabButton
+          active={tab === "effects"}
+          icon={<Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
+          label="Effects"
+          count={PREMIUM_EFFECTS.length}
+          onClick={() => setTab("effects")}
+        />
+        <TabButton
+          active={tab === "templates"}
+          icon={<Film className="h-3.5 w-3.5" strokeWidth={1.5} />}
+          label="Templates"
+          count={PROJECT_TEMPLATES.length}
+          onClick={() => setTab("templates")}
+        />
+      </div>
+
+      <SurfaceBody>
+        {tab === "effects" ? (
+          <EffectsTab
+            selectedClipCount={selectedClipIds.length}
+            onApply={applyEffect}
+            onApplyNeutral={() => applyEffect(NEUTRAL_EFFECT)}
           />
-          <motion.aside
-            role="dialog"
-            aria-labelledby="library-title"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.34, ease: EASE_PREMIUM }}
-            className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-[min(1100px,94vw)] max-h-[88vh] overflow-hidden flex flex-col",
-              "rounded-3xl border border-white/[0.08]",
-              "bg-[hsl(220_30%_4%/0.94)] backdrop-blur-2xl",
-              "shadow-[0_60px_180px_-30px_hsl(0_0%_0%/0.9)]",
-            )}
-          >
-            {/* Header */}
-            <header className="shrink-0 px-7 pt-7 pb-4 flex items-start justify-between gap-4 border-b border-white/[0.05]">
-              <div className="min-w-0">
-                <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                  <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
-                  <span>◆ Studio Library</span>
-                </div>
-                <h2
-                  id="library-title"
-                  className="mt-1 font-display italic text-[26px] font-light tracking-tight text-foreground/95"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
-                  Curated · the looks the field reaches for.
-                </h2>
-                <p className="mt-1 text-[12.5px] text-muted-foreground/65 max-w-[600px]">
-                  Twelve effects. Eight templates. Every one earned by being the answer to “what would a working DP actually use here.”
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close library"
-                className="text-muted-foreground/55 hover:text-foreground transition-colors mt-1"
-              >
-                <X className="h-4 w-4" strokeWidth={1.5} />
-              </button>
-            </header>
+        ) : (
+          <TemplatesTab onApply={applyTemplate} />
+        )}
+      </SurfaceBody>
 
-            {/* Tabs */}
-            <div className="shrink-0 px-7 pt-4 flex items-center gap-1 border-b border-white/[0.04]">
-              <TabButton
-                active={tab === "effects"}
-                icon={<Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
-                label="Effects"
-                count={PREMIUM_EFFECTS.length}
-                onClick={() => setTab("effects")}
-              />
-              <TabButton
-                active={tab === "templates"}
-                icon={<Film className="h-3.5 w-3.5" strokeWidth={1.5} />}
-                label="Templates"
-                count={PROJECT_TEMPLATES.length}
-                onClick={() => setTab("templates")}
-              />
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-7 py-6 scrollbar-hide">
-              {tab === "effects" ? (
-                <EffectsTab
-                  selectedClipCount={selectedClipIds.length}
-                  onApply={applyEffect}
-                  onApplyNeutral={() => applyEffect(NEUTRAL_EFFECT)}
-                />
-              ) : (
-                <TemplatesTab onApply={applyTemplate} />
-              )}
-            </div>
-
-            <footer className="shrink-0 px-7 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-muted-foreground/55 font-mono uppercase tracking-[0.20em]">
-              <span>Shift+L · open  ·  Esc · close</span>
-              <span>{tab === "effects" ? `${PREMIUM_EFFECTS.length} curated effects` : `${PROJECT_TEMPLATES.length} curated templates`}</span>
-            </footer>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+      <SurfaceFooter>
+        <span className="flex items-center gap-2">
+          <SurfaceKbdHint keys="⇧L" label="open" />
+          <span aria-hidden>·</span>
+          <SurfaceKbdHint keys="Esc" label="close" />
+        </span>
+        <span>
+          {tab === "effects"
+            ? `${PREMIUM_EFFECTS.length} curated effects`
+            : `${PROJECT_TEMPLATES.length} curated templates`}
+        </span>
+      </SurfaceFooter>
+    </Surface>
   );
 }
 

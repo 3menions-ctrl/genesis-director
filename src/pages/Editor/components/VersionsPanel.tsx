@@ -11,12 +11,12 @@
  * v1 is read-only on the past stack with restore. v2 will add: named
  * branches, side-by-side compare, and merging.
  */
-import { useEffect, useMemo } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, X, RotateCcw, Diff, GitBranch } from "lucide-react";
+import { useMemo } from "react";
+import { Sparkles, RotateCcw, Diff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
+import { Surface, SurfaceHeader, SurfaceBody, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 
 interface Props {
   open: boolean;
@@ -39,17 +39,7 @@ function prettyLabel(label?: string): string {
 }
 
 export function VersionsPanel({ open, onClose }: Props) {
-  const reducedMotion = useReducedMotion();
   const { history, project, undo } = useEditor();
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
 
   // Walk N undos to restore a past version. Each undo() shifts the
   // current project into future[] and pulls the most recent past[]
@@ -102,61 +92,20 @@ export function VersionsPanel({ open, onClose }: Props) {
   }, [history.past, project]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.55)] backdrop-blur-sm"
-          />
-          <motion.aside
-            role="dialog"
-            aria-labelledby="versions-title"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -24 }}
-            transition={{ duration: 0.32, ease: EASE_PREMIUM }}
-            className={cn(
-              "fixed top-1/2 left-3 -translate-y-1/2 z-50",
-              "w-[min(420px,92vw)] max-h-[88vh] overflow-hidden flex flex-col",
-              "rounded-2xl border border-white/[0.08]",
-              "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
-              "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85)]",
-            )}
-          >
-            {/* Header */}
-            <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3 border-b border-white/[0.05]">
-              <div className="min-w-0">
-                <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                  <GitBranch className="h-3 w-3 text-accent" strokeWidth={1.5} />
-                  <span>◆ Versions</span>
-                </div>
-                <h3
-                  id="versions-title"
-                  className="mt-1 font-display italic text-[20px] font-light tracking-tight text-foreground/95"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
-                  Every edit you&rsquo;ve made
-                </h3>
-                <p className="mt-1 text-[12px] text-muted-foreground/65">
-                  Click any version to restore it. Your current work is preserved as the next entry.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close versions"
-                className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" strokeWidth={1.5} />
-              </button>
-            </header>
-
-            <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-hide">
+    <Surface
+      open={open}
+      onClose={onClose}
+      size="md"
+      labelledBy="versions-title"
+    >
+      <SurfaceHeader
+        id="versions-title"
+        eyebrow="◆ Versions"
+        title="Every edit you've made"
+        description="Click any version to restore it. Your current work is preserved as the next entry."
+        onClose={onClose}
+      />
+      <SurfaceBody noPadding className="px-3 py-3">
               {items.length <= 1 ? (
                 <div className="px-6 py-12 text-center">
                   <Sparkles className="h-5 w-5 text-muted-foreground/45 mx-auto" strokeWidth={1.4} />
@@ -233,18 +182,14 @@ export function VersionsPanel({ open, onClose }: Props) {
                   ))}
                 </ol>
               )}
-            </div>
-
-            <footer className="shrink-0 px-5 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-muted-foreground/65 font-mono uppercase tracking-[0.18em]">
-              <span className="flex items-center gap-1.5">
-                <Diff className="h-3 w-3" strokeWidth={1.5} />
-                {history.past.length} past · {history.future.length} ahead
-              </span>
-              <span>Cmd+Shift+V</span>
-            </footer>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+      </SurfaceBody>
+      <SurfaceFooter>
+        <span className="flex items-center gap-1.5">
+          <Diff className="h-3 w-3" strokeWidth={1.5} />
+          {history.past.length} past · {history.future.length} ahead
+        </span>
+        <SurfaceKbdHint keys="⌘⇧V" label="versions" />
+      </SurfaceFooter>
+    </Surface>
   );
 }

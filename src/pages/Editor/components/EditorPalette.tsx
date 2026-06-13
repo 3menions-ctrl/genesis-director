@@ -16,7 +16,6 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Search,
   Film,
@@ -30,7 +29,8 @@ import {
   CornerDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
+import { Surface, SurfaceFooter } from "./Surface";
 import type { EditorClip, EditorProject, EditorView } from "@/lib/editor/types";
 import { selectClip, selectScene, setPlayhead, setView } from "@/lib/editor/store";
 
@@ -57,7 +57,6 @@ export function EditorPalette({
   onOpenComments,
   onOpenHelp,
 }: Props) {
-  const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
@@ -202,99 +201,75 @@ export function EditorPalette({
   }, [selected]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.55)] backdrop-blur-sm"
-          />
-          <motion.div
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: EASE_PREMIUM }}
-            role="dialog"
-            aria-label="Editor command palette"
-            className={cn(
-              "fixed left-1/2 -translate-x-1/2 z-50",
-              "top-[12vh] w-[min(620px,92vw)] max-h-[72vh] overflow-hidden flex flex-col",
-              "rounded-2xl border border-white/[0.08]",
-              "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
-              "shadow-[0_60px_140px_-30px_hsl(0_0%_0%/0.85)]",
-            )}
-          >
-            {/* Search field */}
-            <div className="shrink-0 px-5 pt-5 pb-3 border-b border-white/[0.05] flex items-center gap-3">
-              <Search className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Direct anywhere…"
-                className={cn(
-                  "flex-1 bg-transparent outline-none",
-                  "text-[15px] text-foreground placeholder:text-foreground/35",
-                  "font-display italic font-light",
-                )}
-                style={{ fontFamily: "'Fraunces', serif" }}
-              />
-              <span className={cn(TYPE_META, "text-muted-foreground/45 font-mono")}>
-                ⌘ P
-              </span>
-            </div>
+    <Surface open={open} onClose={onClose} size="md" blockEscClose>
+      {/* Search field */}
+      <div className="relative shrink-0 px-6 pt-5 pb-3 flex items-center gap-3">
+        <Search className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Direct anywhere…"
+          className={cn(
+            "flex-1 bg-transparent outline-none",
+            "text-[16px] text-foreground placeholder:text-foreground/35",
+            "font-display italic font-light",
+          )}
+          style={{ fontFamily: "'Fraunces', serif" }}
+        />
+        <span className={cn(TYPE_META, "text-muted-foreground/45 font-mono")}>
+          ⌘ P
+        </span>
+        <span
+          aria-hidden
+          className="absolute left-6 right-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+        />
+      </div>
 
-            {/* Results */}
-            {filtered.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <p className={cn(TYPE_META, "text-muted-foreground/55")}>
-                  No matches.
-                </p>
-              </div>
-            ) : (
-              <ul
-                ref={listRef}
-                className="flex-1 overflow-y-auto scrollbar-hide py-2"
-              >
-                {filtered.map((cmd, i) => (
-                  <CommandRow
-                    key={cmd.id}
-                    cmd={cmd}
-                    active={i === selected}
-                    onClick={() => execute(cmd)}
-                    onHover={() => setSelected(i)}
-                  />
-                ))}
-              </ul>
-            )}
-
-            <footer className="shrink-0 px-5 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11.5px] text-muted-foreground/55">
-              <span>{filtered.length} {filtered.length === 1 ? "result" : "results"}</span>
-              <span className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <Kbd>↑</Kbd><Kbd>↓</Kbd>
-                  <span className="ml-0.5">move</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <Kbd><CornerDownLeft className="h-2.5 w-2.5" strokeWidth={2.2} /></Kbd>
-                  <span>open</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <Kbd>Esc</Kbd>
-                  <span>close</span>
-                </span>
-              </span>
-            </footer>
-          </motion.div>
-        </>
+      {/* Results */}
+      {filtered.length === 0 ? (
+        <div className="px-6 py-10 text-center">
+          <p className={cn(TYPE_META, "text-muted-foreground/55")}>
+            No matches.
+          </p>
+        </div>
+      ) : (
+        <ul
+          ref={listRef}
+          className="flex-1 min-h-0 overflow-y-auto scrollbar-hide py-2"
+        >
+          {filtered.map((cmd, i) => (
+            <CommandRow
+              key={cmd.id}
+              cmd={cmd}
+              active={i === selected}
+              onClick={() => execute(cmd)}
+              onHover={() => setSelected(i)}
+            />
+          ))}
+        </ul>
       )}
-    </AnimatePresence>
+
+      <SurfaceFooter>
+        <span>{filtered.length} {filtered.length === 1 ? "result" : "results"}</span>
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <Kbd>↑</Kbd><Kbd>↓</Kbd>
+            <span className="ml-0.5">move</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd><CornerDownLeft className="h-2.5 w-2.5" strokeWidth={2.2} /></Kbd>
+            <span>open</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>Esc</Kbd>
+            <span>close</span>
+          </span>
+        </span>
+      </SurfaceFooter>
+    </Surface>
   );
 }
 

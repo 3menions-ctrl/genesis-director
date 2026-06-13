@@ -16,10 +16,10 @@
  * UI carries through unchanged.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, Send, X, Mic, MicOff } from "lucide-react";
+import { Send, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
+import { Surface, SurfaceHeader, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 import { supabase } from "@/integrations/supabase/client";
 import type { EditorProject } from "@/lib/editor/types";
 import {
@@ -68,7 +68,6 @@ const SUGGESTIONS = [
 ];
 
 export function DirectorChat({ project, open, onClose }: Props) {
-  const reducedMotion = useReducedMotion();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -77,16 +76,11 @@ export function DirectorChat({ project, open, onClose }: Props) {
   const [listening, setListening] = useState(false);
   const { playheadSec } = useEditor();
 
-  // Focus on open + Esc closes
+  // Focus on open. Surface handles Esc.
   useEffect(() => {
     if (!open) return;
     setTimeout(() => inputRef.current?.focus(), 80);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open]);
 
   // Auto-scroll on new turn
   useEffect(() => {
@@ -352,59 +346,22 @@ export function DirectorChat({ project, open, onClose }: Props) {
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.55)] backdrop-blur-sm"
-          />
-          <motion.aside
-            role="dialog"
-            aria-labelledby="director-chat-title"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 24 }}
-            transition={{ duration: 0.32, ease: EASE_PREMIUM }}
-            className={cn(
-              "fixed top-1/2 right-3 -translate-y-1/2 z-50",
-              "w-[min(480px,92vw)] max-h-[88vh] overflow-hidden flex flex-col",
-              "rounded-2xl border border-white/[0.08]",
-              "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
-              "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85)]",
-            )}
-          >
-            {/* Header */}
-            <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3 border-b border-white/[0.05]">
-              <div className="min-w-0">
-                <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                  <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
-                  <span>◆ Director</span>
-                </div>
-                <h3
-                  id="director-chat-title"
-                  className="mt-1 font-display italic text-[20px] font-light tracking-tight text-foreground/95"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
-                  How should we shape this?
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close director chat"
-                className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" strokeWidth={1.5} />
-              </button>
-            </header>
+    <Surface
+      open={open}
+      onClose={onClose}
+      size="md"
+      labelledBy="director-chat-title"
+      blockEscClose
+    >
+      <SurfaceHeader
+        id="director-chat-title"
+        eyebrow="◆ Director"
+        title="How should we shape this?"
+        onClose={onClose}
+      />
 
-            {/* Transcript */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 scrollbar-hide">
+      {/* Transcript */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 scrollbar-hide">
               {turns.length === 0 && !pending ? (
                 <div className="text-center py-6">
                   <p
@@ -480,9 +437,13 @@ export function DirectorChat({ project, open, onClose }: Props) {
               )}
             </div>
 
-            {/* Composer */}
-            <div className="shrink-0 p-3 border-t border-white/[0.05]">
-              <div className="flex items-end gap-2">
+      {/* Composer */}
+      <div className="relative shrink-0 px-6 py-3.5">
+        <span
+          aria-hidden
+          className="absolute left-6 right-6 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+        />
+        <div className="flex items-end gap-2">
                 <button
                   type="button"
                   onClick={listening ? stopListening : startListening}
@@ -522,30 +483,34 @@ export function DirectorChat({ project, open, onClose }: Props) {
                     "max-h-32",
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={() => void submit()}
-                  disabled={!text.trim() || pending}
-                  className={cn(
-                    "shrink-0 h-9 w-9 rounded-md flex items-center justify-center",
-                    "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",
-                    "transition-colors hover:bg-[hsl(var(--accent)/0.24)]",
-                    "disabled:opacity-30 disabled:cursor-not-allowed",
-                  )}
-                  aria-label="Send"
-                  title="Send (Enter)"
-                >
-                  <Send className="h-4 w-4" strokeWidth={1.5} />
-                </button>
-              </div>
-              <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/45">
-                <span>Cmd+/  · open  ·  Esc · close</span>
-                <span>{turns.length} {turns.length === 1 ? "turn" : "turns"}</span>
-              </div>
-            </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={!text.trim() || pending}
+            className={cn(
+              "shrink-0 h-9 w-9 rounded-md flex items-center justify-center",
+              "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",
+              "transition-colors hover:bg-[hsl(var(--accent)/0.24)]",
+              "disabled:opacity-30 disabled:cursor-not-allowed",
+            )}
+            aria-label="Send"
+            title="Send (Enter)"
+          >
+            <Send className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+
+      <SurfaceFooter>
+        <span className="flex items-center gap-2">
+          <SurfaceKbdHint keys="⌘/" label="open" />
+          <span aria-hidden>·</span>
+          <SurfaceKbdHint keys="Esc" label="close" />
+        </span>
+        <span>
+          {turns.length} {turns.length === 1 ? "turn" : "turns"}
+        </span>
+      </SurfaceFooter>
+    </Surface>
   );
 }

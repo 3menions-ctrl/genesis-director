@@ -23,8 +23,6 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Film as FilmIcon,
-  Music2,
-  ShoppingBag,
   Globe2,
   Sparkles,
 } from "lucide-react";
@@ -39,17 +37,16 @@ import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 
-// Legacy page bodies — lazy so each tab only loads when picked.
+// Music and Market un-merged back to standalone surfaces (/music, /market).
+// Lobby is now the Watch destination — daily sketch + community films +
+// worlds + universes browsing. Music/Market are linked from the cross-link
+// strip in LobbyFilms (and from Cmd+K).
 const FilmsBody = lazy(() => import("@/pages/lobby/LobbyFilms"));
-const MusicBody = lazy(() => import("@/pages/MusicHub"));
-const MarketBody = lazy(() => import("@/pages/Market"));
 
-type Tab = "films" | "music" | "market" | "worlds";
+type Tab = "films" | "worlds";
 
 const TABS: ReadonlyArray<{ id: Tab; label: string; sub: string; Icon: typeof FilmIcon }> = [
   { id: "films",  label: "Films",  sub: "Community + Daily Sketch", Icon: FilmIcon },
-  { id: "music",  label: "Music",  sub: "Soundtracks · scores",      Icon: Music2 },
-  { id: "market", label: "Market", sub: "Buy + sell assets",         Icon: ShoppingBag },
   { id: "worlds", label: "Worlds", sub: "Canon · universes",         Icon: Globe2 },
 ];
 
@@ -66,7 +63,9 @@ export default function Lobby() {
 
   const tab = useMemo<Tab>(() => {
     const raw = params.get("tab");
-    if (raw === "music" || raw === "market" || raw === "worlds") return raw;
+    // Legacy ?tab=music / ?tab=market send the visitor to the standalone
+    // Music / Market surfaces — handled at the route level via redirect.
+    if (raw === "worlds") return "worlds";
     return "films";
   }, [params]);
 
@@ -136,16 +135,6 @@ export default function Lobby() {
                 {tab === "films" && (
                   <Suspense fallback={<TabLoadingState />}>
                     <FilmsBody />
-                  </Suspense>
-                )}
-                {tab === "music" && (
-                  <Suspense fallback={<TabLoadingState />}>
-                    <MusicBody />
-                  </Suspense>
-                )}
-                {tab === "market" && (
-                  <Suspense fallback={<TabLoadingState />}>
-                    <MarketBody />
                   </Suspense>
                 )}
                 {tab === "worlds" && <WorldsTab />}

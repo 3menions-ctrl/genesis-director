@@ -1,14 +1,18 @@
 /**
  * Market — /market
  *
- * The entertainment store. Re-skinned to match the Create page identity:
- * StudioAurora backdrop, cinematic gradient title, glass-pill StudioTabs,
- * PageShell layout. Wraps in the workspace AppShell at the route level.
+ * The entertainment marketplace. Standalone Foundation surface where
+ * directors buy and sell atoms — voices, characters, locations, looks,
+ * scores, sheet music, masterclasses, patron rooms. Sits alongside Music
+ * and Studio as a parallel creation-economy destination.
+ *
+ * Composed in the canonical Foundation room:
+ *   FoundationShell + EditorialCanvas + SpineBackdrop.
  *
  * Tabs: All / Voices / Characters / Locations / Looks / Scores /
  *       Sheet Music / Masterclasses / Patron Rooms / Your Shop.
  *
- * When the DB has no listings, the page renders curated demo cards so the
+ * When the DB has no listings, curated demo cards render so the
  * marketplace looks alive on day one. Real listings replace demos as
  * creators publish.
  */
@@ -28,6 +32,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 
 import { confirmAsync } from '@/components/ui/global-confirm';
 type AtomType = "voice" | "character" | "location" | "look" | "score" | "vfx_pack" | "sheet_music" | "course";
@@ -215,8 +222,18 @@ export default function Market() {
     return groups;
   }, [activeTab, listings]);
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
-    <div className="relative">
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "market"],
+            timecode: liveRenderTimecode ?? `${listings.length} ACTIVE`,
+          }}
+        >
         <StudioHero
           eyebrow="Tonight"
           title="Trade"
@@ -305,7 +322,9 @@ export default function Market() {
             </motion.div>
           </AnimatePresence>
         )}
-    </div>
+        </EditorialCanvas>
+      </div>
+    </FoundationShell>
   );
 }
 

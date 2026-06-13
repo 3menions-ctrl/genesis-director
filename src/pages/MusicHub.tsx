@@ -1,9 +1,15 @@
 /**
- * MusicHub — /music
+ * Music — /music
  *
- * Audio-first parallel surface. Cinematic identity matches the Create page
- * (StudioAurora + StudioHero + StudioTabs + PageShell), wrapped in
- * AppShell at the route so the workspace sidebar persists.
+ * Audio-first parallel creation surface. Sits alongside Studio as a
+ * standalone destination on Foundation. Score · Mix · Master · Karaoke ·
+ * Sheet Music — every prompt-to-soundtrack workflow lives here.
+ *
+ * Composed in the canonical Foundation room:
+ *   FoundationShell + EditorialCanvas + SpineBackdrop atmosphere.
+ * Inside the canvas, the existing StudioHero + StudioTabs primitives
+ * provide the page-level hero + tab control (kept verbatim — they're
+ * effectively content, not chrome).
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -20,6 +26,9 @@ import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 
 interface MusicReel {
   id: string;
@@ -106,8 +115,18 @@ export default function MusicHub() {
     navigate("/create");
   };
 
+  const liveRenderTimecode = useLiveRenderTimecode();
+
   return (
-    <div className="relative">
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "music"],
+            timecode: liveRenderTimecode ?? `${reels.length} REELS · LIVE`,
+          }}
+        >
         <StudioHero
           eyebrow="Tonight"
           title="Score"
@@ -183,7 +202,9 @@ export default function MusicHub() {
             </Link>
           </div>
         </section>
-    </div>
+        </EditorialCanvas>
+      </div>
+    </FoundationShell>
   );
 }
 

@@ -528,7 +528,12 @@ const App = () => {
                   </RouteContainer>
                 } />
                 {/* /music and /market are now tabs inside /lobby. */}
-                <Route path="/music" element={<Navigate to="/lobby?tab=music" replace />} />
+                {/* Music — standalone parallel creation surface. */}
+                <Route path="/music" element={
+                  <RouteContainer fallbackMessage="Loading music…">
+                    <MusicHub />
+                  </RouteContainer>
+                } />
                 
                 {/* Cast — Foundation surface that absorbs /avatars,
                     /avatars-gallery, and /mascots into one talent locker
@@ -606,7 +611,12 @@ const App = () => {
                     <AppShell><Profile /></AppShell>
                   </RouteContainer>
                 } />
-                <Route path="/market" element={<Navigate to="/lobby?tab=market" replace />} />
+                {/* Market — standalone creation-economy surface. */}
+                <Route path="/market" element={
+                  <RouteContainer fallbackMessage="Opening the doors…">
+                    <Market />
+                  </RouteContainer>
+                } />
                 {/* Crossover is a creation mode — folds into Studio as a tab. */}
                 <Route path="/crossover" element={<Navigate to="/studio?tab=crossover" replace />} />
                 <Route path="/crews" element={

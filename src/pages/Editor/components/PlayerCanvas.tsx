@@ -582,7 +582,6 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                 }}
                 playsInline
                 preload="auto"
-                crossOrigin="anonymous"
               />
             ) : clips.length > 0 ? (
               <div

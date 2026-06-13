@@ -64,7 +64,6 @@ import {
   appendPendingTake,
   selectClip,
 } from "@/lib/editor/store";
-import { toast } from "sonner";
 
 interface Props {
   project: EditorProject;

@@ -57,7 +57,7 @@ bootTheme();
 // so they begin downloading on hover. The list is small on purpose; we
 // only want to fire prefetch for routes a user is *very likely* to hit.
 installRoutePrefetcher();
-registerPrefetch('/projects',   () => import('./pages/Projects'));
+registerPrefetch('/library',    () => import('./pages/Library'));
 registerPrefetch('/studio',     () => import('./pages/Studio'));
 registerPrefetch('/library',    () => import('./pages/library/LibraryHub'));
 registerPrefetch('/library/wall', () => import('./pages/library/StoryboardWall'));

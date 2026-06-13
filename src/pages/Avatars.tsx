@@ -88,7 +88,8 @@ function AvatarsContent() {
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
 
-  const { templates, loading, error } = useAvatarTemplatesQuery();
+  // useAvatarTemplatesQuery returns isLoading (not loading) + error as string.
+  const { templates, isLoading, error } = useAvatarTemplatesQuery();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -290,7 +291,7 @@ function AvatarsContent() {
 
           {/* ── Grid ──────────────────────────────────────────── */}
           <div className="mt-8">
-            {loading ? (
+            {isLoading ? (
               <GridSkeleton />
             ) : error ? (
               <ErrorState onRetry={() => window.location.reload()} />

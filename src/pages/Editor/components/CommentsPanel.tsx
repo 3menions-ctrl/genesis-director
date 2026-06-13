@@ -11,17 +11,15 @@
  * Press C to open + focus the composer. Esc closes.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  MessageCircle,
-  X,
   CornerDownLeft,
   Pin,
   Send,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
+import { Surface, SurfaceHeader, SurfaceBody } from "./Surface";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { setPlayhead } from "@/lib/editor/store";
@@ -75,7 +73,6 @@ function relativeTime(iso: string): string {
 }
 
 export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) {
-  const reducedMotion = useReducedMotion();
   const { user, profile } = useAuth();
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [authors, setAuthors] = useState<Record<string, AuthorMeta>>({});
@@ -242,50 +239,22 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
   );
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-          transition={{ duration: 0.3, ease: EASE_PREMIUM }}
-          className={cn(
-            "fixed bottom-3 left-3 z-40",
-            "w-[min(380px,calc(100vw-1.5rem))] max-h-[60vh] flex flex-col",
-            "rounded-2xl border border-white/[0.07]",
-            "bg-[hsl(220_30%_4%/0.82)] backdrop-blur-2xl",
-            "shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.75)]",
-          )}
-        >
-          {/* Header */}
-          <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                <MessageCircle className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-                <span>◆ Comments</span>
-              </div>
-              <h3
-                className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {comments.length === 0 ? "Be the first." : `${comments.length} ${comments.length === 1 ? "note" : "notes"}.`}
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              aria-label="Close comments"
-            >
-              <X className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </header>
+    <Surface open={open} onClose={onClose} size="sm" blockEscClose>
+      <SurfaceHeader
+        eyebrow="◆ Comments"
+        title={
+          comments.length === 0
+            ? "Be the first."
+            : `${comments.length} ${comments.length === 1 ? "note" : "notes"}.`
+        }
+        description="Frame-pinned notes for review."
+        onClose={onClose}
+      />
 
-          {/* List */}
-          <div
-            ref={listRef}
-            className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-3"
-          >
+      <SurfaceBody noPadding className="px-5 py-4" >
+        <div
+          ref={listRef}
+        >
             {loading ? (
               <div className="py-8 text-center">
                 <Loader2 className="h-5 w-5 text-accent/65 animate-spin mx-auto" strokeWidth={1.5} />
@@ -334,11 +303,16 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
                 })}
               </ul>
             )}
-          </div>
+        </div>
+      </SurfaceBody>
 
-          {/* Composer */}
-          <div className="shrink-0 border-t border-white/[0.05] px-4 pt-3 pb-4">
-            <div className="flex items-start gap-3">
+      {/* Composer */}
+      <div className="relative shrink-0 px-5 pt-3.5 pb-4">
+        <span
+          aria-hidden
+          className="absolute left-5 right-5 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+        />
+        <div className="flex items-start gap-3">
               <Avatar name={myName} avatarUrl={myAvatar} />
               <div className="min-w-0 flex-1">
                 <textarea
@@ -397,9 +371,7 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
               </div>
             </div>
           </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    </Surface>
   );
 }
 

@@ -13,16 +13,16 @@
  * runs without any payment processor.
  */
 
-import { useEffect, useState } from 'react';
-import { Sparkles, Send, History, BadgeCheck, ArrowUpRight, Wand2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Sparkles, Send, History, BadgeCheck, ArrowUpRight, Wand2, Coins } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useSafeNavigation } from '@/lib/navigation';
 import { toast } from 'sonner';
-import { BetaHero, Stat, StatGrid } from '@/components/ui/BetaHero';
 import { PrimaryCTA } from '@/components/ui/PrimaryCTA';
 import { Spinner } from '@/components/ui/Spinner';
+import { cn } from '@/lib/utils';
 
 interface CreditTransaction {
   id: string;
@@ -103,20 +103,13 @@ export default function Credits() {
 
   return (
     <div className="text-white">
-      <div className="max-w-[1280px] mx-auto px-6 pt-16 pb-24 space-y-10">
-        <BetaHero
-          eyebrow="Small Bridges"
-          title={<>Small Bridges is free while we&rsquo;re in beta.</>}
-          body={
-            <>You don&rsquo;t pay for anything yet. Generate, edit, and ship — we&rsquo;ll let you know when paid plans go live, well in advance.</>
-          }
-          rail={
-            <StatGrid>
-              <Stat label="Balance" value={balance.toLocaleString()} tone="blue" />
-              <Stat label="Used" value={used.toLocaleString()} tone="emerald" />
-              <Stat label="Granted" value={purchased.toLocaleString()} tone="neutral" />
-            </StatGrid>
-          }
+      <div className="max-w-[1180px] mx-auto px-6 pt-16 pb-24 space-y-16">
+        {/* HERO — floating typography, animated balance counter, sparkline */}
+        <CreditsHero
+          balance={balance}
+          used={used}
+          purchased={purchased}
+          history={history}
         />
 
         {/* Request more credits — floating, no container */}
@@ -270,32 +263,211 @@ export default function Credits() {
   );
 }
 
-// Local Stat shim retained for backwards-compat with older imports; the
-// canonical Stat lives in `BetaHero.tsx` and is what's used in the hero rail.
-// Kept private (un-exported) so nothing new accidentally consumes it.
-function _UnusedLocalStat({
+// ─────────────────────────────────────────────────────────────────────────────
+// CreditsHero — floating hero. Big animated balance, sparkline of 30-day
+// activity, three floating stats. No card, no border, no glass.
+// ─────────────────────────────────────────────────────────────────────────────
+function CreditsHero({
+  balance,
+  used,
+  purchased,
+  history,
+}: {
+  balance: number;
+  used: number;
+  purchased: number;
+  history: CreditTransaction[];
+}) {
+  const animBalance = useAnimatedNumber(balance);
+  // Aggregate last 30 days of activity into a per-day net delta and
+  // turn it into a tiny sparkline of cumulative balance over time.
+  const spark = useMemo(() => buildSparkline(history, 30, balance), [history, balance]);
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">
+        <span className="px-2 py-0.5 rounded-full border border-emerald-400/40 bg-emerald-500/[0.06] text-emerald-300 text-[9px] font-mono font-bold tracking-[0.32em]">
+          BETA · FREE
+        </span>
+        <span>◆ Treasury</span>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-x-12 gap-y-10 items-end">
+        <div>
+          <h1
+            className="font-display italic font-light tracking-tight leading-[0.95]"
+            style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(2.6rem, 5vw, 4.2rem)" }}
+          >
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              Your credits.
+            </span>
+          </h1>
+          <p className="mt-5 max-w-xl text-[15px] font-light leading-relaxed text-muted-foreground/70">
+            Small Bridges is free while we&rsquo;re in beta. Generate, edit, and ship — every credit you spend is tracked here, every refund lands back in your balance automatically.
+          </p>
+        </div>
+
+        {/* Balance — huge floating number with the sparkline running underneath */}
+        <div className="lg:text-right">
+          <div className="flex items-center gap-2 lg:justify-end text-[10px] uppercase tracking-[0.32em] text-accent/80 font-mono">
+            <Coins className="h-3 w-3" strokeWidth={1.5} />
+            <span>Balance</span>
+          </div>
+          <div
+            className="mt-2 font-display italic font-light tabular-nums leading-[0.95]"
+            style={{
+              fontFamily: "'Fraunces', serif",
+              fontSize: "clamp(3.6rem, 7vw, 6rem)",
+              textShadow: "0 4px 30px hsl(var(--accent) / 0.30)",
+            }}
+          >
+            {animBalance.toLocaleString()}
+          </div>
+          {spark.points.length > 1 && (
+            <div className="mt-3 lg:flex lg:justify-end">
+              <Sparkline points={spark.points} accent />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Three floating sub-stats below */}
+      <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-6">
+        <FloatingNumber label="Lifetime used" value={used} tone="emerald" />
+        <FloatingNumber label="Lifetime granted" value={purchased} />
+        <FloatingNumber label="Last 30 days" value={spark.spent} tone="rose" sub={`${spark.activeDays}/30 active days`} />
+      </div>
+    </section>
+  );
+}
+
+function FloatingNumber({
   label,
   value,
-  tone,
+  tone = 'neutral',
+  sub,
 }: {
   label: string;
-  value: string;
-  tone: 'blue' | 'emerald' | 'neutral';
+  value: number;
+  tone?: 'emerald' | 'rose' | 'neutral';
+  sub?: string;
 }) {
+  const v = useAnimatedNumber(value);
   const toneClass =
-    tone === 'blue'
-      ? 'text-primary/80'
-      : tone === 'emerald'
-        ? 'text-emerald-300'
-        : 'text-white';
+    tone === 'emerald'
+      ? 'text-emerald-300'
+      : tone === 'rose'
+        ? 'text-rose-300'
+        : 'text-foreground/95';
   return (
     <div>
-      <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.32em] mb-2">
-        {label}
+      <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 font-mono">{label}</div>
+      <div
+        className={cn('mt-2 font-display italic font-light tabular-nums leading-[0.95]', toneClass)}
+        style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(2rem, 3vw, 2.4rem)" }}
+      >
+        {v.toLocaleString()}
       </div>
-      <div className={`text-3xl font-display font-light tabular-nums ${toneClass}`}>
-        {value}
-      </div>
+      {sub && <div className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/50 font-mono">{sub}</div>}
     </div>
   );
+}
+
+// Inline SVG sparkline — accent-coloured polyline with a soft area fill
+// under it. No axes, no labels, just a gesture of motion.
+function Sparkline({ points, accent }: { points: Array<[number, number]>; accent?: boolean }) {
+  const W = 220;
+  const H = 56;
+  if (points.length < 2) return null;
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  const xRange = xMax - xMin || 1;
+  const yRange = yMax - yMin || 1;
+  const nx = (x: number) => ((x - xMin) / xRange) * (W - 4) + 2;
+  const ny = (y: number) => H - 4 - ((y - yMin) / yRange) * (H - 8);
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${nx(p[0]).toFixed(1)} ${ny(p[1]).toFixed(1)}`).join(' ');
+  const area = `${path} L ${nx(xs[xs.length - 1]).toFixed(1)} ${H - 2} L ${nx(xs[0]).toFixed(1)} ${H - 2} Z`;
+  const stroke = accent ? 'hsl(var(--accent))' : 'hsl(var(--foreground) / 0.6)';
+  const fillId = accent ? 'spark-fill-accent' : 'spark-fill-mute';
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="inline-block">
+      <defs>
+        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={accent ? 'hsl(var(--accent))' : 'hsl(var(--foreground))'} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={accent ? 'hsl(var(--accent))' : 'hsl(var(--foreground))'} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${fillId})`} />
+      <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Final dot — the "you are here" punch */}
+      <circle
+        cx={nx(xs[xs.length - 1])}
+        cy={ny(ys[ys.length - 1])}
+        r={2.5}
+        fill={stroke}
+      />
+    </svg>
+  );
+}
+
+// useAnimatedNumber — ease-out cubic from 0 to target over ~900ms.
+function useAnimatedNumber(target: number) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (target === 0) {
+      setDisplay(0);
+      return;
+    }
+    const duration = 900;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return display;
+}
+
+/**
+ * buildSparkline — given the last N days of credit_transactions and the
+ * current balance, produce a cumulative-balance line going BACKWARD from
+ * today (so the rightmost point is today's balance). Also returns total
+ * credits spent in the window and the number of days that had activity.
+ */
+function buildSparkline(
+  history: CreditTransaction[],
+  days: number,
+  currentBalance: number,
+): { points: Array<[number, number]>; spent: number; activeDays: number } {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const dayMs = 86_400_000;
+  const buckets: number[] = new Array(days).fill(0); // net change per day, oldest → newest
+  let spent = 0;
+  const activeDaysSet = new Set<string>();
+  for (const t of history) {
+    const created = new Date(t.created_at);
+    const diff = Math.floor((now.getTime() - created.setHours(0, 0, 0, 0)) / dayMs);
+    if (diff < 0 || diff >= days) continue;
+    const idx = days - 1 - diff; // newest at the end
+    buckets[idx] += t.amount;
+    if (t.amount < 0) spent += -t.amount;
+    activeDaysSet.add(created.toISOString().slice(0, 10));
+  }
+  // Reconstruct daily balance by walking back from today's balance.
+  // balance[i] = balance[i+1] - net_change_on_day(i+1)
+  const balances: number[] = new Array(days).fill(0);
+  balances[days - 1] = currentBalance;
+  for (let i = days - 2; i >= 0; i--) {
+    balances[i] = balances[i + 1] - buckets[i + 1];
+  }
+  const points: Array<[number, number]> = balances.map((b, i) => [i, b]);
+  return { points, spent, activeDays: activeDaysSet.size };
 }

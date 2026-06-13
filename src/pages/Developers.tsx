@@ -94,114 +94,159 @@ export default function Developers() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-6xl px-6 py-12">
-        {/* Hero */}
-        <header className="mb-12">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/75">
-            <Code2 className="w-3.5 h-3.5" /> Developers
+      <div className="mx-auto w-full max-w-[1180px] px-6 py-12 space-y-16">
+        {/* Hero — floating typography */}
+        <header>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">
+            <Code2 className="w-3 h-3 text-accent/70" strokeWidth={1.5} /> ◆ Developers
           </div>
-          <h1 className="mt-3 text-5xl font-semibold tracking-tight text-white">
-            Small Bridges API
+          <h1
+            className="mt-3 font-display italic font-light tracking-tight leading-[0.95]"
+            style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(2.4rem, 4.5vw, 3.8rem)" }}
+          >
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              Small Bridges API.
+            </span>
           </h1>
-          <p className="mt-3 max-w-2xl text-[15px] text-white/55 leading-relaxed">
+          <p className="mt-5 max-w-2xl text-[15px] font-light leading-relaxed text-muted-foreground/70">
             Generate cinematic video, avatars, and edited photos directly from your app.
-            Pay-as-you-go using your existing credits — <span className="text-white/80">$0.10 per credit</span>, no expiry.
+            Pay-as-you-go using your existing credits — <span className="text-foreground/85">$0.10 per credit</span>, no expiry.
           </p>
         </header>
 
-        {/* Pricing */}
-        <section className="mb-12 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            { name: 'Video clip', endpoint: 'POST /videos', credits: 10, sub: '~$1.00 per generation' },
-            { name: 'Avatar image', endpoint: 'POST /avatars', credits: 5, sub: '~$0.50 per image' },
-            { name: 'Photo edit', endpoint: 'POST /photo-edit', credits: 2, sub: '~$0.20 per edit' },
-          ].map((p) => (
-            <div key={p.endpoint} className="rounded-2xl border border-white/[0.06] bg-glass p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">{p.name}</p>
-              <p className="mt-2 font-mono text-[13px] text-white/85">{p.endpoint}</p>
-              <p className="mt-4 text-3xl font-light text-white tabular-nums">{p.credits}<span className="text-base text-white/75 ml-1">cr</span></p>
-              <p className="mt-1 text-[12px] text-white/75">{p.sub}</p>
-            </div>
-          ))}
+        {/* Pricing — floating numbers, no cards */}
+        <section>
+          <div className="mb-7">
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Pricing</div>
+            <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                What every credit buys.
+              </span>
+            </h2>
+          </div>
+          <ul className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-3">
+            {[
+              { name: 'Video clip', endpoint: 'POST /videos', credits: 10, sub: '~$1.00 per generation' },
+              { name: 'Avatar image', endpoint: 'POST /avatars', credits: 5, sub: '~$0.50 per image' },
+              { name: 'Photo edit', endpoint: 'POST /photo-edit', credits: 2, sub: '~$0.20 per edit' },
+            ].map((p) => (
+              <li key={p.endpoint}>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 font-mono">{p.name}</p>
+                <p className="mt-1.5 font-mono text-[12px] text-foreground/75">{p.endpoint}</p>
+                <p
+                  className="mt-3 font-display italic font-light tabular-nums leading-[0.95] text-[clamp(2.4rem,3.5vw,3rem)]"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {p.credits}<span className="text-base text-muted-foreground/60 ml-1.5 not-italic font-mono">cr</span>
+                </p>
+                <p className="mt-2 text-[12px] text-muted-foreground/55">{p.sub}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        {/* Keys */}
-        <section className="mb-12">
-          <div className="mb-5 flex items-end justify-between">
+        {/* Keys — floating list */}
+        <section>
+          <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-white">API Keys</h2>
-              <p className="mt-1 text-[13px] text-white/45">{activeKeys.length} active · {keys.length - activeKeys.length} revoked</p>
+              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Keys</div>
+              <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  API keys.
+                </span>
+              </h2>
+              <p className="mt-2 text-[12px] text-muted-foreground/55">{activeKeys.length} active · {keys.length - activeKeys.length} revoked</p>
             </div>
             <Button onClick={() => setShowCreate(true)} className="gap-2">
               <Plus className="w-4 h-4" /> New key
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-glass overflow-hidden">
-            {loading && <div className="p-8 text-center text-white/75 text-sm">Loading…</div>}
-            {!loading && keys.length === 0 && (
-              <div className="p-12 text-center">
-                <KeyRound className="w-8 h-8 mx-auto text-white/55 mb-3" />
-                <p className="text-white/50 text-sm">No keys yet. Create your first one to start integrating.</p>
-              </div>
-            )}
-            {!loading && keys.map((k) => (
-              <div key={k.id} className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/[0.04] last:border-b-0">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-medium text-white truncate">{k.name}</p>
-                  <p className="mt-1 font-mono text-[12px] text-white/45">{k.key_prefix}…••••</p>
-                </div>
-                <div className="text-right text-[12px] text-white/75 hidden sm:block">
-                  {k.revoked_at
-                    ? <span className="text-red-400/70">Revoked</span>
-                    : k.last_used_at
-                      ? `Last used ${new Date(k.last_used_at).toLocaleDateString()}`
-                      : 'Never used'}
-                </div>
-                {!k.revoked_at && (
-                  <Button variant="ghost" size="icon" onClick={() => revoke(k.id)} className="text-white/75 hover:text-red-400">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
+          {loading && <div className="py-8 text-muted-foreground/55 text-sm">Loading…</div>}
+          {!loading && keys.length === 0 && (
+            <div className="py-10">
+              <KeyRound className="w-7 h-7 text-muted-foreground/55 mb-3" strokeWidth={1.4} />
+              <p className="text-muted-foreground/65 text-[13px]">No keys yet. Create your first one to start integrating.</p>
+            </div>
+          )}
+          {!loading && keys.length > 0 && (
+            <ul>
+              {keys.map((k) => (
+                <li key={k.id} className="flex items-center justify-between gap-4 py-4 border-b border-white/[0.05] last:border-b-0">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium text-foreground truncate">{k.name}</p>
+                    <p className="mt-1 font-mono text-[12px] text-muted-foreground/55">{k.key_prefix}…••••</p>
+                  </div>
+                  <div className="text-right text-[12px] text-muted-foreground/65 hidden sm:block">
+                    {k.revoked_at
+                      ? <span className="text-rose-300/80">Revoked</span>
+                      : k.last_used_at
+                        ? `Last used ${new Date(k.last_used_at).toLocaleDateString()}`
+                        : 'Never used'}
+                  </div>
+                  {!k.revoked_at && (
+                    <Button variant="ghost" size="icon" onClick={() => revoke(k.id)} className="text-muted-foreground/65 hover:text-rose-300">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
-        {/* Usage */}
-        <section className="mb-12">
-          <h2 className="mb-5 text-2xl font-semibold text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-white/50" /> Usage (last 30 days)
-          </h2>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">API calls</p>
-              <p className="mt-2 text-3xl font-light text-white tabular-nums">{totals.calls}</p>
+        {/* Usage — floating numbers + log */}
+        <section>
+          <div className="mb-7">
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono flex items-center gap-2">
+              <Activity className="w-3 h-3 text-accent/70" strokeWidth={1.5} /> ◆ Usage
             </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Credits spent</p>
-              <p className="mt-2 text-3xl font-light text-white tabular-nums">
+            <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                Last 30 days.
+              </span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-10">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 font-mono">API calls</p>
+              <p className="mt-2 font-display italic font-light tabular-nums leading-[0.95] text-[clamp(2.4rem,3.5vw,3rem)]" style={{ fontFamily: "'Fraunces', serif" }}>
+                {totals.calls}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 font-mono">Credits spent</p>
+              <p className="mt-2 font-display italic font-light tabular-nums leading-[0.95] text-[clamp(2.4rem,3.5vw,3rem)]" style={{ fontFamily: "'Fraunces', serif" }}>
                 {totals.credits}
-                <span className="text-base text-white/75 ml-2">${(totals.credits * 0.1).toFixed(2)}</span>
+                <span className="text-[13px] text-muted-foreground/60 ml-2 not-italic font-mono">${(totals.credits * 0.1).toFixed(2)}</span>
               </p>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-glass overflow-hidden">
-            {logs.length === 0 && <div className="p-8 text-center text-white/75 text-sm">No API requests yet.</div>}
-            {logs.slice(0, 20).map((l, i) => (
-              <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-white/[0.04] last:border-b-0 text-[12px]">
-                <span className="font-mono text-white/70">{l.endpoint}</span>
-                <span className={l.status_code < 400 ? 'text-emerald-400/80' : 'text-red-400/80'}>{l.status_code}</span>
-                <span className="text-white/45 tabular-nums">{l.credits_charged} cr</span>
-                <span className="text-white/35">{new Date(l.created_at).toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
+          {logs.length === 0 && <div className="py-6 text-muted-foreground/55 text-sm">No API requests yet.</div>}
+          {logs.length > 0 && (
+            <ul>
+              {logs.slice(0, 20).map((l, i) => (
+                <li key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 py-3 border-b border-white/[0.04] last:border-b-0 text-[12px]">
+                  <span className="font-mono text-foreground/75 truncate">{l.endpoint}</span>
+                  <span className={l.status_code < 400 ? 'text-emerald-300/85' : 'text-rose-300/85'}>{l.status_code}</span>
+                  <span className="text-muted-foreground/55 tabular-nums">{l.credits_charged} cr</span>
+                  <span className="text-muted-foreground/45">{new Date(l.created_at).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
-        {/* Quick start */}
+        {/* Quick start — code block is content, keeps its container */}
         <section>
-          <h2 className="mb-5 text-2xl font-semibold text-white">Quick start</h2>
+          <div className="mb-7">
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Get started</div>
+            <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                Your first request.
+              </span>
+            </h2>
+          </div>
           <pre className="rounded-2xl border border-white/[0.06] bg-black/40 p-5 text-[12.5px] leading-relaxed text-white/80 font-mono overflow-x-auto">
 {`curl -X POST https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/api-v1/videos \\
   -H "x-api-key: apx_live_..." \\
@@ -212,8 +257,8 @@ export default function Developers() {
     "aspect_ratio": "16:9"
   }'`}
           </pre>
-          <p className="mt-3 text-[12px] text-white/75">
-            Endpoints: <code className="text-white/70">/videos</code>, <code className="text-white/70">/avatars</code>, <code className="text-white/70">/photo-edit</code>, <code className="text-white/70">GET /projects</code>, <code className="text-white/70">GET /clips</code>, <code className="text-white/70">GET /me</code>.
+          <p className="mt-3 text-[12px] text-muted-foreground/65">
+            Endpoints: <code className="text-foreground/75">/videos</code>, <code className="text-foreground/75">/avatars</code>, <code className="text-foreground/75">/photo-edit</code>, <code className="text-foreground/75">GET /projects</code>, <code className="text-foreground/75">GET /clips</code>, <code className="text-foreground/75">GET /me</code>.
           </p>
         </section>
       </div>

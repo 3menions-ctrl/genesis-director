@@ -27,6 +27,8 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
 import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 import { LeftRail } from "@/components/foundation/LeftRail";
+import { useLeftRail } from "@/hooks/useLeftRail";
+import { LEFT_RAIL_WIDTH } from "@/lib/left-rail-store";
 import { useRenderCompleteNotifier } from "@/hooks/useRenderCompleteNotifier";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import logoImage from "@/assets/small-bridges-logo.webp";
@@ -68,6 +70,13 @@ export function FoundationShell({ children, bare = false }: Props) {
   // tool palettes.
   const showRail = !!user;
 
+  // When the rail is open AND we're at md+ widths, push the page
+  // content rightward by the pane width so the rail never overlaps
+  // anything. On phones we let the rail overlay instead — pushing
+  // would leave the page squeezed into a useless sliver.
+  const { open: railOpen } = useLeftRail();
+  void LEFT_RAIL_WIDTH; // imported for the className shift below
+
   if (bare) return (
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
@@ -79,6 +88,17 @@ export function FoundationShell({ children, bare = false }: Props) {
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
       {showRail && <LeftRail />}
+      {/* Content shift wrapper — pushes the entire chrome + page
+          content rightward by the rail width when open. md+ only;
+          phones let the rail overlay instead so the page doesn't
+          collapse into a sliver. transition-[padding-left] gives the
+          shift the same easing the rail uses on slide-in. */}
+      <div
+        className={cn(
+          "relative transition-[padding-left] duration-300 ease-out",
+          railOpen && "md:pl-[320px]",
+        )}
+      >
       <motion.header
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -201,6 +221,7 @@ export function FoundationShell({ children, bare = false }: Props) {
       </motion.header>
 
       <main className="relative z-10">{children}</main>
+      </div>
     </div>
   );
 }

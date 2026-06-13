@@ -52,7 +52,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
-import type { EditorClip, EditorProject } from "@/lib/editor/types";
+import type { EditorClip, EditorMarker, EditorProject } from "@/lib/editor/types";
 import {
   moveClip as moveClipMut,
   trimClip as trimClipMut,
@@ -62,7 +62,15 @@ import {
   setPlayhead,
   setPxPerSec,
   selectClip,
+  setTool,
+  toggleSnap as toggleSnapMut,
+  addMarkerAtPlayhead,
+  setInPoint,
+  setOutPoint,
+  removeMarker,
 } from "@/lib/editor/store";
+import { useEditor } from "@/hooks/editor/useEditor";
+import { Toolbar } from "../components/Toolbar";
 import { toast } from "sonner";
 
 interface Props {
@@ -117,6 +125,7 @@ export function Timeline({
   const reducedMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const { tool, snapEnabled, markers, inSec, outSec } = useEditor();
 
   // Live hover state — floating timecode + faint shadow line while
   // the mouse is over the track. Null when not hovering.
@@ -210,15 +219,37 @@ export function Timeline({
           : Math.min(totalSec, playheadSec + frame);
         setPlayhead(next);
       } else if (e.key === "b" || e.key === "B") {
-        // Razor blade — split the clip at the playhead. The
-        // highest-frequency edit after trim in any NLE.
+        // Razor blade — toggle blade tool + split at playhead
         e.preventDefault();
+        setTool("blade");
         const ok = splitAtPlayheadMut();
         if (!ok) {
           toast.message("Move the playhead inside a clip to split", {
             description: "Razor needs at least 0.1s of clip on each side",
           });
         }
+      } else if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        setTool("select");
+      } else if (e.key === "h" || e.key === "H") {
+        e.preventDefault();
+        setTool("hand");
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        toggleSnapMut();
+      } else if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        const id = addMarkerAtPlayhead();
+        toast.message("Marker dropped", {
+          description: `at ${fmtTC(playheadSec)} · double-click on the ruler to rename or remove`,
+        });
+        void id;
+      } else if (e.key === "i" || e.key === "I") {
+        e.preventDefault();
+        setInPoint(playheadSec);
+      } else if (e.key === "o" || e.key === "O") {
+        e.preventDefault();
+        setOutPoint(playheadSec);
       } else if (e.key === "t" || e.key === "T") {
         // Drop a title card at the playhead on V2.
         e.preventDefault();
@@ -263,6 +294,10 @@ export function Timeline({
         totalSec={totalSec}
         pxPerSec={pxPerSec}
         selectedClipId={selectedClipId}
+        tool={tool}
+        snapEnabled={snapEnabled}
+        hasInOut={inSec !== null || outSec !== null}
+        playheadSec={playheadSec}
       />
 
       {clips.length === 0 ? (
@@ -306,7 +341,13 @@ export function Timeline({
                 paddingRight: TRACK_PADDING_PX,
               }}
             >
-              <TimelineRuler totalSec={totalSec} pxPerSec={pxPerSec} />
+              <TimelineRuler
+                totalSec={totalSec}
+                pxPerSec={pxPerSec}
+                markers={markers}
+                inSec={inSec}
+                outSec={outSec}
+              />
 
               {/* All-tracks playhead container — the ruler + tracks
                   share one playhead column that spans the full
@@ -456,44 +497,52 @@ export function Timeline({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Header — floating, no card
+// Header — toolbar + identity row + zoom + delete. Floating, no card.
 // ─────────────────────────────────────────────────────────────────────────────
 function TimelineHeader({
   clipCount,
   totalSec,
   pxPerSec,
   selectedClipId,
+  tool,
+  snapEnabled,
+  hasInOut,
+  playheadSec,
 }: {
   clipCount: number;
   totalSec: number;
   pxPerSec: number;
   selectedClipId: string | null;
+  tool: import("@/lib/editor/types").TimelineTool;
+  snapEnabled: boolean;
+  hasInOut: boolean;
+  playheadSec: number;
 }) {
   return (
-    <header className="relative z-10 px-6 sm:px-10 lg:px-12 pt-2 pb-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-      <div>
-        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-          <Scissors className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-          <span>◆ Timeline</span>
-        </div>
-        <div className="mt-2 flex items-baseline gap-3">
-          <h2
-            className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
-              {clipCount} {clipCount === 1 ? "clip" : "clips"}.
-            </span>
-          </h2>
-          <span className={cn(TYPE_META, "text-muted-foreground/55 tabular-nums")}>
-            {fmtTC(totalSec)} runtime
+    <header className="relative z-10 px-4 sm:px-6 pt-3 pb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-white/[0.04]">
+      <div className="flex items-center gap-4">
+        <div className="flex items-baseline gap-2">
+          <Scissors className="h-3 w-3 text-accent/70 self-center" strokeWidth={1.5} />
+          <span className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em]")}>
+            ◆ Timeline · {clipCount} {clipCount === 1 ? "clip" : "clips"} · {fmtTC(totalSec)}
           </span>
         </div>
+
+        {/* Divider */}
+        <span className="h-5 w-px bg-white/[0.06]" />
+
+        {/* Toolbar */}
+        <Toolbar
+          tool={tool}
+          snapEnabled={snapEnabled}
+          hasInOut={hasInOut}
+          playheadSec={playheadSec}
+        />
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4">
         {/* Zoom */}
-        <div className="flex items-center gap-2 text-foreground/80">
+        <div className="flex items-center gap-1.5 text-foreground/80">
           <button
             type="button"
             onClick={() => setPxPerSec(pxPerSec / 1.25)}
@@ -502,7 +551,7 @@ function TimelineHeader({
           >
             <ZoomOut className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>
-          <span className={cn(TYPE_META, "font-mono tabular-nums text-muted-foreground/70 min-w-[64px] text-center")}>
+          <span className={cn(TYPE_META, "font-mono tabular-nums text-muted-foreground/70 min-w-[56px] text-center")}>
             {Math.round(pxPerSec)} px/s
           </span>
           <button
@@ -521,7 +570,7 @@ function TimelineHeader({
           onClick={() => selectedClipId && deleteClipMut(selectedClipId)}
           disabled={!selectedClipId}
           className={cn(
-            "inline-flex items-center gap-2 text-[12.5px] transition-colors",
+            "inline-flex items-center gap-1.5 text-[12px] transition-colors",
             "disabled:opacity-35 disabled:cursor-not-allowed",
             selectedClipId
               ? "text-rose-300/85 hover:text-rose-300"
@@ -539,14 +588,21 @@ function TimelineHeader({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ruler — time marks every N seconds based on zoom
+// Ruler — time marks every N seconds based on zoom + marker flags +
+// In/Out brackets
 // ─────────────────────────────────────────────────────────────────────────────
 function TimelineRuler({
   totalSec,
   pxPerSec,
+  markers,
+  inSec,
+  outSec,
 }: {
   totalSec: number;
   pxPerSec: number;
+  markers: EditorMarker[];
+  inSec: number | null;
+  outSec: number | null;
 }) {
   // Pick a tick interval whose pixel spacing is comfortable.
   const targetPx = 80;
@@ -560,8 +616,23 @@ function TimelineRuler({
   const ticks: number[] = [];
   for (let t = 0; t <= totalSec + tickSec; t += tickSec) ticks.push(t);
 
+  const effectiveIn = inSec ?? 0;
+  const effectiveOut = outSec ?? totalSec;
+
   return (
     <div className="relative h-6" style={{ width: totalSec * pxPerSec }}>
+      {/* In/Out range tint */}
+      {(inSec !== null || outSec !== null) && (
+        <div
+          className="absolute top-0 bottom-0 bg-[hsl(var(--accent)/0.10)] pointer-events-none"
+          style={{
+            left: effectiveIn * pxPerSec,
+            width: Math.max(0, (effectiveOut - effectiveIn) * pxPerSec),
+          }}
+        />
+      )}
+
+      {/* Time ticks */}
       {ticks.map((t) => {
         const x = t * pxPerSec;
         return (
@@ -582,6 +653,74 @@ function TimelineRuler({
           </div>
         );
       })}
+
+      {/* In bracket */}
+      {inSec !== null && (
+        <div
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{ left: inSec * pxPerSec }}
+          title="In point"
+        >
+          <span className="absolute top-0 -translate-x-1/2 font-mono text-[9px] tabular-nums tracking-[0.18em] text-accent">
+            ⟦
+          </span>
+          <span
+            className="absolute top-0 bottom-0 w-px bg-accent"
+            style={{ boxShadow: "0 0 6px hsl(var(--accent) / 0.6)" }}
+          />
+        </div>
+      )}
+      {/* Out bracket */}
+      {outSec !== null && (
+        <div
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{ left: outSec * pxPerSec }}
+          title="Out point"
+        >
+          <span className="absolute top-0 -translate-x-1/2 font-mono text-[9px] tabular-nums tracking-[0.18em] text-accent">
+            ⟧
+          </span>
+          <span
+            className="absolute top-0 bottom-0 w-px bg-accent"
+            style={{ boxShadow: "0 0 6px hsl(var(--accent) / 0.6)" }}
+          />
+        </div>
+      )}
+
+      {/* Markers */}
+      {markers.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          title={`${m.label} · double-click to remove`}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            removeMarker(m.id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPlayhead(m.timelineSec);
+          }}
+          className="absolute top-0 bottom-0 -translate-x-1/2 z-10"
+          style={{ left: m.timelineSec * pxPerSec }}
+        >
+          <span
+            className="absolute top-0 inline-block"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: `7px solid ${m.color}`,
+              filter: `drop-shadow(0 0 4px ${m.color})`,
+            }}
+          />
+          <span
+            className="absolute top-0 bottom-0 w-px"
+            style={{ background: `${m.color}`, opacity: 0.7 }}
+          />
+        </button>
+      ))}
     </div>
   );
 }

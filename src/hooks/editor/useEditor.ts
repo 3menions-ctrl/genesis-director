@@ -31,6 +31,14 @@ import {
   setScriptContent,
   setClipProperty,
   insertTitleAtPlayhead,
+  setTool,
+  toggleSnap,
+  addMarkerAtPlayhead,
+  removeMarker,
+  updateMarker,
+  setInPoint,
+  setOutPoint,
+  clearInOut,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -60,5 +68,13 @@ export function useEditor() {
     setScriptContent,
     setClipProperty,
     insertTitleAtPlayhead,
+    setTool,
+    toggleSnap,
+    addMarkerAtPlayhead,
+    removeMarker,
+    updateMarker,
+    setInPoint,
+    setOutPoint,
+    clearInOut,
   };
 }

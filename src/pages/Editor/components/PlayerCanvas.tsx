@@ -32,6 +32,72 @@ function fmtTC(sec: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}:${ff.toString().padStart(2, "0")}`;
 }
 
+/**
+ * VuMeter — two narrow vertical bars that animate while playing.
+ * Pseudo-real: oscillates with a sine + random jitter scaled by the
+ * active clip's volume. When real audio decode lands, this swaps in
+ * a Web Audio Analyser-driven version with no change to the
+ * surface contract.
+ */
+function VuMeter({ isPlaying, volume }: { isPlaying: boolean; volume: number }) {
+  const [levels, setLevels] = useState<[number, number]>([0, 0]);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      // Smooth decay to 0 when paused
+      let l: [number, number] = [...levels] as [number, number];
+      const tick = () => {
+        l = [l[0] * 0.85, l[1] * 0.85] as [number, number];
+        if (l[0] < 0.01 && l[1] < 0.01) {
+          setLevels([0, 0]);
+          return;
+        }
+        setLevels(l);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+      return () => {
+        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      };
+    }
+    const start = performance.now();
+    const tick = () => {
+      const t = (performance.now() - start) / 1000;
+      const sine = (Math.sin(t * 7.3) + 1) / 2; // 0..1
+      const jitterL = Math.random() * 0.35;
+      const jitterR = Math.random() * 0.35;
+      const env = 0.4 + 0.6 * sine;
+      const next: [number, number] = [
+        Math.min(1, volume * (env + jitterL) * 0.95),
+        Math.min(1, volume * (env + jitterR) * 0.95),
+      ];
+      setLevels(next);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isPlaying, volume]);
+
+  return (
+    <div className="flex items-end gap-1 h-9" aria-hidden>
+      {[0, 1].map((ch) => (
+        <div
+          key={ch}
+          className="relative w-1.5 h-full rounded-full bg-white/[0.05] overflow-hidden"
+        >
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-full transition-[height] duration-75 bg-gradient-to-t from-emerald-400 via-amber-300 to-rose-300"
+            style={{ height: `${levels[ch] * 100}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   void selectedClipId; // selection drives Inspector; player follows playhead
   const reducedMotion = useReducedMotion();
@@ -266,6 +332,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
               <Play className="h-4 w-4 text-foreground ml-0.5" strokeWidth={1.6} />
             )}
           </button>
+
+          {/* L/R VU meters — pseudo levels driven by clip volume */}
+          <VuMeter
+            isPlaying={isPlaying}
+            volume={activeClip ? getClipProperty(activeClip, "volume") : 0}
+          />
 
           <div className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
             <div

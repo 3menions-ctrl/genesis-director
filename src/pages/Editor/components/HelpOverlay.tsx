@@ -42,9 +42,27 @@ const SHORTCUTS: Group[] = [
     ],
   },
   {
+    title: "Tools",
+    items: [
+      { keys: ["V"], label: "Selection tool" },
+      { keys: ["B"], label: "Blade — split clip at playhead" },
+      { keys: ["H"], label: "Hand / pan tool" },
+      { keys: ["N"], label: "Toggle snap" },
+    ],
+  },
+  {
+    title: "Markers · In/Out",
+    items: [
+      { keys: ["M"], label: "Drop marker at playhead" },
+      { keys: ["I"], label: "Set In point at playhead" },
+      { keys: ["O"], label: "Set Out point at playhead" },
+      { keys: ["dbl-click marker"], label: "Remove marker" },
+      { keys: ["click marker"], label: "Seek to marker" },
+    ],
+  },
+  {
     title: "Timeline",
     items: [
-      { keys: ["B"], label: "Blade — split clip at playhead" },
       { keys: ["T"], label: "Drop title card at playhead (V2)" },
       { keys: ["+", "−"], label: "Zoom in / out" },
       { keys: ["⌘", "scroll"], label: "Pinch zoom anchored to cursor" },

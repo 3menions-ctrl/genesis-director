@@ -11,7 +11,14 @@
  * the player ref via RAF, not the store. This keeps the store from
  * triggering a tree-wide re-render 60 times per second.
  */
-import type { EditorClip, EditorProject, EditorState, EditorView } from "./types";
+import type {
+  EditorClip,
+  EditorMarker,
+  EditorProject,
+  EditorState,
+  EditorView,
+  TimelineTool,
+} from "./types";
 import { INITIAL_EDITOR_STATE } from "./types";
 
 /**
@@ -114,6 +121,75 @@ export function selectClip(clipId: string | null): void {
 export function resetEditor(): void {
   state = { ...INITIAL_EDITOR_STATE };
   for (const l of listeners) l();
+}
+
+// ─── Tool, snap, markers, in/out ─────────────────────────────────────────────
+export function setTool(tool: TimelineTool): void {
+  if (state.tool === tool) return;
+  set({ tool });
+}
+
+export function toggleSnap(): void {
+  set({ snapEnabled: !state.snapEnabled });
+}
+
+const MARKER_COLORS = [
+  "hsl(45 95% 60%)",   // amber
+  "hsl(160 75% 55%)",  // emerald
+  "hsl(212 100% 60%)", // accent-blue
+  "hsl(280 75% 65%)",  // violet
+  "hsl(340 80% 60%)",  // rose
+];
+
+export function addMarkerAtPlayhead(label?: string): string {
+  const id = `marker-${Math.floor(performance.now())}`;
+  const m: EditorMarker = {
+    id,
+    timelineSec: state.playheadSec,
+    label: label ?? `Marker ${state.markers.length + 1}`,
+    color: MARKER_COLORS[state.markers.length % MARKER_COLORS.length],
+  };
+  set({ markers: [...state.markers, m].sort((a, b) => a.timelineSec - b.timelineSec) });
+  return id;
+}
+
+export function removeMarker(id: string): void {
+  set({ markers: state.markers.filter((m) => m.id !== id) });
+}
+
+export function updateMarker(id: string, patch: Partial<EditorMarker>): void {
+  set({
+    markers: state.markers
+      .map((m) => (m.id === id ? { ...m, ...patch } : m))
+      .sort((a, b) => a.timelineSec - b.timelineSec),
+  });
+}
+
+export function setInPoint(sec: number | null): void {
+  if (sec === null) {
+    set({ inSec: null });
+    return;
+  }
+  // Don't allow in past out
+  const next = state.outSec !== null && sec >= state.outSec
+    ? Math.max(0, state.outSec - 0.1)
+    : Math.max(0, sec);
+  set({ inSec: next });
+}
+
+export function setOutPoint(sec: number | null): void {
+  if (sec === null) {
+    set({ outSec: null });
+    return;
+  }
+  const next = state.inSec !== null && sec <= state.inSec
+    ? state.inSec + 0.1
+    : sec;
+  set({ outSec: next });
+}
+
+export function clearInOut(): void {
+  set({ inSec: null, outSec: null });
 }
 
 /** Update the project's scriptContent in memory. Persistence happens

@@ -164,6 +164,17 @@ export interface EditorTake {
 // ─────────────────────────────────────────────────────────────────────────────
 // Editor-time state
 // ─────────────────────────────────────────────────────────────────────────────
+export type TimelineTool = "select" | "blade" | "hand";
+
+export interface EditorMarker {
+  id: string;
+  /** Timeline-absolute position in seconds */
+  timelineSec: number;
+  label: string;
+  /** CSS colour, e.g. "hsl(45 95% 60%)" or "#ff8" */
+  color: string;
+}
+
 export interface EditorState {
   view: EditorView;
   project: EditorProject | null;
@@ -181,6 +192,18 @@ export interface EditorState {
   playheadSec: number;
   /** Timeline horizontal zoom in pixels per second. */
   pxPerSec: number;
+  /** Currently-active timeline tool (selection / razor blade / hand pan). */
+  tool: TimelineTool;
+  /** Whether new edits snap to clip boundaries + markers. */
+  snapEnabled: boolean;
+  /** Range markers — chapters / annotations on the ruler. */
+  markers: EditorMarker[];
+  /** In-point for ranged playback / export. null = use 0. */
+  inSec: number | null;
+  /** Out-point for ranged playback / export. null = use durationSec. */
+  outSec: number | null;
+  /** Render is in progress (background job). */
+  isRendering: boolean;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -192,4 +215,10 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   selectedClipId: null,
   playheadSec: 0,
   pxPerSec: 60,
+  tool: "select",
+  snapEnabled: true,
+  markers: [],
+  inSec: null,
+  outSec: null,
+  isRendering: false,
 };

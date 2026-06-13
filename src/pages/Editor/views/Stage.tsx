@@ -79,12 +79,39 @@ export function Stage({ project, selectedClipId }: Props) {
     const v = videoRef.current;
     if (!v) return;
     const onTime = () => {
-      setCurrentSec(v.currentTime);
+      const rel = v.currentTime;
+
+      // CLIP OUT-POINT — each clip declares a durationSec that's
+      // almost always SHORTER than the underlying source video.
+      // (A 6-second clip on the timeline can reference Sintel's
+      // 52s trailer; we only want to play the first 6 seconds.)
+      // When the video element's playhead crosses durationSec,
+      // treat the clip as ended — advance to the next clip, or
+      // pause at the end of the chain.
+      if (activeClip && rel >= activeClip.durationSec - 0.05) {
+        setActiveIdx((i) => {
+          const nextIdx = i + 1;
+          if (nextIdx >= clips.length) {
+            try {
+              v.pause();
+            } catch {
+              /* ignored */
+            }
+            setIsPlaying(false);
+            return i;
+          }
+          return nextIdx;
+        });
+        setCurrentSec(0);
+        return;
+      }
+
+      setCurrentSec(rel);
       // Push timeline-absolute playhead to the store so Timeline view
       // (and any other consumer) stays in lockstep. clamped to 0.01s
       // by the setter so identical values short-circuit.
       if (activeClip) {
-        setPlayhead(activeClip.timelineStartSec + v.currentTime);
+        setPlayhead(activeClip.timelineStartSec + rel);
       }
     };
     const onPlay = () => setIsPlaying(true);
@@ -111,7 +138,13 @@ export function Stage({ project, selectedClipId }: Props) {
       v.removeEventListener("pause", onPause);
       v.removeEventListener("ended", onEnded);
     };
-  }, [clips.length]);
+    // CRITICAL: re-bind whenever the active clip changes. Without
+    // activeClip in deps the closure stays bound to clips[0]'s
+    // durationSec forever — so the out-point cap below would fire at
+    // clip[0]'s duration even for clip[1], clip[2], etc. Same for
+    // clips identity (drag-reorder changes the array).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clips, activeClip?.id]);
 
   // Auto-play next clip when source changes mid-sequence
   useEffect(() => {

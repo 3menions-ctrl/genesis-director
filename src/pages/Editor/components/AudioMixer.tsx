@@ -30,7 +30,6 @@ import { useEditor } from "@/hooks/editor/useEditor";
 interface Props {
   open: boolean;
   onClose: () => void;
-  isPlaying: boolean;
 }
 
 type TrackId = "V1" | "A1" | "A2" | "MASTER";
@@ -58,13 +57,14 @@ function toDb(linear: number): string {
   return db.toFixed(1);
 }
 
-export function AudioMixer({ open, onClose, isPlaying }: Props) {
+export function AudioMixer({ open, onClose }: Props) {
   const reducedMotion = useReducedMotion();
   const {
     masterVolume,
     masterMuted,
     trackVolumes,
     trackMuted,
+    isPlaying,
     setMasterVolume,
     setMasterMuted,
     setTrackVolume,

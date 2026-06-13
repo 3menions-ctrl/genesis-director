@@ -398,12 +398,8 @@ export function EditorShell() {
         />
       )}
 
-      {/* Audio mixer — X to toggle */}
-      <AudioMixer
-        open={mixerOpen}
-        onClose={() => setMixerOpen(false)}
-        isPlaying={false /* TODO: lift isPlaying state from PlayerCanvas */}
-      />
+      {/* Audio mixer — X to toggle. Reads global isPlaying from store. */}
+      <AudioMixer open={mixerOpen} onClose={() => setMixerOpen(false)} />
     </div>
   );
 }

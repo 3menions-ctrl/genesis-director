@@ -246,7 +246,27 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const reducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [monitorMode, setMonitorMode] = useState<MonitorMode>("program");
-  const { masterVolume, masterMuted, trackVolumes, trackMuted } = useEditor();
+  const {
+    masterVolume,
+    masterMuted,
+    trackVolumes,
+    trackMuted,
+    isPlaying: storeIsPlaying,
+    setIsPlaying,
+  } = useEditor();
+  /**
+   * Intent-to-play flag. Survives across clip-src changes so that when
+   * one clip ends and the next clip's video loads, we can auto-resume
+   * playback. Without this the player would stop at every clip boundary
+   * because the new <video> element starts paused.
+   */
+  const intentToPlayRef = useRef(false);
+  /**
+   * Pending seek-to-time when the video's src changes. The seek can't
+   * apply until the new source has metadata; loadedmetadata reads this
+   * ref and applies it.
+   */
+  const pendingSeekRef = useRef<number | null>(null);
 
   const allClips: EditorClip[] = useMemo(() => project.scenes.flatMap((s) => s.clips), [project]);
   const clips = useMemo(() => allClips.filter((c) => c.kind !== "title"), [allClips]);
@@ -265,17 +285,37 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   }, [clips, playheadSec]);
   const activeClip = clips[activeIdx];
 
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Local mirror of store isPlaying — the JSX reads it for the
+  // play/pause icon. The store is the source of truth so the
+  // mixer / status bar / future panels all share one notion of
+  // "playing now".
+  const isPlaying = storeIsPlaying;
 
-  // Wire video element
+  // ── Playback chain (rewritten for v1 reliability) ──────────────────
+  //
+  // Two-effect design with explicit intent-to-play:
+  //
+  //   Effect A — bound to activeClip.id (and so re-runs when the
+  //   video src changes). Sets up timeupdate / play / pause / ended /
+  //   loadedmetadata listeners and tears them down on the next src
+  //   change.
+  //
+  //   Effect B — bound to playheadSec, applies seeks that the user
+  //   makes via the scrub bar / arrow keys / blade / Cmd+P, but
+  //   leaves the video alone during natural timeupdate progression.
+  //
+  // intentToPlayRef carries the user's "we are playing" intent
+  // ACROSS clip boundaries so the next clip auto-resumes on
+  // loadedmetadata. pendingSeekRef stashes the position for the
+  // first frame of a new clip when the user seeks across the
+  // boundary.
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !activeClip) return;
+
     const onTime = () => {
       if (!activeClip) return;
       setPlayhead(activeClip.timelineStartSec + v.currentTime);
-      // Live opacity = keyframed-opacity × fade-envelope.
-      // Live scale + volume read directly from any keyframes too.
       const rel = v.currentTime;
       const baseOpacity = getClipPropertyAt(activeClip, "opacity", rel);
       const fadeIn = getClipProperty(activeClip, "fadeInSec");
@@ -287,49 +327,96 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         mult = Math.min(mult, Math.max(0, fromEnd / fadeOut));
       }
       v.style.opacity = String(baseOpacity * mult);
-      // Keyframed scale — composes with mirror flip if active.
       const liveScale = getClipPropertyAt(activeClip, "scale", rel);
       const mirror = getClipProperty(activeClip, "mirror");
       v.style.transform = `scale(${liveScale})${mirror ? " scaleX(-1)" : ""}`;
-      // Keyframed volume — composes with master and V1-track volume.
-      // V1 is the video clip's audio track in our model.
       const liveVol = getClipPropertyAt(activeClip, "volume", rel);
       const effective = liveVol * trackVolumes.V1 * masterVolume;
       v.volume = Math.max(0, Math.min(1, effective));
     };
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
+    const onPlay = () => {
+      intentToPlayRef.current = true;
+      setIsPlaying(true);
+    };
+    const onPause = () => {
+      // Intent only clears on explicit user pause, not on
+      // boundary-driven pauses. We can't distinguish those reliably
+      // from inside an event handler, so we leave intent alone —
+      // togglePlay clears it explicitly.
+      setIsPlaying(false);
+    };
     const onEnded = () => {
       const next = clips[activeIdx + 1];
-      if (next) setPlayhead(next.timelineStartSec);
-      else setIsPlaying(false);
+      if (next) {
+        // intentToPlayRef stays true so the next clip auto-resumes.
+        setPlayhead(next.timelineStartSec);
+      } else {
+        intentToPlayRef.current = false;
+        setIsPlaying(false);
+      }
     };
+    const onLoadedMetadata = () => {
+      // The src has just changed. Apply any pending seek, then if
+      // the user wants to be playing, resume.
+      const seek = pendingSeekRef.current;
+      if (seek !== null) {
+        try {
+          v.currentTime = Math.max(0, Math.min(v.duration || seek, seek));
+        } catch {
+          /* ignored */
+        }
+        pendingSeekRef.current = null;
+      }
+      if (intentToPlayRef.current) {
+        void v.play().catch((e) => {
+          // eslint-disable-next-line no-console
+          console.warn("[PlayerCanvas] auto-resume blocked:", e);
+          intentToPlayRef.current = false;
+          setIsPlaying(false);
+        });
+      }
+    };
+
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("ended", onEnded);
+    v.addEventListener("loadedmetadata", onLoadedMetadata);
     return () => {
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("ended", onEnded);
+      v.removeEventListener("loadedmetadata", onLoadedMetadata);
     };
-  }, [activeClip, clips, activeIdx]);
+    // Re-bind on src changes — that's what activeClip.id captures.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeClip?.id]);
 
-  // Sync the <video>.currentTime when playhead is moved externally
-  // (timeline scrub, ⌘P jump-to-clip, etc.).
+  // Effect B — apply external seeks. Skip during natural playback
+  // (when |v.currentTime - wantRel| is small the timeupdate handler
+  // already wrote playheadSec and there's nothing to do).
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !activeClip) return;
-    const wantRelative = playheadSec - activeClip.timelineStartSec;
-    if (Math.abs(v.currentTime - wantRelative) > 0.25) {
+    const wantRel = Math.max(0, playheadSec - activeClip.timelineStartSec);
+    // If the video is still loading the current clip, stash the seek
+    // for loadedmetadata to apply.
+    if (v.readyState < 1) {
+      pendingSeekRef.current = wantRel;
+      return;
+    }
+    // Only seek when the gap is large enough to be a deliberate jump
+    // (not a 1-frame drift from natural playback timing).
+    if (Math.abs(v.currentTime - wantRel) > 0.25) {
       try {
-        v.currentTime = Math.max(0, wantRelative);
+        v.currentTime = wantRel;
       } catch {
-        // ignored — video may not be ready
+        pendingSeekRef.current = wantRel;
       }
     }
-  }, [playheadSec, activeClip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playheadSec, activeClip?.id]);
 
   // Apply per-clip / per-track / master volume + mute + speed
   useEffect(() => {
@@ -362,8 +449,18 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) void v.play().catch(() => {});
-    else v.pause();
+    if (v.paused) {
+      intentToPlayRef.current = true;
+      void v.play().catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn("[PlayerCanvas] play() blocked:", e);
+        intentToPlayRef.current = false;
+        setIsPlaying(false);
+      });
+    } else {
+      intentToPlayRef.current = false;
+      v.pause();
+    }
   };
 
   // Space toggles play (input-aware)
@@ -484,7 +581,8 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                   filter: filterStyle || undefined,
                 }}
                 playsInline
-                preload="metadata"
+                preload="auto"
+                crossOrigin="anonymous"
               />
             ) : clips.length > 0 ? (
               <div
@@ -584,10 +682,16 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
             )}
           </button>
 
-          {/* L/R VU meters — pseudo levels driven by clip volume */}
+          {/* L/R VU meters — pseudo levels driven by clip × master */}
           <VuMeter
             isPlaying={isPlaying}
-            volume={activeClip ? getClipProperty(activeClip, "volume") : 0}
+            volume={
+              activeClip
+                ? getClipProperty(activeClip, "volume") *
+                  trackVolumes.V1 *
+                  masterVolume
+                : 0
+            }
           />
 
           <div className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">

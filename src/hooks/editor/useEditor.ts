@@ -54,6 +54,7 @@ import {
   setMasterMuted,
   setTrackVolume,
   setTrackMuted,
+  setIsPlaying,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -106,5 +107,6 @@ export function useEditor() {
     setMasterMuted,
     setTrackVolume,
     setTrackMuted,
+    setIsPlaying,
   };
 }

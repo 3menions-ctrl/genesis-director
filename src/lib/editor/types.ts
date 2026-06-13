@@ -309,6 +309,9 @@ export interface EditorState {
   trackVolumes: { V1: number; A1: number; A2: number };
   /** Per-track mute. */
   trackMuted: { V1: boolean; A1: boolean; A2: boolean };
+  /** True while the program player is playing back. Lifted here so
+   *  every panel (audio mixer, status bar, etc) can react in lockstep. */
+  isPlaying: boolean;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -333,4 +336,5 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   masterMuted: false,
   trackVolumes: { V1: 1.0, A1: 1.0, A2: 1.0 },
   trackMuted: { V1: false, A1: false, A2: false },
+  isPlaying: false,
 };

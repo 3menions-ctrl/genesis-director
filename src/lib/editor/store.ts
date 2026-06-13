@@ -413,6 +413,11 @@ export function setTrackMuted(
   set({ trackMuted: { ...state.trackMuted, [track]: m } });
 }
 
+export function setIsPlaying(playing: boolean): void {
+  if (state.isPlaying === playing) return;
+  set({ isPlaying: playing });
+}
+
 /** Update the project's scriptContent in memory. Persistence happens
  *  separately — the caller (Script view) writes to supabase. */
 export function setScriptContent(content: string): void {

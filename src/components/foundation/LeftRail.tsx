@@ -59,6 +59,12 @@ import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import { useLeftRail } from "@/hooks/useLeftRail";
 import { LEFT_RAIL_WIDTH } from "@/lib/left-rail-store";
+import { openCommandCenter } from "@/components/foundation/CommandCenter";
+
+// Inline SVG grain — kills banding on the gradient backplate and gives
+// the glass the same frosted-paper texture EditorialCanvas uses.
+const GRAIN_URL =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06   0 0 0 0 0.08   0 0 0 0 0.12   0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Group catalog
@@ -425,33 +431,79 @@ export function LeftRail() {
               className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[hsl(var(--accent)/0.25)] to-transparent"
             />
 
+            {/* Premium texture pass — diagonal glass reflection +
+                fractal grain. Both sit beneath the content so they
+                read as part of the glass, not a layered effect. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-40 mix-blend-overlay"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(0 0% 100% / 0.10) 0%, transparent 30%, transparent 70%, hsl(0 0% 100% / 0.03) 100%)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.22] mix-blend-overlay"
+              style={{ backgroundImage: GRAIN_URL }}
+            />
+
             <div className="relative flex h-full flex-col">
-              {/* Header */}
-              <header className="shrink-0 px-6 pt-7 pb-5">
-                <span
-                  className={cn(
-                    TYPE_META,
-                    "text-muted-foreground/55 tracking-[0.32em]",
-                  )}
-                >
-                  ◆ Navigate
-                </span>
+              {/* Header — eyebrow + italic display + "you are here" badge */}
+              <header className="shrink-0 px-6 pt-8 pb-5">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 rounded-full bg-accent/60 animate-ping opacity-60" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                  </span>
+                  <span
+                    className={cn(
+                      TYPE_META,
+                      "text-muted-foreground/60 tracking-[0.32em]",
+                    )}
+                  >
+                    ◆ Navigate
+                  </span>
+                </div>
                 <h2
-                  className="mt-2 font-display italic text-[26px] font-light leading-tight tracking-tight text-foreground"
+                  className="mt-3 font-display italic text-[28px] font-light leading-[1.05] tracking-tight"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
-                  Small Bridges.
+                  <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/65 bg-clip-text text-transparent">
+                    Small Bridges.
+                  </span>
                 </h2>
+                <p
+                  className={cn(
+                    TYPE_META,
+                    "mt-2 text-muted-foreground/45 tracking-[0.22em]",
+                  )}
+                >
+                  You are in ·{" "}
+                  <span className="text-accent/85">
+                    {GROUPS.find((g) => g.id === activeGroupId)?.label ??
+                      "Studio"}
+                  </span>
+                </p>
               </header>
+
+              {/* Decorative hairline above the nav */}
+              <div className="mx-6 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
 
               {/* Group list */}
               <nav
-                className="flex-1 overflow-y-auto px-4 pb-6 scrollbar-hide"
+                className="flex-1 overflow-y-auto px-3 pt-3 pb-5 scrollbar-hide"
                 aria-label="Pages"
               >
-                <ul className="space-y-1.5">
-                  {GROUPS.map((g) => (
+                <ul className="space-y-2">
+                  {GROUPS.map((g, gi) => (
                     <li key={g.id}>
+                      {gi > 0 && (
+                        <div
+                          aria-hidden
+                          className="mx-3 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent"
+                        />
+                      )}
                       <GroupNode
                         group={g}
                         active={g.id === activeGroupId}
@@ -459,9 +511,6 @@ export function LeftRail() {
                         activeItemTo={activeItemTo}
                         onToggle={() => toggleGroup(g.id)}
                         onItemClick={() => {
-                          // Mobile only — auto-close so the destination
-                          // is visible. Desktop keeps the rail open
-                          // so users can hop between siblings.
                           if (
                             typeof window !== "undefined" &&
                             window.innerWidth < 768
@@ -475,17 +524,44 @@ export function LeftRail() {
                 </ul>
               </nav>
 
-              {/* Footer hint */}
-              <footer className="shrink-0 border-t border-white/[0.05] px-6 pb-5 pt-4">
+              {/* Footer — Cmd+K search button + version pin */}
+              <footer className="shrink-0 border-t border-white/[0.06] px-3 pb-4 pt-3">
+                <button
+                  type="button"
+                  onClick={() => openCommandCenter()}
+                  className={cn(
+                    "group/cmd w-full flex items-center gap-3 rounded-xl",
+                    "px-3.5 h-11 transition-all",
+                    "border border-white/[0.07] bg-white/[0.02]",
+                    "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.05)]",
+                  )}
+                >
+                  <SearchIcon
+                    className="h-4 w-4 text-muted-foreground/65 group-hover/cmd:text-accent transition-colors"
+                    strokeWidth={1.5}
+                  />
+                  <span className="text-[13px] text-muted-foreground/75 group-hover/cmd:text-foreground transition-colors">
+                    Search & jump…
+                  </span>
+                  <span
+                    className={cn(
+                      "ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded",
+                      "bg-white/[0.04] border border-white/[0.06]",
+                      "font-mono text-[10px] tabular-nums text-muted-foreground/55",
+                    )}
+                  >
+                    <span>⌘</span>
+                    <span>K</span>
+                  </span>
+                </button>
                 <p
                   className={cn(
                     TYPE_META,
-                    "text-muted-foreground/45 flex items-center gap-2",
+                    "mt-3 px-1 text-muted-foreground/35 flex items-center justify-between",
                   )}
                 >
-                  <span>Esc to close</span>
-                  <span className="text-muted-foreground/25">·</span>
-                  <span>⌘ K to search</span>
+                  <span>Small Bridges · v2.0</span>
+                  <span className="tabular-nums">Esc · close</span>
                 </p>
               </footer>
             </div>
@@ -517,38 +593,84 @@ function GroupNode({
   const Icon = group.Icon;
   return (
     <div>
-      <button
+      <motion.button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
+        whileHover={{ x: 2 }}
+        whileTap={{ scale: 0.99 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className={cn(
-          "group/grp w-full flex items-center gap-3 rounded-xl",
-          "px-4 h-12 transition-colors",
+          "group/grp relative w-full flex items-center gap-3 rounded-xl",
+          "px-4 h-12 overflow-hidden",
+          "transition-colors",
           active
-            ? "bg-[hsl(var(--accent)/0.08)] text-foreground"
-            : "text-muted-foreground/85 hover:text-foreground hover:bg-white/[0.04]",
+            ? "text-foreground"
+            : "text-muted-foreground/80 hover:text-foreground",
         )}
       >
-        <Icon
+        {/* Soft gradient bleed for active groups — a luminous backdrop
+            instead of a flat color block. Sits behind the content. */}
+        {active && (
+          <motion.span
+            layoutId="rail-active-group-glow"
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-xl"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(var(--accent) / 0.16) 0%, hsl(var(--accent) / 0.06) 45%, transparent 100%)",
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 380,
+              damping: 32,
+            }}
+          />
+        )}
+        {/* Hover tint */}
+        <span
+          aria-hidden
           className={cn(
-            "h-5 w-5 shrink-0 transition-colors",
-            active
-              ? "text-accent"
-              : "text-muted-foreground/75 group-hover/grp:text-foreground/95",
+            "pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover/grp:opacity-100",
+            "bg-white/[0.04]",
           )}
-          strokeWidth={1.5}
         />
-        <span className="font-mono text-[12px] uppercase tracking-[0.28em]">
+
+        {/* Icon chip — active items get a subtle backdrop tint */}
+        <span
+          className={cn(
+            "relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+            active
+              ? "bg-[hsl(var(--accent)/0.14)] ring-1 ring-inset ring-[hsl(var(--accent)/0.32)]"
+              : "bg-white/[0.025]",
+          )}
+        >
+          <Icon
+            className={cn(
+              "h-4 w-4 transition-colors",
+              active
+                ? "text-accent"
+                : "text-muted-foreground/70 group-hover/grp:text-foreground/95",
+            )}
+            strokeWidth={1.5}
+          />
+        </span>
+
+        <span className="relative font-mono text-[12px] uppercase tracking-[0.30em]">
           {group.label}
         </span>
+
         <motion.span
           animate={{ rotate: expanded ? 90 : 0 }}
           transition={{ duration: 0.25, ease: EASE_PREMIUM }}
-          className="ml-auto inline-flex items-center justify-center text-muted-foreground/45"
+          className={cn(
+            "relative ml-auto inline-flex items-center justify-center transition-colors",
+            active ? "text-accent/85" : "text-muted-foreground/45",
+          )}
         >
           <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
         </motion.span>
-      </button>
+      </motion.button>
 
       <AnimatePresence initial={false}>
         {expanded && (
@@ -557,18 +679,33 @@ function GroupNode({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: EASE_PREMIUM }}
+            transition={{ duration: 0.32, ease: EASE_PREMIUM }}
             className="overflow-hidden"
           >
-            <div className="pt-1 pb-2 pl-5 pr-1 space-y-1">
-              {group.items.map((i) => (
-                <li key={i.to}>
+            <div className="relative pt-1.5 pb-2 pl-3 pr-1 space-y-0.5">
+              {/* Indent guide rail — subtle vertical line that pairs
+                  the items with their parent group */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute left-[26px] top-0 bottom-1 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
+              />
+              {group.items.map((i, ii) => (
+                <motion.li
+                  key={i.to}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    delay: 0.04 + ii * 0.025,
+                    duration: 0.32,
+                    ease: EASE_PREMIUM,
+                  }}
+                >
                   <ItemNode
                     item={i}
                     active={i.to === activeItemTo}
                     onClick={onItemClick}
                   />
-                </li>
+                </motion.li>
               ))}
             </div>
           </motion.ul>
@@ -593,26 +730,75 @@ function ItemNode({
       to={item.to}
       onClick={onClick}
       className={cn(
-        "group/item flex items-center gap-3 rounded-lg",
-        "px-3 h-11 transition-colors",
+        "group/item relative flex items-center gap-3 rounded-lg",
+        "pl-5 pr-3 h-11 overflow-hidden",
+        "transition-colors duration-300",
         active
-          ? "bg-[hsl(var(--accent)/0.14)] text-foreground ring-1 ring-inset ring-[hsl(var(--accent)/0.3)]"
-          : "text-muted-foreground/85 hover:text-foreground hover:bg-white/[0.04]",
+          ? "text-foreground"
+          : "text-muted-foreground/85 hover:text-foreground",
       )}
     >
+      {/* Vertical accent bar — slides between items via layoutId.
+          Only renders for the active item so the layoutId pairs and
+          framer-motion animates the transition. */}
+      {active && (
+        <motion.span
+          layoutId="rail-active-item-bar"
+          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-accent"
+          style={{
+            boxShadow:
+              "0 0 14px hsl(var(--accent) / 0.55), 0 0 28px hsl(var(--accent) / 0.25)",
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 420,
+            damping: 32,
+          }}
+        />
+      )}
+      {/* Soft accent backdrop for active item */}
+      {active && (
+        <motion.span
+          layoutId="rail-active-item-glow"
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-lg"
+          style={{
+            background:
+              "linear-gradient(90deg, hsl(var(--accent) / 0.14) 0%, hsl(var(--accent) / 0.04) 60%, transparent 100%)",
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 380,
+            damping: 32,
+          }}
+        />
+      )}
+      {/* Hover tint */}
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300 group-hover/item:opacity-100",
+          "bg-white/[0.03]",
+        )}
+      />
+
       <Icon
         className={cn(
-          "h-4 w-4 shrink-0 transition-colors",
+          "relative h-4 w-4 shrink-0 transition-colors",
           active
             ? "text-accent"
-            : "text-muted-foreground/65 group-hover/item:text-foreground/95",
+            : "text-muted-foreground/60 group-hover/item:text-foreground/95",
         )}
         strokeWidth={1.5}
       />
-      <span className="text-[14px] tracking-tight font-light">{item.label}</span>
-      {active && (
-        <span className="ml-auto inline-block h-2 w-2 rounded-full bg-accent" />
-      )}
+      <span
+        className={cn(
+          "relative text-[14px] tracking-tight transition-[font-weight] duration-300",
+          active ? "font-normal" : "font-light",
+        )}
+      >
+        {item.label}
+      </span>
     </Link>
   );
 }

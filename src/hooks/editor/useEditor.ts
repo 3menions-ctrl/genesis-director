@@ -24,6 +24,8 @@ import {
   moveClip,
   trimClip,
   deleteClip,
+  switchActiveTake,
+  appendPendingTake,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -46,5 +48,7 @@ export function useEditor() {
     moveClip,
     trimClip,
     deleteClip,
+    switchActiveTake,
+    appendPendingTake,
   };
 }

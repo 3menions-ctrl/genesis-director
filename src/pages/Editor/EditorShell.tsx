@@ -24,6 +24,7 @@ import { useEditor } from "@/hooks/editor/useEditor";
 import type { EditorView } from "@/lib/editor/types";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
+import { TakesDrawer } from "./components/TakesDrawer";
 import { Stage } from "./views/Stage";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
@@ -105,6 +106,12 @@ export function EditorShell() {
           )}
         </div>
       </div>
+
+      {/* Takes drawer — appears when a clip is selected; press R to
+          open the regenerate composer. Floats over every view. */}
+      {project && (
+        <TakesDrawer project={project} selectedClipId={selectedClipId} />
+      )}
     </div>
   );
 }

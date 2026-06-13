@@ -149,6 +149,80 @@ export function trimClip(clipId: string, durationSec: number): void {
   set({ project: recompute(project) });
 }
 
+/**
+ * Switch which take is "active" for a clip — swaps the clip's
+ * videoUrl + thumbnailUrl + prompt to the selected take. The full
+ * takes list stays intact (versions-not-undo). Reordering the
+ * takes list puts the active take first so future reads are
+ * cheap.
+ */
+export function switchActiveTake(clipId: string, takeId: string): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        const take = c.takes.find((t) => t.id === takeId);
+        if (!take || !take.videoUrl) return c;
+        const reordered = [
+          take,
+          ...c.takes.filter((t) => t.id !== takeId),
+        ];
+        return {
+          ...c,
+          videoUrl: take.videoUrl,
+          thumbnailUrl: take.thumbnailUrl ?? c.thumbnailUrl,
+          prompt: take.promptUsed ?? c.prompt,
+          takes: reordered,
+        };
+      }),
+    })),
+  };
+  set({ project });
+}
+
+/**
+ * Optimistically append a pending take to a clip — used by the AI
+ * regenerate flow so the takes drawer immediately shows the new
+ * take as "pending" before the edge function returns. When the
+ * server returns the real row, the optimistic one gets replaced
+ * via replacePendingTake().
+ */
+export function appendPendingTake(
+  clipId: string,
+  take: { id: string; takeNumber: number; promptUsed: string },
+): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) =>
+        c.id === clipId
+          ? {
+              ...c,
+              takes: [
+                {
+                  id: take.id,
+                  takeNumber: take.takeNumber,
+                  videoUrl: null,
+                  thumbnailUrl: null,
+                  promptUsed: take.promptUsed,
+                  status: "pending",
+                  createdAt: new Date(0).toISOString(),
+                },
+                ...c.takes,
+              ],
+            }
+          : c,
+      ),
+    })),
+  };
+  set({ project });
+}
+
 /** Remove a clip from the timeline. Ripple closes the gap. */
 export function deleteClip(clipId: string): void {
   if (!state.project) return;

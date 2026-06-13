@@ -102,6 +102,7 @@ import {
 } from "lucide-react";
 import { ingestUpload as ingestUploadFn, describeIngestError as describeIngestErrorFn } from "@/lib/editor/upload-ingest";
 import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
+import { ClipFilmstrip } from "../components/ClipFilmstrip";
 
 interface Props {
   project: EditorProject;
@@ -863,16 +864,13 @@ function ClipBlock({
 
   const widthPx = Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec);
 
-  const blockStyle: CSSProperties = clip.thumbnailUrl
-    ? {
-        backgroundImage: `linear-gradient(180deg, hsl(220 30% 4% / 0.55), hsl(220 30% 4% / 0.85)), url(${clip.thumbnailUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : {
-        background:
-          "linear-gradient(180deg, hsl(220 28% 8%) 0%, hsl(220 32% 6%) 100%)",
-      };
+  // Background is now just a base gradient; the ClipFilmstrip
+  // component renders real video frames over it. Keeps the previous
+  // static thumbnail fallback for clips that don't load frames.
+  const blockStyle: CSSProperties = {
+    background:
+      "linear-gradient(180deg, hsl(220 28% 8%) 0%, hsl(220 32% 6%) 100%)",
+  };
 
   return (
     <motion.div
@@ -916,6 +914,31 @@ function ClipBlock({
             : "bg-transparent hover:bg-accent/25",
         )}
         style={{ width: TRIM_HANDLE_PX }}
+      />
+
+      {/* Filmstrip — real video frames inside the clip block.
+          Extracts sample frames from the clip's video on first
+          paint, then renders them as a tiled background image
+          strip. Falls back to the static thumbnail while loading. */}
+      <ClipFilmstrip
+        clipId={clip.id}
+        videoUrl={clip.videoUrl}
+        durationSec={clip.durationSec}
+        widthPx={widthPx}
+        fallbackThumbnailUrl={clip.thumbnailUrl}
+      />
+
+      {/* Tinted overlay over the filmstrip so the index + duration
+          chips stay legible. Stronger when the clip is in active
+          state so its frames feel "focused" rather than washed out. */}
+      <div
+        aria-hidden
+        className={cn(
+          "absolute inset-0 pointer-events-none transition-opacity",
+          isActive
+            ? "bg-gradient-to-b from-[hsl(220_30%_4%/0.20)] to-[hsl(220_30%_4%/0.55)]"
+            : "bg-gradient-to-b from-[hsl(220_30%_4%/0.35)] to-[hsl(220_30%_4%/0.75)]",
+        )}
       />
 
       {/* Index */}

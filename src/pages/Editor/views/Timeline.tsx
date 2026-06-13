@@ -938,16 +938,19 @@ function ClipBlock({
         />
       </div>
 
-      {/* Tinted overlay over the filmstrip so the index + duration
-          chips stay legible. Stronger when the clip is in active
-          state so its frames feel "focused" rather than washed out. */}
+      {/* Subtle vignette over the filmstrip — keeps the frames
+          clearly visible (the user wants to SEE the frames) while
+          still giving the labels enough contrast at the top + bottom
+          edges. mix-blend-difference on the labels themselves does
+          the heavy lifting for legibility; the gradient is just a
+          soft tonal cue. */}
       <div
         aria-hidden
         className={cn(
           "absolute inset-0 pointer-events-none transition-opacity",
           isActive
-            ? "bg-gradient-to-b from-[hsl(220_30%_4%/0.20)] to-[hsl(220_30%_4%/0.55)]"
-            : "bg-gradient-to-b from-[hsl(220_30%_4%/0.35)] to-[hsl(220_30%_4%/0.75)]",
+            ? "bg-gradient-to-b from-transparent via-transparent to-[hsl(220_30%_4%/0.30)]"
+            : "bg-gradient-to-b from-[hsl(220_30%_4%/0.12)] via-transparent to-[hsl(220_30%_4%/0.40)]",
         )}
       />
 

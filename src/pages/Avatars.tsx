@@ -92,6 +92,16 @@ function AvatarsContent() {
   const reducedMotion = useReducedMotion();
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
+  // Cast roster — used by every "Add to cast / In Cast" affordance on
+  // the cards + popup, plus the bottom-fixed CastBar. Returns reactive
+  // state backed by localStorage.
+  const {
+    cast,
+    add: addToCast,
+    remove: removeFromCast,
+    clear: clearCast,
+    has: isInCast,
+  } = useCast();
 
   // useAvatarTemplatesQuery returns isLoading (not loading) + error as string.
   // Pass includePlaceholders so the browse vault shows every active row —

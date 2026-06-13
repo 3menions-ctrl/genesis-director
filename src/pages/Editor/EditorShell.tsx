@@ -20,7 +20,7 @@
  * Modal overlays: ScriptModal (S), ExportPanel (E), CommentsPanel
  * (C), HelpOverlay (?), EditorPalette (⌘P).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, AlertOctagon } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -171,6 +171,43 @@ export function EditorShell() {
     setSearchParams(params, { replace: true });
   }, [focus, scriptOpen, urlTab, searchParams, setSearchParams]);
 
+  /**
+   * `currentView` — derived from state + URL. The ViewSwitcher uses
+   * this to render the active underline. There are 4 logical views;
+   * we resolve precedence: script > storyboard > URL-tab-explicit >
+   * default-stage.
+   */
+  const currentView: import("@/lib/editor/types").EditorView = scriptOpen
+    ? "script"
+    : focus === "storyboard"
+    ? "storyboard"
+    : urlTab === "timeline"
+    ? "timeline"
+    : "stage";
+
+  /**
+   * Single source of truth for tab switches. Used by:
+   *   - ViewSwitcher click handler in the TopStatusBar
+   *   - the 1/2/3/4 keyboard map below
+   * Always routes the change through the URL — the read-effect then
+   * picks it up and updates focus/scriptOpen consistently, so we
+   * can't get out of sync with the URL bar.
+   *
+   * Stored on a ref because the keydown effect binds once with
+   * [] deps; without the ref, the closure would capture a stale
+   * switchView and clicking 2 would route through the wrong
+   * useSearchParams snapshot.
+   */
+  const switchView = (next: import("@/lib/editor/types").EditorView) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
+  const switchViewRef = useRef(switchView);
+  switchViewRef.current = switchView;
+  const currentViewRef = useRef(currentView);
+  currentViewRef.current = currentView;
+
   // Global keys — input-aware. The view-switcher numbers now flip
   // between focus modes since every panel is already visible.
   useEffect(() => {
@@ -313,28 +350,33 @@ export function EditorShell() {
         setScriptOpen((o) => !o);
         return;
       }
-      // Focus modes — 1 edit (default), 4 storyboard
+      // View tabs — 1 / 2 / 3 / 4 map to Stage / Timeline / Script /
+      // Storyboard. All four route through `switchView` so click +
+      // keyboard go through the same write path and the URL bar
+      // always matches the visible state. Read latest via refs so
+      // the bound-once effect sees the current state.
       if (e.code === "Digit1" || e.code === "Numpad1") {
         e.preventDefault();
-        setFocus("edit");
+        switchViewRef.current("stage");
         return;
       }
-      if (e.code === "Digit4" || e.code === "Numpad4") {
-        e.preventDefault();
-        setFocus((f) => (f === "storyboard" ? "edit" : "storyboard"));
-        return;
-      }
-      // Legacy: 2 = timeline-focus (just removes script modal),
-      // 3 = script modal.
       if (e.code === "Digit2" || e.code === "Numpad2") {
         e.preventDefault();
-        setFocus("edit");
-        setScriptOpen(false);
+        switchViewRef.current("timeline");
         return;
       }
       if (e.code === "Digit3" || e.code === "Numpad3") {
         e.preventDefault();
-        setScriptOpen(true);
+        switchViewRef.current("script");
+        return;
+      }
+      if (e.code === "Digit4" || e.code === "Numpad4") {
+        e.preventDefault();
+        // 4 toggles Storyboard ↔ Stage so a second press returns
+        // the user to the canvas without hunting for the right tab.
+        switchViewRef.current(
+          currentViewRef.current === "storyboard" ? "stage" : "storyboard",
+        );
         return;
       }
       // Cmd+/ — open the Director Chat. Input-aware skip already
@@ -383,8 +425,8 @@ export function EditorShell() {
       <div className="relative z-20 flex flex-col h-full min-h-0">
         <TopStatusBar
           project={project}
-          view="stage"
-          onViewChange={() => {}}
+          view={currentView}
+          onViewChange={switchView}
           onOpenExport={() => setExportOpen(true)}
           onToggleComments={() => setCommentsOpen((o) => !o)}
           onOpenDirector={() => setDirectorOpen(true)}
@@ -421,9 +463,31 @@ export function EditorShell() {
                     playheadSec={playheadSec}
                   />
                 </div>
+                {/* Timeline strip — height adapts to the active view:
+                      • Stage view  → 120px (thin scrub strip, player
+                        gets the lion's share of the canvas)
+                      • Timeline view → flex-1 (timeline takes the
+                        majority so the editor is the workhorse)
+                      • Theater     → 120px (overrides everything;
+                        the program monitor is the room)
+                    Smooth transition between states matches the
+                    foundation's motion language. */}
                 <div
-                  className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)]"
-                  style={{ height: theaterMode ? 120 : 320 }}
+                  className={cn(
+                    "shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)]",
+                    "transition-[height,flex] duration-300 ease-out",
+                    currentView === "timeline" && !theaterMode && "flex-1",
+                  )}
+                  style={{
+                    height:
+                      theaterMode
+                        ? 120
+                        : currentView === "stage"
+                        ? 120
+                        : currentView === "timeline"
+                        ? undefined /* let flex-1 take over */
+                        : 320,
+                  }}
                 >
                   <Timeline
                     project={displayProject}

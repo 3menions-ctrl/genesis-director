@@ -179,11 +179,11 @@ export default function MusicHub() {
         </AnimatePresence>
 
         {/* CROSS-LINK */}
-        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.015] p-8 lg:p-10 mt-8">
+        <section className="mt-12">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-[0.32em] mb-3 text-muted-foreground">License music · own scores</div>
-              <h2 className="font-display font-medium text-[clamp(1.6rem,3.5vw,2.4rem)] leading-tight tracking-[-0.02em] text-foreground">
+              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ License music · own scores</div>
+              <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
                 Every score is also a market listing.
               </h2>
               <p className="text-muted-foreground mt-3 max-w-xl text-[13px] leading-relaxed">
@@ -260,23 +260,16 @@ function StudioGrid({ openStudio }: { openStudio: (k: "score" | "karaoke" | "she
 
 function DailyBeatCard({ promptText, promptHint, onBuild }: { promptText: string; promptHint: string; onBuild: () => void }) {
   return (
-    <section
-      className="relative rounded-3xl overflow-hidden p-8 lg:p-10 mb-12 border"
-      style={{
-        background: "linear-gradient(180deg, hsla(45,100%,60%,0.06) 0%, hsla(45,100%,60%,0.01) 100%)",
-        borderColor: "hsla(45,100%,60%,0.22)",
-        boxShadow: "0 8px 40px -16px hsla(45,100%,60%,0.25), inset 0 1px 0 hsla(0,0%,100%,0.04)",
-      }}
-    >
+    <section className="mb-12">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
         <div>
-          <div className="flex items-center gap-2 mb-3 text-[10px] font-mono uppercase tracking-[0.32em] text-amber-200">
-            <Calendar className="w-3 h-3" /> Daily Beat · {new Date().toLocaleDateString(undefined, { weekday: "long" })}
+          <div className="flex items-center gap-2 mb-3 text-[10px] font-mono uppercase tracking-[0.32em] text-amber-200/85">
+            <Calendar className="w-3 h-3" /> ◆ Daily Beat · {new Date().toLocaleDateString(undefined, { weekday: "long" })}
           </div>
-          <h2 className="font-display font-medium text-[clamp(1.5rem,3.5vw,2.4rem)] leading-tight tracking-[-0.02em] text-foreground">
+          <h2 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
             {promptText}
           </h2>
-          <p className="text-muted-foreground text-[13px] mt-2 max-w-xl">{promptHint}</p>
+          <p className="text-muted-foreground text-[13px] mt-3 max-w-xl">{promptHint}</p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <button onClick={onBuild} className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
@@ -328,10 +321,10 @@ function MusicVideoCard({ reel, demo }: { reel: MusicReel; demo: boolean }) {
 
 function SheetMusicStrip({ onOpen }: { onOpen: () => void }) {
   return (
-    <div className="text-center py-12 max-w-md mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+    <div className="text-center py-12 max-w-md mx-auto">
       <Music2 className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
-      <h3 className="font-display font-medium text-[22px] text-foreground mb-2">Sheet Music Reader</h3>
-      <p className="text-muted-foreground text-[13px] mb-5">Load any MIDI or notation. Play along with an AI accompanist; transpose any key, simplify for beginners.</p>
+      <h3 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light text-foreground mb-3" style={{ fontFamily: "'Fraunces', serif" }}>Sheet Music Reader.</h3>
+      <p className="text-muted-foreground text-[13px] mb-6">Load any MIDI or notation. Play along with an AI accompanist; transpose any key, simplify for beginners.</p>
       <button onClick={onOpen} className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
         <Music2 className="w-3.5 h-3.5" /> Open the reader
       </button>
@@ -341,10 +334,10 @@ function SheetMusicStrip({ onOpen }: { onOpen: () => void }) {
 
 function KaraokeStrip({ onOpen }: { onOpen: () => void }) {
   return (
-    <div className="text-center py-12 max-w-md mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+    <div className="text-center py-12 max-w-md mx-auto">
       <Volume2 className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
-      <h3 className="font-display font-medium text-[22px] text-foreground mb-2">Karaoke Mode</h3>
-      <p className="text-muted-foreground text-[13px] mb-5">Sing over any track. Auto-pitch helps the rough edges, share the result as a music reel.</p>
+      <h3 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light text-foreground mb-3" style={{ fontFamily: "'Fraunces', serif" }}>Karaoke Mode.</h3>
+      <p className="text-muted-foreground text-[13px] mb-6">Sing over any track. Auto-pitch helps the rough edges, share the result as a music reel.</p>
       <button onClick={onOpen} className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
         <Mic2 className="w-3.5 h-3.5" /> Start a take
       </button>

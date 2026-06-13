@@ -286,19 +286,19 @@ function SectionLabel({ label, meta, icon: Icon }: { label: string; meta?: strin
 function FeaturedRail({ template, onOpen }: { template: CrossoverTemplate; onOpen: () => void }) {
   return (
     <section className="mb-12">
-      <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 rounded-3xl border border-white/[0.08] overflow-hidden bg-white/[0.015]">
-        <div className="p-8 lg:p-10 relative">
-          <div aria-hidden className="absolute -top-24 -left-20 w-[360px] h-[360px] rounded-full opacity-50"
+      <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-center">
+        <div className="relative py-4 lg:py-6">
+          <div aria-hidden className="absolute -top-24 -left-20 w-[360px] h-[360px] rounded-full opacity-50 pointer-events-none"
             style={{ background: "radial-gradient(circle, hsla(215,100%,60%,0.30), transparent 60%)", filter: "blur(60px)" }} />
           <div className="relative">
             <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-primary/80 mb-3 flex items-center gap-2">
-              <Flame className="w-3 h-3" /> Featured tonight · {prettyCategory(template.category)}
+              <Flame className="w-3 h-3" /> ◆ Featured tonight · {prettyCategory(template.category)}
             </div>
-            <h2 className="font-display font-light text-[36px] lg:text-[48px] leading-[1.0] tracking-[-0.02em] text-white">
-              {template.name}
+            <h2 className="font-display italic font-light text-[clamp(2rem,4vw,3rem)] leading-[1.0] tracking-tight text-white" style={{ fontFamily: "'Fraunces', serif" }}>
+              {template.name}.
             </h2>
             {template.hook && (
-              <p className="mt-4 text-[14px] text-white/65 leading-relaxed max-w-md">{template.hook}</p>
+              <p className="mt-5 text-[14px] text-white/65 leading-relaxed max-w-md">{template.hook}</p>
             )}
             <div className="mt-6 flex flex-wrap gap-2">
               <button
@@ -314,7 +314,7 @@ function FeaturedRail({ template, onOpen }: { template: CrossoverTemplate; onOpe
             </div>
           </div>
         </div>
-        <div className="relative bg-black/40 p-6 lg:p-10 flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
           <div className="w-full max-w-[280px]">
             <ChromePreview
               kind={template.chrome_kind as ChromeKind}

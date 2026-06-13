@@ -542,9 +542,9 @@ function PatronsTab() {
   }
   if (creators.length === 0) {
     return (
-      <div className="text-center py-12 max-w-md mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+      <div className="text-center py-12 max-w-md mx-auto">
         <Crown className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
-        <h3 className="font-display font-medium text-[20px] text-foreground mb-2">No patron rooms yet</h3>
+        <h3 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No patron rooms yet.</h3>
         <p className="text-[12px] text-muted-foreground">When directors publish their first reels, you can become their patron from here.</p>
       </div>
     );

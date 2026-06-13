@@ -1323,29 +1323,27 @@ function GridSkeleton() {
 
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
-      <div className="p-12 text-center">
-        <Filter
-          className="mx-auto h-8 w-8 text-accent/60"
-          strokeWidth={1.2}
-        />
-        <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
-          No matches.
-        </h3>
-        <p className="mt-4 max-w-md mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
-          Nothing in the vault fits those filters. Reset and try again.
-        </p>
-        <button
-          onClick={onReset}
-          className={cn(
-            "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
-            "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground",
-            "transition-colors hover:border-accent/60 hover:bg-[hsl(var(--accent)/0.12)]",
-          )}
-        >
-          <span className="text-[13px]">Reset filters</span>
-        </button>
-      </div>
+    <div className="p-12 text-center">
+      <Filter
+        className="mx-auto h-8 w-8 text-accent/60"
+        strokeWidth={1.2}
+      />
+      <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
+        No matches.
+      </h3>
+      <p className="mt-4 max-w-md mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
+        Nothing in the vault fits those filters. Reset and try again.
+      </p>
+      <button
+        onClick={onReset}
+        className={cn(
+          "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
+          "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground",
+          "transition-colors hover:border-accent/60 hover:bg-[hsl(var(--accent)/0.12)]",
+        )}
+      >
+        <span className="text-[13px]">Reset filters</span>
+      </button>
     </div>
   );
 }
@@ -1497,7 +1495,7 @@ function CastBar({
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-destructive/30 bg-[hsl(0_60%_30%/0.05)] p-12 text-center">
+    <div className="p-12 text-center">
       <p className="font-display italic text-2xl font-light text-foreground">
         Couldn&rsquo;t reach the vault.
       </p>

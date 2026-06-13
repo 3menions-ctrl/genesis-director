@@ -269,24 +269,16 @@ function ScriptInner({ project }: Props) {
     }
   }, [displayText, v1Clips]);
 
-  // The rendered scenes — from doc if present and non-trivial,
-  // otherwise synthesized from parsed blocks.
+  // The rendered scenes — ALWAYS use parsed blocks for the text body
+  // (that's what the user wrote / what the AI generated). Attach doc
+  // shots when available so the visual shot strip renders.
+  //
+  // Previously this preferred doc scenes when shots existed but no
+  // beats — that left scenes blank because the hydration ran before
+  // any screenplay was on disk, populating shots but no beats. Bug
+  // fix: never render an empty scene. Parser is the canonical text
+  // source until wave 5 properly populates doc beats.
   const renderScenes: ScriptSceneView[] = useMemo(() => {
-    if (doc && doc.scenes.length > 0 && doc.scenes.some((s) => s.beats.length > 0 || s.shots.length > 0)) {
-      return doc.scenes.map((s) => ({
-        kind: "doc" as const,
-        sceneId: s.id,
-        slug: s.slug,
-        mood: s.mood,
-        timeOfDay: s.timeOfDay,
-        actNumber: s.actNumber,
-        beats: s.beats,
-        shots: s.shots,
-        // No fallback parser blocks for doc scenes.
-        parsedBlocks: [],
-      }));
-    }
-    // Synthesize from parsed blocks — one synthetic scene per slug.
     const byScene = new Map<number, ScriptSceneView>();
     for (const b of parsed.blocks) {
       const key = b.sceneIdx;
@@ -305,8 +297,17 @@ function ScriptInner({ project }: Props) {
         if (b.kind === "slug") existing.slug = b.text;
       }
     }
-    // Attach clips evenly across synthetic scenes.
     const result = Array.from(byScene.values());
+
+    // Attach doc shots by scene index. This gives the visual shot
+    // strip while the parsed blocks drive the body text.
+    if (doc && doc.scenes.length > 0) {
+      for (let i = 0; i < result.length && i < doc.scenes.length; i++) {
+        result[i].shots = doc.scenes[i].shots;
+        result[i].mood = doc.scenes[i].mood;
+        result[i].timeOfDay = doc.scenes[i].timeOfDay;
+      }
+    }
     return result;
   }, [doc, parsed.blocks]);
 

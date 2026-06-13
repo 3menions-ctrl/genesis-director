@@ -1049,18 +1049,26 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                   playsInline
                   preload="auto"
                 />
-                {/* B buffer — incoming clip during a between-clip
-                    transition. Mounted only when a transition is
-                    active so we don't pre-load every clip's source on
-                    every project. Opacity ramp drives the visual. */}
-                {xfadeInfo?.next.videoUrl && (
+                {/* B buffer — the next clip pre-loaded. When an
+                    explicit transition is active, the B buffer
+                    opacity-ramps over the A buffer for the crossfade.
+                    Otherwise it stays at opacity 0 but the browser
+                    has already cached the next clip's video, so the
+                    A buffer's src swap on clip advance lands instantly
+                    without the black-frame load gap that broke
+                    earlier playback ("editor stitch technology is
+                    horrible" — this is the fix). */}
+                {clips[activeIdx + 1]?.videoUrl && (
                   <video
                     ref={videoBRef}
-                    key={`xfade-b-${xfadeInfo.next.id}`}
-                    src={xfadeInfo.next.videoUrl}
-                    poster={xfadeInfo.next.thumbnailUrl ?? undefined}
+                    key={`buffer-${clips[activeIdx + 1].id}`}
+                    src={clips[activeIdx + 1].videoUrl ?? undefined}
+                    poster={clips[activeIdx + 1].thumbnailUrl ?? undefined}
                     className="absolute inset-0 w-full h-full object-contain bg-black"
-                    style={{ opacity: xfadeInfo.progress }}
+                    style={{
+                      opacity: xfadeInfo ? xfadeInfo.progress : 0,
+                      pointerEvents: "none",
+                    }}
                     playsInline
                     preload="auto"
                     muted

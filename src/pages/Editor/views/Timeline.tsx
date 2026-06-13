@@ -103,6 +103,7 @@ import {
 import { ingestUpload as ingestUploadFn, describeIngestError as describeIngestErrorFn } from "@/lib/editor/upload-ingest";
 import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
 import { ClipFilmstrip } from "../components/ClipFilmstrip";
+import { getClipProperty } from "@/lib/editor/types";
 
 interface Props {
   project: EditorProject;
@@ -917,16 +918,25 @@ function ClipBlock({
       />
 
       {/* Filmstrip — real video frames inside the clip block.
-          Extracts sample frames from the clip's video on first
-          paint, then renders them as a tiled background image
-          strip. Falls back to the static thumbnail while loading. */}
-      <ClipFilmstrip
-        clipId={clip.id}
-        videoUrl={clip.videoUrl}
-        durationSec={clip.durationSec}
-        widthPx={widthPx}
-        fallbackThumbnailUrl={clip.thumbnailUrl}
-      />
+          Wrapped in a div that applies the clip's CSS filter so the
+          timeline reads the GRADED look, not the camera-original.
+          Effects (Teal & Orange, Bleach Bypass, etc) now visibly
+          land on every clip block in the timeline — they don't just
+          affect the program monitor. */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          filter: getClipProperty(clip, "filter") || undefined,
+        }}
+      >
+        <ClipFilmstrip
+          clipId={clip.id}
+          videoUrl={clip.videoUrl}
+          durationSec={clip.durationSec}
+          widthPx={widthPx}
+          fallbackThumbnailUrl={clip.thumbnailUrl}
+        />
+      </div>
 
       {/* Tinted overlay over the filmstrip so the index + duration
           chips stay legible. Stronger when the clip is in active

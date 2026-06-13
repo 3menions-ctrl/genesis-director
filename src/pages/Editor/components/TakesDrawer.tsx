@@ -74,7 +74,6 @@ import {
   updateTransition,
   removeTransition,
 } from "@/lib/editor/store";
-import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
   project: EditorProject;

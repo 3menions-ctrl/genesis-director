@@ -37,6 +37,7 @@ import {
   Loader2,
   Quote,
   Pencil,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,7 @@ import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 interface DashboardData {
   totalFilms: number;
   filmsThisMonth: number;
+  filmsThisYear: number;
   totalPlays: number;
   totalLikes: number;
   totalRemixes: number;
@@ -71,6 +73,7 @@ interface DashboardData {
 const EMPTY_DASHBOARD: DashboardData = {
   totalFilms: 0,
   filmsThisMonth: 0,
+  filmsThisYear: 0,
   totalPlays: 0,
   totalLikes: 0,
   totalRemixes: 0,
@@ -148,6 +151,16 @@ export default function ProfileDashboard() {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
       next.totalFilms = totalFilmsCount ?? 0;
+      // Films this calendar year — drives the Year in Review teaser
+      const yearStart = new Date();
+      yearStart.setMonth(0, 1);
+      yearStart.setHours(0, 0, 0, 0);
+      const { count: yearCount } = await supabase
+        .from("movie_projects")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", yearStart.toISOString());
+      next.filmsThisYear = yearCount ?? 0;
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
@@ -316,8 +329,100 @@ export default function ProfileDashboard() {
         <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
         <AchievementsFloat achievements={achievements} />
         {data.recentReels.length > 0 && <RecentReels reels={data.recentReels} />}
+        <YearInReviewTeaser filmsThisYear={data.filmsThisYear} totalPlays={data.totalPlays} />
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// YearInReviewTeaser — floating section that leads into the full
+// cinematic /me/year retrospective. Lives on the Profile page (not in
+// the LeftRail) so it shows up in context with everything else this
+// director has built.
+// ─────────────────────────────────────────────────────────────────────────────
+function YearInReviewTeaser({
+  filmsThisYear,
+  totalPlays,
+}: {
+  filmsThisYear: number;
+  totalPlays: number;
+}) {
+  // Pull the year from a known absolute reference. Date.now() is
+  // available inside React renders; only workflow scripts forbid it.
+  const year = new Date().getFullYear();
+
+  return (
+    <section className="relative">
+      <header className="mb-7">
+        <div
+          className={cn(
+            TYPE_META,
+            "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2",
+          )}
+        >
+          <Calendar className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+          <span>◆ Your year</span>
+        </div>
+        <h3
+          className="mt-2 font-display italic font-light tracking-tight leading-[0.95]"
+          style={{
+            fontFamily: "'Fraunces', serif",
+            fontSize: "clamp(2.2rem, 4vw, 3.4rem)",
+          }}
+        >
+          <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+            {year}.
+          </span>
+        </h3>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_auto] gap-10 items-end">
+        <p
+          className="max-w-xl text-[clamp(1.05rem,1.5vw,1.25rem)] leading-[1.5] font-light text-foreground/75 italic font-display"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          Your year on Small Bridges, told in cinematic cards.
+          {filmsThisYear > 0 ? (
+            <>
+              {" "}
+              <span className="text-accent not-italic font-mono text-[14px] tabular-nums tracking-[0.05em]">
+                {filmsThisYear}
+              </span>{" "}
+              {filmsThisYear === 1 ? "film" : "films"} this year,
+              {totalPlays > 0 && (
+                <>
+                  {" "}reaching{" "}
+                  <span className="text-accent not-italic font-mono text-[14px] tabular-nums tracking-[0.05em]">
+                    {totalPlays.toLocaleString()}
+                  </span>{" "}plays
+                </>
+              )} — every streak, every highlight, every moment that
+              mattered.
+            </>
+          ) : (
+            <> Direct your first film to start writing the chapter.</>
+          )}
+        </p>
+
+        <Link
+          to="/me/year"
+          className="group/year inline-flex items-center gap-2 text-[14px] text-accent shrink-0"
+        >
+          <span className="relative">
+            Open your year in review
+            <span
+              aria-hidden
+              className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent to-accent/40 transition-transform duration-500 ease-out group-hover/year:scale-x-100"
+            />
+          </span>
+          <ArrowUpRight
+            className="h-3.5 w-3.5 transition-transform group-hover/year:translate-x-0.5 group-hover/year:-translate-y-0.5"
+            strokeWidth={1.5}
+          />
+        </Link>
+      </div>
+    </section>
   );
 }
 

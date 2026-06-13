@@ -43,7 +43,6 @@ import {
   Music2,
   ShoppingBag,
   Library as LibraryIcon,
-  CalendarDays,
   Users as UsersIcon,
   User as UserIcon,
   Mail,
@@ -115,7 +114,6 @@ const GROUPS: RailGroup[] = [
     Icon: LibraryIcon,
     items: [
       { to: "/library", label: "Library", Icon: LibraryIcon },
-      { to: "/me/year", label: "Year in Review", Icon: CalendarDays },
     ],
   },
   {
@@ -683,18 +681,6 @@ function ItemNode({
           are. Slides between items via layoutId for a smooth handoff
           when the route changes. No bg, no glow, no chip — just the
           line. */}
-      {active && (
-        <motion.span
-          layoutId="rail-active-item-bar"
-          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] bg-accent"
-          transition={{
-            type: "spring",
-            stiffness: 420,
-            damping: 32,
-          }}
-        />
-      )}
-
       <Icon
         className={cn(
           "relative h-4 w-4 shrink-0 transition-colors",
@@ -706,11 +692,26 @@ function ItemNode({
       />
       <span
         className={cn(
-          "relative text-[14px] tracking-tight transition-[font-weight] duration-300",
+          "relative inline-block text-[14px] tracking-tight transition-[font-weight] duration-300",
           active ? "font-normal" : "font-light",
         )}
       >
         {item.label}
+        {/* THE single line indicator — now a beautiful underline that
+            slides between items via layoutId. Gradient fades from
+            accent at the left through accent into accent/30 on the
+            right so it reads like a pen stroke, not a bar. */}
+        {active && (
+          <motion.span
+            layoutId="rail-active-item-bar"
+            className="pointer-events-none absolute -bottom-1.5 left-0 right-0 h-[2px] rounded-full bg-gradient-to-r from-accent via-accent to-accent/30"
+            transition={{
+              type: "spring",
+              stiffness: 380,
+              damping: 30,
+            }}
+          />
+        )}
       </span>
     </Link>
   );

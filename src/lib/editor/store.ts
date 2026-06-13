@@ -150,6 +150,25 @@ export function trimClip(clipId: string, durationSec: number): void {
 }
 
 /**
+ * Reorder scenes — used by the Storyboard view's drag-to-reorder.
+ * Scene_number gets renumbered to match the new positions; the
+ * timeline cursor recomputes so the global timecode stays accurate.
+ */
+export function moveScene(sceneId: string, toIndex: number): void {
+  if (!state.project) return;
+  const scenes = [...state.project.scenes];
+  const fromIndex = scenes.findIndex((s) => s.id === sceneId);
+  if (fromIndex < 0 || fromIndex === toIndex) return;
+  const clamped = Math.max(0, Math.min(scenes.length - 1, toIndex));
+  const [moved] = scenes.splice(fromIndex, 1);
+  scenes.splice(clamped, 0, moved);
+  // Renumber sequentially so the storyboard labels are correct.
+  const renumbered = scenes.map((s, i) => ({ ...s, number: i + 1 }));
+  const project: EditorProject = { ...state.project, scenes: renumbered };
+  set({ project: recompute(project) });
+}
+
+/**
  * Switch which take is "active" for a clip — swaps the clip's
  * videoUrl + thumbnailUrl + prompt to the selected take. The full
  * takes list stays intact (versions-not-undo). Reordering the

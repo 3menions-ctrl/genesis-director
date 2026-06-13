@@ -9,7 +9,7 @@
  * this component so the user always sees it directly above the
  * timeline, matching how every NLE arranges them.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Play,

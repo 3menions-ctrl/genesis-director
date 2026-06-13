@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
 import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
+import { LeftRail } from "@/components/foundation/LeftRail";
 import { useRenderCompleteNotifier } from "@/hooks/useRenderCompleteNotifier";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import logoImage from "@/assets/small-bridges-logo.webp";
@@ -60,6 +61,13 @@ export function FoundationShell({ children, bare = false }: Props) {
     return p.replace(/^\//, "").split("/")[0];
   })();
 
+  // Show the LeftRail on every Foundation surface — but only when the
+  // user is signed in. Public/marketing surfaces don't have somewhere
+  // to navigate to in this rail. Bare mode (Editor) also skips the
+  // rail since the timeline is full-bleed and the rail would overlap
+  // tool palettes.
+  const showRail = !!user;
+
   if (bare) return (
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
@@ -70,6 +78,7 @@ export function FoundationShell({ children, bare = false }: Props) {
   return (
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
+      {showRail && <LeftRail />}
       <motion.header
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}

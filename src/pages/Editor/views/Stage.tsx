@@ -18,7 +18,7 @@ import { Play, Pause, Film, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
-import { ASPECT_RATIOS } from "@/lib/editor/types";
+import { ASPECT_RATIOS, getClipProperty } from "@/lib/editor/types";
 import { selectClip, setPlayhead } from "@/lib/editor/store";
 
 interface Props {
@@ -38,10 +38,19 @@ export function Stage({ project, selectedClipId }: Props) {
   const reducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Flatten clips across scenes into a single playable sequence.
-  const clips: EditorClip[] = useMemo(
+  // Video clips chain on V1; title clips live on V2 and overlay
+  // during their active timeline range.
+  const allClips: EditorClip[] = useMemo(
     () => project.scenes.flatMap((s) => s.clips),
     [project],
+  );
+  const clips: EditorClip[] = useMemo(
+    () => allClips.filter((c) => c.kind !== "title"),
+    [allClips],
+  );
+  const titleClips: EditorClip[] = useMemo(
+    () => allClips.filter((c) => c.kind === "title"),
+    [allClips],
   );
 
   const [activeIdx, setActiveIdx] = useState(0);
@@ -115,6 +124,37 @@ export function Stage({ project, selectedClipId }: Props) {
     }
   }, [activeIdx, isPlaying]);
 
+  // Apply per-clip volume to the <video> whenever the active clip
+  // changes. Clamped 0..1.5 (HTMLVideoElement caps at 1.0 but we keep
+  // the headroom for future audio bus design).
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !activeClip) return;
+    v.volume = Math.max(0, Math.min(1, getClipProperty(activeClip, "volume")));
+  }, [activeClip]);
+
+  // Per-clip CSS opacity + scale — applied to the video element so
+  // each clip can fade in/out as a free editorial flourish without
+  // affecting subsequent clips.
+  const opacityStyle = activeClip
+    ? getClipProperty(activeClip, "opacity")
+    : 1;
+  const scaleStyle = activeClip
+    ? getClipProperty(activeClip, "scale")
+    : 1;
+
+  // Find which title clip(s) overlap the playhead — used to overlay
+  // text on the player.
+  const activeTitles = useMemo(
+    () =>
+      titleClips.filter(
+        (t) =>
+          playheadSec >= t.timelineStartSec &&
+          playheadSec < t.timelineStartSec + t.durationSec,
+      ),
+    [titleClips, playheadSec],
+  );
+
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -168,13 +208,46 @@ export function Stage({ project, selectedClipId }: Props) {
                 ref={videoRef}
                 src={activeClip.videoUrl}
                 poster={activeClip.thumbnailUrl ?? project.thumbnailUrl ?? undefined}
-                className="absolute inset-0 w-full h-full object-contain bg-black"
+                className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform] duration-150"
+                style={{
+                  opacity: opacityStyle,
+                  transform: `scale(${scaleStyle})`,
+                }}
                 playsInline
                 preload="metadata"
               />
             ) : (
               <EmptyCanvas project={project} hasClips={clips.length > 0} />
             )}
+
+            {/* Title overlay — every active title at the playhead
+                paints over the video. CSS picks up titleColor so
+                future per-title styling is one prop away. */}
+            {activeTitles.map((t) => (
+              <div
+                key={t.id}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                style={{
+                  background: t.titleColor
+                    ? `linear-gradient(180deg, ${t.titleColor}E0, ${t.titleColor}FF)`
+                    : "linear-gradient(180deg, hsl(220 30% 4% / 0.92), hsl(220 30% 4%))",
+                }}
+              >
+                <div className="px-8 text-center">
+                  <p
+                    className="font-display italic font-light tracking-tight leading-[1.05]"
+                    style={{
+                      fontFamily: "'Fraunces', serif",
+                      fontSize: "clamp(2rem, 5vw, 4.5rem)",
+                      color: "hsl(0 0% 98%)",
+                      textShadow: "0 6px 30px hsl(0 0% 0% / 0.55)",
+                    }}
+                  >
+                    {t.titleText || "TITLE"}
+                  </p>
+                </div>
+              </div>
+            ))}
 
             {/* Top-left clip indicator inside the canvas */}
             {activeClip && (

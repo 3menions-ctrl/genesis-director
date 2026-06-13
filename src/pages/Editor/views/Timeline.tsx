@@ -58,6 +58,7 @@ import {
   trimClip as trimClipMut,
   deleteClip as deleteClipMut,
   splitAtPlayhead as splitAtPlayheadMut,
+  insertTitleAtPlayhead as insertTitleAtPlayheadMut,
   setPlayhead,
   setPxPerSec,
   selectClip,
@@ -121,9 +122,17 @@ export function Timeline({
   // the mouse is over the track. Null when not hovering.
   const [hoverSec, setHoverSec] = useState<number | null>(null);
 
-  const clips: EditorClip[] = useMemo(
+  const allClips: EditorClip[] = useMemo(
     () => project.scenes.flatMap((s) => s.clips),
     [project],
+  );
+  const clips: EditorClip[] = useMemo(
+    () => allClips.filter((c) => c.kind !== "title"),
+    [allClips],
+  );
+  const titleClips: EditorClip[] = useMemo(
+    () => allClips.filter((c) => c.kind === "title"),
+    [allClips],
   );
   const totalSec = project.durationSec || 1;
   const trackWidthPx = Math.max(totalSec * pxPerSec, 320);
@@ -210,6 +219,13 @@ export function Timeline({
             description: "Razor needs at least 0.1s of clip on each side",
           });
         }
+      } else if (e.key === "t" || e.key === "T") {
+        // Drop a title card at the playhead on V2.
+        e.preventDefault();
+        insertTitleAtPlayheadMut("Title");
+        toast.message("Title card dropped on V2", {
+          description: "Inspector → edit the text & background colour",
+        });
       }
     };
     window.addEventListener("keydown", onKey);
@@ -307,13 +323,26 @@ export function Timeline({
                   width: trackWidthPx,
                 }}
               >
-                {/* V2 — overlay track (empty placeholder for v1) */}
-                <EmptyTrack
-                  top={0}
-                  height={V_OVERLAY_HEIGHT}
-                  width={trackWidthPx}
-                  hint="Title cards land here"
-                />
+                {/* V2 — overlay track for title cards */}
+                <div
+                  className="absolute left-0 right-0 rounded-md border border-dashed border-white/[0.05] bg-white/[0.008] overflow-hidden"
+                  style={{ top: 0, height: V_OVERLAY_HEIGHT, width: trackWidthPx }}
+                >
+                  {titleClips.length === 0 ? (
+                    <span className={cn(TYPE_META, "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 tracking-[0.30em]")}>
+                      Press T at the playhead to drop a title
+                    </span>
+                  ) : (
+                    titleClips.map((t) => (
+                      <TitleBlock
+                        key={t.id}
+                        clip={t}
+                        pxPerSec={pxPerSec}
+                        isActive={t.id === selectedClipId}
+                      />
+                    ))
+                  )}
+                </div>
 
                 {/* V1 — the actual video clips with Reorder.Group */}
                 <div
@@ -839,6 +868,55 @@ function EmptyTrack({
         {hint}
       </span>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TitleBlock — positioned title clip on V2. Selectable; opens in
+// the Inspector for text + background colour editing. Width follows
+// the title's own durationSec independent of V1.
+// ─────────────────────────────────────────────────────────────────────────────
+function TitleBlock({
+  clip,
+  pxPerSec,
+  isActive,
+}: {
+  clip: EditorClip;
+  pxPerSec: number;
+  isActive: boolean;
+}) {
+  const widthPx = Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec);
+  const leftPx = clip.timelineStartSec * pxPerSec;
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        selectClip(clip.id);
+      }}
+      className={cn(
+        "absolute top-0 bottom-0 rounded-sm overflow-hidden ring-1 ring-inset transition-all",
+        isActive
+          ? "ring-accent/85 shadow-[0_6px_18px_-10px_hsl(var(--accent)/0.5)]"
+          : "ring-white/[0.10] hover:ring-white/[0.20]",
+      )}
+      style={{
+        left: leftPx,
+        width: widthPx,
+        background: clip.titleColor
+          ? `linear-gradient(90deg, ${clip.titleColor}E0, ${clip.titleColor}FF)`
+          : "linear-gradient(90deg, hsl(220 30% 4% / 0.85), hsl(220 30% 4%))",
+      }}
+    >
+      <div className="absolute inset-0 flex items-center px-2">
+        <span
+          className="truncate font-display italic text-[12px] font-light text-foreground/95"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {clip.titleText || "Title"}
+        </span>
+      </div>
+    </button>
   );
 }
 

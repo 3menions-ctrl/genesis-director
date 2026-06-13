@@ -29,6 +29,8 @@ import {
   switchActiveTake,
   appendPendingTake,
   setScriptContent,
+  setClipProperty,
+  insertTitleAtPlayhead,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -56,5 +58,7 @@ export function useEditor() {
     switchActiveTake,
     appendPendingTake,
     setScriptContent,
+    setClipProperty,
+    insertTitleAtPlayhead,
   };
 }

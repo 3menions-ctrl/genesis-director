@@ -31,7 +31,13 @@ import {
   X,
   CornerDownLeft,
   Sparkles,
+  Volume2,
+  Eye,
+  Maximize2,
+  Type as TypeIcon,
 } from "lucide-react";
+import { getClipProperty } from "@/lib/editor/types";
+import { setClipProperty } from "@/lib/editor/store";
 
 function fmtTimecode(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) sec = 0;
@@ -193,7 +199,7 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
             </button>
           </header>
 
-          {/* Properties — floating typography, mono numbers */}
+          {/* Static identity row — In / Length / Track */}
           <div className="shrink-0 px-5 pb-3 grid grid-cols-3 gap-x-4">
             <div>
               <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>
@@ -216,10 +222,20 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
                 Track
               </div>
               <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-accent">
-                V1
+                {clip.kind === "title" ? "V2" : "V1"}
               </div>
             </div>
           </div>
+
+          {/* Hairline divider before properties */}
+          <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+          {/* PROPERTIES — editable sliders */}
+          {clip.kind === "title" ? (
+            <TitleProperties clip={clip} />
+          ) : (
+            <VideoProperties clip={clip} />
+          )}
 
           {/* Hairline divider before takes list */}
           <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
@@ -352,6 +368,143 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VideoProperties — Volume / Opacity / Scale sliders for V1 clips.
+// Every slider commits to setClipProperty on input. Stage's player
+// applies them in lockstep (volume → <video>.volume, opacity/scale →
+// CSS transform).
+// ─────────────────────────────────────────────────────────────────────────────
+function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorClip }) {
+  const volume = getClipProperty(clip, "volume");
+  const opacity = getClipProperty(clip, "opacity");
+  const scale = getClipProperty(clip, "scale");
+  return (
+    <div className="shrink-0 px-5 pb-3 space-y-3">
+      <PropertySlider
+        label="Volume"
+        Icon={Volume2}
+        min={0}
+        max={1}
+        step={0.01}
+        value={volume}
+        display={`${Math.round(volume * 100)}%`}
+        onChange={(v) => setClipProperty(clip.id, { volume: v })}
+      />
+      <PropertySlider
+        label="Opacity"
+        Icon={Eye}
+        min={0}
+        max={1}
+        step={0.01}
+        value={opacity}
+        display={`${Math.round(opacity * 100)}%`}
+        onChange={(v) => setClipProperty(clip.id, { opacity: v })}
+      />
+      <PropertySlider
+        label="Scale"
+        Icon={Maximize2}
+        min={0.5}
+        max={2}
+        step={0.01}
+        value={scale}
+        display={`${scale.toFixed(2)}×`}
+        onChange={(v) => setClipProperty(clip.id, { scale: v })}
+      />
+    </div>
+  );
+}
+
+function PropertySlider({
+  label,
+  Icon,
+  min,
+  max,
+  step,
+  value,
+  display,
+  onChange,
+}: {
+  label: string;
+  Icon: typeof Volume2;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  display: string;
+  onChange: (v: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="flex items-center gap-3">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" strokeWidth={1.5} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2 mb-1">
+          <span className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>
+            {label}
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-foreground/90">
+            {display}
+          </span>
+        </div>
+        <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent to-accent/55"
+            style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+          />
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            aria-label={label}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TitleProperties({ clip }: { clip: import("@/lib/editor/types").EditorClip }) {
+  return (
+    <div className="shrink-0 px-5 pb-3 space-y-3">
+      <div>
+        <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em] mb-1.5 flex items-center gap-1.5")}>
+          <TypeIcon className="h-3 w-3" strokeWidth={1.5} />
+          <span>Title text</span>
+        </div>
+        <input
+          type="text"
+          value={clip.titleText ?? ""}
+          onChange={(e) => setClipProperty(clip.id, { titleText: e.target.value })}
+          maxLength={120}
+          className={cn(
+            "block w-full bg-transparent outline-none",
+            "font-display italic font-light text-[15px] text-foreground",
+            "border-b border-accent/40 focus:border-accent pb-1.5",
+            "caret-accent",
+          )}
+          style={{ fontFamily: "'Fraunces', serif" }}
+          placeholder="TITLE"
+        />
+      </div>
+      <div>
+        <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em] mb-1.5")}>
+          Background color
+        </div>
+        <input
+          type="color"
+          value={clip.titleColor ?? "#0a0e16"}
+          onChange={(e) => setClipProperty(clip.id, { titleColor: e.target.value })}
+          className="w-full h-9 rounded-md cursor-pointer bg-white/[0.04] border border-white/[0.08]"
+        />
+      </div>
+    </div>
   );
 }
 

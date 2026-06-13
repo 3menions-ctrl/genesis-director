@@ -14,18 +14,37 @@
 import type { EditorClip, EditorProject, EditorState, EditorView } from "./types";
 import { INITIAL_EDITOR_STATE } from "./types";
 
-/** Recompute every clip's timelineStartSec after a reorder/trim/delete. */
+/**
+ * Recompute every VIDEO clip's timelineStartSec after a reorder /
+ * trim / delete. Title clips on V2 are independent — they keep their
+ * own timelineStartSec untouched so their position is sticky relative
+ * to wallclock, not V1's chain. Total duration is the max of the V1
+ * cursor and the last title clip's end.
+ */
 function recompute(project: EditorProject): EditorProject {
   let cursor = 0;
+  let maxEnd = 0;
   const scenes = project.scenes.map((scene) => {
     const clips = scene.clips.map((c) => {
+      if (c.kind === "title") {
+        const end = c.timelineStartSec + c.durationSec;
+        if (end > maxEnd) maxEnd = end;
+        return c;
+      }
       const next: EditorClip = { ...c, timelineStartSec: cursor };
       cursor += c.durationSec;
+      if (cursor > maxEnd) maxEnd = cursor;
       return next;
     });
-    return { ...scene, clips, durationSec: clips.reduce((s, c) => s + c.durationSec, 0) };
+    return {
+      ...scene,
+      clips,
+      durationSec: clips
+        .filter((c) => c.kind !== "title")
+        .reduce((s, c) => s + c.durationSec, 0),
+    };
   });
-  return { ...project, scenes, durationSec: cursor };
+  return { ...project, scenes, durationSec: Math.max(cursor, maxEnd) };
 }
 
 let state: EditorState = { ...INITIAL_EDITOR_STATE };
@@ -155,6 +174,83 @@ export function trimClip(clipId: string, durationSec: number): void {
     })),
   };
   set({ project: recompute(project) });
+}
+
+/**
+ * Update a single clip property (volume / opacity / scale / fades /
+ * titleText / titleColor). Sparse — undefined keys fall back to
+ * CLIP_PROPERTY_DEFAULTS on the read path via getClipProperty().
+ */
+export function setClipProperty(
+  clipId: string,
+  patch: {
+    volume?: number;
+    opacity?: number;
+    scale?: number;
+    fadeInSec?: number;
+    fadeOutSec?: number;
+    titleText?: string;
+    titleColor?: string;
+  },
+): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        const next: EditorClip = { ...c };
+        if (patch.titleText !== undefined) next.titleText = patch.titleText;
+        if (patch.titleColor !== undefined) next.titleColor = patch.titleColor;
+        const propPatch: Partial<EditorClip["properties"]> = {};
+        for (const k of ["volume", "opacity", "scale", "fadeInSec", "fadeOutSec"] as const) {
+          if (patch[k] !== undefined) propPatch[k] = patch[k];
+        }
+        if (Object.keys(propPatch).length > 0) {
+          next.properties = { ...(c.properties ?? {}), ...propPatch };
+        }
+        return next;
+      }),
+    })),
+  };
+  set({ project });
+}
+
+/**
+ * Insert a title-card clip at the current playhead on V2. Default
+ * duration 3s, default text "TITLE". The title is a SEPARATE clip
+ * (not part of the V1 video chain) — it doesn't shift any video
+ * positions. Two title clips can overlap; the renderer paints them
+ * in insertion order so the most-recent wins.
+ */
+export function insertTitleAtPlayhead(initialText: string = "TITLE"): string | null {
+  if (!state.project) return null;
+  const newClip: EditorClip = {
+    id: `title-${Math.floor(performance.now())}`,
+    kind: "title",
+    index: 0,
+    timelineStartSec: state.playheadSec,
+    durationSec: 3,
+    videoUrl: null,
+    thumbnailUrl: null,
+    prompt: initialText,
+    titleText: initialText,
+    titleColor: "hsl(220 30% 4%)",
+    properties: { opacity: 0.95 },
+    takes: [],
+  };
+  // Append title clips to scene[0].clips so the existing mutators see
+  // them too, but they're identified by kind === "title" — the
+  // Timeline filters and the Stage overlay both branch on it.
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: [...s.clips, newClip] } : s,
+    ),
+  };
+  set({ project, selectedClipId: newClip.id });
+  return newClip.id;
 }
 
 /**

@@ -98,8 +98,42 @@ export interface EditorScene {
   clips: EditorClip[];
 }
 
+export interface ClipProperties {
+  /** 0.0 – 1.5 — gain applied to the <video>.volume on Stage */
+  volume: number;
+  /** 0.0 – 1.0 — opacity applied as CSS opacity on Stage */
+  opacity: number;
+  /** 0.5 – 2.0 — CSS scale transform on Stage */
+  scale: number;
+  /** Optional crossfade-in seconds */
+  fadeInSec: number;
+  /** Optional crossfade-out seconds */
+  fadeOutSec: number;
+}
+
+export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
+  volume: 1.0,
+  opacity: 1.0,
+  scale: 1.0,
+  fadeInSec: 0,
+  fadeOutSec: 0,
+};
+
+/** Read a property with fall-through to the default. */
+export function getClipProperty<K extends keyof ClipProperties>(
+  clip: EditorClip,
+  key: K,
+): ClipProperties[K] {
+  return clip.properties?.[key] ?? CLIP_PROPERTY_DEFAULTS[key];
+}
+
+export type ClipKind = "video" | "title";
+
 export interface EditorClip {
   id: string;
+  /** "video" by default — title clips live on V2 and render as a
+   *  text overlay during their active range. */
+  kind?: ClipKind;
   /** Position within the scene (0-indexed). */
   index: number;
   /** Absolute timeline start in seconds — cached on load for fast scrub. */
@@ -108,6 +142,11 @@ export interface EditorClip {
   videoUrl: string | null;
   thumbnailUrl: string | null;
   prompt: string;
+  /** For kind === "title" — the rendered text and optional colour. */
+  titleText?: string;
+  titleColor?: string;
+  /** Per-clip overrides — sparse; missing keys fall back to defaults. */
+  properties?: Partial<ClipProperties>;
   /** Available takes — first is the active canonical take. */
   takes: EditorTake[];
 }

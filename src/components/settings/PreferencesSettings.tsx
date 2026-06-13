@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { 
-  Settings, Palette, Volume2, Play, Film, 
+import {
+  Volume2,
   Monitor, Moon, Sun, Zap, Sparkles, Save, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -136,12 +136,12 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
   }
 
   return (
-    <div ref={ref} className="space-y-6">
+    <div ref={ref} className="space-y-12">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Preferences</h2>
-          <p className="text-sm text-white/50">Customize your experience</p>
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Preferences</div>
+          <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Customize your experience.</h2>
         </div>
         {hasChanges && (
           <Button
@@ -160,21 +160,14 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
       </div>
 
       {/* Default Generation Settings */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Film className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Generation Defaults</h3>
-            <p className="text-sm text-white/50">Set default options for new projects</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Generation defaults</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Default options for new projects.</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -236,25 +229,18 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
             </Select>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Appearance */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Palette className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Appearance</h3>
-            <p className="text-sm text-white/50">Customize the look and feel</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Appearance</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>The look and feel.</h3>
         </div>
 
         <div className="space-y-6">
@@ -311,25 +297,18 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
             />
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Playback Settings */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Play className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Playback</h3>
-            <p className="text-sm text-white/50">Video playback preferences</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Playback</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Video playback preferences.</h3>
         </div>
 
         <div className="space-y-6">
@@ -385,7 +364,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
             </div>
           </div>
         </div>
-        </motion.div>
+      </motion.section>
     </div>
   );
 }));

@@ -81,10 +81,10 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
     };
 
     return (
-      <div ref={ref} className="space-y-6">
+      <div ref={ref} className="space-y-12">
         <div>
-          <h2 className="text-xl font-semibold text-white">Referrals</h2>
-          <p className="text-sm text-white/50">Invite friends. You both earn credits when they create their first project.</p>
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Referrals</div>
+          <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Invite friends. Both earn credits.</h2>
         </div>
 
         {loading ? (
@@ -93,19 +93,13 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#0A84FF]/[0.06] to-white/[0.01] p-6">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-primary/[0.10] border border-primary/30 flex items-center justify-center">
-                  <Gift className="w-4 h-4 text-primary/60" />
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Your invite code</p>
-                  <p className="font-mono text-2xl text-white tracking-widest">{code}</p>
-                </div>
+            <section className="py-2">
+              <div className="mb-5">
+                <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Your invite code</p>
+                <p className="mt-2 font-mono text-[clamp(1.6rem,3vw,2.4rem)] text-white tracking-widest">{code}</p>
               </div>
 
-              <label className="text-[11px] uppercase tracking-[0.18em] text-white/45">Share link</label>
+              <label className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Share link</label>
               <div className="mt-2 flex gap-2 flex-wrap">
                 <input
                   readOnly
@@ -120,22 +114,22 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
                   <Share2 className="w-4 h-4 mr-2" /> Share
                 </Button>
               </div>
-            </div>
+            </section>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
-                <div className="flex items-center gap-2 text-white/45 text-[11px] uppercase tracking-[0.18em]">
+            <section className="py-2 grid grid-cols-2 gap-8">
+              <div>
+                <div className="flex items-center gap-2 text-white/45 text-[10px] uppercase tracking-[0.32em] font-mono">
                   <Users className="w-3 h-3" /> Friends joined
                 </div>
-                <p className="text-3xl font-display font-light text-white mt-2">{redemptions}</p>
+                <p className="text-[clamp(2.4rem,5vw,3.5rem)] font-display italic font-light text-white mt-3 leading-none" style={{ fontFamily: "'Fraunces', serif" }}>{redemptions}</p>
               </div>
-              <div className="rounded-2xl border border-white/[0.06] bg-glass p-5">
-                <div className="flex items-center gap-2 text-white/45 text-[11px] uppercase tracking-[0.18em]">
+              <div>
+                <div className="flex items-center gap-2 text-white/45 text-[10px] uppercase tracking-[0.32em] font-mono">
                   <Gift className="w-3 h-3" /> Rewards credited
                 </div>
-                <p className="text-3xl font-display font-light text-white mt-2">{credited}</p>
+                <p className="text-[clamp(2.4rem,5vw,3.5rem)] font-display italic font-light text-white mt-3 leading-none" style={{ fontFamily: "'Fraunces', serif" }}>{credited}</p>
               </div>
-            </div>
+            </section>
           </>
         )}
       </div>

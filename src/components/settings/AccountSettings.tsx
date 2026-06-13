@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   User, Camera, Mail, Building2, Briefcase, 
-  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle, UserX, Power, Shield
+  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle, UserX, Power
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -256,16 +256,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
   const tierInfo = getTierInfo((profile as any)?.account_tier);
 
-  const cardClass = "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm p-6";
-  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(215,100%,60%)]/22 to-transparent";
-
   return (
-    <div ref={ref} className="space-y-6">
+    <div ref={ref} className="space-y-12">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Account</h2>
-          <p className="text-sm text-white/35 mt-0.5">Manage your profile and personal information</p>
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Account</div>
+          <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Profile and personal information.</h2>
         </div>
         {!isEditing ? (
           <Button
@@ -313,13 +310,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       </div>
 
       {/* Avatar Section */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
         <div className="flex items-center gap-6">
           <div className="relative group">
             <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center overflow-hidden ring-2 ring-[hsl(215,100%,60%)]/12 ring-offset-2 ring-offset-[#06060a]">
@@ -359,18 +354,19 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Profile Info */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
-        <h3 className="font-semibold text-white mb-6">Personal Information</h3>
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Personal information</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Who you are.</h3>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -471,18 +467,19 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             )}
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Account Info */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
-        <h3 className="font-semibold text-white mb-4">Account Details</h3>
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Account details</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>The essentials.</h3>
+        </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -504,25 +501,18 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </div>
           ))}
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Privacy Preferences */}
-      <motion.div
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/15 flex items-center justify-center">
-            <Shield className="w-4.5 h-4.5 text-[hsl(215,100%,72%)]/80" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Privacy Preferences</h3>
-            <p className="text-xs text-white/35 mt-0.5">Control how your activity data is used</p>
-          </div>
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Privacy preferences</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Control how your activity data is used.</h3>
         </div>
 
         <div className="space-y-4">
@@ -545,17 +535,15 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Account Deactivation */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="relative rounded-2xl overflow-hidden border border-red-500/10 bg-red-500/[0.02] backdrop-blur-sm p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
-        
         <div className="flex items-start gap-4">
           <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/15 flex items-center justify-center shrink-0">
             <UserX className="w-5 h-5 text-red-400/80" />
@@ -577,7 +565,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Email Change Dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>

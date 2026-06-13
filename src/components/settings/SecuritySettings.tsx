@@ -16,8 +16,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { 
-  Shield, Key, Monitor, LogOut,
+import {
+  Monitor, LogOut,
   Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -162,35 +162,26 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       })
     : 'Unknown';
 
-  const cardClass = "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm p-6";
-  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(215,100%,60%)]/22 to-transparent";
   const iconBoxClass = "w-10 h-10 rounded-xl flex items-center justify-center";
 
   return (
-    <div ref={ref} className="space-y-6">
+    <div ref={ref} className="space-y-12">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-bold text-white tracking-tight">Security</h2>
-        <p className="text-sm text-white/35 mt-0.5">Manage your account security and sessions</p>
+        <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Security</div>
+        <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your account security and sessions.</h2>
       </div>
 
       {/* Password Section */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/15")}>
-              <Key className="w-5 h-5 text-[hsl(215,100%,72%)]" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Password</h3>
-              <p className="text-sm text-white/40">Change your account password</p>
-            </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Password</div>
+            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Change your account password.</h3>
           </div>
           {!isChangingPassword && (
             <Button
@@ -279,27 +270,20 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </div>
           </motion.div>
         )}
-      </motion.div>
+      </motion.section>
 
 
       {/* Active Sessions */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-cyan-500/10 border border-cyan-500/15")}>
-              <Monitor className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Active Sessions</h3>
-              <p className="text-sm text-white/40">Manage your logged-in devices</p>
-            </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Active sessions</div>
+            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your logged-in devices.</h3>
           </div>
           <Button
             onClick={handleSignOutAllDevices}
@@ -327,25 +311,18 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </span>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Account Security Overview */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
-        <div className="flex items-center gap-4 mb-4">
-          <div className={cn(iconBoxClass, "bg-emerald-500/10 border border-emerald-500/15")}>
-            <Shield className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Account Security</h3>
-            <p className="text-sm text-white/40">Your account security overview</p>
-          </div>
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Account security</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your security overview.</h3>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -363,26 +340,19 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </div>
           ))}
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Export Data */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className={cardClass}
+        className="py-2"
       >
-        <div className={topAccent} />
-        
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-glass-hover")}>
-              <Download className="w-5 h-5 text-white/30" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Export Your Data</h3>
-              <p className="text-sm text-white/40">Download a copy of all your data</p>
-            </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Export your data</div>
+            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Download a copy of all your data.</h3>
           </div>
           <Button
             onClick={handleExportData}
@@ -398,17 +368,17 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             Export Data
           </Button>
         </div>
-      </motion.div>
+      </motion.section>
 
-      {/* Danger Zone */}
-      <motion.div 
+      {/* Danger Zone — kept red border to give destructive action visual weight */}
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
         className="relative rounded-2xl overflow-hidden border border-red-500/10 bg-red-500/[0.02] backdrop-blur-sm p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className={cn(iconBoxClass, "bg-red-500/10 border border-red-500/15")}>
@@ -427,7 +397,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             Delete Account
           </Button>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Delete Account Dialog - FIXED: responsive */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

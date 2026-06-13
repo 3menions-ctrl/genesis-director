@@ -6,10 +6,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { 
-  Bell, Mail, Video, Coins, Megaphone, 
+import {
+  Bell, Mail, Coins,
   CheckCircle2, AlertCircle, Save, Loader2,
-  Clock, Sparkles, TrendingUp
+  Sparkles, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -96,12 +96,12 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
   }
 
   return (
-    <div ref={ref} className="space-y-6">
+    <div ref={ref} className="space-y-12">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Notifications</h2>
-          <p className="text-sm text-white/50">Manage how and when we contact you</p>
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Notifications</div>
+          <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>How and when we contact you.</h2>
         </div>
         {hasChanges && (
           <Button
@@ -120,13 +120,11 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
       </div>
 
       {/* Master Toggle */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18 flex items-center justify-center">
@@ -144,28 +142,21 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             onCheckedChange={(checked) => updatePreference('emailNotifications', checked)}
           />
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Video Notifications */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
+          "py-2",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Video className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Video Updates</h3>
-            <p className="text-sm text-white/50">Notifications about your video generations</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Video updates</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Notifications about your video generations.</h3>
         </div>
 
         <div className="space-y-4">
@@ -197,28 +188,21 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Credit Notifications */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
+          "py-2",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Coins className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Credit Alerts</h3>
-            <p className="text-sm text-white/50">Stay informed about your credit balance</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Credit alerts</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Stay informed about your balance.</h3>
         </div>
 
         <div className="space-y-4">
@@ -260,28 +244,21 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             </div>
           )}
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Summary & Digest */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
+          "py-2",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Clock className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Summary & Reports</h3>
-            <p className="text-sm text-white/50">Periodic updates about your activity</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Summary & reports</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Periodic updates about your activity.</h3>
         </div>
 
         <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
@@ -297,28 +274,21 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             onCheckedChange={(checked) => updatePreference('weeklyDigest', checked)}
           />
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Marketing & Updates */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
         className={cn(
-          "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6",
+          "py-2",
           !preferences.emailNotifications && "opacity-50 pointer-events-none"
         )}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-            <Megaphone className="w-5 h-5 text-white/40" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Updates & Marketing</h3>
-            <p className="text-sm text-white/50">Stay informed about new features</p>
-          </div>
+        <div className="mb-6">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Updates & marketing</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Stay informed about new features.</h3>
         </div>
 
         <div className="space-y-4">
@@ -364,7 +334,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
         </div>
-      </motion.div>
+      </motion.section>
     </div>
   );
 }));

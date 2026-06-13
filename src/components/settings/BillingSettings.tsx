@@ -201,12 +201,12 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     : usageStats?.thisMonth ? 100 : 0;
 
   return (
-    <div ref={ref} className="space-y-6">
+    <div ref={ref} className="space-y-12">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Billing & Credits</h2>
-          <p className="text-sm text-white/50">Manage your credits and view transaction history</p>
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Billing & credits</div>
+          <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Credits and transaction history.</h2>
         </div>
         <Button
           onClick={() => setShowBuyModal(true)}
@@ -220,14 +220,12 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       {/* Subscription / Plan */}
       <PersonalSubscriptionCard />
 
-      {/* Credit Balance Card */}
-      <motion.div 
+      {/* Credit Balance */}
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
@@ -256,7 +254,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Usage Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,14 +318,16 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       </div>
 
       {/* Auto-Recharge Option */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass p-6"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Auto-recharge</div>
+          <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Never run dry.</h3>
+        </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
@@ -357,30 +357,23 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
           </div>
         )}
-      </motion.div>
+      </motion.section>
 
       {/* Transaction History */}
-      <motion.div 
+      <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-glass"
+        className="py-2"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        
-        <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
-              <History className="w-5 h-5 text-white/40" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Transaction History</h3>
-              <p className="text-xs text-white/40">Your recent credit activity</p>
-            </div>
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Transaction history</div>
+            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your recent credit activity.</h3>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="text-white/50 hover:text-white"
             onClick={handleExportTransactions}
           >
@@ -392,24 +385,24 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         <div className="divide-y divide-white/[0.04]">
           {loadingTransactions ? (
             [...Array(5)].map((_, i) => (
-              <div key={i} className="px-6 py-4">
+              <div key={i} className="py-4">
                 <Skeleton className="h-12 w-full bg-white/5" />
               </div>
             ))
           ) : transactions.length === 0 ? (
-            <div className="px-6 py-16 text-center">
+            <div className="py-16 text-center">
               <History className="w-12 h-12 text-white/20 mx-auto mb-3" />
               <p className="text-white/40">No transactions yet</p>
               <p className="text-sm text-white/25 mt-1">Start creating to see your history</p>
             </div>
           ) : (
             transactions.map((tx, i) => (
-              <motion.div 
+              <motion.div
                 key={tx.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="flex items-center justify-between px-6 py-4 hover:bg-glass transition-colors"
+                className="flex items-center justify-between py-4 hover:bg-white/[0.02] transition-colors rounded-lg px-2"
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(
@@ -448,9 +441,9 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             ))
           )}
         </div>
-      </motion.div>
+      </motion.section>
 
-      <BuyCreditsModal 
+      <BuyCreditsModal
         open={showBuyModal} 
         onOpenChange={setShowBuyModal}
         onPurchaseComplete={handlePurchaseComplete}

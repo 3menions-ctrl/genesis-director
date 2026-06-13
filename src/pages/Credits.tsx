@@ -119,8 +119,8 @@ export default function Credits() {
           }
         />
 
-        {/* Request more credits */}
-        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.015] p-8">
+        {/* Request more credits — floating, no container */}
+        <section>
           <div className="flex items-center gap-3 mb-6">
             <Sparkles className="w-4 h-4 text-primary/80" />
             <h2 className="text-[18px] text-white font-display font-light">
@@ -128,11 +128,11 @@ export default function Credits() {
             </h2>
           </div>
           {requestSent ? (
-            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] p-6 flex items-start gap-4">
+            <div className="flex items-start gap-4 py-2">
               <BadgeCheck className="w-5 h-5 text-emerald-300 mt-0.5" />
               <div>
                 <div className="text-white text-[14px] mb-1">Request received</div>
-                <p className="text-white/65 text-[13px] leading-relaxed">
+                <p className="text-white/65 text-[13px] leading-relaxed max-w-2xl">
                   We&rsquo;ll review and reply within one business day. In the meantime keep building — refunds for failed generations land back in your balance automatically.
                 </p>
               </div>
@@ -184,8 +184,8 @@ export default function Credits() {
           )}
         </section>
 
-        {/* CTA back to creation */}
-        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.015] p-8 flex items-center justify-between gap-6">
+        {/* CTA back to creation — floating */}
+        <section className="flex items-center justify-between gap-6 py-2">
           <div>
             <div className="text-white text-[16px] font-display mb-1">
               Ready to make something?
@@ -196,27 +196,32 @@ export default function Credits() {
           </div>
           <button
             onClick={() => navigate('/create')}
-            className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] font-semibold text-white/80 hover:text-white px-5 py-3 rounded-lg border border-white/[0.08] hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/60 transition-colors"
+            className="group/cta inline-flex items-center gap-2 text-[13px] text-white/85 hover:text-white transition-colors"
           >
-            <Wand2 className="w-4 h-4" /> Open studio <ArrowUpRight className="w-3.5 h-3.5" />
+            <Wand2 className="w-4 h-4 text-accent" strokeWidth={1.5} />
+            <span className="relative">
+              Open studio
+              <span aria-hidden className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/cta:scale-x-100" />
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5" strokeWidth={1.5} />
           </button>
         </section>
 
-        {/* Usage history */}
-        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
-          <div className="px-8 py-5 border-b border-white/[0.05] flex items-center gap-3">
+        {/* Usage history — floating, no card */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
             <History className="w-4 h-4 text-white/55" />
             <h2 className="text-[15px] text-white font-display font-light">
               Recent credit activity
             </h2>
           </div>
           {loadingHistory ? (
-            <div className="p-16 flex items-center justify-center text-white/40 gap-2">
+            <div className="py-8 flex items-center text-white/40 gap-2">
               <Spinner size="sm" tone="muted" />
               <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading…</span>
             </div>
           ) : history.length === 0 ? (
-            <div className="p-16 text-center text-white/45">
+            <div className="py-8 text-white/45">
               <p className="text-[14px] font-display mb-2">No activity yet</p>
               <p className="text-[12px] text-white/35">
                 Once you generate your first clip, your credit ledger appears here.
@@ -227,26 +232,26 @@ export default function Credits() {
               <table className="w-full text-[13px] min-w-[640px]">
                 <thead>
                   <tr className="border-b border-white/[0.05]">
-                    <th className="px-6 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">When</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Type</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Description</th>
-                    <th className="px-6 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Δ</th>
+                    <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">When</th>
+                    <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Type</th>
+                    <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Description</th>
+                    <th className="py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Δ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((t) => (
                     <tr key={t.id} className="border-b border-white/[0.03]">
-                      <td className="px-6 py-3 text-white/55 font-mono text-[11px] whitespace-nowrap">
+                      <td className="py-3 pr-6 text-white/55 font-mono text-[11px] whitespace-nowrap">
                         {new Date(t.created_at).toLocaleString()}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="py-3 pr-6">
                         <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80">
                           {t.transaction_type}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-white/75">{t.description ?? '—'}</td>
+                      <td className="py-3 pr-6 text-white/75">{t.description ?? '—'}</td>
                       <td
-                        className={`px-6 py-3 text-right font-mono tabular-nums ${
+                        className={`py-3 text-right font-mono tabular-nums ${
                           t.amount > 0 ? 'text-emerald-300' : 'text-rose-300'
                         }`}
                       >

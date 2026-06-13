@@ -217,16 +217,14 @@ export default function NotificationsPage() {
         {isLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[88px] rounded-2xl border border-white/[0.05] bg-glass animate-pulse" />
+              <div key={i} className="h-[72px] rounded-xl bg-white/[0.025] animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-glass py-20 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl border border-white/[0.06] bg-glass flex items-center justify-center">
-              <Bell className="w-6 h-6 text-muted-foreground" strokeWidth={1.4} />
-            </div>
-            <p className="font-display text-[20px] font-light text-foreground/90 mt-4">Quiet on this channel</p>
-            <p className="text-[13px] text-muted-foreground mt-1">No notifications match this filter yet.</p>
+          <div className="py-20 text-center">
+            <Bell className="w-7 h-7 text-muted-foreground/55 mx-auto" strokeWidth={1.4} />
+            <p className="font-display italic text-[22px] font-light text-foreground/90 mt-5" style={{ fontFamily: "'Fraunces', serif" }}>Quiet on this channel.</p>
+            <p className="text-[13px] text-muted-foreground/65 mt-2">No notifications match this filter yet.</p>
           </div>
         ) : (
           <>
@@ -250,22 +248,17 @@ export default function NotificationsPage() {
                         onClick={() => open(n)}
                         onKeyDown={(e) => { if (e.key === 'Enter') open(n); }}
                         className={cn(
-                          'group relative rounded-2xl border transition cursor-pointer',
-                          'p-5 flex gap-4 items-start',
-                          !n.read
-                            ? 'border-primary/30 bg-primary/[0.05]'
-                            : 'border-white/[0.06] bg-glass hover:bg-glass-hover',
+                          'group relative cursor-pointer transition-colors',
+                          'pl-5 pr-4 py-4 flex gap-4 items-start',
+                          'hover:bg-white/[0.02] rounded-xl',
                         )}
                       >
                         {!n.read && (
                           <span className="absolute left-0 top-5 bottom-5 w-[2px] rounded-r-full bg-primary
                                             shadow-[0_0_12px_hsla(212,100%,55%,0.8)]" />
                         )}
-                        <div className={cn(
-                          'w-11 h-11 rounded-xl border border-white/[0.06] bg-glass',
-                          'flex items-center justify-center shrink-0',
-                        )}>
-                          <Icon className={cn('w-4.5 h-4.5', color)} strokeWidth={1.6} />
+                        <div className="w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center shrink-0">
+                          <Icon className={cn('w-4 h-4', color)} strokeWidth={1.6} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">

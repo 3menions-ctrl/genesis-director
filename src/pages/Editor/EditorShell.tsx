@@ -36,6 +36,7 @@ import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
 import { LeftScenes } from "./components/LeftScenes";
 import { PlayerCanvas } from "./components/PlayerCanvas";
+import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -62,6 +63,7 @@ export function EditorShell() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -85,6 +87,11 @@ export function EditorShell() {
       if (e.key === "e" || e.key === "E") {
         e.preventDefault();
         setExportOpen(true);
+        return;
+      }
+      if (e.key === "q" || e.key === "Q") {
+        e.preventDefault();
+        setQueueOpen((o) => !o);
         return;
       }
       if (e.key === "c" || e.key === "C") {
@@ -240,6 +247,8 @@ export function EditorShell() {
           project={project}
         />
       )}
+
+      <RenderQueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
     </div>
   );
 }

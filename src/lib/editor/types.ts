@@ -166,6 +166,21 @@ export interface EditorTake {
 // ─────────────────────────────────────────────────────────────────────────────
 export type TimelineTool = "select" | "blade" | "hand";
 
+export type RenderJobStatus = "queued" | "rendering" | "done" | "error";
+
+export interface RenderJob {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  aspect: AspectRatio;
+  status: RenderJobStatus;
+  createdAt: string;
+  completedAt?: string;
+  outputUrl?: string;
+  error?: string;
+  reframe: boolean;
+}
+
 export interface EditorMarker {
   id: string;
   /** Timeline-absolute position in seconds */

@@ -129,11 +129,23 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     const onTime = () => {
       if (!activeClip) return;
       setPlayhead(activeClip.timelineStartSec + v.currentTime);
+      // Live fade-in / fade-out applied as inline opacity. Bypasses
+      // React re-renders so the curve is frame-rate-perfect.
+      const rel = v.currentTime;
+      const baseOpacity = getClipProperty(activeClip, "opacity");
+      const fadeIn = getClipProperty(activeClip, "fadeInSec");
+      const fadeOut = getClipProperty(activeClip, "fadeOutSec");
+      let mult = 1;
+      if (fadeIn > 0 && rel < fadeIn) mult = rel / fadeIn;
+      const fromEnd = activeClip.durationSec - rel;
+      if (fadeOut > 0 && fromEnd < fadeOut) {
+        mult = Math.min(mult, Math.max(0, fromEnd / fadeOut));
+      }
+      v.style.opacity = String(baseOpacity * mult);
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => {
-      // Chain to next clip's start
       const next = clips[activeIdx + 1];
       if (next) setPlayhead(next.timelineStartSec);
       else setIsPlaying(false);

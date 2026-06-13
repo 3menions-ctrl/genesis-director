@@ -27,6 +27,7 @@ import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import { supabase } from "@/integrations/supabase/client";
 import type { AspectRatio, EditorProject } from "@/lib/editor/types";
 import { ASPECT_RATIOS } from "@/lib/editor/types";
+import { addRenderJob, updateRenderJob } from "@/lib/editor/renderQueue";
 import { toast } from "sonner";
 
 interface Props {
@@ -92,49 +93,51 @@ export function ExportPanel({ project, open, onClose }: Props) {
     }));
     setJobs(list);
 
-    // Fire all jobs in parallel — final-assembly handles its own
-    // queueing on the backend. If one fails the others continue.
+    // Add each job to the persistent render queue immediately so the
+    // user sees it in the Q panel even if they navigate away.
+    const queueIds: string[] = list.map((job) =>
+      addRenderJob({
+        projectId: project.id,
+        projectTitle: project.title,
+        aspect: job.aspect,
+        reframe: job.aspect !== native,
+        status: "queued",
+      }),
+    );
+
     await Promise.all(
       list.map(async (job, i) => {
+        const qid = queueIds[i];
         setJobs((curr) =>
           curr.map((j, idx) => (idx === i ? { ...j, status: "rendering" } : j)),
         );
+        updateRenderJob(qid, { status: "rendering" });
         try {
-          const { error } = await supabase.functions.invoke(
-            "final-assembly",
-            {
-              body: {
-                projectId: project.id,
-                aspectRatio: job.aspect,
-                // Smart Reframe is implied when aspect differs from
-                // the project's native; backend may currently
-                // pass-through. Marked so a future server change is
-                // additive.
-                reframe: job.aspect !== native,
-              },
+          const { error } = await supabase.functions.invoke("final-assembly", {
+            body: {
+              projectId: project.id,
+              aspectRatio: job.aspect,
+              reframe: job.aspect !== native,
             },
-          );
+          });
           if (error) throw error;
           setJobs((curr) =>
-            curr.map((j, idx) =>
-              idx === i ? { ...j, status: "done" } : j,
-            ),
+            curr.map((j, idx) => (idx === i ? { ...j, status: "done" } : j)),
           );
+          updateRenderJob(qid, {
+            status: "done",
+            completedAt: new Date().toISOString(),
+          });
         } catch (e) {
           // eslint-disable-next-line no-console
           console.warn("[Export] job failed", job.aspect, e);
+          const msg = e instanceof Error ? e.message : "Render failed";
           setJobs((curr) =>
             curr.map((j, idx) =>
-              idx === i
-                ? {
-                    ...j,
-                    status: "error",
-                    message:
-                      e instanceof Error ? e.message : "Render failed",
-                  }
-                : j,
+              idx === i ? { ...j, status: "error", message: msg } : j,
             ),
           );
+          updateRenderJob(qid, { status: "error", error: msg });
         }
       }),
     );

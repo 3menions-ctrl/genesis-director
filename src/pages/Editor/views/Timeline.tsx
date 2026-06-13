@@ -70,6 +70,7 @@ import {
   removeMarker,
 } from "@/lib/editor/store";
 import { useEditor } from "@/hooks/editor/useEditor";
+import { useAudioWaveform } from "@/hooks/editor/useAudioWaveform";
 import { Toolbar } from "../components/Toolbar";
 import { toast } from "sonner";
 
@@ -1077,7 +1078,28 @@ function AudioShadow({
 }) {
   const widthPx = Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec);
   const leftPx = clip.timelineStartSec * pxPerSec;
-  const bars = useMemo(() => buildProceduralWaveform(clip.id, widthPx), [clip.id, widthPx]);
+  const real = useAudioWaveform(clip.videoUrl);
+  // Real audio fetched + decoded → use it. CORS/decode failure → fall
+  // back to a deterministic procedural amplitude set per clip id so
+  // the row still looks like an audio track.
+  const bars = useMemo(() => {
+    if (real && real.length > 0) {
+      // Resample the 240-bucket real waveform to fit the width in
+      // ~3px-wide bars.
+      const target = Math.max(6, Math.floor(widthPx / 3));
+      const out = new Array<number>(target);
+      const stride = real.length / target;
+      for (let i = 0; i < target; i++) {
+        const s = Math.floor(i * stride);
+        const e = Math.floor((i + 1) * stride);
+        let max = 0;
+        for (let j = s; j < e; j++) if (real[j] > max) max = real[j];
+        out[i] = Math.max(0.1, max); // floor so silent passages still register
+      }
+      return out;
+    }
+    return buildProceduralWaveform(clip.id, widthPx);
+  }, [real, clip.id, widthPx]);
 
   return (
     <button

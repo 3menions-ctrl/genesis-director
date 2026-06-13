@@ -90,6 +90,7 @@ const SHORTCUTS: Group[] = [
     title: "Export · Help",
     items: [
       { keys: ["E"], label: "Open export panel" },
+      { keys: ["Q"], label: "Render queue (persistent jobs)" },
       { keys: ["⌘", "P"], label: "Editor command palette" },
       { keys: ["?"], label: "This sheet" },
     ],

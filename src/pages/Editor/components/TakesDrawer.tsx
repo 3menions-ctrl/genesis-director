@@ -35,6 +35,8 @@ import {
   Eye,
   Maximize2,
   Type as TypeIcon,
+  ArrowRightToLine,
+  ArrowLeftToLine,
 } from "lucide-react";
 import { getClipProperty } from "@/lib/editor/types";
 import { setClipProperty } from "@/lib/editor/store";
@@ -646,6 +648,8 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
   const volume = getClipProperty(clip, "volume");
   const opacity = getClipProperty(clip, "opacity");
   const scale = getClipProperty(clip, "scale");
+  const fadeInSec = getClipProperty(clip, "fadeInSec");
+  const fadeOutSec = getClipProperty(clip, "fadeOutSec");
   return (
     <div className="shrink-0 px-5 pb-3 space-y-3">
       <PropertySlider
@@ -678,6 +682,28 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
         display={`${scale.toFixed(2)}×`}
         onChange={(v) => setClipProperty(clip.id, { scale: v })}
       />
+      <div className="grid grid-cols-2 gap-x-3">
+        <PropertySlider
+          label="Fade in"
+          Icon={ArrowRightToLine}
+          min={0}
+          max={Math.min(2, clip.durationSec / 2)}
+          step={0.05}
+          value={fadeInSec}
+          display={fadeInSec > 0 ? `${fadeInSec.toFixed(1)}s` : "—"}
+          onChange={(v) => setClipProperty(clip.id, { fadeInSec: v })}
+        />
+        <PropertySlider
+          label="Fade out"
+          Icon={ArrowLeftToLine}
+          min={0}
+          max={Math.min(2, clip.durationSec / 2)}
+          step={0.05}
+          value={fadeOutSec}
+          display={fadeOutSec > 0 ? `${fadeOutSec.toFixed(1)}s` : "—"}
+          onChange={(v) => setClipProperty(clip.id, { fadeOutSec: v })}
+        />
+      </div>
     </div>
   );
 }

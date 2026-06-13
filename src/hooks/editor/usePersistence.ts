@@ -69,6 +69,13 @@ export function usePersistence(projectId: string | undefined) {
   // ── Restore ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!projectId || !project) return;
+    // The "demo" project is synthetic — its clip IDs are stable across
+    // versions of the build, but its layout is intentionally
+    // deterministic per visit. Skipping persistence guarantees the demo
+    // always opens in its canonical state, never with stale overrides
+    // from an earlier session that could blank the editor if the
+    // overrides got corrupted somehow.
+    if (projectId === "demo") return;
     if (restoredFor.current === projectId) return;
     if (project.id !== projectId) return; // project still loading the right one
 
@@ -87,6 +94,7 @@ export function usePersistence(projectId: string | undefined) {
   // ── Save (debounced) ──────────────────────────────────────────────
   useEffect(() => {
     if (!projectId || !project) return;
+    if (projectId === "demo") return; // demo is read-only by design
     if (restoredFor.current !== projectId) return; // wait until after restore
 
     const t = window.setTimeout(() => {

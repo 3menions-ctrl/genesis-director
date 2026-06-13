@@ -17,9 +17,38 @@ import type {
   EditorProject,
   EditorState,
   EditorView,
+  HistoryEntry,
   TimelineTool,
 } from "./types";
 import { INITIAL_EDITOR_STATE } from "./types";
+
+const HISTORY_MAX = 50;
+
+/**
+ * historize — set the project AND record the previous project to the
+ * undo stack. Future is cleared on every new edit (canonical UX).
+ * Called by every project-mutating action; not by loaders or by
+ * server-driven optimistic mutations (pending takes, etc).
+ */
+function historize(
+  nextProject: EditorProject,
+  extra?: Partial<EditorState>,
+  label?: string,
+): void {
+  const past = state.project
+    ? [
+        ...state.history.past.slice(
+          Math.max(0, state.history.past.length - HISTORY_MAX + 1),
+        ),
+        { project: state.project, label } satisfies HistoryEntry,
+      ]
+    : state.history.past;
+  set({
+    project: nextProject,
+    history: { past, future: [] },
+    ...extra,
+  });
+}
 
 /**
  * Recompute every VIDEO clip's timelineStartSec after a reorder /
@@ -104,7 +133,13 @@ export function selectScene(sceneId: string | null): void {
 }
 
 export function selectClip(clipId: string | null): void {
-  if (state.selectedClipId === clipId) return;
+  if (
+    state.selectedClipId === clipId &&
+    state.selectedClipIds.length === (clipId ? 1 : 0) &&
+    (!clipId || state.selectedClipIds[0] === clipId)
+  ) {
+    return;
+  }
   // Selecting a clip implicitly selects its scene.
   let sceneId = state.selectedSceneId;
   if (clipId && state.project) {
@@ -115,12 +150,167 @@ export function selectClip(clipId: string | null): void {
       }
     }
   }
-  set({ selectedClipId: clipId, selectedSceneId: sceneId });
+  set({
+    selectedClipId: clipId,
+    selectedClipIds: clipId ? [clipId] : [],
+    selectedSceneId: sceneId,
+  });
+}
+
+/** Add a clip to the multi-selection (Shift-click). The added clip
+ *  becomes the new primary. */
+export function extendClipSelection(clipId: string): void {
+  if (state.selectedClipIds.includes(clipId)) {
+    // Already there — just promote to primary.
+    if (state.selectedClipId !== clipId) {
+      set({ selectedClipId: clipId });
+    }
+    return;
+  }
+  set({
+    selectedClipId: clipId,
+    selectedClipIds: [...state.selectedClipIds, clipId],
+  });
+}
+
+/** Toggle a clip in the multi-selection (Cmd/Ctrl-click). */
+export function toggleClipSelection(clipId: string): void {
+  if (state.selectedClipIds.includes(clipId)) {
+    const next = state.selectedClipIds.filter((id) => id !== clipId);
+    set({
+      selectedClipIds: next,
+      selectedClipId:
+        state.selectedClipId === clipId ? next[next.length - 1] ?? null : state.selectedClipId,
+    });
+  } else {
+    set({
+      selectedClipId: clipId,
+      selectedClipIds: [...state.selectedClipIds, clipId],
+    });
+  }
+}
+
+export function clearSelection(): void {
+  if (!state.selectedClipId && state.selectedClipIds.length === 0) return;
+  set({ selectedClipId: null, selectedClipIds: [] });
 }
 
 export function resetEditor(): void {
   state = { ...INITIAL_EDITOR_STATE };
   for (const l of listeners) l();
+}
+
+// ─── Undo / Redo ─────────────────────────────────────────────────────────────
+export function undo(): boolean {
+  if (!state.project || state.history.past.length === 0) return false;
+  const prev = state.history.past[state.history.past.length - 1];
+  const currentSnapshot: HistoryEntry = { project: state.project };
+  // Filter selection to clips that still exist in the restored project.
+  const stillExists = new Set(
+    prev.project.scenes.flatMap((s) => s.clips.map((c) => c.id)),
+  );
+  const nextSelected = state.selectedClipIds.filter((id) => stillExists.has(id));
+  set({
+    project: prev.project,
+    history: {
+      past: state.history.past.slice(0, -1),
+      future: [
+        currentSnapshot,
+        ...state.history.future.slice(0, HISTORY_MAX - 1),
+      ],
+    },
+    selectedClipIds: nextSelected,
+    selectedClipId: nextSelected[nextSelected.length - 1] ?? null,
+  });
+  return true;
+}
+
+export function redo(): boolean {
+  if (state.history.future.length === 0) return false;
+  const next = state.history.future[0];
+  const past = state.project
+    ? [
+        ...state.history.past.slice(
+          Math.max(0, state.history.past.length - HISTORY_MAX + 1),
+        ),
+        { project: state.project } satisfies HistoryEntry,
+      ]
+    : state.history.past;
+  set({
+    project: next.project,
+    history: {
+      past,
+      future: state.history.future.slice(1),
+    },
+  });
+  return true;
+}
+
+// ─── Copy / Paste ────────────────────────────────────────────────────────────
+export function copySelected(): boolean {
+  if (!state.project || state.selectedClipIds.length === 0) return false;
+  const set_ = new Set(state.selectedClipIds);
+  const allClips = state.project.scenes.flatMap((s) => s.clips);
+  const clips = allClips.filter((c) => set_.has(c.id)).map((c) => ({ ...c }));
+  if (clips.length === 0) return false;
+  set({ clipboard: { clips, copiedAt: Date.now() } });
+  return true;
+}
+
+/**
+ * Paste clips from the clipboard. New clips are inserted immediately
+ * AFTER the currently-selected clip in the V1 chain — the closest
+ * thing to "paste at the cursor" given that V1 is sequential. If
+ * nothing is selected, appends at the end. All clip ids are
+ * regenerated; properties (volume / opacity / fades / title text)
+ * carry over.
+ */
+export function pasteFromClipboard(): boolean {
+  if (!state.project || !state.clipboard || state.clipboard.clips.length === 0)
+    return false;
+  const allClips = state.project.scenes[0]?.clips ?? [];
+  const insertAfter = state.selectedClipId
+    ? allClips.findIndex((c) => c.id === state.selectedClipId)
+    : -1;
+  const newClips: EditorClip[] = state.clipboard.clips.map((c) => ({
+    ...c,
+    id: `paste-${performance.now()}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+    timelineStartSec: 0,
+  }));
+  const updated = insertAfter >= 0
+    ? [
+        ...allClips.slice(0, insertAfter + 1),
+        ...newClips,
+        ...allClips.slice(insertAfter + 1),
+      ]
+    : [...allClips, ...newClips];
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: updated } : { ...s, clips: [] },
+    ),
+  };
+  const newIds = newClips.map((c) => c.id);
+  historize(recompute(project), {
+    selectedClipId: newIds[newIds.length - 1],
+    selectedClipIds: newIds,
+  });
+  return true;
+}
+
+/** Delete every clip in the multi-selection. Ripple closes gaps. */
+export function deleteSelected(): boolean {
+  if (!state.project || state.selectedClipIds.length === 0) return false;
+  const set_ = new Set(state.selectedClipIds);
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.filter((c) => !set_.has(c.id)),
+    })),
+  };
+  historize(recompute(project), { selectedClipId: null, selectedClipIds: [] });
+  return true;
 }
 
 // ─── Tool, snap, markers, in/out ─────────────────────────────────────────────
@@ -197,7 +387,7 @@ export function clearInOut(): void {
 export function setScriptContent(content: string): void {
   if (!state.project) return;
   if (state.project.scriptContent === content) return;
-  set({ project: { ...state.project, scriptContent: content } });
+  historize({ ...state.project, scriptContent: content });
 }
 
 // ─── Playhead + zoom ─────────────────────────────────────────────────────────
@@ -232,7 +422,7 @@ export function moveClip(clipId: string, toIndex: number): void {
       i === 0 ? { ...s, clips: flat } : { ...s, clips: [] },
     ),
   };
-  set({ project: recompute(project) });
+  historize(recompute(project));
 }
 
 /** Update a clip's duration (trim). Maintains all later clips' positions
@@ -249,7 +439,7 @@ export function trimClip(clipId: string, durationSec: number): void {
       ),
     })),
   };
-  set({ project: recompute(project) });
+  historize(recompute(project));
 }
 
 /**
@@ -270,9 +460,40 @@ export function setClipProperty(
   },
 ): void {
   if (!state.project) return;
-  const project: EditorProject = {
-    ...state.project,
-    scenes: state.project.scenes.map((s) => ({
+  // Property edits are rapid (sliders fire on every input event).
+  // To avoid filling the undo stack with every intermediate value,
+  // coalesce consecutive identical-key edits to the same clip into
+  // a single history entry: we only record history on the FIRST
+  // edit of a slider-drag burst.
+  const last = state.history.past[state.history.past.length - 1];
+  const isBurstContinuation =
+    last?.label === `prop:${clipId}` && state.project !== last.project;
+  if (isBurstContinuation) {
+    // Skip history push — same drag burst.
+    const project: EditorProject = buildPropertyMutation(state.project, clipId, patch);
+    set({ project });
+  } else {
+    const project: EditorProject = buildPropertyMutation(state.project, clipId, patch);
+    historize(project, undefined, `prop:${clipId}`);
+  }
+}
+
+function buildPropertyMutation(
+  project: EditorProject,
+  clipId: string,
+  patch: {
+    volume?: number;
+    opacity?: number;
+    scale?: number;
+    fadeInSec?: number;
+    fadeOutSec?: number;
+    titleText?: string;
+    titleColor?: string;
+  },
+): EditorProject {
+  return {
+    ...project,
+    scenes: project.scenes.map((s) => ({
       ...s,
       clips: s.clips.map((c) => {
         if (c.id !== clipId) return c;
@@ -290,7 +511,6 @@ export function setClipProperty(
       }),
     })),
   };
-  set({ project });
 }
 
 /**
@@ -325,7 +545,7 @@ export function insertTitleAtPlayhead(initialText: string = "TITLE"): string | n
       i === 0 ? { ...s, clips: [...s.clips, newClip] } : s,
     ),
   };
-  set({ project, selectedClipId: newClip.id });
+  historize(project, { selectedClipId: newClip.id, selectedClipIds: [newClip.id] });
   return newClip.id;
 }
 
@@ -383,7 +603,10 @@ export function splitAtPlayhead(): boolean {
       i === 0 ? { ...s, clips: newFlat } : { ...s, clips: [] },
     ),
   };
-  set({ project: recompute(project), selectedClipId: newClip.id });
+  historize(recompute(project), {
+    selectedClipId: newClip.id,
+    selectedClipIds: [newClip.id],
+  });
   return true;
 }
 
@@ -403,7 +626,7 @@ export function moveScene(sceneId: string, toIndex: number): void {
   // Renumber sequentially so the storyboard labels are correct.
   const renumbered = scenes.map((s, i) => ({ ...s, number: i + 1 }));
   const project: EditorProject = { ...state.project, scenes: renumbered };
-  set({ project: recompute(project) });
+  historize(recompute(project));
 }
 
 /**
@@ -578,7 +801,7 @@ export function applyEdits(edits: {
       clips: i === 0 ? orderedClips : [],
     })),
   };
-  set({ project: recompute(project) });
+  historize(recompute(project));
 }
 
 /** Remove a clip from the timeline. Ripple closes the gap. */
@@ -592,8 +815,8 @@ export function deleteClip(clipId: string): void {
     })),
   };
   const next = recompute(project);
-  set({
-    project: next,
+  historize(next, {
     selectedClipId: state.selectedClipId === clipId ? null : state.selectedClipId,
+    selectedClipIds: state.selectedClipIds.filter((id) => id !== clipId),
   });
 }

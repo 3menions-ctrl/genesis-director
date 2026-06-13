@@ -42,6 +42,25 @@ const SHORTCUTS: Group[] = [
     ],
   },
   {
+    title: "Edit (history & clipboard)",
+    items: [
+      { keys: ["⌘", "Z"], label: "Undo" },
+      { keys: ["⌘", "⇧", "Z"], label: "Redo" },
+      { keys: ["⌘", "C"], label: "Copy selected clips" },
+      { keys: ["⌘", "V"], label: "Paste after selection (or at end)" },
+      { keys: ["Esc"], label: "Clear selection" },
+    ],
+  },
+  {
+    title: "Selection",
+    items: [
+      { keys: ["click"], label: "Select clip" },
+      { keys: ["⇧", "click"], label: "Add to selection" },
+      { keys: ["⌘", "click"], label: "Toggle in selection" },
+      { keys: ["⌫"], label: "Delete selected (single or many)" },
+    ],
+  },
+  {
     title: "Tools",
     items: [
       { keys: ["V"], label: "Selection tool" },

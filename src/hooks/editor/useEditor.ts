@@ -18,6 +18,9 @@ import {
   setError,
   selectScene,
   selectClip,
+  extendClipSelection,
+  toggleClipSelection,
+  clearSelection,
   resetEditor,
   setPlayhead,
   setPxPerSec,
@@ -25,6 +28,7 @@ import {
   moveScene,
   trimClip,
   deleteClip,
+  deleteSelected,
   splitAtPlayhead,
   switchActiveTake,
   appendPendingTake,
@@ -39,6 +43,10 @@ import {
   setInPoint,
   setOutPoint,
   clearInOut,
+  undo,
+  redo,
+  copySelected,
+  pasteFromClipboard,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -55,6 +63,9 @@ export function useEditor() {
     setError,
     selectScene,
     selectClip,
+    extendClipSelection,
+    toggleClipSelection,
+    clearSelection,
     resetEditor,
     setPlayhead,
     setPxPerSec,
@@ -62,6 +73,7 @@ export function useEditor() {
     moveScene,
     trimClip,
     deleteClip,
+    deleteSelected,
     splitAtPlayhead,
     switchActiveTake,
     appendPendingTake,
@@ -76,5 +88,9 @@ export function useEditor() {
     setInPoint,
     setOutPoint,
     clearInOut,
+    undo,
+    redo,
+    copySelected,
+    pasteFromClipboard,
   };
 }

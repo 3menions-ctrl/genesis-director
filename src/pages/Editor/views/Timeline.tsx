@@ -62,6 +62,8 @@ import {
   setPlayhead,
   setPxPerSec,
   selectClip,
+  extendClipSelection,
+  toggleClipSelection,
   setTool,
   toggleSnap as toggleSnapMut,
   addMarkerAtPlayhead,
@@ -77,6 +79,7 @@ import { toast } from "sonner";
 interface Props {
   project: EditorProject;
   selectedClipId: string | null;
+  selectedClipIds: string[];
   playheadSec: number;
   pxPerSec: number;
 }
@@ -120,6 +123,7 @@ function fmtTC(sec: number): string {
 export function Timeline({
   project,
   selectedClipId,
+  selectedClipIds,
   playheadSec,
   pxPerSec,
 }: Props) {
@@ -428,6 +432,7 @@ export function Timeline({
                             clip={clip}
                             pxPerSec={pxPerSec}
                             isActive={clip.id === selectedClipId}
+                            isInSelection={selectedClipIds.includes(clip.id)}
                             reducedMotion={reducedMotion ?? false}
                           />
                         </Reorder.Item>
@@ -741,11 +746,13 @@ function ClipBlock({
   clip,
   pxPerSec,
   isActive,
+  isInSelection,
   reducedMotion,
 }: {
   clip: EditorClip;
   pxPerSec: number;
   isActive: boolean;
+  isInSelection: boolean;
   reducedMotion: boolean;
 }) {
   const [trimming, setTrimming] = useState<null | "left" | "right">(null);
@@ -753,9 +760,15 @@ function ClipBlock({
   const draftDurationRef = useRef<number>(clip.durationSec);
 
   const onClipPointerDown = (e: React.PointerEvent) => {
-    // Only handle selection on a left-click; reorder is handled by Reorder.Item.
     if (e.button !== 0) return;
-    selectClip(clip.id);
+    // Modifier keys = multi-select; plain click = single select.
+    if (e.shiftKey) {
+      extendClipSelection(clip.id);
+    } else if (e.metaKey || e.ctrlKey) {
+      toggleClipSelection(clip.id);
+    } else {
+      selectClip(clip.id);
+    }
   };
 
   // Trim with pointer events. We capture the pointer and update the
@@ -824,7 +837,9 @@ function ClipBlock({
         "ring-1 ring-inset",
         isActive
           ? "ring-accent/85 shadow-[0_8px_24px_-12px_hsl(var(--accent)/0.6)]"
-          : "ring-white/[0.08] hover:ring-white/[0.20]",
+          : isInSelection
+            ? "ring-accent/55"
+            : "ring-white/[0.08] hover:ring-white/[0.20]",
       )}
       style={blockStyle}
     >

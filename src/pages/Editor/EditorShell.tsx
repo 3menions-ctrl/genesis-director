@@ -23,6 +23,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, AlertOctagon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
@@ -51,12 +52,20 @@ export function EditorShell() {
     error,
     selectedSceneId,
     selectedClipId,
+    selectedClipIds,
     playheadSec,
     pxPerSec,
     setView,
+    undo,
+    redo,
+    copySelected,
+    pasteFromClipboard,
+    deleteSelected,
+    clearSelection,
   } = useEditor();
   void view;
   void setView;
+  void selectedClipIds;
 
   const [exportOpen, setExportOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -75,6 +84,69 @@ export function EditorShell() {
         e.preventDefault();
         setPaletteOpen(true);
         return;
+      }
+      // ⌘Z / ⌘⇧Z — undo / redo. Available even when an input has
+      // focus (matches every editor).
+      if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          const ok = redo();
+          if (ok) toast.message("Redo");
+        } else {
+          const ok = undo();
+          if (ok) toast.message("Undo");
+        }
+        return;
+      }
+      // ⌘C / ⌘V — copy / paste. Skipped inside inputs/textareas so
+      // the user can still copy-paste text normally.
+      const focusedEditable =
+        (() => {
+          const t = e.target as HTMLElement | null;
+          const tag = t?.tagName;
+          return tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable;
+        })();
+      if (
+        !focusedEditable &&
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === "c" || e.key === "C")
+      ) {
+        e.preventDefault();
+        const ok = copySelected();
+        if (ok) toast.message("Copied to clipboard");
+        return;
+      }
+      if (
+        !focusedEditable &&
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === "v" || e.key === "V")
+      ) {
+        e.preventDefault();
+        const ok = pasteFromClipboard();
+        if (ok) toast.message("Pasted");
+        return;
+      }
+      if (!focusedEditable && (e.key === "Escape")) {
+        // Esc clears multi-selection when no modal is open
+        if (!exportOpen && !commentsOpen && !helpOpen && !paletteOpen && !scriptOpen && !queueOpen) {
+          clearSelection();
+        }
+      }
+      // Delete supports multi-selection
+      if (
+        !focusedEditable &&
+        (e.key === "Delete" || e.key === "Backspace")
+      ) {
+        // The Timeline view also handles ⌫ — but only when no input is
+        // focused AND only for single selection. Multi-select delete
+        // lives here at the shell level so it works regardless of
+        // which panel has focus.
+        if (selectedClipIds.length > 1) {
+          e.preventDefault();
+          const ok = deleteSelected();
+          if (ok) toast.message(`Deleted ${selectedClipIds.length} clips`);
+          return;
+        }
       }
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
@@ -181,6 +253,7 @@ export function EditorShell() {
                   <Timeline
                     project={project}
                     selectedClipId={selectedClipId}
+                    selectedClipIds={selectedClipIds}
                     playheadSec={playheadSec}
                     pxPerSec={pxPerSec}
                   />

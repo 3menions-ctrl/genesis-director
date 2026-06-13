@@ -190,6 +190,18 @@ export interface EditorMarker {
   color: string;
 }
 
+/** Internal clipboard for copy/paste — never persisted to disk. */
+export interface ClipboardData {
+  clips: EditorClip[];
+  copiedAt: number;
+}
+
+/** History entry — a project snapshot that undo restores. */
+export interface HistoryEntry {
+  project: EditorProject;
+  label?: string;
+}
+
 export interface EditorState {
   view: EditorView;
   project: EditorProject | null;
@@ -197,7 +209,14 @@ export interface EditorState {
   error: string | null;
   /** Selection — which scene/clip the user is focused on. */
   selectedSceneId: string | null;
+  /** Primary selected clip (the one the Inspector focuses on). */
   selectedClipId: string | null;
+  /** All selected clips — always includes selectedClipId when non-null. */
+  selectedClipIds: string[];
+  /** Internal copy/paste buffer. */
+  clipboard: ClipboardData | null;
+  /** Undo / redo history. */
+  history: { past: HistoryEntry[]; future: HistoryEntry[] };
   /**
    * Timeline-absolute playhead, in seconds. Updated at the browser's
    * native `timeupdate` rate (~4–5 Hz) — fine for visual playhead
@@ -228,6 +247,9 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   error: null,
   selectedSceneId: null,
   selectedClipId: null,
+  selectedClipIds: [],
+  clipboard: null,
+  history: { past: [], future: [] },
   playheadSec: 0,
   pxPerSec: 60,
   tool: "select",

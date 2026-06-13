@@ -125,57 +125,65 @@ export function Surface({
             )}
           />
 
-          {/* Shell — centered glass surface */}
-          <motion.div
-            role="dialog"
-            aria-labelledby={labelledBy}
-            aria-modal="true"
-            initial={
-              reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12, scale: 0.985 }
-            }
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={
-              reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }
-            }
-            transition={{ duration: 0.34, ease: EASE_PREMIUM }}
-            className={cn(
-              // Centering — fixed to viewport, dead-center
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              // Layout
-              "flex flex-col overflow-hidden",
-              SIZE_CLASS[size],
-              // Glass — the look. Stacked transluscence + heavy blur
-              "rounded-3xl",
-              "bg-[hsl(220_30%_5%/0.62)] backdrop-blur-3xl backdrop-saturate-150",
-              // Inset borders + double specular highlight (the gloss)
-              "ring-1 ring-inset ring-white/[0.10]",
-              // Premium ambient + contact shadow
-              "shadow-[0_60px_180px_-20px_hsl(0_0%_0%/0.92),0_0_0_1px_hsl(0_0%_100%/0.04),inset_0_1px_0_0_hsl(0_0%_100%/0.06)]",
-              className,
-            )}
-          >
-            {/* Top specular sheen — sits above content, ignored by
-                pointer events, gives the surface its "this is glass"
-                read. */}
-            <div
-              aria-hidden
+          {/* Centering wrapper — owns position:fixed + flex centering
+              via the viewport. CRITICAL: framer-motion writes inline
+              `transform` to motion elements; if we put the
+              `-translate-x-1/2 -translate-y-1/2` Tailwind classes on
+              the SAME element framer animates, the inline transform
+              wins and the centering classes are silently overwritten.
+              So we put fixed/flex on the wrapper, animation on the
+              inner motion.div. */}
+          <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
+            <motion.div
+              role="dialog"
+              aria-labelledby={labelledBy}
+              aria-modal="true"
+              initial={
+                reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12, scale: 0.985 }
+              }
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={
+                reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }
+              }
+              transition={{ duration: 0.34, ease: EASE_PREMIUM }}
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 h-px",
-                "bg-gradient-to-r from-transparent via-white/[0.18] to-transparent",
+                "pointer-events-auto relative",
+                // Layout
+                "flex flex-col overflow-hidden",
+                SIZE_CLASS[size],
+                // Glass — the look. Stacked transluscence + heavy blur
+                "rounded-3xl",
+                "bg-[hsl(220_30%_5%/0.62)] backdrop-blur-3xl backdrop-saturate-150",
+                // Inset borders + double specular highlight (the gloss)
+                "ring-1 ring-inset ring-white/[0.10]",
+                // Premium ambient + contact shadow
+                "shadow-[0_60px_180px_-20px_hsl(0_0%_0%/0.92),0_0_0_1px_hsl(0_0%_100%/0.04),inset_0_1px_0_0_hsl(0_0%_100%/0.06)]",
+                className,
               )}
-            />
-            {/* Soft inner highlight at the top — the diffused light
-                from the spec line. Pure decoration. */}
-            <div
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute inset-x-6 top-0 h-24 rounded-3xl",
-                "bg-gradient-to-b from-white/[0.06] to-transparent",
-                "blur-2xl opacity-80",
-              )}
-            />
-            {children}
-          </motion.div>
+            >
+              {/* Top specular sheen — sits above content, ignored by
+                  pointer events, gives the surface its "this is glass"
+                  read. */}
+              <div
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute inset-x-0 top-0 h-px",
+                  "bg-gradient-to-r from-transparent via-white/[0.18] to-transparent",
+                )}
+              />
+              {/* Soft inner highlight at the top — the diffused light
+                  from the spec line. Pure decoration. */}
+              <div
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute inset-x-6 top-0 h-24 rounded-3xl",
+                  "bg-gradient-to-b from-white/[0.06] to-transparent",
+                  "blur-2xl opacity-80",
+                )}
+              />
+              {children}
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

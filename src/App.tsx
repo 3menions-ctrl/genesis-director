@@ -545,7 +545,16 @@ const App = () => {
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
-                <Route path="/avatars" element={<Navigate to="/cast" replace />} />
+                {/* Avatars studio — standalone deep-workflow surface.
+                    Cast (/cast) is the talent browse; Avatars is the
+                    studio where you create + edit them. */}
+                <Route path="/avatars" element={
+                  <RouteContainer fallbackMessage="Calling cast to set…">
+                    <ProtectedRoute>
+                      <Avatars />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
                 {/* Script Review now lives as a step inside the Studio
                     pipeline — generate → script ready → review → render.

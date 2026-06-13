@@ -48,6 +48,13 @@ import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { FoundationShell } from '@/components/foundation/FoundationShell';
+import {
+  EditorialCanvas,
+  EditorialEyebrow,
+  EditorialHeadline,
+} from '@/components/foundation/EditorialCanvas';
+import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
 // GATEKEEPER: Extract critical image URLs from templates
 function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
   // Guard against null/undefined templates
@@ -577,11 +584,33 @@ AvatarsContent.displayName = 'AvatarsContent';
 // Wrapper with error boundary - ref forwarding not needed as ErrorBoundary doesn't pass refs
 export default function Avatars() {
   usePageMeta({ title: "Avatars — Small Bridges", description: "Cast, customize, and direct cinematic AI avatars for your scenes." });
+  const liveRenderTimecode = useLiveRenderTimecode();
 
   return (
     <ErrorBoundary>
-      {/* StudioAurora removed — SpineBackdrop owns atmosphere now. */}
-      <AvatarsContent />
+      <FoundationShell>
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+          <EditorialCanvas
+            maxWidth="100%"
+            chrome={{
+              crumbs: ["Small Bridges", "avatars"],
+              timecode: liveRenderTimecode ?? "STUDIO · LIVE",
+            }}
+          >
+            <div className="mb-8">
+              <EditorialEyebrow>Avatars</EditorialEyebrow>
+              <EditorialHeadline className="mt-5">
+                Cast a character.
+              </EditorialHeadline>
+              <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
+                Customize, direct, and cast cinematic AI avatars for any scene.
+                Every avatar you save here is callable from the Studio.
+              </p>
+            </div>
+            <AvatarsContent />
+          </EditorialCanvas>
+        </div>
+      </FoundationShell>
     </ErrorBoundary>
   );
 }

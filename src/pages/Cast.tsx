@@ -1,26 +1,21 @@
 /**
  * Cast — /cast
  *
- * The single talent locker. Replaces three legacy surfaces:
- *   - /avatars        (avatar studio + browse)
- *   - /avatars-gallery (curated gallery, duplicate browse)
- *   - /mascots        (brand mascot pack)
+ * The talent browse + brand identity surface. People tab links to the
+ * standalone Avatars studio (/avatars) for creation workflows; Mascots
+ * is the curated brand mascot pack; Brand is the personal identity kit.
  *
  * Built on Foundation canon: FoundationShell + EditorialCanvas +
  * SpineBackdrop, same vocabulary as Studio · Library · Account · Reel.
  *
  * Tabs:
- *   - People  — cast members + create new (lazy-loads the existing
- *               Avatars studio so the workflow is unchanged)
+ *   - People  — entry point that links into /avatars (the studio)
  *   - Mascots — brand mascot pack (inlined from the legacy /mascots)
  *   - Brand   — palette / fonts / logos / voice profile (placeholder
- *               for personal brand identity — workspace already has its
- *               own version; this one is for personal accounts)
- *
- * Single ⌘N shortcut: open the avatar studio with the create flow.
+ *               for personal brand identity)
  */
-import { lazy, Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Users,
@@ -30,6 +25,7 @@ import {
   Download,
   Film as FilmIcon,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -56,8 +52,6 @@ import cerealBear from "@/assets/mascots/cereal-astronaut-bear.png";
 import indieKnight from "@/assets/mascots/indie-knight.png";
 import indieFox from "@/assets/mascots/indie-fox-rogue.png";
 import indieRobot from "@/assets/mascots/indie-robot.png";
-
-const AvatarsStudio = lazy(() => import("@/pages/Avatars"));
 
 type Tab = "people" | "mascots" | "brand";
 
@@ -196,11 +190,7 @@ export default function Cast() {
                 }
                 transition={{ duration: 0.45, ease: EASE_PREMIUM }}
               >
-                {tab === "people" && (
-                  <Suspense fallback={<TabLoadingState />}>
-                    <AvatarsStudio />
-                  </Suspense>
-                )}
+                {tab === "people" && <PeopleTab />}
                 {tab === "mascots" && <MascotsTab />}
                 {tab === "brand" && <BrandTab />}
               </motion.div>
@@ -265,14 +255,35 @@ function CastTabs({
   );
 }
 
-function TabLoadingState() {
+// ─────────────────────────────────────────────────────────────────────────────
+// PeopleTab — entry point into the Avatars studio (now standalone). Keeps
+// Cast lightweight; the actual creation workflow opens at /avatars where
+// it has the full editor canvas. This tab is the door, not the room.
+// ─────────────────────────────────────────────────────────────────────────────
+function PeopleTab() {
   return (
-    <div className="flex items-center justify-center py-24">
-      <div className="text-center">
-        <Sparkles className="mx-auto h-5 w-5 animate-pulse text-accent/70" strokeWidth={1.5} />
-        <p className={cn(TYPE_META, "mt-3 text-muted-foreground/60")}>
-          Loading the locker…
+    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
+      <div className="p-12 text-center">
+        <Users className="mx-auto h-8 w-8 text-accent/70" strokeWidth={1.2} />
+        <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
+          Your people.
+        </h3>
+        <p className="mt-4 max-w-xl mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
+          Cast cinematic AI avatars — customize, save, and direct them in
+          any scene. The studio lives at its own surface so the canvas
+          has room to breathe.
         </p>
+        <Link
+          to="/avatars"
+          className={cn(
+            "mt-8 group inline-flex items-center gap-2 px-5 py-3 rounded-full",
+            "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
+            "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+          )}
+        >
+          <span className="text-[13px]">Open Avatar Studio</span>
+          <ArrowRight className="h-3.5 w-3.5 text-accent transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+        </Link>
       </div>
     </div>
   );

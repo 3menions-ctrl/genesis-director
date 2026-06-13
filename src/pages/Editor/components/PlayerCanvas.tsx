@@ -112,11 +112,13 @@ function SourceMonitor({
       className="relative flex-1 min-w-0 h-full flex flex-col items-center justify-center"
     >
       <div
-        className="relative bg-black shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.8),0_0_0_1px_hsl(0_0%_100%/0.04)]"
+        className="relative w-full bg-black shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.8),0_0_0_1px_hsl(0_0%_100%/0.04)]"
         style={{
           aspectRatio: `${aspect.w} / ${aspect.h}`,
+          // height: auto with width: 100% + aspect-ratio makes the
+          // box maintain ratio without collapsing. Cap with max-h so
+          // we don't push the strip off the bottom of the monitor.
           maxHeight: "calc(100% - 36px)",
-          maxWidth: "100%",
         }}
       >
         <div className="absolute -top-5 left-0">
@@ -553,12 +555,22 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
             monitorMode === "dual" ? "flex-1 min-w-0" : "w-full",
           )}
         >
+          {/* The picture frame fills the available space; the video
+              inside uses object-fit: contain to maintain its aspect
+              ratio with letterbox/pillarbox bars as needed. Earlier
+              we used `aspect-ratio` on this box with max-w/h: 100% —
+              but with no explicit width OR height set, CSS computes
+              that box to 0×0, so the audio plays but the video is
+              invisible. Filling the area and using object-fit fixes
+              that without losing the cinematic black-bars look. */}
           <div
-            className="relative bg-black shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.8),0_0_0_1px_hsl(0_0%_100%/0.04)]"
+            className="relative w-full h-full bg-black shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.8),0_0_0_1px_hsl(0_0%_100%/0.04)]"
             style={{
+              // Keep aspectRatio as a styling hint so devtools clearly
+              // shows the intended ratio (browsers honor it only when
+              // there's no conflicting explicit sizing, which there is
+              // here — w-full h-full wins).
               aspectRatio: `${aspect.w} / ${aspect.h}`,
-              maxHeight: "100%",
-              maxWidth: "100%",
             }}
           >
             {/* "PROGRAM" label badge (only in dual mode) */}

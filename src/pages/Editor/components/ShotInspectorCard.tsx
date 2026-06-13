@@ -23,7 +23,12 @@ import {
   Lock,
   XCircle,
   Wand2,
+  XOctagon,
 } from "lucide-react";
+import {
+  cancelJob,
+  getJobForShot,
+} from "@/lib/editor/generation/orchestrator";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { Shot, ScriptDocument, ModelEngine } from "@/lib/editor/script-document";
@@ -334,22 +339,54 @@ function ApprovalGateCta({
     );
   }
 
-  // In flight → spinner button
+  // In flight → spinner button + abort. Two-button row: the spinner
+  // shows the rendering state; the abort cancels the in-flight job
+  // via the orchestrator's cancelJob.
   if (inFlight) {
     return (
-      <button
-        type="button"
-        disabled
-        className={cn(
-          "w-full inline-flex items-center justify-center gap-2 h-10 rounded-full",
-          "text-[12.5px] font-mono uppercase tracking-[0.22em]",
-          "bg-[hsl(var(--accent)/0.12)] text-accent ring-1 ring-inset ring-accent/35",
-          "opacity-90 cursor-not-allowed",
-        )}
-      >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
-        <span>Rendering…</span>
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled
+          className={cn(
+            "flex-1 inline-flex items-center justify-center gap-2 h-10 rounded-full",
+            "text-[12.5px] font-mono uppercase tracking-[0.22em]",
+            "bg-[hsl(var(--accent)/0.12)] text-accent ring-1 ring-inset ring-accent/35",
+            "opacity-90 cursor-not-allowed",
+          )}
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+          <span>Rendering…</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const job = getJobForShot(shot.id);
+            if (job) {
+              cancelJob(job.id);
+            }
+            // Either way, return the shot to a clean state so the
+            // user isn't stuck on "rendering" if the job is missing.
+            setShotApproval(shot.id, "draft", {
+              reason: "User aborted render",
+            });
+            toast.message("Render aborted", {
+              description: "Edit + re-approve when you're ready to try again.",
+            });
+          }}
+          className={cn(
+            "inline-flex items-center justify-center gap-1.5 px-3 h-10 rounded-full",
+            "text-[12px] font-mono uppercase tracking-[0.18em]",
+            "bg-rose-500/[0.14] text-rose-200 ring-1 ring-inset ring-rose-400/40",
+            "hover:bg-rose-500/[0.22] transition-colors",
+          )}
+          title="Stop this render"
+          aria-label="Abort render"
+        >
+          <XOctagon className="h-3.5 w-3.5" strokeWidth={1.6} />
+          <span>Abort</span>
+        </button>
+      </div>
     );
   }
 

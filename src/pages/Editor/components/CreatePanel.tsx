@@ -35,6 +35,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { EditorProject } from "@/lib/editor/types";
 import { useEditor } from "@/hooks/editor/useEditor";
+import {
+  getDocumentState as getDocStateForCreate,
+  addShot as addShotToDoc,
+} from "@/lib/editor/document-store";
 import { toast } from "sonner";
 import {
   Surface,
@@ -255,6 +259,43 @@ export function CreatePanel({ project, open, onClose }: Props) {
         resolvePendingClip(clipId, {
           videoUrl: finalUrl,
         });
+        // Mirror into the ScriptDocument so the constitution sees the
+        // new shot. The legacy clip model still drives the timeline
+        // playback today; the doc shadows it so doc-aware surfaces
+        // (BudgetPanel, ShotInspector, Storyboard badges, future
+        // Script v3) reflect what just happened.
+        try {
+          const doc = getDocStateForCreate().doc;
+          if (doc) {
+            const lastScene = doc.scenes[doc.scenes.length - 1];
+            if (lastScene) {
+              addShotToDoc(
+                lastScene.id,
+                {
+                  id: clipId,
+                  modelPrompt: brief,
+                  cameraDirection: brief,
+                  framing: "medium",
+                  durationSec,
+                  generated: {
+                    videoUrl: finalUrl,
+                    completedAt: new Date(0).toISOString(),
+                    takes: [],
+                  },
+                  approval: {
+                    state: "completed",
+                    changedAt: new Date(0).toISOString(),
+                    changedBy: "user",
+                  },
+                },
+                { by: "user" },
+              );
+            }
+          }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn("[CreatePanel] doc mirror failed:", e);
+        }
         toast.success("Clip ready", {
           id: toastId,
           description: "It just landed at the end of your timeline.",

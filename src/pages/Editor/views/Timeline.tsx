@@ -86,6 +86,22 @@ import { useEditor } from "@/hooks/editor/useEditor";
 import { useAudioWaveform } from "@/hooks/editor/useAudioWaveform";
 import { Toolbar } from "../components/Toolbar";
 import { toast } from "sonner";
+import { useSyncExternalStore as useSyncExternalStoreForPills } from "react";
+import {
+  getDocumentState as getDocStateForPill,
+  subscribeDocument as subDocForPill,
+} from "@/lib/editor/document-store";
+import { findShot as findShotForPill } from "@/lib/editor/script-document";
+import { latestEventForShot as latestEventForShotPill } from "@/lib/editor/generation/status-bus";
+import {
+  Sparkles as SparklesIconPill,
+  Loader2 as Loader2Pill,
+  Check as CheckPill,
+  AlertTriangle as AlertPill,
+  XCircle as XCirclePill,
+} from "lucide-react";
+import { ingestUpload as ingestUploadFn, describeIngestError as describeIngestErrorFn } from "@/lib/editor/upload-ingest";
+import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
 
 interface Props {
   project: EditorProject;
@@ -917,6 +933,17 @@ function ClipBlock({
         </span>
       </div>
 
+      {/* Approval / status pill — reads the document's Shot for this
+          clip id. Surfaces the four states the editor cares about:
+            draft        → no pill (default)
+            ready        → ◆ accent
+            rendering    → spinner amber
+            completed    → ✓ emerald
+            needs-regen  → ! amber
+            failed       → x rose
+          Hidden when block is too narrow to keep the chrome tidy. */}
+      {widthPx > 76 && <ShotStatusPill clipId={clip.id} />}
+
       {/* Duration */}
       <div
         className="absolute bottom-1.5 right-2 mix-blend-difference pointer-events-none"
@@ -1706,4 +1733,153 @@ function EmptyTimeline() {
       </div>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ShotStatusPill — reads the document store for this clip's Shot
+// and surfaces its approval state as a corner pill on every V1
+// clip block.
+// ─────────────────────────────────────────────────────────────────────────────
+function ShotStatusPill({ clipId }: { clipId: string }) {
+  const docState = useSyncExternalStoreForPills(
+    subDocForPill,
+    getDocStateForPill,
+    getDocStateForPill,
+  );
+  const doc = docState.doc;
+  if (!doc) return null;
+  const shot = findShotForPill(doc, clipId);
+  if (!shot) return null;
+  // Status bus override — live in-flight rendering beats the
+  // persisted approval state.
+  const event = latestEventForShotPill(shot.id);
+  const stateForUi =
+    event &&
+    (event.stage === "queued" ||
+      event.stage === "preparing" ||
+      event.stage === "submitting" ||
+      event.stage === "rendering" ||
+      event.stage === "post-processing")
+      ? "rendering"
+      : shot.approval.state;
+
+  let icon: React.ReactNode;
+  let bg: string;
+  let ring: string;
+  let title = stateForUi;
+
+  switch (stateForUi) {
+    case "draft":
+      return null; // no pill — keeps draft clips clean
+    case "ready":
+      icon = <SparklesIconPill className="h-2.5 w-2.5" strokeWidth={1.8} />;
+      bg = "bg-[hsl(var(--accent)/0.20)]";
+      ring = "ring-accent/55";
+      title = "Approved — ready to render";
+      break;
+    case "rendering":
+      icon = <Loader2Pill className="h-2.5 w-2.5 animate-spin" strokeWidth={1.8} />;
+      bg = "bg-amber-500/[0.22]";
+      ring = "ring-amber-400/55";
+      title = "Rendering…";
+      break;
+    case "post-processing":
+      icon = <Loader2Pill className="h-2.5 w-2.5 animate-spin" strokeWidth={1.8} />;
+      bg = "bg-amber-500/[0.22]";
+      ring = "ring-amber-400/55";
+      title = "Finalising…";
+      break;
+    case "completed":
+      icon = <CheckPill className="h-2.5 w-2.5" strokeWidth={2} />;
+      bg = "bg-emerald-500/[0.22]";
+      ring = "ring-emerald-400/55";
+      title = "Completed";
+      break;
+    case "needs-regen":
+      icon = <AlertPill className="h-2.5 w-2.5" strokeWidth={1.8} />;
+      bg = "bg-amber-500/[0.18]";
+      ring = "ring-amber-400/45";
+      title = "Edited after approval — re-render to refresh";
+      break;
+    case "failed":
+      icon = <XCirclePill className="h-2.5 w-2.5" strokeWidth={1.8} />;
+      bg = "bg-rose-500/[0.20]";
+      ring = "ring-rose-400/55";
+      title = "Generation failed";
+      break;
+  }
+
+  return (
+    <div
+      className={cn(
+        "absolute top-1.5 right-1.5 z-10 pointer-events-none",
+        "inline-flex items-center justify-center h-4 w-4 rounded-full",
+        "ring-1 ring-inset",
+        bg,
+        ring,
+      )}
+      title={title}
+    >
+      <span className="text-foreground">{icon}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useTimelineDropzone — drag-drop video files onto the timeline.
+// Returns drop handlers that the Timeline's outer container binds.
+// ─────────────────────────────────────────────────────────────────────────────
+export function useTimelineDropzone(projectId: string | undefined) {
+  const { user } = useAuthForUpload();
+  const [dragOver, setDragOver] = useState(false);
+
+  const onDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const onDragLeave = () => setDragOver(false);
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (!user || !projectId) {
+      toast.error("Sign in + open a project to upload clips");
+      return;
+    }
+    const doc = getDocStateForPill().doc;
+    if (!doc) {
+      toast.error("Document still loading — try again");
+      return;
+    }
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith("video/"),
+    );
+    if (files.length === 0) {
+      toast.error("Drop a video file (MP4, MOV, WebM)");
+      return;
+    }
+    const toastId = toast.loading(`Uploading ${files.length} clip${files.length === 1 ? "" : "s"}…`);
+    let ok = 0;
+    let failed = 0;
+    for (const f of files) {
+      try {
+        await ingestUploadFn({ file: f, userId: user.id, projectId, doc });
+        ok += 1;
+      } catch (err) {
+        failed += 1;
+        const m = describeIngestErrorFn(err);
+        // eslint-disable-next-line no-console
+        console.warn("[upload]", f.name, m.message, m.description);
+      }
+    }
+    if (ok > 0 && failed === 0) {
+      toast.success(`Uploaded ${ok} clip${ok === 1 ? "" : "s"}`, { id: toastId });
+    } else if (ok > 0 && failed > 0) {
+      toast.warning(`${ok} uploaded, ${failed} failed`, { id: toastId });
+    } else {
+      toast.error("All uploads failed", { id: toastId });
+    }
+  };
+  return { dragOver, onDragOver, onDragLeave, onDrop };
 }

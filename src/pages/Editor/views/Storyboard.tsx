@@ -352,6 +352,10 @@ function SceneCard({
                 </span>
               </div>
             )}
+            {/* Document-aware badges — VFX marker + per-scene approval
+                state aggregate. Reads via the SceneDocBadges helper
+                that subscribes to the document store. */}
+            <SceneDocBadges sceneId={scene.id} />
             {/* Drag grip — only on hover */}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover/scene:opacity-100 transition-opacity">
               <GripVertical className="h-4 w-4 text-foreground/65 mix-blend-difference" strokeWidth={1.5} />
@@ -378,5 +382,94 @@ function SceneCard({
         </button>
       </motion.div>
     </Reorder.Item>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SceneDocBadges — reads the document store to surface VFX + scene
+// approval state on every Storyboard card.
+//
+// Approval aggregate:
+//   all completed  → emerald check chip
+//   any rendering  → amber spinner
+//   any ready      → accent sparkle
+//   any failed     → rose alert
+//   all draft      → no chip (cards stay clean for un-started scenes)
+// ─────────────────────────────────────────────────────────────────────────────
+import { useSyncExternalStore as useSyncExternalStoreForStoryboard } from "react";
+import {
+  getDocumentState as getDocStateForStoryboard,
+  subscribeDocument as subDocForStoryboard,
+} from "@/lib/editor/document-store";
+import { isVfxScene as isVfxSceneFn } from "@/lib/editor/crossover-bridge";
+import {
+  Wand2 as Wand2ForStoryboard,
+  Loader2 as Loader2ForStoryboard,
+  Check as CheckForStoryboard,
+  AlertTriangle as AlertForStoryboard,
+  Sparkles as SparklesForStoryboard,
+} from "lucide-react";
+
+function SceneDocBadges({ sceneId }: { sceneId: string }) {
+  const docState = useSyncExternalStoreForStoryboard(
+    subDocForStoryboard,
+    getDocStateForStoryboard,
+    getDocStateForStoryboard,
+  );
+  const doc = docState.doc;
+  if (!doc) return null;
+  const scene = doc.scenes.find((s) => s.id === sceneId);
+  if (!scene) return null;
+
+  const isVfx = isVfxSceneFn(scene);
+  const shots = scene.shots;
+  const stateChip = (() => {
+    if (shots.length === 0) return null;
+    const states = shots.map((sh) => sh.approval.state);
+    if (states.some((s) => s === "failed")) {
+      return { icon: <AlertForStoryboard className="h-2.5 w-2.5" strokeWidth={1.8} />, tone: "bg-rose-500/[0.24] ring-rose-400/55", title: "Failed shot in scene" };
+    }
+    if (states.some((s) => s === "rendering")) {
+      return { icon: <Loader2ForStoryboard className="h-2.5 w-2.5 animate-spin" strokeWidth={1.8} />, tone: "bg-amber-500/[0.24] ring-amber-400/55", title: "Rendering" };
+    }
+    if (states.every((s) => s === "completed")) {
+      return { icon: <CheckForStoryboard className="h-2.5 w-2.5" strokeWidth={2} />, tone: "bg-emerald-500/[0.24] ring-emerald-400/55", title: "All shots completed" };
+    }
+    if (states.some((s) => s === "ready")) {
+      return { icon: <SparklesForStoryboard className="h-2.5 w-2.5" strokeWidth={1.8} />, tone: "bg-[hsl(var(--accent)/0.22)] ring-accent/55", title: "Approved — awaiting render" };
+    }
+    return null; // all draft → no chip
+  })();
+
+  if (!isVfx && !stateChip) return null;
+
+  return (
+    <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
+      {isVfx && (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 px-1.5 h-5 rounded",
+            "text-[9.5px] font-mono uppercase tracking-[0.14em]",
+            "bg-amber-500/[0.20] text-amber-200 ring-1 ring-inset ring-amber-400/45",
+          )}
+          title="VFX recipe shot in this scene"
+        >
+          <Wand2ForStoryboard className="h-2.5 w-2.5" strokeWidth={1.8} />
+          <span>VFX</span>
+        </span>
+      )}
+      {stateChip && (
+        <span
+          className={cn(
+            "inline-flex items-center justify-center h-5 w-5 rounded-full",
+            "ring-1 ring-inset",
+            stateChip.tone,
+          )}
+          title={stateChip.title}
+        >
+          <span className="text-foreground">{stateChip.icon}</span>
+        </span>
+      )}
+    </div>
   );
 }

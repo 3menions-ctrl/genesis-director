@@ -242,6 +242,107 @@ export function appendPendingTake(
   set({ project });
 }
 
+/**
+ * Apply a saved-edit snapshot to the current project in one shot.
+ * Used by usePersistence after the supabase loader sets the project,
+ * to overlay the user's prior reorders / trims / active-take picks
+ * without re-firing every individual mutator (each of which would
+ * trigger a re-render + recompute).
+ *
+ * Merge strategy:
+ *   - Reorder clips by saved.clipOrder; any clip not in the saved
+ *     order is appended at the end so newly-rendered Studio clips
+ *     don't disappear.
+ *   - Reorder scenes the same way.
+ *   - For each clip with a saved duration, overwrite durationSec.
+ *   - For each clip with a saved active take, swap to that take by
+ *     take_number (stable across reloads, unlike take id).
+ *   - Recompute timelineStartSec at the end.
+ */
+export function applyEdits(edits: {
+  clipOrder?: string[];
+  sceneOrder?: string[];
+  clipDurations?: Record<string, number>;
+  activeTakes?: Record<string, number>;
+}): void {
+  if (!state.project) return;
+
+  // Flatten + index every clip by id
+  const allClips: EditorClip[] = state.project.scenes.flatMap((s) => s.clips);
+  const clipById = new Map<string, EditorClip>(allClips.map((c) => [c.id, c]));
+
+  // 1. duration overrides
+  if (edits.clipDurations) {
+    for (const [id, dur] of Object.entries(edits.clipDurations)) {
+      const c = clipById.get(id);
+      if (c) c.durationSec = Math.max(0.5, dur);
+    }
+  }
+
+  // 2. active take swaps
+  if (edits.activeTakes) {
+    for (const [id, takeNum] of Object.entries(edits.activeTakes)) {
+      const c = clipById.get(id);
+      if (!c) continue;
+      const take = c.takes.find((t) => t.takeNumber === takeNum);
+      if (!take || !take.videoUrl) continue;
+      c.videoUrl = take.videoUrl;
+      c.thumbnailUrl = take.thumbnailUrl ?? c.thumbnailUrl;
+      c.prompt = take.promptUsed ?? c.prompt;
+      c.takes = [take, ...c.takes.filter((t) => t.id !== take.id)];
+    }
+  }
+
+  // 3. clip order
+  const orderedClips: EditorClip[] = (() => {
+    if (!edits.clipOrder) return allClips;
+    const seen = new Set<string>();
+    const out: EditorClip[] = [];
+    for (const id of edits.clipOrder) {
+      const c = clipById.get(id);
+      if (c && !seen.has(id)) {
+        out.push(c);
+        seen.add(id);
+      }
+    }
+    // Append any clips not in the saved order (new from supabase)
+    for (const c of allClips) {
+      if (!seen.has(c.id)) out.push(c);
+    }
+    return out;
+  })();
+
+  // 4. scene order — for v1 we put all clips in scene[0], so scene
+  //    order matters only for the storyboard. Apply if present.
+  const scenesOrdered = (() => {
+    if (!edits.sceneOrder) return state.project!.scenes;
+    const byId = new Map(state.project!.scenes.map((s) => [s.id, s]));
+    const seen = new Set<string>();
+    const out = [];
+    for (const id of edits.sceneOrder) {
+      const s = byId.get(id);
+      if (s && !seen.has(id)) {
+        out.push(s);
+        seen.add(id);
+      }
+    }
+    for (const s of state.project!.scenes) {
+      if (!seen.has(s.id)) out.push(s);
+    }
+    return out.map((s, i) => ({ ...s, number: i + 1 }));
+  })();
+
+  const project: EditorProject = {
+    ...state.project,
+    scenes: scenesOrdered.map((s, i) => ({
+      ...s,
+      // v1: synthetic scene model puts all clips on scene[0]
+      clips: i === 0 ? orderedClips : [],
+    })),
+  };
+  set({ project: recompute(project) });
+}
+
 /** Remove a clip from the timeline. Ripple closes the gap. */
 export function deleteClip(clipId: string): void {
   if (!state.project) return;

@@ -21,6 +21,7 @@ import { useParams } from "react-router-dom";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useProject } from "@/hooks/editor/useProject";
+import { usePersistence } from "@/hooks/editor/usePersistence";
 import { resetEditor, setError } from "@/lib/editor/store";
 import { EditorShell } from "./EditorShell";
 
@@ -36,6 +37,7 @@ export default function Editor() {
   });
 
   useProject(id);
+  usePersistence(id);
 
   // Surface a clean "pick a project" message when the URL has no id
   useEffect(() => {

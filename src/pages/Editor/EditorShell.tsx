@@ -38,6 +38,7 @@ import { EditorPalette } from "./components/EditorPalette";
 import { LeftScenes } from "./components/LeftScenes";
 import { PlayerCanvas } from "./components/PlayerCanvas";
 import { RenderQueuePanel } from "./components/RenderQueuePanel";
+import { StatusBar } from "./components/StatusBar";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -65,7 +66,6 @@ export function EditorShell() {
   } = useEditor();
   void view;
   void setView;
-  void selectedClipIds;
 
   const [exportOpen, setExportOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -275,6 +275,16 @@ export function EditorShell() {
             </div>
           )}
         </div>
+
+        {/* Persistent bottom status bar — always visible */}
+        {project && (
+          <StatusBar
+            project={project}
+            playheadSec={playheadSec}
+            selectedClipIds={selectedClipIds}
+            presenceCount={presence.count}
+          />
+        )}
       </div>
 
       {/* Floating modal overlays */}

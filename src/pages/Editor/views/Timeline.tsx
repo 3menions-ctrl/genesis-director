@@ -485,6 +485,7 @@ export function Timeline({
                     positionPx={hoverSec * pxPerSec}
                     sec={hoverSec}
                     trackHeight={TOTAL_TRACK_AREA}
+                    clips={clips}
                   />
                 )}
               </div>
@@ -1172,18 +1173,25 @@ function buildProceduralWaveform(seed: string, widthPx: number): number[] {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HoverIndicator — faint vertical line + floating mono timecode chip
-// that follows the mouse over the track. Read-only; the playhead
-// commits on click.
+// + thumbnail preview of the clip currently under the mouse. Read-
+// only; the playhead commits on click.
 // ─────────────────────────────────────────────────────────────────────────────
 function HoverIndicator({
   positionPx,
   sec,
   trackHeight,
+  clips,
 }: {
   positionPx: number;
   sec: number;
   trackHeight: number;
+  clips: EditorClip[];
 }) {
+  // Find the V1 clip the cursor is hovering. Used to surface a
+  // miniature thumbnail in the floating preview.
+  const hoverClip = clips.find(
+    (c) => sec >= c.timelineStartSec && sec < c.timelineStartSec + c.durationSec,
+  );
   return (
     <div
       aria-hidden
@@ -1192,21 +1200,52 @@ function HoverIndicator({
     >
       <div
         className="absolute top-0 bottom-0 w-px"
-        style={{
-          background: "hsl(var(--foreground) / 0.35)",
-        }}
+        style={{ background: "hsl(var(--foreground) / 0.35)" }}
       />
+      {/* Floating preview — thumbnail + clip index + timecode */}
       <div
         className={cn(
-          "absolute -top-6 left-2",
-          "px-1.5 py-0.5 rounded",
+          "absolute -top-24 left-2",
+          "rounded-md overflow-hidden",
           "border border-white/[0.10] bg-[hsl(220_30%_4%/0.92)] backdrop-blur",
-          "font-mono text-[10px] tabular-nums text-foreground/95",
-          "shadow-[0_8px_20px_-8px_hsl(0_0%_0%/0.6)]",
+          "shadow-[0_18px_36px_-12px_hsl(0_0%_0%/0.7)]",
           "whitespace-nowrap",
         )}
+        style={{ width: 160 }}
       >
-        {fmtTC(sec)}
+        {hoverClip?.thumbnailUrl ? (
+          <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+            <img
+              src={hoverClip.thumbnailUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.85)] via-transparent to-transparent"
+            />
+            <div className="absolute bottom-1 left-2">
+              <span className={cn(TYPE_META, "font-mono tabular-nums text-foreground/90 mix-blend-difference tracking-[0.18em]")}>
+                CLIP {String(hoverClip.index + 1).padStart(2, "0")}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full px-3 py-2 flex items-center gap-2 text-muted-foreground/55">
+            <Film className="h-3 w-3" strokeWidth={1.5} />
+            <span className={cn(TYPE_META, "font-mono")}>no clip here</span>
+          </div>
+        )}
+        <div className="px-2 py-1 flex items-center justify-between gap-3 border-t border-white/[0.05]">
+          <span className={cn(TYPE_META, "font-mono tabular-nums text-foreground/85")}>
+            {fmtTC(sec)}
+          </span>
+          {hoverClip && (
+            <span className={cn(TYPE_META, "font-mono tabular-nums text-muted-foreground/55")}>
+              {hoverClip.durationSec.toFixed(1)}s
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

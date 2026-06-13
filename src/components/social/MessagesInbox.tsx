@@ -14,7 +14,10 @@ import { useConversations } from '@/hooks/useConversations';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-const glassCard = "backdrop-blur-xl bg-glass border border-white/[0.08]";
+// Container-less now — the inbox is just typography on the canvas
+// like every other Account surface. Kept as an empty string in case
+// any consumer still references it via the export.
+const glassCard = "";
 
 interface Conversation {
   recipientId: string;
@@ -40,9 +43,9 @@ const ConversationItem = memo(function ConversationItem({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
-        "hover:bg-glass-active",
-        isActive && "bg-primary/10 border border-primary/20"
+        "group/conv relative w-full flex items-center gap-3 px-2 py-3 transition-colors duration-200",
+        "hover:bg-white/[0.02] rounded-lg",
+        isActive && "bg-white/[0.03]"
       )}
     >
       <Avatar className="w-11 h-11 ring-2 ring-white/10 shrink-0">
@@ -93,69 +96,65 @@ export function MessagesInbox({ className }: { className?: string }) {
     );
   }
 
+  void glassCard;
   return (
-    <div className={cn("rounded-2xl overflow-hidden", glassCard, className)}>
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-white/[0.06]">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-purple-600/20 flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-bold text-white text-lg">Messages</h3>
-            <p className="text-xs text-white/50">Your conversations</p>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search conversations..."
-            className={cn(
-              "pl-10 h-10",
-              "bg-glass-hover hover:bg-glass-active",
-              "border-white/[0.08] focus:border-primary/50",
-              "text-white placeholder:text-white/40",
-              "rounded-xl"
-            )}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
+    <div className={cn("", className)}>
+      {/* Search bar floats — no header card, no icon backdrop */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search conversations…"
+          className={cn(
+            "pl-10 h-10",
+            "bg-white/[0.02] hover:bg-white/[0.04]",
+            "border-white/[0.06] focus:border-accent/50",
+            "text-foreground placeholder:text-muted-foreground/50",
+            "rounded-xl"
           )}
-        </div>
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/55 hover:text-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      {/* Conversations List */}
-      <ScrollArea className="h-[360px]">
-        <div className="p-3 space-y-1">
+      {/* Conversations list — no container, just rows */}
+      <ScrollArea className="h-[420px]">
+        <div className="space-y-0.5">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <span className="text-sm text-white/40">Loading conversations…</span>
+              <Loader2 className="w-6 h-6 animate-spin text-accent/65" />
+              <span className="text-sm text-muted-foreground/55">Loading conversations…</span>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 px-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-purple-600/10 flex items-center justify-center">
-                <MessageCircle className="w-8 h-8 text-white/20" />
-              </div>
+            <div className="py-14 text-center">
+              <MessageCircle className="w-7 h-7 mx-auto text-muted-foreground/45" strokeWidth={1.4} />
               {searchQuery ? (
                 <>
-                  <p className="text-white/70 font-medium">No matches found</p>
-                  <p className="text-white/40 text-sm text-center">Try a different search term</p>
+                  <p
+                    className="mt-5 font-display italic text-[20px] font-light text-foreground/85"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    No matches.
+                  </p>
+                  <p className="text-muted-foreground/55 text-[13px] mt-1">Try a different name.</p>
                 </>
               ) : (
                 <>
-                  <p className="text-white/70 font-medium">No messages yet</p>
-                  <p className="text-white/40 text-sm text-center">
-                    Visit a creator's profile to start a conversation
+                  <p
+                    className="mt-5 font-display italic text-[20px] font-light text-foreground/85"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    No messages yet.
+                  </p>
+                  <p className="text-muted-foreground/55 text-[13px] mt-1 max-w-sm mx-auto">
+                    Visit a creator&rsquo;s profile to start a conversation.
                   </p>
                 </>
               )}

@@ -1,24 +1,27 @@
 /**
- * ProfileDashboard — the addictive Account / Profile surface.
+ * ProfileDashboard — the addictive, full-bleed Profile surface.
  *
- * Big animated stats. Activity heatmap. Recent renders. Achievement
- * chips. Built so the director wants to come back and watch the
- * numbers grow. Sits inside Account.tsx as the Profile tab; the
- * legacy Profile.tsx still powers the public /c/:id surface.
+ * Architectural intent: everything floats. Only the avatar portrait
+ * lives inside a container. Stats, heatmap, achievements, the bio,
+ * the CTAs — all of them are pure typography on the canvas. Glass
+ * cards have been deliberately removed so the page feels like an
+ * editorial spread, not a settings binder.
  *
- * Data sources (all client-side, all RLS-safe):
- *   - movie_projects        — total films, render activity heatmap
- *   - published_reels       — public counters (plays, likes, remixes)
- *   - profiles_public       — display name, avatar, joined date
- *   - useCredits()          — current balance + lifetime used
+ * Composition (top → bottom):
+ *   - CoverHero        — full-bleed cinematic banner, the portrait is the page
+ *   - BioSection       — inline-editable director's note, large italic serif
+ *   - StatsGrid        — six floating numbers
+ *   - ActivityHeatmap  — floating 12-week grid with floating header
+ *   - Achievements     — floating trophies
+ *   - RecentReels      — top reels as clean tiles
  *
- * If any individual query fails, that block degrades gracefully —
- * the page never blanks. Counts animate up from zero on first
- * render for the "watching it tick" satisfaction.
+ * Data: three independent supabase queries (movie_projects,
+ * published_reels, profiles_public). Each block degrades
+ * independently — one failure can't blank the page.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Film,
   Eye,
@@ -26,11 +29,14 @@ import {
   Wand2,
   Flame,
   Sparkles,
-  TrendingUp,
-  Calendar,
   Coins,
   ArrowRight,
+  ArrowUpRight,
   Trophy,
+  Check,
+  Loader2,
+  Quote,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,11 +82,13 @@ const EMPTY_DASHBOARD: DashboardData = {
   recentReels: [],
 };
 
+const BIO_MAX = 280;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ProfileDashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { balance } = useCredits();
   const reducedMotion = useReducedMotion();
   const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD);
@@ -112,13 +120,11 @@ export default function ProfileDashboard() {
           next.heatmap[day] = (next.heatmap[day] ?? 0) + 1;
         }
       }
-      // Total films lifetime — separate count query.
       const { count: totalFilmsCount } = await supabase
         .from("movie_projects")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
       next.totalFilms = totalFilmsCount ?? 0;
-      // This month
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
@@ -146,7 +152,6 @@ export default function ProfileDashboard() {
     }
 
     try {
-      // ── Published reels: plays / likes / remixes / tips ──
       const { data: reels } = await supabase
         .from("published_reels")
         .select(
@@ -190,7 +195,6 @@ export default function ProfileDashboard() {
     }
 
     try {
-      // ── Follower count + joined date from profiles_public ──
       const { data: pub } = await supabase
         .from("profiles_public")
         .select("follower_count, created_at")
@@ -246,12 +250,18 @@ export default function ProfileDashboard() {
     return `${y}y ${months % 12}m`;
   }, [data.joinedDate]);
 
+  const displayName =
+    profile?.display_name ?? user?.email?.split("@")[0] ?? "Director";
+
+  // ProfileProps may not declare bio (legacy AuthContext type) but the
+  // column is present on the table — read defensively.
+  const bioInitial = (profile as { bio?: string | null } | null)?.bio ?? "";
+
   return (
     <div className="relative">
-      {/* COVER — full-bleed cinematic banner. The portrait IS the page. */}
       <CoverHero
         avatarUrl={profile?.avatar_url ?? null}
-        displayName={profile?.display_name ?? user?.email?.split("@")[0] ?? "Director"}
+        displayName={displayName}
         email={user?.email ?? null}
         memberFor={memberFor}
         followerCount={data.followerCount}
@@ -261,33 +271,26 @@ export default function ProfileDashboard() {
         reducedMotion={reducedMotion ?? false}
       />
 
-      {/* DASHBOARD — constrained content cascades below the cover */}
-      <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 sm:px-6 lg:px-10 space-y-10 -mt-16 sm:-mt-20">
-        {/* STATS GRID — big numbers, animated counters. Sits over the
-            tail of the cover gradient so it reads as part of the
-            composition, not a separate section. */}
-        <StatsGrid data={data} loading={loading} reducedMotion={reducedMotion ?? false} />
-
-        {/* TWO-COLUMN: Heatmap + Achievements */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-          <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
-          <AchievementsCard achievements={achievements} />
-        </div>
-
-        {/* RECENT REELS */}
-        {data.recentReels.length > 0 && (
-          <RecentReels reels={data.recentReels} />
-        )}
+      {/* Everything below is container-less. Just typography on the
+          canvas. The cover gradient tails into the page bg seamlessly. */}
+      <div className="relative mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 -mt-12 sm:-mt-16 space-y-24">
+        <BioSection
+          initial={bioInitial}
+          userId={user?.id ?? ""}
+          onSaved={refreshProfile}
+          reducedMotion={reducedMotion ?? false}
+        />
+        <StatsRow data={data} loading={loading} reducedMotion={reducedMotion ?? false} />
+        <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
+        <AchievementsFloat achievements={achievements} />
+        {data.recentReels.length > 0 && <RecentReels reels={data.recentReels} />}
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CoverHero — full-bleed cinematic banner. The director's portrait is
-// the page. The avatar fills the background (blurred + cover-scaled),
-// crisp foreground content rides the bottom-left, the name is
-// massive italic Fraunces, the gradient masks any awkward crops.
+// CoverHero — full-bleed cinematic banner. Container-less buttons.
 // ─────────────────────────────────────────────────────────────────────────────
 function CoverHero({
   avatarUrl,
@@ -310,9 +313,6 @@ function CoverHero({
   userId: string;
   reducedMotion: boolean;
 }) {
-  // Deterministic procedural gradient when no avatar — same input ID
-  // produces the same colors so the cover doesn't shimmer between
-  // visits. Three angles, three hues, layered radial gradients.
   const procedural = useMemo(() => {
     let h = 0;
     for (let i = 0; i < userId.length; i++) {
@@ -331,11 +331,10 @@ function CoverHero({
       transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
         "relative w-full overflow-hidden",
-        "h-[clamp(520px,72vh,780px)]",
+        "h-[clamp(560px,76vh,820px)]",
       )}
     >
-      {/* BACKGROUND PHOTO — avatar zoomed and blurred to cover.
-          When no avatar, a deterministic mesh gradient stands in. */}
+      {/* BACKGROUND PHOTO */}
       <div
         aria-hidden
         className="absolute inset-0"
@@ -351,7 +350,6 @@ function CoverHero({
             : { background: procedural }
         }
       />
-      {/* Ken-burns slow zoom — adds life without distracting */}
       {avatarUrl && !reducedMotion && (
         <motion.div
           aria-hidden
@@ -373,15 +371,13 @@ function CoverHero({
         />
       )}
 
-      {/* Multi-layer gradient overlays — top vignette, side
-          vignette, bottom fade-to-canvas so the dashboard reads as
-          one continuous composition with the cover. */}
+      {/* Multi-layer overlays — vignettes + bottom fade */}
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, hsl(220 30% 4% / 0.55) 0%, hsl(220 30% 4% / 0.15) 28%, hsl(220 30% 4% / 0.20) 60%, hsl(220 30% 4% / 0.70) 85%, hsl(220 30% 4% / 0.98) 100%)",
+            "linear-gradient(to bottom, hsl(220 30% 4% / 0.55) 0%, hsl(220 30% 4% / 0.15) 28%, hsl(220 30% 4% / 0.20) 60%, hsl(220 30% 4% / 0.72) 85%, hsl(220 30% 4% / 1.00) 100%)",
         }}
       />
       <div
@@ -389,10 +385,9 @@ function CoverHero({
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, hsl(220 30% 4% / 0.65) 0%, transparent 35%, transparent 65%, hsl(220 30% 4% / 0.35) 100%)",
+            "linear-gradient(to right, hsl(220 30% 4% / 0.55) 0%, transparent 35%, transparent 65%, hsl(220 30% 4% / 0.30) 100%)",
         }}
       />
-      {/* Subtle film grain on top of the photo for premium texture */}
       <div
         aria-hidden
         className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
@@ -402,33 +397,22 @@ function CoverHero({
         }}
       />
 
-      {/* CONTENT — content lives in a constrained container even though
-          the cover itself is full-bleed, so text never crowds the
-          viewport edge. */}
-      <div className="absolute inset-0 mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10">
-        {/* TOP-RIGHT — share + edit chips */}
-        <div className="absolute top-6 right-4 sm:right-6 lg:right-10 flex items-center gap-2">
-          <Link
-            to="/account?tab=settings"
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full px-4 h-9",
-              "border border-white/[0.12] bg-white/[0.04] backdrop-blur-md",
-              "text-[12.5px] text-foreground/90 transition-all",
-              "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.10)]",
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
-            <span>Edit profile</span>
-          </Link>
+      {/* CONTENT — content is constrained but unboxed */}
+      <div className="absolute inset-0 mx-auto w-full max-w-[1180px] px-4 sm:px-8 lg:px-12">
+        {/* TOP-RIGHT: floating link, no chip */}
+        <div className="absolute top-7 right-4 sm:right-8 lg:right-12">
+          <FloatingLink to="/account?tab=settings" icon={<Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />}>
+            Edit profile
+          </FloatingLink>
         </div>
 
-        {/* BOTTOM-LEFT — the entire identity stack */}
-        <div className="absolute bottom-24 sm:bottom-28 left-4 sm:left-6 lg:left-10 right-4 sm:right-6 lg:right-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        {/* BOTTOM: identity stack on the left, CTAs on the right.
+            The avatar keeps its container (per spec). Everything
+            else floats — pure typography. */}
+        <div className="absolute bottom-20 sm:bottom-24 left-4 sm:left-8 lg:left-12 right-4 sm:right-8 lg:right-12">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-end gap-5 sm:gap-7 min-w-0">
-              {/* CRISP PORTRAIT — sits in front of the blurred bg so the
-                  same image reads twice: huge & atmospheric, then
-                  intimate & sharp. */}
+              {/* CONTAINED: the avatar */}
               <div
                 className={cn(
                   "relative shrink-0",
@@ -453,7 +437,6 @@ function CoverHero({
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                {/* Rotating accent ring */}
                 <span
                   aria-hidden
                   className="absolute -inset-2 rounded-full pointer-events-none"
@@ -467,7 +450,7 @@ function CoverHero({
                 />
               </div>
 
-              {/* NAME + META */}
+              {/* FLOATING: name & meta — no container */}
               <div className="min-w-0 pb-2">
                 <div
                   className={cn(
@@ -521,45 +504,21 @@ function CoverHero({
               </div>
             </div>
 
-            {/* RIGHT CLUSTER — credits chip + jump to studio */}
-            <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-2.5 lg:items-end">
-              <Link
-                to="/account?tab=credits"
-                className={cn(
-                  "group/credits inline-flex items-center gap-3 rounded-2xl px-5 py-3.5",
-                  "border border-accent/40 bg-gradient-to-br from-[hsl(var(--accent)/0.18)] via-[hsl(var(--accent)/0.06)] to-transparent",
-                  "backdrop-blur-md transition-all",
-                  "hover:border-accent/60 hover:from-[hsl(var(--accent)/0.26)]",
-                )}
-              >
-                <Coins className="h-5 w-5 text-accent" strokeWidth={1.5} />
-                <div className="leading-tight">
-                  <div className={cn(TYPE_META, "text-accent/85")}>Credits</div>
-                  <div className="font-mono text-[20px] tabular-nums text-foreground tracking-tight">
-                    {balance.toLocaleString()}
-                  </div>
-                </div>
-                <ArrowRight
-                  className="h-4 w-4 text-accent/70 transition-transform group-hover/credits:translate-x-0.5"
-                  strokeWidth={1.5}
-                />
-              </Link>
-              <Link
+            {/* FLOATING: CTAs — no containers, just typography */}
+            <div className="shrink-0 flex flex-col gap-6 sm:flex-row sm:gap-10 lg:flex-col lg:items-end lg:gap-7 pb-2">
+              <BigStat
+                label="◆ Credits"
+                value={balance.toLocaleString()}
+                href="/account?tab=credits"
+                accent
+              />
+              <FloatingLink
                 to="/studio"
-                className={cn(
-                  "group/studio inline-flex items-center gap-2 rounded-2xl px-5 py-3.5",
-                  "border border-white/[0.10] bg-white/[0.04] backdrop-blur-md",
-                  "transition-all",
-                  "hover:border-white/[0.20] hover:bg-white/[0.07]",
-                )}
+                icon={<Sparkles className="h-4 w-4" strokeWidth={1.5} />}
+                size="lg"
               >
-                <Sparkles className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
-                <span className="text-[13.5px] text-foreground/95">Direct a new film</span>
-                <ArrowRight
-                  className="h-4 w-4 text-foreground/55 transition-transform group-hover/studio:translate-x-0.5"
-                  strokeWidth={1.5}
-                />
-              </Link>
+                Direct a new film
+              </FloatingLink>
             </div>
           </div>
         </div>
@@ -569,9 +528,363 @@ function CoverHero({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stats grid
+// FloatingLink — container-less navigation. Just text + icon + arrow.
+// Underline reveals on hover from the left.
 // ─────────────────────────────────────────────────────────────────────────────
-function StatsGrid({
+function FloatingLink({
+  to,
+  icon,
+  children,
+  size = "sm",
+}: {
+  to: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  size?: "sm" | "lg";
+}) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        "group/fl relative inline-flex items-center gap-2 text-foreground/85 transition-colors",
+        "hover:text-foreground",
+        size === "sm" ? "text-[13px]" : "text-[15px] font-light tracking-tight",
+      )}
+    >
+      {icon && (
+        <span className="text-accent/85 transition-colors group-hover/fl:text-accent">
+          {icon}
+        </span>
+      )}
+      <span className="relative">
+        {children}
+        {/* Underline reveal — origin left → right on hover */}
+        <span
+          aria-hidden
+          className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-gradient-to-r from-accent via-accent/40 to-transparent transition-transform duration-500 ease-out group-hover/fl:scale-x-100"
+        />
+      </span>
+      <ArrowUpRight
+        className={cn(
+          "transition-all duration-300",
+          size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5",
+          "text-foreground/45 group-hover/fl:text-accent group-hover/fl:translate-x-0.5 group-hover/fl:-translate-y-0.5",
+        )}
+        strokeWidth={1.5}
+      />
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BigStat — container-less stat with optional link
+// ─────────────────────────────────────────────────────────────────────────────
+function BigStat({
+  label,
+  value,
+  href,
+  accent,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  accent?: boolean;
+}) {
+  const inner = (
+    <div className="text-right lg:text-right">
+      <div
+        className={cn(
+          TYPE_META,
+          accent ? "text-accent/85" : "text-foreground/55",
+          "tracking-[0.32em]",
+        )}
+      >
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1 font-display italic font-light tabular-nums leading-[0.95]",
+          "text-[clamp(2.4rem,4vw,3.6rem)]",
+          accent ? "text-foreground" : "text-foreground/90",
+        )}
+        style={{
+          fontFamily: "'Fraunces', serif",
+          textShadow: "0 4px 20px hsl(0 0% 0% / 0.45)",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+  return href ? (
+    <Link to={href} className="group transition-opacity hover:opacity-90">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BioSection — inline-editable director's note. Pure typography.
+// ─────────────────────────────────────────────────────────────────────────────
+function BioSection({
+  initial,
+  userId,
+  onSaved,
+  reducedMotion,
+}: {
+  initial: string;
+  userId: string;
+  onSaved: () => Promise<void>;
+  reducedMotion: boolean;
+}) {
+  const [value, setValue] = useState(initial);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setValue(initial);
+  }, [initial]);
+
+  // Auto-resize the textarea as the user types — no jank, no scroll.
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta || !editing) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [value, editing]);
+
+  const enterEdit = () => {
+    setEditing(true);
+    setTimeout(() => {
+      taRef.current?.focus();
+      const ta = taRef.current;
+      if (ta) {
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+    }, 50);
+  };
+
+  const cancel = () => {
+    setValue(initial);
+    setEditing(false);
+  };
+
+  const save = useCallback(async () => {
+    if (!userId) return;
+    const next = value.trim().slice(0, BIO_MAX);
+    if (next === initial.trim()) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ bio: next })
+        .eq("id", userId);
+      if (error) throw error;
+      setSavedAt(Date.now());
+      await onSaved();
+      setEditing(false);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[BioSection] save failed", e);
+    } finally {
+      setSaving(false);
+    }
+  }, [userId, value, initial, onSaved]);
+
+  // Hide the "Saved ✓" badge after a bit so the page returns to clean
+  // typography.
+  useEffect(() => {
+    if (!savedAt) return;
+    const t = window.setTimeout(() => setSavedAt(null), 2400);
+    return () => window.clearTimeout(t);
+  }, [savedAt]);
+
+  const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancel();
+    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      void save();
+    }
+  };
+
+  const trimmed = value.trim();
+  const remaining = BIO_MAX - value.length;
+
+  return (
+    <motion.section
+      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: EASE_PREMIUM, delay: 0.1 }}
+      className="relative max-w-[820px]"
+    >
+      <header className="flex items-center justify-between mb-5">
+        <div
+          className={cn(
+            TYPE_META,
+            "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2",
+          )}
+        >
+          <Quote className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+          <span>◆ Director's note</span>
+        </div>
+        <AnimatePresence mode="wait">
+          {saving ? (
+            <motion.span
+              key="saving"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn(TYPE_META, "text-muted-foreground/55 flex items-center gap-1.5")}
+            >
+              <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+              Saving
+            </motion.span>
+          ) : savedAt ? (
+            <motion.span
+              key="saved"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={cn(TYPE_META, "text-accent flex items-center gap-1.5")}
+            >
+              <Check className="h-3 w-3" strokeWidth={2} />
+              Saved
+            </motion.span>
+          ) : editing ? (
+            <motion.span
+              key="counter"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                TYPE_META,
+                "tabular-nums",
+                remaining < 20 ? "text-accent" : "text-muted-foreground/45",
+              )}
+            >
+              {remaining} left
+            </motion.span>
+          ) : trimmed ? (
+            <motion.button
+              key="edit"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              type="button"
+              onClick={enterEdit}
+              className={cn(
+                TYPE_META,
+                "text-muted-foreground/45 hover:text-accent transition-colors flex items-center gap-1.5",
+              )}
+            >
+              <Pencil className="h-3 w-3" strokeWidth={1.5} />
+              Edit
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+      </header>
+
+      {/* Hanging quote — decorative serif glyph anchored just outside */}
+      <span
+        aria-hidden
+        className="absolute -left-2 sm:-left-7 top-12 font-display italic text-[clamp(5rem,9vw,8rem)] leading-none text-accent/15 select-none pointer-events-none"
+        style={{ fontFamily: "'Fraunces', serif" }}
+      >
+        “
+      </span>
+
+      {editing ? (
+        <div>
+          <textarea
+            ref={taRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value.slice(0, BIO_MAX))}
+            onKeyDown={onKey}
+            placeholder="What kind of films do you make? What world are you building?"
+            rows={3}
+            className={cn(
+              "block w-full resize-none bg-transparent outline-none",
+              "font-display italic font-light tracking-tight",
+              "text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.32]",
+              "text-foreground placeholder:text-foreground/30",
+              "border-b border-accent/40 focus:border-accent pb-3",
+              "caret-accent",
+            )}
+            style={{ fontFamily: "'Fraunces', serif" }}
+          />
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={saving}
+              className={cn(
+                "inline-flex items-center gap-2 text-[13px] text-accent",
+                "transition-opacity hover:opacity-80 disabled:opacity-40",
+              )}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={2} />
+              <span>Save</span>
+              <span className={cn(TYPE_META, "text-muted-foreground/45")}>
+                ⌘ ↵
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={cancel}
+              className={cn(
+                "inline-flex items-center gap-2 text-[13px] text-muted-foreground/70",
+                "transition-colors hover:text-foreground",
+              )}
+            >
+              Cancel
+              <span className={cn(TYPE_META, "text-muted-foreground/45")}>
+                Esc
+              </span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={enterEdit}
+          className={cn(
+            "group/bio block w-full text-left",
+            "font-display italic font-light tracking-tight",
+            "text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.32]",
+            "text-foreground/90 transition-colors",
+            "hover:text-foreground",
+          )}
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {trimmed ? (
+            <span className="relative">
+              {trimmed}
+              <span aria-hidden className="text-accent/55">.</span>
+            </span>
+          ) : (
+            <span className="text-foreground/30 group-hover/bio:text-foreground/55 transition-colors">
+              Write your director's note…
+            </span>
+          )}
+        </button>
+      )}
+    </motion.section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// StatsRow — container-less. Just floating numbers in a grid.
+// ─────────────────────────────────────────────────────────────────────────────
+function StatsRow({
   data,
   loading,
   reducedMotion,
@@ -596,30 +909,46 @@ function StatsGrid({
   ];
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {stats.map((s, i) => (
-        <motion.li
-          key={s.label}
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 + i * 0.04, duration: 0.4, ease: EASE_PREMIUM }}
+    <section>
+      <header className="mb-7">
+        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
+          ◆ The numbers
+        </div>
+        <h2
+          className="mt-2 font-display italic text-[clamp(1.6rem,2.6vw,2.2rem)] font-light leading-tight tracking-tight"
+          style={{ fontFamily: "'Fraunces', serif" }}
         >
-          <StatCard
-            label={s.label}
-            value={s.value}
-            sub={s.sub}
-            Icon={s.Icon}
-            accent={s.accent}
-            loading={loading}
-            reducedMotion={reducedMotion}
-          />
-        </motion.li>
-      ))}
-    </ul>
+          <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+            Everything you've built.
+          </span>
+        </h2>
+      </header>
+
+      <ul className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-6 lg:gap-x-6">
+        {stats.map((s, i) => (
+          <motion.li
+            key={s.label}
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + i * 0.04, duration: 0.45, ease: EASE_PREMIUM }}
+          >
+            <FloatingStat
+              label={s.label}
+              value={s.value}
+              sub={s.sub}
+              Icon={s.Icon}
+              accent={s.accent}
+              loading={loading}
+              reducedMotion={reducedMotion}
+            />
+          </motion.li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
-function StatCard({
+function FloatingStat({
   label,
   value,
   sub,
@@ -638,39 +967,32 @@ function StatCard({
 }) {
   const display = useAnimatedNumber(value, reducedMotion);
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-2xl",
-        "border border-white/[0.07]",
-        "bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent",
-        "backdrop-blur-xl",
-        "p-4 sm:p-5",
-        accent && "border-accent/30 bg-gradient-to-br from-[hsl(var(--accent)/0.08)] via-white/[0.02] to-transparent",
-      )}
-    >
+    <div>
       <div className="flex items-center gap-2">
         <Icon
-          className={cn(
-            "h-3.5 w-3.5",
-            accent ? "text-accent" : "text-muted-foreground/55",
-          )}
+          className={cn("h-3.5 w-3.5", accent ? "text-accent" : "text-muted-foreground/55")}
           strokeWidth={1.5}
         />
-        <span className={cn(TYPE_META, "text-muted-foreground/65")}>
+        <span className={cn(TYPE_META, "text-muted-foreground/60 tracking-[0.28em]")}>
           {label}
         </span>
       </div>
       <div
         className={cn(
-          "mt-2 font-display italic font-light tracking-tight tabular-nums leading-[1.02]",
-          "text-[clamp(1.6rem,2.5vw,2rem)]",
+          "mt-3 font-display italic font-light tracking-tight tabular-nums leading-[0.95]",
+          "text-[clamp(2.8rem,4.6vw,3.6rem)]",
           accent ? "text-foreground" : "text-foreground/95",
         )}
-        style={{ fontFamily: "'Fraunces', serif" }}
+        style={{
+          fontFamily: "'Fraunces', serif",
+          textShadow: accent
+            ? "0 2px 24px hsl(var(--accent) / 0.25)"
+            : "0 2px 18px hsl(0 0% 0% / 0.4)",
+        }}
       >
-        {loading ? <span className="text-muted-foreground/35">—</span> : display.toLocaleString()}
+        {loading ? <span className="text-foreground/30">—</span> : display.toLocaleString()}
       </div>
-      <div className={cn(TYPE_META, "mt-1 text-muted-foreground/50")}>
+      <div className={cn(TYPE_META, "mt-2 text-muted-foreground/50 tracking-[0.18em]")}>
         {sub}
       </div>
     </div>
@@ -678,7 +1000,7 @@ function StatCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Activity heatmap (last 12 weeks, GitHub-style)
+// ActivityHeatmap — container-less. Header + grid floating.
 // ─────────────────────────────────────────────────────────────────────────────
 function ActivityHeatmap({
   heatmap,
@@ -692,7 +1014,6 @@ function ActivityHeatmap({
   const weeks = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // 12 weeks * 7 days = 84 cells. Last column is "this week".
     const cells: Array<{ date: string; count: number }> = [];
     for (let i = 83; i >= 0; i--) {
       const d = new Date(today);
@@ -700,7 +1021,6 @@ function ActivityHeatmap({
       const key = d.toISOString().slice(0, 10);
       cells.push({ date: key, count: heatmap[key] ?? 0 });
     }
-    // Reshape to 12 columns of 7
     const cols: Array<Array<{ date: string; count: number }>> = [];
     for (let c = 0; c < 12; c++) {
       cols.push(cells.slice(c * 7, (c + 1) * 7));
@@ -721,40 +1041,45 @@ function ActivityHeatmap({
   };
 
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-3xl",
-        "border border-white/[0.07] bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent backdrop-blur-xl",
-        "p-6 sm:p-7",
-      )}
-    >
-      <header className="flex items-baseline justify-between gap-3 flex-wrap mb-5">
+    <section>
+      <header className="flex items-end justify-between gap-3 flex-wrap mb-7">
         <div>
-          <div className={cn(TYPE_META, "text-muted-foreground/55")}>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
             ◆ Activity
           </div>
           <h3
-            className="mt-1 font-display italic text-[22px] font-light tracking-tight text-foreground"
+            className="mt-2 font-display italic text-[clamp(1.6rem,2.6vw,2.2rem)] font-light tracking-tight"
             style={{ fontFamily: "'Fraunces', serif" }}
           >
-            Last 12 weeks.
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              Last 12 weeks.
+            </span>
           </h3>
         </div>
-        <div className="flex items-center gap-4 text-right">
+        <div className="flex items-end gap-10">
           <div>
-            <div className={cn(TYPE_META, "text-muted-foreground/55")}>
+            <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>
               This month
             </div>
-            <div className="font-mono text-[18px] tabular-nums text-foreground tracking-tight">
+            <div
+              className="mt-1 font-display italic text-[28px] font-light tabular-nums tracking-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
               {totalMonth}
             </div>
           </div>
           <div>
-            <div className={cn(TYPE_META, "text-muted-foreground/55 flex items-center gap-1 justify-end")}>
+            <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em] flex items-center gap-1 justify-end")}>
               <Flame className="h-3 w-3" strokeWidth={1.5} />
               <span>Streak</span>
             </div>
-            <div className={cn("font-mono text-[18px] tabular-nums tracking-tight", streak >= 7 ? "text-accent" : "text-foreground")}>
+            <div
+              className={cn(
+                "mt-1 font-display italic text-[28px] font-light tabular-nums tracking-tight",
+                streak >= 7 ? "text-accent" : "text-foreground",
+              )}
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
               {streak}
             </div>
           </div>
@@ -771,9 +1096,9 @@ function ActivityHeatmap({
                   key={cell.date}
                   className={cn(
                     "h-3 w-3 rounded-[3px] transition-colors",
-                    lvl === 0 && "bg-white/[0.03]",
-                    lvl === 1 && "bg-[hsl(var(--accent)/0.18)]",
-                    lvl === 2 && "bg-[hsl(var(--accent)/0.36)]",
+                    lvl === 0 && "bg-foreground/[0.05]",
+                    lvl === 1 && "bg-[hsl(var(--accent)/0.20)]",
+                    lvl === 2 && "bg-[hsl(var(--accent)/0.38)]",
                     lvl === 3 && "bg-[hsl(var(--accent)/0.65)]",
                     lvl === 4 && "bg-accent shadow-[0_0_12px_hsl(var(--accent)/0.6)]",
                   )}
@@ -785,7 +1110,6 @@ function ActivityHeatmap({
         ))}
       </div>
 
-      {/* Legend */}
       <div className="mt-5 flex items-center gap-2">
         <span className={cn(TYPE_META, "text-muted-foreground/45")}>Less</span>
         {[0, 1, 2, 3, 4].map((lvl) => (
@@ -793,9 +1117,9 @@ function ActivityHeatmap({
             key={lvl}
             className={cn(
               "h-3 w-3 rounded-[3px]",
-              lvl === 0 && "bg-white/[0.03]",
-              lvl === 1 && "bg-[hsl(var(--accent)/0.18)]",
-              lvl === 2 && "bg-[hsl(var(--accent)/0.36)]",
+              lvl === 0 && "bg-foreground/[0.05]",
+              lvl === 1 && "bg-[hsl(var(--accent)/0.20)]",
+              lvl === 2 && "bg-[hsl(var(--accent)/0.38)]",
               lvl === 3 && "bg-[hsl(var(--accent)/0.65)]",
               lvl === 4 && "bg-accent",
             )}
@@ -808,47 +1132,43 @@ function ActivityHeatmap({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Achievements card
+// AchievementsFloat — container-less trophies, just icon + text rows.
 // ─────────────────────────────────────────────────────────────────────────────
-function AchievementsCard({
+function AchievementsFloat({
   achievements,
 }: {
   achievements: Array<{ label: string; sub: string; tier: 1 | 2 | 3 }>;
 }) {
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-3xl",
-        "border border-white/[0.07] bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent backdrop-blur-xl",
-        "p-6 sm:p-7",
-      )}
-    >
-      <header className="flex items-baseline justify-between gap-3 mb-5">
+    <section>
+      <header className="flex items-end justify-between gap-3 mb-7">
         <div>
-          <div className={cn(TYPE_META, "text-muted-foreground/55")}>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
             ◆ Trophies
           </div>
           <h3
-            className="mt-1 font-display italic text-[22px] font-light tracking-tight text-foreground"
+            className="mt-2 font-display italic text-[clamp(1.6rem,2.6vw,2.2rem)] font-light tracking-tight"
             style={{ fontFamily: "'Fraunces', serif" }}
           >
-            Earned.
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              Earned.
+            </span>
           </h3>
         </div>
-        <div className={cn(TYPE_META, "text-accent/85 tabular-nums")}>
+        <div className={cn(TYPE_META, "text-accent/85 tabular-nums tracking-[0.28em]")}>
           {achievements.length}/12
         </div>
       </header>
 
       {achievements.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/40 p-6 text-center">
-          <Trophy className="mx-auto h-5 w-5 text-muted-foreground/55" strokeWidth={1.4} />
-          <p className={cn(TYPE_META, "mt-3 text-muted-foreground/60")}>
+        <div className="py-6">
+          <Trophy className="h-5 w-5 text-muted-foreground/55 mb-3" strokeWidth={1.4} />
+          <p className={cn(TYPE_META, "text-muted-foreground/55")}>
             No trophies yet — direct your first film to unlock "First Film."
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-2.5">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
           {achievements.map((a, i) => (
             <motion.li
               key={a.label}
@@ -859,30 +1179,20 @@ function AchievementsCard({
                 duration: 0.32,
                 ease: EASE_PREMIUM,
               }}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3.5 py-2.5",
-                "border border-white/[0.06] bg-white/[0.02]",
-              )}
+              className="flex items-center gap-3"
             >
-              <span
+              <Trophy
                 className={cn(
-                  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                  a.tier === 1 && "bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.25)]",
-                  a.tier === 2 && "bg-[hsl(var(--accent)/0.16)] ring-1 ring-inset ring-[hsl(var(--accent)/0.40)]",
-                  a.tier === 3 && "bg-[hsl(45_95%_55%/0.18)] ring-1 ring-inset ring-[hsl(45_95%_55%/0.45)]",
+                  "h-4 w-4 shrink-0",
+                  a.tier === 1 && "text-accent/70",
+                  a.tier === 2 && "text-accent",
+                  a.tier === 3 && "text-[hsl(45_95%_70%)] drop-shadow-[0_0_10px_hsl(45_95%_55%/0.5)]",
                 )}
-              >
-                <Trophy
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    a.tier === 3 ? "text-[hsl(45_95%_75%)]" : "text-accent",
-                  )}
-                  strokeWidth={1.5}
-                />
-              </span>
+                strokeWidth={1.5}
+              />
               <div className="min-w-0">
-                <div className="text-[13px] text-foreground/95">{a.label}</div>
-                <div className={cn(TYPE_META, "text-muted-foreground/55")}>
+                <div className="text-[14px] text-foreground/95">{a.label}</div>
+                <div className={cn(TYPE_META, "text-muted-foreground/50 tracking-[0.18em]")}>
                   {a.sub}
                 </div>
               </div>
@@ -895,7 +1205,8 @@ function AchievementsCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Recent reels
+// RecentReels — clean image tiles. Containers here are the images
+// themselves, not surface chrome — they're the content.
 // ─────────────────────────────────────────────────────────────────────────────
 function RecentReels({
   reels,
@@ -903,47 +1214,51 @@ function RecentReels({
   reels: Array<{ id: string; title: string; thumbnail_url: string | null; play_count: number }>;
 }) {
   return (
-    <section className="space-y-4">
-      <header className="flex items-baseline justify-between">
+    <section>
+      <header className="flex items-end justify-between mb-7">
         <div>
-          <div className={cn(TYPE_META, "text-muted-foreground/55")}>
-            ◆ Recent Films
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
+            ◆ Recent films
           </div>
           <h3
-            className="mt-1 font-display italic text-[22px] font-light tracking-tight text-foreground"
+            className="mt-2 font-display italic text-[clamp(1.6rem,2.6vw,2.2rem)] font-light tracking-tight"
             style={{ fontFamily: "'Fraunces', serif" }}
           >
-            Top of the reel.
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              Top of the reel.
+            </span>
           </h3>
         </div>
         <Link
           to="/library"
           className={cn(
-            "inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-foreground transition-colors",
+            "group/all relative inline-flex items-center gap-1.5 text-[13px] text-accent",
           )}
         >
-          <span>All films</span>
-          <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+          <span className="relative">
+            All films
+            <span
+              aria-hidden
+              className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/all:scale-x-100"
+            />
+          </span>
+          <ArrowRight className="h-3 w-3 transition-transform group-hover/all:translate-x-0.5" strokeWidth={1.5} />
         </Link>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {reels.map((r) => (
           <Link
             key={r.id}
             to={`/r/${r.id}`}
-            className={cn(
-              "group relative overflow-hidden rounded-xl",
-              "border border-white/[0.07] bg-[hsl(220_30%_8%)]",
-              "transition-all hover:border-accent/40",
-            )}
+            className="group/tile relative block overflow-hidden rounded-xl transition-transform hover:-translate-y-0.5"
           >
-            <div className="relative aspect-video">
+            <div className="relative aspect-video bg-[hsl(220_30%_8%)]">
               {r.thumbnail_url ? (
                 <img
                   src={r.thumbnail_url}
                   alt=""
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                  className="h-full w-full object-cover transition-transform duration-[1200ms] group-hover/tile:scale-[1.06]"
                 />
               ) : (
                 <div className="h-full w-full flex items-center justify-center">
@@ -954,11 +1269,11 @@ function RecentReels({
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.92)] via-transparent to-transparent"
               />
-              <div className="absolute bottom-0 inset-x-0 p-2.5">
-                <div className="font-display italic text-[13px] font-light text-foreground truncate">
+              <div className="absolute bottom-0 inset-x-0 p-3">
+                <div className="font-display italic text-[13.5px] font-light text-foreground truncate">
                   {r.title}
                 </div>
-                <div className={cn(TYPE_META, "text-muted-foreground/60 flex items-center gap-1")}>
+                <div className={cn(TYPE_META, "text-muted-foreground/60 flex items-center gap-1 mt-0.5")}>
                   <Eye className="h-2.5 w-2.5" strokeWidth={1.5} />
                   {r.play_count.toLocaleString()}
                 </div>

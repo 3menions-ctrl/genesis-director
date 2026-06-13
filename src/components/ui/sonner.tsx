@@ -38,13 +38,22 @@ const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 
   // Canonical Pro-Dark surface — locked tier-shared design (no purple).
+  //
+  // Tailwind's arbitrary-value parser rejects commas inside hsl(...)
+  // — `bg-[hsl(220,14%,3%)/0.94]` silently fails and the toast
+  // falls back to its default white background. Use underscores
+  // (Tailwind's space syntax) so `hsl(220 14% 3% / 0.94)` is read
+  // as the complete CSS color.
+  //
+  // Same fix applied to the per-tier glow shells below.
   const SHELL =
     "group toast pointer-events-auto " +
     "group-[.toaster]:rounded-2xl group-[.toaster]:px-6 group-[.toaster]:py-5 group-[.toaster]:gap-4 " +
     "group-[.toaster]:backdrop-blur-2xl " +
-    "group-[.toaster]:bg-[hsl(220,14%,3%)/0.94] " +
+    "group-[.toaster]:bg-[hsl(220_14%_3%/0.94)] " +
     "group-[.toaster]:border group-[.toaster]:border-white/[0.06] " +
     "group-[.toaster]:min-w-[380px] group-[.toaster]:max-w-[520px] " +
+    "group-[.toaster]:text-white " +
     "group-[.toaster]:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.04)]";
 
   return (
@@ -162,7 +171,7 @@ const premiumToast = {
         </motion.div>
       ),
       className:
-        "font-display backdrop-blur-2xl bg-[hsl(220,14%,3%)/0.94] border border-primary/30 text-white " +
+        "font-display backdrop-blur-2xl bg-[hsl(220_14%_3%/0.94)] border border-primary/30 text-white " +
         "shadow-[0_0_80px_rgba(10,132,255,0.22),0_0_160px_rgba(10,132,255,0.08),0_30px_80px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(10,132,255,0.14)]",
     }),
   promise: toast.promise,

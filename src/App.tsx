@@ -55,7 +55,6 @@ function LegacyParamRedirect({ to }: { to: string }) {
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Studio = lazy(() => import("./pages/Studio"));
-const Projects = lazy(() => import("./pages/Projects"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -66,7 +65,6 @@ const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
-const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
 const WorkspaceTeam = lazy(() => import("./pages/workspace/WorkspaceTeam"));
 const WorkspaceBrand = lazy(() => import("./pages/workspace/WorkspaceBrand"));
 const WorkspaceBilling = lazy(() => import("./pages/workspace/WorkspaceBilling"));
@@ -90,7 +88,6 @@ const WorkspaceGeneral = lazy(() => import("./pages/workspace/WorkspaceGeneral")
 const WorkspaceSecurity = lazy(() => import("./pages/workspace/WorkspaceSecurity"));
 const WorkspaceDanger = lazy(() => import("./pages/workspace/WorkspaceDanger"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
-const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const Developers = lazy(() => import("./pages/Developers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 // Legacy Admin removed — replaced by Refine admin
@@ -173,7 +170,6 @@ const Lobby = lazy(() => import("./pages/Lobby"));
 const Theater = lazy(() => import("./pages/Theater"));
 const WorldDetail = lazy(() => import("./pages/WorldDetail"));
 // Entertainment Hub (creator economy — the YouTube half)
-const Creators = lazy(() => import("./pages/Creators"));
 // Entertainment Hub (atom marketplace)
 const Market = lazy(() => import("./pages/Market"));
 // Crossover — next-gen VFX template library (break-out effects)
@@ -189,7 +185,6 @@ const SearchHub = lazy(() => import("./pages/SearchHub"));
 const DirectorCards = lazy(() => import("./pages/DirectorCards"));
 // Entertainment Hub (music parallel surface)
 const MusicHub = lazy(() => import("./pages/MusicHub"));
-const SupportInbox = lazy(() => import("./pages/SupportInbox"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
@@ -409,13 +404,8 @@ const App = () => {
                 <Route path="/credits" element={<Navigate to="/account?tab=credits" replace />} />
                 
                 {/* Protected routes - each with isolated error boundary */}
-                <Route path="/projects" element={
-                  <RouteContainer fallbackMessage="Pulling up your reels…">
-                    <ProtectedRoute>
-                      <AppShell><Projects /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* /projects is canonical Library's predecessor; folds in. */}
+                <Route path="/projects" element={<Navigate to="/library" replace />} />
 
                 {/* ── Foundation spine — canonical surfaces ───────────── */}
                 <Route path="/library" element={
@@ -464,27 +454,11 @@ const App = () => {
                     <Navigate to="/account?tab=settings" replace />
                   </RequireAccountType>
                 } />
-                <Route path="/settings/deactivate" element={
-                  <RouteContainer fallbackMessage="Loading…">
-                    <ProtectedRoute>
-                      <AppShell><DeactivateAccount /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/settings/support" element={
-                  <RouteContainer fallbackMessage="Loading support inbox...">
-                    <ProtectedRoute>
-                      <AppShell><SupportInbox /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/settings/workspace" element={
-                  <RouteContainer fallbackMessage="Spinning up your workspace…">
-                    <ProtectedRoute>
-                      <AppShell><WorkspaceSettings /></AppShell>
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy /settings/* surfaces fold into Account tabs and
+                    workspace settings. */}
+                <Route path="/settings/deactivate" element={<Navigate to="/account?tab=settings" replace />} />
+                <Route path="/settings/support" element={<Navigate to="/account?tab=messages" replace />} />
+                <Route path="/settings/workspace" element={<Navigate to="/workspace/general" replace />} />
                 {/* Business workspace admin hub — separate from app /admin.
                     Every workspace route is wrapped at this layer:
                       RouteContainer → RequireAccountType → EnterpriseGate
@@ -622,12 +596,8 @@ const App = () => {
                 <Route path="/mascots" element={<Navigate to="/cast?tab=mascots" replace />} />
                 <Route path="/avatars-gallery" element={<Navigate to="/cast" replace />} />
                 
-                {/* Consumer social hub sunset — redirect to projects */}
-                <Route path="/creators" element={
-                  <RouteContainer fallbackMessage="Calling the directors…">
-                    <AppShell><Creators /></AppShell>
-                  </RouteContainer>
-                } />
+                {/* /creators sunset — folds into universal Search. */}
+                <Route path="/creators" element={<Navigate to="/search" replace />} />
                 {/* /c/:id renders the same comprehensive Profile component as
                     /profile, in "viewing-another-user" mode. Owner-only
                     affordances (edit, danger zone, credits tab) are hidden
@@ -739,7 +709,7 @@ const App = () => {
                   </RouteContainer>
                 }>
                   <Route index element={<AdminDashboardPage />} />
-                  <Route path="library" element={<Projects />} />
+                  <Route path="library" element={<Navigate to="/library" replace />} />
                   <Route path="create" element={<Navigate to="/studio" replace />} />
                   <Route path="editor" element={<VideoEditorPage />} />
                   <Route path="avatars" element={<Avatars />} />

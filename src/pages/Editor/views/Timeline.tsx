@@ -36,7 +36,20 @@ import {
   Reorder,
   useReducedMotion,
 } from "framer-motion";
-import { Film, ZoomIn, ZoomOut, Trash2, Scissors } from "lucide-react";
+import {
+  Film,
+  ZoomIn,
+  ZoomOut,
+  Trash2,
+  Scissors,
+  Lock,
+  VolumeX,
+  Volume2,
+  Music2,
+  Type as TypeIcon,
+  Video,
+  Disc3,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
@@ -56,10 +69,33 @@ interface Props {
   pxPerSec: number;
 }
 
-const TRACK_HEIGHT = 88;
+const V_TRACK_HEIGHT = 72;     // V1 (the workhorse video track)
+const V_OVERLAY_HEIGHT = 38;   // V2 — title cards / overlays
+const A_TRACK_HEIGHT = 44;     // A1 — clip audio
+const A_MUSIC_HEIGHT = 38;     // A2 — music / score
+const TRACK_GAP = 4;
+const TRACK_HEADER_W = 132;
 const TRACK_PADDING_PX = 32;
 const TRIM_HANDLE_PX = 10;
 const MIN_CLIP_PX = 22;
+
+interface TrackDef {
+  id: "V2" | "V1" | "A1" | "A2";
+  label: string;
+  kind: "video" | "audio";
+  height: number;
+  Icon: typeof Film;
+}
+
+const TRACKS: TrackDef[] = [
+  { id: "V2", label: "V2 · Overlay",  kind: "video", height: V_OVERLAY_HEIGHT, Icon: TypeIcon },
+  { id: "V1", label: "V1 · Video",    kind: "video", height: V_TRACK_HEIGHT,   Icon: Video },
+  { id: "A1", label: "A1 · Audio",    kind: "audio", height: A_TRACK_HEIGHT,   Icon: Disc3 },
+  { id: "A2", label: "A2 · Music",    kind: "audio", height: A_MUSIC_HEIGHT,   Icon: Music2 },
+];
+
+const TOTAL_TRACK_AREA =
+  V_OVERLAY_HEIGHT + V_TRACK_HEIGHT + A_TRACK_HEIGHT + A_MUSIC_HEIGHT + TRACK_GAP * 3;
 
 function fmtTC(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) sec = 0;
@@ -204,83 +240,166 @@ export function Timeline({
       {clips.length === 0 ? (
         <EmptyTimeline />
       ) : (
-        <div
-          ref={scrollerRef}
-          className="relative flex-1 overflow-x-auto overflow-y-hidden"
-          onWheel={onWheel}
-          style={{ scrollbarWidth: "thin" }}
-        >
+        <div className="flex-1 flex min-h-0">
+          {/* Track headers column — pinned left, doesn't scroll
+              horizontally with the track body. Mirrors the height
+              of every track so the labels line up exactly. */}
           <div
-            className="relative"
-            style={{
-              width: `${trackWidthPx + TRACK_PADDING_PX * 2}px`,
-              paddingLeft: TRACK_PADDING_PX,
-              paddingRight: TRACK_PADDING_PX,
-            }}
+            className="shrink-0 border-r border-white/[0.04] flex flex-col"
+            style={{ width: TRACK_HEADER_W }}
           >
-            <TimelineRuler totalSec={totalSec} pxPerSec={pxPerSec} />
+            {/* Spacer matching ruler height */}
+            <div className="h-6" />
+            <div className="mt-3" style={{ height: TOTAL_TRACK_AREA }}>
+              <div className="flex flex-col h-full">
+                {TRACKS.map((t, i) => (
+                  <TrackHeader
+                    key={t.id}
+                    track={t}
+                    addGap={i < TRACKS.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
 
+          {/* Scrolling track body */}
+          <div
+            ref={scrollerRef}
+            className="relative flex-1 overflow-x-auto overflow-y-hidden"
+            onWheel={onWheel}
+            style={{ scrollbarWidth: "thin" }}
+          >
             <div
-              ref={trackRef}
-              data-track
-              onClick={onTrackClick}
-              onMouseMove={onTrackMove}
-              onMouseLeave={onTrackLeave}
-              className={cn(
-                "relative mt-3",
-                "bg-white/[0.015] rounded-lg",
-              )}
-              style={{ height: TRACK_HEIGHT, width: trackWidthPx }}
+              className="relative"
+              style={{
+                width: `${trackWidthPx + TRACK_PADDING_PX * 2}px`,
+                paddingLeft: TRACK_PADDING_PX,
+                paddingRight: TRACK_PADDING_PX,
+              }}
             >
-              <Reorder.Group
-                axis="x"
-                values={localOrder}
-                onReorder={onReorder}
-                className="relative flex items-stretch h-full px-1 gap-0"
-                as="div"
+              <TimelineRuler totalSec={totalSec} pxPerSec={pxPerSec} />
+
+              {/* All-tracks playhead container — the ruler + tracks
+                  share one playhead column that spans the full
+                  vertical extent. */}
+              <div
+                ref={trackRef}
+                data-track
+                onClick={onTrackClick}
+                onMouseMove={onTrackMove}
+                onMouseLeave={onTrackLeave}
+                className="relative mt-3"
+                style={{
+                  height: TOTAL_TRACK_AREA,
+                  width: trackWidthPx,
+                }}
               >
-                <AnimatePresence initial={false}>
-                  {localOrder.map((clip) => (
-                    <Reorder.Item
-                      key={clip.id}
-                      value={clip}
-                      as="div"
-                      data-clip
-                      data-clip-id={clip.id}
-                      style={{
-                        width: Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec),
-                        height: "100%",
-                        flexShrink: 0,
-                      }}
-                      whileDrag={{ scale: 1.02, zIndex: 5 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 480,
-                        damping: 38,
-                      }}
-                      className="relative cursor-grab active:cursor-grabbing"
-                    >
-                      <ClipBlock
-                        clip={clip}
-                        pxPerSec={pxPerSec}
-                        isActive={clip.id === selectedClipId}
-                        reducedMotion={reducedMotion ?? false}
-                      />
-                    </Reorder.Item>
-                  ))}
-                </AnimatePresence>
-              </Reorder.Group>
-
-              <Playhead positionPx={playheadPx + 1} trackHeight={TRACK_HEIGHT} />
-
-              {/* Hover shadow line + floating timecode chip */}
-              {hoverSec !== null && (
-                <HoverIndicator
-                  positionPx={hoverSec * pxPerSec}
-                  sec={hoverSec}
-                  trackHeight={TRACK_HEIGHT}
+                {/* V2 — overlay track (empty placeholder for v1) */}
+                <EmptyTrack
+                  top={0}
+                  height={V_OVERLAY_HEIGHT}
+                  width={trackWidthPx}
+                  hint="Title cards land here"
                 />
-              )}
+
+                {/* V1 — the actual video clips with Reorder.Group */}
+                <div
+                  className={cn(
+                    "absolute left-0 right-0 bg-white/[0.018] rounded-md",
+                  )}
+                  style={{
+                    top: V_OVERLAY_HEIGHT + TRACK_GAP,
+                    height: V_TRACK_HEIGHT,
+                  }}
+                >
+                  <Reorder.Group
+                    axis="x"
+                    values={localOrder}
+                    onReorder={onReorder}
+                    className="relative flex items-stretch h-full px-1 gap-0"
+                    as="div"
+                  >
+                    <AnimatePresence initial={false}>
+                      {localOrder.map((clip) => (
+                        <Reorder.Item
+                          key={clip.id}
+                          value={clip}
+                          as="div"
+                          data-clip
+                          data-clip-id={clip.id}
+                          style={{
+                            width: Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec),
+                            height: "100%",
+                            flexShrink: 0,
+                          }}
+                          whileDrag={{ scale: 1.02, zIndex: 5 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 480,
+                            damping: 38,
+                          }}
+                          className="relative cursor-grab active:cursor-grabbing"
+                        >
+                          <ClipBlock
+                            clip={clip}
+                            pxPerSec={pxPerSec}
+                            isActive={clip.id === selectedClipId}
+                            reducedMotion={reducedMotion ?? false}
+                          />
+                        </Reorder.Item>
+                      ))}
+                    </AnimatePresence>
+                  </Reorder.Group>
+                </div>
+
+                {/* A1 — synthetic audio shadows matching V1 positions */}
+                <div
+                  className={cn(
+                    "absolute left-0 right-0 bg-white/[0.014] rounded-md",
+                  )}
+                  style={{
+                    top: V_OVERLAY_HEIGHT + TRACK_GAP + V_TRACK_HEIGHT + TRACK_GAP,
+                    height: A_TRACK_HEIGHT,
+                  }}
+                >
+                  {localOrder.map((c) => (
+                    <AudioShadow
+                      key={c.id}
+                      clip={c}
+                      pxPerSec={pxPerSec}
+                      isActive={c.id === selectedClipId}
+                    />
+                  ))}
+                </div>
+
+                {/* A2 — music track (empty placeholder for v1) */}
+                <EmptyTrack
+                  top={
+                    V_OVERLAY_HEIGHT +
+                    TRACK_GAP +
+                    V_TRACK_HEIGHT +
+                    TRACK_GAP +
+                    A_TRACK_HEIGHT +
+                    TRACK_GAP
+                  }
+                  height={A_MUSIC_HEIGHT}
+                  width={trackWidthPx}
+                  hint="Music + score land here"
+                />
+
+                {/* Playhead spans every track */}
+                <Playhead positionPx={playheadPx + 1} trackHeight={TOTAL_TRACK_AREA} />
+
+                {/* Hover shadow + timecode chip spans every track */}
+                {hoverSec !== null && (
+                  <HoverIndicator
+                    positionPx={hoverSec * pxPerSec}
+                    sec={hoverSec}
+                    trackHeight={TOTAL_TRACK_AREA}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -611,6 +730,178 @@ function ClipBlock({
       )}
     </motion.div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TrackHeader — left-column label per track with mute/lock toggles.
+// Toggles are visual-only for v1 so the editor LOOKS like an NLE
+// without committing to behavior that isn't wired yet. The mute/lock
+// state will move into the store when V2/A2 actually carry clips.
+// ─────────────────────────────────────────────────────────────────────────────
+function TrackHeader({
+  track,
+  addGap,
+}: {
+  track: TrackDef;
+  addGap: boolean;
+}) {
+  const [muted, setMuted] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const Icon = track.Icon;
+  return (
+    <div
+      className={cn(
+        "relative flex items-center gap-2 pr-3 pl-1",
+        "bg-white/[0.012] rounded-l-md",
+      )}
+      style={{ height: track.height, marginBottom: addGap ? TRACK_GAP : 0 }}
+    >
+      <Icon
+        className={cn(
+          "h-3.5 w-3.5 shrink-0",
+          track.kind === "video" ? "text-accent/65" : "text-foreground/55",
+        )}
+        strokeWidth={1.5}
+      />
+      <div className="min-w-0 flex-1">
+        <div className={cn(TYPE_META, "text-foreground/85 tracking-[0.22em] truncate")}>
+          {track.label}
+        </div>
+      </div>
+      {track.kind === "audio" && (
+        <button
+          type="button"
+          onClick={() => setMuted((m) => !m)}
+          className={cn(
+            "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
+            muted ? "text-rose-300/85" : "text-muted-foreground/45 hover:text-foreground/80",
+          )}
+          aria-label={muted ? "Unmute track" : "Mute track"}
+        >
+          {muted ? (
+            <VolumeX className="h-3 w-3" strokeWidth={1.6} />
+          ) : (
+            <Volume2 className="h-3 w-3" strokeWidth={1.6} />
+          )}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => setLocked((l) => !l)}
+        className={cn(
+          "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
+          locked ? "text-amber-300/85" : "text-muted-foreground/45 hover:text-foreground/80",
+        )}
+        aria-label={locked ? "Unlock track" : "Lock track"}
+      >
+        <Lock
+          className="h-3 w-3"
+          strokeWidth={1.6}
+          fill={locked ? "currentColor" : "none"}
+        />
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EmptyTrack — visual placeholder for V2 (overlays) and A2 (music)
+// ─────────────────────────────────────────────────────────────────────────────
+function EmptyTrack({
+  top,
+  height,
+  width,
+  hint,
+}: {
+  top: number;
+  height: number;
+  width: number;
+  hint: string;
+}) {
+  return (
+    <div
+      className="absolute left-0 rounded-md border border-dashed border-white/[0.05] bg-white/[0.008] overflow-hidden flex items-center"
+      style={{ top, height, width }}
+    >
+      <span className={cn(TYPE_META, "ml-3 text-muted-foreground/30 tracking-[0.30em]")}>
+        {hint}
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AudioShadow — a positioned audio "block" mirroring each video clip's
+// timeline position. For v1 we paint a procedural amplitude bar set
+// (deterministic per clip id) so the timeline reads as multi-track
+// without a real audio decode step. When useAudioWaveform lands, this
+// component is the swap-in.
+// ─────────────────────────────────────────────────────────────────────────────
+function AudioShadow({
+  clip,
+  pxPerSec,
+  isActive,
+}: {
+  clip: EditorClip;
+  pxPerSec: number;
+  isActive: boolean;
+}) {
+  const widthPx = Math.max(MIN_CLIP_PX, clip.durationSec * pxPerSec);
+  const leftPx = clip.timelineStartSec * pxPerSec;
+  const bars = useMemo(() => buildProceduralWaveform(clip.id, widthPx), [clip.id, widthPx]);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        selectClip(clip.id);
+      }}
+      className={cn(
+        "absolute top-0 bottom-0 rounded-sm overflow-hidden ring-1 ring-inset transition-all",
+        isActive
+          ? "ring-accent/70 bg-[hsl(var(--accent)/0.10)]"
+          : "ring-white/[0.06] hover:ring-white/[0.14] bg-white/[0.025]",
+      )}
+      style={{ left: leftPx, width: widthPx }}
+    >
+      <div className="absolute inset-0 flex items-center justify-evenly px-0.5">
+        {bars.map((h, i) => (
+          <span
+            key={i}
+            className={cn(
+              "block w-[2px] rounded-full",
+              isActive ? "bg-accent/85" : "bg-foreground/55",
+            )}
+            style={{ height: `${h * 100}%` }}
+          />
+        ))}
+      </div>
+    </button>
+  );
+}
+
+/**
+ * buildProceduralWaveform — deterministic per-clip amplitude array.
+ * Same clip id → same bars across renders. Bar count scales with the
+ * rendered pixel width so wider zoom shows more bars.
+ */
+function buildProceduralWaveform(seed: string, widthPx: number): number[] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  // 3px per bar
+  const count = Math.max(6, Math.floor(widthPx / 3));
+  const bars: number[] = [];
+  for (let i = 0; i < count; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    // Two-octave pseudo-random: mix high + low frequency so it looks
+    // like waveform amplitude, not noise.
+    const a = (h & 0xff) / 255;
+    const b = ((h >> 8) & 0xff) / 255;
+    const env = 0.35 + 0.55 * Math.sin((i / count) * Math.PI);
+    bars.push(0.18 + 0.82 * env * (0.55 * a + 0.45 * b));
+  }
+  return bars;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

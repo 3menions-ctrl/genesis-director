@@ -17,7 +17,7 @@
  * for muscle-memory from when Script was a view). Storyboard
  * focus mode for the full scene grid is still available via 4.
  *
- * Modal overlays: ScriptModal (S), ExportPanel (E), CommentsPanel
+ * Modal overlays: ExportPanel (E), CommentsPanel
  * (C), HelpOverlay (?), EditorPalette (⌘P).
  */
 import { useEffect, useRef, useState } from "react";
@@ -57,7 +57,6 @@ import { ExportPanel } from "./components/ExportPanel";
 import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
-import { Surface } from "./components/Surface";
 import { CreatePanel } from "./components/CreatePanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
@@ -74,7 +73,7 @@ import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
 
-type FocusMode = "edit" | "storyboard";
+type FocusMode = "edit" | "storyboard" | "script";
 
 export function EditorShell() {
   const {
@@ -110,7 +109,6 @@ export function EditorShell() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [scriptOpen, setScriptOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [markersPanelOpen, setMarkersPanelOpen] = useState(false);
   const [effectsOpen, setEffectsOpen] = useState(false);
@@ -124,17 +122,20 @@ export function EditorShell() {
 
   /**
    * URL ↔ tab sync. The editor presents four logical tabs (stage,
-   * timeline, script, storyboard) even though it's a single page —
-   * deep-linking via `?tab=...` lets Studio hand off straight into
-   * the right lens, lets the user bookmark a view, and survives a
-   * page refresh.
+   * timeline, script, storyboard) — each one swaps the full canvas
+   * for a different lens on the same project, like tabs in a real
+   * app. Deep-linking via `?tab=...` lets Studio hand off straight
+   * into the right lens, lets the user bookmark a view, and
+   * survives a page refresh.
    *
    * Mapping:
-   *   stage|timeline → focus=edit + scriptOpen=false (Stage and
-   *     Timeline cohabit the same edit canvas; the timeline is a
-   *     panel below the player rather than its own focus mode)
-   *   script        → focus=edit + scriptOpen=true (modal overlay)
-   *   storyboard    → focus=storyboard
+   *   stage|timeline → focus=edit  (Stage/Timeline cohabit the edit
+   *                                 canvas; their distinction is the
+   *                                 timeline's height — Stage
+   *                                 collapses to 120px, Timeline
+   *                                 takes flex-1)
+   *   script        → focus=script (full canvas)
+   *   storyboard    → focus=storyboard (full canvas)
    */
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
@@ -142,14 +143,11 @@ export function EditorShell() {
   // Read URL → state on mount + every URL change.
   useEffect(() => {
     if (urlTab === "script") {
-      setScriptOpen(true);
-      setFocus("edit");
+      setFocus("script");
     } else if (urlTab === "storyboard") {
       setFocus("storyboard");
-      setScriptOpen(false);
     } else if (urlTab === "stage" || urlTab === "timeline" || urlTab === null) {
       setFocus("edit");
-      setScriptOpen(false);
     }
   }, [urlTab]);
 
@@ -158,40 +156,42 @@ export function EditorShell() {
   // history entries, and use `replace: true` to keep the back button
   // returning to the previous route rather than the previous tab.
   useEffect(() => {
-    const next: string = scriptOpen
+    const next: string =
+      focus === "script"
+        ? "script"
+        : focus === "storyboard"
+        ? "storyboard"
+        : urlTab === "timeline"
+        ? "timeline"
+        : "stage";
+    if (next === urlTab) return;
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  }, [focus, urlTab, searchParams, setSearchParams]);
+
+  /**
+   * `currentView` — derived from state + URL. The ViewSwitcher uses
+   * this to render the active underline. Precedence: explicit focus
+   * mode (script / storyboard) wins; otherwise URL-tab picks stage
+   * vs timeline.
+   */
+  const currentView: import("@/lib/editor/types").EditorView =
+    focus === "script"
       ? "script"
       : focus === "storyboard"
       ? "storyboard"
       : urlTab === "timeline"
       ? "timeline"
       : "stage";
-    if (next === urlTab) return;
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", next);
-    setSearchParams(params, { replace: true });
-  }, [focus, scriptOpen, urlTab, searchParams, setSearchParams]);
-
-  /**
-   * `currentView` — derived from state + URL. The ViewSwitcher uses
-   * this to render the active underline. There are 4 logical views;
-   * we resolve precedence: script > storyboard > URL-tab-explicit >
-   * default-stage.
-   */
-  const currentView: import("@/lib/editor/types").EditorView = scriptOpen
-    ? "script"
-    : focus === "storyboard"
-    ? "storyboard"
-    : urlTab === "timeline"
-    ? "timeline"
-    : "stage";
 
   /**
    * Single source of truth for tab switches. Used by:
    *   - ViewSwitcher click handler in the TopStatusBar
    *   - the 1/2/3/4 keyboard map below
    * Always routes the change through the URL — the read-effect then
-   * picks it up and updates focus/scriptOpen consistently, so we
-   * can't get out of sync with the URL bar.
+   * picks it up and updates focus consistently, so we can't get out
+   * of sync with the URL bar.
    *
    * Stored on a ref because the keydown effect binds once with
    * [] deps; without the ref, the closure would capture a stale
@@ -260,7 +260,7 @@ export function EditorShell() {
       }
       if (!focusedEditable && (e.key === "Escape")) {
         // Esc clears multi-selection when no modal is open
-        if (!exportOpen && !commentsOpen && !helpOpen && !paletteOpen && !scriptOpen && !queueOpen) {
+        if (!exportOpen && !commentsOpen && !helpOpen && !paletteOpen && !queueOpen) {
           clearSelection();
         }
       }
@@ -346,8 +346,13 @@ export function EditorShell() {
         return;
       }
       if (e.key === "s" || e.key === "S") {
+        // S toggles Script ↔ Stage just like the digit keys do — it
+        // routes through switchView so click + S + tab-bar all
+        // share one write path.
         e.preventDefault();
-        setScriptOpen((o) => !o);
+        switchViewRef.current(
+          currentViewRef.current === "script" ? "stage" : "script",
+        );
         return;
       }
       // View tabs — 1 / 2 / 3 / 4 map to Stage / Timeline / Script /
@@ -540,6 +545,12 @@ export function EditorShell() {
             </div>
           )}
 
+          {focus === "script" && (
+            <div className="flex-1 min-w-0 flex flex-col">
+              <Script project={displayProject} />
+            </div>
+          )}
+
           {/* Soft loading shimmer in the center when fetching the
               project — keeps the four-region layout visible behind
               while the network catches up. */}
@@ -613,14 +624,6 @@ export function EditorShell() {
           }}
         />
       )}
-      {project && (
-        <ScriptModal
-          open={scriptOpen}
-          onClose={() => setScriptOpen(false)}
-          project={project}
-        />
-      )}
-
       <RenderQueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
 
       {/* Markers panel — ⇧M to toggle */}
@@ -668,30 +671,6 @@ export function EditorShell() {
         onClose={() => setCreateOpen(false)}
       />
     </div>
-  );
-}
-
-function ScriptModal({
-  open,
-  onClose,
-  project,
-}: {
-  open: boolean;
-  onClose: () => void;
-  project: import("@/lib/editor/types").EditorProject;
-}) {
-  return (
-    <Surface
-      open={open}
-      onClose={onClose}
-      size="xl"
-      // The screenplay editor wants Esc for its own use (close
-      // a slug-line edit etc), but Surface's default Esc is fine
-      // here — the inner editor doesn't actually consume Esc yet.
-      className="!h-[min(78vh,820px)]"
-    >
-      <Script project={project} />
-    </Surface>
   );
 }
 

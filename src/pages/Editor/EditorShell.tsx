@@ -15,7 +15,7 @@
  * Loading and error states render their own minimal floating
  * typography — no card containers anywhere.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, AlertOctagon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ import type { EditorView } from "@/lib/editor/types";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
 import { TakesDrawer } from "./components/TakesDrawer";
+import { ExportPanel } from "./components/ExportPanel";
 import { Stage } from "./views/Stage";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
@@ -54,12 +55,20 @@ export function EditorShell() {
     setView,
   } = useEditor();
 
+  const [exportOpen, setExportOpen] = useState(false);
+
   // Global view-switcher keys (1/2/3/4) — ignored when an input has focus
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) {
+        return;
+      }
+      // E opens the export panel
+      if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
+        setExportOpen(true);
         return;
       }
       const v = VIEW_BY_KEY[e.code];
@@ -83,7 +92,12 @@ export function EditorShell() {
 
       {/* Chrome */}
       <div className="relative z-20 flex flex-col flex-1 min-h-0">
-        <TopStatusBar project={project} view={view} onViewChange={setView} />
+        <TopStatusBar
+          project={project}
+          view={view}
+          onViewChange={setView}
+          onOpenExport={() => setExportOpen(true)}
+        />
 
         {/* View body */}
         <div className="relative z-10 flex-1 min-h-0 flex flex-col">
@@ -111,6 +125,15 @@ export function EditorShell() {
           open the regenerate composer. Floats over every view. */}
       {project && (
         <TakesDrawer project={project} selectedClipId={selectedClipId} />
+      )}
+
+      {/* Export panel — press E to render in multiple aspects */}
+      {project && (
+        <ExportPanel
+          project={project}
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+        />
       )}
     </div>
   );

@@ -12,7 +12,7 @@
  *   - Aspect ratio + duration pill (typography only) on the far right
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { EditorProject, EditorView } from "@/lib/editor/types";
@@ -23,6 +23,7 @@ interface Props {
   project: EditorProject | null;
   view: EditorView;
   onViewChange: (view: EditorView) => void;
+  onOpenExport: () => void;
 }
 
 function fmtDuration(sec: number): string {
@@ -32,7 +33,7 @@ function fmtDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function TopStatusBar({ project, view, onViewChange }: Props) {
+export function TopStatusBar({ project, view, onViewChange, onOpenExport }: Props) {
   return (
     <header className="relative z-30 px-6 pt-6 pb-5 sm:px-9 lg:px-12">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -91,7 +92,7 @@ export function TopStatusBar({ project, view, onViewChange }: Props) {
           <ViewSwitcher view={view} onChange={onViewChange} />
         </div>
 
-        {/* RIGHT — aspect / duration */}
+        {/* RIGHT — aspect / duration / export */}
         <div className="flex items-center gap-5 lg:justify-end shrink-0">
           {project && (
             <>
@@ -114,6 +115,22 @@ export function TopStatusBar({ project, view, onViewChange }: Props) {
                   {fmtDuration(project.durationSec)}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={onOpenExport}
+                className="group/exp inline-flex items-center gap-2 text-[13px] text-accent transition-colors hover:text-foreground"
+                aria-label="Open export panel (E)"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+                <span className="relative">
+                  Export
+                  <span
+                    aria-hidden
+                    className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/exp:scale-x-100"
+                  />
+                </span>
+                <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>E</span>
+              </button>
             </>
           )}
         </div>

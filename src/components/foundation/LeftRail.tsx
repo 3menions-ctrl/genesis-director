@@ -487,23 +487,14 @@ export function LeftRail() {
                 </p>
               </header>
 
-              {/* Decorative hairline above the nav */}
-              <div className="mx-6 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-
-              {/* Group list */}
+              {/* Group list — no hairline above, no dividers between groups */}
               <nav
-                className="flex-1 overflow-y-auto px-3 pt-3 pb-5 scrollbar-hide"
+                className="flex-1 overflow-y-auto px-3 pt-5 pb-5 scrollbar-hide"
                 aria-label="Pages"
               >
-                <ul className="space-y-2">
-                  {GROUPS.map((g, gi) => (
+                <ul className="space-y-1">
+                  {GROUPS.map((g) => (
                     <li key={g.id}>
-                      {gi > 0 && (
-                        <div
-                          aria-hidden
-                          className="mx-3 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent"
-                        />
-                      )}
                       <GroupNode
                         group={g}
                         active={g.id === activeGroupId}
@@ -524,44 +515,37 @@ export function LeftRail() {
                 </ul>
               </nav>
 
-              {/* Footer — Cmd+K search button + version pin */}
-              <footer className="shrink-0 border-t border-white/[0.06] px-3 pb-4 pt-3">
+              {/* Footer — floating Cmd+K text, no container, no border */}
+              <footer className="shrink-0 px-6 pb-5 pt-3">
                 <button
                   type="button"
                   onClick={() => openCommandCenter()}
-                  className={cn(
-                    "group/cmd w-full flex items-center gap-3 rounded-xl",
-                    "px-3.5 h-11 transition-all",
-                    "border border-white/[0.07] bg-white/[0.02]",
-                    "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.05)]",
-                  )}
+                  className="group/cmd w-full flex items-center gap-2.5 text-left transition-colors text-muted-foreground/55 hover:text-foreground"
                 >
                   <SearchIcon
-                    className="h-4 w-4 text-muted-foreground/65 group-hover/cmd:text-accent transition-colors"
+                    className="h-3.5 w-3.5 text-muted-foreground/55 group-hover/cmd:text-accent transition-colors"
                     strokeWidth={1.5}
                   />
-                  <span className="text-[13px] text-muted-foreground/75 group-hover/cmd:text-foreground transition-colors">
-                    Search & jump…
+                  <span className="text-[12.5px]">
+                    Search & jump
                   </span>
                   <span
                     className={cn(
-                      "ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded",
-                      "bg-white/[0.04] border border-white/[0.06]",
-                      "font-mono text-[10px] tabular-nums text-muted-foreground/55",
+                      TYPE_META,
+                      "ml-auto font-mono text-muted-foreground/40 tabular-nums",
                     )}
                   >
-                    <span>⌘</span>
-                    <span>K</span>
+                    ⌘ K
                   </span>
                 </button>
                 <p
                   className={cn(
                     TYPE_META,
-                    "mt-3 px-1 text-muted-foreground/35 flex items-center justify-between",
+                    "mt-4 text-muted-foreground/30 flex items-center justify-between",
                   )}
                 >
                   <span>Small Bridges · v2.0</span>
-                  <span className="tabular-nums">Esc · close</span>
+                  <span className="tabular-nums">Esc</span>
                 </p>
               </footer>
             </div>
@@ -597,66 +581,28 @@ function GroupNode({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        whileHover={{ x: 2 }}
         whileTap={{ scale: 0.99 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className={cn(
-          "group/grp relative w-full flex items-center gap-3 rounded-xl",
-          "px-4 h-12 overflow-hidden",
+          "group/grp relative w-full flex items-center gap-3",
+          "px-4 h-11",
           "transition-colors",
           active
             ? "text-foreground"
-            : "text-muted-foreground/80 hover:text-foreground",
+            : "text-muted-foreground/75 hover:text-foreground",
         )}
       >
-        {/* Soft gradient bleed for active groups — a luminous backdrop
-            instead of a flat color block. Sits behind the content. */}
-        {active && (
-          <motion.span
-            layoutId="rail-active-group-glow"
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-xl"
-            style={{
-              background:
-                "linear-gradient(90deg, hsl(var(--accent) / 0.16) 0%, hsl(var(--accent) / 0.06) 45%, transparent 100%)",
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 380,
-              damping: 32,
-            }}
-          />
-        )}
-        {/* Hover tint */}
-        <span
-          aria-hidden
+        <Icon
           className={cn(
-            "pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover/grp:opacity-100",
-            "bg-white/[0.04]",
+            "h-4 w-4 shrink-0 transition-colors",
+            active
+              ? "text-accent"
+              : "text-muted-foreground/60 group-hover/grp:text-foreground/90",
           )}
+          strokeWidth={1.5}
         />
 
-        {/* Icon chip — active items get a subtle backdrop tint */}
-        <span
-          className={cn(
-            "relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
-            active
-              ? "bg-[hsl(var(--accent)/0.14)] ring-1 ring-inset ring-[hsl(var(--accent)/0.32)]"
-              : "bg-white/[0.025]",
-          )}
-        >
-          <Icon
-            className={cn(
-              "h-4 w-4 transition-colors",
-              active
-                ? "text-accent"
-                : "text-muted-foreground/70 group-hover/grp:text-foreground/95",
-            )}
-            strokeWidth={1.5}
-          />
-        </span>
-
-        <span className="relative font-mono text-[12px] uppercase tracking-[0.30em]">
+        <span className="font-mono text-[12px] uppercase tracking-[0.30em]">
           {group.label}
         </span>
 
@@ -664,8 +610,8 @@ function GroupNode({
           animate={{ rotate: expanded ? 90 : 0 }}
           transition={{ duration: 0.25, ease: EASE_PREMIUM }}
           className={cn(
-            "relative ml-auto inline-flex items-center justify-center transition-colors",
-            active ? "text-accent/85" : "text-muted-foreground/45",
+            "ml-auto inline-flex items-center justify-center transition-colors",
+            active ? "text-accent/70" : "text-muted-foreground/40",
           )}
         >
           <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
@@ -682,13 +628,8 @@ function GroupNode({
             transition={{ duration: 0.32, ease: EASE_PREMIUM }}
             className="overflow-hidden"
           >
-            <div className="relative pt-1.5 pb-2 pl-3 pr-1 space-y-0.5">
-              {/* Indent guide rail — subtle vertical line that pairs
-                  the items with their parent group */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute left-[26px] top-0 bottom-1 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
-              />
+            <div className="relative pt-0.5 pb-1.5 pl-7 pr-1">
+              {/* No indent guide — items float */}
               {group.items.map((i, ii) => (
                 <motion.li
                   key={i.to}
@@ -730,25 +671,22 @@ function ItemNode({
       to={item.to}
       onClick={onClick}
       className={cn(
-        "group/item relative flex items-center gap-3 rounded-lg",
-        "pl-5 pr-3 h-11 overflow-hidden",
+        "group/item relative flex items-center gap-3",
+        "pl-4 pr-3 h-10",
         "transition-colors duration-300",
         active
           ? "text-foreground"
-          : "text-muted-foreground/85 hover:text-foreground",
+          : "text-muted-foreground/75 hover:text-foreground",
       )}
     >
-      {/* Vertical accent bar — slides between items via layoutId.
-          Only renders for the active item so the layoutId pairs and
-          framer-motion animates the transition. */}
+      {/* THE single line indicator — the only way you know where you
+          are. Slides between items via layoutId for a smooth handoff
+          when the route changes. No bg, no glow, no chip — just the
+          line. */}
       {active && (
         <motion.span
           layoutId="rail-active-item-bar"
-          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-accent"
-          style={{
-            boxShadow:
-              "0 0 14px hsl(var(--accent) / 0.55), 0 0 28px hsl(var(--accent) / 0.25)",
-          }}
+          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] bg-accent"
           transition={{
             type: "spring",
             stiffness: 420,
@@ -756,31 +694,6 @@ function ItemNode({
           }}
         />
       )}
-      {/* Soft accent backdrop for active item */}
-      {active && (
-        <motion.span
-          layoutId="rail-active-item-glow"
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-lg"
-          style={{
-            background:
-              "linear-gradient(90deg, hsl(var(--accent) / 0.14) 0%, hsl(var(--accent) / 0.04) 60%, transparent 100%)",
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 380,
-            damping: 32,
-          }}
-        />
-      )}
-      {/* Hover tint */}
-      <span
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300 group-hover/item:opacity-100",
-          "bg-white/[0.03]",
-        )}
-      />
 
       <Icon
         className={cn(

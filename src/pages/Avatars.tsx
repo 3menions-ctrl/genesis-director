@@ -1,616 +1,1038 @@
 /**
- * Avatars Page - MAXIMUM STABILITY VERSION
- * 
- * CRITICAL STABILITY FIXES:
- * 1. Graceful timeout fallback (5s) to prevent infinite loading
- * 2. Isolated error boundaries for each section
- * 3. No framer-motion dependencies to prevent ref crashes
- * 4. All hooks have try-catch guards
- * 5. Context access failures are caught and logged
- * 6. Null guards on all data access
- * 
- * Stays on loading screen until:
- * 1. Auth loading complete
- * 2. Templates have fetched OR timeout reached
- * 
- * Implements:
- * - Virtual scrolling for memory optimization
- * - Strict AbortController cleanup
- * - onLoad-based opacity for image rendering
+ * Avatars — /avatars
+ *
+ * The talent vault. Comprehensive browse over every avatar template in
+ * the Supabase library. Foundation-shelled (FoundationShell +
+ * EditorialCanvas + SpineBackdrop), search-first, filterable across
+ * Type · Gender · Category, with a slide-in detail drawer that opens
+ * the full identity bible and a "Cast in Studio" CTA that hands off to
+ * the workshop with the avatar pre-selected.
+ *
+ * Avatars is the BROWSE surface. Scene generation, voice scripting,
+ * and shooting happen in the Studio — this page just curates and
+ * casts. Cast() writes the avatar id into sessionStorage and navigates
+ * to /studio, where the existing Studio composer picks it up.
  */
-
-import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
-import { toast } from 'sonner';
-import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
-import { cn } from '@/lib/utils';
-import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
-import { useAvatarVoices } from '@/hooks/useAvatarVoices';
-import { useImagePreloader } from '@/hooks/useImagePreloader';
-import { usePredictivePipeline } from '@/hooks/usePredictivePipeline';
-import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
-import { CinematicModeConfig, DEFAULT_CINEMATIC_CONFIG } from '@/types/cinematic-mode';
-import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
-import { VirtualAvatarGallery } from '@/components/avatars/VirtualAvatarGallery';
-import { AvatarsHero } from '@/components/avatars/AvatarsHero';
-import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
-import { AvatarsFilters } from '@/components/avatars/AvatarsFilters';
-import { AvatarsConfigPanel } from '@/components/avatars/AvatarsConfigPanel';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTierLimits } from '@/hooks/useTierLimits';
-import { useCinemaGuard } from '@/hooks/useCinemaEntitlement';
-import { supabase } from '@/integrations/supabase/client';
-import { calculateCreditsRequired } from '@/lib/creditSystem';
-import { handleError } from '@/lib/errorHandler';
-import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
-import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
-import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
-import { CinemaLoader } from '@/components/ui/CinemaLoader';
-import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
-
-import { usePageMeta } from '@/hooks/usePageMeta';
-import { FoundationShell } from '@/components/foundation/FoundationShell';
+import { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import {
+  Search,
+  Filter,
+  Sparkles,
+  Crown,
+  Play,
+  Pause,
+  X,
+  ArrowRight,
+  TrendingUp,
+  Clock,
+  ArrowUpAZ,
+  Loader2,
+  User as UserIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
 import {
   EditorialCanvas,
   EditorialEyebrow,
   EditorialHeadline,
-} from '@/components/foundation/EditorialCanvas';
-import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
-// GATEKEEPER: Extract critical image URLs from templates
-function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
-  // Guard against null/undefined templates
-  if (!templates || !Array.isArray(templates)) return [];
-  
-  try {
-    return templates
-      .slice(0, limit)
-      .map(t => t?.front_image_url || t?.face_image_url)
-      .filter((url): url is string => Boolean(url));
-  } catch (e) {
-    console.error('[Avatars] getCriticalImageUrls error:', e);
-    return [];
-  }
-}
+} from "@/components/foundation/EditorialCanvas";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
+import { OptimizedAvatarImage } from "@/components/avatars/OptimizedAvatarImage";
+import { useSafeNavigation } from "@/lib/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  AvatarTemplate,
+  AVATAR_CATEGORIES,
+  AvatarCategory,
+} from "@/types/avatar-templates";
+import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 
-const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
-  // ========== Unified navigation - safe navigation with locking ==========
-  // Use emergencyNavigate for post-creation redirect to bypass locks
-  const { navigate, emergencyNavigate } = useSafeNavigation();
-  const { abort: abortRequests } = useNavigationAbort();
-  // FIX: useAuth and useTierLimits now return safe fallbacks if context is missing
-  // No try-catch needed - that violated React's hook rules
-  const authContext = useAuth();
-  const tierLimits = useTierLimits();
-  const cinemaGuard = useCinemaGuard();
-  
-  // Register cleanup when leaving this page
-  useRouteCleanup(() => {
-    abortRequests();
-  }, [abortRequests]);
-  
-  // Extract values with fallbacks
-  const user = authContext?.user ?? null;
-  const profile = authContext?.profile ?? null;
-  const authLoading = authContext?.loading ?? false;
-  const maxClips = tierLimits?.maxClips ?? 5;
-  
-  // ========== AbortController Lifecycle ==========
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const isMountedRef = useRef(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // ========== Avatar Selection State ==========
-  const [searchQuery, setSearchQuery] = useState('');
-  const [genderFilter, setGenderFilter] = useState('all');
-  const [styleFilter, setStyleFilter] = useState('all');
-  const [avatarTypeFilter, setAvatarTypeFilter] = useState<AvatarType | 'all'>('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
-  const [previewAvatar, setPreviewAvatar] = useState<AvatarTemplate | null>(null);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  
-  // ========== Voice Management ==========
-  const {
-    playVoicePreview,
-    preloadVoices,
-    isVoiceReady,
-    previewingVoice,
-    stopPlayback,
-  } = useAvatarVoices();
-  
-  // ========== Project Configuration ==========
-  const [prompt, setPrompt] = useState('');
-  const [sceneDescription, setSceneDescription] = useState('');
-  const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [clipDuration, setClipDuration] = useState(10);
-  const [enableMusic] = useState(false); // Music disabled globally - low quality
-  const [enableDualAvatar, setEnableDualAvatar] = useState(false);
-  const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
-  // Video engine for avatar generation:
-  //   • 'kling'    → Kling V3 with native lip-sync (default, best dialogue accuracy)
-  //   • 'seedance' → Seedance 2.0 hyperreal motion + TTS audio overlaid in post
-  const [videoEngine, setVideoEngine] = useState<'kling' | 'seedance'>('kling');
-  
-  // ========== ACCURATE CLIP COUNT - Auto-calculated from script ==========
-  // Uses 2.5 words/second speaking rate and 10-second avatar clips (Kling V3, 3-15s)
-  const { warmupState } = usePredictivePipeline(prompt, {
-    wordsPerSecond: 2.5,  // Standard speaking rate
-    debounceMs: 300,      // Quick updates as user types
-    minCharsToWarm: 20,   // Start calculating early
-  });
-  
-  // Clip count state - auto-updates from script analysis but allows manual override
-  const [clipCount, setClipCount] = useState(1);
-  const [hasManualClipOverride, setHasManualClipOverride] = useState(false);
-  
-  // Auto-update clip count when script changes (unless user manually overrode)
-  useEffect(() => {
-    if (!hasManualClipOverride && warmupState.clipCount > 0) {
-      const calculated = Math.min(warmupState.clipCount, tierLimits?.maxClips || 6);
-      setClipCount(calculated);
-    }
-  }, [warmupState.clipCount, hasManualClipOverride, tierLimits?.maxClips]);
-  
-  // Handle manual clip count change - sets override flag
-  const handleClipCountChange = useCallback((count: number) => {
-    setClipCount(count);
-    setHasManualClipOverride(true);
-  }, []);
-  
-  // Reset manual override when prompt changes significantly (new script = new calculation)
-  useEffect(() => {
-    if (prompt.length < 20) {
-      setHasManualClipOverride(false);
-    }
-  }, [prompt]);
-  
-  // ========== Generation State ==========
-  const [isCreating, setIsCreating] = useState(false);
-  const [creationStatus, setCreationStatus] = useState('');
-  const [showBuyCredits, setShowBuyCredits] = useState(false);
-  
-  // ========== Data Fetching with Gatekeeper ==========
-  const filterConfig = useMemo(() => ({
-    gender: genderFilter,
-    style: styleFilter,
-    search: searchQuery,
-    avatarType: avatarTypeFilter,
-    categoryId: categoryFilter,
-  }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter, categoryFilter]);
-  
-  const { templates: rawTemplates, isLoading: templatesLoading, isFetching, isSuccess, error, categoryCounts } = useAvatarTemplatesQuery(filterConfig);
-  
-  // ========== CRITICAL: Double-guard against undefined/null templates ==========
-  // This is the primary defense against crashes from malformed data
-  const templates = Array.isArray(rawTemplates) ? rawTemplates : [];
-  
-  // ========== GATEKEEPER: Image Preloading ==========
-  // Guard against undefined templates array
-  const safeTemplates = useMemo(() => {
-    if (!templates || !Array.isArray(templates)) return [];
-    return templates.filter(t => t && typeof t === 'object' && t.id);
-  }, [templates]);
-  const criticalImageUrls = useMemo(() => getCriticalImageUrls(safeTemplates, 8), [safeTemplates]);
-  
-  const {
-    isReady: imagesReady,
-    progress: imageProgress,
-  } = useImagePreloader({
-    images: criticalImageUrls,
-    enabled: safeTemplates.length > 0 && !templatesLoading,
-    minRequired: Math.min(3, criticalImageUrls.length), // REDUCED: only need 3 images to show UI
-    timeout: 3000, // REDUCED: 3s timeout per image batch
-    concurrency: 4,
-  });
-  
-  // CENTRALIZED GATEKEEPER - replaces inline timeout logic
-  const gatekeeper = useGatekeeperLoading({
-    ...GATEKEEPER_PRESETS.avatars,
-    authLoading,
-    dataLoading: templatesLoading,
-    dataSuccess: isSuccess,
-    imageProgress,
-  });
-  
-  // ========== Computed Values ==========
-  const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
-  const estimatedCredits = useMemo(() => calculateCreditsRequired(clipCount, clipDuration, videoEngine), [clipCount, clipDuration, videoEngine]);
-  const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
-  const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
-  const hasActiveFilters = useMemo(() => 
-    genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0 || categoryFilter !== 'all',
-    [genderFilter, styleFilter, searchQuery, categoryFilter]
-  );
-  const isReadyToCreate = useMemo(() => 
-    selectedAvatar && prompt.trim(),
-    [selectedAvatar, prompt]
-  );
-  
-  // ========== LIFECYCLE: Strict Cleanup ==========
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-      stopPlayback();
-      
-      // Abort any pending requests
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [stopPlayback]);
-  
-  // ========== Preload voices when gatekeeper completes ==========
-  useEffect(() => {
-    if (!gatekeeper.isLoading && isMountedRef.current) {
-      // Preload voices in background after page is visible
-      if (safeTemplates.length > 0) {
-        try {
-          const visibleAvatars = safeTemplates.slice(0, 5);
-          preloadVoices(visibleAvatars);
-        } catch (e) {
-          console.warn('[Avatars] Failed to preload voices:', e);
-        }
-      }
-    }
-  }, [gatekeeper.isLoading, safeTemplates, preloadVoices]);
-  
-  // ========== Handlers ==========
-  const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
-    const success = await playVoicePreview(avatar);
-    if (!success) {
-      toast.error('Failed to preview voice');
-    }
-  }, [playVoicePreview]);
-  
-  const handleAvatarClick = useCallback((avatar: AvatarTemplate) => {
-    setPreviewAvatar(avatar);
-    setPreviewModalOpen(true);
-  }, []);
-  
-  const handleSelectAvatar = useCallback((avatar: AvatarTemplate) => {
-    setSelectedAvatar(avatar);
-    toast.success(`Selected ${avatar.name}`);
-  }, []);
-  
-  const buildCharacterBible = useCallback((avatar: AvatarTemplate) => {
-    const bible = (avatar.character_bible || {}) as Record<string, unknown>;
-    
-    return {
-      name: avatar.name,
-      description: avatar.description,
-      personality: avatar.personality,
-      front_view: bible.front_view || `${avatar.name}, professional presenter, facing camera directly, neutral confident expression`,
-      side_view: bible.side_view || `${avatar.name}, professional presenter, side profile view, same outfit and styling`,
-      back_view: bible.back_view || `${avatar.name}, professional presenter, back view showing hair and outfit from behind`,
-      silhouette: bible.silhouette || `${avatar.name}, distinctive silhouette shape, recognizable posture`,
-      hair_description: bible.hair_description || 'consistent hairstyle throughout',
-      clothing_description: bible.clothing_description || 'professional attire, consistent outfit',
-      body_type: bible.body_type || 'average build',
-      distinguishing_features: bible.distinguishing_features || [],
-      reference_images: {
-        front: avatar.front_image_url || avatar.face_image_url,
-        side: avatar.side_image_url,
-        back: avatar.back_image_url,
-      },
-      negative_prompts: bible.negative_prompts || [
-        'different person',
-        'face change',
-        'different hairstyle',
-        'different outfit',
-        'morphing',
-        'inconsistent appearance'
-      ],
-    };
-  }, []);
-  
-  const handleCreate = useCallback(async () => {
-    if (!user) {
-      toast.error('Please sign in to create videos');
-      navigate('/auth');
-      return;
-    }
-    
-    // Block creation if insufficient credits - show buy modal
-    if (hasInsufficientCredits) {
-      setShowBuyCredits(true);
-      return;
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter model
+// ─────────────────────────────────────────────────────────────────────────────
+type TypeFilter = "all" | "realistic" | "animated" | "premium";
+type GenderFilter = "all" | "female" | "male" | "neutral";
+type SortKey = "popular" | "newest" | "name";
 
-    // Block creation when an active Cinema entitlement lacks remaining seconds.
-    // No-op for users without a Cinema subscription (credit gating above
-    // handles them). Surfaces a toast with remaining seconds + upgrade CTA.
-    const guard = cinemaGuard.check(estimatedDuration, {
-      onUpgrade: () => navigate('/credits'),
-    });
-    if (!guard.allowed) {
-      return;
-    }
+const TYPE_TABS: { id: TypeFilter; label: string; Icon: typeof Sparkles }[] = [
+  { id: "all",       label: "All",       Icon: Sparkles },
+  { id: "realistic", label: "Realistic", Icon: UserIcon },
+  { id: "animated",  label: "Animated",  Icon: Sparkles },
+  { id: "premium",   label: "Premium",   Icon: Crown },
+];
 
-    if (!selectedAvatar) {
-      toast.error('Please select an avatar first');
-      return;
-    }
-    
-    if (!prompt.trim()) {
-      toast.error('Please enter what you want the avatar to say');
-      return;
-    }
-    
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    
-    setIsCreating(true);
-    setCreationStatus('Building character identity...');
-    
-    try {
-      const characterBible = buildCharacterBible(selectedAvatar);
-      
-      if (!isMountedRef.current) return;
-      setCreationStatus('Initializing avatar pipeline...');
-      
-      const { data, error } = await supabase.functions.invoke('mode-router', {
-        body: {
-          mode: 'avatar',
-          prompt: prompt.trim(),
-          imageUrl: selectedAvatar.front_image_url || selectedAvatar.face_image_url,
-          voiceId: selectedAvatar.voice_id,
-          aspectRatio,
-          clipCount,
-          clipDuration,
-          enableNarration: true,
-          enableMusic,
-          characterBible,
-          avatarTemplateId: selectedAvatar.id,
-          avatarType: selectedAvatar.avatar_type || 'realistic',
-          sceneDescription: sceneDescription.trim() || undefined,
-          cinematicMode: cinematicMode.enabled ? cinematicMode : undefined,
-          enableDualAvatar,
-          videoEngine,
-        },
-      });
-      
-      // Use centralized user-friendly error handling
-      if (error || data?.error) {
-        const { handled } = await handleEdgeFunctionError(
-          error, 
-          data, 
-          (path) => navigate(path)
-        );
-        if (handled) return;
-        if (error) throw error;
-      }
-      
-      if (!data?.projectId) {
-        throw new Error('Failed to create project');
-      }
-      
-      toast.success('Avatar video creation started!');
-      
-      // Navigate immediately — do NOT reset isCreating first (avoids re-render race)
-      // emergencyNavigate bypasses all navigation locks
-      emergencyNavigate(`/production/${data.projectId}`);
-    } catch (error) {
-      // Ignore abort errors - expected during navigation
-      if ((error as Error).name === 'AbortError') return;
-      
-      console.error('Creation error:', error);
-      if (isMountedRef.current) {
-        setIsCreating(false);
-        setCreationStatus('');
-        showUserFriendlyError(error, { navigate });
-      }
-    }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, estimatedDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible, cinemaGuard]);
-  
-  const handleClearFilters = useCallback(() => {
-    setGenderFilter('all');
-    setStyleFilter('all');
-    setSearchQuery('');
-    setCategoryFilter('all');
-  }, []);
-  
-  const handleClosePreviewModal = useCallback(() => {
-    setPreviewModalOpen(false);
-  }, []);
-  
-  const handleClearAvatar = useCallback(() => {
-    setSelectedAvatar(null);
-  }, []);
-  
-  // ========== GATEKEEPER LOADING STATE ==========
-  if (gatekeeper.isLoading) {
-    return (
-      <div ref={ref || containerRef} className="relative min-h-[60vh] flex flex-col overflow-hidden">
-        {/* No AvatarsBackground — SpineBackdrop from the parent
-            Foundation surface (/cast) is the only atmosphere. */}
-        <CinemaLoader
-          isVisible={true}
-          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.avatars.messages)}
-          progress={gatekeeper.progress}
-          showProgress={true}
-          variant="fullscreen"
-        />
-      </div>
+const GENDER_FILTERS: { id: GenderFilter; label: string }[] = [
+  { id: "all",     label: "Any" },
+  { id: "female",  label: "Female" },
+  { id: "male",    label: "Male" },
+  { id: "neutral", label: "Neutral" },
+];
+
+const SORT_OPTIONS: { id: SortKey; label: string; Icon: typeof TrendingUp }[] = [
+  { id: "popular", label: "Popular", Icon: TrendingUp },
+  { id: "newest",  label: "Newest",  Icon: Clock },
+  { id: "name",    label: "A → Z",   Icon: ArrowUpAZ },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
+function AvatarsContent() {
+  const liveRenderTimecode = useLiveRenderTimecode();
+  const reducedMotion = useReducedMotion();
+  const { navigate } = useSafeNavigation();
+  const { user } = useAuth();
+
+  const { templates, loading, error } = useAvatarTemplatesQuery();
+
+  // ── Filter state ──────────────────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+  const [categoryId, setCategoryId] = useState<string>("all");
+  const [sort, setSort] = useState<SortKey>("popular");
+  const [selected, setSelected] = useState<AvatarTemplate | null>(null);
+
+  // ── Filter + sort pipeline ────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const safe = Array.isArray(templates) ? templates : [];
+    const q = search.trim().toLowerCase();
+    const cat: AvatarCategory | undefined = AVATAR_CATEGORIES.find(
+      (c) => c.id === categoryId,
     );
-  }
-  
-  // ========== MAIN CONTENT ==========
-  // Shared config panel props
-  const configPanelProps = {
-    selectedAvatar,
-    prompt,
-    onPromptChange: setPrompt,
-    sceneDescription,
-    onSceneDescriptionChange: setSceneDescription,
-    aspectRatio,
-    onAspectRatioChange: setAspectRatio,
-    clipDuration,
-    onClipDurationChange: setClipDuration,
-    clipCount,
-    onClipCountChange: handleClipCountChange,
-    maxClips,
-    enableMusic: false as const,
-    onEnableMusicChange: () => {},
-    enableDualAvatar,
-    onEnableDualAvatarChange: setEnableDualAvatar,
-    cinematicMode,
-    onCinematicModeChange: setCinematicMode,
-    videoEngine,
-    onVideoEngineChange: setVideoEngine,
-    estimatedDuration,
-    estimatedCredits,
-    userCredits,
-    hasInsufficientCredits,
-    isCreating,
-    isReadyToCreate: !!isReadyToCreate,
-    onClearAvatar: handleClearAvatar,
-    onCreate: handleCreate,
+
+    const list = safe.filter((a) => {
+      if (typeFilter === "premium" && !a.is_premium) return false;
+      if (typeFilter === "realistic" && a.avatar_type !== "realistic") return false;
+      if (typeFilter === "animated" && a.avatar_type !== "animated") return false;
+
+      if (genderFilter !== "all" && a.gender !== genderFilter) return false;
+
+      if (cat && cat.tags.length > 0) {
+        const tags = a.tags ?? [];
+        const hit = cat.tags.some((t) =>
+          tags.map((x) => x.toLowerCase()).includes(t.toLowerCase()),
+        );
+        if (!hit) return false;
+      }
+
+      if (q) {
+        const hay = `${a.name} ${a.personality ?? ""} ${a.style ?? ""} ${(a.tags ?? []).join(" ")}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (sort === "popular") {
+      list.sort((a, b) => (b.use_count ?? 0) - (a.use_count ?? 0));
+    } else if (sort === "newest") {
+      list.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    } else {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return list;
+  }, [templates, search, typeFilter, genderFilter, categoryId, sort]);
+
+  const counts = useMemo(() => {
+    const safe = Array.isArray(templates) ? templates : [];
+    return {
+      total: safe.length,
+      realistic: safe.filter((a) => a.avatar_type === "realistic").length,
+      animated: safe.filter((a) => a.avatar_type === "animated").length,
+      premium: safe.filter((a) => a.is_premium).length,
+    };
+  }, [templates]);
+
+  const handleCast = (avatar: AvatarTemplate) => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    try {
+      sessionStorage.setItem("smallbridges.cast_avatar", avatar.id);
+      sessionStorage.setItem(
+        "smallbridges.cast_avatar_name",
+        avatar.name,
+      );
+    } catch {
+      /* ignore */
+    }
+    navigate("/studio");
   };
 
-  return (
-    <div ref={ref || containerRef} className="relative flex flex-col overflow-hidden">
-      {/* No AvatarsBackground or bg-background — SpineBackdrop (via the
-          Cast Foundation surface) is the canonical atmosphere. */}
-      {/* Scrollable content area — grows to fill space above the fixed config panel */}
-      <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="animate-fade-in">
-          <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
-            <AvatarsHero
-              totalCount={safeTemplates.length}
-              realisticCount={safeTemplates.filter(t => (t as any)?.avatar_type !== 'animated').length}
-              animatedCount={safeTemplates.filter(t => (t as any)?.avatar_type === 'animated').length}
-            />
-          </SafeComponent>
-          
-          <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
-            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <AvatarsFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                genderFilter={genderFilter}
-                onGenderChange={setGenderFilter}
-                styleFilter={styleFilter}
-                onStyleChange={setStyleFilter}
-                hasActiveFilters={hasActiveFilters}
-                onClearFilters={handleClearFilters}
-                onBack={() => navigate('/create')}
-              />
-            </div>
-          </SafeComponent>
-          
-          <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
-            <div className="mb-8">
-              <AvatarsCategoryTabs
-                activeType={avatarTypeFilter}
-                onTypeChange={setAvatarTypeFilter}
-                activeCategory={categoryFilter}
-                onCategoryChange={setCategoryFilter}
-                totalCount={safeTemplates.length}
-                categoryCounts={categoryCounts}
-              />
-            </div>
-          </SafeComponent>
-          
-          <SafeComponent name="VirtualAvatarGallery">
-            <div className="mb-8 pb-4 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
-              {error ? (
-                <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
-                  <p>{error}</p>
-                </div>
-              ) : (
-                <VirtualAvatarGallery
-                  avatars={safeTemplates}
-                  selectedAvatar={selectedAvatar}
-                  onAvatarClick={handleAvatarClick}
-                  onVoicePreview={handleVoicePreview}
-                  previewingVoice={previewingVoice}
-                  isLoading={false}
-                  isVoiceReady={isVoiceReady}
-                />
-              )}
-            </div>
-          </SafeComponent>
-        </div>
-      </div>
-      
-      {/* Config panel — only shown after an avatar is selected */}
-      {selectedAvatar && (
-        <div className="relative z-40 flex-shrink-0">
-          <SafeComponent name="AvatarsConfigPanel" fallback={<div className="h-32" />}>
-            <AvatarsConfigPanel {...configPanelProps} />
-          </SafeComponent>
-        </div>
-      )}
-      
-      <SafeComponent name="AvatarPreviewModal" silent>
-        <AvatarPreviewModal
-          avatar={previewAvatar}
-          open={previewModalOpen}
-          onOpenChange={setPreviewModalOpen}
-          onSelect={handleSelectAvatar}
-          onPreviewVoice={handleVoicePreview}
-          isPreviewingVoice={previewingVoice === previewAvatar?.id}
-          isVoiceReady={previewAvatar ? isVoiceReady(previewAvatar) : false}
-        />
-      </SafeComponent>
-      
-      {/* Creation Overlay - CSS-based for stability */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 animate-fade-in">
-          <CinemaLoader
-            isVisible={true}
-            message={creationStatus || 'Starting creation...'}
-            showProgress={false}
-            variant="fullscreen"
-          />
-        </div>
-      )}
-      {/* Buy Credits Modal */}
-      <BuyCreditsModal 
-        open={showBuyCredits} 
-        onOpenChange={setShowBuyCredits} 
-      />
-    </div>
-  );
-}));
-
-AvatarsContent.displayName = 'AvatarsContent';
-
-// Wrapper with error boundary - ref forwarding not needed as ErrorBoundary doesn't pass refs
-export default function Avatars() {
-  usePageMeta({ title: "Avatars — Small Bridges", description: "Cast, customize, and direct cinematic AI avatars for your scenes." });
-  const liveRenderTimecode = useLiveRenderTimecode();
+  // ── Chrome timecode ───────────────────────────────────────────────────
+  const chromeTimecode =
+    liveRenderTimecode ?? `${counts.total} TALENTS · LIVE`;
 
   return (
-    <ErrorBoundary>
-      <FoundationShell>
-        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
-          <EditorialCanvas
-            maxWidth="100%"
-            chrome={{
-              crumbs: ["Small Bridges", "avatars"],
-              timecode: liveRenderTimecode ?? "STUDIO · LIVE",
-            }}
-          >
-            <div className="mb-8">
-              <EditorialEyebrow>Avatars</EditorialEyebrow>
+    <FoundationShell>
+      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+        <EditorialCanvas
+          maxWidth="100%"
+          chrome={{
+            crumbs: ["Small Bridges", "avatars"],
+            timecode: chromeTimecode,
+          }}
+        >
+          {/* ── Header row ──────────────────────────────────────── */}
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0 max-w-2xl">
+              <EditorialEyebrow>Cast</EditorialEyebrow>
               <EditorialHeadline className="mt-5">
                 Cast a character.
               </EditorialHeadline>
               <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
-                Customize, direct, and cast cinematic AI avatars for any scene.
-                Every avatar you save here is callable from the Studio.
+                Browse every cinematic AI talent in the vault. Audition the
+                voice, read the identity bible, then send them to the Studio.
               </p>
             </div>
-            <AvatarsContent />
-          </EditorialCanvas>
+
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.32em] font-mono text-muted-foreground/60">
+                <span className="tabular-nums text-foreground/85">
+                  {counts.total}
+                </span>
+                <span>talents</span>
+                <span className="text-muted-foreground/30">·</span>
+                <span className="tabular-nums">{counts.realistic}</span>
+                <span>realistic</span>
+                <span className="text-muted-foreground/30">·</span>
+                <span className="tabular-nums">{counts.animated}</span>
+                <span>animated</span>
+                {counts.premium > 0 && (
+                  <>
+                    <span className="text-muted-foreground/30">·</span>
+                    <span className="tabular-nums text-accent">
+                      {counts.premium}
+                    </span>
+                    <span className="text-accent">premium</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Search ─────────────────────────────────────────── */}
+          <div className="mt-10">
+            <SearchBar value={search} onChange={setSearch} />
+          </div>
+
+          {/* ── Type tabs ──────────────────────────────────────── */}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+            <TypeTabs value={typeFilter} onChange={setTypeFilter} counts={counts} />
+            <SortPicker value={sort} onChange={setSort} />
+          </div>
+
+          {/* ── Category chips ─────────────────────────────────── */}
+          <div className="mt-5">
+            <CategoryChips value={categoryId} onChange={setCategoryId} />
+          </div>
+
+          {/* ── Gender row ────────────────────────────────────── */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className={cn(TYPE_META, "text-muted-foreground/60 mr-1")}>
+              Gender
+            </span>
+            {GENDER_FILTERS.map(({ id, label }) => {
+              const active = genderFilter === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setGenderFilter(id)}
+                  className={cn(
+                    "h-7 px-3 rounded-full text-[12px] tracking-tight transition-colors",
+                    active
+                      ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
+                      : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:border-accent/30 hover:text-foreground/90",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Hairline + result count ───────────────────────── */}
+          <div className="mt-8 flex items-center gap-3">
+            <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+              {filtered.length} {filtered.length === 1 ? "result" : "results"}
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-border/60 via-border/30 to-transparent" />
+            {(search ||
+              typeFilter !== "all" ||
+              genderFilter !== "all" ||
+              categoryId !== "all") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setTypeFilter("all");
+                  setGenderFilter("all");
+                  setCategoryId("all");
+                }}
+                className={cn(
+                  TYPE_META,
+                  "text-muted-foreground/55 hover:text-foreground transition-colors",
+                )}
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* ── Grid ──────────────────────────────────────────── */}
+          <div className="mt-8">
+            {loading ? (
+              <GridSkeleton />
+            ) : error ? (
+              <ErrorState onRetry={() => window.location.reload()} />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                onReset={() => {
+                  setSearch("");
+                  setTypeFilter("all");
+                  setGenderFilter("all");
+                  setCategoryId("all");
+                }}
+              />
+            ) : (
+              <Grid
+                items={filtered}
+                onOpen={setSelected}
+                onCast={handleCast}
+                reducedMotion={reducedMotion ?? false}
+              />
+            )}
+          </div>
+        </EditorialCanvas>
+      </div>
+
+      {/* Detail drawer */}
+      <AnimatePresence>
+        {selected && (
+          <DetailDrawer
+            avatar={selected}
+            onClose={() => setSelected(null)}
+            onCast={() => {
+              handleCast(selected);
+              setSelected(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </FoundationShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SearchBar — Foundation pill input
+// ─────────────────────────────────────────────────────────────────────────────
+function SearchBar({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative max-w-2xl">
+      <Search
+        className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/55"
+        strokeWidth={1.5}
+      />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search by name, vibe, archetype, or tag…"
+        className="w-full h-12 rounded-full bg-[hsl(var(--foreground)/0.02)] border border-border/30 pl-11 pr-11 text-[14px] text-foreground placeholder:text-muted-foreground/45 outline-none focus:border-accent/40 transition-colors backdrop-blur-xl"
+      />
+      {value && (
+        <button
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+        >
+          <X className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TypeTabs — Foundation segmented control
+// ─────────────────────────────────────────────────────────────────────────────
+function TypeTabs({
+  value,
+  onChange,
+  counts,
+}: {
+  value: TypeFilter;
+  onChange: (v: TypeFilter) => void;
+  counts: { total: number; realistic: number; animated: number; premium: number };
+}) {
+  return (
+    <div
+      role="tablist"
+      className="inline-flex items-center gap-1 rounded-full p-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
+    >
+      {TYPE_TABS.map((t) => {
+        const active = value === t.id;
+        const Icon = t.Icon;
+        const count =
+          t.id === "all"
+            ? counts.total
+            : t.id === "realistic"
+              ? counts.realistic
+              : t.id === "animated"
+                ? counts.animated
+                : counts.premium;
+        return (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(t.id)}
+            className={cn(
+              "relative inline-flex items-center gap-2 px-4 h-9 rounded-full text-[12.5px] tracking-tight transition-colors",
+              active
+                ? "text-foreground"
+                : "text-muted-foreground/70 hover:text-foreground/90",
+            )}
+          >
+            {active && (
+              <motion.span
+                layoutId="avatar-type-active"
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.30)]"
+              />
+            )}
+            <Icon
+              className={cn(
+                "h-3.5 w-3.5 shrink-0",
+                active ? "text-accent" : "opacity-60",
+              )}
+              strokeWidth={1.5}
+            />
+            <span className="font-light">{t.label}</span>
+            <span
+              className={cn(
+                "font-mono text-[10px] tabular-nums",
+                active ? "text-accent/80" : "text-muted-foreground/40",
+              )}
+            >
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SortPicker({
+  value,
+  onChange,
+}: {
+  value: SortKey;
+  onChange: (v: SortKey) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={cn(TYPE_META, "text-muted-foreground/55 mr-1")}>
+        Sort
+      </span>
+      {SORT_OPTIONS.map(({ id, label, Icon }) => {
+        const active = value === id;
+        return (
+          <button
+            key={id}
+            onClick={() => onChange(id)}
+            className={cn(
+              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors",
+              active
+                ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
+                : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:text-foreground/90",
+            )}
+          >
+            <Icon className="h-3 w-3" strokeWidth={1.5} />
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CategoryChips — horizontally scrollable chip rail with emoji icons
+// ─────────────────────────────────────────────────────────────────────────────
+function CategoryChips({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+      {AVATAR_CATEGORIES.map((c) => {
+        const active = value === c.id;
+        return (
+          <button
+            key={c.id}
+            onClick={() => onChange(c.id)}
+            className={cn(
+              "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors",
+              active
+                ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
+                : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:border-accent/30 hover:text-foreground/90",
+            )}
+          >
+            <span>{c.icon}</span>
+            <span>{c.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Grid + Card
+// ─────────────────────────────────────────────────────────────────────────────
+function Grid({
+  items,
+  onOpen,
+  onCast,
+  reducedMotion,
+}: {
+  items: AvatarTemplate[];
+  onOpen: (a: AvatarTemplate) => void;
+  onCast: (a: AvatarTemplate) => void;
+  reducedMotion: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {items.map((a, i) => (
+        <Card
+          key={a.id}
+          avatar={a}
+          index={i}
+          onOpen={() => onOpen(a)}
+          onCast={() => onCast(a)}
+          reducedMotion={reducedMotion}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Card({
+  avatar,
+  index,
+  onOpen,
+  onCast,
+  reducedMotion,
+}: {
+  avatar: AvatarTemplate;
+  index: number;
+  onOpen: () => void;
+  onCast: () => void;
+  reducedMotion: boolean;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAudio = !!avatar.sample_audio_url;
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasAudio) return;
+    if (!audioRef.current) {
+      audioRef.current = new Audio(avatar.sample_audio_url!);
+      audioRef.current.addEventListener("ended", () => setPlaying(false));
+    }
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      void audioRef.current.play().catch(() => setPlaying(false));
+      setPlaying(true);
+    }
+  };
+
+  const imageUrl =
+    avatar.thumbnail_url ?? avatar.front_image_url ?? avatar.face_image_url;
+
+  return (
+    <motion.button
+      onClick={onOpen}
+      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.35,
+        delay: Math.min(index * 0.02, 0.3),
+        ease: EASE_PREMIUM,
+      }}
+      whileHover={reducedMotion ? undefined : { y: -3 }}
+      className={cn(
+        "group relative text-left rounded-2xl overflow-hidden",
+        "border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl",
+        "transition-colors hover:border-accent/40",
+      )}
+    >
+      {/* Portrait */}
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[hsl(220_30%_8%)]">
+        <OptimizedAvatarImage
+          src={imageUrl}
+          alt={avatar.name}
+          fallbackText={avatar.name}
+          aspectRatio="portrait"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        />
+        {/* Vignette */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.85)] via-transparent to-transparent"
+        />
+        {/* Top badges */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+          {avatar.is_premium && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+              <Crown className="h-2.5 w-2.5" strokeWidth={1.5} />
+              Premium
+            </span>
+          )}
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+              avatar.avatar_type === "realistic"
+                ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
+                : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+            )}
+          >
+            {avatar.avatar_type === "realistic" ? "Real" : "Animated"}
+          </span>
         </div>
-      </FoundationShell>
+        {/* Voice play button — bottom-left, only when audio exists */}
+        {hasAudio && (
+          <button
+            onClick={togglePlay}
+            aria-label={playing ? "Pause voice sample" : "Play voice sample"}
+            className={cn(
+              "absolute bottom-3 left-3 inline-flex items-center justify-center h-9 w-9 rounded-full",
+              "bg-black/55 backdrop-blur-md ring-1 ring-inset ring-white/15",
+              "opacity-0 group-hover:opacity-100 transition-opacity",
+              playing && "opacity-100",
+            )}
+          >
+            {playing ? (
+              <Pause className="h-3.5 w-3.5 text-white fill-current" />
+            ) : (
+              <Play className="h-3.5 w-3.5 text-white fill-current" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Meta */}
+      <div className="p-3.5">
+        <h3 className="font-display text-[15px] font-light leading-snug tracking-tight text-foreground truncate">
+          {avatar.name}
+        </h3>
+        <div className="mt-1 flex items-center gap-2">
+          {avatar.style && (
+            <span className={cn(TYPE_META, "text-muted-foreground/55")}>
+              {avatar.style}
+            </span>
+          )}
+          {avatar.use_count != null && avatar.use_count > 0 && (
+            <>
+              <span className="text-muted-foreground/25">·</span>
+              <span className={cn(TYPE_META, "text-muted-foreground/45 tabular-nums")}>
+                {avatar.use_count.toLocaleString()} cast
+              </span>
+            </>
+          )}
+        </div>
+        {avatar.personality && (
+          <p className="mt-2 text-[12px] font-light leading-snug text-muted-foreground/70 line-clamp-2">
+            {avatar.personality}
+          </p>
+        )}
+
+        {/* Cast CTA — appears on hover */}
+        <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onCast();
+            }}
+            className={cn(
+              "inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-[0.22em]",
+              "text-accent hover:text-foreground transition-colors cursor-pointer",
+            )}
+          >
+            Cast in Studio
+            <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+          </span>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DetailDrawer — slides in from right with full identity bible
+// ─────────────────────────────────────────────────────────────────────────────
+function DetailDrawer({
+  avatar,
+  onClose,
+  onCast,
+}: {
+  avatar: AvatarTemplate;
+  onClose: () => void;
+  onCast: () => void;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAudio = !!avatar.sample_audio_url;
+  const imageUrl =
+    avatar.front_image_url ?? avatar.face_image_url ?? avatar.thumbnail_url;
+
+  const togglePlay = () => {
+    if (!hasAudio) return;
+    if (!audioRef.current) {
+      audioRef.current = new Audio(avatar.sample_audio_url!);
+      audioRef.current.addEventListener("ended", () => setPlaying(false));
+    }
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      void audioRef.current.play().catch(() => setPlaying(false));
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.65)] backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.aside
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.4, ease: EASE_PREMIUM }}
+        className={cn(
+          "fixed top-0 right-0 z-50 h-[100dvh] w-full sm:w-[480px]",
+          "border-l border-border/30 bg-[hsl(220_30%_4%/0.95)] backdrop-blur-2xl",
+          "flex flex-col overflow-hidden",
+        )}
+        role="dialog"
+        aria-label={`${avatar.name} details`}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-4 right-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl text-muted-foreground/70 hover:text-foreground hover:border-accent/40 transition-colors"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Portrait */}
+          <div className="relative aspect-[4/5] w-full bg-[hsl(220_30%_8%)]">
+            <OptimizedAvatarImage
+              src={imageUrl}
+              alt={avatar.name}
+              fallbackText={avatar.name}
+              aspectRatio="portrait"
+              className="h-full w-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.95)] via-transparent to-transparent"
+            />
+            {/* Floating badges */}
+            <div className="absolute top-4 left-4 flex items-center gap-2">
+              {avatar.is_premium && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+                  <Crown className="h-3 w-3" strokeWidth={1.5} />
+                  Premium
+                </span>
+              )}
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+                  avatar.avatar_type === "realistic"
+                    ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
+                    : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+                )}
+              >
+                {avatar.avatar_type === "realistic" ? "Realistic" : "Animated"}
+              </span>
+            </div>
+          </div>
+
+          <div className="px-6 py-6 space-y-6">
+            {/* Identity */}
+            <div>
+              <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+                ◆ Identity
+              </span>
+              <h2 className="mt-2 font-display italic text-3xl font-light text-foreground tracking-tight">
+                {avatar.name}
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {avatar.style && (
+                  <Pill label={avatar.style} />
+                )}
+                {avatar.age_range && (
+                  <Pill label={avatar.age_range} />
+                )}
+                {avatar.gender && <Pill label={avatar.gender} />}
+                {avatar.ethnicity && <Pill label={avatar.ethnicity} />}
+              </div>
+            </div>
+
+            {/* Personality */}
+            {avatar.personality && (
+              <Section eyebrow="Personality">
+                <p className="text-[13px] font-light leading-relaxed text-foreground/85">
+                  {avatar.personality}
+                </p>
+              </Section>
+            )}
+
+            {/* Description */}
+            {avatar.description && (
+              <Section eyebrow="Description">
+                <p className="text-[13px] font-light leading-relaxed text-muted-foreground/80">
+                  {avatar.description}
+                </p>
+              </Section>
+            )}
+
+            {/* Voice */}
+            <Section eyebrow="Voice">
+              <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-3.5">
+                <button
+                  onClick={togglePlay}
+                  disabled={!hasAudio}
+                  aria-label={playing ? "Pause" : "Play voice sample"}
+                  className={cn(
+                    "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    "border border-accent/40 bg-[hsl(var(--accent)/0.10)] text-accent",
+                    "hover:bg-[hsl(var(--accent)/0.15)] transition-colors",
+                    "disabled:opacity-40 disabled:cursor-not-allowed",
+                  )}
+                >
+                  {playing ? (
+                    <Pause className="h-4 w-4 fill-current" />
+                  ) : (
+                    <Play className="h-4 w-4 fill-current" />
+                  )}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12.5px] text-foreground/90 truncate">
+                    {avatar.voice_name ?? "Default voice"}
+                  </div>
+                  {avatar.voice_description && (
+                    <div className="text-[11px] text-muted-foreground/60 line-clamp-2 mt-0.5">
+                      {avatar.voice_description}
+                    </div>
+                  )}
+                  <div className={cn(TYPE_META, "text-muted-foreground/40 mt-1")}>
+                    {avatar.voice_provider}
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* Tags */}
+            {avatar.tags && avatar.tags.length > 0 && (
+              <Section eyebrow="Tags">
+                <div className="flex flex-wrap gap-1.5">
+                  {avatar.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* Stats */}
+            {avatar.use_count != null && avatar.use_count > 0 && (
+              <Section eyebrow="Filmography">
+                <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-3xl font-light text-foreground tabular-nums">
+                      {avatar.use_count.toLocaleString()}
+                    </span>
+                    <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+                      scenes directed
+                    </span>
+                  </div>
+                </div>
+              </Section>
+            )}
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4">
+          <button
+            onClick={onCast}
+            className={cn(
+              "group w-full inline-flex items-center justify-center gap-2 h-11 rounded-full",
+              "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
+              "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+            )}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+            <span className="text-[13px]">Cast {avatar.name} in Studio</span>
+            <ArrowRight className="h-3.5 w-3.5 text-accent transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+          </button>
+        </div>
+      </motion.aside>
+    </>
+  );
+}
+
+function Section({
+  eyebrow,
+  children,
+}: {
+  eyebrow: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+        ◆ {eyebrow}
+      </span>
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function Pill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-foreground/85 capitalize">
+      {label}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading / Empty / Error states
+// ─────────────────────────────────────────────────────────────────────────────
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] overflow-hidden"
+        >
+          <div className="aspect-[3/4] w-full bg-[hsl(220_30%_8%)] animate-pulse" />
+          <div className="p-3.5 space-y-2">
+            <div className="h-3 w-3/4 rounded bg-[hsl(var(--foreground)/0.05)] animate-pulse" />
+            <div className="h-2 w-1/2 rounded bg-[hsl(var(--foreground)/0.04)] animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
+      <div className="p-12 text-center">
+        <Filter
+          className="mx-auto h-8 w-8 text-accent/60"
+          strokeWidth={1.2}
+        />
+        <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
+          No matches.
+        </h3>
+        <p className="mt-4 max-w-md mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
+          Nothing in the vault fits those filters. Reset and try again.
+        </p>
+        <button
+          onClick={onReset}
+          className={cn(
+            "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
+            "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground",
+            "transition-colors hover:border-accent/60 hover:bg-[hsl(var(--accent)/0.12)]",
+          )}
+        >
+          <span className="text-[13px]">Reset filters</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-2xl border border-destructive/30 bg-[hsl(0_60%_30%/0.05)] p-12 text-center">
+      <p className="font-display italic text-2xl font-light text-foreground">
+        Couldn&rsquo;t reach the vault.
+      </p>
+      <p className="mt-4 text-[13px] font-light text-muted-foreground/70">
+        The avatar library failed to load. Try again — usually a transient
+        network blip.
+      </p>
+      <button
+        onClick={onRetry}
+        className={cn(
+          "mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
+          "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-foreground",
+          "transition-colors hover:border-accent/40",
+        )}
+      >
+        <Loader2 className="h-4 w-4" strokeWidth={1.5} />
+        <span className="text-[13px]">Retry</span>
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Default export — wrapped in ErrorBoundary
+// ─────────────────────────────────────────────────────────────────────────────
+export default function Avatars() {
+  usePageMeta({
+    title: "Avatars — Small Bridges",
+    description:
+      "Browse and cast cinematic AI talent — every avatar in the Small Bridges vault.",
+  });
+  return (
+    <ErrorBoundary>
+      <AvatarsContent />
     </ErrorBoundary>
   );
 }

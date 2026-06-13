@@ -42,6 +42,7 @@ import {
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
 import { CreationHub } from "@/components/studio/CreationHub";
+import { CastPanel } from "@/components/studio/CastPanel";
 import { ScenesHub } from "@/components/scenes/ScenesHub";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
@@ -515,8 +516,17 @@ function StudioContentInner() {
             </div>
           </div>
 
+          {/* ── Cast roster ───────────────────────────────────────
+              The director's current cast lives here. Empty by default;
+              fills the moment any avatar is added (from /avatars or
+              elsewhere). cast[0] is the lead and gets pre-selected by
+              CreationHub when the user submits a generation. */}
+          <div className="mt-10">
+            <CastPanel />
+          </div>
+
           {/* ── Hairline rule + tabs ─────────────────────────────── */}
-          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+          <div className="mt-8 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <StudioTabs value={activeTab} onChange={setActiveTab} />

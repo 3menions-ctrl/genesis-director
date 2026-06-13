@@ -26,6 +26,8 @@ import { useTierLimits } from '@/hooks/useTierLimits';
 import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
 import { TemplateAvatarSelector } from './TemplateAvatarSelector';
 import { AvatarTemplate } from '@/types/avatar-templates';
+import { useCast } from '@/hooks/useCast';
+import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -246,6 +248,32 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [enableMusic] = useState(false);
 
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
+
+  // ── Cast hydration ──────────────────────────────────────────────────
+  // CreationHub is the actual generation surface. The CastPanel above
+  // surfaces the director's selected cast; we lift the lead actor
+  // (cast[0]) into selectedAvatar so the existing pipeline picks them
+  // up. Re-runs whenever the cast lead changes or templates finish
+  // loading.
+  const { cast } = useCast();
+  const { allTemplates, isLoading: castTemplatesLoading } =
+    useAvatarTemplatesQuery(undefined, { includePlaceholders: true });
+  useEffect(() => {
+    if (castTemplatesLoading) return;
+    if (cast.length === 0) {
+      // Director cleared the cast — release the selectedAvatar so the
+      // mode picker isn't locked into a previous lead.
+      if (selectedAvatar) setSelectedAvatar(null);
+      return;
+    }
+    const leadId = cast[0]?.id;
+    if (!leadId) return;
+    if (selectedAvatar?.id === leadId) return;
+    const lead = (allTemplates ?? []).find((t) => t.id === leadId);
+    if (lead) setSelectedAvatar(lead);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cast[0]?.id, castTemplatesLoading]);
+
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [genre, setGenre] = useState('cinematic');
   const [mood, setMood] = useState('epic');

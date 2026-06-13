@@ -30,6 +30,9 @@ import {
   ArrowUpAZ,
   Loader2,
   User as UserIcon,
+  Check,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -42,9 +45,11 @@ import {
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
+import { useCast } from "@/hooks/useCast";
 import { OptimizedAvatarImage } from "@/components/avatars/OptimizedAvatarImage";
 import { useSafeNavigation } from "@/lib/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { CastMember } from "@/lib/cast-store";
 import {
   AvatarTemplate,
   AVATAR_CATEGORIES,
@@ -159,20 +164,49 @@ function AvatarsContent() {
     };
   }, [templates]);
 
+  // Convert an AvatarTemplate row into the lighter CastMember shape that
+  // travels through localStorage and the Studio CastPanel. Re-fetched
+  // by id when the Studio needs the full identity bible.
+  const toCastMember = (a: AvatarTemplate): CastMember => ({
+    id: a.id,
+    name: a.name,
+    imageUrl:
+      a.front_image_url ?? a.thumbnail_url ?? a.face_image_url,
+    voiceId: a.voice_id,
+    voiceName: a.voice_name,
+    style: a.style,
+    avatarType: a.avatar_type,
+  });
+
+  const toggleCast = (avatar: AvatarTemplate) => {
+    if (isInCast(avatar.id)) {
+      removeFromCast(avatar.id);
+    } else {
+      addToCast(toCastMember(avatar));
+    }
+  };
+
+  // Click "Cast in Studio" from a card / popup: add the avatar to the
+  // cast if it isn't already, then open Studio. Multi-character casting
+  // happens via the Cast Bar's "Open in Studio" CTA which preserves the
+  // full roster.
   const handleCast = (avatar: AvatarTemplate) => {
     if (!user) {
       navigate("/auth");
       return;
     }
-    try {
-      sessionStorage.setItem("smallbridges.cast_avatar", avatar.id);
-      sessionStorage.setItem(
-        "smallbridges.cast_avatar_name",
-        avatar.name,
-      );
-    } catch {
-      /* ignore */
+    if (!isInCast(avatar.id)) {
+      addToCast(toCastMember(avatar));
     }
+    navigate("/studio");
+  };
+
+  const handleOpenStudioWithCast = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (cast.length === 0) return;
     navigate("/studio");
   };
 
@@ -315,6 +349,8 @@ function AvatarsContent() {
                 items={filtered}
                 onOpen={setSelected}
                 onCast={handleCast}
+                onToggle={toggleCast}
+                isInCast={isInCast}
                 reducedMotion={reducedMotion ?? false}
               />
             )}
@@ -327,11 +363,25 @@ function AvatarsContent() {
         {selected && (
           <DetailPopup
             avatar={selected}
+            inCast={isInCast(selected.id)}
             onClose={() => setSelected(null)}
+            onToggleCast={() => toggleCast(selected)}
             onCast={() => {
               handleCast(selected);
               setSelected(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Cast Bar — fixed bottom roster of selected avatars */}
+      <AnimatePresence>
+        {cast.length > 0 && (
+          <CastBar
+            cast={cast}
+            onRemove={removeFromCast}
+            onClear={clearCast}
+            onOpen={handleOpenStudioWithCast}
           />
         )}
       </AnimatePresence>
@@ -526,11 +576,15 @@ function GlassGallery({
   items,
   onOpen,
   onCast,
+  onToggle,
+  isInCast,
   reducedMotion,
 }: {
   items: AvatarTemplate[];
   onOpen: (a: AvatarTemplate) => void;
   onCast: (a: AvatarTemplate) => void;
+  onToggle: (a: AvatarTemplate) => void;
+  isInCast: (id: string) => boolean;
   reducedMotion: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -592,8 +646,10 @@ function GlassGallery({
             key={a.id}
             avatar={a}
             index={i}
+            inCast={isInCast(a.id)}
             onOpen={() => onOpen(a)}
             onCast={() => onCast(a)}
+            onToggleCast={() => onToggle(a)}
             reducedMotion={reducedMotion}
             captionVisible={isScrolling || reducedMotion}
           />
@@ -619,15 +675,19 @@ function GlassGallery({
 function GlassFrame({
   avatar,
   index,
+  inCast,
   onOpen,
   onCast,
+  onToggleCast,
   reducedMotion,
   captionVisible,
 }: {
   avatar: AvatarTemplate;
   index: number;
+  inCast: boolean;
   onOpen: () => void;
   onCast: () => void;
+  onToggleCast: () => void;
   reducedMotion: boolean;
   captionVisible: boolean;
 }) {
@@ -774,6 +834,39 @@ function GlassFrame({
               </button>
             )}
 
+            {/* Add/Remove from cast — bottom-right corner, always visible when in cast */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCast();
+              }}
+              aria-label={inCast ? "Remove from cast" : "Add to cast"}
+              className={cn(
+                "absolute bottom-3 right-3 inline-flex items-center justify-center h-9 w-9 rounded-full z-10 transition-all",
+                inCast
+                  ? "bg-[hsl(var(--accent)/0.92)] ring-1 ring-inset ring-accent text-foreground opacity-100"
+                  : "bg-black/60 backdrop-blur-md ring-1 ring-inset ring-white/20 text-white opacity-0 group-hover:opacity-100",
+              )}
+            >
+              {inCast ? (
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              ) : (
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+            </button>
+
+            {/* In-cast accent ring around the whole picture */}
+            {inCast && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-[hsl(var(--accent)/0.6)]"
+                style={{
+                  boxShadow:
+                    "inset 0 0 24px hsl(var(--accent) / 0.25), 0 0 0 1px hsl(var(--accent) / 0.4)",
+                }}
+              />
+            )}
+
             {/* Caption — fades in only while scrolling or on hover */}
             <AnimatePresence>
               {showCaption && (
@@ -859,12 +952,16 @@ function GlassFrame({
 // ─────────────────────────────────────────────────────────────────────────────
 function DetailPopup({
   avatar,
+  inCast,
   onClose,
   onCast,
+  onToggleCast,
 }: {
   avatar: AvatarTemplate;
+  inCast: boolean;
   onClose: () => void;
   onCast: () => void;
+  onToggleCast: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1124,12 +1221,33 @@ function DetailPopup({
               )}
             </div>
 
-            {/* Footer CTA */}
-            <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4 sm:px-8 lg:px-10">
+            {/* Footer — Add-to-cast toggle + Cast-in-Studio primary CTA */}
+            <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4 sm:px-8 lg:px-10 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={onToggleCast}
+                className={cn(
+                  "shrink-0 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-[12.5px] font-mono uppercase tracking-[0.22em] transition-all",
+                  inCast
+                    ? "border border-accent bg-[hsl(var(--accent)/0.18)] text-accent hover:bg-[hsl(var(--accent)/0.25)]"
+                    : "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-foreground/85 hover:border-accent/40",
+                )}
+              >
+                {inCast ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" strokeWidth={2} />
+                    <span>In Cast</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                    <span>Add to Cast</span>
+                  </>
+                )}
+              </button>
               <button
                 onClick={onCast}
                 className={cn(
-                  "group w-full inline-flex items-center justify-center gap-2 h-12 rounded-full",
+                  "group flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-full",
                   "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
                   "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
                 )}
@@ -1219,6 +1337,151 @@ function EmptyState({ onReset }: { onReset: () => void }) {
         </button>
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CastBar — fixed bottom roster of currently-cast avatars.
+//
+// Appears the moment cast.length > 0. Shows a horizontal scroll of
+// thumbnails (the cast), name + count summary, "Open in Studio" CTA,
+// and a Clear affordance. Sits above the gallery, below the popup
+// modal (z-30 so the popup at z-50 overlays it).
+// ─────────────────────────────────────────────────────────────────────────────
+function CastBar({
+  cast,
+  onRemove,
+  onClear,
+  onOpen,
+}: {
+  cast: CastMember[];
+  onRemove: (id: string) => void;
+  onClear: () => void;
+  onOpen: () => void;
+}) {
+  const leadName = cast[0]?.name ?? "";
+  const extras = cast.length - 1;
+  const summary = cast.length === 1 ? leadName : `${leadName} +${extras}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 16 }}
+      transition={{ duration: 0.45, ease: EASE_PREMIUM }}
+      className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-6 z-30 flex justify-center pointer-events-none"
+      aria-label="Selected cast"
+    >
+      <div
+        className={cn(
+          "pointer-events-auto w-full max-w-[1100px]",
+          "rounded-2xl border border-white/[0.09]",
+          "bg-gradient-to-br from-[hsl(220_30%_6%/0.92)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.97)]",
+          "backdrop-blur-2xl",
+          "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85),0_0_0_1px_hsl(var(--accent)/0.10),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
+          "px-4 py-3 sm:px-5 sm:py-3.5",
+          "flex items-center gap-4",
+        )}
+      >
+        {/* Eyebrow + summary */}
+        <div className="min-w-0 hidden sm:flex flex-col leading-tight shrink-0">
+          <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+            ◆ Cast
+          </span>
+          <span
+            className="mt-1 font-display italic text-[15px] font-light text-foreground truncate max-w-[180px]"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {summary}
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/55 mt-0.5">
+            {cast.length} {cast.length === 1 ? "talent" : "talents"} · max 8
+          </span>
+        </div>
+
+        {/* Vertical hairline (desktop only) */}
+        <div className="hidden sm:block w-px h-12 bg-white/[0.06] shrink-0" />
+
+        {/* Thumbnail strip */}
+        <ul className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+          {cast.map((m) => (
+            <li key={m.id} className="relative shrink-0 group/cast">
+              <div
+                className={cn(
+                  "h-12 w-10 sm:h-14 sm:w-11 overflow-hidden rounded-md",
+                  "border border-white/[0.10] bg-[hsl(220_40%_4%)]",
+                  "ring-1 ring-inset ring-white/[0.04]",
+                )}
+              >
+                <OptimizedAvatarImage
+                  src={m.imageUrl}
+                  alt={m.name}
+                  fallbackText={m.name}
+                  aspectRatio="portrait"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              {/* Remove */}
+              <button
+                onClick={() => onRemove(m.id)}
+                aria-label={`Remove ${m.name}`}
+                className={cn(
+                  "absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full",
+                  "bg-[hsl(220_30%_4%)] ring-1 ring-inset ring-white/30",
+                  "text-foreground/85 hover:text-foreground hover:ring-accent/60",
+                  "inline-flex items-center justify-center transition-colors",
+                  "opacity-0 group-hover/cast:opacity-100 focus:opacity-100",
+                )}
+              >
+                <X className="h-2.5 w-2.5" strokeWidth={2.5} />
+              </button>
+              {/* Name tooltip on hover (desktop) */}
+              <span
+                className={cn(
+                  "hidden sm:block absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap",
+                  "px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-[0.22em] text-white",
+                  "bg-[hsl(220_30%_4%)] ring-1 ring-inset ring-white/20",
+                  "opacity-0 group-hover/cast:opacity-100 transition-opacity pointer-events-none",
+                )}
+              >
+                {m.name}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Actions */}
+        <div className="shrink-0 flex items-center gap-2">
+          <button
+            onClick={onClear}
+            aria-label="Clear cast"
+            className={cn(
+              "inline-flex items-center justify-center h-9 w-9 rounded-full",
+              "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70",
+              "hover:text-foreground hover:border-destructive/40 transition-colors",
+            )}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={onOpen}
+            className={cn(
+              "group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full",
+              "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5 text-foreground",
+              "transition-all hover:border-accent/60 hover:from-accent/25",
+            )}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+            <span className="text-[12.5px] hidden sm:inline">Open in Studio</span>
+            <span className="text-[12.5px] sm:hidden">Studio</span>
+            <ArrowRight
+              className="h-3.5 w-3.5 text-accent transition-transform group-hover:translate-x-0.5"
+              strokeWidth={1.5}
+            />
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

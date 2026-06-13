@@ -158,6 +158,64 @@ export function trimClip(clipId: string, durationSec: number): void {
 }
 
 /**
+ * Razor — split the clip at the timeline-absolute playhead into two
+ * adjacent clips. Both halves keep the same source video, thumbnail,
+ * prompt, and takes. The original clip's duration becomes the time
+ * from its start to the playhead; the new clip carries the
+ * remainder. No-op when the playhead isn't inside a clip or is too
+ * close to a clip edge (< 0.1s — splits below that aren't useful).
+ *
+ * Used by the B keyboard shortcut. Pro editors split at the playhead
+ * a thousand times per session; this is the highest-frequency edit
+ * after a trim.
+ */
+export function splitAtPlayhead(): boolean {
+  if (!state.project) return false;
+  const ph = state.playheadSec;
+  const allClips: EditorClip[] = state.project.scenes.flatMap((s) => s.clips);
+  const target = allClips.find(
+    (c) =>
+      ph > c.timelineStartSec + 0.1 &&
+      ph < c.timelineStartSec + c.durationSec - 0.1,
+  );
+  if (!target) return false;
+  const splitRel = ph - target.timelineStartSec;
+  const leftDur = splitRel;
+  const rightDur = target.durationSec - splitRel;
+  const newClip: EditorClip = {
+    ...target,
+    id: `${target.id}-split-${Math.floor(performance.now())}`,
+    index: target.index + 1,
+    durationSec: rightDur,
+    // timelineStartSec recomputes in recompute() below
+    timelineStartSec: 0,
+    // Same takes list — both halves are "the same generation"
+    takes: target.takes,
+  };
+  const updatedTarget: EditorClip = { ...target, durationSec: leftDur };
+
+  // Insert newClip right after target in the flat clip list, then
+  // distribute back to the synthetic scene[0] model (v1).
+  const newFlat: EditorClip[] = [];
+  for (const c of allClips) {
+    if (c.id === target.id) {
+      newFlat.push(updatedTarget);
+      newFlat.push(newClip);
+    } else {
+      newFlat.push(c);
+    }
+  }
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: newFlat } : { ...s, clips: [] },
+    ),
+  };
+  set({ project: recompute(project), selectedClipId: newClip.id });
+  return true;
+}
+
+/**
  * Reorder scenes — used by the Storyboard view's drag-to-reorder.
  * Scene_number gets renumbered to match the new positions; the
  * timeline cursor recomputes so the global timecode stays accurate.

@@ -32,6 +32,14 @@ import {
   CornerDownLeft,
   Sparkles,
 } from "lucide-react";
+
+function fmtTimecode(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const ff = Math.floor((sec - Math.floor(sec)) * 30);
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}:${ff.toString().padStart(2, "0")}`;
+}
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,34 +169,70 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
             "shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.75)]",
           )}
         >
-          {/* Header — pure typography */}
+          {/* Header — Inspector eyebrow + clip identity */}
           <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
                 <Sparkles className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-                <span>◆ Takes · Clip {String(clip.index + 1).padStart(2, "0")}</span>
+                <span>◆ Inspector · Clip {String(clip.index + 1).padStart(2, "0")}</span>
               </div>
               <h3
-                className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95"
+                className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95 line-clamp-2"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
-                {clip.takes.length === 0
-                  ? "No takes yet."
-                  : `${clip.takes.length} ${clip.takes.length === 1 ? "take" : "takes"}.`}
+                {clip.prompt}
               </h3>
             </div>
             <button
               type="button"
               onClick={close}
               className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              aria-label="Close takes panel"
+              aria-label="Close inspector"
             >
               <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
           </header>
 
+          {/* Properties — floating typography, mono numbers */}
+          <div className="shrink-0 px-5 pb-3 grid grid-cols-3 gap-x-4">
+            <div>
+              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>
+                In
+              </div>
+              <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-foreground/95">
+                {fmtTimecode(clip.timelineStartSec)}
+              </div>
+            </div>
+            <div>
+              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>
+                Length
+              </div>
+              <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-foreground/95">
+                {clip.durationSec.toFixed(2)}s
+              </div>
+            </div>
+            <div>
+              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>
+                Track
+              </div>
+              <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-accent">
+                V1
+              </div>
+            </div>
+          </div>
+
+          {/* Hairline divider before takes list */}
+          <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+          {/* Takes section eyebrow */}
+          <div className="shrink-0 px-5 pb-2">
+            <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em]")}>
+              ◆ Takes · {clip.takes.length} {clip.takes.length === 1 ? "version" : "versions"}
+            </div>
+          </div>
+
           {/* Take list */}
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-3">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-2">
             {clip.takes.length === 0 ? (
               <div className="px-3 py-8 text-center">
                 <Film className="h-5 w-5 text-muted-foreground/50 mx-auto" strokeWidth={1.4} />

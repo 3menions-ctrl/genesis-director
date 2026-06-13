@@ -57,10 +57,12 @@ import {
   moveClip as moveClipMut,
   trimClip as trimClipMut,
   deleteClip as deleteClipMut,
+  splitAtPlayhead as splitAtPlayheadMut,
   setPlayhead,
   setPxPerSec,
   selectClip,
 } from "@/lib/editor/store";
+import { toast } from "sonner";
 
 interface Props {
   project: EditorProject;
@@ -198,6 +200,16 @@ export function Timeline({
           ? Math.max(0, playheadSec - frame)
           : Math.min(totalSec, playheadSec + frame);
         setPlayhead(next);
+      } else if (e.key === "b" || e.key === "B") {
+        // Razor blade — split the clip at the playhead. The
+        // highest-frequency edit after trim in any NLE.
+        e.preventDefault();
+        const ok = splitAtPlayheadMut();
+        if (!ok) {
+          toast.message("Move the playhead inside a clip to split", {
+            description: "Razor needs at least 0.1s of clip on each side",
+          });
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1010,8 +1022,8 @@ function TimelineFooter({
       </div>
       <div className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.30em] hidden md:block")}>
         {selectedClipId
-          ? "drag clip body to reorder · drag edges to trim · , . step a frame"
-          : "click a clip to select · ⌘+scroll to zoom · , . step a frame"}
+          ? "drag clip body to reorder · drag edges to trim · B to blade at playhead · , . step a frame"
+          : "click a clip to select · B to blade at playhead · ⌘+scroll to zoom · , . step a frame"}
       </div>
     </footer>
   );

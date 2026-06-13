@@ -44,6 +44,7 @@ const SHORTCUTS: Group[] = [
   {
     title: "Timeline",
     items: [
+      { keys: ["B"], label: "Blade — split clip at playhead" },
       { keys: ["+", "−"], label: "Zoom in / out" },
       { keys: ["⌘", "scroll"], label: "Pinch zoom anchored to cursor" },
       { keys: ["⌫"], label: "Ripple-delete selected clip" },

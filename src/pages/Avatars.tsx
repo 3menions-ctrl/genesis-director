@@ -13,7 +13,7 @@
  * casts. Cast() writes the avatar id into sessionStorage and navigates
  * to /studio, where the existing Studio composer picks it up.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -311,7 +311,7 @@ function AvatarsContent() {
                 }}
               />
             ) : (
-              <Grid
+              <GlassGallery
                 items={filtered}
                 onOpen={setSelected}
                 onCast={handleCast}
@@ -514,9 +514,15 @@ function CategoryChips({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Grid + Card
+// GlassGallery — horizontal museum-style picture-frame gallery.
+//
+// Cards live in a horizontally scrollable row, each one a thick glass
+// "picture frame" with the portrait inside. Names + style captions
+// stay invisible by default — they fade in only while the user is
+// actively scrolling (and on hover of an individual frame). The user
+// can wheel-scroll, swipe, or click a card to open the detail drawer.
 // ─────────────────────────────────────────────────────────────────────────────
-function Grid({
+function GlassGallery({
   items,
   onOpen,
   onCast,
@@ -527,36 +533,106 @@ function Grid({
   onCast: (a: AvatarTemplate) => void;
   reducedMotion: boolean;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reveal captions while the user is actively scrolling; fade them
+  // back out 900ms after the last scroll event. Reduced-motion users
+  // get permanent captions to avoid a hidden-text trap.
+  const handleScroll = () => {
+    if (reducedMotion) return;
+    if (!isScrolling) setIsScrolling(true);
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => setIsScrolling(false), 900);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    };
+  }, []);
+
+  // Convert vertical wheel into horizontal scroll so a trackpad/mouse
+  // wheel feels natural in this layout. Shift+wheel still pages
+  // horizontally too. Touch swipe just works.
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY;
+    }
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {items.map((a, i) => (
-        <Card
-          key={a.id}
-          avatar={a}
-          index={i}
-          onOpen={() => onOpen(a)}
-          onCast={() => onCast(a)}
-          reducedMotion={reducedMotion}
-        />
-      ))}
+    <div className="relative">
+      {/* Edge fades — let the gallery dissolve into the room atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[hsl(220_30%_4%)] via-[hsl(220_30%_4%/0.6)] to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[hsl(220_30%_4%)] via-[hsl(220_30%_4%/0.6)] to-transparent"
+      />
+
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        onWheel={handleWheel}
+        className={cn(
+          "flex gap-6 overflow-x-auto overflow-y-hidden",
+          "snap-x snap-mandatory scroll-smooth scrollbar-hide",
+          "px-10 py-6 -mx-1",
+        )}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {items.map((a, i) => (
+          <GlassFrame
+            key={a.id}
+            avatar={a}
+            index={i}
+            onOpen={() => onOpen(a)}
+            onCast={() => onCast(a)}
+            reducedMotion={reducedMotion}
+            captionVisible={isScrolling || reducedMotion}
+          />
+        ))}
+      </div>
+
+      {/* Scroll hint — gentle keyboard prompt at the bottom */}
+      <div
+        className={cn(
+          "mt-2 flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.32em] text-muted-foreground/35 transition-opacity",
+          isScrolling ? "opacity-0" : "opacity-100",
+        )}
+      >
+        <span>Scroll the gallery to read the names</span>
+      </div>
     </div>
   );
 }
 
-function Card({
+// ─────────────────────────────────────────────────────────────────────────────
+// GlassFrame — a single portrait in a thick glass "picture frame."
+// ─────────────────────────────────────────────────────────────────────────────
+function GlassFrame({
   avatar,
   index,
   onOpen,
   onCast,
   reducedMotion,
+  captionVisible,
 }: {
   avatar: AvatarTemplate;
   index: number;
   onOpen: () => void;
   onCast: () => void;
   reducedMotion: boolean;
+  captionVisible: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasAudio = !!avatar.sample_audio_url;
 
@@ -577,121 +653,197 @@ function Card({
   };
 
   const imageUrl =
-    avatar.thumbnail_url ?? avatar.front_image_url ?? avatar.face_image_url;
+    avatar.front_image_url ?? avatar.thumbnail_url ?? avatar.face_image_url;
+  const showCaption = captionVisible || hovered;
 
   return (
     <motion.button
       onClick={onOpen}
-      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.35,
-        delay: Math.min(index * 0.02, 0.3),
+        duration: 0.5,
+        delay: Math.min(index * 0.02, 0.4),
         ease: EASE_PREMIUM,
       }}
-      whileHover={reducedMotion ? undefined : { y: -3 }}
+      whileHover={reducedMotion ? undefined : { y: -6, scale: 1.015 }}
       className={cn(
-        "group relative text-left rounded-2xl overflow-hidden",
-        "border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl",
-        "transition-colors hover:border-accent/40",
+        "group relative snap-center shrink-0",
+        "w-[240px] sm:w-[280px] lg:w-[300px]",
+        "focus:outline-none",
       )}
+      aria-label={`${avatar.name}, ${avatar.style ?? "avatar"}`}
     >
-      {/* Portrait */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[hsl(220_30%_8%)]">
-        <OptimizedAvatarImage
-          src={imageUrl}
-          alt={avatar.name}
-          fallbackText={avatar.name}
-          aspectRatio="portrait"
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-        />
-        {/* Vignette */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.85)] via-transparent to-transparent"
-        />
-        {/* Top badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-          {avatar.is_premium && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
-              <Crown className="h-2.5 w-2.5" strokeWidth={1.5} />
-              Premium
-            </span>
-          )}
-          <span
-            className={cn(
-              "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
-              avatar.avatar_type === "realistic"
-                ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
-                : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
-            )}
-          >
-            {avatar.avatar_type === "realistic" ? "Real" : "Animated"}
-          </span>
-        </div>
-        {/* Voice play button — bottom-left, only when audio exists */}
-        {hasAudio && (
-          <button
-            onClick={togglePlay}
-            aria-label={playing ? "Pause voice sample" : "Play voice sample"}
-            className={cn(
-              "absolute bottom-3 left-3 inline-flex items-center justify-center h-9 w-9 rounded-full",
-              "bg-black/55 backdrop-blur-md ring-1 ring-inset ring-white/15",
-              "opacity-0 group-hover:opacity-100 transition-opacity",
-              playing && "opacity-100",
-            )}
-          >
-            {playing ? (
-              <Pause className="h-3.5 w-3.5 text-white fill-current" />
-            ) : (
-              <Play className="h-3.5 w-3.5 text-white fill-current" />
-            )}
-          </button>
-        )}
-      </div>
+      {/* Outer accent glow — appears on hover, sells the cinematic spotlight */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-3 rounded-[28px] opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+        style={{
+          background:
+            "radial-gradient(60% 70% at 50% 50%, hsl(var(--accent) / 0.22), transparent 70%)",
+          filter: "blur(36px)",
+        }}
+      />
 
-      {/* Meta */}
-      <div className="p-3.5">
-        <h3 className="font-display text-[15px] font-light leading-snug tracking-tight text-foreground truncate">
-          {avatar.name}
-        </h3>
-        <div className="mt-1 flex items-center gap-2">
-          {avatar.style && (
-            <span className={cn(TYPE_META, "text-muted-foreground/55")}>
-              {avatar.style}
-            </span>
-          )}
-          {avatar.use_count != null && avatar.use_count > 0 && (
-            <>
-              <span className="text-muted-foreground/25">·</span>
-              <span className={cn(TYPE_META, "text-muted-foreground/45 tabular-nums")}>
-                {avatar.use_count.toLocaleString()} cast
+      {/* The glass frame itself — multi-layer, museum-grade */}
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-[22px]",
+          "border border-white/[0.09]",
+          "bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-white/[0.01]",
+          "backdrop-blur-2xl",
+          "shadow-[0_30px_80px_-24px_hsl(220_40%_2%/0.85),0_0_0_1px_hsl(var(--accent)/0.06),inset_0_1px_0_hsl(0_0%_100%/0.10)]",
+          "transition-shadow duration-500",
+          "group-hover:shadow-[0_40px_120px_-24px_hsl(220_40%_2%/0.92),0_0_0_1px_hsl(var(--accent)/0.18),inset_0_1px_0_hsl(0_0%_100%/0.14),0_0_60px_-12px_hsl(var(--accent)/0.45)]",
+        )}
+      >
+        {/* Picture-frame mat — a thin glass border around the portrait */}
+        <div className="p-[10px]">
+          <div className="relative aspect-[3/4] overflow-hidden rounded-[14px] ring-1 ring-inset ring-white/[0.06]">
+            <OptimizedAvatarImage
+              src={imageUrl}
+              alt={avatar.name}
+              fallbackText={avatar.name}
+              aspectRatio="portrait"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+            />
+
+            {/* Diagonal glass reflection — moves the eye top-left to bottom-right */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-50 mix-blend-overlay"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(0 0% 100% / 0.18) 0%, transparent 35%, transparent 65%, hsl(0 0% 100% / 0.06) 100%)",
+              }}
+            />
+
+            {/* Top hairline highlight — like a glass edge catching light */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            />
+
+            {/* Soft bottom vignette so any caption reads clean */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[hsl(220_30%_4%/0.92)] via-[hsl(220_30%_4%/0.35)] to-transparent"
+            />
+
+            {/* Top-right small badges — type + premium */}
+            <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+              {avatar.is_premium && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+                  <Crown className="h-2.5 w-2.5" strokeWidth={1.5} />
+                  Premium
+                </span>
+              )}
+              <span
+                className={cn(
+                  "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+                  avatar.avatar_type === "realistic"
+                    ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
+                    : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+                )}
+              >
+                {avatar.avatar_type === "realistic" ? "Real" : "Animated"}
               </span>
-            </>
-          )}
-        </div>
-        {avatar.personality && (
-          <p className="mt-2 text-[12px] font-light leading-snug text-muted-foreground/70 line-clamp-2">
-            {avatar.personality}
-          </p>
-        )}
+            </div>
 
-        {/* Cast CTA — appears on hover */}
-        <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onCast();
-            }}
-            className={cn(
-              "inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-[0.22em]",
-              "text-accent hover:text-foreground transition-colors cursor-pointer",
+            {/* Voice play button — bottom-left, only when audio exists */}
+            {hasAudio && (
+              <button
+                onClick={togglePlay}
+                aria-label={playing ? "Pause voice sample" : "Play voice sample"}
+                className={cn(
+                  "absolute bottom-3 left-3 inline-flex items-center justify-center h-9 w-9 rounded-full z-10",
+                  "bg-black/60 backdrop-blur-md ring-1 ring-inset ring-white/20",
+                  "opacity-0 group-hover:opacity-100 transition-opacity",
+                  playing && "opacity-100",
+                )}
+              >
+                {playing ? (
+                  <Pause className="h-3.5 w-3.5 text-white fill-current" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 text-white fill-current" />
+                )}
+              </button>
             )}
-          >
-            Cast in Studio
-            <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
-          </span>
+
+            {/* Caption — fades in only while scrolling or on hover */}
+            <AnimatePresence>
+              {showCaption && (
+                <motion.div
+                  key="caption"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.35, ease: EASE_PREMIUM }}
+                  className="absolute inset-x-0 bottom-0 p-4 pointer-events-none"
+                >
+                  <h3
+                    className="font-display italic text-[19px] font-light leading-tight tracking-tight text-white"
+                    style={{
+                      fontFamily: "'Fraunces', serif",
+                      textShadow: "0 2px 12px hsl(220 40% 2% / 0.85)",
+                    }}
+                  >
+                    {avatar.name}
+                  </h3>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    {avatar.style && (
+                      <span className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
+                        {avatar.style}
+                      </span>
+                    )}
+                    {avatar.use_count != null && avatar.use_count > 0 && (
+                      <>
+                        <span className="text-white/30">·</span>
+                        <span className="font-mono text-[9.5px] tabular-nums text-white/55">
+                          {avatar.use_count.toLocaleString()} cast
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
+        {/* Cast CTA — subtle ribbon at the very bottom, visible only on hover */}
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              key="cast-cta"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-x-[10px] bottom-[10px] flex justify-center"
+            >
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCast();
+                }}
+                className={cn(
+                  "pointer-events-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-full",
+                  "bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl ring-1 ring-inset ring-accent/30",
+                  "text-[10.5px] font-mono uppercase tracking-[0.22em] text-accent",
+                  "hover:text-foreground hover:ring-accent/60 transition-colors cursor-pointer",
+                )}
+              >
+                Cast in Studio
+                <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.button>
   );

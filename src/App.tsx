@@ -48,8 +48,8 @@ import { CommandCenter } from "@/components/foundation/CommandCenter";
 // React Router's `<Navigate to="/universe/:id">` treats `:id` as a literal,
 // which silently 404s — this fixes that.
 function LegacyParamRedirect({ to }: { to: string }) {
-  const params = useParams<{ id?: string; userId?: string }>();
-  const id = params.id ?? params.userId ?? "";
+  const params = useParams<{ id?: string; userId?: string; videoId?: string }>();
+  const id = params.id ?? params.userId ?? params.videoId ?? "";
   return <Navigate to={`${to}/${id}`} replace />;
 }
 
@@ -154,7 +154,6 @@ const Press = lazy(() => import("./pages/Press"));
 // ExtractThumbnails removed — orphan utility with no nav entry
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
-const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
@@ -167,7 +166,6 @@ const Cast = lazy(() => import("./pages/Cast"));
 
 // Entertainment Hub (public watch experience — the Netflix half)
 const Lobby = lazy(() => import("./pages/Lobby"));
-const Theater = lazy(() => import("./pages/Theater"));
 const WorldDetail = lazy(() => import("./pages/WorldDetail"));
 // Entertainment Hub (creator economy — the YouTube half)
 // Entertainment Hub (atom marketplace)
@@ -625,12 +623,9 @@ const App = () => {
 
                 {/* Chat route removed */}
                 
-                {/* Video Detail Page */}
-                <Route path="/video/:videoId" element={
-                  <RouteContainer fallbackMessage="Loading video…">
-                    <AppShell><VideoDetail /></AppShell>
-                  </RouteContainer>
-                } />
+                {/* Legacy /video/:videoId folds into canonical Reel /r/:id.
+                    LegacyParamRedirect resolves :id / :userId / :videoId. */}
+                <Route path="/video/:videoId" element={<LegacyParamRedirect to="/r" />} />
 
                 {/* ── Entertainment Hub — the public watch experience ── */}
                 {/* These are reachable without auth (you should be able
@@ -640,11 +635,8 @@ const App = () => {
                     <Lobby />
                   </RouteContainer>
                 } />
-                <Route path="/watch/:id" element={
-                  <RouteContainer fallbackMessage="Dimming the house lights…">
-                    <AppShell><Theater /></AppShell>
-                  </RouteContainer>
-                } />
+                {/* Legacy /watch/:id (Theater) folds into canonical Reel. */}
+                <Route path="/watch/:id" element={<LegacyParamRedirect to="/r" />} />
                 <Route path="/world/:slug" element={
                   <RouteContainer fallbackMessage="Loading world…">
                     <AppShell><WorldDetail /></AppShell>

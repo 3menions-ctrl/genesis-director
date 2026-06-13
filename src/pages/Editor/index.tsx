@@ -82,23 +82,44 @@ function EditorAutoPick() {
     let cancelled = false;
     void (async () => {
       try {
-        // List query (not .maybeSingle()) so we get a clear answer:
-        // empty array = no projects; populated = pick the first.
-        // The user_id filter is intentional — clicking "Editor" should
-        // open something YOU own, not a shared workspace project.
-        const { data, error } = await supabase
+        // No user_id filter — RLS already restricts the read to what
+        // this user can see (their own + any workspace/org rows).
+        // Application-layer filtering was excluding org-scoped
+        // projects, which is the most common shape for real users.
+        // First try with the user_id filter (cheap path that wins
+        // for personal accounts); if that's empty, fall back to a
+        // broader query.
+        const { data: own, error: ownError } = await supabase
           .from("movie_projects")
           .select("id, updated_at")
           .eq("user_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(1);
         if (cancelled) return;
-        if (error) {
+        if (ownError) {
           // eslint-disable-next-line no-console
-          console.error("[Editor auto-pick] supabase query failed", error);
+          console.error("[Editor auto-pick] own-projects query failed", ownError);
+        }
+        if (own && own.length > 0) {
+          setRedirectTo(`/editor/${own[0].id}`);
+          return;
+        }
+
+        // Fallback — let RLS pick whatever this user can see.
+        const { data: any, error: anyError } = await supabase
+          .from("movie_projects")
+          .select("id, updated_at")
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        if (cancelled) return;
+        if (anyError) {
+          // eslint-disable-next-line no-console
+          console.error("[Editor auto-pick] any-projects query failed", anyError);
           setNoProjects(true);
-        } else if (data && data.length > 0) {
-          setRedirectTo(`/editor/${data[0].id}`);
+          return;
+        }
+        if (any && any.length > 0) {
+          setRedirectTo(`/editor/${any[0].id}`);
         } else {
           setNoProjects(true);
         }

@@ -384,6 +384,35 @@ export function clearInOut(): void {
   set({ inSec: null, outSec: null });
 }
 
+// ─── Mixer ──────────────────────────────────────────────────────────────────
+export function setMasterVolume(v: number): void {
+  const next = Math.max(0, Math.min(1.5, v));
+  if (state.masterVolume === next) return;
+  set({ masterVolume: next });
+}
+
+export function setMasterMuted(m: boolean): void {
+  if (state.masterMuted === m) return;
+  set({ masterMuted: m });
+}
+
+export function setTrackVolume(
+  track: "V1" | "A1" | "A2",
+  v: number,
+): void {
+  const next = Math.max(0, Math.min(1.5, v));
+  if (state.trackVolumes[track] === next) return;
+  set({ trackVolumes: { ...state.trackVolumes, [track]: next } });
+}
+
+export function setTrackMuted(
+  track: "V1" | "A1" | "A2",
+  m: boolean,
+): void {
+  if (state.trackMuted[track] === m) return;
+  set({ trackMuted: { ...state.trackMuted, [track]: m } });
+}
+
 /** Update the project's scriptContent in memory. Persistence happens
  *  separately — the caller (Script view) writes to supabase. */
 export function setScriptContent(content: string): void {

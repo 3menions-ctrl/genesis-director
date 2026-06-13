@@ -71,10 +71,17 @@ const SHORTCUTS: Group[] = [
     ],
   },
   {
-    title: "Animate",
+    title: "Animate · Mix",
     items: [
       { keys: ["◇"], label: "Click the diamond in Inspector to capture a keyframe at playhead" },
       { keys: ["⇧ ◇"], label: "Clear all keyframes for that property" },
+      { keys: ["X"], label: "Audio mixer (V1 · A1 · A2 · Master)" },
+    ],
+  },
+  {
+    title: "Multicam",
+    items: [
+      { keys: ["⇧", "1–9"], label: "Switch active take of selected clip (alt angles)" },
     ],
   },
   {

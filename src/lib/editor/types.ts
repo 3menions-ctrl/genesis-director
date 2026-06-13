@@ -301,6 +301,14 @@ export interface EditorState {
   outSec: number | null;
   /** Render is in progress (background job). */
   isRendering: boolean;
+  /** Master output volume — multiplies every clip's volume. */
+  masterVolume: number;
+  /** Master mute — overrides every clip's volume. */
+  masterMuted: boolean;
+  /** Per-track volume (V1=clip video audio, A1/A2 scaffolding). */
+  trackVolumes: { V1: number; A1: number; A2: number };
+  /** Per-track mute. */
+  trackMuted: { V1: boolean; A1: boolean; A2: boolean };
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -321,4 +329,8 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   inSec: null,
   outSec: null,
   isRendering: false,
+  masterVolume: 1.0,
+  masterMuted: false,
+  trackVolumes: { V1: 1.0, A1: 1.0, A2: 1.0 },
+  trackMuted: { V1: false, A1: false, A2: false },
 };

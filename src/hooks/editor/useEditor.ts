@@ -50,6 +50,10 @@ import {
   addKeyframeAtPlayhead,
   removeKeyframe,
   clearKeyframes,
+  setMasterVolume,
+  setMasterMuted,
+  setTrackVolume,
+  setTrackMuted,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -98,5 +102,9 @@ export function useEditor() {
     addKeyframeAtPlayhead,
     removeKeyframe,
     clearKeyframes,
+    setMasterVolume,
+    setMasterMuted,
+    setTrackVolume,
+    setTrackMuted,
   };
 }

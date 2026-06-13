@@ -17,6 +17,7 @@ import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
 import { ASPECT_RATIOS, getClipProperty, getClipPropertyAt } from "@/lib/editor/types";
 import { setPlayhead } from "@/lib/editor/store";
+import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
   project: EditorProject;
@@ -245,6 +246,7 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const reducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [monitorMode, setMonitorMode] = useState<MonitorMode>("program");
+  const { masterVolume, masterMuted, trackVolumes, trackMuted } = useEditor();
 
   const allClips: EditorClip[] = useMemo(() => project.scenes.flatMap((s) => s.clips), [project]);
   const clips = useMemo(() => allClips.filter((c) => c.kind !== "title"), [allClips]);
@@ -289,9 +291,11 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
       const liveScale = getClipPropertyAt(activeClip, "scale", rel);
       const mirror = getClipProperty(activeClip, "mirror");
       v.style.transform = `scale(${liveScale})${mirror ? " scaleX(-1)" : ""}`;
-      // Keyframed volume — clamped to HTMLVideoElement's 0..1 range.
+      // Keyframed volume — composes with master and V1-track volume.
+      // V1 is the video clip's audio track in our model.
       const liveVol = getClipPropertyAt(activeClip, "volume", rel);
-      v.volume = Math.max(0, Math.min(1, liveVol));
+      const effective = liveVol * trackVolumes.V1 * masterVolume;
+      v.volume = Math.max(0, Math.min(1, effective));
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
@@ -327,20 +331,33 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }
   }, [playheadSec, activeClip]);
 
-  // Apply per-clip volume + mute + solo + speed
+  // Apply per-clip / per-track / master volume + mute + speed
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !activeClip) return;
-    v.volume = Math.max(0, Math.min(1, getClipProperty(activeClip, "volume")));
+    v.volume = Math.max(
+      0,
+      Math.min(
+        1,
+        getClipProperty(activeClip, "volume") *
+          trackVolumes.V1 *
+          masterVolume,
+      ),
+    );
     v.playbackRate = Math.max(0.1, Math.min(4, getClipProperty(activeClip, "speed")));
 
-    // Solo logic — if any clip in the project is soloed and THIS
-    // clip isn't, mute its audio. Solo overrides per-clip volume.
+    // Solo logic + mute composition: any per-clip / per-track / master
+    // mute kills the audio. Solo (per-clip) overrides — when any
+    // clip is soloed, non-soloed clips mute.
     const anySoloed = allClips.some((c) => getClipProperty(c, "soloed"));
     const isThisSoloed = getClipProperty(activeClip, "soloed");
     const explicitMute = getClipProperty(activeClip, "muted");
-    v.muted = explicitMute || (anySoloed && !isThisSoloed);
-  }, [activeClip, allClips]);
+    v.muted =
+      masterMuted ||
+      trackMuted.V1 ||
+      explicitMute ||
+      (anySoloed && !isThisSoloed);
+  }, [activeClip, allClips, trackVolumes, trackMuted, masterVolume, masterMuted]);
 
   const togglePlay = () => {
     const v = videoRef.current;

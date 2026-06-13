@@ -41,6 +41,8 @@ import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { StatusBar } from "./components/StatusBar";
 import { MarkersPanel } from "./components/MarkersPanel";
 import { EffectsPalette } from "./components/EffectsPalette";
+import { AudioMixer } from "./components/AudioMixer";
+import { switchActiveTake } from "@/lib/editor/store";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -77,6 +79,7 @@ export function EditorShell() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [markersPanelOpen, setMarkersPanelOpen] = useState(false);
   const [effectsOpen, setEffectsOpen] = useState(false);
+  const [mixerOpen, setMixerOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -180,6 +183,36 @@ export function EditorShell() {
       if (e.key === "f" || e.key === "F") {
         e.preventDefault();
         setEffectsOpen((o) => !o);
+        return;
+      }
+      if (e.key === "x" || e.key === "X") {
+        e.preventDefault();
+        setMixerOpen((o) => !o);
+        return;
+      }
+      // Multicam — Shift+1..9 switches the active take of the
+      // selected clip. Shift is required because plain 1/4 are
+      // focus-mode keys. Useful for quickly comparing takes during
+      // playback without opening the Inspector.
+      if (
+        e.shiftKey &&
+        /^Digit[1-9]$/.test(e.code) &&
+        selectedClipId &&
+        project
+      ) {
+        const angleIdx = parseInt(e.code.slice(-1), 10) - 1;
+        const clip = project.scenes
+          .flatMap((s) => s.clips)
+          .find((c) => c.id === selectedClipId);
+        const target = clip?.takes[angleIdx];
+        if (clip && target && target.videoUrl) {
+          e.preventDefault();
+          switchActiveTake(clip.id, target.id);
+          toast.message(
+            `Take ${target.takeNumber} — angle ${angleIdx + 1}`,
+            { description: target.promptUsed ?? undefined },
+          );
+        }
         return;
       }
       if (e.key === "c" || e.key === "C") {
@@ -364,6 +397,13 @@ export function EditorShell() {
           onClose={() => setEffectsOpen(false)}
         />
       )}
+
+      {/* Audio mixer — X to toggle */}
+      <AudioMixer
+        open={mixerOpen}
+        onClose={() => setMixerOpen(false)}
+        isPlaying={false /* TODO: lift isPlaying state from PlayerCanvas */}
+      />
     </div>
   );
 }

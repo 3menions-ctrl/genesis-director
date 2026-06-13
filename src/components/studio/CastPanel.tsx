@@ -16,7 +16,7 @@
  * localStorage and surfaced via the avatar template selectors so the
  * director can swap leads with one click.
  */
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users as UsersIcon,
@@ -33,6 +33,13 @@ import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 
 export function CastPanel({ className }: { className?: string }) {
   const { cast, remove, clear, reorder } = useCast();
+  const navigate = useNavigate();
+
+  // Single helper so every "go cast" path in this panel uses one
+  // programmatic navigation call — react-router <Link> can swallow
+  // clicks when the panel is rendered inside CreationHub's nested DOM
+  // tree, so we side-step that with an explicit button + navigate().
+  const goCast = () => navigate("/avatars");
 
   // Promote a cast member to lead (position 0) — drives which avatar
   // CreationHub pre-selects for the generation request.
@@ -78,8 +85,9 @@ export function CastPanel({ className }: { className?: string }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Link
-            to="/avatars"
+          <button
+            type="button"
+            onClick={goCast}
             className={cn(
               "group inline-flex items-center gap-1.5 h-8 px-3 rounded-full",
               "border border-border/40 bg-[hsl(var(--foreground)/0.02)]",
@@ -93,7 +101,7 @@ export function CastPanel({ className }: { className?: string }) {
               className="h-3 w-3 text-accent transition-transform group-hover:translate-x-0.5"
               strokeWidth={1.5}
             />
-          </Link>
+          </button>
           {cast.length > 0 && (
             <button
               onClick={clear}
@@ -108,7 +116,7 @@ export function CastPanel({ className }: { className?: string }) {
       {/* Body */}
       <div className="p-5">
         {cast.length === 0 ? (
-          <EmptyState />
+          <EmptyState onCast={goCast} />
         ) : (
           <ul
             className="flex items-stretch gap-3 overflow-x-auto scrollbar-hide -mx-1 px-1 py-1"
@@ -289,14 +297,15 @@ function MiniFrame({
 // ─────────────────────────────────────────────────────────────────────────────
 // EmptyState — quiet glass invitation
 // ─────────────────────────────────────────────────────────────────────────────
-function EmptyState() {
+function EmptyState({ onCast }: { onCast: () => void }) {
   return (
-    <Link
-      to="/avatars"
+    <button
+      type="button"
+      onClick={onCast}
       className={cn(
-        "group block rounded-xl border border-dashed border-border/40 bg-[hsl(var(--foreground)/0.015)]",
-        "px-5 py-6 text-center transition-all",
-        "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.04)]",
+        "group block w-full rounded-xl border border-dashed border-border/40 bg-[hsl(var(--foreground)/0.015)]",
+        "px-5 py-6 text-center transition-all cursor-pointer",
+        "hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.04)] focus:outline-none focus:border-accent/60",
       )}
     >
       <UsersIcon
@@ -313,6 +322,6 @@ function EmptyState() {
           strokeWidth={1.5}
         />
       </span>
-    </Link>
+    </button>
   );
 }

@@ -89,7 +89,13 @@ function AvatarsContent() {
   const { user } = useAuth();
 
   // useAvatarTemplatesQuery returns isLoading (not loading) + error as string.
-  const { templates, isLoading, error } = useAvatarTemplatesQuery();
+  // Pass includePlaceholders so the browse vault shows every active row —
+  // OptimizedAvatarImage handles missing image URLs with a shimmer fallback,
+  // so rows mid-processing still surface their name + metadata.
+  const { templates, isLoading, error } = useAvatarTemplatesQuery(
+    undefined,
+    { includePlaceholders: true },
+  );
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");

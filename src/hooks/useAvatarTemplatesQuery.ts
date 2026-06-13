@@ -43,6 +43,20 @@ async function fetchAvatarTemplates(): Promise<AvatarTemplate[]> {
   }
 }
 
+interface QueryOptions {
+  /**
+   * When false (default), rows whose face_image_url still contains a
+   * placeholder marker are dropped — the Studio selectors don't want to
+   * surface unprocessed seeds.
+   *
+   * When true, every active row is returned regardless of image state.
+   * The Avatars browse vault uses this so the entire 500+ catalog is
+   * visible; OptimizedAvatarImage handles missing/failed loads with a
+   * shimmer fallback so the UI never blanks.
+   */
+  includePlaceholders?: boolean;
+}
+
 /**
  * React Query hook for avatar templates with:
  * - Automatic caching across navigation
@@ -50,8 +64,12 @@ async function fetchAvatarTemplates(): Promise<AvatarTemplate[]> {
  * - Deduplication of concurrent requests
  * - Background refetching
  */
-export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
+export function useAvatarTemplatesQuery(
+  filter?: AvatarTemplateFilter,
+  options?: QueryOptions,
+) {
   const queryClient = useQueryClient();
+  const includePlaceholders = options?.includePlaceholders ?? false;
 
   const {
     data,
@@ -79,12 +97,15 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
     if (!Array.isArray(data)) return [];
     return data.filter(item => {
       if (!item || typeof item !== 'object' || !item.id) return false;
-      // Filter out placeholder images — only show avatars with real uploaded images
-      const url = item.face_image_url || '';
-      if (url.includes('placehold.co') || url.includes('placeholder')) return false;
+      if (!includePlaceholders) {
+        // Filter out placeholder images — only show avatars with real uploaded images.
+        // The Studio selectors want this to skip unprocessed seeds.
+        const url = item.face_image_url || '';
+        if (url.includes('placehold.co') || url.includes('placeholder')) return false;
+      }
       return true;
     });
-  }, [data]);
+  }, [data, includePlaceholders]);
   
   // Debug logging for navigation issues
   useEffect(() => {

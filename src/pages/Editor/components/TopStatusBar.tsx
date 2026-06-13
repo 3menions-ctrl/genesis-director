@@ -12,7 +12,7 @@
  *   - Aspect ratio + duration pill (typography only) on the far right
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch } from "lucide-react";
+import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { EditorProject, EditorView } from "@/lib/editor/types";
@@ -27,6 +27,7 @@ interface Props {
   onToggleComments: () => void;
   onOpenDirector?: () => void;
   onOpenVersions?: () => void;
+  onOpenLibrary?: () => void;
   presenceCount: number;
 }
 
@@ -45,6 +46,7 @@ export function TopStatusBar({
   onToggleComments,
   onOpenDirector,
   onOpenVersions,
+  onOpenLibrary,
   presenceCount,
 }: Props) {
   return (
@@ -135,6 +137,24 @@ export function TopStatusBar({
                   <span className="font-mono text-[12.5px] tabular-nums">{presenceCount}</span>
                   <span className={cn(TYPE_META, "text-muted-foreground/55")}>viewing</span>
                 </div>
+              )}
+              {onOpenLibrary && (
+                <button
+                  type="button"
+                  onClick={onOpenLibrary}
+                  className="group/lib inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-accent transition-colors"
+                  aria-label="Studio library (Shift+L)"
+                >
+                  <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span className="relative">
+                    Library
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/lib:scale-x-100"
+                    />
+                  </span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧L</span>
+                </button>
               )}
               {onOpenDirector && (
                 <button

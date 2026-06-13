@@ -32,7 +32,13 @@ import {
   setInPoint,
   setOutPoint,
   clearInOut,
+  applyEffectToClips,
+  applyProjectTemplate,
 } from "@/lib/editor/store";
+import {
+  PREMIUM_EFFECTS,
+  PROJECT_TEMPLATES,
+} from "@/lib/editor/library";
 import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
@@ -118,6 +124,55 @@ export function DirectorChat({ project, open, onClose }: Props) {
         return count > 0
           ? `Applied ${kindRaw} (${dur.toFixed(2)}s) at ${count} boundaries.`
           : "No boundaries to apply a transition between.";
+      }
+    }
+
+    // Studio Library — "apply the wedding template" / "grade with teal & orange"
+    {
+      const templateMatch = p.match(
+        /(?:apply|use|do)\s+(?:the\s+)?(.+?)\s+(?:template|recipe|preset)/,
+      );
+      if (templateMatch) {
+        const needle = templateMatch[1].toLowerCase();
+        const t = PROJECT_TEMPLATES.find(
+          (x) =>
+            x.name.toLowerCase().includes(needle) ||
+            needle.includes(x.name.toLowerCase()) ||
+            x.id.includes(needle.replace(/\s+/g, "-")),
+        );
+        if (t) {
+          const effect = t.effectId
+            ? PREMIUM_EFFECTS.find((e) => e.id === t.effectId)
+            : undefined;
+          const result = applyProjectTemplate({
+            filter: effect?.cssFilter,
+            fadeInSec: t.clipFades.fadeInSec,
+            fadeOutSec: t.clipFades.fadeOutSec,
+            transitionKind: t.transition.kind,
+            transitionDurationSec: t.transition.durationSec,
+            playbackSpeed: t.playbackSpeed,
+          });
+          return `Applied ${t.name} — ${result.clipsTouched} clips, ${result.boundariesTouched} transitions, ${t.playbackSpeed}× playback.`;
+        }
+      }
+    }
+    {
+      const gradeMatch = p.match(
+        /(?:grade|color|apply|look like|in the look of)\s+(?:with|like|using)?\s+(.+)/,
+      );
+      if (gradeMatch) {
+        const needle = gradeMatch[1].toLowerCase();
+        const e = PREMIUM_EFFECTS.find(
+          (x) =>
+            x.name.toLowerCase().includes(needle) ||
+            needle.includes(x.name.toLowerCase()) ||
+            x.attribution.toLowerCase().includes(needle) ||
+            x.id.includes(needle.replace(/\s+/g, "-")),
+        );
+        if (e) {
+          applyEffectToClips(e.cssFilter);
+          return `Graded with ${e.name} — ${e.attribution}.`;
+        }
       }
     }
 

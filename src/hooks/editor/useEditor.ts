@@ -65,6 +65,8 @@ import {
   toggleTheaterMode,
   setTheaterMode,
   setFullscreen,
+  applyEffectToClips,
+  applyProjectTemplate,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -128,5 +130,7 @@ export function useEditor() {
     toggleTheaterMode,
     setTheaterMode,
     setFullscreen,
+    applyEffectToClips,
+    applyProjectTemplate,
   };
 }

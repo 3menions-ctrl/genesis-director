@@ -13,6 +13,7 @@
  */
 import type {
   AnimatableProperty,
+  ClipProperties,
   ClipTransition,
   EditorClip,
   EditorMarker,
@@ -1079,6 +1080,103 @@ export function setFullscreen(on: boolean): void {
   if (state.isFullscreen === on) return;
   set({ isFullscreen: on });
 }
+
+// ─── Studio Library — premium effects + project templates ───────────
+/**
+ * Apply a cinematic effect (CSS filter recipe) to every clip in
+ * `clipIds`. When `clipIds` is empty/undefined, applies to the whole
+ * V1 chain — the "let the director pick the look once" gesture. One
+ * history entry per call regardless of clip count.
+ */
+export function applyEffectToClips(filter: string, clipIds?: string[]): boolean {
+  if (!state.project) return false;
+  const targetSet = clipIds && clipIds.length > 0 ? new Set(clipIds) : null;
+  let touched = 0;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) => {
+        if (c.kind === "title") return c;
+        if (targetSet && !targetSet.has(c.id)) return c;
+        touched += 1;
+        return {
+          ...c,
+          properties: { ...(c.properties ?? {}), filter },
+        };
+      }),
+    })),
+  };
+  if (touched === 0) return false;
+  historize(project, undefined, `effect:apply`);
+  return true;
+}
+
+/**
+ * Apply a project template — sweeping recipe across the whole film:
+ *   1. Set every V1 clip's filter to the template's effect (if any)
+ *      and its per-clip fadeIn/fadeOut.
+ *   2. Replace every boundary transition with the template's
+ *      kind+duration.
+ *   3. Set master playbackSpeed.
+ *
+ * Single history entry so the user can A/B the whole template with
+ * one undo. Returns the count of boundaries that got a transition.
+ */
+export function applyProjectTemplate(input: {
+  filter?: string;
+  fadeInSec: number;
+  fadeOutSec: number;
+  transitionKind: TransitionKind;
+  transitionDurationSec: number;
+  playbackSpeed: number;
+}): { clipsTouched: number; boundariesTouched: number } {
+  if (!state.project) return { clipsTouched: 0, boundariesTouched: 0 };
+  let clipsTouched = 0;
+  const updatedScenes = state.project.scenes.map((s) => ({
+    ...s,
+    clips: s.clips.map((c) => {
+      if (c.kind === "title") return c;
+      clipsTouched += 1;
+      const props: ClipProperties = {
+        ...(c.properties as ClipProperties | undefined ?? ({} as ClipProperties)),
+      } as ClipProperties;
+      if (input.filter !== undefined) props.filter = input.filter;
+      props.fadeInSec = input.fadeInSec;
+      props.fadeOutSec = input.fadeOutSec;
+      return { ...c, properties: { ...c.properties, ...props } };
+    }),
+  }));
+
+  // Build a transition for every V1 boundary.
+  const v1Clips = updatedScenes
+    .flatMap((s) => s.clips)
+    .filter((c) => c.kind !== "title");
+  const transitions: ClipTransition[] = [];
+  for (let i = 0; i < v1Clips.length - 1; i++) {
+    const from = v1Clips[i];
+    const to = v1Clips[i + 1];
+    const maxDur = Math.max(0.05, Math.min(from.durationSec, to.durationSec) / 2);
+    const id = `xfade-template-${i}-${Math.floor(performance.now())}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+    transitions.push({
+      id,
+      fromClipId: from.id,
+      toClipId: to.id,
+      kind: input.transitionKind,
+      durationSec: Math.max(0.05, Math.min(maxDur, input.transitionDurationSec)),
+    });
+  }
+
+  const project: EditorProject = {
+    ...state.project,
+    scenes: updatedScenes,
+    transitions,
+  };
+  const playbackSpeed = Math.max(0.05, Math.min(8, input.playbackSpeed));
+  historize(project, { playbackSpeed }, `template:apply`);
+  return { clipsTouched, boundariesTouched: transitions.length };
+}
+
 
 /** Remove a clip from the timeline. Ripple closes the gap. */
 export function deleteClip(clipId: string): void {

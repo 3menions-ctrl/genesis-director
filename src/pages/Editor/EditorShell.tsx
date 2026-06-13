@@ -56,6 +56,7 @@ const EMPTY_PROJECT: EditorProject = {
 import { ExportPanel } from "./components/ExportPanel";
 import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
+import { StudioLibrary } from "./components/StudioLibrary";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -114,6 +115,7 @@ export function EditorShell() {
   const [mixerOpen, setMixerOpen] = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -297,6 +299,12 @@ export function EditorShell() {
         setVersionsOpen((o) => !o);
         return;
       }
+      // Shift+L — open the Studio Library (curated effects + templates).
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "L")) {
+        e.preventDefault();
+        setLibraryOpen((o) => !o);
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -320,6 +328,7 @@ export function EditorShell() {
           onToggleComments={() => setCommentsOpen((o) => !o)}
           onOpenDirector={() => setDirectorOpen(true)}
           onOpenVersions={() => setVersionsOpen(true)}
+          onOpenLibrary={() => setLibraryOpen(true)}
           presenceCount={presence.count}
         />
 
@@ -516,6 +525,12 @@ export function EditorShell() {
       <VersionsPanel
         open={versionsOpen}
         onClose={() => setVersionsOpen(false)}
+      />
+
+      {/* Studio Library — Shift+L */}
+      <StudioLibrary
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
       />
     </div>
   );

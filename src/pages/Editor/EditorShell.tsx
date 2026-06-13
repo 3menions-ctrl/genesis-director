@@ -57,6 +57,7 @@ import { ExportPanel } from "./components/ExportPanel";
 import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
+import { Surface } from "./components/Surface";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -545,40 +546,18 @@ function ScriptModal({
   onClose: () => void;
   project: import("@/lib/editor/types").EditorProject;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-      onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
   return (
-    <>
-      <div
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.55)] backdrop-blur-sm"
-      />
-      <div
-        role="dialog"
-        aria-label="Script"
-        className={cn(
-          "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-          "w-[min(900px,92vw)] h-[min(78vh,820px)] overflow-hidden flex flex-col",
-          "rounded-3xl border border-white/[0.08]",
-          "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
-          "shadow-[0_60px_140px_-30px_hsl(0_0%_0%/0.85)]",
-        )}
-      >
-        <Script project={project} />
-      </div>
-    </>
+    <Surface
+      open={open}
+      onClose={onClose}
+      size="xl"
+      // The screenplay editor wants Esc for its own use (close
+      // a slug-line edit etc), but Surface's default Esc is fine
+      // here — the inner editor doesn't actually consume Esc yet.
+      className="!h-[min(78vh,820px)]"
+    >
+      <Script project={project} />
+    </Surface>
   );
 }
 

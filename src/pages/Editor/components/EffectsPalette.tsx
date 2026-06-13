@@ -8,11 +8,10 @@
  * to every clip in selectedClipIds, so multi-selected clips all
  * grade together — useful for shot-matching across a scene.
  */
-import { useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Wand2, X, Sparkles, FlipHorizontal2, Gauge, Layers } from "lucide-react";
+import { Sparkles, Gauge, Layers, FlipHorizontal2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
+import { Surface, SurfaceHeader, SurfaceBody, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 import type { EditorProject } from "@/lib/editor/types";
 import { setClipProperty } from "@/lib/editor/store";
 import { toast } from "sonner";
@@ -139,20 +138,6 @@ const TRANSITIONS: Preset[] = [
 
 export function EffectsPalette({ project, selectedClipIds, open, onClose }: Props) {
   void project;
-  const reducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const t = e.target as HTMLElement | null;
-      const tag = t?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-      onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
 
   const apply = (preset: Preset) => {
     if (selectedClipIds.length === 0) {
@@ -173,62 +158,28 @@ export function EffectsPalette({ project, selectedClipIds, open, onClose }: Prop
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
-          transition={{ duration: 0.3, ease: EASE_PREMIUM }}
-          className={cn(
-            "fixed bottom-12 left-1/2 -translate-x-1/2 z-40",
-            "w-[min(680px,calc(100vw-1.5rem))] max-h-[68vh] flex flex-col",
-            "rounded-2xl border border-white/[0.07]",
-            "bg-[hsl(220_30%_4%/0.88)] backdrop-blur-2xl",
-            "shadow-[0_40px_100px_-30px_hsl(0_0%_0%/0.8)]",
-          )}
-        >
-          <header className="shrink-0 px-6 pt-5 pb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                <Wand2 className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-                <span>◆ Effects · {selectedClipIds.length} {selectedClipIds.length === 1 ? "clip" : "clips"} selected</span>
-              </div>
-              <h3
-                className="mt-1 font-display italic text-[clamp(1.2rem,1.9vw,1.6rem)] font-light tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
-                  Looks · motion · transitions.
-                </span>
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              aria-label="Close effects"
-            >
-              <X className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </header>
-
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-5 space-y-5">
-            <PresetGroup title="Looks" Icon={Sparkles} presets={LOOKS} apply={apply} kind="look" />
-            <PresetGroup title="Motion" Icon={Gauge} presets={MOTION} apply={apply} kind="motion" />
-            <PresetGroup title="Transitions" Icon={Layers} presets={TRANSITIONS} apply={apply} kind="transition" />
-          </div>
-
-          <footer className="shrink-0 px-6 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11.5px] text-muted-foreground/55">
-            <span>Multi-select first, then apply — every clip gets the same patch.</span>
-            <span className="flex items-center gap-1.5">
-              <Kbd>F</Kbd> <span>toggle</span>
-              <Kbd>Esc</Kbd> <span>close</span>
-            </span>
-          </footer>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    <Surface open={open} onClose={onClose} size="md">
+      <SurfaceHeader
+        eyebrow={`◆ Effects · ${selectedClipIds.length} ${selectedClipIds.length === 1 ? "clip" : "clips"} selected`}
+        title="Looks · motion · transitions."
+        description="Multi-select first, then apply — every clip gets the same patch."
+        onClose={onClose}
+      />
+      <SurfaceBody>
+        <div className="space-y-5">
+          <PresetGroup title="Looks" Icon={Sparkles} presets={LOOKS} apply={apply} kind="look" />
+          <PresetGroup title="Motion" Icon={Gauge} presets={MOTION} apply={apply} kind="motion" />
+          <PresetGroup title="Transitions" Icon={Layers} presets={TRANSITIONS} apply={apply} kind="transition" />
+        </div>
+      </SurfaceBody>
+      <SurfaceFooter>
+        <span>For curated cinematic looks, use the Studio Library (⇧L).</span>
+        <span className="flex items-center gap-1.5">
+          <SurfaceKbdHint keys="F" label="toggle" />
+          <SurfaceKbdHint keys="Esc" label="close" />
+        </span>
+      </SurfaceFooter>
+    </Surface>
   );
 }
 
@@ -302,16 +253,3 @@ function PresetGroup({
   );
 }
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1",
-        "font-mono text-[10px] tabular-nums",
-        "rounded border border-white/[0.10] bg-white/[0.03] text-foreground/85",
-      )}
-    >
-      {children}
-    </span>
-  );
-}

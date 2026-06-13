@@ -12,10 +12,8 @@
  * we split audio playback in a later commit. Master mutes / fades
  * the entire bus regardless of clip settings.
  */
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useRef, useState } from "react";
 import {
-  X,
   Volume2,
   VolumeX,
   Sliders,
@@ -24,8 +22,9 @@ import {
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
+import { Surface, SurfaceHeader, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 
 interface Props {
   open: boolean;
@@ -58,7 +57,6 @@ function toDb(linear: number): string {
 }
 
 export function AudioMixer({ open, onClose }: Props) {
-  const reducedMotion = useReducedMotion();
   const {
     masterVolume,
     masterMuted,
@@ -70,19 +68,6 @@ export function AudioMixer({ open, onClose }: Props) {
     setTrackVolume,
     setTrackMuted,
   } = useEditor();
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const t = e.target as HTMLElement | null;
-      const tag = t?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-      onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
 
   const valueFor = (id: TrackId) =>
     id === "MASTER" ? masterVolume : trackVolumes[id as "V1" | "A1" | "A2"];
@@ -101,69 +86,33 @@ export function AudioMixer({ open, onClose }: Props) {
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
-          transition={{ duration: 0.3, ease: EASE_PREMIUM }}
-          className={cn(
-            "fixed bottom-12 right-3 z-40",
-            "w-[min(380px,calc(100vw-1.5rem))] flex flex-col",
-            "rounded-2xl border border-white/[0.07]",
-            "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
-            "shadow-[0_40px_100px_-30px_hsl(0_0%_0%/0.8)]",
-          )}
-        >
-          <header className="shrink-0 px-5 pt-4 pb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                <Sliders className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-                <span>◆ Mixer</span>
-              </div>
-              <h3
-                className="mt-0.5 font-display italic text-[16px] font-light tracking-tight text-foreground/95"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                Channels · master.
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              aria-label="Close mixer"
-            >
-              <X className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </header>
-
-          <div className="px-3 pb-4">
-            <div className="grid grid-cols-4 gap-2">
-              {STRIPS.map((strip) => (
-                <ChannelStrip
-                  key={strip.id}
-                  strip={strip}
-                  value={valueFor(strip.id)}
-                  muted={mutedFor(strip.id)}
-                  isPlaying={isPlaying}
-                  onValueChange={(v) => setValue(strip.id, v)}
-                  onToggleMute={() => toggleMute(strip.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <footer className="shrink-0 px-5 py-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-muted-foreground/55">
-            <span>V1 = video clip audio · A1/A2 visual scaffolding</span>
-            <span className="flex items-center gap-1.5">
-              <Kbd>X</Kbd> <span>toggle</span>
-            </span>
-          </footer>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    <Surface open={open} onClose={onClose} size="sm">
+      <SurfaceHeader
+        eyebrow="◆ Mixer"
+        title="Channels · master."
+        description="V1 = video clip audio. A1 / A2 are visual scaffolding for incoming dialog + music buses."
+        onClose={onClose}
+      />
+      <div className="shrink-0 px-4 pt-3 pb-5">
+        <div className="grid grid-cols-4 gap-2">
+          {STRIPS.map((strip) => (
+            <ChannelStrip
+              key={strip.id}
+              strip={strip}
+              value={valueFor(strip.id)}
+              muted={mutedFor(strip.id)}
+              isPlaying={isPlaying}
+              onValueChange={(v) => setValue(strip.id, v)}
+              onToggleMute={() => toggleMute(strip.id)}
+            />
+          ))}
+        </div>
+      </div>
+      <SurfaceFooter>
+        <span>Master mutes the entire bus regardless of clip settings</span>
+        <SurfaceKbdHint keys="X" label="toggle" />
+      </SurfaceFooter>
+    </Surface>
   );
 }
 
@@ -332,16 +281,3 @@ function ChannelStrip({
   );
 }
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1",
-        "font-mono text-[10px] tabular-nums",
-        "rounded border border-white/[0.10] bg-white/[0.03] text-foreground/85",
-      )}
-    >
-      {children}
-    </span>
-  );
-}

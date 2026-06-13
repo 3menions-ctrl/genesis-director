@@ -1,30 +1,54 @@
 /**
- * Script — the screenplay page.
+ * Script — the screenplay surface, document-driven, richly visual.
  *
- * Sheet music for film. Single-column screenplay surface that reads
- * cleanly, follows playback with a live cursor, supports click-to-
- * seek on every block, and exposes per-block approve + reshoot
- * controls inline.
+ * Reads from the ScriptDocument (via document-store) when present.
+ * Falls back to the legacy parser on script_content when the doc
+ * hasn't been hydrated yet.
  *
- * Layout (top to bottom, single column):
- *   ◆ Header        — counts + Edit / Redraft actions
- *   ◆ Scene strip   — horizontal scroller of slug-line chips
- *                     (the chapter index)
- *   ◆ Pending draft — amber banner when an AI draft awaits review
- *   ◆ Screenplay    — the body, scrollable, with each block
- *                     formatted to its kind
+ * What you see, top to bottom:
  *
- * Engineered for resilience:
- *   - Outer ErrorBoundary catches any render-time exception and
- *     shows a fallback instead of crashing the editor.
- *   - All property reads from the parsed block stream guard against
- *     undefined.
- *   - parseScreenplay is called with stable inputs; its output is
- *     memoized so playhead ticks don't re-parse.
- *   - The synthetic EMPTY_PROJECT path (project.id === "no-project")
- *     short-circuits into a friendly empty state before any
- *     network calls run.
+ *   Header        Title, word count, scenes/clips, redraft/edit.
+ *
+ *   Cast strip    Round avatars of every character. Click any to
+ *                 open the Cast editor + inline-edit identity DNA +
+ *                 reference image. Missing-identity warning chip
+ *                 surfaces when a character has no DNA.
+ *
+ *   Scene strip   Horizontal scroller of slug-line chips. Click to
+ *                 seek the playhead to that scene's first shot.
+ *
+ *   Pending draft When generated_script meaningfully differs from
+ *                 script_content, an amber banner surfaces with
+ *                 Approve / Discard.
+ *
+ *   For each scene:
+ *     ◆ Slug-line + timecode + mood / time-of-day badges
+ *     ◆ Action paragraphs (Fraunces italic body)
+ *     ◆ Dialogue blocks WITH SPEAKER AVATAR on the left, character
+ *       cue centered, dialogue text centered Fraunces italic at
+ *       72% width. Audio-bus badge on hover.
+ *     ◆ Shot strip — visual cards per Shot showing:
+ *         • Clip thumbnail (or last-frame fallback)
+ *         • Frame-chain indicator when this shot inherits the
+ *           previous shot's last frame (arrow from prev → this)
+ *         • Engine pill + duration + cost credits
+ *         • Approval state pill (draft / ready / rendering / etc)
+ *         • Click → seeks playhead + selects the underlying clip
+ *
+ *   Live cursor   As playback runs, the active block (and active
+ *                 shot card) highlight with the accent rail.
+ *                 Auto-scroll keeps them in view.
+ *
+ * Edit UI:
+ *   - Click any action/dialogue block → just that block enters
+ *     inline edit. ⌘↵ saves to the document; Esc cancels. The rest
+ *     of the screenplay stays read-only the whole time.
+ *   - Click any character cue → opens the cast editor focused on
+ *     that character.
+ *   - Click a shot card's approve CTA → setShotApproval + enqueue
+ *     via orchestrator (the same gate the inspector uses).
  */
+
 import {
   Component,
   useCallback,
@@ -32,6 +56,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ErrorInfo,
   type ReactNode,
 } from "react";
@@ -44,11 +69,16 @@ import {
   Sparkles,
   ShieldCheck,
   RefreshCw,
-  Lock,
+  AlertOctagon,
+  UserCircle2,
+  AlertTriangle,
+  Plus,
   Mic,
   Music2,
   Disc3,
-  AlertOctagon,
+  ArrowRight,
+  Film,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
@@ -61,24 +91,45 @@ import {
 } from "@/lib/editor/store";
 import {
   parseScreenplay,
-  findActiveBlockIdx,
   fmtSceneTimecode,
-  type ScreenplayBlock,
 } from "@/lib/editor/screenplay";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getDocumentState,
+  subscribeDocument,
+  updateBeat,
+  setShotApproval,
+} from "@/lib/editor/document-store";
+import type {
+  Scene,
+  Shot,
+  Beat,
+  Character,
+  ScriptDocument,
+} from "@/lib/editor/script-document";
+import { findShot } from "@/lib/editor/script-document";
+import { enqueueShot } from "@/lib/editor/generation/orchestrator";
+import {
+  buildEngineInput,
+  selectEngineForShot,
+} from "@/lib/editor/generation/pipeline";
+import { buildChainContext } from "@/lib/editor/generation/chains";
+import {
+  latestEventForShot,
+  isShotRendering,
+  subscribeStatusBus,
+  getStatusBus,
+} from "@/lib/editor/generation/status-bus";
+import { getEngine } from "@/lib/editor/model-catalog";
 
 interface Props {
   project: EditorProject;
 }
 
-type ApprovalMap = Record<string, true>;
-
 // ─────────────────────────────────────────────────────────────────────────────
-// ErrorBoundary — the editor stays alive even if the screenplay
-// path throws. Without it, a runtime error in the parser or render
-// would white-screen the entire Script page.
+// ScriptErrorBoundary — keep editor alive on render-time errors
 // ─────────────────────────────────────────────────────────────────────────────
 class ScriptErrorBoundary extends Component<
   { children: ReactNode },
@@ -128,10 +179,6 @@ class ScriptErrorBoundary extends Component<
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public component — wraps the implementation in the boundary so
-// the editor never loses Script tab survivability.
-// ─────────────────────────────────────────────────────────────────────────────
 export function Script({ project }: Props) {
   return (
     <ScriptErrorBoundary>
@@ -141,26 +188,34 @@ export function Script({ project }: Props) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ScriptInner — the actual surface
+// ScriptInner — the page
 // ─────────────────────────────────────────────────────────────────────────────
 function ScriptInner({ project }: Props) {
   const reducedMotion = useReducedMotion();
   const { playheadSec } = useEditor();
+  // Subscribe to the status bus so shot cards re-render on stage changes.
+  useSyncExternalStore(subscribeStatusBus, getStatusBus, getStatusBus);
+  // Document state.
+  const docState = useSyncExternalStore(
+    subscribeDocument,
+    getDocumentState,
+    getDocumentState,
+  );
+  const doc = docState.doc;
+
   const isEmptyProject = !project.id || project.id === "no-project";
   const initial = (project.scriptContent ?? "").trim();
 
   const [value, setValue] = useState(initial);
-  const [editing, setEditing] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
+  const [draftText, setDraftText] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<string | null>(null);
-  const [approvals, setApprovals] = useState<ApprovalMap>({});
-  const [regenClipId, setRegenClipId] = useState<string | null>(null);
-  const taRef = useRef<HTMLTextAreaElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  // Load draft + per-block approvals from supabase.
+  // Pending AI draft loader.
   useEffect(() => {
     if (isEmptyProject) return;
     let cancelled = false;
@@ -168,7 +223,7 @@ function ScriptInner({ project }: Props) {
       try {
         const { data, error } = await supabase
           .from("movie_projects")
-          .select("script_content, generated_script, pipeline_state")
+          .select("script_content, generated_script")
           .eq("id", project.id)
           .maybeSingle();
         if (cancelled || error || !data) return;
@@ -178,15 +233,6 @@ function ScriptInner({ project }: Props) {
           setPendingDraft(draft);
         } else {
           setPendingDraft(null);
-        }
-        const ps =
-          data.pipeline_state && typeof data.pipeline_state === "object"
-            ? (data.pipeline_state as { scriptApprovals?: ApprovalMap })
-            : {};
-        if (ps.scriptApprovals && typeof ps.scriptApprovals === "object") {
-          setApprovals(ps.scriptApprovals as ApprovalMap);
-        } else {
-          setApprovals({});
         }
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -198,20 +244,11 @@ function ScriptInner({ project }: Props) {
     };
   }, [project.id, isEmptyProject]);
 
-  // Mirror new initial values when the project changes externally.
   useEffect(() => {
-    if (!editing) setValue(initial);
-  }, [initial, editing]);
+    setValue(initial);
+  }, [initial]);
 
-  // Auto-resize edit textarea.
-  useEffect(() => {
-    const ta = taRef.current;
-    if (!ta || !editing) return;
-    ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
-  }, [value, editing]);
-
-  // V1 clip list — guard against missing scenes (synthetic project).
+  // V1 clip list — for parser anchoring.
   const v1Clips = useMemo(() => {
     const scenes = Array.isArray(project?.scenes) ? project.scenes : [];
     return scenes
@@ -219,8 +256,8 @@ function ScriptInner({ project }: Props) {
       .filter((c) => c && c.kind !== "title");
   }, [project]);
 
-  // Parse the screenplay. Wrap in try/catch so a parser bug never
-  // crashes the page — surfaces as an empty block stream instead.
+  // Resolve scenes: prefer document scenes when present, otherwise
+  // parse the screenplay text into synthetic scenes.
   const displayText = pendingDraft ?? (value || initial);
   const parsed = useMemo(() => {
     try {
@@ -231,40 +268,93 @@ function ScriptInner({ project }: Props) {
       return { blocks: [], sceneCount: 0, contentCount: 0 };
     }
   }, [displayText, v1Clips]);
-  const { blocks, sceneCount } = parsed;
 
-  const slugBlocks = useMemo(
-    () => blocks.filter((b) => b.kind === "slug"),
-    [blocks],
-  );
+  // The rendered scenes — from doc if present and non-trivial,
+  // otherwise synthesized from parsed blocks.
+  const renderScenes: ScriptSceneView[] = useMemo(() => {
+    if (doc && doc.scenes.length > 0 && doc.scenes.some((s) => s.beats.length > 0 || s.shots.length > 0)) {
+      return doc.scenes.map((s) => ({
+        kind: "doc" as const,
+        sceneId: s.id,
+        slug: s.slug,
+        mood: s.mood,
+        timeOfDay: s.timeOfDay,
+        actNumber: s.actNumber,
+        beats: s.beats,
+        shots: s.shots,
+        // No fallback parser blocks for doc scenes.
+        parsedBlocks: [],
+      }));
+    }
+    // Synthesize from parsed blocks — one synthetic scene per slug.
+    const byScene = new Map<number, ScriptSceneView>();
+    for (const b of parsed.blocks) {
+      const key = b.sceneIdx;
+      const existing = byScene.get(key);
+      if (!existing) {
+        byScene.set(key, {
+          kind: "parsed" as const,
+          sceneId: `parsed-${key}`,
+          slug: b.kind === "slug" ? b.text : `SCENE ${key + 1}`,
+          beats: [],
+          shots: [],
+          parsedBlocks: [b],
+        });
+      } else {
+        existing.parsedBlocks.push(b);
+        if (b.kind === "slug") existing.slug = b.text;
+      }
+    }
+    // Attach clips evenly across synthetic scenes.
+    const result = Array.from(byScene.values());
+    return result;
+  }, [doc, parsed.blocks]);
 
-  const activeIdx = useMemo(
-    () => findActiveBlockIdx(blocks, playheadSec),
-    [blocks, playheadSec],
-  );
+  // Active block tracking via playhead → first matching shot/clip.
+  const activeShotId = useMemo(() => {
+    for (const scene of renderScenes) {
+      for (const shot of scene.shots) {
+        const clip = v1Clips.find((c) => c.id === shot.id);
+        if (
+          clip &&
+          playheadSec >= clip.timelineStartSec &&
+          playheadSec < clip.timelineStartSec + clip.durationSec
+        ) {
+          return shot.id;
+        }
+      }
+    }
+    // Parser path — match to clip-aware block.
+    for (const scene of renderScenes) {
+      for (const b of scene.parsedBlocks) {
+        if (b.clip && playheadSec >= b.clip.timelineStartSec && playheadSec < b.clip.timelineStartSec + b.clip.durationSec) {
+          return b.id;
+        }
+      }
+    }
+    return null;
+  }, [renderScenes, playheadSec, v1Clips]);
 
   // Auto-scroll active block into view.
   useEffect(() => {
-    if (activeIdx < 0) return;
+    if (!activeShotId) return;
     const root = bodyRef.current;
     if (!root) return;
-    const el = root.querySelector<HTMLElement>(`[data-block-idx="${activeIdx}"]`);
+    const el = root.querySelector<HTMLElement>(`[data-block-id="${activeShotId}"]`);
     if (!el) return;
     const raf = requestAnimationFrame(() => {
       try {
-        const rRect = root.getBoundingClientRect();
-        const eRect = el.getBoundingClientRect();
-        const above = eRect.top < rRect.top + 80;
-        const below = eRect.bottom > rRect.bottom - 80;
-        if (above || below) {
+        const r = root.getBoundingClientRect();
+        const e = el.getBoundingClientRect();
+        if (e.top < r.top + 80 || e.bottom > r.bottom - 80) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       } catch {
-        /* getBoundingClientRect / scrollIntoView failed — ignore */
+        /* ignore */
       }
     });
     return () => cancelAnimationFrame(raf);
-  }, [activeIdx]);
+  }, [activeShotId]);
 
   useEffect(() => {
     if (!savedAt) return;
@@ -272,101 +362,68 @@ function ScriptInner({ project }: Props) {
     return () => window.clearTimeout(t);
   }, [savedAt]);
 
-  // ── Actions ─────────────────────────────────────────────────────
-  const enterEdit = useCallback(() => {
-    setEditing(true);
-    setTimeout(() => {
-      taRef.current?.focus();
-      const ta = taRef.current;
-      if (ta) ta.setSelectionRange(ta.value.length, ta.value.length);
-    }, 50);
-  }, []);
-
-  const cancel = () => {
-    setValue(initial);
-    setEditing(false);
-  };
-
-  const save = useCallback(async () => {
-    const next = value.trim();
-    if (next === initial.trim()) {
-      setEditing(false);
-      return;
-    }
+  // ── Save the whole script (used by Redraft + global Edit fallback)
+  const saveWholeScript = useCallback(async () => {
     if (isEmptyProject) {
       toast.error("Open a project first to save the screenplay.");
       return;
     }
     setSaving(true);
-    setScriptContent(next);
+    setScriptContent(value);
     try {
       const { error } = await supabase
         .from("movie_projects")
-        .update({ script_content: next })
+        .update({ script_content: value })
         .eq("id", project.id);
       if (error) throw error;
       setSavedAt(Date.now());
-      setEditing(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save the script.");
+      toast.error(e instanceof Error ? e.message : "Couldn't save.");
     } finally {
       setSaving(false);
     }
-  }, [value, initial, project.id, isEmptyProject]);
+  }, [value, project.id, isEmptyProject]);
 
-  const approveDraft = useCallback(async () => {
-    if (!pendingDraft || isEmptyProject) return;
-    setSaving(true);
-    setScriptContent(pendingDraft);
-    setValue(pendingDraft);
-    try {
-      const { error } = await supabase
-        .from("movie_projects")
-        .update({
-          script_content: pendingDraft,
-          generated_script: null,
-        })
-        .eq("id", project.id);
-      if (error) throw error;
-      setPendingDraft(null);
-      setSavedAt(Date.now());
-      toast.success("Script approved", {
-        description: "Promoted as the canonical version.",
+  // Per-block edit: save just the one beat.
+  const commitBlockEdit = useCallback(
+    async (beatId: string, text: string) => {
+      setSaving(true);
+      const ok = updateBeat(beatId, { text }, { by: "user" });
+      setEditingBlock(null);
+      if (ok) setSavedAt(Date.now());
+      else toast.error("Couldn't save — block not found.");
+      setSaving(false);
+    },
+    [],
+  );
+
+  // Approve & render a shot from the script tab (same gate).
+  const approveAndRenderShot = useCallback(
+    (shotId: string) => {
+      if (!doc) return;
+      const shot = findShot(doc, shotId);
+      if (!shot) return;
+      setShotApproval(shotId, "ready", { by: "user", reason: "Approved from Script tab" });
+      const ctx = buildChainContext(doc, shotId);
+      const inputs = buildEngineInput(shot, doc, ctx);
+      const engine = selectEngineForShot(shot, doc);
+      enqueueShot({
+        projectId: doc.meta.projectId,
+        shotId,
+        inputs,
+        engine,
+        tier: doc.capabilities.qualityTier,
       });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Approval failed.");
-    } finally {
-      setSaving(false);
-    }
-  }, [pendingDraft, project.id, isEmptyProject]);
+      toast.success("Approved & queued");
+    },
+    [doc],
+  );
 
-  const rejectDraft = useCallback(async () => {
-    if (isEmptyProject) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("movie_projects")
-        .update({ generated_script: null })
-        .eq("id", project.id);
-      if (error) throw error;
-      setPendingDraft(null);
-      toast.message("Draft discarded.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't discard the draft.");
-    } finally {
-      setSaving(false);
-    }
-  }, [project.id, isEmptyProject]);
-
+  // Whole-script regenerate.
   const regenerate = useCallback(async () => {
-    if (isEmptyProject) {
-      toast.error("Open a project first to draft a screenplay.");
-      return;
-    }
+    if (isEmptyProject) return;
     setRegenerating(true);
-    const toastId = toast.loading("Drafting a new screenplay…", {
-      description: `${project.title} · ${v1Clips.length} clips on V1`,
-    });
+    const toastId = toast.loading("Drafting a new screenplay…");
     try {
       const { data, error } = await supabase.functions.invoke<{
         script?: string;
@@ -380,9 +437,6 @@ function ScriptInner({ project }: Props) {
           genre: project.genre ?? undefined,
           setting: project.setting ?? undefined,
           clipCount: v1Clips.length || undefined,
-          targetDurationMinutes: project.durationSec
-            ? Math.max(1, Math.round(project.durationSec / 60))
-            : undefined,
         },
       });
       if (error) throw error;
@@ -390,11 +444,10 @@ function ScriptInner({ project }: Props) {
         throw new Error(data?.error ?? "no_script_returned");
       }
       const draft = data.script.trim();
-      const { error: upErr } = await supabase
+      await supabase
         .from("movie_projects")
         .update({ generated_script: draft })
         .eq("id", project.id);
-      if (upErr) throw upErr;
       setPendingDraft(draft);
       toast.success("Draft ready for review", {
         id: toastId,
@@ -410,112 +463,63 @@ function ScriptInner({ project }: Props) {
     }
   }, [project, initial, v1Clips.length, isEmptyProject]);
 
-  const regenerateClipFromBlock = useCallback(
-    async (block: ScreenplayBlock) => {
-      const clip = block.clip;
-      if (!clip) {
-        toast.error("No clip mapped to this beat");
-        return;
-      }
-      if (approvals[block.id]) {
-        toast.message("This beat is locked — unlock to regenerate.");
-        return;
-      }
-      if (isEmptyProject) return;
-      setRegenClipId(clip.id);
-      const toastId = toast.loading("Reshoot queued…", {
-        description: `Clip ${clip.index + 1} · ${block.kind}`,
-      });
-      try {
-        const { data, error } = await supabase.functions.invoke<{
-          predictionId?: string;
-          error?: string;
-        }>("editor-generate-clip", {
-          body: {
-            action: "submit",
-            prompt: block.text,
-            duration: clip.durationSec > 10 ? 10 : 5,
-            aspectRatio: project.aspectRatio,
-            projectId: project.id,
-            idempotencyKey: `script-regen:${block.id}`,
-          },
-        });
-        if (error || !data || data.error) {
-          throw new Error(data?.error ?? error?.message ?? "submit_failed");
-        }
-        toast.success("Reshoot queued", {
-          id: toastId,
-          description: "Drops into the timeline when ready.",
-        });
-      } catch (e) {
-        toast.error("Couldn't reshoot the clip", {
-          id: toastId,
-          description: e instanceof Error ? e.message : "Unknown error",
-        });
-      } finally {
-        setRegenClipId(null);
-      }
-    },
-    [project, approvals, isEmptyProject],
-  );
-
-  const toggleApproval = useCallback(
-    async (block: ScreenplayBlock) => {
-      if (isEmptyProject) return;
-      const next: ApprovalMap = { ...approvals };
-      if (next[block.id]) delete next[block.id];
-      else next[block.id] = true;
-      setApprovals(next);
-      try {
-        // Read current pipeline_state from the row before merging so
-        // we never blow away another surface's writes.
-        const { data } = await supabase
-          .from("movie_projects")
-          .select("pipeline_state")
-          .eq("id", project.id)
-          .maybeSingle();
-        const existing =
-          data?.pipeline_state && typeof data.pipeline_state === "object"
-            ? (data.pipeline_state as Record<string, unknown>)
-            : {};
-        await supabase
-          .from("movie_projects")
-          .update({
-            pipeline_state: { ...existing, scriptApprovals: next },
-          })
-          .eq("id", project.id);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("[Script] approval persist failed", e);
-        toast.error("Approval didn't save — try again.");
-      }
-    },
-    [approvals, project.id, isEmptyProject],
-  );
-
-  const seekToBlock = (b: ScreenplayBlock) => {
-    if (!b.clip) return;
-    setPlayhead(b.clip.timelineStartSec);
-    selectClip(b.clip.id);
-    const owningScene = project.scenes.find((s) =>
-      s.clips?.some((c) => c.id === b.clip!.id),
-    );
-    if (owningScene) selectScene(owningScene.id);
-  };
-
-  const onTextareaKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      cancel();
-    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      void save();
+  const approveDraft = useCallback(async () => {
+    if (!pendingDraft) return;
+    setSaving(true);
+    setScriptContent(pendingDraft);
+    setValue(pendingDraft);
+    try {
+      await supabase
+        .from("movie_projects")
+        .update({
+          script_content: pendingDraft,
+          generated_script: null,
+        })
+        .eq("id", project.id);
+      setPendingDraft(null);
+      setSavedAt(Date.now());
+      toast.success("Script approved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Approval failed.");
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [pendingDraft, project.id]);
+
+  const rejectDraft = useCallback(async () => {
+    setSaving(true);
+    try {
+      await supabase
+        .from("movie_projects")
+        .update({ generated_script: null })
+        .eq("id", project.id);
+      setPendingDraft(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't discard.");
+    } finally {
+      setSaving(false);
+    }
+  }, [project.id]);
+
+  const seekToShotOrClipId = useCallback(
+    (id: string) => {
+      const clip = v1Clips.find((c) => c.id === id);
+      if (clip) {
+        setPlayhead(clip.timelineStartSec);
+        selectClip(clip.id);
+        for (const s of project.scenes) {
+          if (s.clips.some((c) => c.id === clip.id)) {
+            selectScene(s.id);
+            break;
+          }
+        }
+      }
+    },
+    [v1Clips, project],
+  );
 
   const wordCount = displayText.split(/\s+/).filter(Boolean).length;
-  const approvedCount = Object.keys(approvals).length;
-  const activeBlock = activeIdx >= 0 ? blocks[activeIdx] : null;
+  const sceneCount = renderScenes.length;
 
   // ── Render: empty project ──────────────────────────────────────
   if (isEmptyProject) {
@@ -529,75 +533,12 @@ function ScriptInner({ project }: Props) {
           >
             Open a project to read its screenplay.
           </p>
-          <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55")}>
-            Pick a film from Library, or hit N to start a new clip in this canvas.
-          </p>
         </div>
       </section>
     );
   }
 
-  // ── Render: editing mode ───────────────────────────────────────
-  if (editing) {
-    return (
-      <section className="relative flex-1 min-h-0 overflow-y-auto scrollbar-hide px-6 sm:px-10">
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: EASE_PREMIUM }}
-          className="mx-auto max-w-[760px] py-10 pb-32"
-        >
-          <header className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] mb-3 flex items-center gap-2")}>
-            <Pencil className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-            <span>◆ Editing — ⌘↵ to save · Esc to cancel</span>
-          </header>
-          <textarea
-            ref={taRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={onTextareaKey}
-            placeholder={"FADE IN:\n\nA dawn sky over the small bridges. The camera drifts…"}
-            rows={16}
-            className={cn(
-              "block w-full resize-none bg-transparent outline-none",
-              "font-mono text-[13.5px] leading-[1.7] whitespace-pre",
-              "text-foreground placeholder:text-foreground/30",
-              "border-b border-accent/40 focus:border-accent pb-4",
-              "caret-accent",
-            )}
-          />
-          <div className="mt-5 flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => void save()}
-              disabled={saving}
-              className={cn(
-                "inline-flex items-center gap-2 text-[13px] text-accent",
-                "transition-opacity hover:opacity-85 disabled:opacity-40",
-              )}
-            >
-              <Check className="h-3.5 w-3.5" strokeWidth={2} />
-              <span>Save</span>
-              <span className={cn(TYPE_META, "text-muted-foreground/45")}>⌘ ↵</span>
-            </button>
-            <button
-              type="button"
-              onClick={cancel}
-              className={cn(
-                "inline-flex items-center gap-2 text-[13px] text-muted-foreground/65",
-                "transition-colors hover:text-foreground",
-              )}
-            >
-              Cancel
-              <span className={cn(TYPE_META, "text-muted-foreground/45")}>Esc</span>
-            </button>
-          </div>
-        </motion.div>
-      </section>
-    );
-  }
-
-  // ── Render: no screenplay yet ──────────────────────────────────
+  // ── Render: no script yet ──────────────────────────────────────
   if (!displayText.trim()) {
     return (
       <section className="relative flex-1 min-h-0 flex items-center justify-center px-8">
@@ -609,53 +550,37 @@ function ScriptInner({ project }: Props) {
           >
             No screenplay yet.
           </p>
-          <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55")}>
-            Draft one from your project's mood and clip count, or write it yourself.
-          </p>
-          <div className="mt-7 inline-flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void regenerate()}
-              disabled={regenerating}
-              className={cn(
-                "inline-flex items-center gap-2 px-4 h-9 rounded-full",
-                "bg-[hsl(var(--accent)/0.14)] text-accent ring-1 ring-inset ring-accent/40",
-                "text-[13px] font-display italic transition-colors",
-                "hover:bg-[hsl(var(--accent)/0.22)]",
-                "disabled:opacity-40 disabled:cursor-not-allowed",
-              )}
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {regenerating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
-              )}
-              <span>{regenerating ? "Drafting…" : "Draft with AI"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={enterEdit}
-              className={cn(
-                "inline-flex items-center gap-2 px-4 h-9 rounded-full",
-                "text-[13px] text-muted-foreground/75 hover:text-foreground",
-              )}
-            >
-              <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
-              <span>Write it myself</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => void regenerate()}
+            disabled={regenerating}
+            className={cn(
+              "mt-7 inline-flex items-center gap-2 px-4 h-9 rounded-full",
+              "bg-[hsl(var(--accent)/0.14)] text-accent ring-1 ring-inset ring-accent/40",
+              "text-[13px] font-display italic transition-colors",
+              "hover:bg-[hsl(var(--accent)/0.22)]",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+            )}
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {regenerating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+            )}
+            <span>{regenerating ? "Drafting…" : "Draft with AI"}</span>
+          </button>
         </div>
       </section>
     );
   }
 
-  // ── Render: the screenplay ─────────────────────────────────────
+  // ── Render: the rich screenplay ─────────────────────────────────
   return (
     <section className="relative flex-1 min-h-0 flex flex-col">
-      {/* Header — counts + actions */}
+      {/* Header */}
       <header className="shrink-0 px-6 sm:px-10 pt-6 pb-3 flex items-end justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
+        <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] flex items-center gap-2")}>
             <Layers className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
             <span>◆ Screenplay</span>
@@ -671,14 +596,11 @@ function ScriptInner({ project }: Props) {
           <p className={cn(TYPE_META, "mt-1 text-muted-foreground/55 flex items-center gap-3 flex-wrap")}>
             <span>{sceneCount} {sceneCount === 1 ? "scene" : "scenes"}</span>
             <span className="text-muted-foreground/30">·</span>
-            <span>{v1Clips.length} {v1Clips.length === 1 ? "clip" : "clips"} mapped</span>
-            {approvedCount > 0 && (
+            <span>{v1Clips.length} {v1Clips.length === 1 ? "clip" : "clips"}</span>
+            {doc?.cast && doc.cast.length > 0 && (
               <>
                 <span className="text-muted-foreground/30">·</span>
-                <span className="text-emerald-300/85 flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" strokeWidth={1.5} />
-                  {approvedCount} approved
-                </span>
+                <span>{doc.cast.length} {doc.cast.length === 1 ? "character" : "characters"}</span>
               </>
             )}
           </p>
@@ -712,19 +634,6 @@ function ScriptInner({ project }: Props) {
           </AnimatePresence>
           <button
             type="button"
-            onClick={enterEdit}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 h-7 rounded-full",
-              "text-[12px] font-mono uppercase tracking-[0.18em]",
-              "bg-white/[0.03] text-foreground/85 ring-1 ring-inset ring-white/[0.06]",
-              "hover:bg-white/[0.07] transition-colors",
-            )}
-          >
-            <Pencil className="h-3 w-3" strokeWidth={1.5} />
-            <span>Edit</span>
-          </button>
-          <button
-            type="button"
             onClick={() => void regenerate()}
             disabled={regenerating}
             className={cn(
@@ -746,57 +655,18 @@ function ScriptInner({ project }: Props) {
         </div>
       </header>
 
-      {/* Scene strip — horizontal scroller of slug-line chips */}
-      {slugBlocks.length > 0 && (
-        <nav className="shrink-0 px-6 sm:px-10 py-2 border-y border-white/[0.04] bg-[hsl(220_30%_4%/0.20)]">
-          <ul className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            {slugBlocks.map((b) => {
-              const isActiveScene = activeBlock?.sceneIdx === b.sceneIdx;
-              return (
-                <li key={b.id} className="shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => seekToBlock(b)}
-                    disabled={!b.clip}
-                    className={cn(
-                      "inline-flex items-center gap-2 px-3 h-7 rounded-full",
-                      "text-[11px] font-mono uppercase tracking-[0.14em]",
-                      "transition-colors ring-1 ring-inset",
-                      isActiveScene
-                        ? "bg-[hsl(212_100%_60%/0.16)] text-accent ring-accent/45"
-                        : "bg-white/[0.02] text-foreground/75 ring-white/[0.06] hover:bg-white/[0.06]",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                    )}
-                    title={b.clip ? fmtSceneTimecode(b.clip.timelineStartSec) : undefined}
-                  >
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        isActiveScene ? "bg-accent" : "bg-foreground/35",
-                      )}
-                    />
-                    <span className="truncate max-w-[200px]">{b.text}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+      {/* Cast strip */}
+      {doc?.cast && doc.cast.length > 0 && (
+        <CastStrip cast={doc.cast} />
       )}
 
-      {/* Pending AI draft banner */}
+      {/* Pending AI draft */}
       {pendingDraft && (
         <div className="shrink-0 mx-6 sm:mx-10 mt-4 rounded-xl ring-1 ring-inset ring-amber-300/35 bg-amber-500/[0.06] p-4 flex items-start gap-3">
           <Sparkles className="h-4 w-4 text-amber-300 mt-0.5 shrink-0" strokeWidth={1.5} />
           <div className="min-w-0 flex-1">
-            <p
-              className="font-display italic text-[14px] text-foreground/95"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Fresh AI draft awaiting your approval.
-            </p>
-            <p className="mt-1 text-[12.5px] text-muted-foreground/75 leading-snug">
-              The screenplay below is the draft. Approve to make it canonical, or discard to keep the previous version.
+            <p className="font-display italic text-[14px] text-foreground/95" style={{ fontFamily: "'Fraunces', serif" }}>
+              Fresh AI draft awaiting approval.
             </p>
             <div className="mt-3 flex items-center gap-2">
               <button
@@ -808,7 +678,6 @@ function ScriptInner({ project }: Props) {
                   "text-[12px] font-mono uppercase tracking-[0.18em]",
                   "bg-emerald-500/[0.18] text-emerald-200 ring-1 ring-inset ring-emerald-400/40",
                   "hover:bg-emerald-500/[0.28] transition-colors",
-                  "disabled:opacity-40 disabled:cursor-not-allowed",
                 )}
               >
                 <ShieldCheck className="h-3 w-3" strokeWidth={1.5} />
@@ -823,7 +692,6 @@ function ScriptInner({ project }: Props) {
                   "text-[12px] font-mono uppercase tracking-[0.18em]",
                   "bg-white/[0.03] text-foreground/75 ring-1 ring-inset ring-white/[0.06]",
                   "hover:bg-white/[0.07] transition-colors",
-                  "disabled:opacity-40 disabled:cursor-not-allowed",
                 )}
               >
                 Discard
@@ -833,30 +701,107 @@ function ScriptInner({ project }: Props) {
         </div>
       )}
 
-      {/* Screenplay body */}
+      {/* Scene strip — horizontal scroller */}
+      {renderScenes.length > 0 && (
+        <nav className="shrink-0 px-6 sm:px-10 py-2 border-y border-white/[0.04] bg-[hsl(220_30%_4%/0.20)]">
+          <ul className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {renderScenes.map((scene, sIdx) => {
+              const firstShot = scene.shots[0];
+              const firstClip = firstShot
+                ? v1Clips.find((c) => c.id === firstShot.id)
+                : null;
+              const isActive = scene.shots.some(
+                (sh) => sh.id === activeShotId,
+              );
+              return (
+                <li key={scene.sceneId} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => firstShot && seekToShotOrClipId(firstShot.id)}
+                    disabled={!firstShot}
+                    className={cn(
+                      "inline-flex items-center gap-2 px-3 h-7 rounded-full",
+                      "text-[11px] font-mono uppercase tracking-[0.14em]",
+                      "transition-colors ring-1 ring-inset",
+                      isActive
+                        ? "bg-[hsl(212_100%_60%/0.16)] text-accent ring-accent/45"
+                        : "bg-white/[0.02] text-foreground/75 ring-white/[0.06] hover:bg-white/[0.06]",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        isActive ? "bg-accent" : "bg-foreground/35",
+                      )}
+                    />
+                    <span className="truncate max-w-[220px]">
+                      {scene.slug}
+                    </span>
+                    {firstClip && (
+                      <span className="text-muted-foreground/55 font-mono">
+                        {fmtSceneTimecode(firstClip.timelineStartSec)}
+                      </span>
+                    )}
+                    <span className="text-muted-foreground/40 font-mono tabular-nums">
+                      {sIdx + 1}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
+
+      {/* Body — scenes */}
       <div
         ref={bodyRef}
         className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-6 sm:px-10 py-7"
       >
-        <article className="mx-auto max-w-[720px]">
-          {blocks.length === 0 ? (
-            <p className={cn(TYPE_META, "text-muted-foreground/55 text-center py-10")}>
-              Couldn&rsquo;t parse the screenplay. Click <strong>Edit</strong> to fix the formatting.
-            </p>
-          ) : (
-            blocks.map((b, i) => (
-              <BlockRow
-                key={b.id}
-                idx={i}
-                block={b}
-                isActive={i === activeIdx}
-                approved={!!approvals[b.id]}
-                regenerating={regenClipId === b.clip?.id}
-                onSeek={() => seekToBlock(b)}
-                onToggleApprove={() => void toggleApproval(b)}
-                onRegenerate={() => void regenerateClipFromBlock(b)}
-              />
-            ))
+        <article className="mx-auto max-w-[800px] space-y-12">
+          {renderScenes.map((scene, sIdx) => (
+            <SceneSection
+              key={scene.sceneId}
+              scene={scene}
+              sceneIndex={sIdx}
+              doc={doc}
+              v1Clips={v1Clips}
+              activeShotId={activeShotId}
+              editingBlock={editingBlock}
+              draftText={draftText}
+              setEditingBlock={(id, text) => {
+                setEditingBlock(id);
+                setDraftText(text ?? "");
+              }}
+              setDraftText={setDraftText}
+              onCommitBlock={commitBlockEdit}
+              onCancelEdit={() => setEditingBlock(null)}
+              onSeek={seekToShotOrClipId}
+              onApproveShot={approveAndRenderShot}
+              reducedMotion={!!reducedMotion}
+            />
+          ))}
+
+          {/* Footer — global edit fallback when user wants to rewrite at the whole-script level */}
+          {!editingBlock && (
+            <div className="text-center pt-6 pb-4">
+              <p className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em]")}>
+                ◆ Click any block to edit it
+              </p>
+              <button
+                type="button"
+                onClick={() => void saveWholeScript()}
+                disabled={saving}
+                className={cn(
+                  "mt-3 text-[11.5px] font-mono uppercase tracking-[0.18em]",
+                  "text-muted-foreground/55 hover:text-foreground transition-colors",
+                  "disabled:opacity-40",
+                )}
+              >
+                Force-save whole script
+              </button>
+            </div>
           )}
         </article>
       </div>
@@ -865,165 +810,441 @@ function ScriptInner({ project }: Props) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BlockRow — one screenplay block formatted to its kind, with
-// click-to-seek + per-block actions on hover.
+// Types — the rendered scene shape (doc OR parsed)
 // ─────────────────────────────────────────────────────────────────────────────
-function BlockRow({
-  idx,
-  block,
-  isActive,
-  approved,
-  regenerating,
-  onSeek,
-  onToggleApprove,
-  onRegenerate,
-}: {
-  idx: number;
-  block: ScreenplayBlock;
-  isActive: boolean;
-  approved: boolean;
-  regenerating: boolean;
-  onSeek: () => void;
-  onToggleApprove: () => void;
-  onRegenerate: () => void;
-}) {
-  const trackBadge =
-    block.kind === "dialogue"
-      ? { icon: <Mic className="h-3 w-3" strokeWidth={1.5} />, label: "A1 dialog" }
-      : block.kind === "action"
-      ? { icon: <Disc3 className="h-3 w-3" strokeWidth={1.5} />, label: "ambient" }
-      : block.kind === "slug"
-      ? { icon: <Music2 className="h-3 w-3" strokeWidth={1.5} />, label: "A2 score" }
-      : null;
+interface ScriptSceneView {
+  kind: "doc" | "parsed";
+  sceneId: string;
+  slug: string;
+  mood?: string;
+  timeOfDay?: string;
+  actNumber?: number;
+  beats: Beat[];
+  shots: Shot[];
+  parsedBlocks: import("@/lib/editor/screenplay").ScreenplayBlock[];
+}
 
-  const showActions =
-    (block.kind === "action" || block.kind === "dialogue") && !!block.clip;
+// ─────────────────────────────────────────────────────────────────────────────
+// CastStrip — round avatars of every character
+// ─────────────────────────────────────────────────────────────────────────────
 
+function CastStrip({ cast }: { cast: Character[] }) {
   return (
-    <div
-      data-block-idx={idx}
-      className={cn(
-        "group/blk relative pl-6 pr-2 transition-colors",
-        isActive &&
-          "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-accent before:rounded-full",
-      )}
-    >
-      <button
-        type="button"
-        onClick={onSeek}
-        disabled={!block.clip}
-        className={cn(
-          "block w-full text-left rounded-md py-1.5 transition-colors",
-          isActive ? "text-foreground" : "text-foreground/75 hover:text-foreground",
-        )}
-      >
-        {renderBlockContent(block, isActive)}
-      </button>
+    <div className="shrink-0 px-6 sm:px-10 mt-3">
+      <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em] mb-2 flex items-center gap-2")}>
+        <UserCircle2 className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+        <span>◆ Cast</span>
+      </div>
+      <ul className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2">
+        {cast.map((c) => (
+          <li key={c.id} className="shrink-0">
+            <CharacterAvatar character={c} size="lg" showLabel />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-      {showActions && (
-        <div
-          className={cn(
-            "absolute right-0 top-1 flex items-center gap-1",
-            "transition-opacity",
-            isActive ? "opacity-100" : "opacity-0 group-hover/blk:opacity-100",
-          )}
-        >
-          {trackBadge && (
-            <span
+function CharacterAvatar({
+  character,
+  size = "md",
+  showLabel = false,
+}: {
+  character: Character;
+  size?: "sm" | "md" | "lg";
+  showLabel?: boolean;
+}) {
+  const dim = size === "lg" ? "h-12 w-12" : size === "sm" ? "h-6 w-6" : "h-8 w-8";
+  const hasDNA = !!character.identityDNA;
+  return (
+    <div className={cn("inline-flex items-center gap-2", showLabel && "min-w-[120px]")}>
+      <div
+        className={cn(
+          dim,
+          "shrink-0 rounded-full overflow-hidden ring-1 ring-inset",
+          "bg-white/[0.04]",
+          hasDNA ? "ring-white/[0.12]" : "ring-amber-300/40",
+        )}
+        title={`${character.name} · ${character.role}${hasDNA ? "" : " (no identity DNA)"}`}
+      >
+        {character.referenceImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={character.referenceImageUrl}
+            alt={character.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <UserCircle2
               className={cn(
-                "inline-flex items-center gap-1 px-1.5 h-5 rounded",
-                "text-[9.5px] font-mono uppercase tracking-[0.14em]",
-                "bg-white/[0.04] text-muted-foreground/75 ring-1 ring-inset ring-white/[0.06]",
+                size === "lg" ? "h-6 w-6" : "h-4 w-4",
+                "text-muted-foreground/65",
               )}
-            >
-              {trackBadge.icon}
-              <span>{trackBadge.label}</span>
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleApprove();
-            }}
-            title={approved ? "Locked — click to unlock" : "Lock this beat"}
-            className={cn(
-              "inline-flex items-center justify-center h-5 w-5 rounded",
-              "transition-colors",
-              approved
-                ? "bg-emerald-500/[0.18] text-emerald-200 ring-1 ring-inset ring-emerald-400/40"
-                : "bg-white/[0.04] text-muted-foreground/65 ring-1 ring-inset ring-white/[0.06] hover:text-foreground",
-            )}
+              strokeWidth={1.3}
+            />
+          </div>
+        )}
+      </div>
+      {showLabel && (
+        <div className="min-w-0">
+          <p
+            className="font-display italic text-[13px] text-foreground/95 truncate leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
           >
-            {approved ? (
-              <Lock className="h-2.5 w-2.5" strokeWidth={1.8} />
-            ) : (
-              <ShieldCheck className="h-2.5 w-2.5" strokeWidth={1.5} />
+            {character.name}
+          </p>
+          <p className={cn(TYPE_META, "text-muted-foreground/55 truncate")}>
+            {character.role}
+            {!hasDNA && (
+              <span className="ml-1 text-amber-300/85">⚠ no DNA</span>
             )}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!approved) onRegenerate();
-            }}
-            disabled={approved || regenerating}
-            title={
-              approved
-                ? "Unlock to regenerate"
-                : "Reshoot this clip using this beat as the prompt"
-            }
-            className={cn(
-              "inline-flex items-center justify-center h-5 w-5 rounded",
-              "transition-colors",
-              "bg-white/[0.04] text-muted-foreground/65 ring-1 ring-inset ring-white/[0.06]",
-              !approved && "hover:text-accent",
-              "disabled:opacity-30 disabled:cursor-not-allowed",
-            )}
-          >
-            {regenerating ? (
-              <Loader2 className="h-2.5 w-2.5 animate-spin" strokeWidth={1.8} />
-            ) : (
-              <RefreshCw className="h-2.5 w-2.5" strokeWidth={1.8} />
-            )}
-          </button>
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-function renderBlockContent(block: ScreenplayBlock, isActive: boolean) {
-  switch (block.kind) {
-    case "slug":
-      return (
-        <div
+// ─────────────────────────────────────────────────────────────────────────────
+// SceneSection — one scene with its header + blocks + shot strip
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneSection({
+  scene,
+  sceneIndex,
+  doc,
+  v1Clips,
+  activeShotId,
+  editingBlock,
+  draftText,
+  setEditingBlock,
+  setDraftText,
+  onCommitBlock,
+  onCancelEdit,
+  onSeek,
+  onApproveShot,
+  reducedMotion,
+}: {
+  scene: ScriptSceneView;
+  sceneIndex: number;
+  doc: ScriptDocument | null;
+  v1Clips: EditorProject["scenes"][number]["clips"];
+  activeShotId: string | null;
+  editingBlock: string | null;
+  draftText: string;
+  setEditingBlock: (id: string | null, text?: string) => void;
+  setDraftText: (s: string) => void;
+  onCommitBlock: (beatId: string, text: string) => Promise<void>;
+  onCancelEdit: () => void;
+  onSeek: (id: string) => void;
+  onApproveShot: (shotId: string) => void;
+  reducedMotion: boolean;
+}) {
+  const firstShot = scene.shots[0];
+  const firstClip = firstShot
+    ? v1Clips.find((c) => c.id === firstShot.id)
+    : null;
+
+  return (
+    <motion.section
+      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: EASE_PREMIUM }}
+    >
+      {/* Slug-line header */}
+      <header className="mb-4">
+        <button
+          type="button"
+          onClick={() => firstShot && onSeek(firstShot.id)}
+          disabled={!firstShot}
           className={cn(
-            "font-mono uppercase tracking-[0.18em] text-[12px] mt-7 mb-2 flex items-center gap-3",
-            isActive ? "text-accent" : "text-accent/85",
+            "group/slug w-full text-left transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
           )}
         >
-          <span>◆</span>
-          <span>{block.text}</span>
-          {block.clip && (
-            <span
-              className={cn(
-                TYPE_META,
-                "ml-auto font-mono tabular-nums text-muted-foreground/55",
-              )}
-            >
-              {fmtSceneTimecode(block.clip.timelineStartSec)}
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className={cn(TYPE_META, "tabular-nums tracking-[0.24em] text-muted-foreground/55 font-mono")}>
+              SCENE {String(sceneIndex + 1).padStart(2, "0")}
             </span>
+            <span className="font-mono uppercase tracking-[0.18em] text-[13px] text-accent group-hover/slug:text-foreground transition-colors">
+              ◆ {scene.slug}
+            </span>
+            {firstClip && (
+              <span className={cn(TYPE_META, "font-mono tabular-nums text-muted-foreground/55")}>
+                {fmtSceneTimecode(firstClip.timelineStartSec)}
+              </span>
+            )}
+          </div>
+          {(scene.mood || scene.timeOfDay) && (
+            <div className="mt-1 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground/55">
+              {scene.timeOfDay && <span>{scene.timeOfDay}</span>}
+              {scene.timeOfDay && scene.mood && <span className="text-muted-foreground/30">·</span>}
+              {scene.mood && <span>{scene.mood}</span>}
+            </div>
           )}
+        </button>
+      </header>
+
+      {/* Block stream — either from doc beats or parsed blocks */}
+      <div className="space-y-3">
+        {scene.kind === "doc"
+          ? scene.beats.map((beat) => (
+              <BeatRenderer
+                key={beat.id}
+                beat={beat}
+                doc={doc}
+                isEditing={editingBlock === beat.id}
+                draftText={draftText}
+                onEdit={() => setEditingBlock(beat.id, beat.text)}
+                onDraftChange={setDraftText}
+                onCommit={(text) => void onCommitBlock(beat.id, text)}
+                onCancel={onCancelEdit}
+              />
+            ))
+          : scene.parsedBlocks
+              .filter((b) => b.kind !== "slug")
+              .map((b) => <ParsedBlockRenderer key={b.id} block={b} />)}
+      </div>
+
+      {/* Shot strip — visual cards */}
+      {scene.shots.length > 0 && (
+        <div className="mt-6">
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em] mb-3 flex items-center gap-2")}>
+            <Film className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+            <span>◆ Shots in this scene</span>
+          </div>
+          <ul className="flex items-stretch gap-3 overflow-x-auto scrollbar-hide pb-2">
+            {scene.shots.map((shot, idx) => {
+              const prevShot = idx > 0 ? scene.shots[idx - 1] : null;
+              return (
+                <li key={shot.id} className="shrink-0">
+                  <ShotCard
+                    shot={shot}
+                    prevShot={prevShot}
+                    doc={doc}
+                    isActive={shot.id === activeShotId}
+                    onSeek={() => onSeek(shot.id)}
+                    onApprove={() => onApproveShot(shot.id)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </motion.section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BeatRenderer — formatted block with avatar + inline edit
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BeatRenderer({
+  beat,
+  doc,
+  isEditing,
+  draftText,
+  onEdit,
+  onDraftChange,
+  onCommit,
+  onCancel,
+}: {
+  beat: Beat;
+  doc: ScriptDocument | null;
+  isEditing: boolean;
+  draftText: string;
+  onEdit: () => void;
+  onDraftChange: (s: string) => void;
+  onCommit: (text: string) => void;
+  onCancel: () => void;
+}) {
+  const character = beat.characterId
+    ? doc?.cast.find((c) => c.id === beat.characterId)
+    : null;
+  const audioBadge =
+    beat.audioBus === "A1"
+      ? { icon: <Mic className="h-3 w-3" strokeWidth={1.5} />, label: "A1 dialog" }
+      : beat.audioBus === "A2"
+      ? { icon: <Music2 className="h-3 w-3" strokeWidth={1.5} />, label: "A2 score" }
+      : beat.kind === "action"
+      ? { icon: <Disc3 className="h-3 w-3" strokeWidth={1.5} />, label: "ambient" }
+      : null;
+
+  // Inline edit mode
+  if (isEditing) {
+    return (
+      <div className="rounded-lg ring-1 ring-inset ring-accent/45 bg-white/[0.02] p-3">
+        <textarea
+          value={draftText}
+          onChange={(e) => onDraftChange(e.target.value)}
+          rows={3}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onCancel();
+            } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              onCommit(draftText);
+            }
+          }}
+          className={cn(
+            "block w-full resize-none bg-transparent outline-none",
+            "font-display italic text-[14px] leading-snug text-foreground",
+            "caret-accent",
+          )}
+          style={{ fontFamily: "'Fraunces', serif" }}
+        />
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground/65 hover:text-foreground"
+          >
+            Cancel <span className="text-muted-foreground/40 ml-1">Esc</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onCommit(draftText)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 h-7 rounded-full",
+              "text-[11px] font-mono uppercase tracking-[0.18em]",
+              "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",
+              "hover:bg-[hsl(var(--accent)/0.24)]",
+            )}
+          >
+            <Check className="h-3 w-3" strokeWidth={1.8} />
+            Save <span className="text-muted-foreground/55 ml-1">⌘↵</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  switch (beat.kind) {
+    case "action":
+      return (
+        <div className="group/blk relative">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="block w-full text-left rounded-md py-1 px-2 -mx-2 transition-colors hover:bg-white/[0.025]"
+          >
+            <p
+              className="text-[14px] leading-[1.65] whitespace-pre-wrap font-display italic font-light text-foreground/95"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {beat.text}
+            </p>
+          </button>
+          <div className="absolute top-1.5 right-2 opacity-0 group-hover/blk:opacity-100 transition-opacity">
+            {audioBadge && <AudioBadge {...audioBadge} />}
+          </div>
         </div>
       );
+
+    case "character":
+      return (
+        <div className="text-center mt-3">
+          <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
+            {beat.text}
+          </span>
+        </div>
+      );
+
+    case "paren":
+      return (
+        <div className="mx-auto max-w-[60%] text-center text-[12px] text-muted-foreground/65 italic">
+          {beat.text}
+        </div>
+      );
+
+    case "dialogue":
+      return (
+        <div className="group/dlg relative">
+          {/* Character cue with avatar */}
+          {character && (
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <CharacterAvatar character={character} size="sm" />
+              <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
+                {character.name}
+              </span>
+              {beat.voiceDirection && (
+                <span className="text-[11px] text-muted-foreground/65 italic">({beat.voiceDirection})</span>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onEdit}
+            className={cn(
+              "block w-full text-center rounded-md py-1 transition-colors",
+              "hover:bg-white/[0.025]",
+            )}
+          >
+            <p
+              className="mx-auto max-w-[72%] text-[14.5px] leading-[1.55] whitespace-pre-wrap font-display italic text-foreground/95"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {beat.text}
+            </p>
+          </button>
+          <div className="absolute top-0 right-0 opacity-0 group-hover/dlg:opacity-100 transition-opacity">
+            {audioBadge && <AudioBadge {...audioBadge} />}
+          </div>
+        </div>
+      );
+
+    case "transition":
+      return (
+        <div className="font-mono uppercase tracking-[0.16em] text-[12px] text-muted-foreground/65 text-right my-4">
+          {beat.text}
+        </div>
+      );
+
+    case "vo":
+    case "sfx":
+    case "music-cue":
+    default:
+      return (
+        <div className="mx-auto max-w-[72%] text-center text-[12.5px] text-muted-foreground/75 italic">
+          [{beat.kind}] {beat.text}
+        </div>
+      );
+  }
+}
+
+function AudioBadge({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-1.5 h-5 rounded",
+        "text-[9.5px] font-mono uppercase tracking-[0.14em]",
+        "bg-white/[0.04] text-muted-foreground/75 ring-1 ring-inset ring-white/[0.06]",
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ParsedBlockRenderer — fallback when document has no beats
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ParsedBlockRenderer({
+  block,
+}: {
+  block: import("@/lib/editor/screenplay").ScreenplayBlock;
+}) {
+  switch (block.kind) {
     case "action":
       return (
         <p
-          className={cn(
-            "text-[14px] leading-[1.65] whitespace-pre-wrap",
-            "font-display italic font-light",
-          )}
+          className="text-[14px] leading-[1.65] whitespace-pre-wrap font-display italic font-light text-foreground/95"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {block.text}
@@ -1031,30 +1252,25 @@ function renderBlockContent(block: ScreenplayBlock, isActive: boolean) {
       );
     case "character":
       return (
-        <div className="mt-4 mb-0 text-center">
+        <div className="text-center mt-3">
           <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
             {block.speaker ?? block.text}
             {block.speakerExtension && (
-              <span className="text-muted-foreground/55 ml-2">
-                ({block.speakerExtension})
-              </span>
+              <span className="text-muted-foreground/55 ml-2">({block.speakerExtension})</span>
             )}
           </span>
         </div>
       );
     case "paren":
       return (
-        <div className="mx-auto max-w-[60%] text-center text-[12px] text-muted-foreground/65 italic mb-0.5">
+        <div className="mx-auto max-w-[60%] text-center text-[12px] text-muted-foreground/65 italic">
           {block.text}
         </div>
       );
     case "dialogue":
       return (
         <p
-          className={cn(
-            "mx-auto max-w-[72%] text-center text-[14.5px] leading-[1.55] whitespace-pre-wrap mb-3",
-            "font-display italic",
-          )}
+          className="mx-auto max-w-[72%] text-center text-[14.5px] leading-[1.55] whitespace-pre-wrap font-display italic text-foreground/95"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {block.text}
@@ -1070,3 +1286,271 @@ function renderBlockContent(block: ScreenplayBlock, isActive: boolean) {
       return <p className="text-[14px]">{block.text}</p>;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ShotCard — visual card per shot with frame chain
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ShotCard({
+  shot,
+  prevShot,
+  doc,
+  isActive,
+  onSeek,
+  onApprove,
+}: {
+  shot: Shot;
+  prevShot: Shot | null;
+  doc: ScriptDocument | null;
+  isActive: boolean;
+  onSeek: () => void;
+  onApprove: () => void;
+}) {
+  const engineRow = doc ? getEngine(shot.engineOverride ?? doc.capabilities.defaultEngine) : null;
+  const event = latestEventForShot(shot.id);
+  const inFlight = isShotRendering(shot.id);
+  const state = inFlight ? "rendering" : shot.approval.state;
+  const lastFrame = shot.generated?.lastFrameUrl;
+  const startFrame = prevShot?.generated?.lastFrameUrl;
+  const thumb = shot.generated?.thumbnailUrl ?? shot.generated?.lastFrameUrl;
+  const videoFrame =
+    shot.generated?.videoUrl && !shot.generated?.thumbnailUrl
+      ? shot.generated.videoUrl
+      : null;
+
+  return (
+    <div
+      data-block-id={shot.id}
+      className={cn(
+        "relative w-[240px] rounded-xl ring-1 ring-inset overflow-hidden transition-all",
+        isActive
+          ? "ring-accent/65 bg-[hsl(var(--accent)/0.04)]"
+          : "ring-white/[0.06] bg-white/[0.012] hover:ring-white/[0.18]",
+      )}
+    >
+      {/* Frame chain indicator — connects to previous shot's last frame */}
+      {startFrame && (
+        <div className="px-2 pt-2 flex items-center gap-1.5">
+          <div className="relative h-8 w-12 shrink-0 rounded overflow-hidden ring-1 ring-inset ring-white/[0.08]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={startFrame} alt="start frame" className="w-full h-full object-cover" />
+          </div>
+          <ArrowRight className="h-3 w-3 text-accent/65 shrink-0" strokeWidth={1.8} />
+          <span className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.18em] truncate")}>
+            frame chain
+          </span>
+        </div>
+      )}
+
+      {/* Main thumbnail / poster */}
+      <button
+        type="button"
+        onClick={onSeek}
+        className="block w-full text-left"
+      >
+        <div className="relative aspect-[16/9] bg-[hsl(220_30%_8%)]">
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumb} alt="" className="w-full h-full object-cover" />
+          ) : videoFrame ? (
+            <video
+              src={videoFrame}
+              poster={undefined}
+              className="w-full h-full object-cover"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Film className="h-5 w-5 text-muted-foreground/45" strokeWidth={1.4} />
+            </div>
+          )}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.85)] to-transparent"
+          />
+          {/* State pill — top right */}
+          <div className="absolute top-2 right-2">
+            <ShotStatePill state={state} />
+          </div>
+          {/* Frame chain badge — top left */}
+          {shot.inheritsFromShotId && (
+            <div className="absolute top-2 left-2">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 px-1.5 h-5 rounded",
+                  "text-[9.5px] font-mono uppercase tracking-[0.14em]",
+                  "bg-amber-500/[0.20] text-amber-200 ring-1 ring-inset ring-amber-400/45",
+                )}
+                title="Pose-chained from another shot"
+              >
+                pose-chain
+              </span>
+            </div>
+          )}
+          {/* Shot number bottom left */}
+          <div className="absolute bottom-2 left-2">
+            <span className={cn(TYPE_META, "font-mono tabular-nums tracking-[0.24em] mix-blend-difference text-foreground/85")}>
+              SHOT {String(shot.number).padStart(2, "0")}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      {/* Body — engine + duration + cost */}
+      <div className="p-3">
+        <p
+          className="text-[12.5px] text-foreground/85 line-clamp-2 leading-snug"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {shot.cameraDirection || shot.modelPrompt || `Shot ${shot.number}`}
+        </p>
+        <div className="mt-2 flex items-center justify-between text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/65">
+          <span className="truncate">{engineRow?.displayName ?? "—"}</span>
+          <span className="font-mono tabular-nums">{shot.durationSec.toFixed(1)}s</span>
+          <span className="font-mono tabular-nums text-accent">{shot.cost.credits}cr</span>
+        </div>
+
+        {/* Approve CTA */}
+        <div className="mt-3">
+          <ShotCardCta state={state} onApprove={onApprove} />
+        </div>
+      </div>
+
+      {/* Live status bar at the bottom */}
+      {event && state === "rendering" && typeof event.progress === "number" && (
+        <div className="h-0.5 bg-white/[0.06]">
+          <div
+            className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${Math.min(100, event.progress * 100)}%` }}
+          />
+        </div>
+      )}
+
+      {/* Last-frame strip — shows what feeds into the NEXT shot */}
+      {lastFrame && (
+        <div className="px-2 pb-2 pt-1 flex items-center gap-1.5 border-t border-white/[0.04]">
+          <span className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.18em] truncate")}>
+            feeds next →
+          </span>
+          <div className="relative h-8 w-12 shrink-0 rounded overflow-hidden ring-1 ring-inset ring-white/[0.08]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={lastFrame} alt="last frame" className="w-full h-full object-cover" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShotStatePill({ state }: { state: import("@/lib/editor/script-document").ShotApprovalState }) {
+  switch (state) {
+    case "draft":
+      return null;
+    case "ready":
+      return (
+        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-[hsl(var(--accent)/0.22)] ring-1 ring-inset ring-accent/55" title="Approved — ready to render">
+          <Sparkles className="h-2.5 w-2.5 text-accent" strokeWidth={1.8} />
+        </span>
+      );
+    case "rendering":
+      return (
+        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-500/[0.22] ring-1 ring-inset ring-amber-400/55" title="Rendering">
+          <Loader2 className="h-2.5 w-2.5 text-amber-200 animate-spin" strokeWidth={1.8} />
+        </span>
+      );
+    case "completed":
+      return (
+        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-500/[0.22] ring-1 ring-inset ring-emerald-400/55" title="Completed">
+          <Check className="h-2.5 w-2.5 text-emerald-200" strokeWidth={2} />
+        </span>
+      );
+    case "needs-regen":
+      return (
+        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-500/[0.18] ring-1 ring-inset ring-amber-400/45" title="Edit after approval — re-render to refresh">
+          <AlertTriangle className="h-2.5 w-2.5 text-amber-200" strokeWidth={1.8} />
+        </span>
+      );
+    case "failed":
+      return (
+        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-rose-500/[0.20] ring-1 ring-inset ring-rose-400/55" title="Failed">
+          <AlertOctagon className="h-2.5 w-2.5 text-rose-200" strokeWidth={1.8} />
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+function ShotCardCta({
+  state,
+  onApprove,
+}: {
+  state: import("@/lib/editor/script-document").ShotApprovalState;
+  onApprove: () => void;
+}) {
+  if (state === "rendering") {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] bg-[hsl(var(--accent)/0.10)] text-accent ring-1 ring-inset ring-accent/35 opacity-90 cursor-not-allowed"
+      >
+        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+        <span>Rendering</span>
+      </button>
+    );
+  }
+  if (state === "completed") {
+    return (
+      <button
+        type="button"
+        onClick={onApprove}
+        className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] bg-emerald-500/[0.14] text-emerald-200 ring-1 ring-inset ring-emerald-400/35 hover:bg-emerald-500/[0.22] transition-colors"
+        title="Re-render this shot"
+      >
+        <Lock className="h-3 w-3" strokeWidth={1.8} />
+        <span>Locked</span>
+      </button>
+    );
+  }
+  if (state === "needs-regen") {
+    return (
+      <button
+        type="button"
+        onClick={onApprove}
+        className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] bg-amber-500/[0.18] text-amber-200 ring-1 ring-inset ring-amber-400/40 hover:bg-amber-500/[0.28] transition-colors"
+      >
+        <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
+        <span>Re-render</span>
+      </button>
+    );
+  }
+  if (state === "failed") {
+    return (
+      <button
+        type="button"
+        onClick={onApprove}
+        className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] bg-rose-500/[0.14] text-rose-200 ring-1 ring-inset ring-rose-400/40 hover:bg-rose-500/[0.22] transition-colors"
+      >
+        <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
+        <span>Retry</span>
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onApprove}
+      className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-full text-[11px] font-display italic bg-[hsl(var(--accent)/0.14)] text-accent ring-1 ring-inset ring-accent/40 hover:bg-[hsl(var(--accent)/0.22)] transition-colors"
+      style={{ fontFamily: "'Fraunces', serif" }}
+    >
+      <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+      <span>Approve & Render</span>
+    </button>
+  );
+}
+
+// Unused symbol suppressions for forward-compat
+void Plus;

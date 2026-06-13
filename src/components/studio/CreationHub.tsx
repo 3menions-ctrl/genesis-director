@@ -670,13 +670,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       <div className="max-w-3xl mx-auto">
         <ActiveProjectBanner className="mb-6" />
 
-        {/* Cast panel — inline, in-context. Empty state is a quiet
-            invite to /avatars; populated state shows the roster with
-            the lead pre-selected for the generation pipeline. The
-            panel is the source of truth for selectedAvatar — when the
-            director removes the lead, selectedAvatar releases. */}
-        <CastPanel className="mb-6" />
-
         {/* Template applied — minimal chip */}
         {appliedSettings?.templateName && (
           <motion.div
@@ -708,8 +701,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 <button
                   key={`${m.id}-${idx}`}
                   onClick={() => {
-                    if (m.id === 'avatar') navigate('/avatars');
-                    else { setSelectedMode(m.id); }
+                    // Always switch the mode locally — even for avatar.
+                    // If the cast is empty, the inline CastPanel's empty
+                    // state has its own "Cast a character" link to
+                    // /avatars, so we keep the user in the workshop
+                    // instead of forcing a navigation.
+                    setSelectedMode(m.id as VideoGenerationMode);
                   }}
                   className={cn(
                     'relative z-10 flex items-center gap-2 px-4 sm:px-4 h-10 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
@@ -766,6 +763,36 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             </div>
           </div>
         </div>
+
+        {/* ─── Cast roster — appears only in avatar mode ───────────────
+            Empty state nudges the director to /avatars; populated state
+            shows the lineup with the lead Crown badge. Animated in/out
+            so switching modes feels intentional. */}
+        <AnimatePresence initial={false}>
+          {selectedMode === 'avatar' && (
+            <motion.div
+              key="cast-panel"
+              initial={{ opacity: 0, y: -8, height: 0, marginBottom: 0 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                height: 'auto',
+                marginBottom: 28,
+                transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+              }}
+              exit={{
+                opacity: 0,
+                y: -6,
+                height: 0,
+                marginBottom: 0,
+                transition: { duration: 0.32, ease: [0.4, 0, 0.2, 1] },
+              }}
+              className="overflow-hidden"
+            >
+              <CastPanel />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ─── Engine rail — interactive, capability-gated ──────────────── */}
         <div className="mb-6">

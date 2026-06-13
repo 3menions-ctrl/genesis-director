@@ -45,6 +45,7 @@ import {
   getClipProperty,
   getClipPropertyAt,
 } from "@/lib/editor/types";
+import { StitchedPlayer, type StitchedPlayerHandle } from "./StitchedPlayer";
 import {
   setPlayhead,
   setInPoint as setInPointMut,
@@ -293,8 +294,17 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
    * Secondary "B" buffer used to render the INCOMING clip during a
    * between-clip transition (crossfade). Outside of a transition
    * window this element stays hidden + paused. See xfadeInfo below.
+   *
+   * As of the StitchedPlayer integration, this ref is no longer
+   * directly attached to a video element — StitchedPlayer owns
+   * both buffers internally. Kept here as a typed pointer for
+   * compatibility with existing crossfade effect chain (which can
+   * still read the active video element via stitchedRef).
    */
   const videoBRef = useRef<HTMLVideoElement | null>(null);
+  /** Imperative handle to the StitchedPlayer's API. Transport
+   *  buttons + keyboard handlers + snapshot all go through this. */
+  const stitchedRef = useRef<StitchedPlayerHandle | null>(null);
   const [monitorMode, setMonitorMode] = useState<MonitorMode>("program");
   const {
     masterVolume,
@@ -1036,44 +1046,53 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
             )}
             {activeClip?.videoUrl ? (
               <>
-                <video
-                  ref={videoRef}
-                  src={activeClip.videoUrl}
-                  poster={activeClip.thumbnailUrl ?? project.thumbnailUrl ?? undefined}
-                  className="absolute inset-0 w-full h-full object-contain bg-black transition-[opacity,transform,filter] duration-150"
-                  style={{
-                    opacity: xfadeInfo ? opacityStyle * (1 - xfadeInfo.progress) : opacityStyle,
-                    transform: `scale(${scaleStyle})${mirrorStyle ? " scaleX(-1)" : ""}`,
-                    filter: filterStyle || undefined,
+                {/* StitchedPlayer — true A/B ping-pong dual-buffer
+                    playback. Both video elements always rendered, one
+                    showing + playing, the other silently preloading
+                    the next clip. On clip boundary, the role flips
+                    instantly (no src swap on the playing element, no
+                    black-frame load gap). The component handles cap
+                    detection + emits onClipEnded so the host advances
+                    the playhead. */}
+                <StitchedPlayer
+                  ref={stitchedRef}
+                  clips={clips}
+                  playheadSec={playheadSec}
+                  filter={filterStyle || undefined}
+                  scale={scaleStyle}
+                  mirror={mirrorStyle}
+                  opacity={
+                    xfadeInfo
+                      ? opacityStyle * (1 - xfadeInfo.progress)
+                      : opacityStyle
+                  }
+                  posterFallback={project.thumbnailUrl ?? undefined}
+                  onPlay={() => {
+                    intentToPlayRef.current = true;
+                    setIsPlaying(true);
                   }}
-                  playsInline
-                  preload="auto"
+                  onPause={() => {
+                    setIsPlaying(false);
+                  }}
+                  onTimeUpdate={(timelineSec) => {
+                    setPlayhead(timelineSec);
+                  }}
+                  onClipEnded={(clipId) => {
+                    // The active clip naturally reached its cap.
+                    // Advance the playhead to the next clip's start
+                    // (or pause at end of chain). The StitchedPlayer
+                    // will detect the new activeIdx and ping-pong.
+                    const idx = clips.findIndex((c) => c.id === clipId);
+                    const next = clips[idx + 1];
+                    if (next) {
+                      setPlayhead(next.timelineStartSec);
+                    } else {
+                      intentToPlayRef.current = false;
+                      stitchedRef.current?.pause();
+                      setIsPlaying(false);
+                    }
+                  }}
                 />
-                {/* B buffer — the next clip pre-loaded. When an
-                    explicit transition is active, the B buffer
-                    opacity-ramps over the A buffer for the crossfade.
-                    Otherwise it stays at opacity 0 but the browser
-                    has already cached the next clip's video, so the
-                    A buffer's src swap on clip advance lands instantly
-                    without the black-frame load gap that broke
-                    earlier playback ("editor stitch technology is
-                    horrible" — this is the fix). */}
-                {clips[activeIdx + 1]?.videoUrl && (
-                  <video
-                    ref={videoBRef}
-                    key={`buffer-${clips[activeIdx + 1].id}`}
-                    src={clips[activeIdx + 1].videoUrl ?? undefined}
-                    poster={clips[activeIdx + 1].thumbnailUrl ?? undefined}
-                    className="absolute inset-0 w-full h-full object-contain bg-black"
-                    style={{
-                      opacity: xfadeInfo ? xfadeInfo.progress : 0,
-                      pointerEvents: "none",
-                    }}
-                    playsInline
-                    preload="auto"
-                    muted
-                  />
-                )}
                 {/* Transition overlay for "fadeblack" / "fadewhite" —
                     a solid pane that peaks at the boundary then ramps
                     back out, giving the canonical black/white wipe

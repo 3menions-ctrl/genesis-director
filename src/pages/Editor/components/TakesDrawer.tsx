@@ -288,6 +288,15 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
         aria-label="Inspector"
         className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col overflow-hidden"
       >
+        {/* All inspector content stacked inside a single scrolling
+            column so DocumentShotMount + the legacy InspectorBody
+            don't end up taller than the rail with no way to reach
+            the bottom. min-h-0 lets flex children shrink below
+            content; overflow-y-auto puts the scroll on this wrapper.
+            The take list inside InspectorBody used to have its own
+            inner scroller — that nested scroll is now redundant but
+            harmless (the outer scrolls when content overflows). */}
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col">
         {/* Shot inspector mounts AT THE TOP when the selected clip
             id matches a Shot in the document — that's the path the
             generation-document flow walks. Legacy InspectorBody
@@ -305,6 +314,7 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
           composerRef={composerRef}
           onClose={null /* persistent */}
         />
+        </div>
       </aside>
     );
   }

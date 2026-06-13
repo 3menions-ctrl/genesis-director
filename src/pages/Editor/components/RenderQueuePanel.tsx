@@ -7,18 +7,17 @@
  * a retry. Completed jobs can be cleared in bulk.
  */
 import { useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   Loader2,
   Check,
   AlertOctagon,
   Download,
-  ListChecks,
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { TYPE_META } from "@/lib/design-system";
+import { Surface, SurfaceHeader, SurfaceBody } from "./Surface";
 import { useRenderQueue } from "@/hooks/editor/useRenderQueue";
 import type { RenderJob } from "@/lib/editor/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +37,6 @@ function relTime(iso: string): string {
 }
 
 export function RenderQueuePanel({ open, onClose }: Props) {
-  const reducedMotion = useReducedMotion();
   const { jobs, updateRenderJob, removeRenderJob, clearCompletedJobs } = useRenderQueue();
 
   useEffect(() => {
@@ -78,67 +76,41 @@ export function RenderQueuePanel({ open, onClose }: Props) {
   const completedCount = jobs.filter((j) => j.status === "done").length;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 24 }}
-          transition={{ duration: 0.3, ease: EASE_PREMIUM }}
-          className={cn(
-            "fixed top-3 right-3 bottom-3 z-40",
-            "w-[min(380px,calc(100vw-1.5rem))] flex flex-col",
-            "rounded-2xl border border-white/[0.07]",
-            "bg-[hsl(220_30%_4%/0.85)] backdrop-blur-2xl",
-            "shadow-[0_30px_80px_-30px_hsl(0_0%_0%/0.75)]",
-          )}
-        >
-          <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-                <ListChecks className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-                <span>◆ Render queue</span>
-              </div>
-              <h3
-                className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {jobs.length === 0 ? "Empty." : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}.`}
-              </h3>
-            </div>
+    <Surface open={open} onClose={onClose} size="sm">
+      <SurfaceHeader
+        eyebrow="◆ Render queue"
+        title={
+          jobs.length === 0
+            ? "Empty."
+            : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}.`
+        }
+        description="Every render the editor has queued. Persistent across sessions."
+        onClose={onClose}
+      />
+
+      {jobs.length > 0 && (
+        <div className="shrink-0 px-7 pt-3 pb-2 flex items-center justify-between">
+          <span className={cn(TYPE_META, "text-muted-foreground/55")}>
+            {jobs.filter((j) => j.status === "rendering").length} rendering ·{" "}
+            {jobs.filter((j) => j.status === "queued").length} queued ·{" "}
+            {completedCount} done
+          </span>
+          {completedCount > 0 && (
             <button
               type="button"
-              onClick={onClose}
-              className="text-muted-foreground/55 hover:text-foreground transition-colors"
-              aria-label="Close render queue"
-            >
-              <X className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </header>
-
-          {jobs.length > 0 && (
-            <div className="shrink-0 px-5 pb-2 flex items-center justify-between">
-              <span className={cn(TYPE_META, "text-muted-foreground/55")}>
-                {jobs.filter((j) => j.status === "rendering").length} rendering ·{" "}
-                {jobs.filter((j) => j.status === "queued").length} queued ·{" "}
-                {completedCount} done
-              </span>
-              {completedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={clearCompletedJobs}
-                  className={cn(
-                    TYPE_META,
-                    "text-muted-foreground/65 hover:text-foreground transition-colors",
-                  )}
-                >
-                  clear done
-                </button>
+              onClick={clearCompletedJobs}
+              className={cn(
+                TYPE_META,
+                "text-muted-foreground/65 hover:text-foreground transition-colors",
               )}
-            </div>
+            >
+              clear done
+            </button>
           )}
+        </div>
+      )}
 
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-3 pb-3">
+      <SurfaceBody noPadding className="px-3 pb-3">
             {jobs.length === 0 ? (
               <div className="px-3 py-12 text-center">
                 <Download className="h-5 w-5 text-muted-foreground/45 mx-auto" strokeWidth={1.4} />
@@ -217,10 +189,8 @@ export function RenderQueuePanel({ open, onClose }: Props) {
                 ))}
               </ul>
             )}
-          </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+      </SurfaceBody>
+    </Surface>
   );
 }
 

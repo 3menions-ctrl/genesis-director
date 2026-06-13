@@ -140,7 +140,14 @@ export function EditorShell() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
 
-  // Read URL → state on mount + every URL change.
+  // Read URL → state on mount + every URL change. ONE-WAY: state
+  // changes from inside the editor (clicking a tab, pressing 1/2/3/4,
+  // Storyboard.onLeaveToEdit) all route through `switchView` below,
+  // which writes the URL directly. We don't run a write-effect off
+  // `focus` because mixing URL writes from both the effect and the
+  // explicit handlers caused a render loop on mount that visibly hurt
+  // the player's mount stability (commit 0fadbc89 reverted the
+  // adjacent timeline issue; this finishes the cleanup).
   useEffect(() => {
     if (urlTab === "script") {
       setFocus("script");
@@ -150,25 +157,6 @@ export function EditorShell() {
       setFocus("edit");
     }
   }, [urlTab]);
-
-  // Write state → URL when the user navigates via keyboard / buttons.
-  // Guard with the current URL value so we don't push duplicate
-  // history entries, and use `replace: true` to keep the back button
-  // returning to the previous route rather than the previous tab.
-  useEffect(() => {
-    const next: string =
-      focus === "script"
-        ? "script"
-        : focus === "storyboard"
-        ? "storyboard"
-        : urlTab === "timeline"
-        ? "timeline"
-        : "stage";
-    if (next === urlTab) return;
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", next);
-    setSearchParams(params, { replace: true });
-  }, [focus, urlTab, searchParams, setSearchParams]);
 
   /**
    * `currentView` — derived from state + URL. The ViewSwitcher uses
@@ -525,7 +513,7 @@ export function EditorShell() {
                 project={displayProject}
                 selectedSceneId={selectedSceneId}
                 onOpenCreate={() => setCreateOpen(true)}
-                onLeaveToEdit={() => setFocus("edit")}
+                onLeaveToEdit={() => switchView("stage")}
               />
             </div>
           )}

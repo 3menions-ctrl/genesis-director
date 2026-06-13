@@ -19,6 +19,11 @@ import {
   selectScene,
   selectClip,
   resetEditor,
+  setPlayhead,
+  setPxPerSec,
+  moveClip,
+  trimClip,
+  deleteClip,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -36,5 +41,10 @@ export function useEditor() {
     selectScene,
     selectClip,
     resetEditor,
+    setPlayhead,
+    setPxPerSec,
+    moveClip,
+    trimClip,
+    deleteClip,
   };
 }

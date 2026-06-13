@@ -11,8 +11,22 @@
  * the player ref via RAF, not the store. This keeps the store from
  * triggering a tree-wide re-render 60 times per second.
  */
-import type { EditorProject, EditorState, EditorView } from "./types";
+import type { EditorClip, EditorProject, EditorState, EditorView } from "./types";
 import { INITIAL_EDITOR_STATE } from "./types";
+
+/** Recompute every clip's timelineStartSec after a reorder/trim/delete. */
+function recompute(project: EditorProject): EditorProject {
+  let cursor = 0;
+  const scenes = project.scenes.map((scene) => {
+    const clips = scene.clips.map((c) => {
+      const next: EditorClip = { ...c, timelineStartSec: cursor };
+      cursor += c.durationSec;
+      return next;
+    });
+    return { ...scene, clips, durationSec: clips.reduce((s, c) => s + c.durationSec, 0) };
+  });
+  return { ...project, scenes, durationSec: cursor };
+}
 
 let state: EditorState = { ...INITIAL_EDITOR_STATE };
 const listeners = new Set<() => void>();
@@ -81,4 +95,73 @@ export function selectClip(clipId: string | null): void {
 export function resetEditor(): void {
   state = { ...INITIAL_EDITOR_STATE };
   for (const l of listeners) l();
+}
+
+// ─── Playhead + zoom ─────────────────────────────────────────────────────────
+export function setPlayhead(sec: number): void {
+  const clamped = Math.max(0, sec);
+  if (Math.abs(state.playheadSec - clamped) < 0.01) return;
+  set({ playheadSec: clamped });
+}
+
+export function setPxPerSec(px: number): void {
+  const clamped = Math.max(20, Math.min(400, px));
+  if (state.pxPerSec === clamped) return;
+  set({ pxPerSec: clamped });
+}
+
+// ─── Clip mutations (in-memory for v1; supabase persistence next) ────────────
+/** Move a clip from its current position to `toIndex` within the project's
+ *  flat clip order. Ripple: every clip's timelineStartSec recomputes. */
+export function moveClip(clipId: string, toIndex: number): void {
+  if (!state.project) return;
+  const flat: EditorClip[] = state.project.scenes.flatMap((s) => s.clips);
+  const fromIndex = flat.findIndex((c) => c.id === clipId);
+  if (fromIndex < 0 || fromIndex === toIndex) return;
+  const clamped = Math.max(0, Math.min(flat.length - 1, toIndex));
+  const [moved] = flat.splice(fromIndex, 1);
+  flat.splice(clamped, 0, moved);
+  // For v1, all clips live on scene[0] (synthetic scene from useProject).
+  // When scene_id linkage lands the mover distributes clips per scene.
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: flat } : { ...s, clips: [] },
+    ),
+  };
+  set({ project: recompute(project) });
+}
+
+/** Update a clip's duration (trim). Maintains all later clips' positions
+ *  through recompute. Clamps to a minimum of 0.5s. */
+export function trimClip(clipId: string, durationSec: number): void {
+  if (!state.project) return;
+  const newDur = Math.max(0.5, durationSec);
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) =>
+        c.id === clipId ? { ...c, durationSec: newDur } : c,
+      ),
+    })),
+  };
+  set({ project: recompute(project) });
+}
+
+/** Remove a clip from the timeline. Ripple closes the gap. */
+export function deleteClip(clipId: string): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.filter((c) => c.id !== clipId),
+    })),
+  };
+  const next = recompute(project);
+  set({
+    project: next,
+    selectedClipId: state.selectedClipId === clipId ? null : state.selectedClipId,
+  });
 }

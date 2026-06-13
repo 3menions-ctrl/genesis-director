@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
 import { ASPECT_RATIOS } from "@/lib/editor/types";
-import { selectClip } from "@/lib/editor/store";
+import { selectClip, setPlayhead } from "@/lib/editor/store";
 
 interface Props {
   project: EditorProject;
@@ -69,7 +69,15 @@ export function Stage({ project, selectedClipId }: Props) {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const onTime = () => setCurrentSec(v.currentTime);
+    const onTime = () => {
+      setCurrentSec(v.currentTime);
+      // Push timeline-absolute playhead to the store so Timeline view
+      // (and any other consumer) stays in lockstep. clamped to 0.01s
+      // by the setter so identical values short-circuit.
+      if (activeClip) {
+        setPlayhead(activeClip.timelineStartSec + v.currentTime);
+      }
+    };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => {

@@ -133,6 +133,15 @@ export interface EditorState {
   /** Selection — which scene/clip the user is focused on. */
   selectedSceneId: string | null;
   selectedClipId: string | null;
+  /**
+   * Timeline-absolute playhead, in seconds. Updated at the browser's
+   * native `timeupdate` rate (~4–5 Hz) — fine for visual playhead
+   * tracking without thrashing the React tree. The Stage's own
+   * frame-rate scrub UI reads directly from the <video> ref instead.
+   */
+  playheadSec: number;
+  /** Timeline horizontal zoom in pixels per second. */
+  pxPerSec: number;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -142,4 +151,6 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   error: null,
   selectedSceneId: null,
   selectedClipId: null,
+  playheadSec: 0,
+  pxPerSec: 60,
 };

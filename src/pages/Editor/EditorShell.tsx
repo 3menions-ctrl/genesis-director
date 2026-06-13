@@ -48,6 +48,8 @@ export function EditorShell() {
     error,
     selectedSceneId,
     selectedClipId,
+    playheadSec,
+    pxPerSec,
     setView,
   } = useEditor();
 
@@ -89,7 +91,14 @@ export function EditorShell() {
           {project && view === "stage" && (
             <Stage project={project} selectedClipId={selectedClipId} />
           )}
-          {project && view === "timeline" && <Timeline />}
+          {project && view === "timeline" && (
+            <Timeline
+              project={project}
+              selectedClipId={selectedClipId}
+              playheadSec={playheadSec}
+              pxPerSec={pxPerSec}
+            />
+          )}
           {project && view === "script" && <Script project={project} />}
           {project && view === "storyboard" && (
             <Storyboard project={project} selectedSceneId={selectedSceneId} />

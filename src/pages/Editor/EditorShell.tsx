@@ -54,6 +54,8 @@ const EMPTY_PROJECT: EditorProject = {
   transitions: [],
 };
 import { ExportPanel } from "./components/ExportPanel";
+import { DirectorChat } from "./components/DirectorChat";
+import { VersionsPanel } from "./components/VersionsPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -89,6 +91,8 @@ export function EditorShell() {
     pasteFromClipboard,
     deleteSelected,
     clearSelection,
+    theaterMode,
+    toggleTheaterMode,
   } = useEditor();
   void view;
   void setView;
@@ -108,6 +112,8 @@ export function EditorShell() {
   const [markersPanelOpen, setMarkersPanelOpen] = useState(false);
   const [effectsOpen, setEffectsOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -277,6 +283,20 @@ export function EditorShell() {
         setScriptOpen(true);
         return;
       }
+      // Cmd+/ — open the Director Chat. Input-aware skip already
+      // handled above. Slash without modifier is the help-overlay
+      // key elsewhere so we require the meta.
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        e.preventDefault();
+        setDirectorOpen((o) => !o);
+        return;
+      }
+      // Cmd+Shift+V — open Versions panel.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "V" || e.key === "v")) {
+        e.preventDefault();
+        setVersionsOpen((o) => !o);
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -298,6 +318,8 @@ export function EditorShell() {
           onViewChange={() => {}}
           onOpenExport={() => setExportOpen(true)}
           onToggleComments={() => setCommentsOpen((o) => !o)}
+          onOpenDirector={() => setDirectorOpen(true)}
+          onOpenVersions={() => setVersionsOpen(true)}
           presenceCount={presence.count}
         />
 
@@ -308,13 +330,18 @@ export function EditorShell() {
         <div className="relative flex-1 min-h-0 flex">
           {focus === "edit" && (
             <>
-              {/* LEFT — scenes */}
-              <LeftScenes
-                project={displayProject}
-                selectedSceneId={selectedSceneId}
-              />
+              {/* LEFT — scenes (hidden in theater mode) */}
+              {!theaterMode && (
+                <LeftScenes
+                  project={displayProject}
+                  selectedSceneId={selectedSceneId}
+                />
+              )}
 
-              {/* CENTER — player + timeline split */}
+              {/* CENTER — player + timeline split.
+                  In theater mode the player expands and the timeline
+                  drops to a thin scrub strip so the audience-vs-editor
+                  split stays useful. Esc or Shift+T returns. */}
               <div className="flex-1 min-w-0 flex flex-col">
                 <div className="flex-1 min-h-0">
                   <PlayerCanvas
@@ -325,7 +352,7 @@ export function EditorShell() {
                 </div>
                 <div
                   className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)]"
-                  style={{ height: 320 }}
+                  style={{ height: theaterMode ? 120 : 320 }}
                 >
                   <Timeline
                     project={displayProject}
@@ -337,13 +364,34 @@ export function EditorShell() {
                 </div>
               </div>
 
-              {/* RIGHT — inspector */}
-              <TakesDrawer
-                project={displayProject}
-                selectedClipId={selectedClipId}
-                embedded
-              />
+              {/* RIGHT — inspector (hidden in theater mode) */}
+              {!theaterMode && (
+                <TakesDrawer
+                  project={displayProject}
+                  selectedClipId={selectedClipId}
+                  embedded
+                />
+              )}
             </>
+          )}
+
+          {/* Theater-mode exit chip — shows top-left when chrome is hidden. */}
+          {theaterMode && (
+            <button
+              type="button"
+              onClick={toggleTheaterMode}
+              className={cn(
+                "absolute top-3 left-3 z-40 inline-flex items-center gap-1.5 px-3 h-7 rounded-md",
+                "bg-[hsl(220_30%_4%/0.78)] backdrop-blur border border-white/[0.10]",
+                "text-[11px] font-mono uppercase tracking-[0.18em] text-foreground/85 hover:text-foreground",
+                "transition-colors",
+              )}
+              title="Exit theater (Shift+T)"
+              aria-label="Exit theater mode"
+            >
+              <span className="text-accent">◆</span>
+              <span>Exit theater</span>
+            </button>
           )}
 
           {focus === "storyboard" && (
@@ -456,6 +504,19 @@ export function EditorShell() {
 
       {/* Audio mixer — X to toggle. Reads global isPlaying from store. */}
       <AudioMixer open={mixerOpen} onClose={() => setMixerOpen(false)} />
+
+      {/* Director Chat — Cmd+/ */}
+      <DirectorChat
+        project={displayProject}
+        open={directorOpen}
+        onClose={() => setDirectorOpen(false)}
+      />
+
+      {/* Versions panel — Cmd+Shift+V */}
+      <VersionsPanel
+        open={versionsOpen}
+        onClose={() => setVersionsOpen(false)}
+      />
     </div>
   );
 }

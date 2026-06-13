@@ -759,7 +759,7 @@ const App = () => {
                   <Route path="templates" element={<Navigate to="/studio?drawer=templates" replace />} />
                   <Route path="training-video" element={<Navigate to="/studio?tab=training" replace />} />
                   <Route path="environments" element={<Navigate to="/studio?drawer=environments" replace />} />
-                  <Route path="developers" element={<Developers />} />
+                  <Route path="developers" element={<Navigate to="/account?tab=developers" replace />} />
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="projects" element={<AdminProjectsPage />} />
                   <Route path="credits" element={<AdminCreditsPage />} />

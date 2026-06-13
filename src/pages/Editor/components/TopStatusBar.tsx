@@ -12,7 +12,7 @@
  *   - Aspect ratio + duration pill (typography only) on the far right
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch, Wand2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { EditorProject, EditorView } from "@/lib/editor/types";
@@ -28,6 +28,7 @@ interface Props {
   onOpenDirector?: () => void;
   onOpenVersions?: () => void;
   onOpenLibrary?: () => void;
+  onOpenCreate?: () => void;
   presenceCount: number;
 }
 
@@ -47,6 +48,7 @@ export function TopStatusBar({
   onOpenDirector,
   onOpenVersions,
   onOpenLibrary,
+  onOpenCreate,
   presenceCount,
 }: Props) {
   return (
@@ -137,6 +139,24 @@ export function TopStatusBar({
                   <span className="font-mono text-[12.5px] tabular-nums">{presenceCount}</span>
                   <span className={cn(TYPE_META, "text-muted-foreground/55")}>viewing</span>
                 </div>
+              )}
+              {onOpenCreate && (
+                <button
+                  type="button"
+                  onClick={onOpenCreate}
+                  className="group/new inline-flex items-center gap-2 text-[13px] text-accent hover:text-foreground transition-colors"
+                  aria-label="Add clip (N)"
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  <span className="relative">
+                    Create
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/new:scale-x-100"
+                    />
+                  </span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>N</span>
+                </button>
               )}
               {onOpenLibrary && (
                 <button

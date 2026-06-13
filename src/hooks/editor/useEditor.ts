@@ -67,6 +67,9 @@ import {
   setFullscreen,
   applyEffectToClips,
   applyProjectTemplate,
+  appendPendingClip,
+  resolvePendingClip,
+  dropPendingClip,
 } from "@/lib/editor/store";
 
 export function useEditor() {
@@ -132,5 +135,8 @@ export function useEditor() {
     setFullscreen,
     applyEffectToClips,
     applyProjectTemplate,
+    appendPendingClip,
+    resolvePendingClip,
+    dropPendingClip,
   };
 }

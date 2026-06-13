@@ -22,7 +22,7 @@
  */
 import { useEffect, useState } from "react";
 import { Loader2, AlertOctagon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
@@ -58,6 +58,7 @@ import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
 import { Surface } from "./components/Surface";
+import { CreatePanel } from "./components/CreatePanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -117,8 +118,58 @@ export function EditorShell() {
   const [directorOpen, setDirectorOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
+
+  /**
+   * URL ↔ tab sync. The editor presents four logical tabs (stage,
+   * timeline, script, storyboard) even though it's a single page —
+   * deep-linking via `?tab=...` lets Studio hand off straight into
+   * the right lens, lets the user bookmark a view, and survives a
+   * page refresh.
+   *
+   * Mapping:
+   *   stage|timeline → focus=edit + scriptOpen=false (Stage and
+   *     Timeline cohabit the same edit canvas; the timeline is a
+   *     panel below the player rather than its own focus mode)
+   *   script        → focus=edit + scriptOpen=true (modal overlay)
+   *   storyboard    → focus=storyboard
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+
+  // Read URL → state on mount + every URL change.
+  useEffect(() => {
+    if (urlTab === "script") {
+      setScriptOpen(true);
+      setFocus("edit");
+    } else if (urlTab === "storyboard") {
+      setFocus("storyboard");
+      setScriptOpen(false);
+    } else if (urlTab === "stage" || urlTab === "timeline" || urlTab === null) {
+      setFocus("edit");
+      setScriptOpen(false);
+    }
+  }, [urlTab]);
+
+  // Write state → URL when the user navigates via keyboard / buttons.
+  // Guard with the current URL value so we don't push duplicate
+  // history entries, and use `replace: true` to keep the back button
+  // returning to the previous route rather than the previous tab.
+  useEffect(() => {
+    const next: string = scriptOpen
+      ? "script"
+      : focus === "storyboard"
+      ? "storyboard"
+      : urlTab === "timeline"
+      ? "timeline"
+      : "stage";
+    if (next === urlTab) return;
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  }, [focus, scriptOpen, urlTab, searchParams, setSearchParams]);
 
   // Global keys — input-aware. The view-switcher numbers now flip
   // between focus modes since every panel is already visible.
@@ -306,6 +357,15 @@ export function EditorShell() {
         setLibraryOpen((o) => !o);
         return;
       }
+      // N — open the Create panel (add a clip without leaving the
+      // editor). No-modifier `n` is the cleanest key here; the
+      // input-aware skip above means typing N in a text field still
+      // types the letter.
+      if (!(e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "n" || e.key === "N")) {
+        e.preventDefault();
+        setCreateOpen((o) => !o);
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -330,6 +390,7 @@ export function EditorShell() {
           onOpenDirector={() => setDirectorOpen(true)}
           onOpenVersions={() => setVersionsOpen(true)}
           onOpenLibrary={() => setLibraryOpen(true)}
+          onOpenCreate={() => setCreateOpen(true)}
           presenceCount={presence.count}
         />
 
@@ -532,6 +593,13 @@ export function EditorShell() {
       <StudioLibrary
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
+      />
+
+      {/* Create panel — N */}
+      <CreatePanel
+        project={displayProject}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
       />
     </div>
   );

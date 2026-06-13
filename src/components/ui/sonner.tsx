@@ -51,9 +51,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group font-display"
-      position="top-center"
+      // Bottom-center anchors the toast to the user's read-out
+      // direction (eye returns to the bottom after acting on a
+      // control). offset doubled vs the old top-mount so the stack
+      // sits a clean 56px above the viewport edge regardless of safe
+      // areas — generous enough to clear browser chrome on Safari
+      // iOS, tight enough not to feel "halfway up the screen."
+      position="bottom-center"
       gap={14}
-      offset={28}
+      offset={56}
       visibleToasts={3}
       toastOptions={{
         duration: 4500,

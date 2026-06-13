@@ -1178,6 +1178,117 @@ export function applyProjectTemplate(input: {
 }
 
 
+// ─── Inline clip creation (Editor → Studio path) ────────────────────
+/**
+ * Append a freshly-generating clip to the project's V1 chain so the
+ * UI shows it immediately while the edge function runs in the
+ * background. The clip carries videoUrl=null and a pending takes
+ * marker so PlayerCanvas renders the "still rendering" state.
+ *
+ * Called by the CreatePanel after it has POSTed to
+ * editor-generate-clip and persisted a video_clips row. Returns the
+ * EditorClip id so the caller can update durationSec / videoUrl when
+ * the prediction lands.
+ */
+export function appendPendingClip(input: {
+  id: string;
+  prompt: string;
+  durationSec: number;
+  thumbnailUrl: string | null;
+  /** Optional take metadata — when present, the takes drawer shows
+   *  the pending clip in its takes list too. */
+  takeNumber?: number;
+}): string | null {
+  if (!state.project) return null;
+  const clip: EditorClip = {
+    id: input.id,
+    index: state.project.scenes[0]?.clips.length ?? 0,
+    timelineStartSec: 0, // recomputes below
+    durationSec: Math.max(0.5, input.durationSec),
+    videoUrl: null,
+    thumbnailUrl: input.thumbnailUrl,
+    prompt: input.prompt,
+    takes: input.takeNumber
+      ? [
+          {
+            id: `${input.id}-take`,
+            takeNumber: input.takeNumber,
+            videoUrl: null,
+            thumbnailUrl: input.thumbnailUrl,
+            promptUsed: input.prompt,
+            status: "pending",
+            createdAt: new Date(0).toISOString(),
+          },
+        ]
+      : [],
+  };
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: [...s.clips, clip] } : s,
+    ),
+  };
+  historize(recompute(project), {
+    selectedClipId: clip.id,
+    selectedClipIds: [clip.id],
+  });
+  return clip.id;
+}
+
+/**
+ * Once the edge function returns a completed prediction, swap the
+ * pending clip's videoUrl + thumbnail in place. Does NOT push to the
+ * undo stack — the clip is conceptually the SAME atom going from
+ * pending → ready, not a new edit the user should be able to undo
+ * back to "no video".
+ */
+export function resolvePendingClip(
+  clipId: string,
+  patch: { videoUrl: string; thumbnailUrl?: string | null; durationSec?: number },
+): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        return {
+          ...c,
+          videoUrl: patch.videoUrl,
+          thumbnailUrl: patch.thumbnailUrl ?? c.thumbnailUrl,
+          durationSec:
+            patch.durationSec !== undefined
+              ? Math.max(0.5, patch.durationSec)
+              : c.durationSec,
+          takes: c.takes.map((t, i) =>
+            i === 0 && t.status === "pending"
+              ? { ...t, videoUrl: patch.videoUrl, status: "completed" }
+              : t,
+          ),
+        };
+      }),
+    })),
+  };
+  set({ project: recompute(project) });
+}
+
+/**
+ * Drop a pending clip if the edge function fails — keeps the project
+ * clean of zombie rows. No history push (mirror of resolvePendingClip).
+ */
+export function dropPendingClip(clipId: string): void {
+  if (!state.project) return;
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s) => ({
+      ...s,
+      clips: s.clips.filter((c) => c.id !== clipId),
+    })),
+  };
+  set({ project: recompute(project) });
+}
+
 /** Remove a clip from the timeline. Ripple closes the gap. */
 export function deleteClip(clipId: string): void {
   if (!state.project) return;

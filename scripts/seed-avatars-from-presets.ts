@@ -145,16 +145,37 @@ function parseV2Presets(src: string): V2Preset[] {
 }
 
 // ─── Placeholder generator ───────────────────────────────────────────────────
-function placeholderUrl(name: string, gender: string, style: string): string {
+// Returns an inline SVG data URI that shows a head-to-toe silhouette of a
+// figure with the avatar's initial floating at the top. Tall 1:2 aspect so
+// the silhouette reads as "full body" even before the real portrait
+// pipeline has rendered the row. Gender tints the accent color subtly.
+function placeholderUrl(
+  name: string,
+  gender: string,
+  _style: string,
+): string {
   const palette: Record<string, string> = {
-    male: "3b82f6",
-    female: "ec4899",
-    neutral: "8b5cf6",
-    "non-binary": "8b5cf6",
+    male: "#60a5fa",
+    female: "#f472b6",
+    neutral: "#a78bfa",
+    "non-binary": "#a78bfa",
   };
-  const fg = palette[gender] ?? "60a5fa";
+  const accent = palette[gender] ?? "#9ca3af";
   const initial = name.charAt(0).toUpperCase();
-  return `https://placehold.co/512x768/1a1a2e/${fg}?text=${encodeURIComponent(initial)}`;
+  // Compact head-to-toe silhouette: circular head + tapered torso/legs.
+  // SVG kept tiny so the URL fits comfortably in a Postgres text column.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 1024" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1a1a2e"/><stop offset="100%" stop-color="#0d0d1a"/>
+</linearGradient></defs>
+<rect width="512" height="1024" fill="url(#g)"/>
+<text x="256" y="120" text-anchor="middle" font-family="Fraunces,serif" font-size="56" font-style="italic" fill="${accent}" fill-opacity="0.55">${initial}</text>
+<circle cx="256" cy="290" r="78" fill="${accent}" fill-opacity="0.10" stroke="${accent}" stroke-opacity="0.20" stroke-width="2"/>
+<path d="M 256 378 Q 196 410 176 500 L 168 700 Q 168 800 200 920 L 226 1024 L 286 1024 L 312 920 Q 344 800 344 700 L 336 500 Q 316 410 256 378 Z" fill="${accent}" fill-opacity="0.07" stroke="${accent}" stroke-opacity="0.16" stroke-width="2"/>
+</svg>`;
+  // Strip newlines + double-spaces so the URL is compact.
+  const compact = svg.replace(/\s+/g, " ").trim();
+  return `data:image/svg+xml;utf8,${encodeURIComponent(compact)}`;
 }
 
 // ─── Insert ──────────────────────────────────────────────────────────────────

@@ -322,10 +322,10 @@ function AvatarsContent() {
         </EditorialCanvas>
       </div>
 
-      {/* Detail drawer */}
+      {/* Centered detail popup */}
       <AnimatePresence>
         {selected && (
-          <DetailDrawer
+          <DetailPopup
             avatar={selected}
             onClose={() => setSelected(null)}
             onCast={() => {
@@ -850,9 +850,14 @@ function GlassFrame({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DetailDrawer — slides in from right with full identity bible
+// DetailPopup — centered glass modal with the full identity bible.
+//
+// Two-column on >= md (head-to-toe portrait left, info right), single
+// column on mobile (portrait top, info below). Scroll only inside the
+// modal so the page underneath stays locked. Closes on backdrop click,
+// Esc key, or the close pill in the top-right.
 // ─────────────────────────────────────────────────────────────────────────────
-function DetailDrawer({
+function DetailPopup({
   avatar,
   onClose,
   onCast,
@@ -864,8 +869,13 @@ function DetailDrawer({
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasAudio = !!avatar.sample_audio_url;
+
+  // The popup prefers the full-body head-to-toe view when available.
+  // front_image_url is the canonical full-body shot from the
+  // generate-avatar-image pipeline; falls back to thumbnail / face
+  // crop while rows are still being processed.
   const imageUrl =
-    avatar.front_image_url ?? avatar.face_image_url ?? avatar.thumbnail_url;
+    avatar.front_image_url ?? avatar.thumbnail_url ?? avatar.face_image_url;
 
   const togglePlay = () => {
     if (!hasAudio) return;
@@ -882,200 +892,257 @@ function DetailDrawer({
     }
   };
 
+  // Esc closes the popup; lock body scroll while open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
   return (
-    <>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${avatar.name} — full profile`}
+    >
+      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.65)] backdrop-blur-sm"
+        transition={{ duration: 0.22 }}
         onClick={onClose}
+        className="absolute inset-0 bg-[hsl(220_30%_2%/0.78)] backdrop-blur-md"
       />
-      <motion.aside
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ duration: 0.4, ease: EASE_PREMIUM }}
+
+      {/* Popup card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.35, ease: EASE_PREMIUM }}
         className={cn(
-          "fixed top-0 right-0 z-50 h-[100dvh] w-full sm:w-[480px]",
-          "border-l border-border/30 bg-[hsl(220_30%_4%/0.95)] backdrop-blur-2xl",
-          "flex flex-col overflow-hidden",
+          "relative w-full max-w-[1100px] max-h-[92dvh]",
+          "overflow-hidden rounded-[28px]",
+          "border border-white/[0.09]",
+          "bg-gradient-to-br from-[hsl(220_30%_6%/0.95)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.98)]",
+          "backdrop-blur-2xl",
+          "shadow-[0_80px_200px_-50px_hsl(0_0%_0%/0.85),0_30px_80px_-30px_hsl(var(--accent)/0.22),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
         )}
-        role="dialog"
-        aria-label={`${avatar.name} details`}
       >
-        {/* Close */}
+        {/* Foundation corner brackets — picture-frame registration marks */}
+        <div aria-hidden className="pointer-events-none absolute left-4 top-4 h-3 w-3 border-l border-t border-accent/40 z-30" />
+        <div aria-hidden className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r border-t border-accent/40 z-30" />
+        <div aria-hidden className="pointer-events-none absolute left-4 bottom-4 h-3 w-3 border-l border-b border-accent/40 z-30" />
+        <div aria-hidden className="pointer-events-none absolute right-4 bottom-4 h-3 w-3 border-r border-b border-accent/40 z-30" />
+
+        {/* Close — top right, above everything */}
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl text-muted-foreground/70 hover:text-foreground hover:border-accent/40 transition-colors"
+          className="absolute top-4 right-4 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[hsl(220_30%_4%/0.55)] backdrop-blur-xl text-foreground/80 hover:text-foreground hover:border-accent/50 transition-colors"
         >
-          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <X className="h-4 w-4" strokeWidth={1.5} />
         </button>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Portrait */}
-          <div className="relative aspect-[4/5] w-full bg-[hsl(220_30%_8%)]">
-            <OptimizedAvatarImage
-              src={imageUrl}
-              alt={avatar.name}
-              fallbackText={avatar.name}
-              aspectRatio="portrait"
-              className="h-full w-full object-cover"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.95)] via-transparent to-transparent"
-            />
-            {/* Floating badges */}
-            <div className="absolute top-4 left-4 flex items-center gap-2">
-              {avatar.is_premium && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
-                  <Crown className="h-3 w-3" strokeWidth={1.5} />
-                  Premium
-                </span>
-              )}
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
-                  avatar.avatar_type === "realistic"
-                    ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
-                    : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+        {/* Body — grid on desktop, stack on mobile */}
+        <div className="grid h-[92dvh] max-h-[92dvh] grid-rows-[minmax(0,1fr)_auto] md:h-auto md:max-h-[92dvh] md:grid-rows-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+          {/* Portrait pane (head-to-toe) */}
+          <div className="relative overflow-hidden bg-[hsl(220_40%_4%)] md:border-r md:border-white/[0.05]">
+            <div className="relative h-full w-full">
+              <OptimizedAvatarImage
+                src={imageUrl}
+                alt={avatar.name}
+                fallbackText={avatar.name}
+                aspectRatio="portrait"
+                className="h-full w-full object-cover"
+              />
+
+              {/* Top hairline catch-light */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              />
+
+              {/* Soft accent halo behind the portrait */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -inset-1/3 opacity-50"
+                style={{
+                  background:
+                    "radial-gradient(50% 50% at 50% 40%, hsl(var(--accent) / 0.18) 0%, transparent 70%)",
+                  filter: "blur(40px)",
+                }}
+              />
+
+              {/* Diagonal glass reflection */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-40 mix-blend-overlay"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(0 0% 100% / 0.12) 0%, transparent 30%, transparent 70%, hsl(0 0% 100% / 0.04) 100%)",
+                }}
+              />
+
+              {/* Bottom-anchored badges */}
+              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 z-10">
+                {avatar.is_premium && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+                    <Crown className="h-3 w-3" strokeWidth={1.5} />
+                    Premium
+                  </span>
                 )}
-              >
-                {avatar.avatar_type === "realistic" ? "Realistic" : "Animated"}
-              </span>
-            </div>
-          </div>
-
-          <div className="px-6 py-6 space-y-6">
-            {/* Identity */}
-            <div>
-              <span className={cn(TYPE_META, "text-muted-foreground/60")}>
-                ◆ Identity
-              </span>
-              <h2 className="mt-2 font-display italic text-3xl font-light text-foreground tracking-tight">
-                {avatar.name}
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {avatar.style && (
-                  <Pill label={avatar.style} />
-                )}
-                {avatar.age_range && (
-                  <Pill label={avatar.age_range} />
-                )}
-                {avatar.gender && <Pill label={avatar.gender} />}
-                {avatar.ethnicity && <Pill label={avatar.ethnicity} />}
-              </div>
-            </div>
-
-            {/* Personality */}
-            {avatar.personality && (
-              <Section eyebrow="Personality">
-                <p className="text-[13px] font-light leading-relaxed text-foreground/85">
-                  {avatar.personality}
-                </p>
-              </Section>
-            )}
-
-            {/* Description */}
-            {avatar.description && (
-              <Section eyebrow="Description">
-                <p className="text-[13px] font-light leading-relaxed text-muted-foreground/80">
-                  {avatar.description}
-                </p>
-              </Section>
-            )}
-
-            {/* Voice */}
-            <Section eyebrow="Voice">
-              <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-3.5">
-                <button
-                  onClick={togglePlay}
-                  disabled={!hasAudio}
-                  aria-label={playing ? "Pause" : "Play voice sample"}
+                <span
                   className={cn(
-                    "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    "border border-accent/40 bg-[hsl(var(--accent)/0.10)] text-accent",
-                    "hover:bg-[hsl(var(--accent)/0.15)] transition-colors",
-                    "disabled:opacity-40 disabled:cursor-not-allowed",
+                    "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+                    avatar.avatar_type === "realistic"
+                      ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
+                      : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
                   )}
                 >
-                  {playing ? (
-                    <Pause className="h-4 w-4 fill-current" />
-                  ) : (
-                    <Play className="h-4 w-4 fill-current" />
-                  )}
-                </button>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[12.5px] text-foreground/90 truncate">
-                    {avatar.voice_name ?? "Default voice"}
-                  </div>
-                  {avatar.voice_description && (
-                    <div className="text-[11px] text-muted-foreground/60 line-clamp-2 mt-0.5">
-                      {avatar.voice_description}
-                    </div>
-                  )}
-                  <div className={cn(TYPE_META, "text-muted-foreground/40 mt-1")}>
-                    {avatar.voice_provider}
-                  </div>
+                  {avatar.avatar_type === "realistic" ? "Realistic" : "Animated"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Info pane */}
+          <div className="flex min-h-0 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10 space-y-7">
+              {/* Identity */}
+              <div>
+                <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+                  ◆ Identity
+                </span>
+                <h2
+                  className="mt-3 font-display italic font-light text-foreground tracking-tight leading-[1.05] text-[clamp(1.6rem,3.5vw,2.4rem)]"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {avatar.name}
+                </h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {avatar.style && <Pill label={avatar.style} />}
+                  {avatar.age_range && <Pill label={avatar.age_range} />}
+                  {avatar.gender && <Pill label={avatar.gender} />}
+                  {avatar.ethnicity && <Pill label={avatar.ethnicity} />}
                 </div>
               </div>
-            </Section>
 
-            {/* Tags */}
-            {avatar.tags && avatar.tags.length > 0 && (
-              <Section eyebrow="Tags">
-                <div className="flex flex-wrap gap-1.5">
-                  {avatar.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </Section>
-            )}
+              {/* Personality */}
+              {avatar.personality && (
+                <Section eyebrow="Personality">
+                  <p className="text-[13.5px] font-light leading-relaxed text-foreground/85">
+                    {avatar.personality}
+                  </p>
+                </Section>
+              )}
 
-            {/* Stats */}
-            {avatar.use_count != null && avatar.use_count > 0 && (
-              <Section eyebrow="Filmography">
-                <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-3xl font-light text-foreground tabular-nums">
-                      {avatar.use_count.toLocaleString()}
-                    </span>
-                    <span className={cn(TYPE_META, "text-muted-foreground/60")}>
-                      scenes directed
-                    </span>
+              {/* Description */}
+              {avatar.description && (
+                <Section eyebrow="Description">
+                  <p className="text-[13px] font-light leading-relaxed text-muted-foreground/80">
+                    {avatar.description}
+                  </p>
+                </Section>
+              )}
+
+              {/* Voice */}
+              <Section eyebrow="Voice">
+                <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-3.5">
+                  <button
+                    onClick={togglePlay}
+                    disabled={!hasAudio}
+                    aria-label={playing ? "Pause" : "Play voice sample"}
+                    className={cn(
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                      "border border-accent/40 bg-[hsl(var(--accent)/0.10)] text-accent",
+                      "hover:bg-[hsl(var(--accent)/0.15)] transition-colors",
+                      "disabled:opacity-40 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    {playing ? (
+                      <Pause className="h-4 w-4 fill-current" />
+                    ) : (
+                      <Play className="h-4 w-4 fill-current" />
+                    )}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12.5px] text-foreground/90 truncate">
+                      {avatar.voice_name ?? "Default voice"}
+                    </div>
+                    {avatar.voice_description && (
+                      <div className="text-[11px] text-muted-foreground/60 line-clamp-2 mt-0.5">
+                        {avatar.voice_description}
+                      </div>
+                    )}
+                    <div className={cn(TYPE_META, "text-muted-foreground/40 mt-1")}>
+                      {avatar.voice_provider}
+                    </div>
                   </div>
                 </div>
               </Section>
-            )}
+
+              {/* Tags */}
+              {avatar.tags && avatar.tags.length > 0 && (
+                <Section eyebrow="Tags">
+                  <div className="flex flex-wrap gap-1.5">
+                    {avatar.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* Stats */}
+              {avatar.use_count != null && avatar.use_count > 0 && (
+                <Section eyebrow="Filmography">
+                  <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-4">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-3xl font-light text-foreground tabular-nums">
+                        {avatar.use_count.toLocaleString()}
+                      </span>
+                      <span className={cn(TYPE_META, "text-muted-foreground/60")}>
+                        scenes directed
+                      </span>
+                    </div>
+                  </div>
+                </Section>
+              )}
+            </div>
+
+            {/* Footer CTA */}
+            <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4 sm:px-8 lg:px-10">
+              <button
+                onClick={onCast}
+                className={cn(
+                  "group w-full inline-flex items-center justify-center gap-2 h-12 rounded-full",
+                  "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
+                  "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+                )}
+              >
+                <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                <span className="text-[13.5px]">Cast {avatar.name} in Studio</span>
+                <ArrowRight className="h-4 w-4 text-accent transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Footer CTA */}
-        <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4">
-          <button
-            onClick={onCast}
-            className={cn(
-              "group w-full inline-flex items-center justify-center gap-2 h-11 rounded-full",
-              "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-              "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
-            <span className="text-[13px]">Cast {avatar.name} in Studio</span>
-            <ArrowRight className="h-3.5 w-3.5 text-accent transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
-          </button>
-        </div>
-      </motion.aside>
-    </>
+      </motion.div>
+    </div>
   );
 }
 

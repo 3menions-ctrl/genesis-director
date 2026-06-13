@@ -59,6 +59,8 @@ import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
 import { CreatePanel } from "./components/CreatePanel";
 import { BudgetPanel } from "./components/BudgetPanel";
+import { CrossoverComposer } from "./components/CrossoverComposer";
+import { CastEditor } from "./components/CastEditor";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
@@ -119,6 +121,8 @@ export function EditorShell() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [vfxOpen, setVfxOpen] = useState(false);
+  const [castOpen, setCastOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -409,6 +413,18 @@ export function EditorShell() {
         setBudgetOpen((o) => !o);
         return;
       }
+      // Shift+V — open the Crossover VFX composer.
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "V") {
+        e.preventDefault();
+        setVfxOpen((o) => !o);
+        return;
+      }
+      // Cmd+J — open the Cast editor.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        setCastOpen((o) => !o);
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -656,6 +672,18 @@ export function EditorShell() {
       <BudgetPanel
         open={budgetOpen}
         onClose={() => setBudgetOpen(false)}
+      />
+
+      {/* Crossover VFX composer — Shift+V */}
+      <CrossoverComposer
+        open={vfxOpen}
+        onClose={() => setVfxOpen(false)}
+      />
+
+      {/* Cast editor — Cmd+J */}
+      <CastEditor
+        open={castOpen}
+        onClose={() => setCastOpen(false)}
       />
     </div>
   );

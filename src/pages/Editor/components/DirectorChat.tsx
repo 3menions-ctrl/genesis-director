@@ -39,6 +39,14 @@ import {
   PREMIUM_EFFECTS,
   PROJECT_TEMPLATES,
 } from "@/lib/editor/library";
+import {
+  getDocumentState as getDocStateForDirector,
+  addCharacter as addCharacterToDoc,
+  setShotApproval as setShotApprovalForDirector,
+  setShotEngine as setShotEngineForDirector,
+  flushNow as forceFlushForDirector,
+} from "@/lib/editor/document-store";
+import { flatShots as flatShotsForDirector } from "@/lib/editor/script-document";
 import { useEditor } from "@/hooks/editor/useEditor";
 
 interface Props {
@@ -166,6 +174,77 @@ export function DirectorChat({ project, open, onClose }: Props) {
         if (e) {
           applyEffectToClips(e.cssFilter);
           return `Graded with ${e.name} — ${e.attribution}.`;
+        }
+      }
+    }
+
+    // ── Document writes ── these mutate the ScriptDocument directly,
+    // each one shows up in the Versions panel as an agent-authored
+    // edit. The director can now actually direct.
+
+    // "Add a character named X" / "Add a character: X"
+    {
+      const m = p.match(/(?:add|create)\s+(?:a\s+)?character(?:\s+named|\s*:)?\s+(.+)/);
+      if (m) {
+        const name = m[1].split(/[,.]/)[0].trim().slice(0, 60);
+        if (name) {
+          addCharacterToDoc({ name, role: "supporting" }, { by: "director-chat" });
+          return `Added ${name} to the cast. Open the inspector to add a reference image + identity DNA.`;
+        }
+      }
+    }
+
+    // "Approve shot 2" / "approve the third shot"
+    {
+      const m = p.match(/(?:approve|lock|render)\s+(?:shot|clip)\s+(\d+)/);
+      if (m) {
+        const idx = parseInt(m[1], 10) - 1;
+        const doc = getDocStateForDirector().doc;
+        const shot = doc ? flatShotsForDirector(doc)[idx] : null;
+        if (shot) {
+          setShotApprovalForDirector(shot.id, "ready", {
+            by: "director-chat",
+            reason: "Director approved",
+          });
+          return `Approved shot ${idx + 1}. Ready to render via the inspector's CTA.`;
+        }
+        return `No shot ${idx + 1} in this project.`;
+      }
+    }
+
+    // "Use kling for shot 3" / "set engine to veo-3 on shot 2"
+    {
+      const m = p.match(
+        /(?:use|set|switch to)\s+(seedance|kling|veo|sora|wan|comfy|runway)(?:[-\s]?[\w.-]+)?(?:.*shot\s+(\d+))?/,
+      );
+      if (m) {
+        const engineKeyword = m[1].toLowerCase();
+        const idx = m[2] ? parseInt(m[2], 10) - 1 : null;
+        const engineMap: Record<string, import("@/lib/editor/script-document").ModelEngine> = {
+          seedance: "seedance-1-pro",
+          kling: "kling-2-master",
+          veo: "veo-3-pro",
+          sora: "sora-2",
+          wan: "wan-2-1",
+          comfy: "comfy-local",
+          runway: "runway-gen-4",
+        };
+        const engine = engineMap[engineKeyword];
+        if (engine && idx !== null) {
+          const doc = getDocStateForDirector().doc;
+          const shot = doc ? flatShotsForDirector(doc)[idx] : null;
+          if (shot) {
+            setShotEngineForDirector(shot.id, engine, { by: "director-chat" });
+            return `Shot ${idx + 1} now renders on ${engine}.`;
+          }
+        } else if (engine) {
+          // Project-wide engine swap
+          const doc = getDocStateForDirector().doc;
+          if (doc) {
+            doc.capabilities.defaultEngine = engine;
+            forceFlushForDirector();
+            return `Project engine set to ${engine}.`;
+          }
         }
       }
     }

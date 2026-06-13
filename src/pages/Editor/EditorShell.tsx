@@ -1,19 +1,24 @@
 /**
- * EditorShell — the surface chrome of the rebuilt Editor.
+ * EditorShell — the unified one-page NLE layout.
  *
- * Owns: ProjectBackdrop (cohesive atmosphere), TopStatusBar (back link,
- * project title, view switcher, aspect/runtime), and the view router.
+ *   ┌────────────────────────────────────────────────────────────────┐
+ *   │ TopStatusBar — back, project, presence, comments, export       │
+ *   ├──────┬─────────────────────────────────────────────┬───────────┤
+ *   │      │                                             │           │
+ *   │      │              PlayerCanvas                   │           │
+ *   │ Left │         (aspect-locked + HUD)               │ Inspector │
+ *   │ Sc.  ├─────────────────────────────────────────────┤  (right   │
+ *   │      │              Timeline                       │   rail)   │
+ *   │      │        (V2 / V1 / A1 / A2)                  │           │
+ *   └──────┴─────────────────────────────────────────────┴───────────┘
  *
- * Keyboard:
- *   1 · Stage
- *   2 · Timeline
- *   3 · Script
- *   4 · Storyboard
+ * Every panel is always visible. No view-switcher — the editor IS
+ * the page. Script editing moves to a modal triggered by S (or 3,
+ * for muscle-memory from when Script was a view). Storyboard
+ * focus mode for the full scene grid is still available via 4.
  *
- * Space toggles play (handled inside Stage).
- *
- * Loading and error states render their own minimal floating
- * typography — no card containers anywhere.
+ * Modal overlays: ScriptModal (S), ExportPanel (E), CommentsPanel
+ * (C), HelpOverlay (?), EditorPalette (⌘P).
  */
 import { useEffect, useState } from "react";
 import { Loader2, AlertOctagon } from "lucide-react";
@@ -21,7 +26,6 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { useEditor } from "@/hooks/editor/useEditor";
-import type { EditorView } from "@/lib/editor/types";
 import { usePresence } from "@/hooks/editor/usePresence";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
@@ -30,21 +34,13 @@ import { ExportPanel } from "./components/ExportPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { EditorPalette } from "./components/EditorPalette";
-import { Stage } from "./views/Stage";
+import { LeftScenes } from "./components/LeftScenes";
+import { PlayerCanvas } from "./components/PlayerCanvas";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
 
-const VIEW_BY_KEY: Record<string, EditorView> = {
-  Digit1: "stage",
-  Digit2: "timeline",
-  Digit3: "script",
-  Digit4: "storyboard",
-  Numpad1: "stage",
-  Numpad2: "timeline",
-  Numpad3: "script",
-  Numpad4: "storyboard",
-};
+type FocusMode = "edit" | "storyboard";
 
 export function EditorShell() {
   const {
@@ -58,18 +54,21 @@ export function EditorShell() {
     pxPerSec,
     setView,
   } = useEditor();
+  void view;
+  void setView;
 
   const [exportOpen, setExportOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [scriptOpen, setScriptOpen] = useState(false);
+  const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
-  // Global keys — ignored when an input has focus, except ⌘P which is
-  // always available (since it IS the input).
+  // Global keys — input-aware. The view-switcher numbers now flip
+  // between focus modes since every panel is already visible.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // ⌘P opens the editor palette from anywhere — even inside inputs
       if ((e.metaKey || e.ctrlKey) && (e.key === "p" || e.key === "P")) {
         e.preventDefault();
         setPaletteOpen(true);
@@ -77,40 +76,58 @@ export function EditorShell() {
       }
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) {
-        return;
-      }
-      // ? opens the keyboard help sheet
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         e.preventDefault();
         setHelpOpen(true);
         return;
       }
-      // E opens the export panel
       if (e.key === "e" || e.key === "E") {
         e.preventDefault();
         setExportOpen(true);
         return;
       }
-      // C toggles comments
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         setCommentsOpen((o) => !o);
         return;
       }
-      const v = VIEW_BY_KEY[e.code];
-      if (v) {
+      if (e.key === "s" || e.key === "S") {
         e.preventDefault();
-        setView(v);
+        setScriptOpen((o) => !o);
+        return;
+      }
+      // Focus modes — 1 edit (default), 4 storyboard
+      if (e.code === "Digit1" || e.code === "Numpad1") {
+        e.preventDefault();
+        setFocus("edit");
+        return;
+      }
+      if (e.code === "Digit4" || e.code === "Numpad4") {
+        e.preventDefault();
+        setFocus((f) => (f === "storyboard" ? "edit" : "storyboard"));
+        return;
+      }
+      // Legacy: 2 = timeline-focus (just removes script modal),
+      // 3 = script modal.
+      if (e.code === "Digit2" || e.code === "Numpad2") {
+        e.preventDefault();
+        setFocus("edit");
+        setScriptOpen(false);
+        return;
+      }
+      if (e.code === "Digit3" || e.code === "Numpad3") {
+        e.preventDefault();
+        setScriptOpen(true);
+        return;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setView]);
+  }, []);
 
   return (
-    <div className="relative min-h-[100dvh] flex flex-col overflow-hidden">
-      {/* Backdrop — tied to project identity */}
+    <div className="relative h-[100dvh] flex flex-col overflow-hidden">
       <ProjectBackdrop
         thumbnailUrl={project?.thumbnailUrl ?? null}
         projectId={project?.id ?? "loading"}
@@ -118,54 +135,70 @@ export function EditorShell() {
       />
 
       {/* Chrome */}
-      <div className="relative z-20 flex flex-col flex-1 min-h-0">
+      <div className="relative z-20 flex flex-col h-full min-h-0">
         <TopStatusBar
           project={project}
-          view={view}
-          onViewChange={setView}
+          view="stage"
+          onViewChange={() => {}}
           onOpenExport={() => setExportOpen(true)}
           onToggleComments={() => setCommentsOpen((o) => !o)}
           presenceCount={presence.count}
         />
 
-        {/* View body */}
-        <div className="relative z-10 flex-1 min-h-0 flex flex-col">
+        {/* MAIN — three-column layout, always visible */}
+        <div className="relative flex-1 min-h-0 flex">
           {loading && !project && <LoadingState />}
           {error && !project && <ErrorState message={error} />}
-          {project && view === "stage" && (
-            <Stage project={project} selectedClipId={selectedClipId} />
+
+          {project && focus === "edit" && (
+            <>
+              {/* LEFT — scenes */}
+              <LeftScenes
+                project={project}
+                selectedSceneId={selectedSceneId}
+              />
+
+              {/* CENTER — player + timeline split */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <PlayerCanvas
+                    project={project}
+                    selectedClipId={selectedClipId}
+                    playheadSec={playheadSec}
+                  />
+                </div>
+                <div
+                  className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)]"
+                  style={{ height: 320 }}
+                >
+                  <Timeline
+                    project={project}
+                    selectedClipId={selectedClipId}
+                    playheadSec={playheadSec}
+                    pxPerSec={pxPerSec}
+                  />
+                </div>
+              </div>
+
+              {/* RIGHT — inspector */}
+              <TakesDrawer
+                project={project}
+                selectedClipId={selectedClipId}
+                embedded
+              />
+            </>
           )}
-          {project && view === "timeline" && (
-            <Timeline
-              project={project}
-              selectedClipId={selectedClipId}
-              playheadSec={playheadSec}
-              pxPerSec={pxPerSec}
-            />
-          )}
-          {project && view === "script" && <Script project={project} />}
-          {project && view === "storyboard" && (
-            <Storyboard project={project} selectedSceneId={selectedSceneId} />
+
+          {project && focus === "storyboard" && (
+            <div className="flex-1 min-w-0 flex flex-col">
+              <Storyboard project={project} selectedSceneId={selectedSceneId} />
+            </div>
           )}
         </div>
       </div>
 
-      {/* Takes drawer — appears when a clip is selected; press R to
-          open the regenerate composer. Floats over every view. */}
-      {project && (
-        <TakesDrawer project={project} selectedClipId={selectedClipId} />
-      )}
-
-      {/* Export panel — press E to render in multiple aspects */}
-      {project && (
-        <ExportPanel
-          project={project}
-          open={exportOpen}
-          onClose={() => setExportOpen(false)}
-        />
-      )}
-
-      {/* Comments — bottom-left, press C to toggle */}
+      {/* Floating modal overlays */}
+      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
       {project && (
         <CommentsPanel
           projectId={project.id}
@@ -174,11 +207,13 @@ export function EditorShell() {
           playheadSec={playheadSec}
         />
       )}
-
-      {/* Help — press ? for the keyboard sheet */}
-      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
-
-      {/* Palette — ⌘P for fuzzy-search everywhere */}
+      {project && (
+        <ExportPanel
+          project={project}
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
       {project && (
         <EditorPalette
           project={project}
@@ -198,7 +233,60 @@ export function EditorShell() {
           }}
         />
       )}
+      {project && (
+        <ScriptModal
+          open={scriptOpen}
+          onClose={() => setScriptOpen(false)}
+          project={project}
+        />
+      )}
     </div>
+  );
+}
+
+function ScriptModal({
+  open,
+  onClose,
+  project,
+}: {
+  open: boolean;
+  onClose: () => void;
+  project: import("@/lib/editor/types").EditorProject;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <>
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-[hsl(220_30%_2%/0.55)] backdrop-blur-sm"
+      />
+      <div
+        role="dialog"
+        aria-label="Script"
+        className={cn(
+          "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
+          "w-[min(900px,92vw)] h-[min(78vh,820px)] overflow-hidden flex flex-col",
+          "rounded-3xl border border-white/[0.08]",
+          "bg-[hsl(220_30%_4%/0.92)] backdrop-blur-2xl",
+          "shadow-[0_60px_140px_-30px_hsl(0_0%_0%/0.85)]",
+        )}
+      >
+        <Script project={project} />
+      </div>
+    </>
   );
 }
 

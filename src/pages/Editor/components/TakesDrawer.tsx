@@ -60,12 +60,16 @@ import { toast } from "sonner";
 interface Props {
   project: EditorProject;
   selectedClipId: string | null;
+  /** Render inline as a persistent right rail (no fixed positioning,
+   *  no close button, always visible). Default false keeps the
+   *  original floating-drawer behaviour for any legacy mount. */
+  embedded?: boolean;
 }
 
-export function TakesDrawer({ project, selectedClipId }: Props) {
+export function TakesDrawer({ project, selectedClipId, embedded = false }: Props) {
   const reducedMotion = useReducedMotion();
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [composerOpen, setComposerOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -80,10 +84,16 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
   }, [project, selectedClipId]);
 
   // Auto-open the drawer the moment a clip gets selected; auto-close
-  // it on deselection.
+  // it on deselection. In embedded mode (persistent right rail) we
+  // stay open always — empty-clip state surfaces an idle hint
+  // instead.
   useEffect(() => {
+    if (embedded) {
+      setOpen(true);
+      return;
+    }
     setOpen(!!clip);
-  }, [clip]);
+  }, [clip, embedded]);
 
   // R key opens the composer (input-aware)
   useEffect(() => {
@@ -157,8 +167,57 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
     }
   };
 
+  // Empty Inspector state in embedded mode — gentle "select a clip"
+  // hint instead of unmounting.
+  if (embedded && !clip) {
+    return (
+      <aside
+        aria-label="Inspector"
+        className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col"
+      >
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="text-center">
+            <Sparkles className="h-5 w-5 text-muted-foreground/45 mx-auto" strokeWidth={1.4} />
+            <p
+              className="mt-4 font-display italic text-[15px] font-light text-foreground/85"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Pick a clip to inspect.
+            </p>
+            <p className={cn(TYPE_META, "mt-2 text-muted-foreground/55")}>
+              click any block on the timeline
+            </p>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   if (!clip) return null;
 
+  // ── Embedded (persistent right rail) ────────────────────────────────
+  if (embedded) {
+    return (
+      <aside
+        aria-label="Inspector"
+        className="shrink-0 w-[340px] border-l border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col overflow-hidden"
+      >
+        <InspectorBody
+          clip={clip}
+          composerOpen={composerOpen}
+          setComposerOpen={setComposerOpen}
+          prompt={prompt}
+          setPrompt={setPrompt}
+          submitting={submitting}
+          submit={submitRegenerate}
+          composerRef={composerRef}
+          onClose={null /* persistent */}
+        />
+      </aside>
+    );
+  }
+
+  // ── Floating drawer (legacy) ───────────────────────────────────────
   return (
     <AnimatePresence>
       {open && (
@@ -368,6 +427,212 @@ export function TakesDrawer({ project, selectedClipId }: Props) {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// InspectorBody — shared content between the embedded persistent rail
+// and the legacy floating drawer. Mirrors the floating drawer's JSX
+// 1:1 minus the AnimatePresence/motion.aside wrapper.
+// ─────────────────────────────────────────────────────────────────────────────
+function InspectorBody({
+  clip,
+  composerOpen,
+  setComposerOpen,
+  prompt,
+  setPrompt,
+  submitting,
+  submit,
+  composerRef,
+  onClose,
+}: {
+  clip: import("@/lib/editor/types").EditorClip;
+  composerOpen: boolean;
+  setComposerOpen: (v: boolean) => void;
+  prompt: string;
+  setPrompt: (v: string) => void;
+  submitting: boolean;
+  submit: () => Promise<void>;
+  composerRef: React.RefObject<HTMLTextAreaElement | null>;
+  onClose: (() => void) | null;
+}) {
+  return (
+    <>
+      {/* Header */}
+      <header className="shrink-0 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
+            <Sparkles className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+            <span>◆ Inspector · Clip {String(clip.index + 1).padStart(2, "0")}</span>
+          </div>
+          <h3
+            className="mt-1 font-display italic text-[18px] font-light tracking-tight text-foreground/95 line-clamp-2"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {clip.prompt}
+          </h3>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground/55 hover:text-foreground transition-colors"
+            aria-label="Close inspector"
+          >
+            <X className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        )}
+      </header>
+
+      {/* Identity row */}
+      <div className="shrink-0 px-5 pb-3 grid grid-cols-3 gap-x-4">
+        <div>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>In</div>
+          <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-foreground/95">
+            {fmtTimecode(clip.timelineStartSec)}
+          </div>
+        </div>
+        <div>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>Length</div>
+          <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-foreground/95">
+            {clip.durationSec.toFixed(2)}s
+          </div>
+        </div>
+        <div>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.28em]")}>Track</div>
+          <div className="mt-0.5 font-mono text-[12.5px] tabular-nums text-accent">
+            {clip.kind === "title" ? "V2" : "V1"}
+          </div>
+        </div>
+      </div>
+
+      <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      {clip.kind === "title" ? <TitleProperties clip={clip} /> : <VideoProperties clip={clip} />}
+
+      <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      <div className="shrink-0 px-5 pb-2">
+        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em]")}>
+          ◆ Takes · {clip.takes.length} {clip.takes.length === 1 ? "version" : "versions"}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-2">
+        {clip.takes.length === 0 ? (
+          <div className="px-3 py-8 text-center">
+            <Film className="h-5 w-5 text-muted-foreground/50 mx-auto" strokeWidth={1.4} />
+            <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55")}>
+              Press R to spin a new take
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-1">
+            {clip.takes.map((t, i) => (
+              <TakeRow
+                key={t.id}
+                take={t}
+                isActive={i === 0}
+                onSelect={() => switchActiveTake(clip.id, t.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-white/[0.05] px-4 pt-3 pb-4">
+        <AnimatePresence initial={false} mode="wait">
+          {composerOpen ? (
+            <motion.div
+              key="composer"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: EASE_PREMIUM }}
+            >
+              <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-2")}>
+                ◆ Regenerate
+              </div>
+              <textarea
+                ref={composerRef}
+                rows={3}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value.slice(0, 320))}
+                placeholder="Make it night… same blocking, golden-hour rim light…"
+                className={cn(
+                  "block w-full resize-none bg-transparent outline-none",
+                  "text-[14px] leading-relaxed text-foreground placeholder:text-foreground/30",
+                  "border-b border-accent/40 focus:border-accent pb-2",
+                  "caret-accent font-display italic font-light",
+                )}
+                style={{ fontFamily: "'Fraunces', serif" }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setComposerOpen(false);
+                    setPrompt("");
+                  } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    void submit();
+                  }
+                }}
+              />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => void submit()}
+                  disabled={submitting || !prompt.trim()}
+                  className={cn(
+                    "inline-flex items-center gap-2 text-[12.5px] text-accent transition-opacity",
+                    "disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-85",
+                  )}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+                  ) : (
+                    <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  )}
+                  <span>{submitting ? "Queuing…" : "Spin take"}</span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>
+                    ⌘
+                    <CornerDownLeft className="inline h-2.5 w-2.5 ml-0.5" strokeWidth={2} />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposerOpen(false);
+                    setPrompt("");
+                  }}
+                  className="text-[12.5px] text-muted-foreground/55 hover:text-foreground transition-colors"
+                >
+                  Cancel
+                  <span className={cn(TYPE_META, "ml-2 text-muted-foreground/40 font-mono")}>esc</span>
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="trigger"
+              type="button"
+              initial={{ opacity: 0, y: 2 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -2 }}
+              transition={{ duration: 0.2, ease: EASE_PREMIUM }}
+              onClick={() => {
+                setComposerOpen(true);
+                setTimeout(() => composerRef.current?.focus(), 60);
+              }}
+              className="group/regen flex w-full items-center gap-2 text-left text-[13px] text-foreground/80 hover:text-foreground transition-colors"
+            >
+              <Wand2 className="h-3.5 w-3.5 text-accent/85" strokeWidth={1.5} />
+              <span>Regenerate this clip</span>
+              <span className={cn(TYPE_META, "ml-auto font-mono text-muted-foreground/40")}>R</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 

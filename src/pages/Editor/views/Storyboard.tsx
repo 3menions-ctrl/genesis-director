@@ -14,18 +14,44 @@ import {
   Reorder,
   useReducedMotion,
 } from "framer-motion";
-import { Film, Sparkles, GripVertical } from "lucide-react";
+import { Film, Sparkles, GripVertical, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorProject, EditorScene } from "@/lib/editor/types";
-import { selectScene, moveScene } from "@/lib/editor/store";
+import { selectScene, moveScene, setPlayhead } from "@/lib/editor/store";
 
 interface Props {
   project: EditorProject;
   selectedSceneId: string | null;
+  /** Opens the CreatePanel in the editor's shell so the user can
+   *  generate the new scene without leaving the storyboard. */
+  onOpenCreate?: () => void;
+  /** When a scene card is clicked we also tell the shell to switch
+   *  back to edit mode so the user immediately sees the scene
+   *  playing in Stage. Storyboard is "look at the film" view;
+   *  selecting a scene is the act of saying "now let's work on
+   *  this one." */
+  onLeaveToEdit?: () => void;
 }
 
-export function Storyboard({ project, selectedSceneId }: Props) {
+/**
+ * Anchor a scene click to a concrete playhead position. The
+ * storyboard is conceptually scene-first, but every action that
+ * moves the user (clicking a card) needs to read in Stage too —
+ * so we set the playhead to the scene's first clip's start.
+ */
+function jumpToScene(scene: EditorScene): void {
+  selectScene(scene.id);
+  const firstClip = scene.clips.find((c) => c.kind !== "title");
+  if (firstClip) setPlayhead(firstClip.timelineStartSec);
+}
+
+export function Storyboard({
+  project,
+  selectedSceneId,
+  onOpenCreate,
+  onLeaveToEdit,
+}: Props) {
   const reducedMotion = useReducedMotion();
   const scenes = project.scenes;
 
@@ -76,11 +102,29 @@ export function Storyboard({ project, selectedSceneId }: Props) {
               </span>
             </h2>
           </div>
-          {scenes.length > 1 && (
-            <p className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.30em]")}>
-              drag a card to reorder
-            </p>
-          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            {scenes.length > 1 && (
+              <p className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.30em]")}>
+                drag a card to reorder
+              </p>
+            )}
+            {onOpenCreate && (
+              <button
+                type="button"
+                onClick={onOpenCreate}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 h-7 rounded-full",
+                  "text-[12px] font-mono uppercase tracking-[0.18em]",
+                  "bg-[hsl(var(--accent)/0.12)] text-accent ring-1 ring-inset ring-accent/35",
+                  "hover:bg-[hsl(var(--accent)/0.20)] transition-colors",
+                )}
+                title="Add a scene to this film (N)"
+              >
+                <Plus className="h-3 w-3" strokeWidth={1.8} />
+                <span>Add scene</span>
+              </button>
+            )}
+          </div>
         </header>
 
         {scenes.length === 0 ? (
@@ -93,8 +137,24 @@ export function Storyboard({ project, selectedSceneId }: Props) {
               No scenes yet.
             </p>
             <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55")}>
-              Run a generation in Studio to populate the storyboard
+              Press N or click "Add scene" above to generate the first one inline
             </p>
+            {onOpenCreate && (
+              <button
+                type="button"
+                onClick={onOpenCreate}
+                className={cn(
+                  "mt-7 inline-flex items-center gap-2 px-4 h-9 rounded-full",
+                  "bg-[hsl(var(--accent)/0.14)] text-accent ring-1 ring-inset ring-accent/40",
+                  "text-[13px] font-display italic",
+                  "hover:bg-[hsl(var(--accent)/0.22)] transition-colors",
+                )}
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.8} />
+                <span>Generate the first scene</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-12">
@@ -109,6 +169,7 @@ export function Storyboard({ project, selectedSceneId }: Props) {
                   selectedSceneId={selectedSceneId}
                   onReorder={onReorder}
                   reducedMotion={reducedMotion ?? false}
+                  onLeaveToEdit={onLeaveToEdit}
                 />
               ))
             ) : (
@@ -126,6 +187,7 @@ export function Storyboard({ project, selectedSceneId }: Props) {
                       scene={s}
                       isActive={s.id === selectedSceneId}
                       reducedMotion={reducedMotion ?? false}
+                      onLeaveToEdit={onLeaveToEdit}
                     />
                   ))}
                 </AnimatePresence>
@@ -152,6 +214,7 @@ function ActSection({
   selectedSceneId,
   onReorder,
   reducedMotion,
+  onLeaveToEdit,
 }: {
   act: number;
   scenes: EditorScene[];
@@ -159,6 +222,7 @@ function ActSection({
   selectedSceneId: string | null;
   onReorder: (next: EditorScene[]) => void;
   reducedMotion: boolean;
+  onLeaveToEdit?: () => void;
 }) {
   // Reorder inside an act = reorder among allScenes with the act's
   // scenes shifted around. For v1 we constrain reorders to within
@@ -195,6 +259,7 @@ function ActSection({
               scene={s}
               isActive={s.id === selectedSceneId}
               reducedMotion={reducedMotion}
+              onLeaveToEdit={onLeaveToEdit}
             />
           ))}
         </AnimatePresence>
@@ -210,10 +275,12 @@ function SceneCard({
   scene,
   isActive,
   reducedMotion,
+  onLeaveToEdit,
 }: {
   scene: EditorScene;
   isActive: boolean;
   reducedMotion: boolean;
+  onLeaveToEdit?: () => void;
 }) {
   const cover = scene.clips[0]?.thumbnailUrl ?? null;
   return (
@@ -232,7 +299,10 @@ function SceneCard({
       >
         <button
           type="button"
-          onClick={() => selectScene(scene.id)}
+          onClick={() => {
+            jumpToScene(scene);
+            onLeaveToEdit?.();
+          }}
           className="group/scene block w-full text-left transition-transform duration-300 hover:-translate-y-0.5"
         >
           {/* Thumbnail frame — content, not chrome */}

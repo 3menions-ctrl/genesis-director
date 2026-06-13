@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -1547,6 +1547,55 @@ const transitionsData = useMemo(() =>
                     <ProductionFinalVideo videoUrl={finalVideoUrl} projectId={projectId || undefined} />
                   </Suspense>
                 </ErrorBoundaryWrapper>
+              )}
+
+              {/* Open-in-Editor handoff — appears once a project is
+                  complete (or salvageable) so the user has a clear
+                  next step into the cutting room. Studio creates
+                  films; the Editor edits them — keeping the hand-off
+                  obvious avoids the "where do I edit this?" moment.
+                  Routes through ?tab=script when there's an AI
+                  draft awaiting review so the user lands on the
+                  approval surface first. */}
+              {projectId && (isComplete || completedClips > 0) && (
+                <div className="mt-6 rounded-2xl ring-1 ring-inset ring-accent/35 bg-[hsl(var(--accent)/0.06)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="font-display italic text-[18px] text-foreground/95 leading-snug"
+                      style={{ fontFamily: "'Fraunces', serif" }}
+                    >
+                      Ready to cut?
+                    </p>
+                    <p className="mt-1 text-[13px] text-muted-foreground/75 leading-snug">
+                      Open this project in the Editor — magnetic timeline, crossfades, color grades, AI co-director, and the script lens all in one surface.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <Link
+                      to={`/editor/${projectId}?tab=stage`}
+                      className={cn(
+                        "inline-flex items-center gap-2 px-4 h-10 rounded-full",
+                        "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",
+                        "text-[13px] font-display italic",
+                        "hover:bg-[hsl(var(--accent)/0.24)] transition-colors",
+                      )}
+                      style={{ fontFamily: "'Fraunces', serif" }}
+                    >
+                      Open in Editor
+                    </Link>
+                    <Link
+                      to={`/editor/${projectId}?tab=script`}
+                      className={cn(
+                        "inline-flex items-center gap-2 px-4 h-10 rounded-full",
+                        "bg-white/[0.03] text-foreground/85 ring-1 ring-inset ring-white/[0.08]",
+                        "text-[13px]",
+                        "hover:bg-white/[0.07] transition-colors",
+                      )}
+                    >
+                      Review script
+                    </Link>
+                  </div>
+                </div>
               )}
 
               {/* NEW: World-Class Cinematic Pipeline Animation */}

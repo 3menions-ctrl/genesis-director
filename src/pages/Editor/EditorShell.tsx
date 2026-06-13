@@ -470,6 +470,8 @@ export function EditorShell() {
               <Storyboard
                 project={displayProject}
                 selectedSceneId={selectedSceneId}
+                onOpenCreate={() => setCreateOpen(true)}
+                onLeaveToEdit={() => setFocus("edit")}
               />
             </div>
           )}

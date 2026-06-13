@@ -317,8 +317,33 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
 
     const onTime = () => {
       if (!activeClip) return;
-      setPlayhead(activeClip.timelineStartSec + v.currentTime);
       const rel = v.currentTime;
+
+      // CLIP OUT-POINT — each clip declares a durationSec that's
+      // almost always SHORTER than the underlying source video.
+      // (A 6-second clip on the timeline can reference Sintel's 52s
+      // trailer; we only want to play the first 6 seconds.) When the
+      // video element's playhead crosses durationSec, we treat the
+      // clip as ended — advance to the next clip's start, or pause
+      // at the end of the chain.
+      if (rel >= activeClip.durationSec - 0.05) {
+        const next = clips[activeIdx + 1];
+        if (next) {
+          // intentToPlayRef stays true → next clip auto-resumes via
+          // its loadedmetadata handler.
+          setPlayhead(next.timelineStartSec);
+        } else {
+          intentToPlayRef.current = false;
+          try {
+            v.pause();
+          } catch {
+            /* ignored */
+          }
+        }
+        return;
+      }
+
+      setPlayhead(activeClip.timelineStartSec + rel);
       const baseOpacity = getClipPropertyAt(activeClip, "opacity", rel);
       const fadeIn = getClipProperty(activeClip, "fadeInSec");
       const fadeOut = getClipProperty(activeClip, "fadeOutSec");

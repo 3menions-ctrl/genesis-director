@@ -89,15 +89,38 @@ export function ClipFilmstrip({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clipId, videoUrl, durationSec]);
 
+  // Extraction failed (CORS / canvas tainted / unsupported codec) →
+  // fall back to a TILED thumbnail strip so the row always reads
+  // as "video frames" rather than a single static image. The tiles
+  // use the thumbnail offset across the strip to fake a film-strip
+  // feel even when the actual frames aren't extractable.
   if (frames.length === 0) {
     if (fallbackThumbnailUrl) {
+      const tileCount = framesForWidth(widthPx);
       return (
-        <img
-          src={fallbackThumbnailUrl}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          draggable={false}
-        />
+        <div className="absolute inset-0 flex pointer-events-none" aria-hidden>
+          {Array.from({ length: tileCount }, (_, i) => (
+            <div
+              key={i}
+              className="h-full flex-1 min-w-0 overflow-hidden relative"
+              style={{
+                // Slight horizontal offset per tile to suggest a
+                // sequence of frames panning across.
+                backgroundImage: `url(${fallbackThumbnailUrl})`,
+                backgroundSize: `${tileCount * 100}% 100%`,
+                backgroundPosition: `${(i / Math.max(1, tileCount - 1)) * 100}% center`,
+                backgroundRepeat: "no-repeat",
+              }}
+            >
+              {i > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-0 bottom-0 w-px bg-black/30"
+                />
+              )}
+            </div>
+          ))}
+        </div>
       );
     }
     return null;
@@ -109,18 +132,23 @@ export function ClipFilmstrip({
       aria-hidden
     >
       {frames.map((url, i) => (
-        <img
+        <div
           key={i}
-          src={url}
-          alt=""
-          className="h-full object-cover flex-1 min-w-0"
-          style={{
-            // Each frame gets equal width. We use min-w-0 + flex-1
-            // so they distribute even when the parent shrinks.
-            objectPosition: "center",
-          }}
-          draggable={false}
-        />
+          className="h-full flex-1 min-w-0 overflow-hidden relative"
+        >
+          <img
+            src={url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            draggable={false}
+          />
+          {i > 0 && (
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-px bg-black/30"
+            />
+          )}
+        </div>
       ))}
     </div>
   );

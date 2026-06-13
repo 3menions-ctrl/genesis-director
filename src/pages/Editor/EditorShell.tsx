@@ -28,6 +28,8 @@ import { TopStatusBar } from "./components/TopStatusBar";
 import { TakesDrawer } from "./components/TakesDrawer";
 import { ExportPanel } from "./components/ExportPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
+import { HelpOverlay } from "./components/HelpOverlay";
+import { EditorPalette } from "./components/EditorPalette";
 import { Stage } from "./views/Stage";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
@@ -59,14 +61,29 @@ export function EditorShell() {
 
   const [exportOpen, setExportOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const presence = usePresence(project?.id);
 
-  // Global view-switcher keys (1/2/3/4) — ignored when an input has focus
+  // Global keys — ignored when an input has focus, except ⌘P which is
+  // always available (since it IS the input).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘P opens the editor palette from anywhere — even inside inputs
+      if ((e.metaKey || e.ctrlKey) && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        setPaletteOpen(true);
+        return;
+      }
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) {
+        return;
+      }
+      // ? opens the keyboard help sheet
+      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+        e.preventDefault();
+        setHelpOpen(true);
         return;
       }
       // E opens the export panel
@@ -155,6 +172,30 @@ export function EditorShell() {
           open={commentsOpen}
           onClose={() => setCommentsOpen(false)}
           playheadSec={playheadSec}
+        />
+      )}
+
+      {/* Help — press ? for the keyboard sheet */}
+      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* Palette — ⌘P for fuzzy-search everywhere */}
+      {project && (
+        <EditorPalette
+          project={project}
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          onOpenExport={() => {
+            setPaletteOpen(false);
+            setExportOpen(true);
+          }}
+          onOpenComments={() => {
+            setPaletteOpen(false);
+            setCommentsOpen(true);
+          }}
+          onOpenHelp={() => {
+            setPaletteOpen(false);
+            setHelpOpen(true);
+          }}
         />
       )}
     </div>

@@ -369,31 +369,14 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
           .map((c: { videoUrl?: string }) => c.videoUrl)
           .filter(Boolean);
         if (!clips.length) throw new Error('no clips in manifest');
-        if (clips.length === 1) {
-          const filename = `${safeName}.mp4`;
-          downloadWindow?.close();
-          await saveBlob(clips[0], filename);
-          toast.success('Download started');
-        } else {
-          if (!downloadWindow) throw new Error('download window blocked');
-          downloadWindow.document.body.innerHTML = '';
-          downloadWindow.document.title = `Download ${safeName}`;
-          const style = downloadWindow.document.createElement('style');
-          style.textContent = 'body{font-family:system-ui;background:#05070a;color:#fff;padding:32px}a{display:block;color:#60a5fa;margin:12px 0;font-size:18px}';
-          downloadWindow.document.head.appendChild(style);
-          const heading = downloadWindow.document.createElement('h1');
-          heading.textContent = 'Download clips';
-          downloadWindow.document.body.appendChild(heading);
-          clips.forEach((clipUrl, index) => {
-            const filename = `${safeName}_clip${index + 1}.mp4`;
-            const link = downloadWindow.document.createElement('a');
-            link.href = toStorageDownloadUrl(clipUrl, filename);
-            link.download = filename;
-            link.textContent = filename;
-            downloadWindow.document.body.appendChild(link);
-          });
-          toast.success('Opened download links');
+        downloadWindow?.close();
+        toast.info(`Downloading ${clips.length} clip(s)…`);
+        for (let i = 0; i < clips.length; i++) {
+          const filename = clips.length === 1 ? `${safeName}.mp4` : `${safeName}_clip${i + 1}.mp4`;
+          await saveBlob(clips[i], filename);
+          if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 400));
         }
+        toast.success(`Started ${clips.length} download(s)`);
       } else {
         downloadWindow?.close();
         await saveBlob(url, `${safeName}.mp4`);

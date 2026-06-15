@@ -339,9 +339,23 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
     setDownloading(video.id);
     const url = video.video_url;
     const safeName = (video.title || 'video').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 60);
+    // Supabase Storage honors `?download=<filename>` to force Content-Disposition: attachment.
+    // This works cross-origin where the `download` attribute on <a> is otherwise ignored.
+    const forceDownload = (rawUrl: string, filename: string) => {
+      const sep = rawUrl.includes('?') ? '&' : '?';
+      const href = `${rawUrl}${sep}download=${encodeURIComponent(filename)}`;
+      const a = document.createElement('a');
+      a.href = href;
+      a.rel = 'noopener';
+      // Same-origin hint; ignored cross-origin but harmless.
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
     try {
       if (url.endsWith('.json')) {
-        const res = await fetch(url, { mode: 'cors' });
+        const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
         if (!res.ok) throw new Error('manifest fetch failed');
         const manifest = await res.json();
         const clips: string[] = (manifest.clips || [])
@@ -350,37 +364,15 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
         if (!clips.length) throw new Error('no clips in manifest');
         toast.info(`Downloading ${clips.length} clip(s)…`);
         for (let i = 0; i < clips.length; i++) {
-          try {
-            const r = await fetch(clips[i], { mode: 'cors' });
-            if (!r.ok) continue;
-            const blob = await r.blob();
-            const objUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = objUrl;
-            a.download = clips.length === 1 ? `${safeName}.mp4` : `${safeName}_clip${i + 1}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
-            if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 700));
-          } catch (e) {
-            console.warn('clip download failed', e);
-          }
+          const filename = clips.length === 1 ? `${safeName}.mp4` : `${safeName}_clip${i + 1}.mp4`;
+          forceDownload(clips[i], filename);
+          // Stagger so browsers don't suppress sequential downloads.
+          if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 600));
         }
-        toast.success(`Downloaded ${clips.length} clip(s)`);
+        toast.success(`Started ${clips.length} download(s)`);
       } else {
-        const res = await fetch(url, { mode: 'cors' });
-        if (!res.ok) throw new Error('download failed');
-        const blob = await res.blob();
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objUrl;
-        a.download = `${safeName}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
-        toast.success('Video downloaded');
+        forceDownload(url, `${safeName}.mp4`);
+        toast.success('Download started');
       }
     } catch (err) {
       console.error('[AdminModeration] download error:', err);

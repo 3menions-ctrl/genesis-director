@@ -334,25 +334,32 @@ interface VideoGridProps {
 function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  const toStorageDownloadUrl = (rawUrl: string, filename: string) => {
+    const sep = rawUrl.includes('?') ? '&' : '?';
+    return `${rawUrl}${sep}download=${encodeURIComponent(filename)}`;
+  };
+
+  const saveBlob = async (rawUrl: string, filename: string) => {
+    const response = await fetch(rawUrl, { mode: 'cors', cache: 'no-store' });
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+  };
+
   const handleDownload = async (video: PublicVideo) => {
     if (!video.video_url) return;
     setDownloading(video.id);
     const url = video.video_url;
     const safeName = (video.title || 'video').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 60);
-    // Supabase Storage honors `?download=<filename>` to force Content-Disposition: attachment.
-    // This works cross-origin where the `download` attribute on <a> is otherwise ignored.
-    const forceDownload = (rawUrl: string, filename: string) => {
-      const sep = rawUrl.includes('?') ? '&' : '?';
-      const href = `${rawUrl}${sep}download=${encodeURIComponent(filename)}`;
-      const a = document.createElement('a');
-      a.href = href;
-      a.rel = 'noopener';
-      // Same-origin hint; ignored cross-origin but harmless.
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    };
+    const downloadWindow = window.open('about:blank', '_blank');
+    if (downloadWindow) downloadWindow.opener = null;
     try {
       if (url.endsWith('.json')) {
         const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
@@ -362,21 +369,26 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
           .map((c: { videoUrl?: string }) => c.videoUrl)
           .filter(Boolean);
         if (!clips.length) throw new Error('no clips in manifest');
+        downloadWindow?.close();
         toast.info(`Downloading ${clips.length} clip(s)…`);
         for (let i = 0; i < clips.length; i++) {
           const filename = clips.length === 1 ? `${safeName}.mp4` : `${safeName}_clip${i + 1}.mp4`;
-          forceDownload(clips[i], filename);
-          // Stagger so browsers don't suppress sequential downloads.
-          if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 600));
+          await saveBlob(clips[i], filename);
+          if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 400));
         }
         toast.success(`Started ${clips.length} download(s)`);
       } else {
-        forceDownload(url, `${safeName}.mp4`);
+        downloadWindow?.close();
+        await saveBlob(url, `${safeName}.mp4`);
         toast.success('Download started');
       }
     } catch (err) {
       console.error('[AdminModeration] download error:', err);
-      window.open(url, '_blank');
+      if (downloadWindow) {
+        downloadWindow.location.href = toStorageDownloadUrl(url, `${safeName}.mp4`);
+      } else {
+        window.open(toStorageDownloadUrl(url, `${safeName}.mp4`), '_blank');
+      }
       toast.info('Opened video in a new tab');
     } finally {
       setDownloading(null);

@@ -358,7 +358,8 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
     setDownloading(video.id);
     const url = video.video_url;
     const safeName = (video.title || 'video').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 60);
-    const downloadWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const downloadWindow = window.open('about:blank', '_blank');
+    if (downloadWindow) downloadWindow.opener = null;
     try {
       if (url.endsWith('.json')) {
         const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
@@ -374,14 +375,23 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
           await saveBlob(clips[0], filename);
           toast.success('Download started');
         } else {
-          const links = clips
-            .map((clipUrl, index) => {
-              const filename = `${safeName}_clip${index + 1}.mp4`;
-              return `<a href="${toStorageDownloadUrl(clipUrl, filename)}" download="${filename}">${filename}</a>`;
-            })
-            .join('');
-          downloadWindow?.document.write(`<!doctype html><title>Download ${safeName}</title><style>body{font-family:system-ui;background:#05070a;color:#fff;padding:32px}a{display:block;color:#60a5fa;margin:12px 0;font-size:18px}</style><h1>Download clips</h1>${links}`);
-          downloadWindow?.document.close();
+          if (!downloadWindow) throw new Error('download window blocked');
+          downloadWindow.document.body.innerHTML = '';
+          downloadWindow.document.title = `Download ${safeName}`;
+          const style = downloadWindow.document.createElement('style');
+          style.textContent = 'body{font-family:system-ui;background:#05070a;color:#fff;padding:32px}a{display:block;color:#60a5fa;margin:12px 0;font-size:18px}';
+          downloadWindow.document.head.appendChild(style);
+          const heading = downloadWindow.document.createElement('h1');
+          heading.textContent = 'Download clips';
+          downloadWindow.document.body.appendChild(heading);
+          clips.forEach((clipUrl, index) => {
+            const filename = `${safeName}_clip${index + 1}.mp4`;
+            const link = downloadWindow.document.createElement('a');
+            link.href = toStorageDownloadUrl(clipUrl, filename);
+            link.download = filename;
+            link.textContent = filename;
+            downloadWindow.document.body.appendChild(link);
+          });
           toast.success('Opened download links');
         }
       } else {

@@ -1759,18 +1759,6 @@ function ReelTile({ reel, demo, onOpen, index }: { reel: FeedRow; demo: boolean;
           style={{ background: `radial-gradient(110% 100% at 50% 0%, hsla(${accent} / 0.18) 0%, transparent 65%)` }}
         />
         <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-        {reel.world_name && (
-          <div
-            className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[9.5px] font-mono uppercase tracking-[0.32em] backdrop-blur-2xl"
-            style={{
-              color: `hsl(${accent})`,
-              background: `hsla(${accent} / 0.10)`,
-              boxShadow: `inset 0 0 0 1px hsla(${accent} / 0.32)`,
-            }}
-          >
-            <span className="mr-1.5">{reel.world_glyph}</span>{reel.world_name}
-          </div>
-        )}
         <div className="absolute bottom-3 left-3 right-3 flex items-center gap-3 text-[10px] font-mono text-white/85 tracking-[0.22em]">
           <span className="inline-flex items-center gap-1"><Eye className="w-3 h-3" strokeWidth={1.6} />{reel.play_count.toLocaleString()}</span>
           <span className="inline-flex items-center gap-1"><Heart className="w-3 h-3" strokeWidth={1.6} />{likeCount.toLocaleString()}</span>

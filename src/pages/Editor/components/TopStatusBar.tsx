@@ -55,8 +55,10 @@ export function TopStatusBar({
   onOpenCreate,
   presenceCount,
 }: Props) {
+  // Extra right padding keeps the Save/Download cluster clear of the app's
+  // fixed top-right chrome (search · inbox · bell).
   return (
-    <header className="relative z-30 px-6 pt-6 pb-5 sm:px-9 lg:px-12">
+    <header className="relative z-30 px-6 pt-6 pb-5 pr-[150px] sm:px-9 sm:pr-[150px] lg:px-12 lg:pr-[160px]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         {/* LEFT — back + identity */}
         <div className="flex items-center gap-5 min-w-0">

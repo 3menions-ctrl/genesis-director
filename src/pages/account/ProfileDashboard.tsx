@@ -87,6 +87,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -1016,18 +1017,29 @@ export default function ProfileDashboard() {
              prefs, pronouns, and notifications. ─────────────────── */}
         {isOwner && settingsMode && viewedUserId && (
           <div id="profile-settings-panel" className="scroll-mt-24">
-            <ProfileSettingsPanel
-              userId={viewedUserId}
-              initialProfile={{
-                display_name: profile?.display_name ?? null,
-                tagline: viewed?.tagline ?? null,
-                location: viewed?.location ?? null,
-                external_links: externalLinks,
-                preferences: (profile as any)?.preferences ?? {},
-              }}
-              onClose={() => setSettingsMode(false)}
-              onSaved={refreshProfile}
-            />
+            <ErrorBoundary
+              fallback={
+                <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                  <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
+                  <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
+                    Open full settings <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              }
+            >
+              <ProfileSettingsPanel
+                userId={viewedUserId}
+                initialProfile={{
+                  display_name: profile?.display_name ?? null,
+                  tagline: viewed?.tagline ?? null,
+                  location: viewed?.location ?? null,
+                  external_links: externalLinks,
+                  preferences: (profile as any)?.preferences ?? {},
+                }}
+                onClose={() => setSettingsMode(false)}
+                onSaved={refreshProfile}
+              />
+            </ErrorBoundary>
           </div>
         )}
 

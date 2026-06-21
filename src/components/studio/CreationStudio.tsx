@@ -860,7 +860,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
 function ModuleScroll({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-9">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-[1.5rem] font-semibold text-foreground">{title}</h2>
         <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-muted-foreground">{subtitle}</p>
         <div className="mt-6">{children}</div>
@@ -920,7 +920,7 @@ export function CreationStudio({ onStartCreation, onReady, initialPrompt }: { on
   ];
 
   return (
-    <div className="flex h-[calc(100vh-160px)] min-h-[560px] overflow-hidden rounded-3xl bg-[hsl(220_28%_5%/0.52)] ring-1 ring-inset ring-[hsl(var(--foreground)/0.08)] backdrop-blur-2xl shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)]">
+    <div className="flex h-[calc(100vh-120px)] min-h-[640px] overflow-hidden rounded-3xl bg-[hsl(220_28%_5%/0.52)] ring-1 ring-inset ring-[hsl(var(--foreground)/0.08)] backdrop-blur-2xl shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)]">
       {/* left rail */}
       <nav className="flex w-[76px] shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-[hsl(var(--foreground)/0.08)] py-4 sm:w-[92px]">
         {groups.map((g, gi) => (

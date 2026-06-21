@@ -482,21 +482,9 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
             )}
           </AnimatePresence>
 
-          {/* ── TOP OVERLAY — world chip + view count + close ── */}
+          {/* ── TOP OVERLAY — view count + close (movie-type badge removed) ── */}
           {!introPlaying && (
             <div className="absolute top-5 left-5 right-5 z-20 flex items-center gap-3 flex-wrap">
-              {reel.world_name && (
-                <span
-                  className="px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-[0.32em] backdrop-blur-2xl"
-                  style={{
-                    color: `hsl(${accent})`,
-                    background: `hsla(${accent} / 0.18)`,
-                    boxShadow: `inset 0 0 0 1px hsla(${accent} / 0.40)`,
-                  }}
-                >
-                  <span className="mr-1.5">{reel.world_glyph}</span>{reel.world_name}
-                </span>
-              )}
               <span className={cn(TYPE_META, "text-white/75 tracking-[0.26em]")}>
                 <Eye className="h-3 w-3 inline mr-1.5" />{reel.play_count.toLocaleString()}
               </span>

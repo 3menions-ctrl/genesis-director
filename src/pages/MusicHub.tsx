@@ -246,7 +246,7 @@ function MyTracksPanel({
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading your tracks…</span>
         </div>
       ) : assets.length === 0 ? (
-        <div className="text-center py-12 max-w-md mx-auto rounded-2xl border border-dashed border-white/[0.10]">
+        <div className="text-center py-12 max-w-md mx-auto rounded-2xl bg-white/[0.03] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
           <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
           <h3 className="font-display italic text-[20px] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No tracks yet.</h3>
           <p className="text-muted-foreground text-[13px] mb-5">Upload music you've downloaded or made elsewhere — MP3, WAV, M4A, FLAC. It'll live here for use across your projects.</p>
@@ -270,6 +270,16 @@ function fmtDuration(sec: number | null): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Every track gets a cover. If the asset carries one we use it; otherwise we
+// derive a deterministic two-tone gradient from the title so each track has a
+// distinct, stable cover instead of a blank tile.
+function coverGradient(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+  const h2 = (h + 42) % 360;
+  return `linear-gradient(135deg, hsl(${h} 68% 26%) 0%, hsl(${h2} 60% 13%) 100%)`;
+}
+
 function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: string) => Promise<void> }) {
   const [removing, setRemoving] = useState(false);
   const title = asset.title || asset.prompt || "Untitled track";
@@ -281,11 +291,21 @@ function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: strin
     catch { toast.error("Could not remove track"); setRemoving(false); }
   };
 
+  const cover = (asset as MediaAsset & { thumbnail_url?: string | null; cover_url?: string | null }).thumbnail_url
+    || (asset as MediaAsset & { cover_url?: string | null }).cover_url || null;
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/12 p-4 transition-colors">
+    <div className="rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-md p-4 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-xl border border-white/[0.08] bg-[hsl(265_60%_55%/0.12)] text-[hsl(265_70%_78%)] flex items-center justify-center shrink-0">
-          <Music2 className="w-4 h-4" />
+        {/* Cover — real artwork if present, else a deterministic gradient. */}
+        <div
+          className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-white/85 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+          style={cover ? undefined : { background: coverGradient(title) }}
+        >
+          {cover ? (
+            <img src={cover} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <Music2 className="w-4 h-4" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[14px] text-foreground truncate">{title}</div>
@@ -301,7 +321,7 @@ function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: strin
             rel="noreferrer"
             download
             aria-label="Download track"
-            className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-white/30 text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
           </a>
@@ -309,7 +329,7 @@ function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: strin
             onClick={del}
             disabled={removing}
             aria-label="Delete track"
-            className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-rose-300/40 text-foreground/55 hover:text-rose-200 flex items-center justify-center transition-colors disabled:opacity-50"
+            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-[hsl(350_80%_55%/0.16)] text-foreground/55 hover:text-rose-200 flex items-center justify-center transition-colors disabled:opacity-50"
           >
             {removing ? <Spinner size="sm" tone="muted" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
@@ -670,13 +690,12 @@ function StudioGrid({ openStudio }: { openStudio: (k: "score" | "beat") => void 
           <button
             key={t.kind}
             onClick={() => openStudio(t.kind)}
-            className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/20 hover:bg-glass-hover px-5 py-4 text-left transition-colors"
+            className="group flex items-center gap-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md px-5 py-4 text-left transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           >
             <div
-              className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0"
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{
-                borderColor: `hsla(${t.accent} 70% 65% / 0.40)`,
-                background: `hsla(${t.accent} 70% 65% / 0.10)`,
+                background: `hsla(${t.accent} 70% 65% / 0.14)`,
                 color: `hsl(${t.accent} 70% 75%)`,
               }}
             >
@@ -711,7 +730,7 @@ function DailyBeatCard({ promptText, promptHint, onBuild }: { promptText: string
           <button onClick={onBuild} className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
             <Drum className="w-3 h-3" /> Build a take
           </button>
-          <Link to="/lobby" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full border border-white/[0.10] hover:border-white/30 text-foreground/75 hover:text-foreground text-[11px] font-mono uppercase tracking-[0.22em]">
+          <Link to="/lobby" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-foreground/75 hover:text-foreground text-[11px] font-mono uppercase tracking-[0.22em]">
             <Headphones className="w-3 h-3" /> Hear today's takes
           </Link>
         </div>
@@ -722,7 +741,7 @@ function DailyBeatCard({ promptText, promptHint, onBuild }: { promptText: string
 
 function MusicVideoCard({ reel, demo }: { reel: MusicReel; demo: boolean }) {
   const cardClass = cn(
-    "group rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 overflow-hidden transition-colors",
+    "group rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-md overflow-hidden transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
     demo && "cursor-default",
   );
   const inner = (

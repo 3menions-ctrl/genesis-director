@@ -495,7 +495,7 @@ function StudioContentInner() {
           transition={{ duration: 0.5 }}
           className="relative w-full"
         >
-          <PageShell width="wide" pad>
+          <PageShell width="gallery" pad>
             {/* Slim, editor-style top bar — a back arrow to the lobby on the
                 left (replaces the foundation left-rail), credits + the other
                 doors on the right. No cover band, no profile puck. */}

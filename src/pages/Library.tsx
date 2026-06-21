@@ -345,6 +345,74 @@ export default function Library() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// StitchedVideo — plays a project's FULL film. For multi-clip projects the
+// project's `video_url` is only the first clip, so we fetch the clips ordered
+// by shot_index and play them back-to-back (then loop). Single-clip projects
+// just loop their video_url. This is what makes the library play the whole
+// stitched film instead of stopping after the first shot.
+// ─────────────────────────────────────────────────────────────────────
+function StitchedVideo({
+  projectId, fallbackUrl, poster, muted, className, videoRef, onPlay, onPause,
+}: {
+  projectId: string;
+  fallbackUrl?: string | null;
+  poster?: string | null;
+  muted?: boolean;
+  className?: string;
+  videoRef?: React.RefObject<HTMLVideoElement>;
+  onPlay?: () => void;
+  onPause?: () => void;
+}) {
+  const localRef = useRef<HTMLVideoElement>(null);
+  const ref = videoRef ?? localRef;
+  const [urls, setUrls] = useState<string[]>(fallbackUrl ? [fallbackUrl] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("video_clips")
+        .select("video_url, shot_index, status")
+        .eq("project_id", projectId)
+        .order("shot_index", { ascending: true });
+      if (cancelled) return;
+      const clips = (data ?? [])
+        .filter((r: { video_url?: string | null; status?: string | null }) =>
+          !!r.video_url && (r.status == null || r.status === "completed"))
+        .map((r: { video_url?: string | null }) => r.video_url as string);
+      // Only override when there's a genuine multi-clip sequence to stitch.
+      if (clips.length > 1) { setUrls(clips); setIdx(0); }
+    })();
+    return () => { cancelled = true; };
+  }, [projectId]);
+
+  const multi = urls.length > 1;
+  // Advancing the src needs an explicit play() — autoPlay only fires once.
+  useEffect(() => {
+    if (multi) ref.current?.play().catch(() => {});
+  }, [idx, multi, ref]);
+
+  if (urls.length === 0) return null;
+  return (
+    <video
+      ref={ref}
+      src={urls[idx]}
+      poster={poster ?? undefined}
+      autoPlay
+      muted={muted ?? true}
+      playsInline
+      preload="metadata"
+      loop={!multi}
+      onEnded={multi ? () => setIdx((i) => (i + 1) % urls.length) : undefined}
+      onPlay={onPlay}
+      onPause={onPause}
+      className={className}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // HERO PLAYER — full-bleed, autoplay muted, click-to-unmute, immersive.
 // ─────────────────────────────────────────────────────────────────────
 function HeroPlayer({
@@ -374,19 +442,13 @@ function HeroPlayer({
     >
       <div className="relative aspect-[21/9] w-full bg-black">
         {project.video_url ? (
-          <video
-            ref={ref}
-            src={project.video_url}
-            poster={project.thumbnail_url ?? undefined}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            // No manual play() — autoPlay+muted handles cold-start in
-            // every browser that allows muted autoplay. The manual
-            // play() in onCanPlay was racing with user-initiated
-            // pause and could restart playback unexpectedly.
+          // Plays the FULL stitched film — every clip in shot order, then loops.
+          <StitchedVideo
+            projectId={project.id}
+            fallbackUrl={project.video_url}
+            poster={project.thumbnail_url}
+            muted={muted}
+            videoRef={ref}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
             className="absolute inset-0 w-full h-full object-cover"
@@ -422,12 +484,6 @@ function HeroPlayer({
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] font-mono text-accent/85">
             <Sparkles className="h-3 w-3" strokeWidth={1.6} />
             <span>Latest film</span>
-            {project.genre && (
-              <>
-                <span className="text-white/30">·</span>
-                <span className="capitalize text-white/65">{project.genre}</span>
-              </>
-            )}
           </div>
           <h2
             className="text-[clamp(2rem,5vw,3.5rem)] font-display italic font-light leading-[1.02] text-white max-w-3xl"

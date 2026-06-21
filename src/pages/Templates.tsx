@@ -35,6 +35,14 @@ import {
   Cpu,
   Wand2,
   ArrowRight,
+  Gift,
+  Gem,
+  Clapperboard,
+  Gauge,
+  Smartphone,
+  Monitor,
+  Square,
+  RectangleHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -77,21 +85,21 @@ const CATEGORIES: { id: TemplateCategory | "all"; label: string; icon: typeof Fi
 ];
 
 type EngineFilter = "all" | "free" | "standard" | "pro" | "cinema";
-const ENGINE_FILTERS: { id: EngineFilter; label: string }[] = [
-  { id: "all",      label: "Any engine" },
-  { id: "free",     label: "Free · Wan" },
-  { id: "standard", label: "Standard" },
-  { id: "pro",      label: "Pro" },
-  { id: "cinema",   label: "Cinema" },
+const ENGINE_FILTERS: { id: EngineFilter; label: string; icon: typeof Film }[] = [
+  { id: "all",      label: "Any",      icon: Layers },
+  { id: "free",     label: "Free",     icon: Gift },
+  { id: "standard", label: "Standard", icon: Gauge },
+  { id: "pro",      label: "Pro",      icon: Gem },
+  { id: "cinema",   label: "Cinema",   icon: Clapperboard },
 ];
 
 type AspectFilter = "all" | "vertical" | "wide" | "square" | "cinema";
-const ASPECT_FILTERS: { id: AspectFilter; label: string }[] = [
-  { id: "all",      label: "Any aspect" },
-  { id: "vertical", label: "Vertical · 9:16 / 4:5" },
-  { id: "wide",     label: "Wide · 16:9 / 4:3" },
-  { id: "square",   label: "Square · 1:1" },
-  { id: "cinema",   label: "Cinema · 21:9" },
+const ASPECT_FILTERS: { id: AspectFilter; label: string; icon: typeof Film }[] = [
+  { id: "all",      label: "Any",      icon: Layers },
+  { id: "vertical", label: "Vertical", icon: Smartphone },
+  { id: "wide",     label: "Wide",     icon: Monitor },
+  { id: "square",   label: "Square",   icon: Square },
+  { id: "cinema",   label: "21:9",     icon: RectangleHorizontal },
 ];
 
 const TIER_HUE: Record<string, string> = {
@@ -315,26 +323,44 @@ TemplateCard.displayName = "TemplateCard";
 // ─────────────────────────────────────────────────────────────────────────────
 // Filter pill — shared style
 // ─────────────────────────────────────────────────────────────────────────────
-function FilterPill({
-  active, onClick, children, icon,
+// Top-bar filter as a beautiful icon tile with a small label underneath —
+// repeated for every engine tier and aspect option.
+function IconFilterTile({
+  active, onClick, Icon, label,
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
-  icon?: React.ReactNode;
+  Icon: typeof Film;
+  label: string;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
+        "group/ft flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 rounded-2xl backdrop-blur-md transition-all",
         active
-          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
-          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+          ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.18] shadow-[0_10px_28px_-14px_hsla(0,0%,100%,0.4)]"
+          : "bg-white/[0.02] hover:bg-white/[0.05]",
       )}
     >
-      {icon}
-      {children}
+      <span
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
+          active
+            ? "bg-foreground/[0.14] text-foreground"
+            : "bg-white/[0.04] text-foreground/50 group-hover/ft:text-foreground/85",
+        )}
+      >
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
+      </span>
+      <span
+        className={cn(
+          "text-[9.5px] font-mono uppercase tracking-[0.14em] transition-colors",
+          active ? "text-foreground" : "text-foreground/50 group-hover/ft:text-foreground/75",
+        )}
+      >
+        {label}
+      </span>
     </button>
   );
 }
@@ -504,37 +530,39 @@ function TemplatesContent() {
             </div>
           </div>
 
-          {/* Filter pills — engine + aspect rows */}
-          <div className="mt-6 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
+          {/* Filter tiles — engine + aspect rows, icon over a small label */}
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 w-16 shrink-0">
                 Engine
               </span>
-              {ENGINE_FILTERS.map((opt) => (
-                <FilterPill
-                  key={opt.id}
-                  active={engineFilter === opt.id}
-                  onClick={() => setEngineFilter(opt.id)}
-                  icon={opt.id === "all" ? undefined : <Cpu className="w-3.5 h-3.5" />}
-                >
-                  {opt.label}
-                </FilterPill>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {ENGINE_FILTERS.map((opt) => (
+                  <IconFilterTile
+                    key={opt.id}
+                    active={engineFilter === opt.id}
+                    onClick={() => setEngineFilter(opt.id)}
+                    Icon={opt.icon}
+                    label={opt.label}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 w-16 shrink-0">
                 Aspect
               </span>
-              {ASPECT_FILTERS.map((opt) => (
-                <FilterPill
-                  key={opt.id}
-                  active={aspectFilter === opt.id}
-                  onClick={() => setAspectFilter(opt.id)}
-                  icon={opt.id === "all" ? undefined : <Film className="w-3.5 h-3.5" />}
-                >
-                  {opt.label}
-                </FilterPill>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {ASPECT_FILTERS.map((opt) => (
+                  <IconFilterTile
+                    key={opt.id}
+                    active={aspectFilter === opt.id}
+                    onClick={() => setAspectFilter(opt.id)}
+                    Icon={opt.icon}
+                    label={opt.label}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

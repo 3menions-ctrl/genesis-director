@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorProject, EditorScene } from "@/lib/editor/types";
 import { moveScene, selectScene, setPlayhead } from "@/lib/editor/store";
+import { MusicPicker } from "./MusicPicker";
 
 const STORAGE_KEY = "smallbridges.editor.leftRail.v1";
 
@@ -172,6 +173,9 @@ export function LeftScenes({ project, selectedSceneId }: Props) {
           </Reorder.Group>
         )}
       </div>
+
+      {/* Music — score the timeline straight from the rail. */}
+      <MusicPicker />
     </aside>
   );
 }

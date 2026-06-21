@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
 import {
   EditorialCanvas,
   EditorialEyebrow,
@@ -175,7 +176,9 @@ export default function Library() {
 
   return (
     <FoundationShell>
-      <div className="relative mx-auto w-full max-w-[1480px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+      {/* Same molten-orange backdrop as the credits page. */}
+      <GradientBackdrop tone="orange" />
+      <div className="relative z-10 mx-auto w-full max-w-[1480px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"
           chrome={{

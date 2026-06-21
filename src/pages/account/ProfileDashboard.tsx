@@ -1094,6 +1094,13 @@ export default function ProfileDashboard() {
           </div>
         )}
 
+        {/* ─── Discovery — suggested creators to follow, surfaced ABOVE
+            the gallery so the "who else to follow" nudge lands before the
+            films. ──────────────────────────────────────────────────── */}
+        {similar.length > 0 && (
+          <RecommendedCreatorsRail rows={similar} displayName={displayName} />
+        )}
+
         {/* ─── THE WORK + ANALYTICS — the film gallery is the wide centre
             column below the bio; the stat cards + at-a-glance analytics
             live in a sticky, beautifully-contained rail to its right. ── */}
@@ -1143,10 +1150,7 @@ export default function ProfileDashboard() {
             inline summary here duplicated the surface and leaked goal
             progress to non-owners. ──────────────────────────────────── */}
 
-        {/* ─── ROW 5 — Discovery (everyone sees) ──────────────────── */}
-        {similar.length > 0 && (
-          <RecommendedCreatorsRail rows={similar} displayName={displayName} />
-        )}
+        {/* Discovery now sits above the gallery (moved up). */}
 
         {/* ─── ROW 6 — Director tools (owner-only group, lowest rhythm)
             Wrapped in a single collapsing band so the owner page still

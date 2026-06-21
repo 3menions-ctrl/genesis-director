@@ -971,7 +971,7 @@ export default function ProfileDashboard() {
           Bio sits immediately under the hero (smaller top spacing) so
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
-      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-6 sm:pt-9 space-y-14">
+      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-5 sm:pt-7 space-y-10">
         {/* ─── ROW 1 — Identity band ──────────────────────────────────
             Bio + social on the left (8/12), at-a-glance card on the
             right (4/12). Mutual-follows folds into the bio block so
@@ -1857,10 +1857,11 @@ function CoverHero({
       transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
         "relative z-10 w-full overflow-hidden",
-        // Hero height: shorter than before so the bio (and the "Write your
-        // director's note" placeholder for the owner) is visible in the
-        // first viewport instead of buried below the fold.
-        "h-[clamp(440px,58vh,640px)]",
+        // Hero height: trimmed ~30% from the old clamp so the identity band
+        // and the films grid sit higher in the first viewport — the banner
+        // is scene-setting, not the headline. The portrait + name still
+        // anchor it without eating half the fold.
+        "h-[clamp(320px,42vh,468px)]",
       )}
     >
       {/* BACKGROUND PHOTO */}

@@ -1167,8 +1167,12 @@ export default function ProfileDashboard() {
               hasVerified={!!viewed?.verified_at}
             />
             <StatsRow data={data} loading={loading} reducedMotion={reducedMotion ?? false} />
-            <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
-            <AchievementsFloat achievements={achievements} />
+            {/* Activity + trophies sit side by side — an organized two-up
+                row so the heatmap and achievements read as a pair. */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              <ActivityHeatmap heatmap={data.heatmap} totalMonth={data.filmsThisMonth} streak={data.streakDays} />
+              <AchievementsFloat achievements={achievements} />
+            </div>
             {data.recentReels.length > 0 && (
               <DirectorReelMaker
                 userId={viewedUserId ?? ""}
@@ -1716,22 +1720,28 @@ function UpNextRow({
 // ─────────────────────────────────────────────────────────────────────────────
 function DirectorToolsBand({ children }: { children: React.ReactNode }) {
   return (
-    <section className="relative text-left">
-      <header className="mb-8">
-        <div className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.34em] inline-flex items-center gap-2")}>
-          ◆ Director tools
+    <section className="relative text-left rounded-3xl ring-1 ring-inset ring-white/[0.06] bg-gradient-to-b from-white/[0.02] to-white/[0.005] backdrop-blur-sm p-6 sm:p-8 lg:p-10">
+      <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className={cn(TYPE_META, "text-accent/70 tracking-[0.34em] inline-flex items-center gap-2")}>
+            <Lock className="h-3 w-3" strokeWidth={1.7} />
+            ◆ Director tools
+          </div>
+          <h3
+            className="mt-2 font-display italic text-[clamp(1.6rem,2.4vw,2.1rem)] font-light tracking-tight text-foreground/90"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            Yours alone.
+          </h3>
+          <p className="mt-1.5 text-[12.5px] text-muted-foreground/65 max-w-xl">
+            Analytics, achievements, your channel trailer picker — private to you, never shown to visitors.
+          </p>
         </div>
-        <h3
-          className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground/85"
-          style={{ fontFamily: "'Fraunces', serif" }}
-        >
-          Yours alone.
-        </h3>
-        <p className="mt-1.5 text-[12.5px] text-muted-foreground/65 max-w-xl">
-          Analytics, achievements, your channel trailer picker — none of this is visible to visitors on your profile.
-        </p>
+        <span className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.24em] inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] px-3 h-7")}>
+          <Lock className="h-2.5 w-2.5" strokeWidth={1.7} /> Private
+        </span>
       </header>
-      <div className="space-y-16">{children}</div>
+      <div className="space-y-6">{children}</div>
     </section>
   );
 }
@@ -1754,8 +1764,9 @@ function YearInReviewTeaser({
   const year = new Date().getFullYear();
 
   return (
-    <section className="relative">
-      <header className="mb-7">
+    <section className="relative overflow-hidden rounded-2xl ring-1 ring-inset ring-accent/20 bg-gradient-to-br from-accent/[0.07] via-white/[0.02] to-transparent backdrop-blur p-6 sm:p-8">
+      <div aria-hidden className="pointer-events-none absolute -top-1/3 -right-10 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
+      <header className="relative mb-7">
         <div
           className={cn(
             TYPE_META,
@@ -1778,7 +1789,7 @@ function YearInReviewTeaser({
         </h3>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_auto] gap-10 items-end">
+      <div className="relative grid grid-cols-1 lg:grid-cols-[1.4fr_auto] gap-10 items-end">
         <p
           className="max-w-xl text-[clamp(1.05rem,1.5vw,1.25rem)] leading-[1.5] font-light text-foreground/75 italic font-display"
           style={{ fontFamily: "'Fraunces', serif" }}
@@ -2871,7 +2882,7 @@ function StatsRow({
   ];
 
   return (
-    <section>
+    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
       <header className="mb-7">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
           ◆ The numbers
@@ -2886,7 +2897,7 @@ function StatsRow({
         </h2>
       </header>
 
-      <ul className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-6 lg:gap-x-6">
+      <ul className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((s, i) => (
           <motion.li
             key={s.label}
@@ -2929,20 +2940,27 @@ function FloatingStat({
 }) {
   const display = useAnimatedNumber(value, reducedMotion);
   return (
-    <div>
+    <div
+      className={cn(
+        "h-full rounded-xl ring-1 ring-inset px-4 py-4 transition-colors",
+        accent
+          ? "bg-accent/[0.06] ring-accent/25"
+          : "bg-white/[0.02] ring-white/[0.06] hover:ring-white/[0.12]",
+      )}
+    >
       <div className="flex items-center gap-2">
         <Icon
           className={cn("h-3.5 w-3.5", accent ? "text-accent" : "text-muted-foreground/55")}
           strokeWidth={1.5}
         />
-        <span className={cn(TYPE_META, "text-muted-foreground/60 tracking-[0.28em]")}>
+        <span className={cn(TYPE_META, "text-muted-foreground/60 tracking-[0.24em] truncate")}>
           {label}
         </span>
       </div>
       <div
         className={cn(
-          "mt-3 font-display italic font-light tracking-tight tabular-nums leading-[0.95]",
-          "text-[clamp(2.8rem,4.6vw,3.6rem)]",
+          "mt-2.5 font-display italic font-light tracking-tight tabular-nums leading-[0.95]",
+          "text-[clamp(2.1rem,3.4vw,2.8rem)]",
           accent ? "text-foreground" : "text-foreground/95",
         )}
         style={{
@@ -2954,7 +2972,7 @@ function FloatingStat({
       >
         {loading ? <span className="text-foreground/30">—</span> : display.toLocaleString()}
       </div>
-      <div className={cn(TYPE_META, "mt-2 text-muted-foreground/50 tracking-[0.18em]")}>
+      <div className={cn(TYPE_META, "mt-1.5 text-muted-foreground/50 tracking-[0.16em] truncate")}>
         {sub}
       </div>
     </div>
@@ -3003,7 +3021,7 @@ function ActivityHeatmap({
   };
 
   return (
-    <section>
+    <section className="h-full rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
       <header className="flex items-end justify-between gap-3 flex-wrap mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3102,7 +3120,7 @@ function AchievementsFloat({
   achievements: Array<{ label: string; sub: string; tier: 1 | 2 | 3 }>;
 }) {
   return (
-    <section>
+    <section className="h-full rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
       <header className="flex items-end justify-between gap-3 mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3130,7 +3148,7 @@ function AchievementsFloat({
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           {achievements.map((a, i) => (
             <motion.li
               key={a.label}
@@ -3321,7 +3339,7 @@ function DirectorReelMaker({
   };
 
   return (
-    <section>
+    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
       <header className="mb-6">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] inline-flex items-center gap-2")}>
           <Sparkles className="h-3 w-3 text-accent/85" strokeWidth={1.6} />
@@ -3455,7 +3473,7 @@ function CompletenessMeter({
   const missing = items.filter((i) => !i.done).slice(0, 4);
   if (pct === 100) return null;
   return (
-    <section>
+    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] mb-3 inline-flex items-center gap-2")}>
         <Target className="h-3 w-3 text-accent/80" strokeWidth={1.6} />
         ◆ Profile completeness · <span className="tabular-nums text-accent/85">{pct}%</span>

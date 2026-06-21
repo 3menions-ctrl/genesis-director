@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
-import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
+import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
 import {
   EditorialCanvas,
   EditorialEyebrow,
@@ -176,8 +176,10 @@ export default function Library() {
 
   return (
     <FoundationShell>
-      {/* Same molten-orange backdrop as the credits page. */}
-      <GradientBackdrop tone="orange" />
+      {/* Same atmospheric backdrop as the Studio (create) page. */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <ProjectBackdrop thumbnailUrl={null} projectId="studio-create" mood={null} />
+      </div>
       <div className="relative z-10 mx-auto w-full max-w-[1480px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"

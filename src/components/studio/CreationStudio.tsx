@@ -84,14 +84,17 @@ const ASPECTS: { id: "16:9" | "9:16" | "1:1"; label: string }[] = [
 ];
 const GENRES = ["cinematic", "documentary", "commercial", "educational", "narrative", "motivational"];
 const MOODS = ["epic", "suspense", "emotional", "action", "mystery", "uplifting", "dark", "romantic"];
-const VOICES: { id: string; name: string; tone: string }[] = [
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", tone: "Warm narrator" },
-  { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", tone: "Confident lead" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", tone: "Soft, intimate" },
-  { id: "ErXwobaYiN019PkySvjV", name: "Antoni", tone: "Cinematic trailer" },
-  { id: "VR6AewLTigWG4xSOukaG", name: "Arnold", tone: "Deep, commanding" },
-  { id: "pNInz6obpgDQGcFmaJgB", name: "Adam", tone: "Natural presenter" },
-  { id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", tone: "Friendly, casual" },
+// Real narration voices — these ids match generate-voice's VOICE_MAP (MiniMax),
+// so the voice you pick + preview is the exact voice your film narrates with.
+const VOICES: { id: string; name: string; tone: string; sample: string }[] = [
+  { id: "adam",   name: "Adam",   tone: "Expressive narrator",   sample: "By the end of this, you'll see it differently." },
+  { id: "fable",  name: "Fable",  tone: "Captivating storyteller", sample: "Once, in a city that never slept, a light flickered on." },
+  { id: "nova",   name: "Nova",   tone: "Confident woman",        sample: "Let's get into it — here's exactly what matters." },
+  { id: "sarah",  name: "Sarah",  tone: "Calm and warm",          sample: "Take a breath. We'll walk through it together." },
+  { id: "onyx",   name: "Onyx",   tone: "Deep, commanding",       sample: "Some doors open only once. This is one of them." },
+  { id: "george", name: "George", tone: "Refined gentleman",      sample: "Allow me to show you something rather remarkable." },
+  { id: "bella",  name: "Bella",  tone: "Upbeat and bright",      sample: "Okay — this is going to be so good. Watch this." },
+  { id: "aria",   name: "Aria",   tone: "Assertive lead",         sample: "I don't ask twice. So listen closely." },
 ];
 const LOOKS = ["Kodak 2383", "Teal & Orange", "Bleach Bypass", "Noir B&W", "Golden Hour", "Cyberpunk Neon", "Vintage 16mm", "Cold Thriller", "Pastel Dream", "High Contrast"];
 const BREAKOUTS: { id: string; label: string; desc: string }[] = [
@@ -612,21 +615,74 @@ function WorldsModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections
 
 /* ── voice ───────────────────────────────────────────────────── */
 function VoiceModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) => void }) {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const cacheRef = useRef<Record<string, string>>({});
+
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
+
+  const preview = async (v: typeof VOICES[number], e: React.MouseEvent) => {
+    e.stopPropagation();
+    audioRef.current?.pause();
+    if (playingId === v.id) { setPlayingId(null); return; }
+    try {
+      let url = cacheRef.current[v.id];
+      if (!url) {
+        setLoadingId(v.id);
+        const { data, error } = await supabase.functions.invoke("generate-voice", {
+          body: { text: v.sample, voiceId: v.id },
+        });
+        if (error) throw error;
+        const payload = (data ?? {}) as { audioUrl?: string; url?: string; audio_url?: string };
+        url = payload.audioUrl || payload.url || payload.audio_url || "";
+        if (!url) throw new Error("No audio returned");
+        cacheRef.current[v.id] = url;
+      }
+      const a = audioRef.current ?? new Audio();
+      audioRef.current = a;
+      a.src = url;
+      a.onended = () => setPlayingId(null);
+      await a.play();
+      setPlayingId(v.id);
+    } catch {
+      toast.error("Voice preview isn't available right now.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
-    <ModuleScroll title="Voice" subtitle="Choose a narration / character voice for your film.">
+    <ModuleScroll title="Voice" subtitle="Choose a narration / character voice — tap the speaker to hear it first.">
       <div className="grid max-w-2xl gap-2.5 sm:grid-cols-2">
         {VOICES.map((v) => {
           const on = sel.voiceId === v.id;
           return (
-            <button key={v.id} type="button" onClick={() => setSel({ ...sel, voiceId: on ? null : v.id, voiceName: on ? null : v.name })}
-              className={["flex items-center justify-between rounded-xl p-4 text-left ring-1 ring-inset transition-colors",
+            <div
+              key={v.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSel({ ...sel, voiceId: on ? null : v.id, voiceName: on ? null : v.name })}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel({ ...sel, voiceId: on ? null : v.id, voiceName: on ? null : v.name }); } }}
+              className={["flex cursor-pointer items-center justify-between rounded-xl p-4 text-left ring-1 ring-inset transition-colors outline-none",
                 on ? "bg-[hsl(var(--accent)/0.1)] ring-[hsl(var(--accent)/0.5)]" : "bg-[hsl(var(--foreground)/0.03)] ring-[hsl(var(--foreground)/0.08)] hover:bg-[hsl(var(--foreground)/0.06)]"].join(" ")}>
-              <span className="inline-flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--accent)/0.12)]"><Mic className="h-4 w-4" style={{ color: ACCENT }} /></span>
-                <span><span className="block text-[14px] font-medium text-foreground">{v.name}</span><span className="block text-[12px] text-muted-foreground">{v.tone}</span></span>
+              <span className="inline-flex items-center gap-3 min-w-0">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--accent)/0.12)] shrink-0"><Mic className="h-4 w-4" style={{ color: ACCENT }} /></span>
+                <span className="min-w-0"><span className="block text-[14px] font-medium text-foreground">{v.name}</span><span className="block truncate text-[12px] text-muted-foreground">{v.tone}</span></span>
               </span>
-              {on && <Check className="h-4 w-4" style={{ color: ACCENT }} />}
-            </button>
+              <span className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => preview(v, e)}
+                  aria-label={playingId === v.id ? `Stop ${v.name} preview` : `Hear ${v.name}`}
+                  className={["flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                    playingId === v.id ? "bg-[hsl(var(--accent)/0.2)] text-accent" : "bg-white/[0.06] text-foreground/70 hover:bg-white/[0.12] hover:text-foreground"].join(" ")}
+                >
+                  {loadingId === v.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5" />}
+                </button>
+                {on && <Check className="h-4 w-4" style={{ color: ACCENT }} />}
+              </span>
+            </div>
           );
         })}
       </div>

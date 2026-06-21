@@ -15,10 +15,13 @@ type Tone = "violet" | "skyblue" | "grey" | "orange";
 
 const TONES: Record<Tone, { base: string; bloomTop: string; bloomBottom: string; vignette: string; gloss?: string }> = {
   violet: {
-    base: "radial-gradient(125% 95% at 50% -8%, hsl(280 56% 16%) 0%, hsl(276 50% 9%) 46%, hsl(270 46% 5%) 100%)",
-    bloomTop: "radial-gradient(closest-side, hsla(286,78%,62%,0.30), transparent 70%)",
-    bloomBottom: "radial-gradient(circle, hsla(264,82%,56%,0.22), transparent 70%)",
-    vignette: "radial-gradient(125% 105% at 50% 42%, transparent 54%, rgba(6,3,10,0.72) 100%)",
+    // Deep, glossy dark violet — richer base + a bright diagonal sheen so it
+    // reads polished/shiny, not flat.
+    base: "radial-gradient(125% 95% at 50% -8%, hsl(282 60% 18%) 0%, hsl(277 54% 10%) 46%, hsl(270 50% 5%) 100%)",
+    bloomTop: "radial-gradient(closest-side, hsla(286,85%,64%,0.34), transparent 70%)",
+    bloomBottom: "radial-gradient(circle, hsla(262,85%,58%,0.24), transparent 70%)",
+    vignette: "radial-gradient(125% 105% at 50% 42%, transparent 54%, rgba(8,3,12,0.74) 100%)",
+    gloss: "linear-gradient(116deg, transparent 24%, hsla(288,90%,80%,0.10) 45%, hsla(288,90%,80%,0.03) 54%, transparent 66%)",
   },
   skyblue: {
     base: "radial-gradient(125% 95% at 50% -8%, hsl(205 80% 20%) 0%, hsl(210 72% 11%) 44%, hsl(216 60% 5%) 100%)",

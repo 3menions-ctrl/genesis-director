@@ -2584,21 +2584,12 @@ function CoverHero({
                       />
                     </div>
                   ) : (
-                    <>
-                      <BigStat
-                        label="◆ Credits"
-                        value={balance.toLocaleString()}
-                        href="/account?tab=credits"
-                        accent
-                      />
-                      <FloatingLink
-                        to="/studio"
-                        icon={<Sparkles className="h-4 w-4" strokeWidth={1.5} />}
-                        size="lg"
-                      >
-                        Direct a new film
-                      </FloatingLink>
-                    </>
+                    <BigStat
+                      label="◆ Credits"
+                      value={balance.toLocaleString()}
+                      href="/account?tab=credits"
+                      accent
+                    />
                   )}
                 </>
               ) : (

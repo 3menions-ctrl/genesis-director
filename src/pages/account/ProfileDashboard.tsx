@@ -964,12 +964,23 @@ export default function ProfileDashboard() {
   // Highlights — the creator's hand-pinned reels, or (when none are
   // pinned) their top-played films, shown beside the bio. Up to 4.
   const highlights = useMemo(() => {
-    if (data.pinnedReels.length > 0) {
-      return data.pinnedReels.slice(0, 4).map((r) => ({
-        id: r.id, title: r.title, thumbnail_url: r.thumbnail_url, play_count: 0,
-      }));
+    // Pinned reels lead, then fill with the top-played films (skipping any
+    // already pinned) up to 6 — so the rail stays full and tall even when
+    // only a reel or two is pinned.
+    const seen = new Set<string>();
+    const out: Array<{ id: string; title: string; thumbnail_url: string | null; play_count: number }> = [];
+    for (const r of data.pinnedReels) {
+      if (out.length >= 6 || seen.has(r.id)) continue;
+      seen.add(r.id);
+      out.push({ id: r.id, title: r.title, thumbnail_url: r.thumbnail_url, play_count: 0 });
     }
-    return [...allFilms].sort((a, b) => b.play_count - a.play_count).slice(0, 4);
+    for (const f of [...allFilms].sort((a, b) => b.play_count - a.play_count)) {
+      if (out.length >= 6) break;
+      if (seen.has(f.id)) continue;
+      seen.add(f.id);
+      out.push(f);
+    }
+    return out;
   }, [data.pinnedReels, allFilms]);
 
   // OpenGraph + Twitter Card: shared links unfurl with the creator's name,
@@ -1066,25 +1077,23 @@ export default function ProfileDashboard() {
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
       <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-14 text-left">
-        {/* ─── BIO + HIGHLIGHTS — the director's note on the left, a
-            highlights rail on the right (same 340px column as the stat
-            cards below, so the right rail reads as one continuous spine). */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14 items-start">
-          <div className="space-y-6 min-w-0">
-            {!isOwner && mutualFollows && mutualFollows.total > 0 && (
-              <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
-            )}
-            <BioSection
-              initial={bioInitial}
-              userId={viewedUserId ?? ""}
-              onSaved={refreshProfile}
-              reducedMotion={reducedMotion ?? false}
-              isOwner={isOwner}
-              forceEditing={settingsMode}
-            />
-            <SocialLinksRow links={externalLinks} />
-          </div>
-          <HighlightsPanel highlights={highlights} isOwner={isOwner} />
+        {/* ─── BIO — the director's note, full width under the cover. The
+            highlights + stat cards live in the right rail of the body grid
+            below so a tall highlights never pushes this (or the centre)
+            content down. */}
+        <div className="space-y-6 max-w-3xl">
+          {!isOwner && mutualFollows && mutualFollows.total > 0 && (
+            <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
+          )}
+          <BioSection
+            initial={bioInitial}
+            userId={viewedUserId ?? ""}
+            onSaved={refreshProfile}
+            reducedMotion={reducedMotion ?? false}
+            isOwner={isOwner}
+            forceEditing={settingsMode}
+          />
+          <SocialLinksRow links={externalLinks} />
         </div>
 
         {/* Owner-only inline settings editor (edits bio/name/links in context). */}
@@ -1116,28 +1125,34 @@ export default function ProfileDashboard() {
           </div>
         )}
 
-        {/* PUBLIC BODY — hidden when the owner is in the Analytics sub-view. */}
+        {/* PUBLIC BODY — one two-column grid so the right rail (highlights
+            + stats) runs the full height alongside the LEFT column
+            (suggested creators → gallery → collections). A tall highlights
+            card therefore extends down its own column and never pushes the
+            centre/below content down. Hidden in the Analytics sub-view. */}
         {!analyticsMode && (
-        <>
-        {/* ─── Discovery — suggested creators to follow, surfaced ABOVE
-            the gallery so the "who else to follow" nudge lands before the
-            films. ──────────────────────────────────────────────────── */}
-        {similar.length > 0 && (
-          <RecommendedCreatorsRail rows={similar} displayName={displayName} />
-        )}
-
-        {/* ─── THE WORK + ANALYTICS — the film gallery is the wide centre
-            column below the bio; the stat cards + at-a-glance analytics
-            live in a sticky, beautifully-contained rail to its right. ── */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14 items-start">
-          <FilmsGallery
-            films={allFilms}
-            loading={filmsLoading}
-            pinnedIds={pinnedFilmIds}
-            isOwner={isOwner}
-          />
+          {/* LEFT — suggested creators sit right under the bio, then the
+              gallery, then collections. */}
+          <div className="min-w-0 space-y-12">
+            {similar.length > 0 && (
+              <RecommendedCreatorsRail rows={similar} displayName={displayName} />
+            )}
+            <FilmsGallery
+              films={allFilms}
+              loading={filmsLoading}
+              pinnedIds={pinnedFilmIds}
+              isOwner={isOwner}
+            />
+            <PinnedCollectionsRail
+              collections={viewed?.pinned_collections ?? []}
+              isOwner={isOwner}
+            />
+          </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-6">
+          {/* RIGHT rail — highlights lead, then the stat cards. */}
+          <aside className="space-y-5">
+            <HighlightsPanel highlights={highlights} isOwner={isOwner} />
             <ProofStatsCard
               plays={data.totalPlays}
               remixes={data.totalRemixes}
@@ -1162,13 +1177,6 @@ export default function ProfileDashboard() {
             />
           </aside>
         </div>
-
-        {/* ─── Highlights collections (secondary curation). ────────── */}
-        <PinnedCollectionsRail
-          collections={viewed?.pinned_collections ?? []}
-          isOwner={isOwner}
-        />
-        </>
         )}
 
         {/* ─── ANALYTICS sub-view — the owner's private "Yours alone"
@@ -1383,7 +1391,7 @@ function HighlightsPanel({
           surface automatically.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 gap-3">
           {highlights.map((h) => (
             <Link
               key={h.id}
@@ -1395,22 +1403,22 @@ function HighlightsPanel({
                   src={h.thumbnail_url}
                   alt={h.title}
                   loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover group-hover/hl:scale-[1.06] transition-transform duration-500"
+                  className="absolute inset-0 w-full h-full object-cover group-hover/hl:scale-[1.05] transition-transform duration-500"
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent grid place-items-center">
-                  <Film className="h-4 w-4 text-white/30" strokeWidth={1.3} />
+                  <Film className="h-5 w-5 text-white/30" strokeWidth={1.3} />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
               <div className="absolute inset-0 grid place-items-center opacity-0 group-hover/hl:opacity-100 transition-opacity">
-                <span className="grid place-items-center h-8 w-8 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30">
-                  <Play className="h-3.5 w-3.5 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
+                <span className="grid place-items-center h-10 w-10 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30">
+                  <Play className="h-4 w-4 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
                 </span>
               </div>
-              <div className="absolute inset-x-0 bottom-0 p-2">
+              <div className="absolute inset-x-0 bottom-0 p-3">
                 <div
-                  className="text-[11px] leading-tight font-light text-white line-clamp-1"
+                  className="text-[13px] leading-snug font-light text-white line-clamp-1"
                   style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}
                 >
                   {h.title || "Untitled"}

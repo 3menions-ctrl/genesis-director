@@ -1489,9 +1489,14 @@ function FilmsGallery({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        // Masonry — aspect-aware tiles flow into columns so portrait,
+        // square, and wide films all sit at their true ratio, nothing
+        // cropped.
+        <div className="columns-2 xl:columns-3 gap-4 sm:gap-5">
           {films.map((f) => (
-            <GalleryTile key={f.id} film={f} pinned={pinnedIds.has(f.id)} />
+            <div key={f.id} className="mb-4 sm:mb-5 break-inside-avoid">
+              <GalleryTile film={f} pinned={pinnedIds.has(f.id)} />
+            </div>
           ))}
         </div>
       )}
@@ -1505,16 +1510,28 @@ function GalleryTile({
   film: { id: string; title: string; thumbnail_url: string | null; play_count: number };
   pinned: boolean;
 }) {
+  // Match the tile to the poster's true aspect so nothing is cropped.
+  // Defaults to 16:9 until the image reports its natural size; clamped so
+  // an extreme ratio can't blow out the column.
+  const [aspect, setAspect] = useState<number>(16 / 9);
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setAspect(Math.min(2.2, Math.max(0.5, img.naturalWidth / img.naturalHeight)));
+    }
+  };
   return (
     <Link
       to={`/r/${film.id}`}
-      className="group/tile relative block aspect-video rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-24px_hsl(0_0%_0%/0.8)]"
+      style={{ aspectRatio: String(aspect) }}
+      className="group/tile relative block w-full rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-24px_hsl(0_0%_0%/0.8)]"
     >
       {film.thumbnail_url ? (
         <img
           src={film.thumbnail_url}
           alt={film.title}
           loading="lazy"
+          onLoad={onLoad}
           className="absolute inset-0 w-full h-full object-cover group-hover/tile:scale-[1.05] transition-transform duration-700"
         />
       ) : (

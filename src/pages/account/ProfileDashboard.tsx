@@ -1077,64 +1077,61 @@ export default function ProfileDashboard() {
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
       <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-14 text-left">
-        {/* ─── BIO — the director's note, full width under the cover. The
-            highlights + stat cards live in the right rail of the body grid
-            below so a tall highlights never pushes this (or the centre)
-            content down. */}
-        <div className="space-y-6 max-w-3xl">
-          {!isOwner && mutualFollows && mutualFollows.total > 0 && (
-            <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
-          )}
-          <BioSection
-            initial={bioInitial}
-            userId={viewedUserId ?? ""}
-            onSaved={refreshProfile}
-            reducedMotion={reducedMotion ?? false}
-            isOwner={isOwner}
-            forceEditing={settingsMode}
-          />
-          <SocialLinksRow links={externalLinks} />
-        </div>
-
-        {/* Owner-only inline settings editor (edits bio/name/links in context). */}
-        {isOwner && settingsMode && viewedUserId && (
-          <div id="profile-settings-panel" className="scroll-mt-24">
-            <ErrorBoundary
-              fallback={
-                <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
-                  <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
-                  <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
-                    Open full settings <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              }
-            >
-              <ProfileSettingsPanel
-                userId={viewedUserId}
-                initialProfile={{
-                  display_name: profile?.display_name ?? null,
-                  tagline: viewed?.tagline ?? null,
-                  location: viewed?.location ?? null,
-                  external_links: externalLinks,
-                  preferences: (profile as any)?.preferences ?? {},
-                }}
-                onClose={() => setSettingsMode(false)}
-                onSaved={refreshProfile}
-              />
-            </ErrorBoundary>
-          </div>
-        )}
-
-        {/* PUBLIC BODY — one two-column grid so the right rail (highlights
-            + stats) runs the full height alongside the LEFT column
-            (suggested creators → gallery → collections). A tall highlights
-            card therefore extends down its own column and never pushes the
-            centre/below content down. Hidden in the Analytics sub-view. */}
+        {/* PUBLIC BODY — one two-column grid. The bio leads the LEFT
+            column and the highlights rail leads the RIGHT column, so the
+            two share the first row (highlights to the right of the bio).
+            Because the rail is its own column, a tall/wide highlights card
+            extends down its own track and never pushes the centre or the
+            content below down. Hidden in the Analytics sub-view. */}
         {!analyticsMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14 items-start">
-          {/* LEFT — suggested creators sit right under the bio, then the
-              gallery, then collections. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-10 lg:gap-12 items-start">
+          {/* LEFT — bio, then suggested creators, gallery, collections. */}
           <div className="min-w-0 space-y-12">
+            {/* Bio / director's note. */}
+            <div className="space-y-6 max-w-3xl">
+              {!isOwner && mutualFollows && mutualFollows.total > 0 && (
+                <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
+              )}
+              <BioSection
+                initial={bioInitial}
+                userId={viewedUserId ?? ""}
+                onSaved={refreshProfile}
+                reducedMotion={reducedMotion ?? false}
+                isOwner={isOwner}
+                forceEditing={settingsMode}
+              />
+              <SocialLinksRow links={externalLinks} />
+            </div>
+
+            {/* Owner-only inline settings editor (edits bio/name/links in context). */}
+            {isOwner && settingsMode && viewedUserId && (
+              <div id="profile-settings-panel" className="scroll-mt-24">
+                <ErrorBoundary
+                  fallback={
+                    <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                      <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
+                      <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
+                        Open full settings <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  }
+                >
+                  <ProfileSettingsPanel
+                    userId={viewedUserId}
+                    initialProfile={{
+                      display_name: profile?.display_name ?? null,
+                      tagline: viewed?.tagline ?? null,
+                      location: viewed?.location ?? null,
+                      external_links: externalLinks,
+                      preferences: (profile as any)?.preferences ?? {},
+                    }}
+                    onClose={() => setSettingsMode(false)}
+                    onSaved={refreshProfile}
+                  />
+                </ErrorBoundary>
+              </div>
+            )}
+
             {similar.length > 0 && (
               <RecommendedCreatorsRail rows={similar} displayName={displayName} />
             )}

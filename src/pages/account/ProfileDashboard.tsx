@@ -26,6 +26,7 @@ import {
   Film,
   Eye,
   Play,
+  BarChart3,
   Heart,
   Wand2,
   Flame,
@@ -235,6 +236,11 @@ export default function ProfileDashboard() {
   // in-place — no separate route, same layout, just editable. Driven by
   // the "Edit profile" button in the cover header and the corner gear.
   const [settingsMode, setSettingsMode] = useState(false);
+  // "Analytics" sub-view — owner-only. When on, the public profile body
+  // (discovery + gallery + stat rail) is swapped for the private
+  // "Yours alone" dashboard. Reached via the "Analytics" link in the
+  // cover header; cover + bio stay put so it reads as a sub-page.
+  const [analyticsMode, setAnalyticsMode] = useState(false);
   // "What I'm working on" — the most-recently-touched non-completed
   // project. Auto-updates from the editor (movie_projects.updated_at).
   const [currentProject, setCurrentProject] = useState<{
@@ -1012,6 +1018,8 @@ export default function ProfileDashboard() {
         patronGoal={patronGoal}
         settingsMode={settingsMode}
         onToggleSettings={() => { setSettingsMode((v) => !v); revealProfileSettings(!settingsMode); }}
+        analyticsMode={analyticsMode}
+        onToggleAnalytics={() => setAnalyticsMode((v) => !v)}
         displayNameValue={isOwner ? (profile?.display_name ?? null) : (viewed?.display_name ?? null)}
         onSaveDisplayName={async (next) => {
           if (!viewedUserId) return;
@@ -1094,6 +1102,9 @@ export default function ProfileDashboard() {
           </div>
         )}
 
+        {/* PUBLIC BODY — hidden when the owner is in the Analytics sub-view. */}
+        {!analyticsMode && (
+        <>
         {/* ─── Discovery — suggested creators to follow, surfaced ABOVE
             the gallery so the "who else to follow" nudge lands before the
             films. ──────────────────────────────────────────────────── */}
@@ -1143,20 +1154,21 @@ export default function ProfileDashboard() {
           collections={viewed?.pinned_collections ?? []}
           isOwner={isOwner}
         />
+        </>
+        )}
 
-        {/* ─── ROW 4 — Patron block removed. The single entry point for
-            the patron flow is the gold "Patron" pill in the floating
-            CoverHero links at the top of the profile. Keeping a second
-            inline summary here duplicated the surface and leaked goal
-            progress to non-owners. ──────────────────────────────────── */}
-
-        {/* Discovery now sits above the gallery (moved up). */}
-
-        {/* ─── ROW 6 — Director tools (owner-only group, lowest rhythm)
-            Wrapped in a single collapsing band so the owner page still
-            shows all the analytics without competing with the public-
-            facing content above. */}
-        {isOwner && (
+        {/* ─── ANALYTICS sub-view — the owner's private "Yours alone"
+            dashboard, shown only when the Analytics link is active. ──── */}
+        {isOwner && analyticsMode && (
+          <div className="space-y-6">
+            <button
+              type="button"
+              onClick={() => setAnalyticsMode(false)}
+              className="group/back inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              <ChevronRight className="h-3.5 w-3.5 rotate-180 transition-transform group-hover/back:-translate-x-0.5" strokeWidth={1.6} />
+              Back to profile
+            </button>
           <DirectorToolsBand>
             <CompletenessMeter
               hasAvatar={!!avatarUrl}
@@ -1186,6 +1198,7 @@ export default function ProfileDashboard() {
             )}
             <YearInReviewTeaser filmsThisYear={data.filmsThisYear} totalPlays={data.totalPlays} />
           </DirectorToolsBand>
+          </div>
         )}
       </div>
     </div>
@@ -2009,6 +2022,8 @@ function CoverHero({
   patronGoal,
   settingsMode,
   onToggleSettings,
+  analyticsMode,
+  onToggleAnalytics,
   displayNameValue,
   onSaveDisplayName,
   onSaveTagline,
@@ -2049,6 +2064,10 @@ function CoverHero({
   settingsMode?: boolean;
   /** Toggle settings mode. The dashboard owns the state; we just emit. */
   onToggleSettings?: () => void;
+  /** When true, the owner is in the Analytics sub-view. */
+  analyticsMode?: boolean;
+  /** Toggle the Analytics sub-view. */
+  onToggleAnalytics?: () => void;
   /** Raw display_name straight from the profile row (vs the fallback the
    *  hero uses for rendering when empty). Drives the inline input. */
   displayNameValue?: string | null;
@@ -2222,6 +2241,28 @@ function CoverHero({
                     <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                   )}
                   {settingsMode ? "Done" : "Edit profile"}
+                </button>
+              )}
+              {/* Analytics sub-view toggle — swaps the public body for the
+                  private "Yours alone" dashboard. */}
+              {onToggleAnalytics && (
+                <button
+                  type="button"
+                  onClick={onToggleAnalytics}
+                  className={cn(
+                    "group/analytics inline-flex items-center gap-2 transition-colors",
+                    "text-[11px] font-mono uppercase tracking-[0.32em]",
+                    analyticsMode
+                      ? "text-accent hover:text-accent/85"
+                      : "text-foreground/85 hover:text-foreground",
+                  )}
+                >
+                  {analyticsMode ? (
+                    <Check className="h-3.5 w-3.5" strokeWidth={1.6} />
+                  ) : (
+                    <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  )}
+                  {analyticsMode ? "Done" : "Analytics"}
                 </button>
               )}
               <FloatingLink to="/account?tab=settings" icon={<SettingsIcon className="h-3.5 w-3.5" strokeWidth={1.5} />}>

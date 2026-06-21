@@ -70,23 +70,32 @@ Deno.serve(async (req) => {
     const stripePrice = prices.data[0];
 
     const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_SITE_URL") || "https://genesis-director.lovable.app";
-    const fallbackReturn = `${origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`;
+    const fallbackReturn = `${origin}/credits?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`;
     // Open-redirect guard: the requested returnUrl must point at our own
     // domain (or an approved preview host). Otherwise fall back. Without
     // this, an attacker could pass returnUrl=https://evil.com and Stripe
     // would dutifully redirect the legit user there after checkout.
     const { safeReturnUrl } = await import("../_shared/return-url.ts");
-    const finalReturnUrl = safeReturnUrl({
+    const successUrl = safeReturnUrl({
       requested: returnUrl,
       fallback: fallbackReturn,
       requestUrl: req.url,
     });
+    // Ensure Stripe can append the session id even when a custom
+    // returnUrl was supplied without the placeholder.
+    const successUrlWithSession = successUrl.includes("{CHECKOUT_SESSION_ID}")
+      ? successUrl
+      : successUrl + (successUrl.includes("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
+    const cancelUrl = `${origin}/credits?payment=cancelled`;
 
+    // Hosted Stripe Checkout — returns a redirect URL. (Matches the
+    // PaymentsProvider contract: { url, sessionId }. The previous
+    // embedded `clientSecret` shape didn't match any FE consumer.)
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: "payment",
-      ui_mode: "embedded_page",
-      return_url: finalReturnUrl,
+      success_url: successUrlWithSession,
+      cancel_url: cancelUrl,
       customer_email: user.email,
       metadata: {
         userId: user.id,
@@ -98,7 +107,7 @@ Deno.serve(async (req) => {
 
     log("Session created", { sessionId: session.id });
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

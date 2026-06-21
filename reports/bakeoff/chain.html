@@ -1,0 +1,23 @@
+<!doctype html><meta charset=utf8><title>Frame-chain demo</title>
+<style>body{background:#0a0b0d;color:#e8eaed;font:14px/1.6 system-ui;margin:0;padding:30px;max-width:1200px}
+h1{font-weight:600}h2{font-weight:600;color:#7cc0ff;margin:28px 0 8px}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.cell{flex:1;min-width:300px}video{width:100%;border-radius:12px;background:#000;box-shadow:0 20px 50px -20px #000;display:block}
+.cap{color:#9aa0a6;font-size:12px;margin-top:6px}.big video{box-shadow:0 30px 70px -25px #000}
+.note{color:#9aa0a6;max-width:760px}.tag{font:600 11px/1 ui-monospace;letter-spacing:.12em;color:#7cc0ff;text-transform:uppercase}
+img{width:240px;border-radius:8px;border:1px solid #1f2630;vertical-align:middle}</style>
+<h1>Frame-chaining demo — Seedance → Kling → one 10s film</h1>
+<p class="note">Two engines, one continuous shot. Shot 1 is generated on <b>Seedance 1 Pro</b> from an engineered prompt.
+Its <b>last frame</b> is handed to <b>Kling v2.5 Turbo Pro</b> as the start image of shot 2 — so the woman, her red coat, and the street carry over by literal pixels, not luck. Then both are stitched.</p>
+
+<h2>The stitched 10s film</h2>
+<div class="big"><video src="clips/chain_film_10s.mp4" controls loop muted preload="metadata"></video>
+<div class="cap">Seedance shot (0–5s) → frame chain → Kling shot (5–10s), normalized to 1920×1080·24fps and concatenated.</div></div>
+
+<h2>The two shots, and the handoff frame between them</h2>
+<div class="row">
+  <div class="cell"><span class="tag">Shot 1 · Seedance 1 Pro · text→video</span><video src="clips/chain_shot1_seedance.mp4" controls loop muted preload="metadata"></video><div class="cap">She walks toward camera. 58s gen</div></div>
+  <div class="cell"><span class="tag">↳ handoff frame</span><br><img src="chain_handoff_frame.jpg"><div class="cap">Seedance's last frame → Kling's start image. This is the chain.</div></div>
+  <div class="cell"><span class="tag">Shot 2 · Kling v2.5 turbo pro · image→video</span><video src="clips/chain_shot2_kling.mp4" controls loop muted preload="metadata"></video><div class="cap">She stops and turns. Starts exactly where shot 1 ended. 131s gen</div></div>
+</div>
+<p class="note" style="margin-top:26px"><b>What to judge:</b> at the 5s seam, does the woman stay the same person — same face, same coat, same street? That continuity is what frame chaining buys, and it's the hard part of multi-shot AI film.</p>

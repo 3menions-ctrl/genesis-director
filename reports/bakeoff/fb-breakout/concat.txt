@@ -1,0 +1,2 @@
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/fb_clip1_contained.mp4'
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/fb_clip2_breakout.mp4'

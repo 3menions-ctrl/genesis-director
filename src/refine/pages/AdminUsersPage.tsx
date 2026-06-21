@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus, ArrowRight, UserMinus, UserCheck } from "lucide-react";
+import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus, ArrowRight, UserMinus, UserCheck, BarChart3 } from "lucide-react";
+import { UserAnalyticsSheet } from "../components/UserAnalyticsSheet";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
@@ -42,6 +43,7 @@ export default function AdminUsersPage() {
     open: boolean; user: UserRecord | null; amount: string; reason: string;
   }>({ open: false, user: null, amount: "", reason: "" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [analyticsUser, setAnalyticsUser] = useState<{ id: string; label: string } | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkGrantOpen, setBulkGrantOpen] = useState(false);
   const [bulkGrantAmount, setBulkGrantAmount] = useState("");
@@ -310,6 +312,10 @@ export default function AdminUsersPage() {
                         }}>
                         <Shield className="w-3.5 h-3.5" />
                       </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/30 hover:text-white/60" title="User analytics"
+                        onClick={() => setAnalyticsUser({ id: u.id, label: u.display_name || u.email })}>
+                        <BarChart3 className="w-3.5 h-3.5" />
+                      </Button>
                       {/* Manage — opens the full user detail page where suspend / delete /
                           force-verify / impersonation-link live with full guards. */}
                       <Link
@@ -435,6 +441,7 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
       </div>
+      <UserAnalyticsSheet userId={analyticsUser?.id ?? null} label={analyticsUser?.label} open={!!analyticsUser} onClose={() => setAnalyticsUser(null)} />
     </AdminPageShell>
   );
 }

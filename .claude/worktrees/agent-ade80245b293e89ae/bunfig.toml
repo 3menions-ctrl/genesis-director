@@ -1,0 +1,3 @@
+[install]
+# Force fresh lockfile generation
+frozenLockfile = false

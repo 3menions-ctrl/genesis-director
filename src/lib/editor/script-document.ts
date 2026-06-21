@@ -415,6 +415,11 @@ export function emptyDocument(projectId: string, title: string, aspectRatio: Asp
       logline: "",
       aspectRatio,
       targetDurationSec: 60,
+      // Intentional epoch sentinel — NOT a bug. A brand-new blank document
+      // must always LOSE the realtime conflict guard (cur.authoredAt >
+      // incoming.authoredAt) to any real/server doc, so it starts at the
+      // earliest possible time. The first real edit re-stamps this via
+      // markDirty(). (Contrast: document-store stamps real wall-clock time.)
       authoredAt: new Date(0).toISOString(),
       authoredBy: "user",
     },

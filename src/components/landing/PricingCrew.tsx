@@ -105,7 +105,7 @@ export function PricingCrew() {
           <div className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/30 mb-5">
             Small Bridges grows with you. No re-signing. No data migrations.
           </div>
-          <PrimaryCTA size="lg" onClick={() => navigate('/start')}>
+          <PrimaryCTA size="lg" onClick={() => navigate('/auth?mode=signup')}>
             Join the crew — free
           </PrimaryCTA>
         </div>

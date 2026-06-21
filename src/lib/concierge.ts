@@ -35,9 +35,26 @@ function load(): Chain {
   } catch { return { edges: {} }; }
 }
 
+// Debounced save — previously fired synchronously on every navigation,
+// running JSON.stringify of the full edge chain on the main thread.
+// At ~50 routes × 25 edges = 1250 entries, the stringify started
+// blocking renders. Buffer writes and flush every 5s.
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function save(chain: Chain) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chain)); }
-  catch { /* localStorage full or blocked */ }
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chain)); }
+    catch { /* localStorage full or blocked */ }
+  }, 5000);
+}
+// Best-effort flush on tab close so we don't lose recent edges.
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    if (saveTimer) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chain)); } catch { /* ignored */ }
+    }
+  });
 }
 
 let chain: Chain = load();

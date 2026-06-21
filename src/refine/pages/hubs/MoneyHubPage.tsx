@@ -9,6 +9,8 @@ import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
 const Finance       = lazy(() => import("../AdminFinancePage"));
+const Pnl           = lazy(() => import("../ops/AdminPnlPage"));
+const StorageBilling = lazy(() => import("../ops/AdminStorageBillingPage"));
 const Credits       = lazy(() => import("../AdminCreditsPage"));
 const Subscriptions = lazy(() => import("../ops/AdminSubscriptionsPage"));
 const Refunds       = lazy(() => import("../ops/AdminRefundsPage"));
@@ -30,6 +32,8 @@ const wrap = (Comp: React.ComponentType) => (
 export default function MoneyHubPage() {
   const tabs: HubTab[] = [
     { id: "finance",       label: "Treasury",      suggested: true, render: () => wrap(Finance) },
+    { id: "pnl",           label: "P&L",           render: () => wrap(Pnl) },
+    { id: "storage",       label: "Storage",       render: () => wrap(StorageBilling) },
     { id: "credits",       label: "Ledger",        render: () => wrap(Credits) },
     { id: "subscriptions", label: "Subscriptions", render: () => wrap(Subscriptions) },
     { id: "refunds",       label: "Refunds",       render: () => wrap(Refunds) },

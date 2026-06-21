@@ -17,7 +17,36 @@ const corsHeaders = {
 
 const SEEDANCE_T2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
 const SEEDANCE_I2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
+const WAN_MODEL_URL = "https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions";
+const KLING_MODEL_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
+
+type EditorEngine = 'wan' | 'kling' | 'seedance';
+
+interface QualityOptions {
+  /** 60fps RIFE interpolation surcharge (5 credits per spec). */
+  fps60?: boolean;
+  /** 4K upscale surcharge. */
+  upscale4k?: boolean;
+}
+
+function creditsForEditorClip(
+  engine: EditorEngine,
+  duration: number,
+  opts: QualityOptions = {},
+): number {
+  // Wan = free tier; Kling and Seedance match src/lib/video/engines.ts.
+  let base: number;
+  if (engine === 'wan') base = 0;
+  else if (engine === 'kling') base = duration > 10 ? 75 : 50;
+  else base = duration > 10 ? 95 : 65; // seedance default
+  // Quality surcharges — match src/lib/video/engines.ts spec (5 credits
+  // each). These surcharges were declared but never billed because no
+  // edge function read the qualityOptions field from the request body.
+  if (opts.fps60) base += 5;
+  if (opts.upscale4k) base += 5;
+  return base;
+}
 
 const QUALITY_SUFFIX = ", shot on ARRI Alexa 65, anamorphic lens, shallow depth of field, cinematic color grading, volumetric lighting, ultra-detailed textures, 8K master, photorealistic, film grain, HDR, masterful composition, razor-sharp focus, professional cinematography, award-winning";
 
@@ -240,7 +269,22 @@ serve(async (req) => {
         // existing prediction without a second credit charge.
         idempotencyKey,
         projectId,
+        // Engine selection — defaults to seedance for back-compat with the
+        // existing editor flow. 'wan' = free tier, 'kling' = standard, etc.
+        videoEngine = "seedance",
+        // Quality surcharges — fps60 (RIFE 60fps interpolation) and
+        // upscale4k. Bills an extra 5 credits each when set. UI sends
+        // these via the qualityOptions field when the user picks a
+        // 60fps or 4K quality profile.
+        qualityOptions = {},
       } = body;
+      const engine: EditorEngine = (['wan', 'kling', 'seedance'].includes(videoEngine)
+        ? videoEngine
+        : 'seedance') as EditorEngine;
+      const qOpts: QualityOptions = {
+        fps60: !!qualityOptions?.fps60,
+        upscale4k: !!qualityOptions?.upscale4k,
+      };
 
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -260,13 +304,14 @@ serve(async (req) => {
         .eq("id", auth.userId)
         .single();
 
-      // Engine-aware pricing — editor uses Seedance (1080p ~$0.45/sec real cost).
-      // Charge Seedance tier (65/95cr), NOT Kling rates, otherwise we lose money.
-      // Real cost: 5s≈$2.25, 10s≈$4.50.  Credits: 65 (=$6.50) or 95 (=$9.50).
-      const creditsRequired = duration > 10 ? 95 : 65;
-      if (!profile || profile.credits_balance < creditsRequired) {
-        return new Response(JSON.stringify({ 
-          error: "Insufficient credits", 
+      // Engine-aware pricing.
+      //   wan      → 0 credits (free tier)
+      //   kling    → 50/75 (Kling V3 standard)
+      //   seedance → 65/95 (default, Seedance 1 Pro real cost ~$0.45/sec)
+      const creditsRequired = creditsForEditorClip(engine, duration, qOpts);
+      if (creditsRequired > 0 && (!profile || profile.credits_balance < creditsRequired)) {
+        return new Response(JSON.stringify({
+          error: "Insufficient credits",
           required: creditsRequired, 
           available: profile?.credits_balance || 0 
         }), {
@@ -279,27 +324,30 @@ serve(async (req) => {
       // (re-submit on transient network error) does NOT double-charge.
       // The RPC short-circuits when an identical (project_id, idempotency_key)
       // row exists and returns TRUE without inserting a second ledger row.
+      // Wan (free tier) skips deduction entirely.
       const idemKey = idempotencyKey
         ? `editor-clip:${String(idempotencyKey)}`
         : `editor-clip:auto:${auth.userId}:${duration}:${Date.now() >> 16}`;
-      const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
-        p_user_id: auth.userId,
-        p_amount: creditsRequired,
-        p_description: `Editor clip generation (${duration}s)`,
-        p_project_id: projectId || null,
-        p_clip_duration: duration > 10 ? 10 : 5,
-        p_idempotency_key: idemKey,
-      });
-      if (deductErr || deductOk !== true) {
-        console.error("[editor-generate-clip] Credit deduction failed:", deductErr, "ok=", deductOk);
-        return new Response(JSON.stringify({
-          error: deductErr ? "Failed to deduct credits" : "Insufficient credits",
-          required: creditsRequired,
-          available: profile?.credits_balance || 0,
-        }), {
-          status: deductErr ? 500 : 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (creditsRequired > 0) {
+        const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
+          p_user_id: auth.userId,
+          p_amount: creditsRequired,
+          p_description: `Editor clip generation (${engine}, ${duration}s)`,
+          p_project_id: projectId || null,
+          p_clip_duration: duration > 10 ? 10 : 5,
+          p_idempotency_key: idemKey,
         });
+        if (deductErr || deductOk !== true) {
+          console.error("[editor-generate-clip] Credit deduction failed:", deductErr, "ok=", deductOk);
+          return new Response(JSON.stringify({
+            error: deductErr ? "Failed to deduct credits" : "Insufficient credits",
+            required: creditsRequired,
+            available: profile?.credits_balance || 0,
+          }), {
+            status: deductErr ? 500 : 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Build Seedance input — MAX QUALITY profile
@@ -319,45 +367,73 @@ serve(async (req) => {
       }
       finalPrompt = finalPrompt + QUALITY_SUFFIX;
 
-      const seedanceInput: Record<string, any> = {
-        prompt: finalPrompt,
-        duration: finalDuration,
-        aspect_ratio: aspectRatio,
-        resolution: "1080p",       // Seedance-1-Pro max native resolution
-        fps: 24,                    // cinematic frame rate
-        camera_fixed: false,
-      };
-      console.log("[editor-generate-clip] Seedance input:", JSON.stringify(seedanceInput));
-
-      if (resolvedStartImage) {
-        seedanceInput.image = resolvedStartImage;
+      // Build engine-specific input payload + pick the model endpoint.
+      let modelUrl: string;
+      let modelInput: Record<string, any>;
+      let serviceLabel: string;
+      if (engine === 'wan') {
+        modelUrl = WAN_MODEL_URL;
+        // Wan 2.5 only supports 5s / 10s
+        modelInput = {
+          prompt: finalPrompt,
+          duration: finalDuration,
+          aspect_ratio: aspectRatio,
+          resolution: "1080p",
+        };
+        if (resolvedStartImage) modelInput.image = resolvedStartImage;
+        serviceLabel = "wan-2.5-t2v";
+      } else if (engine === 'kling') {
+        modelUrl = KLING_MODEL_URL;
+        modelInput = {
+          prompt: finalPrompt,
+          duration: finalDuration,
+          aspect_ratio: aspectRatio,
+        };
+        if (resolvedStartImage) modelInput.start_image = resolvedStartImage;
+        serviceLabel = "kling-v3-video";
+      } else {
+        // seedance default
+        modelUrl = resolvedStartImage ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL;
+        modelInput = {
+          prompt: finalPrompt,
+          duration: finalDuration,
+          aspect_ratio: aspectRatio,
+          resolution: "1080p",
+          fps: 24,
+          camera_fixed: false,
+        };
+        if (resolvedStartImage) modelInput.image = resolvedStartImage;
+        serviceLabel = "seedance-1-pro";
       }
+      console.log(`[editor-generate-clip] ${serviceLabel} input:`, JSON.stringify(modelInput));
 
-      // Submit to Replicate (Seedance-1-Pro)
-      const replicateRes = await fetch(resolvedStartImage ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
+      const replicateRes = await fetch(modelUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
           Prefer: "wait=5",
         },
-        body: JSON.stringify({ input: seedanceInput }),
+        body: JSON.stringify({ input: modelInput }),
       });
 
       if (!replicateRes.ok) {
         const errText = await replicateRes.text();
         console.error("[editor-generate-clip] Replicate error:", errText);
         // Refund on failure. Reuse the same idempotency key so this refund
-        // pairs 1:1 with the deduct above — replays are no-ops.
-        const { error: refundErr } = await supabase.rpc("refund_credits", {
-          p_user_id: auth.userId,
-          p_amount: creditsRequired,
-          p_description: `Editor clip refund: Replicate error`,
-          p_project_id: projectId || null,
-          p_idempotency_key: idemKey,
-        });
-        if (refundErr) {
-          console.error("[editor-generate-clip] Refund RPC failed:", refundErr);
+        // pairs 1:1 with the deduct above — replays are no-ops. Skip the
+        // refund entirely for the free Wan tier (nothing was deducted).
+        if (creditsRequired > 0) {
+          const { error: refundErr } = await supabase.rpc("refund_credits", {
+            p_user_id: auth.userId,
+            p_amount: creditsRequired,
+            p_description: `Editor clip refund: Replicate error`,
+            p_project_id: projectId || null,
+            p_idempotency_key: idemKey,
+          });
+          if (refundErr) {
+            console.error("[editor-generate-clip] Refund RPC failed:", refundErr);
+          }
         }
         return new Response(JSON.stringify({ error: "Failed to start generation" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -366,17 +442,21 @@ serve(async (req) => {
 
       const prediction = await replicateRes.json();
 
-      // Log cost
+      // Log cost. Real-cost estimate varies by engine (only Seedance is fully
+      // calibrated; Wan/Kling are approximated and refined post-mortem).
+      const realCostCents =
+        engine === 'wan'      ? (duration > 10 ? 60  : 30)   // Wan ≈ $0.03/sec
+        : engine === 'kling'  ? (duration > 10 ? 300 : 150)  // Kling ≈ $0.15/sec
+        :                       (duration > 10 ? 540 : 450); // Seedance baseline
       await supabase.from("api_cost_logs").insert({
         user_id: auth.userId,
-        service: "seedance-1-pro",
+        service: serviceLabel,
         operation: "editor-generate-clip",
         credits_charged: creditsRequired,
-        // Real cost: Seedance-1-Pro 1080p ≈ $0.45/sec → 5s≈225¢, 10s≈450¢
-        real_cost_cents: duration > 10 ? 540 : 450,
+        real_cost_cents: realCostCents,
         duration_seconds: duration,
         status: "pending",
-        metadata: { predictionId: prediction.id },
+        metadata: { predictionId: prediction.id, engine },
       });
 
       // Stash the prompt's identity DNA so /status can return it for chaining

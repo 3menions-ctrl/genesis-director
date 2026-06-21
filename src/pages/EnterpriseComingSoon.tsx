@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import logoImage from '@/assets/small-bridges-logo.webp';
+import { BrandTile } from '@/components/cinema/Logo';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 /**
@@ -96,9 +96,7 @@ export default function EnterpriseComingSoon() {
         {/* ───────── Left: brand + headline + capabilities ───────── */}
         <div>
           <Link to="/" className="group inline-flex items-center gap-2.5 mb-12">
-            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
-              <img src={logoImage} alt="" className="w-[24px] h-[24px] object-contain opacity-90" />
-            </div>
+            <BrandTile className="h-10 w-10" />
             <div className="flex flex-col">
               <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display">
                 Small Bridges<span className="text-white/85 mx-[1px]">-</span>Studio

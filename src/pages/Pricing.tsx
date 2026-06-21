@@ -1,20 +1,29 @@
-import { lazy, Suspense, useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+/**
+ * Pricing — /pricing
+ *
+ * Restyled to the cinema aesthetic (deep gradient + light-ray backdrop, single
+ * blue accent, Fraunces serif, glass surfaces, white CTAs, unified footer) to
+ * match the landing, Enter Studio page and footer. All plan data, prices,
+ * credit math, the segment switcher, Stripe subscription checkout, contact-sales
+ * routing and the credit-buy modal are preserved exactly from the original page.
+ */
+import { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Zap, Crown, Building2,
   Star, Infinity as InfinityIcon, Film, Wand2, Gem, User, Briefcase,
   Repeat, Headphones, Lock, Users, Globe, Cpu, FileCheck2, Phone,
   ChevronDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
-
 import { usePageMeta } from '@/hooks/usePageMeta';
-const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
+import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
+import { BrandTile } from '@/components/cinema/Logo';
+import { Footer } from '@/components/cinema/Footer';
 
 type Segment = 'personal' | 'business' | 'enterprise' | 'subscription';
 
@@ -37,6 +46,10 @@ interface CreditPackage {
   contactSales?: boolean;
   /** % savings vs. base $0.10/credit, computed for display */
   savingsPct?: number;
+  /** When set, routes the CTA through Stripe's create-plan-checkout
+   *  instead of the credit-buy modal. Must match a key in
+   *  supabase/functions/create-plan-checkout/PLAN_CATALOG. */
+  planLookupKey?: string;
 }
 
 const BASE_RATE = 0.10; // $ / credit
@@ -171,6 +184,7 @@ function buildSubscription(): CreditPackage[] {
       credits: 220,
       clips: '~22 / mo',
       interval: 'month',
+      planLookupKey: 'sub_creator_monthly',
       features: [
         '1080p HD export',
         'All cinematic engines',
@@ -186,6 +200,7 @@ function buildSubscription(): CreditPackage[] {
       credits: 600,
       clips: '~60 / mo',
       interval: 'month',
+      planLookupKey: 'sub_pro_monthly',
       features: [
         '4K Ultra HD (2160p)',
         'Priority render queue',
@@ -203,6 +218,7 @@ function buildSubscription(): CreditPackage[] {
       credits: 2000,
       clips: '~200 / mo',
       interval: 'month',
+      planLookupKey: 'sub_studio_monthly',
       features: [
         '4K HDR + ProRes export',
         'Up to 5 seats',
@@ -379,272 +395,192 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
+const KEYFRAMES = `
+@keyframes pr-rays { 0%,100% { transform: translateX(-50%) rotate(-3deg); opacity: .55; } 50% { transform: translateX(-50%) rotate(3deg); opacity: 1; } }
+@keyframes pr-tick { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pr-anim { animation: none !important; } }
+`;
+
+/** Deep gradient + light-ray page backdrop — matches the Enter Studio page. */
+function PricingBackdrop({ reduced }: { reduced: boolean }) {
+  return (
+    <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-[#05060a]">
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(125% 80% at 50% -12%, #0c1430 0%, #070b1a 40%, #05060a 74%)' }} />
+      <div className="absolute inset-0" style={{ background: `radial-gradient(90% 60% at 50% 116%, hsl(${ACCENT} / 0.18), transparent 60%)` }} />
+      {!reduced && (
+        <div
+          className="pr-anim absolute left-1/2 top-[-34%] h-[150%] w-[150%]"
+          style={{ transformOrigin: '50% 0%', filter: 'blur(24px)', animation: 'pr-rays 28s ease-in-out infinite', background: `conic-gradient(from 180deg at 50% 0%, transparent 0deg, hsl(${ACCENT} / 0.10) 7deg, transparent 16deg, transparent 30deg, hsl(${ACCENT} / 0.06) 40deg, transparent 52deg, transparent 66deg, hsl(${ACCENT} / 0.07) 74deg, transparent 84deg)` }}
+        />
+      )}
+      <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(120,170,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(120,170,255,0.06) 1px, transparent 1px)', backgroundSize: '64px 64px', maskImage: 'radial-gradient(120% 95% at 50% 0%, #000 28%, transparent 72%)', WebkitMaskImage: 'radial-gradient(120% 95% at 50% 0%, #000 28%, transparent 72%)' }} />
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, hsl(${ACCENT} / 0.5), transparent)` }} />
+    </div>
+  );
+}
+
 /**
  * CreditDial — animated luminous ring showing credit volume.
- * Pro-Dark, blue accent, conic-gradient progress against deep glass core.
+ * Single blue accent, conic-gradient progress against deep glass core.
  */
 function CreditDial({ credits, clips, popular }: { credits: number; clips: string; popular?: boolean }) {
-  // Map credits (90..75000) onto a 0..1 fill ratio (logarithmic for elegance)
   const min = Math.log(90), max = Math.log(75000);
   const safe = Math.max(credits, 90);
   const ratio = Math.min(1, Math.max(0.18, (Math.log(safe) - min) / (max - min)));
   const deg = Math.round(ratio * 360);
 
   return (
-    <div className="relative mx-auto w-[150px] h-[150px]">
-      {/* Outer luminous halo */}
+    <div className="relative mx-auto h-[150px] w-[150px]">
       <div
         aria-hidden
-        className={cn(
-          'absolute -inset-3 rounded-full blur-2xl transition-opacity duration-700',
-          popular ? 'opacity-90' : 'opacity-40 group-hover:opacity-80',
-        )}
-        style={{
-          background: popular
-            ? 'radial-gradient(closest-side, hsl(var(--primary) / 0.55), transparent 70%)'
-            : 'radial-gradient(closest-side, hsl(var(--primary) / 0.22), transparent 70%)',
-        }}
+        className={cn('absolute -inset-3 rounded-full blur-2xl transition-opacity duration-700', popular ? 'opacity-90' : 'opacity-40 group-hover:opacity-80')}
+        style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / ${popular ? 0.5 : 0.22}), transparent 70%)` }}
       />
-
-      {/* Conic-gradient ring (the "fill") */}
       <div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `conic-gradient(from -90deg,
-            hsl(var(--primary)) 0deg,
-            hsl(var(--primary) / 0.85) ${deg * 0.5}deg,
-            hsl(var(--primary) / 0.55) ${deg}deg,
-            hsl(0 0% 100% / 0.04) ${deg}deg 360deg)`,
+          background: `conic-gradient(from -90deg, hsl(${ACCENT}) 0deg, hsl(${ACCENT} / 0.85) ${deg * 0.5}deg, hsl(${ACCENT} / 0.55) ${deg}deg, hsl(0 0% 100% / 0.04) ${deg}deg 360deg)`,
           padding: '2px',
           WebkitMask: 'radial-gradient(circle, transparent 64%, #000 65%)',
           mask: 'radial-gradient(circle, transparent 64%, #000 65%)',
         }}
       />
-
-      {/* Inner glass core */}
-      <div className="absolute inset-[6px] rounded-full bg-[radial-gradient(closest-side,hsl(220_14%_5%/0.95),hsl(220_14%_2%/0.85))] border border-white/[0.06] backdrop-blur-xl" />
-
-      {/* Subtle inner reflection */}
-      <div
-        aria-hidden
-        className="absolute inset-[6px] rounded-full pointer-events-none opacity-60"
-        style={{
-          background: 'linear-gradient(160deg, hsl(0 0% 100% / 0.06) 0%, transparent 38%)',
-        }}
-      />
-
-      {/* Content */}
+      <div className="absolute inset-[6px] rounded-full border border-white/[0.06] bg-[radial-gradient(closest-side,#0a0d14,#05070c)] backdrop-blur-xl" />
+      <div aria-hidden className="pointer-events-none absolute inset-[6px] rounded-full opacity-60" style={{ background: 'linear-gradient(160deg, hsl(0 0% 100% / 0.06) 0%, transparent 38%)' }} />
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display font-semibold text-foreground text-[28px] tabular-nums tracking-tight leading-none">
+        <span className="font-display text-[28px] font-semibold leading-none tracking-tight tabular-nums text-white">
           {credits === 0 ? '∞' : credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
         </span>
-        <span className="mt-1 text-[9px] uppercase tracking-[0.28em] text-foreground/80 font-medium">credits</span>
-        <div className="w-7 h-px bg-glass-active my-2" />
-        <span className="text-[10px] text-muted-foreground tabular-nums">{clips} clips</span>
+        <span className="mt-1 text-[9px] font-medium uppercase tracking-[0.28em] text-white/70">credits</span>
+        <div className="my-2 h-px w-7 bg-white/15" />
+        <span className="text-[10px] tabular-nums text-white/45">{clips} clips</span>
       </div>
     </div>
   );
 }
 
-function PricingCard({
-  pkg,
-  index,
-  onPurchase,
-}: {
-  pkg: CreditPackage;
-  index: number;
-  onPurchase: (pkg: CreditPackage) => void;
-}) {
+function PricingCard({ pkg, index, onPurchase }: { pkg: CreditPackage; index: number; onPurchase: (pkg: CreditPackage) => void }) {
   const isContact = !!pkg.contactSales;
   const isCustom = pkg.price === 0;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 36 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.1 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-      className={cn('relative group', pkg.popular && 'lg:-mt-3')}
+      initial={{ opacity: 0, y: 32 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-8%' }}
+      transition={{ duration: 0.6, delay: 0.05 + index * 0.07, ease: EASE }}
+      className={cn('group relative h-full', pkg.popular && 'lg:-mt-3')}
     >
       {/* Popular badge */}
       {pkg.popular && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full blur-md opacity-90"
-                 style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.7), transparent 70%)' }} />
-            <div className="relative px-3.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.18em] inline-flex items-center gap-1.5 text-primary-foreground border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.7)]">
-              <Gem className="w-3 h-3" />
-              Most loved
-            </div>
+        <div className="absolute -top-3.5 left-1/2 z-20 -translate-x-1/2">
+          <div className="relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white" style={{ background: `hsl(${ACCENT} / 0.18)`, boxShadow: `inset 0 0 0 1px hsl(${ACCENT} / 0.55), 0 8px 30px -8px hsl(${ACCENT} / 0.8)` }}>
+            <Gem className="h-3 w-3" style={{ color: `hsl(${ACCENT})` }} />
+            Most loved
           </div>
         </div>
       )}
 
-      {/* Animated conic border (popular only) */}
+      {/* Soft accent halo (popular only) — borderless emphasis */}
       {pkg.popular && (
-        <div
-          aria-hidden
-          className="absolute -inset-px rounded-[30px] pointer-events-none opacity-90"
-          style={{
-            background:
-              'conic-gradient(from var(--angle, 0deg), hsl(var(--primary) / 0.0) 0%, hsl(var(--primary) / 0.55) 25%, hsl(var(--primary) / 0.0) 50%, hsl(var(--primary) / 0.45) 75%, hsl(var(--primary) / 0.0) 100%)',
-            WebkitMask: 'linear-gradient(#000, #000) content-box, linear-gradient(#000, #000)',
-            WebkitMaskComposite: 'xor',
-            maskComposite: 'exclude',
-            padding: '1px',
-            animation: 'spin 8s linear infinite',
-          }}
-        />
+        <div aria-hidden className="pointer-events-none absolute -inset-6 rounded-[40px] opacity-70 blur-3xl" style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.22), transparent 70%)` }} />
       )}
 
       <div
         className={cn(
-          'relative rounded-[28px] p-7 pt-9 overflow-hidden transition-all duration-500',
-          'border backdrop-blur-2xl',
-          pkg.popular
-            ? 'border-[hsl(var(--primary)/0.28)] bg-gradient-to-b from-[hsl(220_14%_5%/0.85)] to-[hsl(220_14%_2%/0.95)] shadow-[0_30px_80px_-20px_hsl(var(--primary)/0.35),inset_0_1px_0_hsl(0_0%_100%/0.06)]'
-            : 'border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/[0.14] shadow-[0_20px_60px_-30px_hsl(0_0%_0%/0.8)]',
+          'relative h-full overflow-hidden rounded-[28px] p-7 pt-9 backdrop-blur-xl transition-colors duration-500 shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)]',
+          pkg.popular ? 'bg-white/[0.07]' : 'bg-white/[0.04] hover:bg-white/[0.065]',
         )}
+        style={pkg.popular ? { boxShadow: `0 44px 120px -44px hsl(${ACCENT} / 0.55)` } : undefined}
       >
         {/* Top-edge specular highlight */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-px pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)',
-          }}
-        />
-
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }} />
         {/* Corner aurora glow */}
-        <div
-          aria-hidden
-          className={cn(
-            'absolute -top-24 -right-20 w-56 h-56 rounded-full blur-3xl pointer-events-none transition-opacity duration-700',
-            pkg.popular ? 'opacity-80' : 'opacity-0 group-hover:opacity-50',
-          )}
-          style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.32), transparent 70%)' }}
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-20 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-60 transition-opacity duration-700"
-          style={{ background: 'radial-gradient(closest-side, hsl(var(--accent) / 0.18), transparent 70%)' }}
-        />
+        <div aria-hidden className={cn('pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full blur-3xl transition-opacity duration-700', pkg.popular ? 'opacity-80' : 'opacity-0 group-hover:opacity-50')} style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.32), transparent 70%)` }} />
 
-        {/* Header row: icon + savings */}
-        <div className="relative flex items-center justify-between mb-5">
-          <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center border',
-              pkg.popular
-                ? 'bg-[hsl(var(--primary)/0.15)] border-[hsl(var(--primary)/0.35)] text-[hsl(var(--primary))]'
-                : 'bg-glass-hover border-white/[0.08] text-muted-foreground',
-            )}
-          >
+        {/* Header row: icon + badge */}
+        <div className="relative mb-5 flex items-center justify-between">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={pkg.popular ? { background: `hsl(${ACCENT} / 0.18)`, color: `hsl(${ACCENT})` } : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)' }}>
             {pkg.icon}
           </div>
           {isContact ? (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.10] bg-glass-hover">
-              Custom contract
-            </div>
+            <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/55">Custom contract</div>
           ) : pkg.interval ? (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--primary))] inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)]">
-              Monthly
-            </div>
+            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]" style={{ background: `hsl(${ACCENT} / 0.14)`, color: `hsl(${ACCENT})` }}>Monthly</div>
           ) : pkg.savingsPct && pkg.savingsPct > 0 ? (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--success))] inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[hsl(var(--success)/0.25)] bg-[hsl(var(--success)/0.08)]">
-              Save {pkg.savingsPct}%
-            </div>
+            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]" style={{ background: `hsl(${ACCENT} / 0.14)`, color: `hsl(${ACCENT})` }}>Save {pkg.savingsPct}%</div>
           ) : (
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.06] bg-glass">
-              Pay-as-you-go
-            </div>
+            <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">Pay-as-you-go</div>
           )}
         </div>
 
-        {/* Title */}
-        <h3 className="font-display font-semibold text-foreground text-[22px] tracking-tight leading-none mb-2">
-          {pkg.name}
-        </h3>
-        <p className="text-[12px] text-muted-foreground mb-6 leading-relaxed">{pkg.tagline}</p>
+        {/* Title + tagline */}
+        <h3 className="mb-2 font-display text-[22px] font-semibold leading-none tracking-tight text-white">{pkg.name}</h3>
+        <p className="mb-6 text-[12px] leading-relaxed text-white/50">{pkg.tagline}</p>
 
         {/* Price */}
-        <div className="flex items-baseline gap-2 mb-7">
+        <div className="mb-7 flex items-baseline gap-2">
           {isCustom ? (
-            <span className="font-display font-semibold text-foreground text-[42px] leading-none tracking-[-0.03em]">
-              Custom
-            </span>
+            <span className="font-display text-[42px] font-semibold leading-none tracking-[-0.03em] text-white">Custom</span>
           ) : (
             <>
-              <span className="text-[11px] text-muted-foreground font-medium">$</span>
-              <span className="font-display font-semibold text-foreground text-[52px] leading-none tabular-nums tracking-[-0.03em]">
-                {pkg.price.toLocaleString()}
-              </span>
-              <span className="text-[11px] text-muted-foreground ml-1">
-                {pkg.interval ? `/ ${pkg.interval}` : 'one-time'}
-              </span>
+              <span className="text-[11px] font-medium text-white/45">$</span>
+              <span className="font-display text-[52px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">{pkg.price.toLocaleString()}</span>
+              <span className="ml-1 text-[11px] text-white/45">{pkg.interval ? `/ ${pkg.interval}` : 'one-time'}</span>
             </>
           )}
         </div>
 
         {/* Credit Dial */}
-        {!isCustom && (
-          <div className="mb-7">
-            <CreditDial credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} />
-          </div>
-        )}
+        {!isCustom && <div className="mb-7"><CreditDial credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} /></div>}
 
         {/* Per-credit micro-rate */}
         {!isCustom && pkg.credits > 0 && (
-          <div className="mb-6 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
-            <Wand2 className="w-3 h-3" />
+          <div className="mb-6 flex items-center justify-center gap-1.5 text-[10px] text-white/45">
+            <Wand2 className="h-3 w-3" />
             <span className="tabular-nums">${(pkg.price / pkg.credits).toFixed(3)}</span>
             <span>/ credit{pkg.interval ? ` · ${pkg.clips}` : ''}</span>
           </div>
         )}
 
-        {/* Hairline divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-7" />
+        {/* Divider */}
+        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
 
-        {/* Feature list */}
-        <ul className="space-y-2.5 mb-7 min-h-[148px]">
+        {/* Features */}
+        <ul className="mb-7 min-h-[148px] space-y-2.5">
           {pkg.features.map((f) => (
-            <li key={f} className="flex items-start gap-2.5 text-[12.5px] text-muted-foreground leading-snug">
-              <Check className={cn('w-3.5 h-3.5 mt-[3px] shrink-0', pkg.popular ? 'text-[hsl(var(--primary))]' : 'text-muted-foreground')} />
+            <li key={f} className="flex items-start gap-2.5 text-[12.5px] leading-snug text-white/60">
+              <Check className="mt-[3px] h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${ACCENT})` }} />
               <span>{f}</span>
             </li>
           ))}
         </ul>
 
         {/* CTA */}
-        <Button
+        <button
+          type="button"
           onClick={() => onPurchase(pkg)}
           className={cn(
-            'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
-            pkg.popular
-              ? 'text-black border border-white/20 bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]'
-              : 'bg-glass-hover hover:bg-white/[0.09] text-foreground/90 border border-white/[0.08] hover:border-white/[0.16]',
+            'group/btn relative inline-flex h-11 w-full items-center justify-center overflow-hidden rounded-2xl text-[13px] font-semibold transition-colors duration-300',
+            pkg.popular ? 'bg-white text-[#0a0b0e] hover:bg-white/90' : 'bg-white/[0.07] text-white hover:bg-white/[0.12]',
           )}
+          style={pkg.popular ? { boxShadow: `0 14px 44px -14px hsl(${ACCENT} / 0.9)` } : undefined}
         >
-          {/* Shimmer */}
-          <span
-            aria-hidden
-            className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700"
-            style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }}
-          />
+          <span aria-hidden className="absolute inset-0 -translate-x-full transition-transform duration-700 group-hover/btn:translate-x-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }} />
           <span className="relative inline-flex items-center justify-center gap-1.5">
             {pkg.ctaLabel ?? `Get ${pkg.credits >= 1000 ? pkg.credits.toLocaleString() : pkg.credits} credits`}
-            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5" />
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
           </span>
-        </Button>
+        </button>
       </div>
     </motion.div>
   );
 }
 
 function MatrixCell({ value }: { value: string | boolean }) {
-  if (value === true) return <Check className="w-4 h-4 text-[hsl(var(--primary))] mx-auto" />;
-  if (value === false) return <span className="text-muted-foreground">—</span>;
-  return <span className="text-[12px] text-muted-foreground">{value}</span>;
+  if (value === true) return <Check className="mx-auto h-4 w-4" style={{ color: `hsl(${ACCENT})` }} />;
+  if (value === false) return <span className="text-white/25">—</span>;
+  return <span className="text-[12px] text-white/55">{value}</span>;
 }
 
 function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultOpen?: boolean }) {
@@ -653,13 +589,11 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
     <button
       type="button"
       onClick={() => setOpen((v) => !v)}
-      className="w-full text-left rounded-2xl border border-white/[0.06] bg-glass hover:bg-glass-hover hover:border-white/[0.12] transition-all px-5 py-4"
+      className="w-full rounded-2xl bg-white/[0.03] px-5 py-4 text-left transition-colors hover:bg-white/[0.055]"
     >
       <div className="flex items-center justify-between gap-4">
-        <span className="text-[14px] font-medium text-foreground/90">{q}</span>
-        <ChevronDown
-          className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', open && 'rotate-180')}
-        />
+        <span className="text-[14px] font-medium text-white/90">{q}</span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-white/45 transition-transform', open && 'rotate-180')} />
       </div>
       <AnimatePresence initial={false}>
         {open && (
@@ -667,8 +601,8 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
             animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
             exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="text-[13px] text-muted-foreground leading-relaxed overflow-hidden"
+            transition={{ duration: 0.25, ease: EASE }}
+            className="overflow-hidden text-[13px] leading-relaxed text-white/55"
           >
             {a}
           </motion.p>
@@ -679,27 +613,51 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 }
 
 export default function Pricing() {
-  usePageMeta({ title: "Pricing — Small Bridges", description: "Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand." });
+  usePageMeta({ title: 'Pricing — Small Bridges', description: 'Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand.' });
 
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
+  const reduced = useReducedMotion() ?? false;
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [segment, setSegment] = useState<Segment>('personal');
 
   const meta = SEGMENT_META[segment];
   const packages = useMemo(() => SEGMENT_PACKAGES[segment], [segment]);
 
-  const handlePurchase = (pkg: CreditPackage) => {
+  const handlePurchase = async (pkg: CreditPackage) => {
     const slug = (pkg.name || '').toLowerCase();
     if (pkg.contactSales) {
       navigate(`/contact?topic=sales&plan=${slug}`);
       return;
     }
+    // Subscription tier — route through Stripe's create-plan-checkout
+    // edge function instead of the in-page credit-buy modal.
+    if (pkg.planLookupKey) {
+      if (!user) {
+        navigate(`/auth?mode=signup&next=${encodeURIComponent('/pricing?plan=' + pkg.planLookupKey)}`);
+        return;
+      }
+      try {
+        const { payments } = await import('@/lib/payments');
+        const session = await payments.createSubscriptionCheckout({
+          priceId: pkg.planLookupKey,
+          kind: 'subscription',
+          returnUrl: `${window.location.origin}/profile?payment=success`,
+        });
+        window.location.href = session.url;
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[Pricing] subscription checkout failed:', e);
+        const { toast } = await import('sonner');
+        toast.error("Couldn't start checkout", {
+          description: e instanceof Error ? e.message : String(e),
+        });
+      }
+      return;
+    }
     if (user) {
-      // Authed: open the in-page checkout modal directly.
       setShowBuyModal(true);
     } else {
-      // Guest: send to signup, then auto-open the buy modal on /profile.
       navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + slug)}`);
     }
   };
@@ -708,101 +666,44 @@ export default function Pricing() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
+  const segmentKeys = Object.keys(SEGMENT_META) as Segment[];
+
   return (
-    <div className="min-h-screen bg-[hsl(220_14%_2%)] overflow-hidden relative font-body">
-      <Suspense fallback={<div className="fixed inset-0 bg-[#030308]" />}>
-        <AbstractBackground className="fixed inset-0 z-0" />
-      </Suspense>
+    <div className="relative min-h-screen overflow-x-hidden bg-transparent text-white antialiased">
+      <style>{KEYFRAMES}</style>
+      <PricingBackdrop reduced={reduced} />
 
-      {/* Cinematic conic aurora — matches loader signature */}
-      <style>{`
-        @keyframes pricingAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-        @keyframes pricingTick { 0%,100%{opacity:.35} 50%{opacity:1} }
-      `}</style>
-      <div aria-hidden className="fixed inset-0 pointer-events-none z-[1]">
-        <div
-          className="absolute -inset-[20%] opacity-[0.16]"
-          style={{
-            background:
-              'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
-            filter: 'blur(80px)',
-            animation: 'pricingAurora 60s linear infinite',
-          }}
-        />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }} />
-      </div>
-
-      {/* Ambient hero glow stack */}
-      <div className="fixed inset-0 pointer-events-none z-[1]">
-        <div
-          className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[1100px] h-[520px] rounded-full blur-[180px] opacity-70"
-          style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.18), transparent 70%)' }}
-        />
-        <div
-          className="absolute top-[40%] -left-40 w-[600px] h-[600px] rounded-full blur-[160px] opacity-40"
-          style={{ background: 'radial-gradient(closest-side, hsl(var(--accent) / 0.14), transparent 70%)' }}
-        />
-        {/* Subtle film-grain noise via SVG */}
-        <div
-          className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")",
-          }}
-        />
-      </div>
-
-      {/* Nav */}
-      <nav className="relative z-50 px-6 py-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="font-display font-semibold text-lg text-foreground tracking-tight">
-            Small Bridges
+      {/* Header — cinema-styled, borderless. Standalone (no shell nav). */}
+      <header className="sticky top-0 z-50 bg-[#05060a]/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
+          <Link to="/" className="flex items-center gap-2.5">
+            <BrandTile className="h-8 w-8" />
+            <span className="font-display text-[16px] tracking-tight">Small <span className="font-semibold italic">Bridges</span></span>
           </Link>
-          <Button
-            onClick={() => navigate('/auth?mode=signup')}
-            className="h-9 rounded-full bg-glass-hover hover:bg-white/[0.09] text-foreground/85 text-[13px] border border-white/[0.08] backdrop-blur-md"
-          >
-            Sign Up
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/studio-showcase" className="hidden rounded-full bg-white/[0.05] px-4 py-2 text-[13px] font-light text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white sm:inline-flex">Inside the Studio</Link>
+            <button type="button" onClick={() => navigate('/auth?mode=signup')} className="rounded-full bg-white px-5 py-2 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90">Sign up</button>
+          </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero */}
-      <section className="relative z-10 pt-24 pb-2 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.div key={segment} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            {/* Status pill */}
-            <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-7">
-              <span className="text-[hsl(var(--primary))]">{meta.icon}</span>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">
-                {meta.kicker}
-              </span>
-            </div>
-
-            <h1 className="font-display font-semibold tracking-[-0.03em] text-[44px] sm:text-[64px] leading-[1.02] text-foreground">
-              {meta.headline}{' '}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(110deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 55%, hsl(var(--foreground)) 100%)',
-                }}
-              >
-                {meta.highlight}
-              </span>
+      <section className="relative z-10 px-5 pb-2 pt-16 text-center sm:px-8">
+        <div className="mx-auto max-w-3xl">
+          <motion.div key={segment} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
+            <Eyebrow>{meta.kicker}</Eyebrow>
+            <h1 className="mt-4 font-display text-[clamp(2.5rem,7vw,4.4rem)] font-semibold leading-[1.02] tracking-[-0.03em] [text-shadow:0_2px_30px_rgba(0,0,0,0.6)]">
+              {meta.headline} <span className="italic">{meta.highlight}</span>
             </h1>
-            <p className="text-[15px] text-muted-foreground mt-5 max-w-xl mx-auto leading-relaxed">
-              {meta.blurb} <span className="text-muted-foreground tabular-nums">1 credit = $0.10</span>.
+            <p className="mx-auto mt-5 max-w-xl text-[16px] font-light leading-relaxed text-white/65">
+              {meta.blurb} <span className="tabular-nums text-white/80">1 credit = $0.10</span>.
             </p>
 
-            {/* Diagnostic ticker — signature */}
-            <div className="mt-8 inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-foreground/80 font-medium">
+            {/* Diagnostic ticker */}
+            <div className="mt-8 inline-flex items-center gap-5 text-[10px] font-medium uppercase tracking-[0.32em] text-white/75">
               {['Engine', 'Render', 'Stream'].map((t, i) => (
                 <span key={t} className="inline-flex items-center gap-1.5">
-                  <span
-                    className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]"
-                    style={{ animation: `pricingTick 2.4s ease-in-out ${i * 0.4}s infinite` }}
-                  />
+                  <span className="pr-anim h-1 w-1 rounded-full" style={{ background: `hsl(${ACCENT})`, animation: `pr-tick 2.4s ease-in-out ${i * 0.4}s infinite` }} />
                   {t}
                 </span>
               ))}
@@ -811,30 +712,23 @@ export default function Pricing() {
 
           {/* Segment switcher */}
           <div className="mt-10 flex justify-center">
-            <div
-              role="tablist"
-              aria-label="Pricing audience"
-              className="inline-flex items-center gap-1 p-1 rounded-full border border-white/[0.07] bg-glass backdrop-blur-xl"
-            >
-              {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => {
+            <div role="tablist" aria-label="Pricing audience" className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] p-1 backdrop-blur-xl">
+              {segmentKeys.map((seg) => {
                 const m = SEGMENT_META[seg];
                 const active = segment === seg;
                 return (
                   <button
                     key={seg}
+                    type="button"
                     role="tab"
                     aria-selected={active}
                     onClick={() => setSegment(seg)}
                     className={cn(
-                      'relative h-9 px-4 sm:px-5 inline-flex items-center gap-2 rounded-full text-[12px] font-medium tracking-tight transition-all',
-                      active
-                        ? 'text-black bg-white shadow-[0_8px_24px_-8px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]'
-                        : 'text-muted-foreground hover:text-foreground/90',
+                      'relative inline-flex h-9 items-center gap-2 rounded-full px-4 text-[12px] font-medium tracking-tight transition-colors sm:px-5',
+                      active ? 'bg-white text-[#0a0b0e]' : 'text-white/55 hover:text-white',
                     )}
                   >
-                    <span className={cn(active ? 'text-black/70' : 'text-[hsl(var(--primary))]')}>
-                      {m.icon}
-                    </span>
+                    <span style={active ? { color: 'rgba(10,11,14,0.7)' } : { color: `hsl(${ACCENT})` }}>{m.icon}</span>
                     {m.label}
                   </button>
                 );
@@ -845,14 +739,8 @@ export default function Pricing() {
       </section>
 
       {/* Cards */}
-      <section className="relative z-10 pt-14 pb-10 px-6">
-        <div
-          className={cn(
-            'max-w-6xl mx-auto grid grid-cols-1 gap-6 items-start',
-            packages.length === 4 && 'sm:grid-cols-2 lg:grid-cols-4',
-            packages.length === 3 && 'sm:grid-cols-2 lg:grid-cols-3',
-          )}
-        >
+      <section className="relative z-10 px-5 pb-10 pt-14 sm:px-8">
+        <div className={cn('mx-auto grid max-w-6xl grid-cols-1 items-start gap-6', packages.length === 4 && 'sm:grid-cols-2 lg:grid-cols-4', packages.length === 3 && 'sm:grid-cols-2 lg:grid-cols-3')}>
           <AnimatePresence mode="wait">
             {packages.map((pkg, i) => (
               <PricingCard key={`${segment}-${pkg.name}`} pkg={pkg} index={i} onPurchase={handlePurchase} />
@@ -862,12 +750,12 @@ export default function Pricing() {
       </section>
 
       {/* Trust */}
-      <section className="relative z-10 py-10 px-6">
-        <div className="max-w-4xl mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-md px-6 py-5">
-          <div className="flex items-center justify-center gap-x-8 gap-y-3 flex-wrap">
+      <section className="relative z-10 px-5 py-10 sm:px-8">
+        <div className="mx-auto max-w-4xl rounded-2xl bg-white/[0.03] px-6 py-5 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             {TRUST_POINTS.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-[hsl(var(--primary))]">{p.icon}</span>
+              <div key={i} className="flex items-center gap-2 text-white/55">
+                <span style={{ color: `hsl(${ACCENT})` }}>{p.icon}</span>
                 <span className="text-[12px] font-medium">{p.text}</span>
               </div>
             ))}
@@ -876,36 +764,27 @@ export default function Pricing() {
       </section>
 
       {/* Comparison matrix */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5">
-              <FileCheck2 className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
-              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">Compare</span>
-            </div>
-            <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[44px] leading-tight text-foreground">
-              Every tier, side by side.
-            </h2>
-            <p className="text-muted-foreground mt-3 text-[14px]">Find the track that fits — switch anytime.</p>
+      <section className="relative z-10 px-5 py-20 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 text-center">
+            <Eyebrow>Compare</Eyebrow>
+            <h2 className="mt-3 font-display text-[clamp(2rem,5vw,2.8rem)] font-semibold leading-tight tracking-[-0.03em]">Every tier, side by side.</h2>
+            <p className="mt-3 text-[14px] text-white/55">Find the track that fits — switch anytime.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-md overflow-hidden">
-            <div className="grid grid-cols-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground px-5 py-4 border-b border-white/[0.06] bg-glass">
+          <div className="overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-md">
+            <div className="grid grid-cols-5 bg-white/[0.04] px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-white/45">
               <div className="font-medium">Feature</div>
-              {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
-                <div key={seg} className="text-center font-medium text-muted-foreground">
-                  {SEGMENT_META[seg].label}
-                </div>
+              {segmentKeys.map((seg) => (
+                <div key={seg} className="text-center font-medium">{SEGMENT_META[seg].label}</div>
               ))}
             </div>
             <div className="divide-y divide-white/[0.04]">
               {MATRIX_ROWS.map((row) => (
-                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 hover:bg-glass transition-colors">
-                  <div className="text-[13px] text-muted-foreground font-medium">{row.label}</div>
-                  {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
-                    <div key={seg} className="text-center">
-                      <MatrixCell value={row.values[seg]} />
-                    </div>
+                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
+                  <div className="text-[13px] font-medium text-white/60">{row.label}</div>
+                  {segmentKeys.map((seg) => (
+                    <div key={seg} className="text-center"><MatrixCell value={row.values[seg]} /></div>
                   ))}
                 </div>
               ))}
@@ -915,56 +794,31 @@ export default function Pricing() {
       </section>
 
       {/* Enterprise contact strip */}
-      <section className="relative z-10 py-14 px-6">
-        <div className="max-w-5xl mx-auto rounded-3xl border border-[hsl(var(--primary)/0.18)] bg-gradient-to-br from-[hsl(220_14%_5%/0.85)] to-[hsl(220_14%_2%/0.95)] backdrop-blur-2xl px-8 md:px-12 py-10 md:py-12 relative overflow-hidden">
-          <div
-            aria-hidden
-            className="absolute -top-32 -right-24 w-96 h-96 rounded-full blur-3xl opacity-60"
-            style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.28), transparent 70%)' }}
-          />
-          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+      <section className="relative z-10 px-5 py-14 sm:px-8">
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-white/[0.04] px-8 py-10 backdrop-blur-2xl md:px-12 md:py-12" style={{ boxShadow: `0 40px 120px -50px hsl(${ACCENT} / 0.45)` }}>
+          <div aria-hidden className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full opacity-60 blur-3xl" style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.28), transparent 70%)` }} />
+          <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.08] bg-glass-hover mb-4">
-                <Globe className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
-                <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">Enterprise</span>
-              </div>
-              <h3 className="font-display font-semibold text-foreground text-[26px] md:text-[34px] tracking-[-0.025em] leading-tight">
-                Need volume, SSO and a contract?
-              </h3>
-              <p className="text-muted-foreground mt-3 text-[14px] leading-relaxed">
-                Talk to sales for custom credit volumes, dedicated infrastructure, security review, MSAs and DPAs — typically priced from $50k/year.
-              </p>
+              <Eyebrow>Enterprise</Eyebrow>
+              <h3 className="mt-3 font-display text-[clamp(1.7rem,4vw,2.2rem)] font-semibold leading-tight tracking-[-0.025em]">Need volume, SSO and a contract?</h3>
+              <p className="mt-3 text-[14px] leading-relaxed text-white/55">Talk to sales for custom credit volumes, dedicated infrastructure, security review, MSAs and DPAs — typically priced from $50k/year.</p>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch gap-3 shrink-0">
-              <Button
-                onClick={() => navigate('/contact?topic=sales')}
-                className="h-12 px-6 rounded-full text-[13px] font-semibold text-black bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]"
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                Talk to sales
-              </Button>
-              <Button
-                onClick={() => setSegment('enterprise')}
-                className="h-12 px-6 rounded-full text-[13px] font-medium text-foreground/90 bg-glass-hover hover:bg-white/[0.09] border border-white/[0.10]"
-              >
-                See enterprise tiers
-              </Button>
+            <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row">
+              <button type="button" onClick={() => navigate('/contact?topic=sales')} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90" style={{ boxShadow: `0 14px 44px -14px hsl(${ACCENT} / 0.9)` }}>
+                <Phone className="h-4 w-4" /> Talk to sales
+              </button>
+              <button type="button" onClick={() => setSegment('enterprise')} className="inline-flex h-12 items-center justify-center rounded-full bg-white/[0.07] px-6 text-[13px] font-medium text-white transition-colors hover:bg-white/[0.12]">See enterprise tiers</button>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-glass backdrop-blur-md mb-5">
-              <Headphones className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
-              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium">FAQ</span>
-            </div>
-            <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[44px] leading-tight text-foreground">
-              Questions, answered.
-            </h2>
+      <section className="relative z-10 px-5 py-20 sm:px-8">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-10 text-center">
+            <Eyebrow>FAQ</Eyebrow>
+            <h2 className="mt-3 font-display text-[clamp(2rem,5vw,2.8rem)] font-semibold leading-tight tracking-[-0.03em]">Questions, answered.</h2>
           </div>
           <div className="space-y-3">
             {FAQS.map((f, i) => (
@@ -975,34 +829,17 @@ export default function Pricing() {
       </section>
 
       {/* Final CTA */}
-      <section className="relative z-10 py-20 px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-2xl mx-auto text-center"
-        >
-          <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[42px] leading-tight text-foreground mb-4">
-            Pick a pack. Start rendering.
-          </h2>
-          <p className="text-muted-foreground mb-8 text-[14px]">
-            Credits don't expire. Pay only for what you generate.
-          </p>
-          <Button
-            onClick={() => navigate('/auth?mode=signup')}
-            className="h-12 px-8 text-[13px] font-semibold rounded-full text-black border border-white/20 bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Get Started Free
-          </Button>
+      <section className="relative z-10 px-5 py-20 sm:px-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} className="mx-auto max-w-2xl text-center">
+          <h2 className="mb-4 font-display text-[clamp(2rem,5vw,2.8rem)] font-semibold leading-tight tracking-[-0.03em]">Pick a pack. Start <span className="italic">rendering</span>.</h2>
+          <p className="mb-8 text-[14px] text-white/55">Credits don't expire. Pay only for what you generate.</p>
+          <button type="button" onClick={() => navigate('/auth?mode=signup')} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90" style={{ boxShadow: `0 18px 50px -16px hsl(${ACCENT} / 0.9)` }}>
+            <Sparkles className="h-4 w-4" /> Get started free
+          </button>
         </motion.div>
       </section>
 
-      <div className="relative z-10 pb-12 text-center">
-        <Link to="/" className="text-[12px] text-muted-foreground hover:text-foreground/80 transition-colors">
-          ← Back to home
-        </Link>
-      </div>
+      <Footer />
 
       {/* In-page checkout for authed users */}
       <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />

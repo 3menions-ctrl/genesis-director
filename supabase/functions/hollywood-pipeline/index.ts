@@ -38,7 +38,7 @@ interface PipelineRequest {
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedScript?: { shots: any[] };
@@ -391,8 +391,13 @@ const CREDIT_PRICING = {
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
-function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
+function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   const extended = clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
+  // Wan 2.5 is the FREE TIER — base render costs 0 credits (only optional
+  // upscale / 60fps surcharges add credit cost, applied elsewhere).
+  if (videoEngine === 'wan') {
+    return 0;
+  }
   // Seedance overrides avatar (avatar is force-rerouted to Kling in generate-single-clip)
   if (videoEngine === 'seedance') {
     return extended
@@ -421,7 +426,7 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
     total += getCreditsForClip(i, clipDuration, isAvatarMode, videoEngine);
@@ -498,7 +503,7 @@ function calculatePipelineParams(
   // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
   // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
   // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
+  const videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
@@ -6546,7 +6551,7 @@ serve(async (req) => {
           .select('video_engine')
           .eq('id', (request as any).projectId)
           .maybeSingle();
-        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' | null) || null;
+        const persistedEngine = (engineRow?.video_engine as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' | null) || null;
         if (persistedEngine) {
           const incoming = (request as any).videoEngine;
           if (incoming && incoming !== persistedEngine) {
@@ -6565,32 +6570,37 @@ serve(async (req) => {
       }
     }
 
-    // ═══ KLING-ONLY HARD GUARD ═══
-    // hollywood-pipeline is the full-movie orchestrator and is wired end-to-end
-    // around Kling V3 (start_image/end_image, native audio, identity bible,
-    // continuity engine, dialogue chaining). Non-Kling engines (Seedance, Veo,
-    // Runway, Sora) MUST route through `generate-video` / `generate-single-clip`
-    // and never enter this orchestrator. We reject early to prevent silent
-    // capability loss (no continuity, no audio, no stitching) and wasted credits.
+    // ═══ ENGINE GUARD (Seedance excluded — it has its own orchestrator) ═══
+    // hollywood-pipeline is the full-movie orchestrator: script → scene-image →
+    // per-clip dispatch (via generate-single-clip) → sequential frame-chained
+    // continuation (via continue-production) → stitch. The per-clip dispatcher
+    // (generate-single-clip) and the continuation chain are ENGINE-AGNOSTIC —
+    // they natively support Kling, Wan, Veo, Runway and Sora (each with its own
+    // tuned optimizer, start/end-frame threading and audio handling). This
+    // pipeline's credit table (getCreditsForClip) already prices all of them.
+    // The ONLY engine that must NOT enter here is Seedance, which dispatches all
+    // clips in parallel from its own dedicated `seedance-pipeline`. Accepting
+    // the cinema engines here is required so the studio's engine picker
+    // (Veo/Runway/Sora) actually renders the SELECTED engine instead of 400ing.
     const incomingEngine = ((request as any).videoEngine ?? 'kling') as string;
-    if (incomingEngine !== 'kling') {
+    const ALLOWED_HOLLYWOOD_ENGINES = ['kling', 'wan', 'veo', 'runway', 'sora'];
+    if (!ALLOWED_HOLLYWOOD_ENGINES.includes(incomingEngine)) {
       console.error(
-        `[Hollywood] ❌ ENGINE REJECTED: hollywood-pipeline is Kling-only, got "${incomingEngine}". ` +
-        `Route non-Kling engines through generate-video instead.`
+        `[Hollywood] ❌ ENGINE REJECTED: hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}, got "${incomingEngine}". ` +
+        `Seedance must route through seedance-pipeline.`
       );
       return new Response(
         JSON.stringify({
           success: false,
           error: 'ENGINE_NOT_SUPPORTED',
-          message: `hollywood-pipeline only supports Kling V3. Received engine "${incomingEngine}". Use generate-video for Seedance/Veo/Runway/Sora.`,
+          message: `hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}. Received engine "${incomingEngine}". Use seedance-pipeline for Seedance.`,
           engine: incomingEngine,
-          supportedEngines: ['kling'],
+          supportedEngines: ALLOWED_HOLLYWOOD_ENGINES,
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    // Force-coerce to 'kling' so all downstream code paths see a single value.
-    (request as any).videoEngine = 'kling';
+    console.log(`[Hollywood] ✓ Engine accepted: "${incomingEngine}"`);
 
     // For resume requests, we need approvedScript instead of concept/manualPrompts
     const isResuming = !!request.resumeFrom && !!request.approvedScript;

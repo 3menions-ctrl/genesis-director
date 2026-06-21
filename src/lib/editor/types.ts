@@ -83,6 +83,59 @@ export interface EditorProject {
   /** Between-clip transitions on V1. Keyed by (fromClipId, toClipId)
    *  — at most one transition per boundary. Empty array = hard cuts. */
   transitions: ClipTransition[];
+  /** Project-level master loudness target. Applied as a `loudnorm`
+   *  filter after the audio xfade chain so the whole edit ships at
+   *  the right LUFS for the delivery platform. */
+  masterLoudness?: import("./audio-mix").MasterLoudnessPreset;
+  /** Broadcast-grade text overlays — chyrons, lower-thirds, quotes,
+   *  stat cards, terminal text. Rendered live as an SVG layer over
+   *  the StitchedPlayer; baked at export via Resvg→PNG→FFmpeg overlay
+   *  (phase 2). Authored from the TextStudio panel on the right rail. */
+  textOverlays?: import("./text-overlays").TextOverlay[];
+  /** Dynamic timeline tracks. When absent or empty, the editor builds
+   *  the 5 system defaults (V3 Text, V2 Overlay, V1 Video, A1 Audio,
+   *  A2 Music) — backwards compatible with projects that predate this
+   *  field. Users add/remove/rename/reorder via the timeline rail. */
+  tracks?: EditorTrack[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tracks — dynamic timeline rows
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A single timeline row. Video tracks stack top-down (higher z above
+ *  lower z); audio tracks sum with optional per-track gain. */
+export interface EditorTrack {
+  /** Stable id — `sys:V1` for system tracks, `usr:<random>` for user-added. */
+  id: string;
+  kind: "video" | "audio";
+  /** Short label rendered in the rail. */
+  label: string;
+  /** Row height in px on the timeline. */
+  height: number;
+  /** Display order from top. Lower index = closer to the top of the
+   *  rail (and higher in the video stacking order). */
+  position: number;
+  /** Per-track mute (audio tracks) or hide (video tracks). */
+  muted?: boolean;
+  /** When any A-track is soloed, every non-soloed A-track plays muted. */
+  soloed?: boolean;
+  /** Locked — clips on this track can't be moved, trimmed, or deleted. */
+  locked?: boolean;
+  /** System tracks can be renamed but not deleted — the export pipeline
+   *  has hardcoded references to V1/V2/V3/A1/A2. */
+  isSystem?: boolean;
+}
+
+/** Build the 5 default tracks every project starts with. Position 0 = top. */
+export function buildDefaultTracks(): EditorTrack[] {
+  return [
+    { id: "sys:V3", kind: "video", label: "V3 · Text",    height: 32, position: 0, isSystem: true },
+    { id: "sys:V2", kind: "video", label: "V2 · Overlay", height: 38, position: 1, isSystem: true },
+    { id: "sys:V1", kind: "video", label: "V1 · Video",   height: 72, position: 2, isSystem: true },
+    { id: "sys:A1", kind: "audio", label: "A1 · Audio",   height: 44, position: 3, isSystem: true },
+    { id: "sys:A2", kind: "audio", label: "A2 · Music",   height: 38, position: 4, isSystem: true },
+  ];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,6 +233,11 @@ export interface EditorScene {
   clips: EditorClip[];
 }
 
+/** Forward type ref so types.ts doesn't import the heavy color-grade module
+ *  directly (keeps the editor types lean). Consumers import ColorGrade from
+ *  '@/lib/editor/color-grade' when they need the full type. */
+export type ColorGradeRef = import("./color-grade").ColorGrade;
+
 export interface ClipProperties {
   /** 0.0 – 1.5 — gain applied to the <video>.volume on Stage */
   volume: number;
@@ -187,6 +245,13 @@ export interface ClipProperties {
   opacity: number;
   /** 0.5 – 2.0 — CSS scale transform on Stage */
   scale: number;
+  /** Horizontal offset in pixels (or % of canvas width when in keyframe
+   *  expressions). Default 0 = centered. */
+  positionX: number;
+  /** Vertical offset. Default 0 = centered. */
+  positionY: number;
+  /** Degrees of rotation. Default 0. */
+  rotation: number;
   /** Optional crossfade-in seconds */
   fadeInSec: number;
   /** Optional crossfade-out seconds */
@@ -197,16 +262,40 @@ export interface ClipProperties {
   muted: boolean;
   /** When any clip is soloed, every non-soloed clip plays muted. */
   soloed: boolean;
-  /** CSS filter string applied to the video — empty = none */
+  /** CSS filter string applied to the video — empty = none. Legacy: still
+   *  used by the 8 quick-look presets in EffectsPalette. The richer
+   *  colorGrade below supersedes it for new work. */
   filter: string;
   /** Horizontal flip — transform: scaleX(-1) */
   mirror: boolean;
+  /** Full color grade — LUT + wheels + curves + global modifiers.
+   *  Null when no grade has been set; the editor falls back to the
+   *  legacy `filter` string in that case. */
+  colorGrade?: ColorGradeRef | null;
+  /** Per-clip audio mix — volume, pan, 3-band EQ, compressor.
+   *  Null/undefined falls back to the legacy `volume`/`muted` fields. */
+  audioMix?: import("./audio-mix").AudioMix | null;
+  /** Character (from ScriptDocument.cast[]) anchoring this clip. The
+   *  Regenerate composer prepends this character's identityDNA to the
+   *  prompt so face/voice continuity carries across regenerations. */
+  characterId?: string | null;
+  /** Voice profile (from ScriptDocument.voices[]) anchoring this clip
+   *  for dialogue / VO generation. */
+  voiceProfileId?: string | null;
+  /** Track this clip lives on. When absent, defaults to `sys:V1`
+   *  (or `sys:A1` for audio-only). Phase B clip routing assigns
+   *  uploaded / generated clips to non-system tracks so the bake
+   *  can stack overlays + amix audio across rows. */
+  trackId?: string | null;
 }
 
 export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
   volume: 1.0,
   opacity: 1.0,
   scale: 1.0,
+  positionX: 0,
+  positionY: 0,
+  rotation: 0,
   fadeInSec: 0,
   fadeOutSec: 0,
   speed: 1.0,
@@ -214,6 +303,7 @@ export const CLIP_PROPERTY_DEFAULTS: ClipProperties = {
   soloed: false,
   filter: "",
   mirror: false,
+  colorGrade: null,
 };
 
 /** Read a property with fall-through to the default. */
@@ -227,7 +317,28 @@ export function getClipProperty<K extends keyof ClipProperties>(
 export type ClipKind = "video" | "title";
 
 /** Properties that can carry keyframes (numeric, time-varying). */
-export type AnimatableProperty = "opacity" | "scale" | "volume";
+export type AnimatableProperty =
+  | "opacity"
+  | "scale"
+  | "volume"
+  | "positionX"
+  | "positionY"
+  | "rotation";
+
+/** Easing curve applied to the segment BEFORE this keyframe. The
+ *  curve shapes the interpolation from the previous kf's value to
+ *  this kf's value. Linear is the default — matches preview behavior
+ *  for keyframes authored before easing was introduced.
+ *
+ *  Standard cubic-bezier handles, named for the most common curves
+ *  professional NLEs expose.
+ */
+export type KeyframeEasing =
+  | "linear"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | "step"; // hold previous value until this kf fires
 
 export interface Keyframe {
   id: string;
@@ -235,6 +346,9 @@ export interface Keyframe {
   /** Seconds relative to the clip's start (not timeline-absolute). */
   time: number;
   value: number;
+  /** Easing for the segment leading INTO this kf. Optional; defaults
+   *  to "linear" for backward compatibility with existing data. */
+  easing?: KeyframeEasing;
 }
 
 export interface EditorClip {
@@ -259,14 +373,34 @@ export interface EditorClip {
   keyframes?: Keyframe[];
   /** Available takes — first is the active canonical take. */
   takes: EditorTake[];
+  /** Crossover-recipe-driven in-editor effects placed on this clip
+   *  (stingers, sustained overlays). Transitions are stored on the
+   *  project's `transitions` array, not here. */
+  effects?: import("./effects").EffectInstance[];
+}
+
+/** Apply an easing curve to a normalized t in [0, 1]. Pure functions
+ *  matched to the FFmpeg expressions used in keyframe-bake.ts so
+ *  preview and bake produce identical values at the same t. */
+export function applyEasing(t: number, easing: KeyframeEasing): number {
+  const x = Math.max(0, Math.min(1, t));
+  switch (easing) {
+    case "ease-in":     return x * x;                          // quadratic accel
+    case "ease-out":    return 1 - (1 - x) * (1 - x);          // quadratic decel
+    case "ease-in-out": return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    case "step":        return 0;                              // hold previous value
+    case "linear":
+    default:            return x;
+  }
 }
 
 /**
  * Compute the effective value of an animatable property at a given
- * RELATIVE time within the clip (0 .. clip.durationSec). Linearly
- * interpolates between the surrounding keyframes; falls back to the
- * static clip property when no keyframes exist or the time is
- * outside the keyframe range and only one side exists.
+ * RELATIVE time within the clip (0 .. clip.durationSec). Interpolates
+ * between the surrounding keyframes honoring each keyframe's easing
+ * curve; falls back to the static clip property when no keyframes
+ * exist or the time is outside the keyframe range and only one side
+ * exists.
  */
 export function getClipPropertyAt(
   clip: EditorClip,
@@ -288,8 +422,12 @@ export function getClipPropertyAt(
   }
   if (before && after) {
     if (after.time === before.time) return before.value;
-    const t = (relativeTime - before.time) / (after.time - before.time);
-    return before.value + (after.value - before.value) * t;
+    const tLin = (relativeTime - before.time) / (after.time - before.time);
+    // The easing on `after` describes the curve INTO the after kf —
+    // i.e. how we interpolate from before → after. linear keeps the
+    // raw ratio; the ease curves reshape it.
+    const tEased = applyEasing(tLin, after.easing ?? "linear");
+    return before.value + (after.value - before.value) * tEased;
   }
   if (before) return before.value;
   if (after) return after.value;

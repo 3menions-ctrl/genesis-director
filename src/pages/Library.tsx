@@ -1,31 +1,28 @@
 /**
  * Library — /library
  *
- * The canonical surface for "your films." Replaces the legacy
- * /projects sprawl with a focused editorial grid. Built on the
- * foundation: FoundationShell + EditorialCanvas + glass design
- * vocabulary.
+ * Modern, cinematic browse of every film you've directed.
  *
- * Mode toggle: Grid (default) · Atlas · Theater. Atlas + Theater wire
- * in via task #198. For MVP they're visible and selectable but render
- * a "coming online" state.
+ *   1. HERO PLAYER — the latest completed video plays full-bleed at
+ *      the top, autoplay muted, title + meta overlaid. Click → full
+ *      inline player on the same page.
+ *   2. CATEGORY PILLS — filter by movie_genre (Cinematic / Storytelling
+ *      / Documentary / Ad / Explainer / Educational / Motivational /
+ *      Funny / Vlog / Religious). "All" by default.
+ *   3. SEARCH bar.
+ *   4. CARD GRID — full-bleed video card, hover → autoplay muted in
+ *      place. Title + meta float over a bottom-gradient. DELETE button
+ *      reveals on hover (top-right corner).
  *
- * Data: reuses the existing usePaginatedProjects hook.
+ * Removed (intentionally): Atlas mode + Theater mode. The user
+ * doesn't use them; their code lived in dead branches.
  */
-import { useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  Search,
-  Plus,
-  Folder,
-  Telescope,
-  Theater as TheaterIcon,
-  Film,
-  Play,
-  Loader2,
-  Clock,
-  Sparkles,
+  Search, Plus, Film, Play, Loader2, Clock, Trash2, X as CloseIcon,
+  Sparkles, Volume2, VolumeX, Pencil, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -37,23 +34,47 @@ import {
 import { usePaginatedProjects } from "@/hooks/usePaginatedProjects";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { ProjectAtlas } from "@/components/atlas/ProjectAtlas";
 import { ActiveRendersCard } from "@/components/library/ActiveRendersCard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   EASE_PREMIUM,
   TYPE_EYEBROW,
   TYPE_META,
   RADIUS,
-  SHADOW_LIFT,
 } from "@/lib/design-system";
 
-type Mode = "grid" | "atlas" | "theater";
+// ─────────────────────────────────────────────────────────────────────
+type Genre =
+  | "all"
+  | "ad" | "educational" | "documentary" | "cinematic" | "funny"
+  | "religious" | "motivational" | "storytelling" | "explainer" | "vlog";
 
-const MODE_TABS: Array<{ id: Mode; label: string; Icon: typeof Folder }> = [
-  { id: "grid",    label: "Grid",    Icon: Folder },
-  { id: "atlas",   label: "Atlas",   Icon: Telescope },
-  { id: "theater", label: "Theater", Icon: TheaterIcon },
+const CATEGORIES: { id: Genre; label: string }[] = [
+  { id: "all",          label: "All" },
+  { id: "cinematic",    label: "Cinematic" },
+  { id: "storytelling", label: "Storytelling" },
+  { id: "documentary",  label: "Documentary" },
+  { id: "ad",           label: "Ad" },
+  { id: "explainer",    label: "Explainer" },
+  { id: "educational",  label: "Educational" },
+  { id: "motivational", label: "Motivational" },
+  { id: "funny",        label: "Funny" },
+  { id: "vlog",         label: "Vlog" },
+  { id: "religious",    label: "Religious" },
 ];
+
+// Local project shape — narrower than usePaginatedProjects' return so
+// the rest of this file can rely on a stable set of fields.
+interface LibraryProject {
+  id: string;
+  name?: string | null;
+  status?: string | null;
+  updated_at?: string;
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  genre?: string | null;
+}
 
 export default function Library() {
   usePageMeta({
@@ -62,29 +83,38 @@ export default function Library() {
   });
 
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
   const reducedMotion = useReducedMotion();
 
-  const mode: Mode = (params.get("mode") as Mode) || "grid";
-  const setMode = (m: Mode) => {
-    const next = new URLSearchParams(params);
-    if (m === "grid") next.delete("mode");
-    else next.set("mode", m);
-    setParams(next, { replace: true });
-  };
-
   const [search, setSearch] = useState("");
-  const [sortBy] = useState("updated_at");
-  const [sortOrder] = useState<"asc" | "desc">("desc");
-  const [statusFilter] = useState<string>("all");
+  const [category, setCategory] = useState<Genre>("all");
 
-  const { projects, loading, hasMore, loadMore } = usePaginatedProjects(
-    sortBy,
-    sortOrder,
-    statusFilter,
+  const { projects: rawProjects, isLoading: loading, hasMore, loadMore } = usePaginatedProjects(
+    "updated",
+    "desc",
+    "all",
     search,
   );
   const liveRenderTimecode = useLiveRenderTimecode();
+
+  // The hook returns a slightly looser shape than we want. Narrow + cast
+  // once, then everything downstream uses `LibraryProject`. We also
+  // track deletes optimistically so the UI removes the card before the
+  // DB round-trip completes.
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
+  const projects: LibraryProject[] = useMemo(
+    () =>
+      (rawProjects as unknown as LibraryProject[])
+        .filter((p) => !deletedIds.has(p.id)),
+    [rawProjects, deletedIds],
+  );
+
+  // Filter by category in-memory — categories live in movie_projects.genre.
+  // We don't filter at the SQL layer because usePaginatedProjects' API
+  // doesn't expose `genre`; cheaper to filter the small client list.
+  const filtered = useMemo(() => {
+    if (category === "all") return projects;
+    return projects.filter((p) => p.genre === category);
+  }, [projects, category]);
 
   const counts = useMemo(() => {
     const total = projects.length;
@@ -98,9 +128,54 @@ export default function Library() {
     return { total, completed, inProgress };
   }, [projects]);
 
+  // Hero pick — latest completed project with a video_url. Falls back
+  // to the latest project of any status if no completes yet.
+  const hero = useMemo(() => {
+    const playable = projects.find((p) => p.status === "completed" && !!p.video_url);
+    return playable ?? projects.find((p) => !!p.video_url) ?? null;
+  }, [projects]);
+
+  // Per-category counts for the pill bar (shows total per category).
+  const byCategory = useMemo(() => {
+    const map: Partial<Record<Genre, number>> = { all: projects.length };
+    for (const p of projects) {
+      const g = (p.genre ?? "") as Genre;
+      if (g) map[g] = (map[g] ?? 0) + 1;
+    }
+    return map;
+  }, [projects]);
+
+  // DELETE handler — confirmed via dialog state then writes to DB.
+  // Optimistic remove from UI; if the delete fails we put it back and
+  // toast the error.
+  const [pendingDelete, setPendingDelete] = useState<LibraryProject | null>(null);
+  const handleConfirmDelete = async () => {
+    const target = pendingDelete;
+    if (!target) return;
+    setPendingDelete(null);
+    setDeletedIds((s) => new Set(s).add(target.id));
+    try {
+      const { error } = await supabase
+        .from("movie_projects")
+        .delete()
+        .eq("id", target.id);
+      if (error) throw error;
+      toast.success(`Deleted "${target.name ?? "Untitled"}"`);
+    } catch (e) {
+      setDeletedIds((s) => {
+        const next = new Set(s);
+        next.delete(target.id);
+        return next;
+      });
+      toast.error("Couldn't delete", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
+  };
+
   return (
     <FoundationShell>
-      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+      <div className="relative mx-auto w-full max-w-[1480px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"
           chrome={{
@@ -110,7 +185,7 @@ export default function Library() {
               `${counts.total} ${counts.total === 1 ? "FILM" : "FILMS"} · ${counts.inProgress} ACTIVE`,
           }}
         >
-          {/* ── Header row ──────────────────────────────────────── */}
+          {/* ── Header ─────────────────────────────────────────── */}
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <EditorialEyebrow>Library</EditorialEyebrow>
@@ -118,9 +193,8 @@ export default function Library() {
                 Your films.
               </EditorialHeadline>
               <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
-                Every reel you&rsquo;ve directed lives here. Search, sort, and
-                open them with one click. Pull up the Atlas to see them in
-                3D, or the Theater to schedule a premiere.
+                Every reel you&rsquo;ve directed lives here. Latest on top,
+                category-filtered, click to play in place.
               </p>
             </div>
 
@@ -141,174 +215,268 @@ export default function Library() {
             </button>
           </div>
 
-          {/* ── Active renders dashboard ─────────────────────────
-              Vercel-deploy-style live view of films currently in the
-              pipeline. Self-hides when nothing is rendering. Real-time
-              via Supabase channel. */}
+          {/* ── Active renders (auto-hides when nothing rendering) */}
           <div className="mt-10">
             <ActiveRendersCard />
           </div>
 
-          {/* ── Mode tabs ──────────────────────────────────────── */}
-          <div className="mt-10 flex items-center justify-between gap-6 border-b border-border/30 pb-5">
-            <div className="flex items-center gap-8">
-              {MODE_TABS.map(({ id, label, Icon }) => {
-                const active = mode === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setMode(id)}
-                    className={cn(
-                      "relative inline-flex items-center gap-2 pb-4 text-[12px] uppercase tracking-[0.18em] transition-colors",
-                      active ? "text-foreground" : "text-muted-foreground/60 hover:text-foreground/90",
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-3.5 w-3.5 transition-colors",
-                        active ? "text-accent" : "text-muted-foreground/50",
-                      )}
-                      strokeWidth={1.5}
-                    />
-                    <span>{label}</span>
-                    {active && (
-                      <motion.span
-                        layoutId="library-mode-underline"
-                        className="absolute -bottom-[21px] left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* ── 1. HERO PLAYER — latest, immersive ─────────────── */}
+          {hero && (
+            <HeroPlayer
+              project={hero}
+              onOpen={() => navigate(`/r/${hero.id}`)}
+            />
+          )}
 
-            {/* Search */}
-            <div className="hidden items-center gap-2.5 rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] px-3.5 h-9 sm:flex w-[280px]">
+          {/* ── 2. CATEGORY PILLS ──────────────────────────────── */}
+          <div className="mt-10 flex flex-wrap items-center gap-2">
+            {CATEGORIES.map((c) => {
+              const active = category === c.id;
+              const n = byCategory[c.id] ?? 0;
+              if (c.id !== "all" && n === 0) return null;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setCategory(c.id)}
+                  className={cn(
+                    "h-9 px-4 rounded-full text-[12.5px] inline-flex items-center gap-2 transition-all",
+                    "ring-1 ring-inset",
+                    active
+                      ? "bg-gradient-to-br from-accent/20 to-accent/[0.06] ring-accent/45 text-foreground"
+                      : "bg-white/[0.02] ring-white/[0.06] text-foreground/75 hover:ring-white/[0.18] hover:text-foreground",
+                  )}
+                >
+                  <span>{c.label}</span>
+                  <span className={cn(
+                    TYPE_META,
+                    "tabular-nums",
+                    active ? "text-accent/80" : "text-muted-foreground/50",
+                  )}>
+                    {n}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── 3. SEARCH ──────────────────────────────────────── */}
+          <div className="mt-5 max-w-md">
+            <div className="flex items-center gap-2.5 rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] px-4 h-11">
               <Search className="h-3.5 w-3.5 text-muted-foreground/50" strokeWidth={1.5} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Find a film…"
-                className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/40"
+                placeholder="Find a film by title…"
+                className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/40"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="text-muted-foreground/55 hover:text-foreground transition-colors"
+                >
+                  <CloseIcon className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* ── Content ────────────────────────────────────────── */}
-          <div className="mt-10">
+          {/* ── 4. GRID ────────────────────────────────────────── */}
+          <div className="mt-8">
             <AnimatePresence mode="wait">
-              {mode === "grid" && (
+              {loading && filtered.length === 0 ? (
+                <LoadingState />
+              ) : filtered.length === 0 ? (
+                category !== "all" ? (
+                  <CategoryEmpty onReset={() => setCategory("all")} />
+                ) : (
+                  <EmptyLibrary onNew={() => navigate("/studio?new=1")} />
+                )
+              ) : (
                 <motion.div
                   key="grid"
                   initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.35, ease: EASE_PREMIUM }}
+                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
                 >
-                  {loading && projects.length === 0 ? (
-                    <LoadingState />
-                  ) : projects.length === 0 ? (
-                    <EmptyLibrary onNew={() => navigate("/studio?new=1")} />
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {projects.map((p, i) => (
-                          <ProjectCard
-                            key={p.id}
-                            project={p}
-                            index={i}
-                            onOpen={() => navigate(`/r/${p.id}`)}
-                          />
-                        ))}
-                      </div>
-                      {hasMore && (
-                        <div className="mt-10 flex justify-center">
-                          <button
-                            onClick={loadMore}
-                            disabled={loading}
-                            className={cn(
-                              "rounded-full border border-border/40 px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
-                              "text-muted-foreground/70 transition-colors",
-                              "hover:border-accent/40 hover:text-foreground",
-                              "disabled:opacity-50",
-                            )}
-                          >
-                            {loading ? "Loading…" : "Load more"}
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              )}
-
-              {mode === "atlas" && (
-                <motion.div
-                  key="atlas"
-                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, ease: EASE_PREMIUM }}
-                  className="relative min-h-[60vh]"
-                >
-                  <ProjectAtlas
-                    open={true}
-                    onClose={() => setMode("grid")}
-                    projects={projects.map((p) => ({
-                      id: p.id,
-                      title: p.name ?? null,
-                      updated_at: p.updated_at,
-                      thumbnail_url: (p as { thumbnail_url?: string | null }).thumbnail_url ?? null,
-                    }))}
-                  />
-                </motion.div>
-              )}
-
-              {mode === "theater" && (
-                <motion.div
-                  key="theater"
-                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, ease: EASE_PREMIUM }}
-                  className="flex flex-col items-center justify-center py-20 text-center"
-                >
-                  <TheaterIcon className="h-12 w-12 text-accent/60 mb-6" strokeWidth={1.2} />
-                  <p className="font-display italic text-2xl text-foreground/85">
-                    Theater — coming online.
-                  </p>
-                  <p className="mt-2 max-w-md text-[13px] text-muted-foreground/65">
-                    Schedule a premiere, invite friends, watch together with
-                    sync&apos;d playback. Wires in next pass.
-                  </p>
+                  {filtered.map((p, i) => (
+                    <FullBleedCard
+                      key={p.id}
+                      project={p}
+                      index={i}
+                      onOpen={() => navigate(`/r/${p.id}`)}
+                      onDelete={() => setPendingDelete(p)}
+                    />
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {hasMore && filtered.length > 0 && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className={cn(
+                    "rounded-full border border-border/40 px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
+                    "text-muted-foreground/70 transition-colors",
+                    "hover:border-accent/40 hover:text-foreground",
+                    "disabled:opacity-50",
+                  )}
+                >
+                  {loading ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
         </EditorialCanvas>
       </div>
+
+      {/* Delete confirmation */}
+      <ConfirmDelete
+        project={pendingDelete}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </FoundationShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ProjectCard
-// ─────────────────────────────────────────────────────────────────────────────
-function ProjectCard({
+// ─────────────────────────────────────────────────────────────────────
+// HERO PLAYER — full-bleed, autoplay muted, click-to-unmute, immersive.
+// ─────────────────────────────────────────────────────────────────────
+function HeroPlayer({
+  project,
+  onOpen,
+}: {
+  project: LibraryProject;
+  onOpen: () => void;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const title = project.name?.trim() || "Untitled";
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = muted;
+  }, [muted]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_PREMIUM }}
+      className="mt-12 relative overflow-hidden rounded-3xl border border-white/[0.08] shadow-[0_30px_80px_-20px_hsla(0_0%_0%/0.7)]"
+    >
+      <div className="relative aspect-[21/9] w-full bg-black">
+        {project.video_url ? (
+          <video
+            ref={ref}
+            src={project.video_url}
+            poster={project.thumbnail_url ?? undefined}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            // No manual play() — autoPlay+muted handles cold-start in
+            // every browser that allows muted autoplay. The manual
+            // play() in onCanPlay was racing with user-initiated
+            // pause and could restart playback unexpectedly.
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center">
+            <Film className="h-12 w-12 text-muted-foreground/35" strokeWidth={1} />
+          </div>
+        )}
+
+        {/* Cinematic vignette */}
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[hsl(220_40%_3%/0.95)] via-[hsl(220_40%_3%/0.4)] via-50% to-[hsl(220_40%_3%/0.4)]" />
+        <div aria-hidden className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-[hsl(220_40%_3%/0.6)] to-transparent" />
+
+        {/* Top-right controls */}
+        <div className="absolute top-5 right-5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMuted((m) => !m)}
+            aria-label={muted ? "Unmute" : "Mute"}
+            className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-black/55 backdrop-blur-md ring-1 ring-inset ring-white/15 text-white hover:bg-black/75 transition-colors"
+          >
+            {muted ? (
+              <VolumeX className="h-4 w-4" strokeWidth={1.6} />
+            ) : (
+              <Volume2 className="h-4 w-4" strokeWidth={1.6} />
+            )}
+          </button>
+        </div>
+
+        {/* Bottom title block */}
+        <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 flex flex-col gap-4">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] font-mono text-accent/85">
+            <Sparkles className="h-3 w-3" strokeWidth={1.6} />
+            <span>Latest film</span>
+            {project.genre && (
+              <>
+                <span className="text-white/30">·</span>
+                <span className="capitalize text-white/65">{project.genre}</span>
+              </>
+            )}
+          </div>
+          <h2
+            className="text-[clamp(2rem,5vw,3.5rem)] font-display italic font-light leading-[1.02] text-white max-w-3xl"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {title}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onOpen}
+              className={cn(
+                "inline-flex items-center gap-2 px-5 h-11 rounded-full",
+                "bg-white text-black hover:bg-white/85 transition-colors",
+                "text-[13.5px] font-medium",
+              )}
+            >
+              <Play className="h-4 w-4 fill-current" strokeWidth={1.8} />
+              <span>Open</span>
+            </button>
+            <span className={cn(TYPE_META, "text-white/55")}>
+              {project.updated_at ? relativeTime(project.updated_at) : ""}
+            </span>
+            {!playing && project.video_url && (
+              <span className={cn(TYPE_META, "text-white/35 ml-2")}>
+                <Loader2 className="inline h-3 w-3 animate-spin mr-1" /> loading preview
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// FULL-BLEED CARD — video covers the entire card; meta floats over
+// gradient at the bottom; hover plays muted preview; delete on hover.
+// ─────────────────────────────────────────────────────────────────────
+function FullBleedCard({
   project,
   index,
   onOpen,
+  onDelete,
 }: {
-  project: {
-    id: string;
-    name?: string | null;
-    status?: string | null;
-    updated_at?: string;
-    video_url?: string | null;
-    thumbnail_url?: string | null;
-  };
+  project: LibraryProject;
   index: number;
   onOpen: () => void;
+  onDelete: () => void;
 }) {
   const reducedMotion = useReducedMotion();
   const title = project.name?.trim() || "Untitled film";
@@ -316,31 +484,26 @@ function ProjectCard({
   const inProgress = status === "generating" || status === "rendering" || status === "stitching";
   const completed = status === "completed";
   const previewRef = useRef<HTMLVideoElement | null>(null);
-  const [previewActive, setPreviewActive] = useState(false);
-  const canPreview = completed && !!project.video_url && !reducedMotion;
+  const [hovering, setHovering] = useState(false);
+  // Mirror hovering in a ref so async callbacks (onCanPlay) see the
+  // live value, not a stale closure from a stale render.
+  const hoveringRef = useRef(false);
+  hoveringRef.current = hovering;
+  const canPreview = !!project.video_url && !reducedMotion;
 
-  // Hover-to-preview — YouTube/Apple TV+ pattern. Plays the muted reel
-  // in place after a short hover delay so a stray mouse drag doesn't
-  // unleash 6 videos at once. Pauses + resets on mouse leave.
-  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startPreview = () => {
     if (!canPreview) return;
-    if (previewTimer.current) clearTimeout(previewTimer.current);
-    previewTimer.current = setTimeout(() => {
-      setPreviewActive(true);
-      const el = previewRef.current;
-      if (el) {
-        el.currentTime = 0;
-        void el.play().catch(() => { /* autoplay rejected, no-op */ });
-      }
-    }, 180);
+    setHovering(true);
+    hoveringRef.current = true;
+    const el = previewRef.current;
+    if (el) {
+      el.currentTime = 0;
+      void el.play().catch(() => {});
+    }
   };
   const stopPreview = () => {
-    if (previewTimer.current) {
-      clearTimeout(previewTimer.current);
-      previewTimer.current = null;
-    }
-    setPreviewActive(false);
+    setHovering(false);
+    hoveringRef.current = false;
     const el = previewRef.current;
     if (el) {
       el.pause();
@@ -349,101 +512,181 @@ function ProjectCard({
   };
 
   return (
-    <motion.button
-      onClick={onOpen}
+    <motion.div
+      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.5), ease: EASE_PREMIUM }}
       onMouseEnter={startPreview}
       onMouseLeave={stopPreview}
       onFocus={startPreview}
       onBlur={stopPreview}
-      initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.6), ease: EASE_PREMIUM }}
       whileHover={reducedMotion ? undefined : { y: -3 }}
       className={cn(
-        "group/card relative overflow-hidden text-left",
-        RADIUS.composer,
-        "border border-border/40",
-        "bg-gradient-to-b from-card/50 via-card/20 to-card/5",
-        "backdrop-blur-xl",
+        "group/card relative overflow-hidden aspect-[4/5] rounded-2xl",
+        "border border-border/40 bg-black",
         "transition-all hover:border-accent/40",
-        SHADOW_LIFT,
+        "shadow-[0_18px_50px_-18px_hsla(0_0%_0%/0.75)]",
       )}
     >
-      {/* Thumbnail / placeholder */}
-      <div className="relative aspect-video w-full overflow-hidden bg-[hsl(220_30%_8%)]">
-        {project.thumbnail_url ? (
-          <img
-            src={project.thumbnail_url}
-            alt=""
-            className={cn(
-              "h-full w-full object-cover transition-all duration-700 group-hover/card:scale-[1.04]",
-              previewActive && "opacity-0",
-            )}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Film className="h-10 w-10 text-muted-foreground/25" strokeWidth={1} />
-          </div>
-        )}
-        {canPreview && (
-          <video
-            ref={previewRef}
-            src={project.video_url ?? undefined}
-            poster={project.thumbnail_url ?? undefined}
-            muted
-            loop
-            playsInline
-            preload="none"
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
-              previewActive ? "opacity-100" : "opacity-0",
-            )}
-          />
-        )}
-        {/* Vignette */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_4%/0.85)] via-transparent to-transparent"
+      {/* THUMBNAIL (always visible until preview overlays it) */}
+      {project.thumbnail_url ? (
+        <img
+          src={project.thumbnail_url}
+          alt=""
+          loading="lazy"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+            "group-hover/card:scale-[1.04]",
+          )}
         />
-        {/* Status pill */}
-        <div className="absolute left-3 top-3">
-          <StatusPill inProgress={inProgress} completed={completed} />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center bg-[hsl(220_30%_8%)]">
+          <Film className="h-12 w-12 text-muted-foreground/25" strokeWidth={1} />
         </div>
-        {/* Play affordance — only on completed */}
-        {completed && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100">
-            <div
-              className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full",
-                "bg-[hsl(var(--accent)/0.2)] ring-1 ring-inset ring-accent/40",
-                "backdrop-blur-md",
-              )}
-            >
-              <Play className="h-4 w-4 fill-current text-accent" />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Meta */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-1 flex-1 font-display text-[16px] font-light leading-snug tracking-tight text-foreground">
-            {title}
-          </h3>
+      {/* HOVER PREVIEW VIDEO — fades in over the thumbnail. The
+          should-play decision uses a ref so onCanPlay (which can fire
+          AFTER mouseleave) consults the live hover state, not a stale
+          closure of `hovering`. */}
+      {canPreview && (
+        <video
+          ref={previewRef}
+          src={project.video_url ?? undefined}
+          poster={project.thumbnail_url ?? undefined}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onCanPlay={() => {
+            if (hoveringRef.current) void previewRef.current?.play().catch(() => {});
+          }}
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+            hovering ? "opacity-100" : "opacity-0",
+          )}
+        />
+      )}
+
+      {/* Bottom gradient + meta */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[hsl(220_30%_3%/0.95)] via-[hsl(220_30%_3%/0.5)] to-transparent"
+      />
+
+      <div className="absolute inset-x-0 bottom-0 p-5 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <StatusPill inProgress={inProgress} completed={completed} />
+          {project.genre && (
+            <span className={cn(TYPE_META, "text-white/55 capitalize")}>
+              {project.genre}
+            </span>
+          )}
         </div>
-        <div className="mt-2 flex items-center gap-2.5">
-          <Clock className="h-3 w-3 text-muted-foreground/40" strokeWidth={1.5} />
-          <span className={cn(TYPE_META, "text-muted-foreground/55")}>
+        <h3
+          className="font-display italic text-[clamp(1.1rem,2.3vw,1.6rem)] leading-[1.1] text-white line-clamp-2"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {title}
+        </h3>
+        <div className="flex items-center gap-2 text-white/55">
+          <Clock className="h-3 w-3" strokeWidth={1.5} />
+          <span className={cn(TYPE_META, "tracking-[0.2em]")}>
             {project.updated_at ? relativeTime(project.updated_at) : "Just now"}
           </span>
         </div>
+        {/* Quick actions — visible on hover. Edit goes back to the
+            editor (owner only — Library page is per-user so always
+            owner). Share copies the public reel URL. */}
+        <div className={cn(
+          "flex items-center gap-1.5 transition-opacity pt-1.5",
+          "opacity-0 group-hover/card:opacity-100 focus-within:opacity-100",
+        )}>
+          <CardActionButton
+            label="Edit"
+            icon={<Pencil className="h-3.5 w-3.5" />}
+            onClick={(e) => { e.stopPropagation(); window.location.assign(`/editor/${project.id}`); }}
+          />
+          <CardActionButton
+            label="Share"
+            icon={<Share2 className="h-3.5 w-3.5" />}
+            onClick={async (e) => {
+              e.stopPropagation();
+              const url = `${window.location.origin}/r/${project.id}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                (await import("sonner")).toast.success("Link copied", { description: url });
+              } catch {
+                (await import("sonner")).toast.error("Couldn't copy link", { description: url });
+              }
+            }}
+          />
+        </div>
       </div>
-    </motion.button>
+
+      {/* DELETE button — top-right, fades in on hover. z-20 so it
+          sits ABOVE the full-card click target below. */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        aria-label="Delete project"
+        title="Delete this film"
+        className={cn(
+          "absolute top-3 right-3 z-20 inline-flex items-center justify-center h-9 w-9 rounded-full",
+          "bg-black/70 backdrop-blur-md ring-1 ring-inset ring-white/15",
+          "text-white/85 hover:text-white hover:bg-red-500/85 hover:ring-red-400/40",
+          "transition-all duration-200 active:scale-95",
+          "opacity-0 group-hover/card:opacity-100 focus:opacity-100",
+        )}
+      >
+        <Trash2 className="h-4 w-4" strokeWidth={1.6} />
+      </button>
+
+      {/* PLAY hint on hover (center) */}
+      {completed && (
+        <div className="absolute inset-0 grid place-items-center pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity">
+          <div className="h-14 w-14 rounded-full bg-white/[0.10] backdrop-blur-md ring-1 ring-inset ring-white/20 inline-flex items-center justify-center">
+            <Play className="h-5 w-5 text-white fill-current translate-x-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* Full-card click target — sits BELOW the delete button via z-index */}
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Open ${title}`}
+        className="absolute inset-0 z-0"
+      />
+    </motion.div>
   );
 }
 
+function CardActionButton({
+  label, icon, onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px]",
+        "bg-black/55 backdrop-blur-md text-white/85 ring-1 ring-inset ring-white/15",
+        "hover:bg-black/75 hover:text-white hover:ring-white/30 transition-colors",
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
 function StatusPill({ inProgress, completed }: { inProgress: boolean; completed: boolean }) {
   if (inProgress) {
     return (
@@ -489,6 +732,7 @@ function StatusPill({ inProgress, completed }: { inProgress: boolean; completed:
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────
 function LoadingState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -536,6 +780,135 @@ function EmptyLibrary({ onNew }: { onNew: () => void }) {
   );
 }
 
+function CategoryEmpty({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <p className="font-display italic text-2xl text-foreground/85">
+        Nothing in this category yet.
+      </p>
+      <p className="mt-2 max-w-md text-[13px] text-muted-foreground/65">
+        Tag a film with a category from the Save dialog and it&apos;ll appear here.
+      </p>
+      <button
+        onClick={onReset}
+        className={cn(
+          "mt-6 inline-flex items-center gap-2 px-4 h-9 rounded-full",
+          "ring-1 ring-inset ring-white/[0.08] text-foreground/75",
+          "hover:ring-white/[0.18] hover:text-foreground transition-colors",
+        )}
+      >
+        <span className="text-[12.5px]">Show all films</span>
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// CONFIRM DELETE — small centered dialog, body-scroll locked.
+// ─────────────────────────────────────────────────────────────────────
+function ConfirmDelete({
+  project,
+  onCancel,
+  onConfirm,
+}: {
+  project: LibraryProject | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  // Stable ref so the keydown effect can depend on just `open` (the
+  // existence of project), avoiding listener add/remove churn when
+  // onCancel identity changes on parent re-renders.
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
+  const isOpen = !!project;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancelRef.current(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  return (
+    <AnimatePresence>
+      {project && (
+        <motion.div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-[hsl(220_40%_2%/0.78)] backdrop-blur-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onCancel}
+            aria-hidden
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            className={cn(
+              "relative w-full max-w-[460px] rounded-2xl",
+              "border border-white/[0.08]",
+              "bg-gradient-to-b from-[hsl(220_30%_7%)] to-[hsl(220_35%_4%)]",
+              "shadow-[0_40px_120px_-20px_hsla(0_0%_0%/0.85)]",
+              "p-7",
+            )}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            transition={{ duration: 0.22, ease: EASE_PREMIUM }}
+          >
+            <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-500/15 ring-1 ring-inset ring-red-500/35 mb-4">
+              <Trash2 className="h-5 w-5 text-red-300" strokeWidth={1.8} />
+            </div>
+            <h3
+              className="text-[20px] font-display italic font-light leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Delete this film?
+            </h3>
+            <p className="mt-2 text-[13.5px] text-muted-foreground/70 leading-relaxed">
+              <span className="text-foreground/95">&ldquo;{project.name ?? "Untitled"}&rdquo;</span>{" "}
+              will be permanently removed from your library + database. The
+              source clips and renders are not retrievable.
+            </p>
+            <div className="mt-6 flex items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-5 h-10 rounded-full text-[13px] text-muted-foreground/75 hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                className={cn(
+                  "px-5 h-10 rounded-full inline-flex items-center gap-2 text-[13px]",
+                  "border border-red-500/45 bg-gradient-to-br from-red-500/20 to-red-500/[0.06]",
+                  "text-foreground hover:border-red-500/65 hover:from-red-500/30 transition-all",
+                )}
+              >
+                <Trash2 className="h-4 w-4 text-red-300" strokeWidth={1.8} />
+                <span>Delete permanently</span>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
 function relativeTime(iso: string): string {
   const t = new Date(iso).getTime();
   const diff = Date.now() - t;

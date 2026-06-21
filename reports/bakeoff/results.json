@@ -1,0 +1,38 @@
+[
+  {
+    "id": "L1_lighthouse_A_ours",
+    "prompt_label": "Lighthouse (engineered vs raw, same model+seed)",
+    "arm": "A",
+    "model": "bytedance/seedance-1-pro",
+    "input": {
+      "prompt": "A weathered stone lighthouse on a storm-battered cliff at first light. Towering grey-green waves crash against black rocks below — spray bursting upward with believable weight and inertia, foam sliding back with real fluid dynamics. Wet stone glistens with motivated specular highlights, salt crust and lichen visible. Heavy clouds drift; dawn light rakes warm gold across the seaward face while the leeward side holds deep shadow. Filmic grain, photographic motivated lighting, no plastic CGI sheen, cinematic color grade, shallow depth of field.",
+      "duration": 5,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "fps": 24,
+      "seed": 42
+    },
+    "status": "succeeded",
+    "file": "L1_lighthouse_A_ours.mp4",
+    "bytes": 12622193,
+    "predictTime": 60.46486165
+  },
+  {
+    "id": "L1_lighthouse_B_raw",
+    "prompt_label": "Lighthouse (engineered vs raw, same model+seed)",
+    "arm": "B",
+    "model": "bytedance/seedance-1-pro",
+    "input": {
+      "prompt": "A lighthouse on a storm-battered cliff at dawn.",
+      "duration": 5,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "fps": 24,
+      "seed": 42
+    },
+    "status": "succeeded",
+    "file": "L1_lighthouse_B_raw.mp4",
+    "bytes": 11880079,
+    "predictTime": 50.163439599
+  }
+]

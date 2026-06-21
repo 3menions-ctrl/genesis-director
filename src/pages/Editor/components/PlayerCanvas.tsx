@@ -46,6 +46,10 @@ import {
   getClipPropertyAt,
 } from "@/lib/editor/types";
 import { StitchedPlayer, type StitchedPlayerHandle } from "./StitchedPlayer";
+import { gradeToCss } from "@/lib/editor/color-grade-filters";
+import { getLut } from "@/lib/editor/lut-library";
+import { EffectsOverlay } from "@/components/editor/effects/EffectsOverlay";
+import { TextOverlayLayer } from "@/components/editor/TextOverlayLayer";
 import {
   setPlayhead,
   setInPoint as setInPointMut,
@@ -224,44 +228,60 @@ function SourceMonitor({
 function VuMeter({ isPlaying, volume }: { isPlaying: boolean; volume: number }) {
   const [levels, setLevels] = useState<[number, number]>([0, 0]);
   const rafRef = useRef<number | null>(null);
+  // Mirror current levels in a ref so the decay path can start from
+  // wherever the playing path left off, without needing levels in the
+  // effect deps (which would re-run + restart the rAF every frame).
+  const levelsRef = useRef<[number, number]>([0, 0]);
+  levelsRef.current = levels;
+  // Mirror volume so the playing rAF reads the live value without
+  // re-binding on every volume slider tick.
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
 
   useEffect(() => {
+    let active = true;
     if (!isPlaying) {
-      // Smooth decay to 0 when paused
-      let l: [number, number] = [...levels] as [number, number];
-      const tick = () => {
+      let l = levelsRef.current;
+      const decay = () => {
+        if (!active) return;
         l = [l[0] * 0.85, l[1] * 0.85] as [number, number];
         if (l[0] < 0.01 && l[1] < 0.01) {
           setLevels([0, 0]);
           return;
         }
         setLevels(l);
-        rafRef.current = requestAnimationFrame(tick);
+        rafRef.current = requestAnimationFrame(decay);
       };
-      tick();
+      decay();
       return () => {
+        active = false;
         if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       };
     }
     const start = performance.now();
     const tick = () => {
+      if (!active) return;
       const t = (performance.now() - start) / 1000;
-      const sine = (Math.sin(t * 7.3) + 1) / 2; // 0..1
+      const sine = (Math.sin(t * 7.3) + 1) / 2;
       const jitterL = Math.random() * 0.35;
       const jitterR = Math.random() * 0.35;
       const env = 0.4 + 0.6 * sine;
-      const next: [number, number] = [
-        Math.min(1, volume * (env + jitterL) * 0.95),
-        Math.min(1, volume * (env + jitterR) * 0.95),
-      ];
-      setLevels(next);
+      const v = volumeRef.current;
+      setLevels([
+        Math.min(1, v * (env + jitterL) * 0.95),
+        Math.min(1, v * (env + jitterR) * 0.95),
+      ]);
       rafRef.current = requestAnimationFrame(tick);
     };
     tick();
     return () => {
+      active = false;
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, volume]);
+    // ONLY depend on isPlaying so volume changes don't re-bind the loop.
+    // The ref above keeps the live volume in view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
 
   return (
     <div className="flex items-end gap-1 h-9" aria-hidden>
@@ -339,7 +359,18 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
    */
   const pendingSeekRef = useRef<number | null>(null);
 
-  const allClips: EditorClip[] = useMemo(() => project.scenes.flatMap((s) => s.clips), [project]);
+  // Memo on `project.scenes` instead of `project` — the editor store
+  // creates a fresh state reference on every mutation (playhead tick,
+  // selection change, etc.), so memoing on the whole project object
+  // recomputed allClips/clips/titleClips on EVERY render. That cascaded
+  // into the StitchedPlayer's `clips` prop changing every frame,
+  // re-binding the canvas compositor effect, and tearing down + rebuilding
+  // ResizeObservers. `project.scenes` is stable across non-structural
+  // mutations (the store reuses scene arrays unless they actually change).
+  const allClips: EditorClip[] = useMemo(
+    () => project.scenes.flatMap((s) => s.clips),
+    [project.scenes],
+  );
   const clips = useMemo(() => allClips.filter((c) => c.kind !== "title"), [allClips]);
   const titleClips = useMemo(() => allClips.filter((c) => c.kind === "title"), [allClips]);
 
@@ -540,36 +571,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playheadSec, activeClip?.id]);
 
-  // Apply per-clip / per-track / master volume + mute + speed
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v || !activeClip) return;
-    v.volume = Math.max(
-      0,
-      Math.min(
-        1,
-        getClipProperty(activeClip, "volume") *
-          trackVolumes.V1 *
-          masterVolume,
-      ),
-    );
-    v.playbackRate = Math.max(
-      0.05,
-      Math.min(8, getClipProperty(activeClip, "speed") * playbackSpeed),
-    );
-
-    // Solo logic + mute composition: any per-clip / per-track / master
-    // mute kills the audio. Solo (per-clip) overrides — when any
-    // clip is soloed, non-soloed clips mute.
-    const anySoloed = allClips.some((c) => getClipProperty(c, "soloed"));
-    const isThisSoloed = getClipProperty(activeClip, "soloed");
-    const explicitMute = getClipProperty(activeClip, "muted");
-    v.muted =
-      masterMuted ||
-      trackMuted.V1 ||
-      explicitMute ||
-      (anySoloed && !isThisSoloed);
-  }, [activeClip, allClips, trackVolumes, trackMuted, masterVolume, masterMuted, playbackSpeed]);
+  // (Previously applied per-clip / per-track / master volume + mute +
+  // speed to videoRef.current. videoRef has been the dead path since
+  // StitchedPlayer landed — the <video> elements live inside that
+  // component. Setting properties on a never-attached ref was a silent
+  // no-op AND triggered re-renders for every store change. Deleted.
+  // The StitchedPlayer + useAudioMixChain pair carries this now.)
 
   // ── B-buffer crossfade ────────────────────────────────────────────
   // When entering a transition window, mount the next clip onto the B
@@ -613,20 +620,28 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }
   }, [xfadeInfo, storeIsPlaying, playbackSpeed]);
 
+  // togglePlay — drives the StitchedPlayer's imperative handle.
+  // The legacy videoRef path is dead: when StitchedPlayer landed, the
+  // <video> elements moved INTO that component, so a videoRef on this
+  // host was never re-attached. Calling videoRef.current.play() was a
+  // silent no-op for every clip — including freshly uploaded ones.
+  // The fix is to route every transport command through stitchedRef.
   const togglePlay = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
+    const handle = stitchedRef.current;
+    // StitchedPlayer owns the video elements. If its imperative handle
+    // isn't ready yet (mid-mount), there's nothing to drive — bail
+    // rather than poking the long-dead videoRef path, which was always
+    // a silent no-op on this host.
+    if (!handle) return;
+    if (handle.isPaused()) {
       intentToPlayRef.current = true;
-      void v.play().catch((e) => {
-        // eslint-disable-next-line no-console
-        console.warn("[PlayerCanvas] play() blocked:", e);
+      void handle.play().catch(() => {
         intentToPlayRef.current = false;
         setIsPlaying(false);
       });
     } else {
       intentToPlayRef.current = false;
-      v.pause();
+      handle.pause();
     }
   };
 
@@ -650,9 +665,10 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, [setFullscreen]);
 
-  // PICTURE-IN-PICTURE
+  // PICTURE-IN-PICTURE — videoRef is the dead path (see note around
+  // line 632); route through stitchedRef.current.getActiveElement().
   const togglePiP = useCallback(async () => {
-    const v = videoRef.current;
+    const v = stitchedRef.current?.getActiveElement() ?? videoRef.current;
     if (!v) return;
     try {
       if (document.pictureInPictureElement === v) {
@@ -667,7 +683,7 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
 
   // SNAPSHOT — grab the current frame as a PNG download
   const snapshot = useCallback(() => {
-    const v = videoRef.current;
+    const v = stitchedRef.current?.getActiveElement() ?? videoRef.current;
     if (!v || !v.videoWidth) return;
     const canvas = document.createElement("canvas");
     canvas.width = v.videoWidth;
@@ -722,16 +738,14 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
       reverseLoopRef.current = null;
     }
   }, []);
+  // J/K/L transport — route through stitchedRef. videoRef has been
+  // unattached since StitchedPlayer took over the <video> elements;
+  // every JKL handler was silently no-oping because it checked
+  // `if (!videoRef.current) return`.
   const driveReverse = useCallback(
     (speed: number) => {
       stopReverse();
-      const v = videoRef.current;
-      if (!v) return;
-      try {
-        v.pause();
-      } catch {
-        /* ignored */
-      }
+      stitchedRef.current?.pause();
       let last = performance.now();
       const tick = () => {
         const now = performance.now();
@@ -747,8 +761,6 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   useEffect(() => stopReverse, [stopReverse]);
 
   const handleJ = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
     if (jklSpeedRef.current.dir === -1) {
       jklSpeedRef.current.speed = Math.min(4, jklSpeedRef.current.speed * 2);
     } else {
@@ -763,20 +775,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     jklSpeedRef.current = { dir: 0, speed: 1 };
     setPlaybackSpeed(1);
     stopReverse();
-    const v = videoRef.current;
-    if (!v) return;
     intentToPlayRef.current = false;
-    try {
-      v.pause();
-    } catch {
-      /* ignored */
-    }
+    stitchedRef.current?.pause();
   }, [setPlaybackSpeed, stopReverse]);
 
   const handleL = useCallback(() => {
     stopReverse();
-    const v = videoRef.current;
-    if (!v) return;
     if (jklSpeedRef.current.dir === 1) {
       jklSpeedRef.current.speed = Math.min(4, jklSpeedRef.current.speed * 2);
     } else {
@@ -784,10 +788,36 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }
     setPlaybackSpeed(jklSpeedRef.current.speed);
     intentToPlayRef.current = true;
-    void v.play().catch(() => {
+    const handle = stitchedRef.current;
+    if (!handle) return;
+    handle.setRate(jklSpeedRef.current.speed);
+    void handle.play().catch(() => {
       intentToPlayRef.current = false;
     });
   }, [setPlaybackSpeed, stopReverse]);
+
+  // ── Master volume / mute / speed → stitched player ─────────────
+  // These store values drive UI controls (volume slider, mute btn,
+  // SpeedDropdown). Before this effect they wrote to the store but
+  // never reached the actual <video> elements — the slider was
+  // cosmetic. Now any change pushes down through the handle.
+  //
+  // Speed has an extra wrinkle: stitchedRef.setRate only writes the
+  // showing element, so after a clip-boundary swap the new showing
+  // element starts at rate=1 until we re-push. We re-apply on every
+  // clip change via the activeIdx dep.
+  useEffect(() => {
+    const h = stitchedRef.current;
+    if (!h) return;
+    h.setMuted(masterMuted);
+    h.setVolume(masterMuted ? 0 : Math.max(0, Math.min(1.5, masterVolume)));
+  }, [masterMuted, masterVolume]);
+
+  useEffect(() => {
+    const h = stitchedRef.current;
+    if (!h) return;
+    h.setRate(Math.max(0.05, Math.min(8, playbackSpeed)));
+  }, [playbackSpeed, activeClip?.id]);
 
   // LOOP REGION — when loopRegion is on and the playhead reaches
   // outSec (or end), wrap back to inSec (or 0). Implemented as a
@@ -817,6 +847,38 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
+        return;
+      }
+      // Home/End — jump to start / end of the timeline. Industry-
+      // standard NLE shortcut. Plays nicely with in/out: Home goes to
+      // inSec when set, else 0; End goes to outSec when set, else
+      // totalSec. Stops playback first so the user lands on a static
+      // frame, not mid-scrub.
+      if (!meta && !e.shiftKey && e.key === "Home") {
+        e.preventDefault();
+        stitchedRef.current?.pause();
+        setPlayhead(inSec ?? 0);
+        return;
+      }
+      if (!meta && !e.shiftKey && e.key === "End") {
+        e.preventDefault();
+        stitchedRef.current?.pause();
+        setPlayhead(outSec ?? project.durationSec ?? 0);
+        return;
+      }
+      // Stop — pause + return to in-point (or 0). The Pause shortcut
+      // (K) leaves the playhead where it is; Stop returns to start so
+      // the user can re-watch a take from the top in one key press.
+      if (!meta && !e.shiftKey && (e.key === "." && e.altKey === false)) {
+        // Period alone is frame-step (Timeline handles); skip here.
+      }
+      // We bind Stop to Cmd+. (Cmd-Period) because pressing it from
+      // any view should halt playback unambiguously. This mirrors
+      // QuickTime / Final Cut "stop playing" muscle memory.
+      if (meta && e.key === ".") {
+        e.preventDefault();
+        stitchedRef.current?.pause();
+        setPlayhead(inSec ?? 0);
         return;
       }
       // J/K/L — must NOT trigger when the user is also holding cmd
@@ -874,6 +936,14 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // Empty deps + the latest-callback ref pattern would be ideal here,
+    // but the existing callbacks rotate identity every render driven by
+    // the store. We at least minimize re-bind cost by skipping during
+    // input focus (handled inside onKey). Re-binding is cheap as long
+    // as React reuses the listener identity — but every dep change
+    // here triggers add+remove. TODO: switch to a refs-of-callbacks
+    // pattern and use `[]` deps to bind exactly once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     handleJ,
     handleK,
@@ -893,7 +963,22 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   const playheadPct = (playheadSec / totalSec) * 100;
   const opacityStyle = activeClip ? getClipProperty(activeClip, "opacity") : 1;
   const scaleStyle = activeClip ? getClipProperty(activeClip, "scale") : 1;
-  const filterStyle = activeClip ? getClipProperty(activeClip, "filter") : "";
+  // Compose the preview filter:
+  //   1. Start with the legacy filter string from `properties.filter`
+  //      (the 8 quick-look CSS presets still used by EffectsPalette).
+  //   2. Append the color grade contribution compiled from the
+  //      ColorGrade model (LUT + wheels + global modifiers).
+  // Both are CSS filter chains so we can space-join them.
+  const filterStyle = (() => {
+    if (!activeClip) return "";
+    const legacy = getClipProperty(activeClip, "filter") ?? "";
+    const grade  = activeClip.properties?.colorGrade ?? null;
+    if (!grade) return legacy;
+    const lut = grade.lutId ? getLut(grade.lutId) ?? null : null;
+    const gradeCss = gradeToCss(grade, lut);
+    if (!gradeCss) return legacy;
+    return legacy ? `${legacy} ${gradeCss}` : gradeCss;
+  })();
   const mirrorStyle = activeClip ? getClipProperty(activeClip, "mirror") : false;
 
   const activeTitles = useMemo(
@@ -1092,6 +1177,23 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
                       setIsPlaying(false);
                     }
                   }}
+                />
+                {/* In-editor Crossover-recipe effects (stingers,
+                    sustained overlays). Renders every effect on the
+                    active clip whose time window contains the
+                    playhead. Transitions are handled separately by
+                    the xfade pipeline. */}
+                <EffectsOverlay
+                  clip={activeClip ?? null}
+                  clipRelativeSec={Math.max(0, playheadSec - (activeClip?.timelineStartSec ?? 0))}
+                />
+                {/* Broadcast text overlays — chyrons, titles, captions,
+                    quotes, stat cards. Live preview is SVG layered on
+                    the player; the bake-side renderer (phase 2) uses
+                    the same text-overlays.ts data model so preview = export. */}
+                <TextOverlayLayer
+                  overlays={project.textOverlays}
+                  playheadSec={playheadSec}
                 />
                 {/* Transition overlay for "fadeblack" / "fadewhite" —
                     a solid pane that peaks at the boundary then ramps

@@ -201,7 +201,7 @@ export function InlineSandbox() {
                 {result.message ?? 'Try again, or sign up — the preview is unlimited with an account.'}
               </p>
               <div className="mt-3">
-                <PrimaryCTA size="sm" onClick={() => navigate('/start')}>
+                <PrimaryCTA size="sm" onClick={() => navigate('/auth?mode=signup')}>
                   Sign up — free
                 </PrimaryCTA>
               </div>
@@ -218,7 +218,7 @@ export function InlineSandbox() {
                 : `${result.remaining_today ?? 0} free previews left today`}
             </span>
             <button
-              onClick={() => navigate('/start')}
+              onClick={() => navigate('/auth?mode=signup')}
               className="text-brand-light hover:text-white transition-colors inline-flex items-center gap-1.5"
             >
               Sign up to render the full shot

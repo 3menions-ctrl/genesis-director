@@ -55,9 +55,17 @@ import {
   Gauge,
 } from "lucide-react";
 import { getClipProperty } from "@/lib/editor/types";
-import { setClipProperty, addKeyframeAtPlayhead, clearKeyframes } from "@/lib/editor/store";
+import { setClipProperty, setClipColorGrade, addKeyframeAtPlayhead, clearKeyframes } from "@/lib/editor/store";
 import { useEditor } from "@/hooks/editor/useEditor";
+import { ColorGradePanel } from "@/components/editor/ColorGradePanel";
+import { IDENTITY_GRADE } from "@/lib/editor/color-grade";
+import { EffectsPanel } from "@/components/editor/effects/EffectsPanel";
+import { AudioMixPanel } from "@/components/editor/AudioMixPanel";
+import { DEFAULT_AUDIO_MIX } from "@/lib/editor/audio-mix";
+import { setClipAudioMix } from "@/lib/editor/store";
+import { generateCaptionsForVideo } from "@/lib/editor/auto-captions";
 import { toast } from "sonner";
+import { Captions } from "lucide-react";
 import { Diamond } from "lucide-react";
 import type { AnimatableProperty } from "@/lib/editor/types";
 
@@ -97,12 +105,25 @@ interface Props {
   embedded?: boolean;
 }
 
+type RegenQuality = "standard" | "fps60" | "uhd4k";
+const REGEN_QUALITY_OPTIONS: { value: RegenQuality; label: string; surcharge: number }[] = [
+  { value: "standard", label: "Standard 30fps", surcharge: 0 },
+  { value: "fps60",    label: "Smooth 60fps",   surcharge: 5 },
+  { value: "uhd4k",    label: "4K Cinema",      surcharge: 5 },
+];
+function regenQualityToOptions(q: RegenQuality): { fps60?: boolean; upscale4k?: boolean } {
+  if (q === "fps60") return { fps60: true };
+  if (q === "uhd4k") return { upscale4k: true };
+  return {};
+}
+
 export function TakesDrawer({ project, selectedClipId, embedded = false }: Props) {
   const reducedMotion = useReducedMotion();
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [open, setOpen] = useState(embedded);
   const [composerOpen, setComposerOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [quality, setQuality] = useState<RegenQuality>("standard");
   const [submitting, setSubmitting] = useState(false);
   const { selectedTransitionId } = useEditor();
 
@@ -192,6 +213,7 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
             shotIndex: clip.index,
             takeNumber: nextTakeNumber,
             prompt: prompt.trim(),
+            qualityOptions: regenQualityToOptions(quality),
           },
         },
       );
@@ -309,6 +331,8 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
           setComposerOpen={setComposerOpen}
           prompt={prompt}
           setPrompt={setPrompt}
+          quality={quality}
+          setQuality={setQuality}
           submitting={submitting}
           submit={submitRegenerate}
           composerRef={composerRef}
@@ -469,6 +493,7 @@ export function TakesDrawer({ project, selectedClipId, embedded = false }: Props
                       }
                     }}
                   />
+                  <RegenQualityPicker value={quality} onChange={setQuality} />
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <button
                       type="button"
@@ -543,6 +568,8 @@ function InspectorBody({
   setComposerOpen,
   prompt,
   setPrompt,
+  quality,
+  setQuality,
   submitting,
   submit,
   composerRef,
@@ -553,6 +580,8 @@ function InspectorBody({
   setComposerOpen: (v: boolean) => void;
   prompt: string;
   setPrompt: (v: string) => void;
+  quality: RegenQuality;
+  setQuality: (q: RegenQuality) => void;
   submitting: boolean;
   submit: () => Promise<void>;
   composerRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -611,6 +640,35 @@ function InspectorBody({
       <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
 
       {clip.kind === "title" ? <TitleProperties clip={clip} /> : <VideoProperties clip={clip} />}
+
+      {/* Color grading panel — full LUT browser + Lift/Gamma/Gain
+          wheels + global modifiers. Only for video clips. */}
+      {clip.kind === "video" && (
+        <>
+          <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          <div className="shrink-0 px-5 pb-4">
+            <ColorGradePanel
+              grade={clip.properties?.colorGrade ?? IDENTITY_GRADE}
+              onChange={(g) => setClipColorGrade(clip.id, g)}
+              previewImage={clip.thumbnailUrl ?? clip.videoUrl ?? null}
+            />
+          </div>
+          <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          <div className="shrink-0 px-5 pb-4">
+            <EffectsPanel clip={clip} />
+          </div>
+          <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          <div className="shrink-0 px-5 pb-4">
+            <AudioMixPanel
+              mix={clip.properties?.audioMix ?? DEFAULT_AUDIO_MIX}
+              onChange={(m) => setClipAudioMix(clip.id, m)}
+            />
+            <div className="mt-4">
+              <AutoCaptionsButton clip={clip} />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="shrink-0 mx-5 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
 
@@ -679,6 +737,7 @@ function InspectorBody({
                   }
                 }}
               />
+              <RegenQualityPicker value={quality} onChange={setQuality} />
               <div className="mt-3 flex items-center justify-between gap-3">
                 <button
                   type="button"
@@ -753,7 +812,13 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
   const speed = getClipProperty(clip, "speed");
   const muted = getClipProperty(clip, "muted");
   const soloed = getClipProperty(clip, "soloed");
-  const { playheadSec } = useEditor();
+  const { playheadSec, project } = useEditor();
+  // Track routing — read the current trackId off properties (defaults to V1).
+  const currentTrackId = clip.properties?.trackId ?? "sys:V1";
+  const tracks = (project?.tracks ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .filter((t) => t.kind === "video"); // V tracks for video clips
 
   const kfCount = (prop: AnimatableProperty) =>
     (clip.keyframes ?? []).filter((k) => k.property === prop).length;
@@ -805,6 +870,29 @@ function VideoProperties({ clip }: { clip: import("@/lib/editor/types").EditorCl
           <span>solo</span>
         </button>
       </div>
+
+      {/* Track routing — assign this clip to a video track. V1 is the
+          main sequence; V2+ tracks composite on top via FFmpeg overlay
+          at bake. Only clips on V1 contribute to the xfade chain. */}
+      {tracks.length > 1 && (
+        <div>
+          <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em] mb-1.5")}>
+            Track
+          </div>
+          <select
+            value={currentTrackId}
+            onChange={(e) => setClipProperty(clip.id, { trackId: e.target.value })}
+            className="w-full rounded-md bg-white/[0.03] ring-1 ring-inset ring-white/[0.06] focus:ring-white/[0.18] outline-none px-3 h-9 text-[13px] text-foreground"
+          >
+            {tracks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}{t.id === "sys:V1" ? "  (main sequence)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <AnimatableSlider
         label="Volume"
         Icon={Volume2}
@@ -1351,5 +1439,103 @@ function DocumentShotMount({
         onApproveAndRender={handleApproveAndRender}
       />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RegenQualityPicker — three pills inside the Regenerate composer.
+// "Standard 30fps · 0 credits / Smooth 60fps · +5 credits / 4K · +5".
+// Wires `qualityOptions.{fps60,upscale4k}` through to editor-generate-clip.
+// ─────────────────────────────────────────────────────────────────────────────
+function RegenQualityPicker({
+  value, onChange,
+}: { value: RegenQuality; onChange: (q: RegenQuality) => void }) {
+  return (
+    <div className="mt-3">
+      <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.22em] mb-1.5")}>
+        ◆ Quality
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {REGEN_QUALITY_OPTIONS.map((opt) => {
+          const active = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                "rounded-md ring-1 ring-inset transition-colors text-left px-2 py-1.5",
+                active
+                  ? "bg-[hsl(212_100%_60%/0.14)] text-accent ring-accent/45"
+                  : "bg-white/[0.02] text-foreground/85 ring-white/[0.07] hover:bg-white/[0.05]",
+              )}
+            >
+              <div className="text-[11px] font-mono uppercase tracking-[0.14em] leading-tight">
+                {opt.label}
+              </div>
+              {opt.surcharge > 0 && (
+                <div className={cn(TYPE_META, "mt-0.5 text-amber-300/85 tracking-[0.18em]")}>
+                  +{opt.surcharge} credits
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AutoCaptionsButton — Calls editor-transcribe via generateCaptionsForVideo
+// and inserts the returned segments as textOverlays styled with the
+// subtitle template. Inline progress + toast on completion / failure.
+// ─────────────────────────────────────────────────────────────────────────────
+function AutoCaptionsButton({ clip }: { clip: EditorClip }) {
+  const [running, setRunning] = useState(false);
+  const onClick = async () => {
+    if (running) return;
+    if (!clip.videoUrl) {
+      toast.error("This clip has no rendered video yet — generate it first");
+      return;
+    }
+    setRunning(true);
+    try {
+      const { inserted } = await generateCaptionsForVideo(clip.videoUrl);
+      if (inserted === 0) {
+        toast.message("No speech detected", {
+          description: "Scribe found nothing to transcribe in this clip.",
+        });
+      } else {
+        toast.success(`${inserted} caption${inserted === 1 ? "" : "s"} added`, {
+          description: "Styled with the subtitle template — edit in the Text tab.",
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Couldn't generate captions";
+      toast.error("Auto-captions failed", { description: msg, duration: 9000 });
+    } finally {
+      setRunning(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void onClick()}
+      disabled={running}
+      className={cn(
+        "w-full inline-flex items-center justify-center gap-2 h-9 rounded-md",
+        "bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]",
+        "text-[12.5px] text-foreground/90 hover:bg-white/[0.07] hover:ring-white/[0.16] transition-all",
+        "disabled:opacity-60 disabled:cursor-not-allowed",
+      )}
+    >
+      {running ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" strokeWidth={1.5} />
+      ) : (
+        <Captions className="h-3.5 w-3.5 text-accent/85" strokeWidth={1.5} />
+      )}
+      <span>{running ? "Transcribing…" : "Auto-generate captions"}</span>
+    </button>
   );
 }

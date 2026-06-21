@@ -58,7 +58,6 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlag[] = [
   { id: 'multi_character', name: 'Multi-Character Bible', description: 'Multi-character identity tracking', enabled: true, category: 'core' },
   { id: 'auto_retry', name: 'Auto Retry', description: 'Automatically retry failed clips', enabled: true, category: 'core' },
   { id: 'chunked_stitching', name: 'Chunked Stitching', description: 'Process long videos in chunks', enabled: true, category: 'core' },
-  { id: 'universes', name: 'Universes', description: 'Shared universe feature', enabled: true, category: 'beta' },
   { id: 'character_lending', name: 'Character Lending', description: 'Allow character sharing between users', enabled: false, category: 'beta' },
   { id: 'ai_script_assist', name: 'AI Script Assistant', description: 'AI-powered script improvements', enabled: true, category: 'beta' },
   { id: 'color_grading', name: 'Color Grading', description: 'Advanced color grading options', enabled: false, category: 'experimental' },

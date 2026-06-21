@@ -8,31 +8,25 @@ const getEnv = (key: string): string => {
 
 export type StripeEnv = 'sandbox' | 'live';
 
-const GATEWAY_STRIPE_BASE = 'https://connector-gateway.lovable.dev/stripe';
-
-export function getConnectionApiKey(env: StripeEnv): string {
-  return env === 'sandbox'
-    ? getEnv('STRIPE_SANDBOX_API_KEY')
-    : getEnv('STRIPE_LIVE_API_KEY');
+/**
+ * Resolve the Stripe secret key for the requested environment. We talk
+ * to Stripe's API directly (no proxy gateway) — the sk_test_ / sk_live_
+ * prefix on the key itself selects test vs live mode. Sandbox callers
+ * (local dev only) may set STRIPE_SANDBOX_SECRET_KEY; otherwise the
+ * single STRIPE_SECRET_KEY is used.
+ */
+function getStripeSecretKey(env: StripeEnv): string {
+  if (env === 'sandbox') {
+    return Deno.env.get('STRIPE_SANDBOX_SECRET_KEY') || getEnv('STRIPE_SECRET_KEY');
+  }
+  return getEnv('STRIPE_SECRET_KEY');
 }
 
 export function createStripeClient(env: StripeEnv): Stripe {
-  const connectionApiKey = getConnectionApiKey(env);
-  const lovableApiKey = getEnv('LOVABLE_API_KEY');
-
-  return new Stripe(connectionApiKey, {
-    apiVersion: '2026-03-25.dahlia',
-    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
-      const gatewayUrl = url.toString().replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);
-      return fetch(gatewayUrl, {
-        ...init,
-        headers: {
-          ...Object.fromEntries(new Headers(init?.headers).entries()),
-          'X-Connection-Api-Key': connectionApiKey,
-          'Lovable-API-Key': lovableApiKey,
-        },
-      });
-    }),
+  // Deno has no Node http stack, so the SDK needs the fetch-based client.
+  return new Stripe(getStripeSecretKey(env), {
+    apiVersion: '2024-06-20',
+    httpClient: Stripe.createFetchHttpClient(),
   });
 }
 

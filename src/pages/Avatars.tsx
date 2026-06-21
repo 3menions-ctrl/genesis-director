@@ -47,7 +47,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
 import { useCast } from "@/hooks/useCast";
 import { OptimizedAvatarImage } from "@/components/avatars/OptimizedAvatarImage";
+import { AvatarGalleryBackdrop, type BackdropAvatar } from "@/components/avatars/AvatarGalleryBackdrop";
 import { useSafeNavigation } from "@/lib/navigation";
+import { useModuleLink } from "@/components/foundation/moduleBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { CastMember } from "@/lib/cast-store";
 import {
@@ -87,10 +89,11 @@ const SORT_OPTIONS: { id: SortKey; label: string; Icon: typeof TrendingUp }[] = 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────────────────────────────
-function AvatarsContent() {
+export function AvatarsWorkbench() {
   const liveRenderTimecode = useLiveRenderTimecode();
   const reducedMotion = useReducedMotion();
   const { navigate } = useSafeNavigation();
+  const moduleLink = useModuleLink();
   const { user } = useAuth();
   // Cast roster — used by every "Add to cast / In Cast" affordance on
   // the cards + popup, plus the bottom-fixed CastBar. Returns reactive
@@ -208,7 +211,7 @@ function AvatarsContent() {
     if (!isInCast(avatar.id)) {
       addToCast(toCastMember(avatar));
     }
-    navigate("/studio");
+    navigate(moduleLink("/studio"));
   };
 
   const handleOpenStudioWithCast = () => {
@@ -217,15 +220,47 @@ function AvatarsContent() {
       return;
     }
     if (cast.length === 0) return;
-    navigate("/studio");
+    navigate(moduleLink("/studio"));
   };
 
   // ── Chrome timecode ───────────────────────────────────────────────────
   const chromeTimecode =
     liveRenderTimecode ?? `${counts.total} TALENTS · LIVE`;
 
+  // Pool for the rotating backdrop. Shuffled per session so each visit
+  // surfaces a different cast; cap large (100) so the user sees a
+  // long, varied cycle before any repeat. Filter to realistic + has a
+  // real https image.
+  const backdropPool = useMemo(() => {
+    const eligible = (Array.isArray(templates) ? templates : [])
+      .filter((a) => a.avatar_type === "realistic")
+      .filter((a) => {
+        const u = a.face_image_url ?? "";
+        return u.startsWith("http");
+      });
+    // Fisher–Yates shuffle (mutates a copy). Random order per mount
+    // so the gallery feels alive instead of always showing the same
+    // first 24 by sort_order.
+    const shuffled = [...eligible];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 100).map((a) => ({
+      id: a.id,
+      name: a.name,
+      imageUrl: a.face_image_url ?? "",
+      description: a.description ?? a.personality ?? null,
+    }));
+  }, [templates]);
+
+  // The avatar currently centered in the rotating gallery. Driven by
+  // the AvatarGalleryBackdrop's onFocusChange callback so the side
+  // info card updates as the rotation cycles.
+  const [focusedAvatar, setFocusedAvatar] = useState<BackdropAvatar | null>(null);
+
   return (
-    <FoundationShell>
+    <>
       <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"
@@ -235,16 +270,13 @@ function AvatarsContent() {
           }}
         >
           {/* ── Header row ──────────────────────────────────────── */}
+          {/* ── 1. Title row — eyebrow + headline + counts ─────── */}
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="min-w-0 max-w-2xl">
+            <div className="min-w-0">
               <EditorialEyebrow>Cast</EditorialEyebrow>
               <EditorialHeadline className="mt-5">
                 Cast a character.
               </EditorialHeadline>
-              <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
-                Browse every cinematic AI talent in the vault. Audition the
-                voice, read the identity bible, then send them to the Studio.
-              </p>
             </div>
 
             <div className="flex flex-col items-end gap-2">
@@ -272,23 +304,53 @@ function AvatarsContent() {
             </div>
           </div>
 
-          {/* ── Search ─────────────────────────────────────────── */}
-          <div className="mt-10">
-            <SearchBar value={search} onChange={setSearch} />
+          {/* ── 2. Rotating preview gallery — gallery on the left,
+                live name + description card on the right that tracks
+                the focused avatar. Stacks below the gallery on small
+                screens. ─────────────────────────────────────────── */}
+          <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-stretch md:gap-8">
+            <div className="flex-1 min-w-0">
+              <AvatarGalleryBackdrop
+                avatars={backdropPool}
+                onFocusChange={setFocusedAvatar}
+              />
+            </div>
+            <FocusedAvatarCard avatar={focusedAvatar} />
           </div>
 
-          {/* ── Type tabs ──────────────────────────────────────── */}
+          {/* ── 3. Page description — sits below the gallery ─────── */}
+          <p className="mt-4 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
+            Browse every cinematic AI talent in the vault. Audition the
+            voice, read the identity bible, then send them to the Studio.
+          </p>
+
+          {/* ── 4. Browse header — section title on left, search on right ── */}
+          <div className="mt-14 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <EditorialEyebrow>Browse</EditorialEyebrow>
+              <h2 className="mt-3 text-[clamp(1.4rem,2.8vw,2rem)] font-display italic font-light leading-tight">
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  The full vault.
+                </span>
+              </h2>
+            </div>
+            <div className="w-full md:w-[420px]">
+              <SearchBar value={search} onChange={setSearch} />
+            </div>
+          </div>
+
+          {/* ── 5. Type tabs + sort ────────────────────────────── */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <TypeTabs value={typeFilter} onChange={setTypeFilter} counts={counts} />
             <SortPicker value={sort} onChange={setSort} />
           </div>
 
-          {/* ── Category chips ─────────────────────────────────── */}
+          {/* ── 6. Category chips ──────────────────────────────── */}
           <div className="mt-5">
             <CategoryChips value={categoryId} onChange={setCategoryId} />
           </div>
 
-          {/* ── Gender row ────────────────────────────────────── */}
+          {/* ── 7. Gender row ──────────────────────────────────── */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className={cn(TYPE_META, "text-muted-foreground/60 mr-1")}>
               Gender
@@ -312,7 +374,7 @@ function AvatarsContent() {
             })}
           </div>
 
-          {/* ── Hairline + result count ───────────────────────── */}
+          {/* ── 8. Hairline + result count ─────────────────────── */}
           <div className="mt-8 flex items-center gap-3">
             <span className={cn(TYPE_META, "text-muted-foreground/60")}>
               {filtered.length} {filtered.length === 1 ? "result" : "results"}
@@ -339,8 +401,8 @@ function AvatarsContent() {
             )}
           </div>
 
-          {/* ── Grid ──────────────────────────────────────────── */}
-          <div className="mt-8">
+          {/* ── 9. Selection grid ──────────────────────────────── */}
+          <div className="mt-8 relative z-10">
             {isLoading ? (
               <GridSkeleton />
             ) : error ? (
@@ -395,7 +457,7 @@ function AvatarsContent() {
           />
         )}
       </AnimatePresence>
-    </FoundationShell>
+    </>
   );
 }
 
@@ -1299,6 +1361,66 @@ function Pill({ label }: { label: string }) {
   );
 }
 
+/**
+ * FocusedAvatarCard — sits to the right of the rotating gallery and
+ * shows the centered avatar's name + one-line description. Cross-fades
+ * on focus change so the metadata feels coupled to the rotation
+ * without flicker.
+ *
+ * Mobile (<md): stacks below the gallery, same content, same fade.
+ */
+function FocusedAvatarCard({ avatar }: { avatar: BackdropAvatar | null }) {
+  const reducedMotion = useReducedMotion();
+  return (
+    <aside
+      className={cn(
+        "md:w-[300px] flex-shrink-0",
+        "flex flex-col justify-end",
+        "rounded-2xl px-5 py-6 md:py-8",
+        "border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl",
+      )}
+      aria-live="polite"
+    >
+      <EditorialEyebrow>In focus</EditorialEyebrow>
+      <AnimatePresence mode="wait">
+        {avatar && (
+          <motion.div
+            key={avatar.id}
+            initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            <h3
+              className="mt-4 text-[clamp(1.5rem,2.4vw,1.9rem)] font-display italic font-light leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/65 bg-clip-text text-transparent">
+                {avatar.name}
+              </span>
+            </h3>
+            {avatar.description && (
+              <p className="mt-3 text-[13.5px] leading-relaxed font-light text-muted-foreground/80 line-clamp-4">
+                {avatar.description}
+              </p>
+            )}
+          </motion.div>
+        )}
+        {!avatar && (
+          <motion.p
+            key="placeholder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 text-[13px] font-light text-muted-foreground/55"
+          >
+            Loading the cast…
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </aside>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Loading / Empty / Error states
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1529,7 +1651,9 @@ export default function Avatars() {
   });
   return (
     <ErrorBoundary>
-      <AvatarsContent />
+      <FoundationShell>
+        <AvatarsWorkbench />
+      </FoundationShell>
     </ErrorBoundary>
   );
 }

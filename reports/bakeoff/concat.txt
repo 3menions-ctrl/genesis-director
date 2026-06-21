@@ -1,0 +1,2 @@
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/chain_shot1_seedance.mp4'
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/chain_shot2_kling.mp4'

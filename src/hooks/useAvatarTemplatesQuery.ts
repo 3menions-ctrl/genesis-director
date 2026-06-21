@@ -97,12 +97,20 @@ export function useAvatarTemplatesQuery(
     if (!Array.isArray(data)) return [];
     return data.filter(item => {
       if (!item || typeof item !== 'object' || !item.id) return false;
-      if (!includePlaceholders) {
-        // Filter out placeholder images — only show avatars with real uploaded images.
-        // The Studio selectors want this to skip unprocessed seeds.
-        const url = item.face_image_url || '';
-        if (url.includes('placehold.co') || url.includes('placeholder')) return false;
-      }
+      // ALWAYS drop rows whose primary image is null, empty, a SVG
+      // initials placeholder (data:image/svg+xml…), or a placehold.co
+      // stub — these have never had a real image uploaded and clutter
+      // every surface that renders an avatar tile. The includePlaceholders
+      // flag is preserved for any caller that explicitly wants the raw
+      // catalog count (admin / debug); but the browse pages should
+      // never render a card whose image is missing.
+      const url = item.face_image_url || '';
+      if (!url) return false;
+      if (url.startsWith('data:')) return false;
+      if (url.includes('placehold.co') || url.includes('placeholder')) return false;
+      // includePlaceholders is now effectively a no-op for hard-empty
+      // images, but kept on the API surface so existing callers compile.
+      void includePlaceholders;
       return true;
     });
   }, [data, includePlaceholders]);

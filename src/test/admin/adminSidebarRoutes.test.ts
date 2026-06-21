@@ -188,6 +188,11 @@ const CORE_PATH_TO_COMPONENT: Record<string, string> = {
   "/admin/production": "AdminProductionPage",
   "/admin/emails": "AdminEmailsPage",
   "/admin/config": "AdminConfigPage",
+  "/admin/people": "PeopleHubPage",
+  "/admin/production-hub": "ProductionHubPage",
+  "/admin/money": "MoneyHubPage",
+  "/admin/growth": "GrowthHubPage",
+  "/admin/system": "SystemHubPage",
 };
 // Strongly-typed map: keys are the literal-union of every registered path,
 // values are the literal-union of every registered component file. Any future

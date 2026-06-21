@@ -6,6 +6,7 @@ import {
   RESILIENCE_CONFIG,
 } from "../_shared/network-resilience.ts";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
+import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -367,6 +368,12 @@ serve(async (req) => {
     const requiresLocalCreditDeduction =
       mode === 'avatar' || mode === 'video-to-video' || mode === 'motion-transfer';
     
+    // GUARDRAIL: Breakouts run on Seedance 2.0 ONLY. Persist the FORCED engine so
+    // the downstream seedance-pipeline DB engine-lock agrees (otherwise a breakout
+    // created without an explicit engine would persist 'kling' and the pipeline's
+    // lock would override the forced 'seedance' back to 'kling' → hard-reject).
+    const persistedEngine = isBreakout ? forceBreakoutEngine() : (videoEngine || 'kling');
+
     // Create or get project FIRST (status: 'creating' or 'pending_payment')
     // This ensures we have a record to attach the transaction to, or refund against if needed.
     let projectId = request.projectId;
@@ -385,7 +392,7 @@ serve(async (req) => {
           aspect_ratio: aspectRatio,
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating', // Hold status if we need to charge
           mode: mode,
-          video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
+          video_engine: persistedEngine, // PERSIST ENGINE — auditable (breakouts forced to seedance)
           source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
@@ -412,7 +419,7 @@ serve(async (req) => {
         .from('movie_projects')
         .update({
           mode: mode,
-          video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
+          video_engine: persistedEngine, // PERSIST ENGINE — auditable (breakouts forced to seedance)
           source_image_url: referenceImageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
@@ -433,7 +440,9 @@ serve(async (req) => {
       // Kling V3 standard: 50/75 cr  | Avatar (Kling+audio): 60/90 cr
       // Seedance 2.0 1080p: 65/95 cr  (real cost $4.50/$5.40 → 31-43% margin)
       const isAvatar = mode === 'avatar';
-      const isSeedance = videoEngine === 'seedance';
+      // Breakouts are FORCED to Seedance (guardrail), so price them as Seedance
+      // even if the user left videoEngine unset.
+      const isSeedance = videoEngine === 'seedance' || isBreakout;
       const isExtendedDuration = clipDuration > 10;
       let creditsPerClip: number;
       if (isSeedance) {
@@ -1179,18 +1188,28 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] BREAKOUT TEMPLATE: ${breakoutPlatform}, using platform UI as first frame`);
   }
 
+  // GUARDRAIL: Breakouts run on Seedance 2.0 ONLY (see _shared/breakout-guardrails.ts
+  // rule #1). Kling/Veo/etc. have no breakout configs, can't moderation-sanitise
+  // the IP/brand triggers, and would silently fail. Force the engine to seedance
+  // for any breakout regardless of the user's selection so it routes to
+  // seedance-pipeline below.
+  const effectiveEngine = isBreakout ? forceBreakoutEngine() : videoEngine;
+  if (isBreakout && videoEngine && videoEngine !== effectiveEngine) {
+    console.log(`[ModeRouter/Cinematic] 🛡️ BREAKOUT ENGINE LOCK: requested "${videoEngine}" overridden → "${effectiveEngine}"`);
+  }
+
   // ENGINE ROUTING:
   //   wan      → hollywood-pipeline (configured to dispatch to wan-ai/wan-2.5-t2v)
-  //   seedance → seedance-pipeline
+  //   seedance → seedance-pipeline (also the forced engine for ALL breakouts)
   //   *        → hollywood-pipeline (kling default + veo + sora)
   //
   // Wan currently piggybacks on hollywood-pipeline; the pipeline uses the
   // `videoEngine` field to swap the Replicate model id, so this is just a
   // routing shortcut, not a model swap.
-  const targetPipeline = (videoEngine === 'seedance')
+  const targetPipeline = (effectiveEngine === 'seedance')
     ? 'seedance-pipeline'
     : 'hollywood-pipeline';
-  console.log(`[ModeRouter/Cinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+  console.log(`[ModeRouter/Cinematic] Engine="${effectiveEngine}" → pipeline="${targetPipeline}"`);
 
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
@@ -1212,7 +1231,7 @@ async function handleCinematicMode(params: {
       qualityTier: 'professional',
       genre,
       mood,
-      videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline (all Kling V3)
+      videoEngine: effectiveEngine, // CRITICAL: Forward engine selection (breakouts forced to seedance)
       // CRITICAL: Avatar mode flag survives the hop so generate-single-clip
       // applies avatar-specific routing (start image, dialogue, audio overlay).
       isAvatarMode: mode === 'avatar',

@@ -50,7 +50,7 @@ export function useReelPublisher() {
             ? `Reel published in ${opts.toastWorldLabel}`
             : "Reel published to the Lobby",
           {
-            action: { label: "View", onClick: () => { window.location.href = `/watch/${out.reel_id}`; } },
+            action: { label: "View", onClick: () => { window.location.href = `/r/${out.reel_id}`; } },
           },
         );
         return out.reel_id;

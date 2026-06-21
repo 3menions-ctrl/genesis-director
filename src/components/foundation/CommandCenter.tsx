@@ -32,19 +32,15 @@ import {
   Wand2,
   Image as ImageIcon,
   Play,
-  Users,
   Compass,
   Bell,
   HelpCircle,
   LogOut,
-  Telescope,
-  Theater,
   Tv,
   Palette,
   Bookmark,
   Scissors,
   Music2,
-  ShoppingBag,
   Smile,
   GraduationCap,
   Layers,
@@ -147,24 +143,11 @@ const CATALOG: Item[] = [
     keywords: ["lobby", "daily", "sketch", "community", "watch", "live"],
     run: ({ navigate }) => navigate("/lobby"),
   },
-  {
-    id: "theater",
-    label: "Theater",
-    description: "Premiere a film with friends",
-    Icon: Theater,
-    section: "Watch",
-    keywords: ["premiere", "schedule", "live", "watch party"],
-    run: ({ navigate }) => navigate("/library?mode=theater"),
-  },
-  {
-    id: "watch-party",
-    label: "Watch Party",
-    description: "Sync up and watch together",
-    Icon: Users,
-    section: "Watch",
-    keywords: ["party", "watch", "sync", "group"],
-    run: ({ navigate }) => navigate("/library?open=watch-party"),
-  },
+  // Theater + Watch Party commands removed: their destinations
+  // (/library?mode=theater, /library?open=watch-party) were never
+  // implemented — Library ignores the params and renders the default
+  // list, so the commands silently dead-ended. Restore them once the
+  // theater/watch-party surfaces actually ship.
   {
     id: "music",
     label: "Music",
@@ -173,15 +156,6 @@ const CATALOG: Item[] = [
     section: "Watch",
     keywords: ["music", "score", "soundtrack", "audio"],
     run: ({ navigate }) => navigate("/music"),
-  },
-  {
-    id: "market",
-    label: "Market",
-    description: "Buy and sell assets",
-    Icon: ShoppingBag,
-    section: "Watch",
-    keywords: ["market", "shop", "buy", "sell", "marketplace"],
-    run: ({ navigate }) => navigate("/market"),
   },
   {
     id: "discover",
@@ -203,15 +177,8 @@ const CATALOG: Item[] = [
     keywords: ["projects", "library", "films", "videos", "work"],
     run: ({ navigate }) => navigate("/library"),
   },
-  {
-    id: "atlas",
-    label: "Atlas",
-    description: "Your films as a 3D star-field",
-    Icon: Telescope,
-    section: "Library",
-    keywords: ["3d", "starfield", "map", "constellation"],
-    run: ({ navigate }) => navigate("/library?mode=atlas"),
-  },
+  // Atlas command removed: /library?mode=atlas was never implemented
+  // (Library ignores the param). Restore when the 3D star-field ships.
   {
     id: "reel",
     label: "Recent reel",
@@ -258,15 +225,6 @@ const CATALOG: Item[] = [
     section: "Cast",
     keywords: ["mascots", "brand", "persona"],
     run: ({ navigate }) => navigate("/mascots"),
-  },
-  {
-    id: "crews",
-    label: "Crews",
-    description: "Production teams",
-    Icon: Users,
-    section: "Cast",
-    keywords: ["crew", "team", "production"],
-    run: ({ navigate }) => navigate("/crews"),
   },
   {
     id: "training",

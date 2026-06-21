@@ -9,7 +9,7 @@
  * `useSectionTheme()`.
  *
  * The color palette is editorial — borrowed from the original audit's
- * "time-of-day" + "Lobby / Market / Crews" intentions. New routes get a
+ * "time-of-day" + "Lobby / Market" intentions. New routes get a
  * sensible default; explicitly map ones with strong identity here.
  */
 
@@ -40,11 +40,8 @@ const ROUTE_THEMES: Record<string, SectionTheme> = {
   lobby:        { hue: 215, hueAccent: 270, intensity: "default", label: "Lobby" },
   watch:        { hue: 235, hueAccent: 280, intensity: "vivid",   label: "Theater" },
   music:        { hue: 280, hueAccent: 320, intensity: "vivid",   label: "Music" },
-  crews:        { hue: 160, hueAccent: 200, intensity: "subtle",  label: "Crews" },
   market:       { hue: 38,  hueAccent: 18,  intensity: "default", label: "Market" },
   creators:     { hue: 195, hueAccent: 215, intensity: "subtle",  label: "Creators" },
-  universe:     { hue: 260, hueAccent: 220, intensity: "vivid",   label: "Universe" },
-  universes:    { hue: 260, hueAccent: 220, intensity: "vivid",   label: "Universes" },
   world:        { hue: 145, hueAccent: 180, intensity: "default", label: "World" },
   c:            { hue: 195, hueAccent: 215, intensity: "subtle",  label: "Profile" },
   profile:      { hue: 195, hueAccent: 215, intensity: "subtle",  label: "Profile" },

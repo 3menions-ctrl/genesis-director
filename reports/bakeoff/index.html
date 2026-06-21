@@ -1,0 +1,12 @@
+<!doctype html><meta charset=utf8><title>Creation bake-off</title>
+<style>body{background:#0a0b0d;color:#e8eaed;font:14px/1.5 system-ui;margin:0;padding:28px}
+h1{font-weight:600}table{border-collapse:separate;border-spacing:14px}th{text-align:right;color:#9aa0a6;vertical-align:top;padding-top:8px;width:160px;font-weight:500}
+td{vertical-align:top}video{width:340px;border-radius:12px;display:block;background:#000;box-shadow:0 20px 50px -20px #000}
+.col{font:600 12px/1 ui-monospace;letter-spacing:.2em;color:#7cc0ff;margin-bottom:6px}.fail{width:340px;height:191px;display:grid;place-items:center;background:#16181c;border-radius:12px;color:#ff7676}
+.key{font:11px ui-monospace;color:#5f6368;margin-top:6px}button{margin:18px 0;background:#1a73e8;color:#fff;border:0;border-radius:999px;padding:9px 18px;font:600 13px system-ui;cursor:pointer}
+.note{color:#9aa0a6;max-width:640px}</style>
+<h1>Creation-engine bake-off — blind scoring</h1>
+<p class="note">Watch each row. For every column, score 1–5 on: prompt adherence · motion realism · continuity · cinematic quality · <b>would you ship it</b>. Decide which column wins each row <i>before</i> revealing the key. The only score that matters: would you ship it.</p>
+<button onclick="document.querySelectorAll('.key').forEach(k=>k.hidden=!k.hidden)">Reveal / hide which is which</button>
+<table><tr><th>Lighthouse (engineered vs raw, same model+seed)</th><td><div class="col">X</div><video src="clips/L1_lighthouse_A_ours.mp4" controls loop muted preload="metadata"></video><div class="key" hidden>arm A · seedance-1-pro · 60s</div></td><td><div class="col">Y</div><video src="clips/L1_lighthouse_B_raw.mp4" controls loop muted preload="metadata"></video><div class="key" hidden>arm B · seedance-1-pro · 50s</div></td></tr></table>
+<p class="note" style="margin-top:30px"><b>Key (also hidden in each cell):</b><br>Lighthouse (engineered vs raw, same model+seed) — column hidden — arm A (seedance-1-pro) → succeeded<br>Lighthouse (engineered vs raw, same model+seed) — column hidden — arm B (seedance-1-pro) → succeeded</p>

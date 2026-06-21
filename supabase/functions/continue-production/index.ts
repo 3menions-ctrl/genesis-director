@@ -80,7 +80,7 @@ interface ContinueProductionRequest {
   totalClips: number;
   // Context passed from hollywood-pipeline
   pipelineContext?: {
-    videoEngine?: 'kling' | 'veo' | 'seedance'; // CRITICAL: must survive all callback hops
+    videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance'; // CRITICAL: must survive all callback hops
     isAvatarMode?: boolean; // EXPLICIT flag — NOT derived from videoEngine
     identityBible?: any;
     faceLock?: any; // FACE LOCK — highest priority identity system, must survive callback chain
@@ -360,7 +360,7 @@ serve(async (req: Request) => {
         // column. This guarantees retry/watchdog/check-status paths can never
         // silently downgrade Seedance → Kling because they forgot to forward it.
         if (!context.videoEngine && projectData.video_engine) {
-          context.videoEngine = projectData.video_engine as 'kling' | 'seedance' | 'veo';
+          context.videoEngine = projectData.video_engine as 'wan' | 'kling' | 'seedance' | 'veo';
           console.log(`[ContinueProduction] 🎬 Recovered videoEngine=${context.videoEngine} from movie_projects.video_engine`);
         }
         if (!context.videoEngine && pendingTasks.type === 'avatar_async') {

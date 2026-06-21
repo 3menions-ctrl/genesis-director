@@ -247,24 +247,51 @@ export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDas
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="relative h-2 rounded-full bg-glass overflow-hidden">
-              {/* Glow underneath */}
-              <div
-                className={cn(
-                  "absolute -inset-y-1 left-0 rounded-full blur-md opacity-40",
-                  progress >= 100 ? "bg-emerald-500" : "bg-violet-500"
-                )}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
-              <div
-                className={cn(
-                  "relative h-full rounded-full transition-all duration-700 ease-out",
-                  progress >= 100 
-                    ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400" 
-                    : "bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-400"
-                )}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
+            {/* Game-grade segmented power bar. Each segment lights as
+                progress crosses it; while rendering, a scan sweep glides
+                across the lit region for a reactor-charging feel. The
+                underlying `progress` value is unchanged — purely a
+                richer presentation of the same data. */}
+            <div className="relative">
+              <div className="flex gap-[3px]">
+                {Array.from({ length: 28 }).map((_, i) => {
+                  const segPct = ((i + 1) / 28) * 100;
+                  const lit = segPct <= Math.min(progress, 100);
+                  return (
+                    <div
+                      key={i}
+                      className="h-2.5 flex-1 rounded-[2px] transition-all duration-500"
+                      style={{
+                        background: lit
+                          ? progress >= 100
+                            ? 'linear-gradient(180deg, hsla(160,90%,70%,0.95), hsla(175,85%,45%,0.85))'
+                            : 'linear-gradient(180deg, hsla(255,90%,78%,0.95), hsla(245,85%,58%,0.85))'
+                          : 'rgba(255,255,255,0.05)',
+                        boxShadow: lit
+                          ? progress >= 100
+                            ? '0 0 8px hsla(160,90%,55%,0.5)'
+                            : '0 0 8px hsla(255,90%,62%,0.5)'
+                          : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {/* Live scan sweep — only while actively rendering */}
+              {isRunning && progress < 100 && (
+                <motion.div
+                  aria-hidden
+                  className="absolute inset-y-0 w-16 pointer-events-none"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, transparent, hsla(255,100%,85%,0.5), transparent)',
+                    filter: 'blur(2px)',
+                  }}
+                  initial={{ left: '-10%' }}
+                  animate={{ left: ['-10%', '100%'] }}
+                  transition={{ duration: 1.8, ease: 'easeInOut', repeat: Infinity }}
+                />
+              )}
             </div>
           </div>
 

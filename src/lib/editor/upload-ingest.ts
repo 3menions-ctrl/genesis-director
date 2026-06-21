@@ -36,11 +36,32 @@ import type { ScriptDocument } from "./script-document";
 // Validation
 // ─────────────────────────────────────────────────────────────────────────────
 
-const VALID_MIMETYPES = new Set([
+const VALID_VIDEO_MIMETYPES = new Set([
   "video/mp4",
   "video/quicktime",
   "video/webm",
   "video/x-matroska",
+]);
+
+// Audio MIMEs we accept as standalone music / VO / SFX clips. They
+// land on the A2 (music) track by default with no thumbnail and
+// an inferred duration from the file. Routing to A1 (voice-over)
+// is a one-click move in the inspector.
+const VALID_AUDIO_MIMETYPES = new Set([
+  "audio/mpeg",      // .mp3
+  "audio/mp4",       // .m4a
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/aac",
+  "audio/ogg",
+  "audio/flac",
+  "audio/x-m4a",
+]);
+
+const VALID_MIMETYPES = new Set([
+  ...VALID_VIDEO_MIMETYPES,
+  ...VALID_AUDIO_MIMETYPES,
 ]);
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
@@ -50,6 +71,14 @@ export type IngestValidationError =
   | "too-large"
   | "could-not-probe"
   | "duration-out-of-range";
+
+export type MediaKind = "video" | "audio";
+
+export function detectMediaKind(file: File): MediaKind | null {
+  if (VALID_VIDEO_MIMETYPES.has(file.type)) return "video";
+  if (VALID_AUDIO_MIMETYPES.has(file.type)) return "audio";
+  return null;
+}
 
 export interface ValidatedFile {
   file: File;
@@ -72,6 +101,36 @@ export async function validateUploadFile(
   if (file.size > MAX_BYTES) {
     throw new Error("too-large" satisfies IngestValidationError);
   }
+  const kind = detectMediaKind(file);
+  if (kind === "audio") {
+    const probe = await probeAudio(file);
+    if (!probe) {
+      throw new Error("could-not-probe" satisfies IngestValidationError);
+    }
+    // Audio clips have a wider duration ceiling — music beds can be
+    // 5+ minutes. We cap at 600s (10 min) to keep upload sane.
+    if (probe.durationSec < 0.5 || probe.durationSec > 600) {
+      throw new Error("duration-out-of-range" satisfies IngestValidationError);
+    }
+    return {
+      file,
+      durationSec: probe.durationSec,
+      // Audio has no visual; we emit a tiny transparent PNG so the
+      // downstream pipeline that expects a thumbnailBlob doesn't NPE.
+      thumbnailBlob: new Blob([new Uint8Array([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x62, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82,
+      ])], { type: "image/png" }),
+      inferredName: inferNameFromFile(file),
+    };
+  }
   const probe = await probeVideo(file);
   if (!probe) {
     throw new Error("could-not-probe" satisfies IngestValidationError);
@@ -85,6 +144,45 @@ export async function validateUploadFile(
     thumbnailBlob: probe.thumbnailBlob,
     inferredName: inferNameFromFile(file),
   };
+}
+
+/**
+ * Probe an audio file via a hidden <audio> element to extract its
+ * duration. No thumbnail — audio has nothing to render visually.
+ */
+async function probeAudio(file: File): Promise<{ durationSec: number } | null> {
+  try {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("audio");
+    a.preload = "metadata";
+    a.src = url;
+    return await new Promise<{ durationSec: number } | null>((resolve) => {
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+      };
+      a.onloadedmetadata = () => {
+        const dur = a.duration;
+        cleanup();
+        if (!isFinite(dur) || dur <= 0) {
+          resolve(null);
+          return;
+        }
+        resolve({ durationSec: dur });
+      };
+      a.onerror = () => {
+        cleanup();
+        resolve(null);
+      };
+      // Safety timeout — some Safari builds never fire loadedmetadata
+      // on malformed audio.
+      window.setTimeout(() => {
+        cleanup();
+        resolve(null);
+      }, 8000);
+    });
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -172,7 +270,7 @@ export async function uploadValidated(
       contentType: validated.file.type,
       upsert: true,
     }),
-    supabase.storage.from("editor-images").upload(thumbPath, validated.thumbnailBlob, {
+    supabase.storage.from("video-thumbnails").upload(thumbPath, validated.thumbnailBlob, {
       contentType: "image/jpeg",
       upsert: true,
     }),
@@ -184,7 +282,7 @@ export async function uploadValidated(
     .from("video-clips")
     .getPublicUrl(videoPath);
   const { data: thumbUrl } = supabase.storage
-    .from("editor-images")
+    .from("video-thumbnails")
     .getPublicUrl(thumbPath);
 
   return {
@@ -199,6 +297,15 @@ function pickExtension(mime: string): string {
     case "video/quicktime": return "mov";
     case "video/webm": return "webm";
     case "video/x-matroska": return "mkv";
+    case "audio/mpeg": return "mp3";
+    case "audio/mp4": return "m4a";
+    case "audio/x-m4a": return "m4a";
+    case "audio/wav": return "wav";
+    case "audio/wave": return "wav";
+    case "audio/x-wav": return "wav";
+    case "audio/aac": return "aac";
+    case "audio/ogg": return "ogg";
+    case "audio/flac": return "flac";
     default: return "mp4";
   }
 }
@@ -224,9 +331,95 @@ export async function ingestUpload(args: {
   doc: ScriptDocument;
 }): Promise<string> {
   const validated = await validateUploadFile(args.file);
+  const mediaKind = detectMediaKind(args.file) ?? "video";
   const urls = await uploadValidated(validated, args.userId, args.projectId);
 
-  // Pick or create the destination scene.
+  // 1. INSERT a video_clips row so the timeline (which renders from this
+  //    table at project-load) sees the uploaded clip on next read AND on
+  //    next reload. Without this insert the clip ONLY exists in the
+  //    ScriptDocument constitution layer — the timeline never knows.
+  //
+  //    shot_index is part of a (project_id, shot_index) UNIQUE index.
+  //    The ScriptDocument's flat shot count is unreliable as a source
+  //    because the DB may already hold clips from the original generation
+  //    pipeline that aren't represented in the in-memory doc. We probe
+  //    the DB for the current max and write max+1, retrying on conflict
+  //    (concurrent uploads or a stale read).
+  let dbClipId: string | null = null;
+  try {
+    dbClipId = await insertWithNextShotIndex({
+      projectId: args.projectId,
+      userId: args.userId,
+      prompt: `User upload: ${validated.inferredName}`,
+      durationSec: validated.durationSec,
+      videoUrl: urls.videoUrl,
+      thumbnailUrl: urls.thumbnailUrl,
+      // Audio uploads land on the A2 (music) track by default so they
+      // don't show up as black video clips on V1. The user can move
+      // them to A1 (VO) in the inspector. Video uploads stay on V1.
+      trackId: mediaKind === "audio" ? "sys:A2" : null,
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[upload] video_clips insert threw:", e);
+  }
+
+  // 1.5 Mirror the FIRST upload's URLs onto movie_projects so the
+  // Library cards (which read movie_projects.thumbnail_url) and the
+  // Reel/Theater player (which read movie_projects.video_url) light
+  // up immediately. Without this, projects with only uploaded clips
+  // show a placeholder thumbnail forever and the player says "Still
+  // rendering…" — the user reported exactly that. We only set when
+  // the column is currently null so a real render (final-assembly)
+  // can still overwrite later.
+  if (dbClipId) {
+    try {
+      const mirror: Record<string, string> = { video_url: urls.videoUrl };
+      if (urls.thumbnailUrl) mirror.thumbnail_url = urls.thumbnailUrl;
+      await supabase
+        .from("movie_projects")
+        .update(mirror)
+        .eq("id", args.projectId)
+        .is("video_url", null);
+      if (urls.thumbnailUrl) {
+        await supabase
+          .from("movie_projects")
+          .update({ thumbnail_url: urls.thumbnailUrl })
+          .eq("id", args.projectId)
+          .is("thumbnail_url", null);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[upload] movie_projects mirror failed:", e);
+    }
+  }
+
+  // 2. Mirror into the in-memory editor store so the clip shows on the
+  //    timeline IMMEDIATELY (before next reload). Lazy-loaded so this
+  //    file can stay framework-agnostic.
+  if (dbClipId) {
+    try {
+      const storeMod = await import("./store");
+      storeMod.appendPendingClip({
+        id:           dbClipId,
+        prompt:       `User upload: ${validated.inferredName}`,
+        durationSec:  validated.durationSec,
+        thumbnailUrl: urls.thumbnailUrl,
+      });
+      storeMod.resolvePendingClip(dbClipId, {
+        videoUrl:     urls.videoUrl,
+        thumbnailUrl: urls.thumbnailUrl,
+        durationSec:  validated.durationSec,
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[upload] store mirror failed:", e);
+    }
+  }
+
+  // 3. Mirror into the ScriptDocument so doc-aware surfaces (BudgetPanel,
+  //    ShotInspector, Storyboard) see it too. This is the layer that
+  //    used to be the ONLY destination — kept for parity.
   let sceneId = args.doc.scenes[args.doc.scenes.length - 1]?.id;
   if (!sceneId) {
     sceneId = addScene(
@@ -234,7 +427,6 @@ export async function ingestUpload(args: {
       { by: "user" },
     );
   }
-
   const shotId = addShot(
     sceneId,
     {
@@ -245,12 +437,12 @@ export async function ingestUpload(args: {
       generated: {
         videoUrl: urls.videoUrl,
         thumbnailUrl: urls.thumbnailUrl,
-        completedAt: new Date(0).toISOString(),
+        completedAt: new Date().toISOString(),
         takes: [],
       },
       approval: {
         state: "completed",
-        changedAt: new Date(0).toISOString(),
+        changedAt: new Date().toISOString(),
         changedBy: "user",
         reason: "Uploaded by user — no generation needed",
       },
@@ -259,6 +451,156 @@ export async function ingestUpload(args: {
   );
   if (!shotId) throw new Error("Could not add shot to document");
   return shotId;
+}
+
+/**
+ * ingestRemoteUrl — add an existing video URL (own asset OR public
+ * library) as a Shot, without re-uploading the bytes. Used by the
+ * Media Library panel when a user clicks a tile to add it to the
+ * timeline.
+ */
+export function ingestRemoteUrl(args: {
+  videoUrl: string;
+  thumbnailUrl?: string | null;
+  title?: string | null;
+  durationSec?: number;
+  doc: ScriptDocument;
+  /** When set, the shot is annotated with this track id so the
+   *  timeline routes it off the default V1 video chain. Audio scores
+   *  pass "sys:A2" here so they land on the Music track. */
+  trackId?: string | null;
+}): string {
+  if (!args.videoUrl) throw new Error("missing-video-url");
+  let sceneId = args.doc.scenes[args.doc.scenes.length - 1]?.id;
+  if (!sceneId) {
+    sceneId = addScene(
+      { slug: "LIBRARY", description: "Clips imported from the media library.", number: 1 },
+      { by: "user" },
+    );
+  }
+  const safeTitle = (args.title ?? "Library clip").trim() || "Library clip";
+  // Audio routed to a non-default track (e.g. a full music score on
+  // sys:A2) lifts the 120s single-shot ceiling — a cinematic score can
+  // run several minutes and we want the whole bed imported intact. The
+  // wider 600s cap mirrors the audio ceiling in validateUploadFile.
+  const isAudioTrack = args.trackId === "sys:A2" || args.trackId === "sys:A1";
+  const dur = isAudioTrack
+    ? Math.max(0.5, Math.min(600, args.durationSec ?? 30))
+    : Math.max(0.5, Math.min(120, args.durationSec ?? 10));
+  const shotId = addShot(
+    sceneId,
+    {
+      modelPrompt:     `Imported: ${safeTitle}`,
+      cameraDirection: safeTitle,
+      framing:         "medium",
+      durationSec:     dur,
+      generated: {
+        videoUrl:     args.videoUrl,
+        thumbnailUrl: args.thumbnailUrl ?? null,
+        completedAt:  new Date().toISOString(),
+        takes: [],
+      },
+      approval: {
+        state:     "completed",
+        changedAt: new Date().toISOString(),
+        changedBy: "user",
+        reason:    "Imported from media library — no generation needed",
+      },
+    },
+    { by: "user" },
+  );
+  if (!shotId) throw new Error("Could not add shot to document");
+  return shotId;
+}
+
+/**
+ * ingestMusicUrl — land a remote audio URL (a generated score, or a
+ * legacy movie_projects.music_url) on the A2 (Music) track, fully
+ * wired end to end:
+ *
+ *   1. INSERT a video_clips row carrying properties.trackId="sys:A2"
+ *      so the score survives a reload (the loader re-reads this table).
+ *   2. Mirror into the in-memory editor store AND tag the clip with
+ *      properties.trackId="sys:A2" so the Timeline's musicClips filter
+ *      picks it up immediately on the A2 band.
+ *   3. Mirror into the ScriptDocument so doc-aware surfaces see it.
+ *
+ * Mirrors the structure of ingestUpload but skips the bytes upload —
+ * the audio already lives at a public/signed URL. Returns the new
+ * video_clips row id (or null when the DB insert ultimately fails;
+ * the in-memory + doc mirrors still proceed so the user sees the
+ * score on the timeline for this session).
+ */
+export async function ingestMusicUrl(args: {
+  musicUrl: string;
+  userId: string;
+  projectId: string;
+  doc: ScriptDocument;
+  title?: string | null;
+  durationSec?: number;
+}): Promise<string | null> {
+  if (!args.musicUrl) throw new Error("missing-video-url");
+  const title = (args.title ?? "Generated score").trim() || "Generated score";
+  const durationSec = Math.max(0.5, Math.min(600, args.durationSec ?? 30));
+  const prompt = `Score: ${title}`;
+
+  // 1. DB row on A2 so the score is durable across reloads.
+  let dbClipId: string | null = null;
+  try {
+    dbClipId = await insertWithNextShotIndex({
+      projectId: args.projectId,
+      userId: args.userId,
+      prompt,
+      durationSec,
+      videoUrl: args.musicUrl,
+      thumbnailUrl: null,
+      trackId: "sys:A2",
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[music] video_clips insert threw:", e);
+  }
+
+  // 2. In-memory store mirror so the A2 band lights up immediately.
+  //    appendPendingClip lands the clip on the project's clip list;
+  //    resolvePendingClip swaps in the playable URL; setClipProperty
+  //    tags trackId so the Timeline routes it to the Music band.
+  const clipId = dbClipId ?? newScriptId("score");
+  try {
+    const storeMod = await import("./store");
+    storeMod.appendPendingClip({
+      id: clipId,
+      prompt,
+      durationSec,
+      thumbnailUrl: null,
+    });
+    storeMod.resolvePendingClip(clipId, {
+      videoUrl: args.musicUrl,
+      thumbnailUrl: null,
+      durationSec,
+    });
+    storeMod.setClipProperty(clipId, { trackId: "sys:A2" });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[music] store mirror failed:", e);
+  }
+
+  // 3. ScriptDocument mirror (best-effort) so doc-aware surfaces see it.
+  try {
+    ingestRemoteUrl({
+      videoUrl: args.musicUrl,
+      thumbnailUrl: null,
+      title,
+      durationSec,
+      doc: args.doc,
+      trackId: "sys:A2",
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[music] doc mirror failed:", e);
+  }
+
+  return dbClipId;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -296,4 +638,90 @@ export function describeIngestError(
         description: typeof err === "string" ? err : (err instanceof Error ? err.message : "Unknown error"),
       };
   }
+}
+
+/**
+ * Insert a video_clips row at the next available shot_index for the
+ * project. Probes the DB max + 1, then retries on UNIQUE-violation up
+ * to a few times so two concurrent uploads don't both lose to the same
+ * read. Returns the new row's id, or null when the insert ultimately
+ * fails (caller logs + lets the doc-side fallback proceed).
+ */
+export async function insertWithNextShotIndex(args: {
+  projectId: string;
+  userId: string;
+  prompt: string;
+  durationSec: number;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  /** When set, written into properties.trackId so the clip lands on
+   *  a non-default track at render time. Used by audio uploads
+   *  (defaults to sys:A2 — music) to keep them off the V1 video chain. */
+  trackId?: string | null;
+}): Promise<string | null> {
+  const MAX_RETRIES = 5;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // Probe the current max shot_index for this project.
+    const { data: maxRow, error: maxErr } = await supabase
+      .from("video_clips")
+      .select("shot_index")
+      .eq("project_id", args.projectId)
+      .order("shot_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (maxErr) {
+      // eslint-disable-next-line no-console
+      console.warn("[upload] shot_index probe failed:", maxErr);
+      return null;
+    }
+    const baseIdx =
+      maxRow && typeof (maxRow as { shot_index: number | null }).shot_index === "number"
+        ? ((maxRow as { shot_index: number }).shot_index + 1)
+        : 0;
+    // Add the attempt offset so a UNIQUE collision with a concurrent
+    // upload retries at a higher slot instead of re-reading the same
+    // (possibly cached) max.
+    const shotIndex = baseIdx + attempt;
+
+    const insertPayload: Record<string, unknown> = {
+      project_id:       args.projectId,
+      user_id:          args.userId,
+      shot_index:       shotIndex,
+      prompt:           args.prompt,
+      // duration_seconds is INTEGER in the schema, but probed video
+      // durations are floats (e.g. 10.042). Round + clamp to ≥1 so
+      // Postgres doesn't reject the syntax.
+      duration_seconds: Math.max(1, Math.round(args.durationSec)),
+      status:           "completed",
+      video_url:        args.videoUrl,
+      start_image_url:  args.thumbnailUrl,
+    };
+    if (args.trackId) {
+      insertPayload.properties = { trackId: args.trackId };
+    }
+    const { data: row, error } = await supabase
+      .from("video_clips")
+      .insert(insertPayload as never)
+      .select("id")
+      .single();
+
+    if (!error && row) return (row as { id: string }).id;
+
+    // 23505 = unique_violation. Retry; anything else, surface so the
+    // caller can show the user what actually went wrong (RLS reject,
+    // FK violation, schema drift) instead of a generic null.
+    const code = (error as { code?: string } | null)?.code;
+    if (code !== "23505") {
+      const msg = (error as { message?: string } | null)?.message ?? "unknown";
+      const details = (error as { details?: string } | null)?.details ?? "";
+      // eslint-disable-next-line no-console
+      console.warn("[upload] video_clips insert failed:", error);
+      throw new Error(`video_clips insert rejected (${code ?? "?"}): ${msg}${details ? ` — ${details}` : ""}`);
+    }
+    // eslint-disable-next-line no-console
+    console.warn(`[upload] shot_index ${shotIndex} taken — retrying`);
+  }
+  // eslint-disable-next-line no-console
+  console.warn("[upload] gave up after retries for shot_index collision");
+  return null;
 }

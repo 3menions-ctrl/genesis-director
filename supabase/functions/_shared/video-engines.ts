@@ -11,7 +11,7 @@
  * Add a new engine? Drop a new entry in ENGINES and `generate-video` picks it up.
  */
 
-export type VideoEngineKey = "kling" | "seedance" | "veo" | "sora";
+export type VideoEngineKey = "wan" | "kling" | "seedance" | "veo" | "sora" | "runway";
 
 export interface CanonicalVideoRequest {
   prompt: string;            // Already-enhanced cinematic prompt
@@ -118,11 +118,63 @@ function optimizeForSora(req: CanonicalVideoRequest): string {
   return p.slice(0, 1900);
 }
 
+function optimizeForWan(req: CanonicalVideoRequest): string {
+  // Wan 2.5 is the free tier — keep prompts short, action-forward.
+  // It performs best with simple subject/verb/setting grammar, not the
+  // dense cinematographic stack the cinema engines want.
+  let p = req.prompt
+    .replace(/\b(85mm|24mm|35mm|50mm|anamorphic|lens|dolly|crane|tracking shot)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (p.length > 700) p = p.slice(0, 700);
+  return p;
+}
+
+function optimizeForRunway(req: CanonicalVideoRequest): string {
+  // Runway Gen-4 Turbo: best-in-class for character continuity; rewards
+  // explicit subject anchors. Camera grammar is fine here.
+  let p = req.prompt;
+  if (req.startImageUrl && !/\b(consistent|same character|matches the reference)\b/i.test(p)) {
+    p = `Maintain the exact character / wardrobe / lighting from the reference frame. ${p}`;
+  }
+  return p.slice(0, 1900);
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Engine registry
 // ─────────────────────────────────────────────────────────────────────
 
 export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
+  wan: {
+    key: "wan",
+    label: "Wan 2.5 — Free",
+    modelOwner: "wan-ai",
+    modelName: "wan-2.5-t2v",
+    modelId: "wan-ai/wan-2.5-t2v",
+    endpoint: "https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions",
+    durations: [5, 10],
+    defaultDuration: 5,
+    minDuration: 5,
+    maxDuration: 10,
+    supportsImageToVideo: true,
+    supportsNativeAudio: false,
+    supportsLipSync: false,
+    tagline: "Free tier · 1080p · 5-10s",
+    optimizer: optimizeForWan,
+    buildInput: (req) => {
+      const duration = nearestDuration([5, 10], req.duration, 5);
+      const ar = clampAspect(req.aspectRatio, ["16:9", "9:16", "1:1"], "16:9");
+      const enhanced = optimizeForWan(req);
+      const input: Record<string, unknown> = {
+        prompt: enhanced,
+        duration,
+        aspect_ratio: ar,
+        resolution: "1080p",
+      };
+      if (req.startImageUrl) input.image = req.startImageUrl;
+      return input;
+    },
+  },
   kling: {
     key: "kling",
     label: "Kling V3",
@@ -246,6 +298,36 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
         aspect_ratio: aspect,
       };
       if (req.startImageUrl) input.input_reference = req.startImageUrl;
+      return input;
+    },
+  },
+  runway: {
+    key: "runway",
+    label: "Runway Gen-4 Turbo",
+    modelOwner: "runwayml",
+    modelName: "gen4-turbo",
+    modelId: "runwayml/gen4-turbo",
+    endpoint: "https://api.replicate.com/v1/models/runwayml/gen4-turbo/predictions",
+    durations: [5, 10],
+    defaultDuration: 5,
+    minDuration: 5,
+    maxDuration: 10,
+    supportsImageToVideo: true,
+    supportsNativeAudio: false,
+    supportsLipSync: false,
+    tagline: "Best-in-class character continuity",
+    optimizer: optimizeForRunway,
+    buildInput: (req) => {
+      const duration = nearestDuration([5, 10], req.duration, 5);
+      const ar = clampAspect(req.aspectRatio, ["16:9", "9:16", "1:1", "4:3", "3:4"], "16:9");
+      const enhanced = optimizeForRunway(req);
+      const input: Record<string, unknown> = {
+        prompt: enhanced,
+        duration,
+        aspect_ratio: ar,
+        resolution: "1080p",
+      };
+      if (req.startImageUrl) input.image = req.startImageUrl;
       return input;
     },
   },

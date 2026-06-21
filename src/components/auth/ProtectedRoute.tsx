@@ -5,6 +5,7 @@ import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { ADMIN_ENABLED } from '@/admin/adminEnabled';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -166,6 +167,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // Admin lockdown: Cole's admin role is restricted to the /admin console.
   // Bounce it out of any studio/workspace route back to the single admin shell.
   useEffect(() => {
+    if (!ADMIN_ENABLED) return; // admin console not in this build → no confinement
     if (loading || !isSessionVerified || !user?.id || !profile?.id) return;
     if (!isAdmin) return;
     if (!profile.onboarding_completed) return;

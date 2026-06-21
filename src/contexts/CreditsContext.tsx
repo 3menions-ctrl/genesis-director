@@ -71,15 +71,20 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { balanceRef.current = balance; }, [balance]);
   useEffect(() => { heldRef.current = held; }, [held]);
 
+  // Stabilize the callbacks by depending on user.id (string, stable
+  // across AuthContext re-renders) instead of the full `user` object
+  // (which churns identity every auth re-render). Was forcing the
+  // useMemo `value` reference to change every render of CreditsProvider,
+  // cascading re-renders to Workspace + Studio + PageTone consumers.
+  const userId = user?.id ?? null;
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setBalance(0); setHeld(0); setLoading(false);
       return { balance: 0, held: 0, available: 0 };
     }
-    const uid = user.id;
     try {
       setError(null);
-      const s = await readState(uid);
+      const s = await readState(userId);
       return s;
     } catch (e) {
       setError((e as Error).message);
@@ -88,10 +93,10 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, readState]);
+  }, [userId, readState]);
 
   const reconcile = useCallback(async () => {
-    if (!user) return { balance: 0, held: 0, available: 0 };
+    if (!userId) return { balance: 0, held: 0, available: 0 };
     try {
       const { data, error: rpcErr } = await supabase.rpc('reconcile_user_credits' as never);
       if (rpcErr) throw rpcErr;
@@ -110,14 +115,14 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, refresh, refreshProfile]);
+  }, [userId, refresh, refreshProfile]);
 
   // Initial reconcile + read whenever the signed-in user changes.
   useEffect(() => {
     if (!user) { setBalance(0); setHeld(0); setLoading(false); return; }
     setLoading(true);
     void reconcile();
-  }, [user, reconcile]);
+  }, [userId, reconcile]);
 
   // Realtime: any change to this user's profile, holds, or ledger → refetch.
   useEffect(() => {
@@ -136,7 +141,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
         () => { void refresh(); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [user, refresh]);
+  }, [userId, refresh]);
 
   // Refetch when the tab becomes visible again — guards against missed events.
   useEffect(() => {
@@ -146,7 +151,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [user, refresh]);
+  }, [userId, refresh]);
 
   const available = Math.max(balance - held, 0);
 

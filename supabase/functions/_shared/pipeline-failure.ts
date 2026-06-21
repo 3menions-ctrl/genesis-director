@@ -88,8 +88,16 @@ export async function markProjectFailedAndRefund(
     const completed = Math.max(0, ctx.completedClipCount ?? 0);
     const missing = Math.max(0, ctx.expectedClipCount - completed);
     if (missing > 0) {
-      const perClip = Math.floor(ctx.totalCredits / ctx.expectedClipCount);
-      refundAmount = perClip * missing;
+      // Proportional refund, computed in ONE step and rounded UP. The
+      // previous `floor(total/expected) * missing` floored the per-clip
+      // value first, compounding the rounding loss across every missing
+      // clip and systematically short-changing the user on OUR failure.
+      // Single-step + ceil favors the user; we cap at totalCredits so a
+      // rounding-up can never refund more than was charged.
+      refundAmount = Math.min(
+        ctx.totalCredits,
+        Math.ceil((ctx.totalCredits * missing) / ctx.expectedClipCount),
+      );
     }
   }
 

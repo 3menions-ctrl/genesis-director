@@ -127,17 +127,10 @@ export function useSocial() {
         });
       
       if (error) throw error;
-
-      // Create notification for the followed user
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          type: 'follow',
-          title: 'New Follower!',
-          body: 'Someone started following you',
-          data: { follower_id: user.id },
-        });
+      // The followed-user notification is created server-side by the
+      // trg_notify_user_follow trigger (see 20260625000000_notifications.sql).
+      // A client insert here would be rejected by RLS (notifications can't
+      // be written for another user) and double up once the trigger runs.
     },
     onSuccess: () => {
       // Scope by user id so we don't invalidate other users' cached
@@ -272,31 +265,28 @@ export function useDirectMessages(otherUserId?: string) {
     };
   }, [user, otherUserId, queryClient]);
 
-  // Send message mutation
+  // Send message mutation. Routes through send_direct_message RPC so the
+  // recipient's privacy preference (dmPermission: everyone | followers |
+  // nobody) and the blocklist are enforced server-side.
   const sendMessage = useMutation({
     mutationFn: async ({ recipientId, content }: { recipientId: string; content: string }) => {
       if (!user) throw new Error('Not authenticated');
-      
-      const { error } = await supabase
-        .from('direct_messages')
-        .insert({
-          sender_id: user.id,
-          recipient_id: recipientId,
-          content,
-        });
-      
-      if (error) throw error;
 
-      // Create notification
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: recipientId,
-          type: 'message',
-          title: 'New Message',
-          body: content.substring(0, 100),
-          data: { sender_id: user.id },
-        });
+      const { error } = await supabase.rpc('send_direct_message' as never, {
+        p_recipient: recipientId,
+        p_content: content,
+      } as never);
+
+      if (error) {
+        // Surface the precise reason so the UI can show a useful error.
+        const msg = error.message || '';
+        if (msg.includes('recipient_dms_disabled')) throw new Error("This user isn't accepting messages.");
+        if (msg.includes('recipient_dms_followers_only')) throw new Error("This user only accepts messages from people they follow.");
+        if (msg.includes('blocked_by_recipient')) throw new Error("You can't message this user.");
+        if (msg.includes('content_too_long')) throw new Error("Message is too long.");
+        if (msg.includes('empty_content')) throw new Error("Message is empty.");
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['direct-messages'] });
@@ -376,26 +366,10 @@ export function useProjectComments(projectId?: string) {
         });
       
       if (error) throw error;
-      
-      // Get project owner for notification
-      const { data: project } = await supabase
-        .from('movie_projects')
-        .select('user_id, title')
-        .eq('id', projectId)
-        .maybeSingle();
-      
-      // Create notification for project owner (not for own comments)
-      if (project && project.user_id !== user.id) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: project.user_id,
-            type: 'comment',
-            title: 'New comment on your video',
-            body: content.substring(0, 100),
-            data: { commenter_id: user.id, project_id: projectId },
-          });
-      }
+      // The project-owner comment notification is created server-side by
+      // the trg_notify_project_comment trigger (see
+      // 20260625000000_notifications.sql) — a client insert for another
+      // user would be rejected by RLS and double up with the trigger.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-comments', projectId] });

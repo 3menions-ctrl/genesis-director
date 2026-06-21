@@ -23,6 +23,30 @@ interface FinalAssemblyRequest {
   projectId: string;
   userId?: string;
   forceReconcile?: boolean; // When true, clear any previous error state
+  /** Project-level master loudness preset — forwarded as-is to
+   *  seamless-stitcher, which applies a `loudnorm` filter after the
+   *  audio xfade chain so the export ships at the right LUFS for the
+   *  delivery platform. Omitted / "off" → no normalization. */
+  masterLoudness?: "off" | "streaming" | "podcast" | "broadcast" | "cinema";
+  /** Auto-duck music under voice — forwarded to seamless-stitcher
+   *  which sidechains each aux audio track off A1 so the music dips
+   *  whenever dialogue is present. */
+  autoDuck?: boolean;
+  /** Per-boundary transition data — forwarded to seamless-stitcher so
+   *  the FFmpeg xfade filter uses the exact kind/duration the user
+   *  authored on the timeline. */
+  transitions?: Array<{ fromClipId: string; toClipId: string; kind: string; durationSec: number }>;
+  transitionDuration?: number;
+  transitionType?: string;
+  /** Aspect ratio override for this render. */
+  aspectRatio?: string;
+  reframe?: boolean;
+  /** Resolution preset for this render — "720p", "1080p", "1440p", "4k", "8k". */
+  resolution?: string;
+  /** Output container — "mp4" (default), "mov", "webm", "gif". */
+  format?: string;
+  /** CRF quality override (libx264 / libvpx). */
+  crf?: number;
 }
 
 serve(async (req) => {
@@ -39,7 +63,21 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const { projectId, userId: bodyUserId, forceReconcile } = await req.json() as FinalAssemblyRequest;
+    const {
+      projectId,
+      userId: bodyUserId,
+      forceReconcile,
+      masterLoudness,
+      autoDuck,
+      transitions,
+      transitionDuration,
+      transitionType,
+      aspectRatio,
+      reframe,
+      resolution,
+      format,
+      crf,
+    } = await req.json() as FinalAssemblyRequest;
     // SECURITY: trust JWT, never the body, for end-user calls
     let userId: string | undefined;
     try {
@@ -75,29 +113,65 @@ serve(async (req) => {
     const tasks = project.pending_video_tasks as Record<string, unknown> | null;
     const expectedClipCount = (tasks?.clipCount as number) || 5;
 
-    // Count completed clips
+    // Count clips with a playable video_url. We no longer require
+    // status='completed' — the editor surfaces any clip with a
+    // video_url, and the render must include everything the user can
+    // see on the timeline. The old filter dropped library-imported
+    // and user-uploaded clips that weren't flagged 'completed' yet.
     const { data: clips, error: clipsError } = await supabase
       .from('video_clips')
-      .select('id, shot_index, video_url, duration_seconds, status')
+      .select('id, shot_index, video_url, duration_seconds, status, created_at')
       .eq('project_id', projectId)
-      .eq('status', 'completed')
-      .order('shot_index');
+      .not('video_url', 'is', null)
+      .order('created_at', { ascending: true });
 
     if (clipsError) {
       throw new Error(`Failed to fetch clips: ${clipsError.message}`);
     }
 
     const completedCount = clips?.length || 0;
-    console.log(`[FinalAssembly] Validated: ${completedCount}/${expectedClipCount} clips complete`);
+    console.log(`[FinalAssembly] Validated: ${completedCount}/${expectedClipCount} clips with video_url`);
 
     if (completedCount === 0) {
-      throw new Error('No completed clips found - cannot proceed with assembly');
+      throw new Error('No clips with a video_url found - the timeline has nothing to render');
     }
 
     // Log clip details for debugging
     clips?.forEach((clip, i) => {
       console.log(`[FinalAssembly] Clip ${i + 1}: ${clip.video_url?.substring(0, 60)}... (${clip.duration_seconds}s)`);
     });
+
+    // Step 1.5: Dedup guard. If another final-assembly call already
+    // stamped pipeline_stage='stitching' in the last ~2 minutes, treat
+    // this as a duplicate (rapid double-click, double-tab, retry) and
+    // return 409. Without this, two parallel calls each invoke
+    // seamless-stitcher and Replicate bills the project twice for
+    // the same hash.
+    //
+    // forceReconcile bypasses this guard — the reconciliation flow
+    // explicitly wants to re-run on a stuck-in-stitching project.
+    if (!forceReconcile) {
+      const tasksObj = tasks ?? {};
+      const startedAtIso = (tasksObj as { assemblyStartedAt?: string }).assemblyStartedAt;
+      const inFlight =
+        project.status === "stitching" &&
+        startedAtIso &&
+        Date.now() - Date.parse(startedAtIso) < 2 * 60 * 1000;
+      if (inFlight) {
+        console.warn(`[FinalAssembly] dedup: stitching already in flight (started ${startedAtIso})`);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            mode: "deduped",
+            note: "stitching already in flight for this project; ignoring duplicate request",
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    }
 
     // Step 2: Update status to stitching
     await supabase
@@ -124,7 +198,24 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supabaseKey}`,
       },
-      body: JSON.stringify({ projectId, userId }),
+      body: JSON.stringify({
+        projectId,
+        userId,
+        masterLoudness,
+        autoDuck,
+        // Forward transition + aspect data so seamless-stitcher
+        // renders the boundaries the user authored, at the right
+        // aspect. Was silently lost before — every export came out
+        // as hard cuts at 16:9 regardless of timeline state.
+        transitions,
+        transitionDuration,
+        transitionType,
+        aspectRatio,
+        reframe,
+        resolution,
+        format,
+        crf,
+      }),
     });
 
     if (!stitchResponse.ok) {
@@ -155,6 +246,17 @@ serve(async (req) => {
     const manifestUrl = stitchResult.manifestUrl || stitchResult.finalVideoUrl;
     const finalVideoUrl = stitchResult.finalVideoUrl || manifestUrl;
     const hlsPlaylistUrl = stitchResult.hlsPlaylistUrl || null;
+
+    // Guard: a synchronous stitch that reports success MUST carry a
+    // usable video URL. Previously a `{ success: true, finalVideoUrl:
+    // undefined }` response sailed through and the Library card
+    // rendered a blank, unplayable entry. Treat a missing URL as a
+    // failure so the caller surfaces it instead of shipping a ghost.
+    if (!finalVideoUrl || typeof finalVideoUrl !== "string" || !finalVideoUrl.startsWith("http")) {
+      throw new Error(
+        "seamless-stitcher reported success but returned no usable finalVideoUrl",
+      );
+    }
     const stitchedClipUrls = Array.isArray(stitchResult.clipUrls) ? stitchResult.clipUrls : clips?.map((clip) => clip.video_url).filter(Boolean) || [];
     const totalDuration = stitchResult.totalDuration || 0;
     const clipsProcessed = stitchResult.clipsProcessed || completedCount;

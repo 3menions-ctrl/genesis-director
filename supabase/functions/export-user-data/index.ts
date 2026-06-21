@@ -52,7 +52,12 @@ Deno.serve(async (req) => {
       exportDate: new Date().toISOString(),
       user: {
         id: userId,
-        email: claimsData.claims.email || null,
+        // PREVIOUSLY: `claimsData.claims.email` — claimsData was never
+        // declared, so this threw at runtime and the entire GDPR data
+        // export was 100% broken. Pull the email from the already-
+        // fetched profile row instead (profiles.email is the column
+        // that mirrors auth.users.email for queryable access).
+        email: (profileResult.data as { email?: string | null } | null)?.email ?? null,
       },
       profile: profileResult.data,
       projects: projectsResult.data || [],

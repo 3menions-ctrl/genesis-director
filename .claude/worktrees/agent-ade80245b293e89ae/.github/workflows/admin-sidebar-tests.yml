@@ -1,0 +1,57 @@
+name: Admin Sidebar Route Contract
+
+# Guards the AdminLayout sidebar ↔ App.tsx route wiring on every PR.
+# Fails the build if any sidebar item is unrouted, mis-wired to the wrong
+# component, missing its lazy import, or pointing at a non-existent file.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/refine/AdminLayout.tsx"
+      - "src/refine/pages/ops/_registry.ts"
+      - "src/refine/rbac/**"
+      - "src/App.tsx"
+      - "src/test/admin/**"
+      - "package.json"
+      - "bun.lockb"
+      - ".github/workflows/admin-sidebar-tests.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  admin-sidebar:
+    name: Admin sidebar route contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Dedicated, named step so it shows up as its own line in the PR check
+      # list. Mark this job as a required status check in branch protection
+      # for `main` to block merges when any /admin route is missing,
+      # mis-wired, or its lazy import is absent from App.tsx.
+      - name: Ops registry ↔ App.tsx route contract (blocking)
+        run: bunx vitest run src/test/admin/opsRegistryAppRoutes.test.ts --reporter=verbose
+
+      - name: Sidebar registry & route mapping
+        run: |
+          bunx vitest run \
+            src/test/admin/adminSidebarRegistry.test.ts \
+            src/test/admin/adminSidebarRoutes.test.ts \
+            --reporter=verbose
+
+      - name: RBAC scopes & guards
+        run: bunx vitest run src/test/admin/adminRbac.test.ts --reporter=verbose
+
+      - name: Sidebar UI navigation (renders & clicks every link)
+        run: bunx vitest run src/test/admin/adminSidebarUiNavigation.test.tsx --reporter=verbose

@@ -56,6 +56,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { BuyCreditsModal } from "@/components/credits/BuyCreditsModal";
 import { TwoFactorCard } from "@/components/security/TwoFactorCard";
 import { SessionsCard } from "@/components/security/SessionsCard";
+import { UploadReelDialog } from "@/components/publish/UploadReelDialog";
+import { PublishWizard } from "@/components/publish/PublishWizard";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -78,11 +80,13 @@ interface ProfileRow {
   created_at?: string;
   credits_balance?: number;
   total_credits_used?: number;
+  /** Opt-in flag — true if the user has listed themselves in /find-friends. */
+  is_discoverable?: boolean;
 }
 
 interface Stats {
   reels: number; plays: number; likes: number; remixes: number; tips: number;
-  followers: number; following: number; projects: number; crews: number; universes: number;
+  followers: number; following: number; projects: number;
   followers_30d: number; plays_30d: number;
 }
 
@@ -115,7 +119,7 @@ type TabKey = "overview" | "analytics" | "reels" | "achievements" | "about" | "s
 
 const ZERO_STATS: Stats = {
   reels: 0, plays: 0, likes: 0, remixes: 0, tips: 0,
-  followers: 0, following: 0, projects: 0, crews: 0, universes: 0,
+  followers: 0, following: 0, projects: 0,
   followers_30d: 0, plays_30d: 0,
 };
 
@@ -145,6 +149,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
   const [buyOpen, setBuyOpen] = useState(false);
+  // Upload-a-reel flow: upload dialog → creates a project → PublishWizard.
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [publishProjectId, setPublishProjectId] = useState<string | null>(null);
   const [editingLinks, setEditingLinks] = useState(false);
   const [linkDraft, setLinkDraft] = useState<Record<string, string>>({});
   const [savingLinks, setSavingLinks] = useState(false);
@@ -170,14 +177,32 @@ export default function Profile() {
       ]);
       if (overRes.error) throw overRes.error;
       const ov = overRes.data as unknown as OverviewPayload;
+      // Profile-overview RPC predates the is_discoverable column; fetch the
+      // flag separately so the owner's "open my door" toggle has truth.
+      try {
+        const { data: extra } = await supabase
+          .from("profiles")
+          .select("is_discoverable")
+          .eq("id", viewedId)
+          .maybeSingle();
+        const flag = (extra as { is_discoverable?: boolean } | null)?.is_discoverable ?? false;
+        ov.profile = { ...ov.profile, is_discoverable: flag };
+      } catch { /* non-fatal */ }
       setPayload(ov);
       const seriesData = seriesRes.data as unknown as { series?: SeriesPoint[] } | null;
       setSeries(seriesData?.series ?? []);
     } catch (e) {
-      console.warn("[Profile] overview load failed (likely tables not yet pushed); falling back to stub", e);
+      console.warn("[Profile] overview load failed; rendering stub", e);
       // Best-effort minimal payload so the page still renders.
+      // CRITICAL: we used to spread `ownProfile` (the LOGGED-IN viewer's row)
+      // onto the fallback. That meant a failed lookup for any *other* user
+      // would silently render the viewer's own identity. Now: only spread
+      // ownProfile when we're actually on our own profile route.
+      const stubProfile: ProfileRow = isOwnRoute
+        ? { id: viewedId, ...(ownProfile ?? {}), ...(user ? { email: user.email } : {}) } as ProfileRow
+        : { id: viewedId } as ProfileRow;
       setPayload({
-        profile: { id: viewedId, ...(ownProfile ?? {}), ...(isOwnRoute && user ? { email: user.email } : {}) } as ProfileRow,
+        profile: stubProfile,
         stats: ZERO_STATS,
         recent_reels: [], top_reels: [], pinned_reels: [],
         is_owner: isOwnRoute,
@@ -559,6 +584,9 @@ export default function Profile() {
                   <Link to="/settings" className="pill bg-white text-black hover:bg-white/90">
                     <SettingsIcon className="w-3 h-3" /> Settings
                   </Link>
+                  <Link to="/search?tab=people" className="pill border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent border">
+                    <UserIcon className="w-3 h-3" /> Find friends
+                  </Link>
                   <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
                     <Share2 className="w-3 h-3" /> Share profile
                   </button>
@@ -580,6 +608,9 @@ export default function Profile() {
                       : <UserPlus className="w-3 h-3" />}
                     {payload.viewer_following ? "Following" : "Follow"}
                   </button>
+                  <Link to="/search?tab=people" className="pill border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent border">
+                    <UserIcon className="w-3 h-3" /> Find friends
+                  </Link>
                   <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
                     <Share2 className="w-3 h-3" /> Share
                   </button>
@@ -692,18 +723,32 @@ export default function Profile() {
                     <div className="space-y-2">
                       {isOwner ? (
                         <>
-                          <ActionRow to="/create"   icon={Wand2} label="Start a new project" hint="Fresh canvas" />
-                          <ActionRow to="/projects" icon={Film}  label="Your library" hint={`${payload.stats.projects} project${payload.stats.projects === 1 ? "" : "s"}`} />
-                          <ActionRow to="/messages" icon={Mail}  label="Messages" hint="DMs + replies" />
+                          <ActionRow to="/create"       icon={Wand2}     label="Start a new project" hint="Fresh canvas" />
+                          <ActionRow to="/projects"     icon={Film}      label="Your library" hint={`${payload.stats.projects} project${payload.stats.projects === 1 ? "" : "s"}`} />
+                          <ActionRow to="/messages"     icon={Mail}      label="Messages" hint="DMs + replies" />
+                          <ActionRow to="/search?tab=people" icon={UserIcon}  label="Find friends" hint="Opt-in directory" />
                         </>
                       ) : (
                         <>
-                          <ActionRow to={`/messages`} icon={Mail} label="Send a message" hint="DM the creator" />
-                          <ActionRow to="/lobby" icon={Sparkles} label="Discover more" hint="Browse the Lobby" />
+                          <ActionRow to={`/messages`}   icon={Mail}      label="Send a message" hint="DM the creator" />
+                          <ActionRow to="/search?tab=people" icon={UserIcon}  label="Find friends" hint="Other creators like them" />
+                          <ActionRow to="/lobby"        icon={Sparkles}  label="Discover more" hint="Browse the Lobby" />
                         </>
                       )}
                     </div>
                   </Card>
+
+                  {isOwner && (
+                    <DiscoverabilityCard
+                      userId={viewedId!}
+                      initial={p?.is_discoverable ?? false}
+                      onChanged={(v) =>
+                        setPayload((prev) =>
+                          prev ? { ...prev, profile: { ...prev.profile, is_discoverable: v } } : prev,
+                        )
+                      }
+                    />
+                  )}
                 </div>
 
                 {/* Recent reels strip */}
@@ -796,12 +841,22 @@ export default function Profile() {
                 className="mb-12"
               >
                 <Card>
-                  <SectionLabel icon={Wand2} label={`All published reels · ${payload.stats.reels}`} />
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <SectionLabel icon={Wand2} label={`All published reels · ${payload.stats.reels}`} />
+                    {isOwner && (
+                      <button
+                        onClick={() => setUploadOpen(true)}
+                        className="pill bg-white text-black hover:bg-white/90 shrink-0"
+                      >
+                        <ImagePlus className="w-3.5 h-3.5" /> Upload a reel
+                      </button>
+                    )}
+                  </div>
                   {payload.recent_reels.length === 0 ? (
                     <EmptyHint
                       title={isOwner ? "You haven't published a reel yet." : "No public reels yet."}
-                      sub={isOwner ? "Finish a project and click Publish to see it here." : "Check back soon — they're just getting started."}
-                      cta={isOwner ? { to: "/create", label: "Start a project" } : { to: "/lobby", label: "Browse the Lobby" }}
+                      sub={isOwner ? "Generate one in Studio, or upload your own video to publish it straight here." : "Check back soon — they're just getting started."}
+                      cta={isOwner ? { onClick: () => setUploadOpen(true), label: "Upload a video" } : { to: "/lobby", label: "Browse the Lobby" }}
                     />
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -894,8 +949,6 @@ export default function Profile() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <SmallStat icon={UserIcon} label="Followers" value={payload.stats.followers} />
                     <SmallStat icon={UserIcon} label="Following" value={payload.stats.following} />
-                    <SmallStat icon={Building2} label="Crews"    value={payload.stats.crews} />
-                    <SmallStat icon={Sparkles} label="Universes" value={payload.stats.universes} />
                   </div>
                 </Card>
               </motion.div>
@@ -995,6 +1048,30 @@ export default function Profile() {
       </motion.section>
 
       <BuyCreditsModal open={buyOpen} onOpenChange={setBuyOpen} />
+
+      {/* Upload a reel — upload a finished video, then publish it. */}
+      {isOwner && (
+        <>
+          <UploadReelDialog
+            open={uploadOpen}
+            onClose={() => setUploadOpen(false)}
+            onProjectReady={(projectId) => {
+              setUploadOpen(false);
+              setPublishProjectId(projectId);
+            }}
+          />
+          <PublishWizard
+            open={!!publishProjectId}
+            projectId={publishProjectId}
+            onClose={() => setPublishProjectId(null)}
+            onPublished={() => {
+              setPublishProjectId(null);
+              setTab("reels");
+              void load();
+            }}
+          />
+        </>
+      )}
 
       {/* Links editing modal */}
       {editingLinks && (
@@ -1138,6 +1215,90 @@ function SmallStat({ icon: Icon, label, value }: { icon: React.ElementType; labe
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DiscoverabilityCard — opt-in toggle for /find-friends listing.
+//
+// Writes profiles.is_discoverable. The Find Friends directory view filters
+// strictly on this flag, so toggling here is the source of truth: nothing
+// else is touched.
+// ─────────────────────────────────────────────────────────────────────────────
+function DiscoverabilityCard({
+  userId,
+  initial,
+  onChanged,
+}: {
+  userId: string;
+  initial: boolean;
+  onChanged: (v: boolean) => void;
+}) {
+  const [on, setOn] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => setOn(initial), [initial]);
+
+  const handleToggle = async () => {
+    const next = !on;
+    setBusy(true);
+    setOn(next); // optimistic
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_discoverable: next })
+        .eq("id", userId);
+      if (error) throw error;
+      onChanged(next);
+      toast.success(next ? "You're now listed in Find Friends." : "You're hidden from Find Friends.");
+    } catch (e) {
+      setOn(!next);
+      toast.error(e instanceof Error ? e.message : "Couldn't update your visibility.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SectionLabel icon={UserIcon} label="Find Friends listing" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] text-white font-light">
+            {on ? "Your door is open." : "Your door is closed."}
+          </p>
+          <p className="mt-1 text-[11px] text-white/55 leading-relaxed">
+            {on
+              ? "Other directors can find you in the opt-in directory at /find-friends. We only show your display name, avatar, location, bio, and chosen interests."
+              : "Turn this on to appear in Find Friends so other directors can discover you by city and shared interests."}
+          </p>
+          <Link
+            to="/search?tab=people"
+            className="mt-3 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.22em] text-accent/85 hover:text-accent"
+          >
+            See how you'll appear <ArrowRight className="w-2.5 h-2.5" />
+          </Link>
+        </div>
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={busy}
+          aria-pressed={on}
+          aria-label={on ? "Hide me from Find Friends" : "List me in Find Friends"}
+          className={cn(
+            "shrink-0 relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 disabled:opacity-60",
+            on ? "bg-emerald-400/85" : "bg-white/[0.10]",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300",
+              on ? "translate-x-6" : "translate-x-1",
+            )}
+          />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 function ActionRow({ to, icon: Icon, label, hint }: { to: string; icon: React.ElementType; label: string; hint?: string }) {
   return (
     <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors">
@@ -1218,17 +1379,21 @@ function ReelCard({
   );
 }
 
-function EmptyHint({ title, sub, cta }: { title: string; sub: string; cta?: { to: string; label: string } }) {
+function EmptyHint({ title, sub, cta }: { title: string; sub: string; cta?: { to: string; label: string } | { onClick: () => void; label: string } }) {
   return (
     <div className="text-center py-12 max-w-md mx-auto">
       <Wand2 className="w-6 h-6 mx-auto mb-3 text-white/45" />
       <h3 className="font-display font-medium text-[18px] text-white mb-1.5">{title}</h3>
       <p className="text-[12px] text-white/45 mb-5 leading-relaxed">{sub}</p>
-      {cta && (
+      {cta && ("onClick" in cta ? (
+        <button onClick={cta.onClick} className="pill bg-white text-black hover:bg-white/90">
+          {cta.label} <ArrowRight className="w-3 h-3" />
+        </button>
+      ) : (
         <Link to={cta.to} className="pill bg-white text-black hover:bg-white/90">
           {cta.label} <ArrowRight className="w-3 h-3" />
         </Link>
-      )}
+      ))}
     </div>
   );
 }
@@ -1284,8 +1449,6 @@ function AchievementsPreview({ userId: _userId, stats }: { userId: string; stats
     { key: "100_followers", label: "Community",        desc: "100 followers",            done: stats.followers >= 100, icon: UserIcon },
     { key: "first_remix",   label: "Remixed",          desc: "A reel of yours was remixed", done: stats.remixes >= 1, icon: Wand2 },
     { key: "tipped",        label: "Supported",        desc: "Received your first tip",  done: stats.tips >= 1,   icon: Coins },
-    { key: "crews",         label: "Collaborator",     desc: "Joined a crew",            done: stats.crews >= 1, icon: Building2 },
-    { key: "universes",     label: "Worldbuilder",     desc: "Member of a universe",     done: stats.universes >= 1, icon: Sparkles },
   ]), [stats]);
   const done = badges.filter((b) => b.done).length;
   return (

@@ -1,0 +1,17 @@
+{
+  "name": "F09-multi-titles",
+  "description": "Three stacked title overlays — opening title, lower-third, closing card. Asserts the drawtext chain namespaces its labels (vts0/vt0, vts1/vt1, vts2/vt2) so they don't collide.",
+  "inputs": [
+    { "url": "file://bg.mp4", "duration": 15, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "titleClips": [
+    { "text": "OPENING", "color": "#ffffff", "startSec": 0, "durationSec": 3, "sizePct": 8 },
+    { "text": "Lower Third", "color": "#ffaa00", "startSec": 5, "durationSec": 4, "x": 0.08, "y": 0.85, "sizePct": 4 },
+    { "text": "Fin.", "color": "#ffffff", "startSec": 12, "durationSec": 3, "sizePct": 10, "bold": true }
+  ]
+}

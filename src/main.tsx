@@ -33,6 +33,9 @@ import {
 // / JWTs before events leave the browser.
 import { bootObservability } from "./lib/observability";
 bootObservability();
+// PostHog product analytics backbone (no-op until VITE_POSTHOG_KEY is set).
+import { initPostHog } from "./admin/analytics/posthog";
+initPostHog();
 // Must run before any other code that might log sensitive data
 const cleanupConsoleShield = installConsoleShield();
 
@@ -59,19 +62,14 @@ bootTheme();
 installRoutePrefetcher();
 registerPrefetch('/library',    () => import('./pages/Library'));
 registerPrefetch('/studio',     () => import('./pages/Studio'));
-registerPrefetch('/library',    () => import('./pages/library/LibraryHub'));
-registerPrefetch('/library/wall', () => import('./pages/library/StoryboardWall'));
-registerPrefetch('/library/cast', () => import('./pages/library/AtomLibrary'));
-registerPrefetch('/library/locations', () => import('./pages/library/AtomLibrary'));
-registerPrefetch('/library/looks', () => import('./pages/library/AtomLibrary'));
-registerPrefetch('/library/voices', () => import('./pages/library/AtomLibrary'));
-registerPrefetch('/credits',    () => import('./pages/Credits'));
 registerPrefetch('/templates',  () => import('./pages/Templates'));
 registerPrefetch('/avatars',    () => import('./pages/Avatars'));
 registerPrefetch('/pricing',    () => import('./pages/Pricing'));
 registerPrefetch('/settings',   () => import('./pages/Settings'));
 registerPrefetch('/profile',    () => import('./pages/Profile'));
-registerPrefetch('/notifications', () => import('./pages/Notifications'));
+// Inbox absorbed both /messages and /notifications. Prefetch the
+// unified surface so deep links still warm the right chunk.
+registerPrefetch('/inbox',      () => import('./pages/Inbox'));
 
 // Install chunk error recovery FIRST (before any errors can occur)
 const cleanupChunkRecovery = installChunkErrorInterceptor();
@@ -354,10 +352,16 @@ if (import.meta.hot) {
 // Log boot status
 console.info('[Boot] Starting React render...', { safeMode: SAFE_MODE });
 
+// StrictMode double-invokes effects + renders to catch concurrency
+// bugs — invaluable for correctness, but it doubles every
+// provider's mount-time data fetch (StudioContext.loadProjects,
+// CreditsContext.reconcile, etc.), which surfaces as 2× latency on
+// initial app load + every full provider remount. Allow opting out
+// via VITE_DISABLE_STRICT=1 when chasing perf locally; production
+// always runs without StrictMode anyway (vite strips it).
+const disableStrict = import.meta.env.VITE_DISABLE_STRICT === "1";
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
+  disableStrict ? <App /> : <StrictMode><App /></StrictMode>
 );
 
 // Mark boot complete

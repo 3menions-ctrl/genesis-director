@@ -13,9 +13,9 @@ import { usePageMeta } from '@/hooks/usePageMeta';
  *   2. Mark onboarding_completed = true unconditionally (Small Bridges is free during
  *      beta — the gating questions live in /start as a courtesy, but the
  *      product itself works the moment auth succeeds).
- *   3. Route to /welcome/checkout (which shows the BETA-FREE welcome card)
- *      so brand-new users see what they got. Returning users skip straight
- *      to /projects.
+ *   3. Route brand-new users straight into /studio?welcome=1 (skipping the
+ *      /welcome/checkout auto-bounce). Returning users go to /workspace or
+ *      /projects depending on account type.
  *
  * The previous version of this file bounced the user back to /start in a
  * loop when no intent token was present — that's gone.
@@ -38,10 +38,14 @@ export default function Onboarding() {
 
     let cancelled = false;
     (async () => {
-      // Consume an intent token from /start if one is present.
+      // Consume an intent token from /start if one is present. Prefer the
+      // ?intent= carried on the post-OAuth `next` URL, falling back to the
+      // sessionStorage copy written before the OAuth round-trip.
       let intentToken: string | null = null;
       try {
-        intentToken = sessionStorage.getItem('smallbridges.intent_token');
+        intentToken =
+          new URLSearchParams(window.location.search).get('intent') ||
+          sessionStorage.getItem('smallbridges.intent_token');
       } catch {}
 
       let accountType: 'personal' | 'business' | 'enterprise' | undefined;
@@ -94,13 +98,17 @@ export default function Onboarding() {
         (profile?.account_type as 'personal' | 'business' | 'enterprise' | undefined) ??
         'personal';
 
-      // Brand-new accounts → welcome card. Returning accounts → project list.
+      // Brand-new accounts skip the /welcome/checkout auto-bounce entirely and
+      // drop straight into the studio (with a welcome flag for the first-run
+      // tour). Returning accounts go to their normal home surface.
       const isBrandNew = (profile?.total_credits_used ?? 0) === 0;
 
-      if (type === 'business' || type === 'enterprise') {
-        navigate(isBrandNew ? '/welcome/checkout' : '/workspace', { replace: true });
+      if (isBrandNew) {
+        navigate('/studio?welcome=1', { replace: true });
+      } else if (type === 'business' || type === 'enterprise') {
+        navigate('/workspace', { replace: true });
       } else {
-        navigate(isBrandNew ? '/welcome/checkout' : '/projects', { replace: true });
+        navigate('/projects', { replace: true });
       }
     })();
 

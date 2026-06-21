@@ -164,6 +164,17 @@ export function hydrateScriptDocument(input: HydrationInput): ScriptDocument {
   if (isWellFormedDocument(project.script_document)) {
     return project.script_document as ScriptDocument;
   }
+  // FALLBACK: pre-migration projects (and any save that landed
+  // before 20260621000000_add_script_document.sql) stored the doc
+  // under pipeline_state.scriptDocument. Read it from there so the
+  // editor doesn't open looking like the project has no scenes /
+  // shots — which is what the user would see if we skipped this
+  // path. document-store.ts already writes there as a fallback;
+  // we just have to read it too.
+  const ps = (project as unknown as { pipeline_state?: { scriptDocument?: unknown } | null }).pipeline_state;
+  if (ps && isWellFormedDocument(ps.scriptDocument)) {
+    return ps.scriptDocument as ScriptDocument;
+  }
 
   const aspectRatio = parseAspectRatio(project.aspect_ratio);
   const screenplayText = (project.script_content ?? project.generated_script ?? "").trim();

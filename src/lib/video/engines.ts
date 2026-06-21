@@ -133,10 +133,9 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'hd24',  label: 'HD 1080p',         description: 'Wan 2.5 native, 1080p · 24fps',           resolution: '1080p', fps: 24, options: {},                                  recommended: true },
       { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth motion via RIFE interpolation',     resolution: '1080p', fps: 60, options: { fps60: true } },
     ],
-    // Low credit cost — chosen so a 100-credit signup grant covers ~10
-    // five-second clips, which is the right "show the magic" window
-    // before asking for a purchase.
-    baseCreditsFor: (d) => tableCost({ 5: 10, 10: 20 }, d),
+    // Free tier. The base render itself costs 0 credits; only the optional
+    // 60fps upscale (handled via fps60Credits above) charges anything.
+    baseCreditsFor: (d) => tableCost({ 5: 0, 10: 0 }, d),
   },
 
   // -------- STANDARD --------

@@ -1,0 +1,219 @@
+project_id = "ahlikyhgcqvrdvbtkghh"
+
+[functions]
+  [functions.analyze-depth-consistency]
+    verify_jwt = false
+  [functions.analyze-lip-sync]
+    verify_jwt = false
+  [functions.analyze-reference-image]
+    verify_jwt = false
+  [functions.analyze-transition-gap]
+    verify_jwt = false
+  [functions.api-keys-manage]
+    verify_jwt = false
+  [functions.api-v1]
+    verify_jwt = false
+  [functions.apply-color-grading]
+    verify_jwt = false
+  [functions.approve-clip-one]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.auto-stitch-trigger]
+    verify_jwt = false
+  [functions.check-specialized-status]
+    verify_jwt = false
+  [functions.check-video-status]
+    verify_jwt = false
+  [functions.cinematic-auditor]
+    verify_jwt = false
+  [functions.compare-scene-anchors]
+    verify_jwt = false
+  [functions.comprehensive-clip-validator]
+    verify_jwt = false
+  [functions.comprehensive-validation-orchestrator]
+    verify_jwt = false
+  [functions.continue-production]
+    verify_jwt = false
+  [functions.continuity-engine]
+    verify_jwt = false
+  [functions.continuity-orchestrator]
+    verify_jwt = false
+  [functions.create-credit-checkout]
+    verify_jwt = false
+  [functions.create-plan-checkout]
+    verify_jwt = false
+  [functions.create-cinema-checkout]
+    verify_jwt = false
+  [functions.verify-cinema-checkout]
+    verify_jwt = false
+  [functions.list-cinema-invoices]
+    verify_jwt = false
+  [functions.get-cinema-pending-change]
+    verify_jwt = false
+  [functions.delete-user-account]
+    verify_jwt = false
+  [functions.editor-generate-from-audio]
+    verify_jwt = false
+  [functions.export-user-data]
+    verify_jwt = false
+  [functions.extract-characters]
+    verify_jwt = false
+  [functions.extract-continuity-manifest]
+    verify_jwt = false
+  [functions.extract-first-frame]
+    verify_jwt = false
+  [functions.extract-last-frame]
+    verify_jwt = false
+  [functions.extract-master-dna]
+    verify_jwt = false
+  [functions.extract-scene-anchor]
+    verify_jwt = false
+  [functions.extract-scenes]
+    verify_jwt = false
+  [functions.extract-style-anchor]
+    verify_jwt = false
+  [functions.extract-video-frame]
+    verify_jwt = false
+  [functions.final-assembly]
+    verify_jwt = false
+  [functions.gamification-event]
+    verify_jwt = false
+  [functions.generate-avatar]
+    verify_jwt = false
+  [functions.generate-avatar-batch]
+    verify_jwt = false
+  [functions.generate-bridge-clip]
+    verify_jwt = false
+  [functions.generate-face-lock]
+    verify_jwt = false
+  [functions.generate-identity-bible]
+    verify_jwt = false
+  [functions.generate-missing-thumbnails]
+    verify_jwt = false
+  [functions.generate-multi-character-bible]
+    verify_jwt = false
+  [functions.generate-multiview-identity]
+    verify_jwt = false
+  [functions.generate-music]
+    verify_jwt = false
+  [functions.generate-project-thumbnail]
+    verify_jwt = false
+  [functions.generate-scene-images]
+    verify_jwt = false
+  [functions.generate-script]
+    verify_jwt = false
+  [functions.generate-sfx]
+    verify_jwt = false
+  [functions.generate-single-clip]
+    verify_jwt = false
+  [functions.generate-story]
+    verify_jwt = false
+  [functions.generate-thumbnail]
+    verify_jwt = false
+  [functions.generate-upload-url]
+    verify_jwt = false
+  [functions.generate-video]
+    verify_jwt = false
+  [functions.generate-video-thumbnails]
+    verify_jwt = false
+  [functions.generate-voice]
+    verify_jwt = false
+  [functions.generate-voice-openai]
+    verify_jwt = false
+  [functions.generate-widget-config]
+    verify_jwt = false
+  [functions.hollywood-pipeline]
+    verify_jwt = false
+  [functions.intelligent-stitch]
+    verify_jwt = false
+  [functions.job-queue]
+    verify_jwt = false
+  [functions.landing-demo-chat]
+    verify_jwt = false
+  [functions.lip-sync-service]
+    verify_jwt = false
+  [functions.mode-router]
+    verify_jwt = false
+  [functions.motion-transfer]
+    verify_jwt = false
+  [functions.multi-camera-orchestrator]
+    verify_jwt = false
+  [functions.pipeline-watchdog]
+    verify_jwt = false
+  [functions.poll-replicate-prediction]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.regenerate-audio]
+    verify_jwt = false
+  [functions.replicate-webhook]
+    verify_jwt = false
+  [functions.resume-pipeline]
+    verify_jwt = false
+  [functions.retry-failed-clip]
+    verify_jwt = false
+  [functions.revoke-demo-sessions]
+    verify_jwt = false
+  [functions.script-assistant]
+    verify_jwt = false
+  [functions.simple-stitch]
+    verify_jwt = false
+  [functions.smart-script-generator]
+    verify_jwt = false
+  [functions.spatial-action-lock]
+    verify_jwt = false
+  [functions.payments-webhook]
+    verify_jwt = false
+  [functions.stylize-video]
+    verify_jwt = false
+  [functions.sync-music-to-scenes]
+    verify_jwt = false
+  [functions.update-user-email]
+    verify_jwt = false
+  [functions.upscale-video]
+    verify_jwt = false
+  [functions.validate-clothing-hair]
+    verify_jwt = false
+  [functions.validate-color-histogram]
+    verify_jwt = false
+  [functions.validate-environment]
+    verify_jwt = false
+  [functions.validate-temporal-consistency]
+    verify_jwt = false
+  [functions.verify-character-identity]
+    verify_jwt = false
+  [functions.verify-face-embedding]
+    verify_jwt = false
+  [functions.visual-debugger]
+    verify_jwt = false
+
+  [functions.create-portal-session]
+    verify_jwt = false
+
+  [functions.sync-org-seats]
+    verify_jwt = false
+
+  [functions.monthly-credit-refill]
+    verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = true
+
+[functions.send-transactional-email]
+verify_jwt = true
+
+[functions.preview-transactional-email]
+verify_jwt = false
+
+[functions.handle-email-unsubscribe]
+verify_jwt = false
+
+[functions.handle-email-suppression]
+verify_jwt = false
+
+[functions.admin-alert-dispatch]
+verify_jwt = false
+
+[functions.translate-text]
+verify_jwt = false

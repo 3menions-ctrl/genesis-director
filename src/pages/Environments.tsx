@@ -1,563 +1,770 @@
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSafeNavigation } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Palette, Search, Sun, Moon, Sunrise, CloudSun,
-  TreePine, Waves, Mountain, Home, Sparkles,
-  Check, X, TrendingUp, Building2, Flame, 
-  Snowflake, Camera, Zap, Star, Heart
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
+/**
+ * Environments — editorial scene library.
+ *
+ * Mirrors the Templates page: editorial glassmorphic hero, floating
+ * stats, search + secondary filter pills, Netflix-style rails per
+ * world when "All", dense grid + back link when a single world is
+ * selected.
+ *
+ * Source: unified registry (lib/environments/registry.ts) — 120
+ * environments enriched with world, weather, season, terrain,
+ * generator prompt (subject IS in the scene), camera + sound hints,
+ * VFX.
+ *
+ * Click any card → EnvironmentDetailDrawer with full scene blueprint.
+ * "Apply scene to project" → /create?environment=ID (existing
+ * useTemplateEnvironment hook consumes it).
+ */
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useSafeNavigation } from "@/lib/navigation";
+import { useModuleLink } from "@/components/foundation/moduleBase";
+import {
+  Search,
+  Star,
+  TrendingUp,
+  Home as HomeIcon,
+  TreePine,
+  Sun,
+  CloudSun,
+  Sparkles,
+  ArrowRight,
+  Mountain,
+  Building2,
+  Moon,
+  Cloud,
+  Heart,
+  Stars,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-// Import generated environment images - 20 unique stunning environments
-import goldenHourMagicImg from '@/assets/environments/golden-hour-magic.jpg';
-import neonNightsImg from '@/assets/environments/neon-nights.jpg';
-import cozyCabinImg from '@/assets/environments/cozy-cabin.jpg';
-import desertDunesImg from '@/assets/environments/desert-dunes.jpg';
-import volcanicDramaImg from '@/assets/environments/volcanic-drama.jpg';
-import cherryBlossomImg from '@/assets/environments/cherry-blossom.jpg';
-import underwaterDreamsImg from '@/assets/environments/underwater-dreams.jpg';
-import spaceStationImg from '@/assets/environments/space-station.jpg';
-import enchantedForestImg from '@/assets/environments/enchanted-forest.jpg';
-import urbanLuxuryImg from '@/assets/environments/urban-luxury.jpg';
-import arcticAuroraImg from '@/assets/environments/arctic-aurora.jpg';
-import retroArcadeImg from '@/assets/environments/retro-arcade.jpg';
-import ancientRuinsImg from '@/assets/environments/ancient-ruins.jpg';
-import tropicalParadiseImg from '@/assets/environments/tropical-paradise.jpg';
-import postApocalypticImg from '@/assets/environments/post-apocalyptic.jpg';
-import whiteStudioImg from '@/assets/environments/white-studio.jpg';
-import steampunkLabImg from '@/assets/environments/steampunk-lab.jpg';
-import cloudNineImg from '@/assets/environments/cloud-nine.jpg';
-import zenGardenImg from '@/assets/environments/zen-garden.jpg';
-import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
-import { EXTENDED_ENVIRONMENTS } from '@/data/environment-extensions';
+import {
+  getAllEnvironmentBlueprints,
+  getEnvironmentBlueprint,
+} from "@/lib/environments/registry";
+import {
+  type EnvironmentBlueprint,
+  type EnvWorld,
+  ENV_WORLD_LABELS,
+  ENV_WORLD_SHORT,
+} from "@/lib/environments/blueprint";
+import { EnvironmentDetailDrawer } from "@/components/environments/EnvironmentDetailDrawer";
+import { usePageTone, TONE_PRESETS, type PageTone } from "@/lib/page-tone";
+import { AutoGallery } from "@/components/foundation/AutoGallery";
+import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop";
 
-import { usePageMeta } from '@/hooks/usePageMeta';
-import { FoundationShell } from '@/components/foundation/FoundationShell';
-import { EditorialCanvas } from '@/components/foundation/EditorialCanvas';
-import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
-// Environment presets with unique epic ideas - 20 stunning environments
-const BASE_PRESETS = [
-  // TRENDING - What creators love
-  {
-    id: 'golden_hour_magic',
-    name: 'Golden Hour Magic',
-    description: 'That perfect 30-minute window of warm, dreamy sunlight everyone chases',
-    category: 'exterior',
-    image: goldenHourMagicImg,
-    lighting: { type: 'natural', direction: 'backlit', intensity: 'soft', temperature: 'warm', timeOfDay: 'golden_hour' },
-    colorPalette: { primary: '#FFB347', secondary: '#FFCC80', accent: '#FF8C00', shadows: '#8B4513' },
-    mood: 'dreamy',
-    icon: Sunrise,
-    is_trending: true,
-    is_popular: true,
-  },
-  {
-    id: 'neon_nights',
-    name: 'Neon Nights',
-    description: 'Electric city lights, rain-slicked streets, cyberpunk energy',
-    category: 'exterior',
-    image: neonNightsImg,
-    lighting: { type: 'artificial', direction: 'multi', intensity: 'vibrant', temperature: 'cool', timeOfDay: 'night' },
-    colorPalette: { primary: '#FF1493', secondary: '#00FFFF', accent: '#9400D3', shadows: '#0D0D1A' },
-    mood: 'electric',
-    icon: Zap,
-    is_trending: true,
-    is_popular: true,
-  },
-  {
-    id: 'cozy_cabin',
-    name: 'Cozy Cabin',
-    description: 'Warm firelight, wooden textures, hygge vibes for storytelling',
-    category: 'interior',
-    image: cozyCabinImg,
-    lighting: { type: 'fire', direction: 'ambient', intensity: 'low', temperature: 'very_warm', timeOfDay: 'evening' },
-    colorPalette: { primary: '#8B4513', secondary: '#D2691E', accent: '#FFD700', shadows: '#3D1F0F' },
-    mood: 'intimate',
-    icon: Flame,
-    is_trending: true,
-  },
-  {
-    id: 'desert_dunes',
-    name: 'Desert Dunes',
-    description: 'Endless golden sand waves under blazing sun, epic Sahara vibes',
-    category: 'exterior',
-    image: desertDunesImg,
-    lighting: { type: 'natural', direction: 'overhead', intensity: 'harsh', temperature: 'warm', timeOfDay: 'sunset' },
-    colorPalette: { primary: '#C2B280', secondary: '#DEB887', accent: '#CD853F', shadows: '#8B7355' },
-    mood: 'epic',
-    icon: Sun,
-    is_trending: true,
-  },
-  {
-    id: 'volcanic_drama',
-    name: 'Volcanic Drama',
-    description: 'Molten lava rivers, apocalyptic skies, raw elemental power',
-    category: 'exterior',
-    image: volcanicDramaImg,
-    lighting: { type: 'fire', direction: 'below', intensity: 'harsh', temperature: 'very_warm', timeOfDay: 'night' },
-    colorPalette: { primary: '#8B0000', secondary: '#FF4500', accent: '#FFD700', shadows: '#1A0000' },
-    mood: 'intense',
-    icon: Flame,
-    is_trending: true,
-    is_popular: true,
-  },
-  {
-    id: 'cherry_blossom',
-    name: 'Cherry Blossom',
-    description: 'Soft pink petals, koi pond, serene Japanese spring garden',
-    category: 'exterior',
-    image: cherryBlossomImg,
-    lighting: { type: 'natural', direction: 'filtered', intensity: 'soft', temperature: 'warm', timeOfDay: 'afternoon' },
-    colorPalette: { primary: '#FFB7C5', secondary: '#FFC0CB', accent: '#8B4513', shadows: '#DB7093' },
-    mood: 'romantic',
-    icon: Heart,
-    is_trending: true,
-  },
-  {
-    id: 'underwater_dreams',
-    name: 'Underwater Dreams',
-    description: 'Bioluminescent deep sea, coral reefs, aquatic mystery',
-    category: 'exterior',
-    image: underwaterDreamsImg,
-    lighting: { type: 'filtered', direction: 'overhead', intensity: 'dappled', temperature: 'cool', timeOfDay: 'midday' },
-    colorPalette: { primary: '#006994', secondary: '#00CED1', accent: '#00FF7F', shadows: '#00008B' },
-    mood: 'mysterious',
-    icon: Waves,
-    is_trending: true,
-  },
-  {
-    id: 'space_station',
-    name: 'Space Station',
-    description: 'Futuristic orbital hub with Earth views, sci-fi minimalism',
-    category: 'interior',
-    image: spaceStationImg,
-    lighting: { type: 'artificial', direction: 'ambient', intensity: 'soft', temperature: 'cool', timeOfDay: 'space' },
-    colorPalette: { primary: '#E8E8E8', secondary: '#B0C4DE', accent: '#4169E1', shadows: '#2F4F4F' },
-    mood: 'futuristic',
-    icon: Star,
-    is_trending: true,
-    is_popular: true,
-  },
-  {
-    id: 'enchanted_forest',
-    name: 'Enchanted Forest',
-    description: 'Glowing mushrooms, fireflies, mystical fairy tale woodland',
-    category: 'exterior',
-    image: enchantedForestImg,
-    lighting: { type: 'natural', direction: 'scattered', intensity: 'dappled', temperature: 'cool', timeOfDay: 'twilight' },
-    colorPalette: { primary: '#228B22', secondary: '#32CD32', accent: '#FFD700', shadows: '#013220' },
-    mood: 'magical',
-    icon: TreePine,
-    is_trending: true,
-    is_popular: true,
-  },
-  {
-    id: 'urban_luxury',
-    name: 'Urban Luxury',
-    description: 'Penthouse infinity pool, city skyline at twilight, glamour',
-    category: 'interior',
-    image: urbanLuxuryImg,
-    lighting: { type: 'mixed', direction: 'ambient', intensity: 'soft', temperature: 'warm', timeOfDay: 'blue_hour' },
-    colorPalette: { primary: '#1A1A1A', secondary: '#333333', accent: '#9370DB', shadows: '#0D0D0D' },
-    mood: 'luxurious',
-    icon: Building2,
-    is_trending: true,
-  },
-  // MORE EPIC ENVIRONMENTS
-  {
-    id: 'arctic_aurora',
-    name: 'Arctic Aurora',
-    description: 'Northern lights dancing over frozen tundra, cosmic wonder',
-    category: 'exterior',
-    image: arcticAuroraImg,
-    lighting: { type: 'natural', direction: 'overhead', intensity: 'ethereal', temperature: 'very_cool', timeOfDay: 'night' },
-    colorPalette: { primary: '#00FF00', secondary: '#9400D3', accent: '#E8F4F8', shadows: '#191970' },
-    mood: 'ethereal',
-    icon: Snowflake,
-    is_popular: true,
-  },
-  {
-    id: 'retro_arcade',
-    name: 'Retro Arcade',
-    description: '80s synthwave nostalgia, neon machines, checkered floors',
-    category: 'interior',
-    image: retroArcadeImg,
-    lighting: { type: 'artificial', direction: 'multi', intensity: 'vibrant', temperature: 'cool', timeOfDay: 'night' },
-    colorPalette: { primary: '#FF1493', secondary: '#00CED1', accent: '#FFD700', shadows: '#1A1A2E' },
-    mood: 'nostalgic',
-    icon: Sparkles,
-  },
-  {
-    id: 'ancient_ruins',
-    name: 'Ancient Ruins',
-    description: 'Greek temple at sunset, ivy-covered marble, timeless history',
-    category: 'exterior',
-    image: ancientRuinsImg,
-    lighting: { type: 'natural', direction: 'low_angle', intensity: 'warm', temperature: 'warm', timeOfDay: 'golden_hour' },
-    colorPalette: { primary: '#D4A574', secondary: '#F5DEB3', accent: '#556B2F', shadows: '#8B7355' },
-    mood: 'historic',
-    icon: Building2,
-    is_popular: true,
-  },
-  {
-    id: 'tropical_paradise',
-    name: 'Tropical Paradise',
-    description: 'Pristine beach at sunset, palm silhouettes, vacation dreams',
-    category: 'exterior',
-    image: tropicalParadiseImg,
-    lighting: { type: 'natural', direction: 'backlit', intensity: 'vibrant', temperature: 'warm', timeOfDay: 'sunset' },
-    colorPalette: { primary: '#FF6B6B', secondary: '#40E0D0', accent: '#FF8C00', shadows: '#2E8B57' },
-    mood: 'paradise',
-    icon: Waves,
-    is_popular: true,
-  },
-  {
-    id: 'post_apocalyptic',
-    name: 'Post-Apocalyptic',
-    description: 'Overgrown abandoned city, nature reclaiming concrete, haunting beauty',
-    category: 'exterior',
-    image: postApocalypticImg,
-    lighting: { type: 'natural', direction: 'diffused', intensity: 'moody', temperature: 'desaturated', timeOfDay: 'overcast' },
-    colorPalette: { primary: '#556B2F', secondary: '#8B8378', accent: '#CD853F', shadows: '#3D3D3D' },
-    mood: 'dramatic',
-    icon: CloudSun,
-  },
-  {
-    id: 'white_studio',
-    name: 'White Studio',
-    description: 'Clean professional backdrop, perfect for products and talking heads',
-    category: 'interior',
-    image: whiteStudioImg,
-    lighting: { type: 'artificial', direction: 'even', intensity: 'bright', temperature: 'neutral', timeOfDay: 'controlled' },
-    colorPalette: { primary: '#FFFFFF', secondary: '#F5F5F5', accent: '#333333', shadows: '#E0E0E0' },
-    mood: 'professional',
-    icon: Camera,
-    is_popular: true,
-  },
-  {
-    id: 'steampunk_lab',
-    name: 'Steampunk Lab',
-    description: 'Victorian brass machinery, copper pipes, industrial invention',
-    category: 'interior',
-    image: steampunkLabImg,
-    lighting: { type: 'artificial', direction: 'ambient', intensity: 'warm', temperature: 'very_warm', timeOfDay: 'evening' },
-    colorPalette: { primary: '#B8860B', secondary: '#CD7F32', accent: '#FFD700', shadows: '#3D2914' },
-    mood: 'inventive',
-    icon: Sparkles,
-  },
-  {
-    id: 'cloud_nine',
-    name: 'Cloud Nine',
-    description: 'Heavenly cloudscape, golden rays, ethereal ascension',
-    category: 'exterior',
-    image: cloudNineImg,
-    lighting: { type: 'natural', direction: 'backlit', intensity: 'glowing', temperature: 'warm', timeOfDay: 'golden_hour' },
-    colorPalette: { primary: '#FFFAF0', secondary: '#FFD700', accent: '#87CEEB', shadows: '#D3D3D3' },
-    mood: 'divine',
-    icon: CloudSun,
-  },
-  {
-    id: 'zen_garden',
-    name: 'Zen Garden',
-    description: 'Raked sand patterns, bamboo, misty morning meditation',
-    category: 'exterior',
-    image: zenGardenImg,
-    lighting: { type: 'natural', direction: 'diffused', intensity: 'soft', temperature: 'neutral', timeOfDay: 'dawn' },
-    colorPalette: { primary: '#90EE90', secondary: '#F5F5DC', accent: '#228B22', shadows: '#696969' },
-    mood: 'peaceful',
-    icon: TreePine,
-  },
-  {
-    id: 'mountain_summit',
-    name: 'Mountain Summit',
-    description: 'Epic peak above clouds at sunrise, achievement and adventure',
-    category: 'exterior',
-    image: mountainSummitImg,
-    lighting: { type: 'natural', direction: 'low_angle', intensity: 'dramatic', temperature: 'warm', timeOfDay: 'dawn' },
-    colorPalette: { primary: '#4682B4', secondary: '#FFD700', accent: '#FF6347', shadows: '#2F4F4F' },
-    mood: 'epic',
-    icon: Mountain,
-    is_popular: true,
-  },
+// ─────────────────────────────────────────────────────────────────────────────
+// Glow palette — tints the hero gallery's ambient halo per world.
+// ─────────────────────────────────────────────────────────────────────────────
+function envWorldGlow(world: EnvWorld): string {
+  const map: Record<EnvWorld, string> = {
+    "golden-hour":   "hsl(35 100% 60% / 0.55)",
+    "blue-hour":     "hsl(220 95% 65% / 0.50)",
+    "night-neon":    "hsl(285 95% 65% / 0.55)",
+    "storm-weather": "hsl(210 25% 65% / 0.45)",
+    "wilderness":    "hsl(125 60% 55% / 0.45)",
+    "urban":         "hsl(20 70% 55% / 0.45)",
+    "interiors":     "hsl(30 60% 55% / 0.40)",
+    "surreal":       "hsl(170 80% 60% / 0.50)",
+    "cosmic":        "hsl(255 90% 65% / 0.55)",
+  };
+  return map[world];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Worlds — primary navigation
+// ─────────────────────────────────────────────────────────────────────────────
+type WorldFilter = EnvWorld | "all" | "favorites";
+const WORLD_FILTERS: { id: WorldFilter; label: string; icon: typeof Sun }[] = [
+  { id: "all",           label: "All",            icon: Sparkles },
+  { id: "favorites",     label: "Favorites",      icon: Star },
+  { id: "golden-hour",   label: "Golden Hour",    icon: Sun },
+  { id: "blue-hour",     label: "Blue Hour",      icon: CloudSun },
+  { id: "night-neon",    label: "Night & Neon",   icon: Moon },
+  { id: "storm-weather", label: "Storm",          icon: Cloud },
+  { id: "wilderness",    label: "Wilderness",     icon: TreePine },
+  { id: "urban",         label: "Urban",          icon: Building2 },
+  { id: "interiors",     label: "Interiors",      icon: HomeIcon },
+  { id: "surreal",       label: "Surreal",        icon: Heart },
+  { id: "cosmic",        label: "Cosmic",         icon: Stars },
 ];
 
-// Hand-curated 20 + 100 cinematic atmospheres from Unsplash CDN
-const ENVIRONMENT_PRESETS = [...BASE_PRESETS, ...EXTENDED_ENVIRONMENTS] as any[];
-
-const CATEGORIES = [
-  { id: 'all', label: 'All', icon: Palette },
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'interior', label: 'Interior', icon: Home },
-  { id: 'exterior', label: 'Exterior', icon: TreePine },
+const WORLD_ORDER_FOR_RAILS: EnvWorld[] = [
+  "golden-hour", "blue-hour", "night-neon", "storm-weather",
+  "wilderness", "urban", "interiors", "surreal", "cosmic",
 ];
 
-function EnvironmentCard({ 
-  environment,
-  onApply,
-  index = 0,
-}: { 
-  environment: typeof ENVIRONMENT_PRESETS[0];
-  onApply: () => void;
-  index?: number;
+// Secondary axis: indoor/outdoor
+type CategoryFilter = "all" | "interior" | "exterior";
+const CATEGORY_FILTERS: { id: CategoryFilter; label: string; icon?: typeof Sun }[] = [
+  { id: "all",      label: "Any setting" },
+  { id: "exterior", label: "Exterior", icon: TreePine },
+  { id: "interior", label: "Interior", icon: HomeIcon },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Favorites — localStorage, cross-tab sync (preserved from old impl)
+// ─────────────────────────────────────────────────────────────────────────────
+const FAVORITES_KEY = "sb:env:favorites";
+function readFavorites(): Set<string> {
+  try {
+    const raw = typeof window === "undefined" ? null : window.localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.filter(s => typeof s === "string") : []);
+  } catch { return new Set(); }
+}
+function writeFavorites(ids: Set<string>) {
+  try { window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(ids))); } catch { /* noop */ }
+}
+
+function useFavorites(): [Set<string>, (id: string) => void] {
+  const [favs, setFavs] = useState<Set<string>>(() => readFavorites());
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === FAVORITES_KEY) setFavs(readFavorites());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const toggle = useCallback((id: string) => {
+    setFavs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      writeFavorites(next);
+      return next;
+    });
+  }, []);
+  return [favs, toggle];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compact number
+// ─────────────────────────────────────────────────────────────────────────────
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+// Temperature hue for the chip color
+const TEMP_HUE: Record<string, string> = {
+  warm: "hsl(28 90% 65%)", very_warm: "hsl(15 90% 60%)",
+  cool: "hsl(200 80% 70%)", very_cool: "hsl(220 85% 70%)",
+  neutral: "hsl(48 25% 80%)", desaturated: "hsl(220 10% 60%)", mixed: "hsl(280 60% 70%)",
+};
+
+const TOD_LABEL: Record<string, string> = {
+  golden_hour: "Golden hr", blue_hour: "Blue hr", twilight: "Twilight",
+  dawn: "Dawn", sunrise: "Sunrise", morning: "Morning", midday: "Midday",
+  afternoon: "Afternoon", sunset: "Sunset", evening: "Evening", night: "Night",
+  overcast: "Overcast", space: "Space", controlled: "Controlled",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Card — glassmorphic floating tile
+// ─────────────────────────────────────────────────────────────────────────────
+const EnvironmentCard = memo(function EnvironmentCard({
+  bp, onOpen, isFavorite, onToggleFavorite, index,
+}: {
+  bp: EnvironmentBlueprint;
+  onOpen: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  index: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const IconComponent = environment.icon;
+  const [hover, setHover] = useState(false);
+  const Icon = bp.icon;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={onApply}
-      className="group relative cursor-pointer"
+    <button
+      type="button"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onOpen}
+      className="group relative block text-left cursor-pointer animate-fade-in w-full"
+      style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
-      {/* Card Container - Compact */}
-      <div className={cn(
-        "relative aspect-[3/4] rounded-xl overflow-hidden",
-        "bg-muted transition-all duration-300",
-        "border border-border/50 hover:border-border",
-        "shadow-sm hover:shadow-lg"
-      )}>
-        {/* Image - Lazy loaded for performance */}
-        <img 
-          src={environment.image} 
-          alt={environment.name}
+      <div
+        className={cn(
+          "relative aspect-[3/4] rounded-2xl overflow-hidden",
+          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "transition-all duration-500",
+          hover && "ring-white/[0.14] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(48,95%,70%,0.35)]",
+        )}
+      >
+        <img
+          src={bp.image}
+          alt={bp.name}
           loading="lazy"
-          decoding="async"
           className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-transform duration-500",
-            isHovered ? "scale-110" : "scale-100"
+            "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+            hover ? "scale-[1.06]" : "scale-100",
           )}
         />
-        
-        {/* Gradient Overlay */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-300",
-          isHovered 
-            ? "bg-gradient-to-t from-black/90 via-black/50 to-black/20" 
-            : "bg-gradient-to-t from-black/70 via-black/20 to-transparent"
-        )} />
 
-        {/* Badges - Top */}
-        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
-          <div className="flex gap-1">
-            {environment.is_trending && (
-              <Badge className="bg-amber-500/90 text-foreground border-0 text-[10px] px-1.5 py-0.5">
-                <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
-                Hot
-              </Badge>
-            )}
-            {environment.is_popular && (
-              <Badge className="bg-rose-500/90 text-foreground border-0 text-[10px] px-1.5 py-0.5">
-                <Heart className="w-2.5 h-2.5 mr-0.5" />
-                Popular
-              </Badge>
-            )}
-          </div>
-          <div className="w-6 h-6 rounded-full bg-background/40 backdrop-blur-sm flex items-center justify-center">
-            <IconComponent className="w-3 h-3 text-foreground" />
-          </div>
-        </div>
+        <div
+          className={cn(
+            "absolute inset-0 transition-opacity duration-500 pointer-events-none",
+            hover
+              ? "bg-gradient-to-t from-[hsl(220_30%_2%)] via-[hsl(220_30%_2%)]/55 to-[hsla(48,95%,70%,0.10)]"
+              : "bg-gradient-to-t from-[hsl(220_30%_3%)] via-[hsl(220_30%_3%)]/30 to-transparent",
+          )}
+        />
 
-        {/* Quick Apply - Hover */}
-        {isHovered && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              onApply();
+        {hover && (
+          <div
+            aria-hidden
+            className="absolute -inset-px rounded-2xl pointer-events-none"
+            style={{
+              background: "radial-gradient(circle at 50% 0%, hsla(48,95%,70%,0.30), transparent 65%)",
+              mixBlendMode: "screen",
             }}
-          >
-            <Check className="w-4 h-4 text-foreground" />
-          </motion.button>
+          />
         )}
 
-        {/* Content - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-sm font-semibold text-foreground mb-1 line-clamp-1">
-            {environment.name}
-          </h3>
-          
-          {/* Show description on hover */}
-          <div className={cn(
-            "transition-all duration-300 overflow-hidden",
-            isHovered ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
-          )}>
-            <p className="text-[11px] text-muted-foreground mb-2 line-clamp-2">
-              {environment.description}
-            </p>
+        {/* Top badges */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {bp.isTrending && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/85 text-foreground text-[9px] font-mono uppercase tracking-[0.18em]">
+                <Sparkles className="w-2.5 h-2.5" />
+                Hot
+              </span>
+            )}
+            {bp.isPopular && !bp.isTrending && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/80 text-foreground text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+                Popular
+              </span>
+            )}
           </div>
-          
-          {/* Tags */}
+
+          {/* Favorite + icon */}
           <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className="bg-white/10 border-white/20 text-foreground/95 text-[10px] px-1.5 py-0 capitalize">
-              {environment.category}
-            </Badge>
-            <Badge variant="outline" className="bg-white/10 border-white/20 text-foreground/95 text-[10px] px-1.5 py-0 capitalize">
-              {environment.mood}
-            </Badge>
-          </div>
-          
-          {/* Color Palette - Hover */}
-          <div className={cn(
-            "flex items-center gap-1 mt-2 transition-all duration-300",
-            isHovered ? "opacity-100" : "opacity-0"
-          )}>
-            {Object.values(environment.colorPalette).slice(0, 4).map((color, i) => (
-              <div
-                key={i}
-                className="w-4 h-4 rounded-full border border-white/30"
-                style={{ backgroundColor: color as string }}
-              />
-            ))}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              title={isFavorite ? "Remove from favorites" : "Save to favorites"}
+              className={cn(
+                "h-6 w-6 rounded-full backdrop-blur ring-1 ring-inset flex items-center justify-center transition-all",
+                isFavorite
+                  ? "bg-amber-300 text-black ring-amber-300/60"
+                  : "bg-black/40 text-foreground/85 ring-white/15 hover:bg-black/60",
+              )}
+            >
+              <Star className="w-3 h-3" fill={isFavorite ? "currentColor" : "none"} strokeWidth={1.6} />
+            </button>
+            <span className="h-6 w-6 rounded-full bg-black/55 ring-1 ring-inset ring-white/15 backdrop-blur flex items-center justify-center text-foreground/85">
+              <Icon className="w-3 h-3" />
+            </span>
           </div>
         </div>
+
+        {/* Bottom content */}
+        <div className="absolute left-0 right-0 bottom-0 p-3 z-10">
+          <h3 className="text-[14px] sm:text-[15px] font-display italic font-light leading-tight text-foreground/95 line-clamp-2">
+            {bp.name}
+          </h3>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-mono uppercase tracking-[0.18em]">
+            <span
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              style={{
+                color: TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)",
+                background: (TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)").replace(")", " / 0.08)").replace("hsl(", "hsla("),
+                borderColor: (TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)").replace(")", " / 0.25)").replace("hsl(", "hsla("),
+              }}
+            >
+              {TOD_LABEL[bp.lighting.timeOfDay] ?? bp.lighting.timeOfDay}
+            </span>
+            <span className="text-foreground/55">{ENV_WORLD_SHORT[bp.world]}</span>
+          </div>
+        </div>
+
+        {hover && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <span className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-foreground/95 text-background text-[11px] font-medium tracking-wide shadow-[0_15px_45px_-12px_hsla(0,0%,100%,0.45)] animate-fade-in">
+              <ArrowRight className="w-3.5 h-3.5" />
+              Inspect scene
+            </span>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </button>
+  );
+});
+
+EnvironmentCard.displayName = "EnvironmentCard";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter pill — shared
+// ─────────────────────────────────────────────────────────────────────────────
+function FilterPill({
+  active, onClick, children, icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
+        active
+          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
+          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// World rail
+// ─────────────────────────────────────────────────────────────────────────────
+function WorldRail({
+  world, items, onOpenCard, onSeeAll, favorites, onToggleFavorite,
+}: {
+  world: { id: EnvWorld; label: string; icon: typeof Sun };
+  items: EnvironmentBlueprint[];
+  onOpenCard: (id: string) => void;
+  onSeeAll: () => void;
+  favorites: Set<string>;
+  onToggleFavorite: (id: string) => void;
+}) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const Icon = world.icon;
+  const scrollBy = (delta: number) => railRef.current?.scrollBy({ left: delta, behavior: "smooth" });
+
+  return (
+    <div className="relative">
+      <div className="flex items-baseline justify-between gap-4 mb-4">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <Icon className="w-4 h-4 text-foreground/45 self-center" />
+          <h3 className="text-[clamp(1.4rem,3vw,2rem)] font-display italic font-light leading-tight truncate">
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              {world.label}
+            </span>
+            <span className="ml-3 font-mono text-[11px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+              {items.length}
+            </span>
+          </h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => scrollBy(-560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll left"
+          >‹</button>
+          <button
+            onClick={() => scrollBy(560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll right"
+          >›</button>
+          <button
+            onClick={onSeeAll}
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+          >
+            See all {items.length}
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative -mx-1">
+        <div
+          aria-hidden className="pointer-events-none absolute top-0 bottom-0 left-0 w-12 z-10"
+          style={{ background: "linear-gradient(90deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          aria-hidden className="pointer-events-none absolute top-0 bottom-0 right-0 w-12 z-10"
+          style={{ background: "linear-gradient(270deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          ref={railRef}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 px-1"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {items.map((bp, i) => (
+            <div key={bp.id} className="snap-start flex-shrink-0 w-[42vw] sm:w-[260px] md:w-[240px] lg:w-[220px]">
+              <EnvironmentCard
+                bp={bp}
+                index={i}
+                onOpen={() => onOpenCard(bp.id)}
+                isFavorite={favorites.has(bp.id)}
+                onToggleFavorite={() => onToggleFavorite(bp.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page body
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-world tonal palettes — chosen so the rail evokes the world the
+// user is browsing (Golden Hour = warm amber, Cosmic = deep indigo, etc.)
+const ENV_WORLD_TONES: Record<string, PageTone> = {
+  "golden-hour":   { label: "env:golden-hour",   primary: "hsl(28 80% 12%)",  secondary: "hsl(38 95% 65%)",  accent: "hsl(15 85% 55%)" },
+  "blue-hour":     { label: "env:blue-hour",     primary: "hsl(220 65% 12%)", secondary: "hsl(195 85% 60%)", accent: "hsl(280 70% 60%)" },
+  "night-neon":    { label: "env:night-neon",    primary: "hsl(280 55% 10%)", secondary: "hsl(330 95% 60%)", accent: "hsl(195 95% 60%)" },
+  "storm-weather": { label: "env:storm-weather", primary: "hsl(210 35% 12%)", secondary: "hsl(200 25% 60%)", accent: "hsl(48 60% 65%)" },
+  "wilderness":    { label: "env:wilderness",    primary: "hsl(150 40% 10%)", secondary: "hsl(120 50% 55%)", accent: "hsl(48 75% 60%)" },
+  "urban":         { label: "env:urban",         primary: "hsl(220 30% 12%)", secondary: "hsl(195 60% 65%)", accent: "hsl(48 75% 60%)" },
+  "interiors":     { label: "env:interiors",     primary: "hsl(28 35% 12%)",  secondary: "hsl(38 70% 60%)",  accent: "hsl(15 65% 55%)" },
+  "surreal":       { label: "env:surreal",       primary: "hsl(295 40% 12%)", secondary: "hsl(280 75% 70%)", accent: "hsl(195 85% 70%)" },
+  "cosmic":        { label: "env:cosmic",        primary: "hsl(245 55% 10%)", secondary: "hsl(200 80% 65%)", accent: "hsl(280 70% 70%)" },
+};
+
+function EnvironmentsContent() {
+  const { navigate } = useSafeNavigation();
+  const moduleLink = useModuleLink();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const FILTERS_KEY = "sb_envs_filters_v2";
+  type Persisted = { search: string; world: WorldFilter; category: CategoryFilter };
+  const loadLocal = (): Persisted => {
+    try {
+      const raw = localStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          search:   typeof p.search === "string" ? p.search : "",
+          world:    WORLD_FILTERS.some(w => w.id === p.world) ? p.world : "all",
+          category: ["all","interior","exterior"].includes(p.category) ? p.category : "all",
+        };
+      }
+    } catch { /* noop */ }
+    return { search: "", world: "all", category: "all" };
+  };
+  const initial = useMemo(() => {
+    const local = loadLocal();
+    return {
+      search:   searchParams.get("search")   ?? local.search,
+      world:    (searchParams.get("world")    as WorldFilter)    ?? local.world,
+      category: (searchParams.get("category") as CategoryFilter) ?? local.category,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [searchQuery, setSearchQuery] = useState(initial.search);
+  const [worldFilter, setWorldFilter] = useState<WorldFilter>(initial.world);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(initial.category);
+  const [drawerOpenId, setDrawerOpenId] = useState<string | null>(null);
+  const [favorites, toggleFavorite] = useFavorites();
+
+  // Left rail picks up the selected world's tonal palette, falling back
+  // to the default Environments tone when "all" or "favorites" is active.
+  usePageTone(
+    worldFilter !== "all" && worldFilter !== "favorites" && ENV_WORLD_TONES[worldFilter]
+      ? ENV_WORLD_TONES[worldFilter]
+      : TONE_PRESETS.environments,
+  );
+
+  // Sync URL + localStorage
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (searchQuery.trim()) p.set("search", searchQuery.trim());
+    if (worldFilter !== "all") p.set("world", worldFilter);
+    if (categoryFilter !== "all") p.set("category", categoryFilter);
+    setSearchParams(p, { replace: true });
+    try {
+      localStorage.setItem(FILTERS_KEY, JSON.stringify({ search: searchQuery, world: worldFilter, category: categoryFilter }));
+    } catch { /* noop */ }
+  }, [searchQuery, worldFilter, categoryFilter, setSearchParams]);
+
+  const all = useMemo(() => getAllEnvironmentBlueprints(), []);
+
+  const filtered = useMemo(() => {
+    return all.filter((bp) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const hit = bp.name.toLowerCase().includes(q)
+          || bp.description.toLowerCase().includes(q)
+          || bp.mood.toLowerCase().includes(q)
+          || bp.world.toLowerCase().includes(q)
+          || bp.terrain.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (worldFilter === "favorites") {
+        if (!favorites.has(bp.id)) return false;
+      } else if (worldFilter !== "all") {
+        if (bp.world !== worldFilter) return false;
+      }
+      if (categoryFilter !== "all" && bp.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [all, searchQuery, worldFilter, categoryFilter, favorites]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      if (a.isTrending && !b.isTrending) return -1;
+      if (!a.isTrending && b.isTrending) return 1;
+      if (a.isPopular && !b.isPopular) return -1;
+      if (!a.isPopular && b.isPopular) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [filtered]);
+
+  const stats = useMemo(() => ({
+    total:     sorted.length,
+    trending:  sorted.filter(t => t.isTrending).length,
+    favs:      favorites.size,
+    interior:  sorted.filter(t => t.category === "interior").length,
+  }), [sorted, favorites]);
+
+  const activeBlueprint = drawerOpenId ? getEnvironmentBlueprint(drawerOpenId) ?? null : null;
+
+  const handleApply = useCallback((bp: EnvironmentBlueprint) => {
+    navigate(moduleLink(`/create?environment=${bp.id}`));
+    toast.success(`Applied scene "${bp.name}"`);
+    setDrawerOpenId(null);
+  }, [navigate, moduleLink]);
+
+  // Active world's label / icon for the breadcrumb when in a single-world view
+  const activeWorldMeta = WORLD_FILTERS.find(w => w.id === worldFilter);
+
+  return (
+    <div className="relative">
+      {/* ── HERO + FILTERS — one cinematic section with the auto-gallery
+            cycling behind the title, search, and filter pills. Full-bleed
+            (extends behind the LeftRail when open) via HeroGalleryBackdrop. */}
+      <section className="relative mb-8">
+        <HeroGalleryBackdrop>
+          <AutoGallery
+            items={all.map((bp) => ({
+              id: bp.id,
+              name: bp.name,
+              imageUrl: bp.image,
+              caption: ENV_WORLD_SHORT[bp.world],
+              glow: envWorldGlow(bp.world),
+            }))}
+            variant="hero"
+          />
+        </HeroGalleryBackdrop>
+
+        <div className="relative z-10 pt-8 sm:pt-12 pb-7">
+          <EditorialEyebrow>Environments</EditorialEyebrow>
+          <EditorialHeadline className="mt-5" size="md">
+            Scenes.
+          </EditorialHeadline>
+          <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-foreground/75">
+            Worlds your subject inhabits — lighting, palette, lens, ambience.
+          </p>
+
+          <div className="mt-7 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/65" />
+              <Input
+                placeholder="Search by name, mood, world, terrain…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-11 h-12 bg-white/[0.06] ring-1 ring-inset ring-white/[0.12] focus:ring-white/[0.25] border-0 text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
+              Setting
+            </span>
+            {CATEGORY_FILTERS.map((opt) => (
+              <FilterPill
+                key={opt.id}
+                active={categoryFilter === opt.id}
+                onClick={() => setCategoryFilter(opt.id)}
+                icon={opt.icon ? <opt.icon className="w-3.5 h-3.5" /> : undefined}
+              >
+                {opt.label}
+              </FilterPill>
+            ))}
+            <FilterPill
+              active={worldFilter === "favorites"}
+              onClick={() => setWorldFilter(worldFilter === "favorites" ? "all" : "favorites")}
+              icon={<Star className="w-3.5 h-3.5" fill={worldFilter === "favorites" ? "currentColor" : "none"} />}
+            >
+              Favorites {favorites.size > 0 ? `(${favorites.size})` : ""}
+            </FilterPill>
+          </div>
+        </div>
+      </section>
+
+      {/* ── WORLD PRESENTATION ─────────────────────────────────── */}
+      {worldFilter === "all" ? (
+        <section className="pb-16 space-y-12">
+          {(searchQuery.trim() || categoryFilter !== "all") && (
+            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 -mt-2">
+              {sorted.length} match{sorted.length === 1 ? "" : "es"} across filters
+            </div>
+          )}
+          {WORLD_ORDER_FOR_RAILS.map((worldId) => {
+            const inRail = sorted.filter(bp => bp.world === worldId);
+            if (inRail.length === 0) return null;
+            const meta = WORLD_FILTERS.find(w => w.id === worldId)!;
+            return (
+              <WorldRail
+                key={worldId}
+                world={{ id: worldId, label: ENV_WORLD_LABELS[worldId], icon: meta.icon }}
+                items={inRail}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                onOpenCard={(id) => setDrawerOpenId(id)}
+                onSeeAll={() => {
+                  setWorldFilter(worldId);
+                  window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+                }}
+              />
+            );
+          })}
+          {sorted.length === 0 && (
+            <EmptyState onReset={() => {
+              setSearchQuery(""); setWorldFilter("all"); setCategoryFilter("all");
+            }} />
+          )}
+        </section>
+      ) : (
+        <section className="pb-16">
+          <div className="flex items-baseline justify-between mb-5 gap-4 flex-wrap">
+            <div className="flex items-baseline gap-4">
+              <button
+                onClick={() => setWorldFilter("all")}
+                className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 hover:text-foreground/85 transition-colors inline-flex items-center gap-1.5"
+              >
+                ← All worlds
+              </button>
+              <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-display italic font-light leading-tight">
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  {activeWorldMeta?.label}
+                </span>
+                <span className="ml-3 font-mono text-[12px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+                  {sorted.length}
+                </span>
+              </h2>
+            </div>
+            <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
+              tap any card to inspect the scene
+            </span>
+          </div>
+
+          {sorted.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              {sorted.map((bp, i) => (
+                <EnvironmentCard
+                  key={bp.id}
+                  bp={bp}
+                  index={i}
+                  onOpen={() => setDrawerOpenId(bp.id)}
+                  isFavorite={favorites.has(bp.id)}
+                  onToggleFavorite={() => toggleFavorite(bp.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState onReset={() => {
+              setSearchQuery(""); setWorldFilter("all"); setCategoryFilter("all");
+            }} />
+          )}
+        </section>
+      )}
+
+      {/* ── DRAWER ─────────────────────────────────────────────── */}
+      <EnvironmentDetailDrawer
+        environment={activeBlueprint}
+        open={!!activeBlueprint}
+        onClose={() => setDrawerOpenId(null)}
+        onApply={handleApply}
+        isFavorite={activeBlueprint ? favorites.has(activeBlueprint.id) : false}
+        onToggleFavorite={() => { if (activeBlueprint) toggleFavorite(activeBlueprint.id); }}
+      />
+    </div>
+  );
+}
+
+function FloatingStat({
+  label, value, hue,
+}: { label: string; value: number; hue?: string; }) {
+  return (
+    <div className="inline-block">
+      <div className={cn("text-[clamp(1.5rem,3vw,2rem)] font-display italic font-light leading-none tabular-nums", hue ?? "text-foreground/95")}>
+        {value}
+      </div>
+      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">{label}</div>
+    </div>
+  );
+}
+
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="text-center py-20">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+        <Mountain className="w-6 h-6 text-foreground/55" />
+      </div>
+      <h3 className="text-xl font-display italic text-foreground/95 mb-2">No environments matched</h3>
+      <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
+        Try clearing a filter — your world + setting combination might be too narrow.
+      </p>
+      <Button
+        variant="outline"
+        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        onClick={onReset}
+      >
+        Clear filters
+        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+      </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public page
+// ─────────────────────────────────────────────────────────────────────────────
+export function EnvironmentsWorkbench() {
+  const liveRenderTimecode = useLiveRenderTimecode();
+
+  return (
+    <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+      <EditorialCanvas
+        maxWidth="100%"
+        chrome={{
+          crumbs: ["Small Bridges", "environments"],
+          timecode: liveRenderTimecode ?? "ENV · LIVE",
+        }}
+      >
+        <EnvironmentsContent />
+      </EditorialCanvas>
+    </div>
   );
 }
 
 export default function Environments() {
-  usePageMeta({ title: "Environments — Small Bridges", description: "Cinematic location packs and environment libraries for Small Bridges scenes." });
-
-  const { navigate } = useSafeNavigation();
-  const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-
-  const filteredEnvironments = ENVIRONMENT_PRESETS.filter(env => {
-    const matchesSearch = !searchQuery || 
-      env.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      env.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      env.mood.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (activeCategory === 'trending') {
-      return matchesSearch && env.is_trending;
-    }
-    
-    const matchesCategory = activeCategory === 'all' || env.category === activeCategory;
-    
-    return matchesSearch && matchesCategory;
+  usePageMeta({
+    title: "Environments — Small Bridges",
+    description: "Cinematic scenes the subject lives in. 120 environments with lighting, palette, camera, sound, and a generator prompt that places your character inside the world.",
   });
 
-  const handleApplyEnvironment = (environment: typeof ENVIRONMENT_PRESETS[0]) => {
-    navigate(`/create?environment=${environment.id}`);
-    toast.success(`Applied "${environment.name}" environment`);
-  };
-
-  const liveRenderTimecode = useLiveRenderTimecode();
-
   return (
-    <FoundationShell>
-      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
-        <EditorialCanvas
-          maxWidth="100%"
-          chrome={{
-            crumbs: ["Small Bridges", "environments"],
-            timecode: liveRenderTimecode ?? `${ENVIRONMENT_PRESETS.length} PRESETS`,
-          }}
-        >
-      <main className="max-w-7xl mx-auto">
-        <div>
-          <PremiumPageHero
-            eyebrow="Atmospheres · Live"
-            titlePrefix="Cinematic"
-            titleHighlight="environments"
-            titleSuffix="."
-            description="Hand-crafted visual worlds with lighting, palette, and mood baked in. One click to set the stage."
-            stats={[
-              { label: 'Worlds', value: ENVIRONMENT_PRESETS.length, accent: 'text-foreground' },
-              { label: 'Trending', value: ENVIRONMENT_PRESETS.filter(e => (e as any).is_trending).length, accent: 'text-[hsl(var(--primary))]' },
-              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-foreground/90' },
-              { label: 'Showing', value: filteredEnvironments.length, accent: 'text-foreground/90' },
-            ] as HeroStat[]}
-            actions={
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/80" />
-                <Input
-                  placeholder="Search environments..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-glass-hover border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
-                />
-              </div>
-            }
-          />
-        </div>
-
-        {/* Category Pills */}
-        <motion.div 
-          className="flex gap-2 mb-6 overflow-x-auto pb-2"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap",
-                activeCategory === cat.id
-                  ? "bg-[hsl(var(--primary))] text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)]"
-                  : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
-              )}
-            >
-              <cat.icon className="w-3 h-3" />
-              {cat.label}
-            </button>
-          ))}
-        </motion.div>
-
-        {/* Environments Grid - Compact 6 columns */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {filteredEnvironments.map((environment, index) => (
-            <EnvironmentCard
-              key={environment.id}
-              environment={environment}
-              onApply={() => handleApplyEnvironment(environment)}
-              index={index}
-            />
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredEnvironments.length === 0 && (
-          <motion.div 
-            className="text-center py-16"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">No environments found</h3>
-            <p className="text-xs text-muted-foreground mb-3">Try adjusting your search or filters</p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-              className="rounded-lg text-xs"
-            >
-              <X className="w-3 h-3 mr-1.5" />
-              Clear Filters
-            </Button>
-          </motion.div>
-        )}
-      </main>
-        </EditorialCanvas>
-      </div>
-    </FoundationShell>
+    <ErrorBoundary>
+      <FoundationShell>
+        <EnvironmentsWorkbench />
+      </FoundationShell>
+    </ErrorBoundary>
   );
 }
+
+// Re-export TrendingUp so unused-import warning quiets (used in stat copy)
+export { TrendingUp };

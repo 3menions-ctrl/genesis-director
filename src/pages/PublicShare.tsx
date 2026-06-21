@@ -285,7 +285,7 @@ export default function PublicShare() {
               Free during beta. 100 starter credits the moment you sign up. No card needed.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <PrimaryCTA size="lg" onClick={() => navigate('/start')} trailingIcon={ArrowUpRight}>
+              <PrimaryCTA size="lg" onClick={() => navigate('/auth?mode=signup')} trailingIcon={ArrowUpRight}>
                 Start your scene
               </PrimaryCTA>
               <button

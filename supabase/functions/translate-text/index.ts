@@ -27,11 +27,25 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as TranslateRequest;
-    const texts = Array.isArray(body?.texts) ? body.texts.filter(Boolean) : [];
+    // Preserve the input array shape so the caller can map back
+    // index-for-index. PREVIOUSLY: `body.texts.filter(Boolean)` dropped
+    // empty/null strings, and the caller — which assumes a 1:1 mapping
+    // — assigned wrong translations to each source string. Now we
+    // preserve the slot and only ship the non-empty subset to the LLM.
+    const rawTexts = Array.isArray(body?.texts) ? body.texts : [];
+    const nonEmptyIdx: number[] = [];
+    const texts: string[] = [];
+    for (let i = 0; i < rawTexts.length; i++) {
+      const v = rawTexts[i];
+      if (typeof v === "string" && v.length > 0) {
+        nonEmptyIdx.push(i);
+        texts.push(v);
+      }
+    }
     const targetLanguage = (body?.targetLanguage || "").trim();
     const languageName = (body?.languageName || targetLanguage).trim();
 
-    if (texts.length === 0 || !targetLanguage) {
+    if (rawTexts.length === 0 || !targetLanguage) {
       return new Response(
         JSON.stringify({ error: "texts[] and targetLanguage are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -39,8 +53,9 @@ Deno.serve(async (req) => {
     }
 
     if (targetLanguage === "en") {
+      // Echo the raw shape — empty slots stay empty.
       return new Response(
-        JSON.stringify({ translations: texts }),
+        JSON.stringify({ translations: rawTexts }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -143,8 +158,15 @@ Deno.serve(async (req) => {
       console.error("Failed to parse tool args", e);
     }
 
+    // Merge translations back into the original-shape array. Empty
+    // slots stay empty; non-empty slots get the translated string.
+    const merged: string[] = rawTexts.map((v) => (typeof v === "string" ? v : ""));
+    for (let k = 0; k < nonEmptyIdx.length; k++) {
+      merged[nonEmptyIdx[k]] = translations[k] ?? merged[nonEmptyIdx[k]];
+    }
+
     return new Response(
-      JSON.stringify({ translations }),
+      JSON.stringify({ translations: merged }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

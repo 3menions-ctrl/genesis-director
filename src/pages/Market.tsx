@@ -3,14 +3,14 @@
  *
  * The entertainment marketplace. Standalone Foundation surface where
  * directors buy and sell atoms — voices, characters, locations, looks,
- * scores, sheet music, masterclasses, patron rooms. Sits alongside Music
+ * scores, masterclasses, patron rooms. Sits alongside Music
  * and Studio as a parallel creation-economy destination.
  *
  * Composed in the canonical Foundation room:
  *   FoundationShell + EditorialCanvas + SpineBackdrop.
  *
  * Tabs: All / Voices / Characters / Locations / Looks / Scores /
- *       Sheet Music / Masterclasses / Patron Rooms / Your Shop.
+ *       Masterclasses / Patron Rooms / Your Shop.
  *
  * When the DB has no listings, curated demo cards render so the
  * marketplace looks alive on day one. Real listings replace demos as
@@ -37,7 +37,15 @@ import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 
 import { confirmAsync } from '@/components/ui/global-confirm';
-type AtomType = "voice" | "character" | "location" | "look" | "score" | "vfx_pack" | "sheet_music" | "course";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+type AtomType = "voice" | "character" | "location" | "look" | "score" | "vfx_pack" | "course";
 
 interface Listing {
   id: string;
@@ -68,7 +76,6 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: "location",    label: "Locations",    icon: MapPin },
   { key: "look",        label: "Looks",        icon: Layers },
   { key: "score",       label: "Scores",       icon: Music2 },
-  { key: "sheet_music", label: "Sheet music",  icon: Music2 },
   { key: "course",      label: "Masterclasses", icon: GraduationCap },
   { key: "patrons",     label: "Patron rooms", icon: Crown },
   { key: "yours",       label: "Your shop",    icon: Tag },
@@ -109,13 +116,6 @@ const DEMO_LISTINGS: Listing[] = [
     description: "60-second cinematic crescendo. Stems included.",
     preview_url: null, thumbnail_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=800&q=80",
     price_credits: 180, total_sales: 41, tags: ["score", "strings"], created_at: new Date().toISOString(), is_demo: true,
-  },
-  {
-    id: "demo-sm1", seller_id: "demo", atom_type: "sheet_music",
-    name: "Lullaby in B♭ minor — piano",
-    description: "8 bars. Sheet music PDF + MIDI. Beginner-friendly arrangement.",
-    preview_url: null, thumbnail_url: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=800&q=80",
-    price_credits: 60, total_sales: 14, tags: ["piano", "sheet"], created_at: new Date().toISOString(), is_demo: true,
   },
   {
     id: "demo-co1", seller_id: "demo", atom_type: "course",
@@ -238,7 +238,7 @@ export default function Market() {
           eyebrow="Tonight"
           title="Trade"
           accent="atoms."
-          subtitle="Voices, characters, scores, sheet music — every atom you can put inside a reel is sellable here. 90% goes to the creator on every transaction."
+          subtitle="Voices, characters, scores, looks — every atom you can put inside a reel is sellable here. 90% goes to the creator on every transaction."
           status={["List", "Sell", "Settle"]}
           subhead={usingDemo ? "Sample listings" : `${listings.length} active`}
         >
@@ -258,7 +258,7 @@ export default function Market() {
             accent={215}
           />
           <ActionTile icon={Crown} title="Patron rooms" sub="Monthly support tier" onClick={() => setActiveTab("patrons")} accent={38} />
-          <ActionTile icon={Music2} title="Sheet music store" sub="MIDI · notation PDFs" onClick={() => setActiveTab("sheet_music")} accent={280} />
+          <ActionTile icon={GraduationCap} title="Masterclasses" sub="Learn from the makers" onClick={() => setActiveTab("course")} accent={280} />
         </section>
 
         {loading ? (
@@ -336,7 +336,6 @@ function prettyType(t: AtomType): string {
     case "look": return "Looks";
     case "score": return "Scores";
     case "vfx_pack": return "VFX packs";
-    case "sheet_music": return "Sheet music";
     case "course": return "Masterclasses";
   }
 }
@@ -348,8 +347,7 @@ function typeIcon(t: AtomType): React.ElementType {
     case "location": return MapPin;
     case "look": return Layers;
     case "vfx_pack": return Sparkles;
-    case "score":
-    case "sheet_music": return Music2;
+    case "score": return Music2;
     case "course": return GraduationCap;
   }
 }
@@ -497,6 +495,9 @@ function PatronsTab() {
   const [creators, setCreators] = useState<{ id: string; name: string; avatar: string | null; reels: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [pledgeTarget, setPledgeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [pledgeAmount, setPledgeAmount] = useState<string>("50");
+  const [pledgeBusy, setPledgeBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -523,18 +524,32 @@ function PatronsTab() {
     })();
   }, []);
 
-  const pledge = async (target: { id: string; name: string }) => {
+  const openPledge = (target: { id: string; name: string }) => {
     if (!user) { toast.error("Sign in to pledge"); return; }
-    const inputStr = window.prompt(`Monthly credits to pledge to ${target.name}?`, "50");
-    const amount = inputStr ? parseInt(inputStr, 10) : NaN;
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    setPledgeAmount("50");
+    setPledgeTarget(target);
+  };
+
+  const confirmPledge = async () => {
+    if (!user || !pledgeTarget) return;
+    const amount = parseInt(pledgeAmount, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Pledge must be a positive whole-number credit amount.");
+      return;
+    }
+    setPledgeBusy(true);
     try {
       const { error } = await supabase.from("patron_subscriptions").insert({
-        creator_id: target.id, patron_id: user.id, monthly_credits: amount,
+        creator_id: pledgeTarget.id, patron_id: user.id, monthly_credits: amount,
       });
       if (error) throw error;
-      toast.success(`Pledged ${amount} cr/mo to ${target.name}`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Pledge failed"); }
+      toast.success(`Pledged ${amount} cr/mo to ${pledgeTarget.name}`);
+      setPledgeTarget(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Pledge failed");
+    } finally {
+      setPledgeBusy(false);
+    }
   };
 
   if (loading) {
@@ -550,30 +565,92 @@ function PatronsTab() {
     );
   }
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {creators.map((c) => (
-        <div key={c.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-          <div className="flex items-center gap-3 mb-4">
-            {c.avatar ? (
-              <img src={c.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-glass-hover flex items-center justify-center text-muted-foreground font-mono">
-                {c.name[0]?.toUpperCase()}
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {creators.map((c) => (
+          <div key={c.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+            <div className="flex items-center gap-3 mb-4">
+              {c.avatar ? (
+                <img src={c.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-glass-hover flex items-center justify-center text-muted-foreground font-mono">
+                  {c.name[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] text-foreground truncate">{c.name}</div>
+                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70">{c.reels} reels</div>
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="text-[14px] text-foreground truncate">{c.name}</div>
-              <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70">{c.reels} reels</div>
+            </div>
+            <button
+              onClick={() => openPledge(c)}
+              className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]"
+            >
+              <Heart className="w-3 h-3" />Become a patron
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={!!pledgeTarget} onOpenChange={(open) => !open && setPledgeTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display italic text-[22px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              Pledge to {pledgeTarget?.name}
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-muted-foreground/85 mt-1">
+              Choose a monthly credit amount. You can change or cancel anytime from Account → Subscriptions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5">
+            <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+              Monthly credits
+            </label>
+            <div className="flex items-center gap-2">
+              {[10, 25, 50, 100].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setPledgeAmount(String(v))}
+                  className={cn(
+                    "h-9 px-3 rounded-full text-[11px] font-mono tracking-[0.18em] transition-colors",
+                    pledgeAmount === String(v)
+                      ? "bg-amber-300 text-black"
+                      : "bg-white/[0.04] text-foreground/80 hover:bg-white/[0.08]",
+                  )}
+                >
+                  {v}
+                </button>
+              ))}
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={pledgeAmount}
+                onChange={(e) => setPledgeAmount(e.target.value)}
+                className="flex-1 h-9 px-3 rounded-full bg-white/[0.04] border border-white/[0.06] text-foreground text-[13px] tabular-nums focus:outline-none focus:border-amber-300/55"
+              />
             </div>
           </div>
-          <button
-            onClick={() => pledge(c)}
-            className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]"
-          >
-            <Heart className="w-3 h-3" />Become a patron
-          </button>
-        </div>
-      ))}
-    </div>
+          <DialogFooter className="mt-6">
+            <button
+              type="button"
+              onClick={() => setPledgeTarget(null)}
+              className="h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmPledge}
+              disabled={pledgeBusy}
+              className="h-10 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em] disabled:opacity-50"
+            >
+              {pledgeBusy ? "Pledging…" : "Confirm pledge"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

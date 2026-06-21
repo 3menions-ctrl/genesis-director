@@ -137,9 +137,9 @@ export function calculateCreditsPerClip(clipDuration: number, clipIndex: number 
     return creditsForScene(toEngineId(videoEngine), clipDuration);
   } catch {
     const extended = isExtendedPricing(0, clipDuration);
-    // Wan = free-tier baseline; bypass the legacy CREDIT_SYSTEM constants.
+    // Wan = free tier. Base render is 0; only optional 4k/60fps surcharges cost.
     if (videoEngine === 'wan') {
-      return clipDuration > 5 ? 20 : 10;
+      return 0;
     }
     if (videoEngine === 'seedance') {
       return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;

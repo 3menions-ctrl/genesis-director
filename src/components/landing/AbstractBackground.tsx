@@ -4,13 +4,17 @@ import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
 
 interface AbstractBackgroundProps {
   className?: string;
+  /** Override the base image. Defaults to the shared epic-landscape plate
+   *  used by the marketing pages. Pass a different asset to re-skin a single
+   *  surface (e.g. the Help page) without affecting the others. */
+  image?: string;
 }
 
 // Detect touch device (no mouse) to skip mousemove tracking entirely
 const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundProps>(
-  function AbstractBackground({ className }, ref) {
+  function AbstractBackground({ className, image = landingAbstractBg }, ref) {
     const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
     // Subtle parallax on mouse move — DISABLED on touch devices (no mouse, saves GPU)
@@ -39,7 +43,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ 
-            backgroundImage: `url(${landingAbstractBg})`,
+            backgroundImage: `url(${image})`,
             ...(isTouchDevice ? {} : {
               transition: 'transform 2000ms ease-out',
               transform: `scale(1.05) translate(${(mousePos.x - 50) * -0.02}%, ${(mousePos.y - 50) * -0.02}%)`,

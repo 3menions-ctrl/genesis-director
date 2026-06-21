@@ -8,7 +8,6 @@ import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
-import { CategoryChooserOverlay, type AudienceCategory } from '@/components/landing/CategoryChooserOverlay';
 import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
@@ -271,18 +270,9 @@ function LandingInner() {
   }, []);
 
   const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
-  const [chooserOpen, setChooserOpen] = useState(false);
-  const handleStart = useCallback(() => setChooserOpen(true), []);
-  const handleSelectCategory = useCallback(
-    (category: AudienceCategory) => {
-      try {
-        localStorage.setItem('smallbridges.audience', category);
-      } catch {}
-      setChooserOpen(false);
-      navigate(`/start?type=${category}`);
-    },
-    [navigate],
-  );
+  // Account-type choice is gone: every "Get started" lands on the sign-up form,
+  // where business teams take the dedicated "Set up a business account" path.
+  const handleStart = useCallback(() => navigate('/auth?mode=signup'), [navigate]);
   const handleSales = useCallback(() => navigate('/contact?topic=sales'), [navigate]);
 
   // Cinematic studio entrance — plays before navigating to /studio.
@@ -486,13 +476,6 @@ function LandingInner() {
         <EndCreditsFooter />
       </TrackedSection>
       </div>
-
-      {/* Category chooser — appears after any "Get started" CTA */}
-      <CategoryChooserOverlay
-        open={chooserOpen}
-        onClose={() => setChooserOpen(false)}
-        onSelect={handleSelectCategory}
-      />
       </div>
 
       {/* Cinematic title-card sequence — rendered OUTSIDE the landing wrapper

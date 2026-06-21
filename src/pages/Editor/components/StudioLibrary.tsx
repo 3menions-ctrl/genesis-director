@@ -13,7 +13,7 @@
  * (grade, transitions, pace) in one labelled version that's instantly
  * undoable from the Versions panel.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Film, Wand2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
@@ -55,8 +55,25 @@ const CATEGORY_LABEL: Record<EffectCategory, string> = {
 
 const CATEGORY_ORDER: EffectCategory[] = ["color", "film", "atmosphere"];
 
+const STUDIO_LIB_TAB_KEY = "smallbridges.studioLibrary.tab.v1";
+
 export function StudioLibrary({ open, onClose }: Props) {
-  const [tab, setTab] = useState<Tab>("effects");
+  // Persist the active sub-tab (effects vs templates) so re-opening
+  // the panel doesn't snap back to "effects" each time. Users were
+  // landing on Templates, picking one, then re-opening to apply a
+  // different look and finding themselves back on Effects — which
+  // they reported as "the rail resets after selecting an effect."
+  const [tab, setTabRaw] = useState<Tab>(() => {
+    try {
+      const stored = localStorage.getItem(STUDIO_LIB_TAB_KEY);
+      if (stored === "effects" || stored === "templates") return stored;
+    } catch { /* localStorage unavailable */ }
+    return "effects";
+  });
+  const setTab = useCallback((next: Tab) => {
+    setTabRaw(next);
+    try { localStorage.setItem(STUDIO_LIB_TAB_KEY, next); } catch { /* quota */ }
+  }, []);
   const { selectedClipIds, applyEffectToClips, applyProjectTemplate } = useEditor();
   useEffect(() => void 0, [open]);
 

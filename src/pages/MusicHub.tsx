@@ -2,8 +2,8 @@
  * Music — /music
  *
  * Audio-first parallel creation surface. Sits alongside Studio as a
- * standalone destination on Foundation. Score · Mix · Master · Karaoke ·
- * Sheet Music — every prompt-to-soundtrack workflow lives here.
+ * standalone destination on Foundation. Score · Mix · Master ·
+ * Music — every prompt-to-soundtrack workflow lives here.
  *
  * Composed in the canonical Foundation room:
  *   FoundationShell + EditorialCanvas + SpineBackdrop atmosphere.
@@ -11,12 +11,12 @@
  * provide the page-level hero + tab control (kept verbatim — they're
  * effectively content, not chrome).
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Music2, Mic2, Piano, ArrowRight, Play, Calendar, Drum, Headphones,
-  Volume2, Sparkles, Flame,
+  Music2, Piano, Play, Calendar, Drum, Headphones,
+  Sparkles, Flame, UploadCloud, Download, Trash2, FileMusic,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,9 +26,20 @@ import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { useMediaLibrary, type MediaAsset } from "@/hooks/useMediaLibrary";
+import { validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface MusicReel {
   id: string;
@@ -64,18 +75,17 @@ const DEMO_REELS: MusicReel[] = [
   },
 ];
 
-type TabKey = "all" | "videos" | "scores" | "sheet" | "karaoke";
+type TabKey = "all" | "videos" | "scores" | "mine";
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: "all",      label: "All",          icon: Flame },
   { key: "videos",   label: "Music videos", icon: Play },
   { key: "scores",   label: "Score Studio", icon: Piano },
-  { key: "sheet",    label: "Sheet music",  icon: Music2 },
-  { key: "karaoke",  label: "Karaoke",      icon: Mic2 },
+  { key: "mine",     label: "My tracks",    icon: FileMusic },
 ];
 
 export default function MusicHub() {
-  usePageMeta({ title: "Music — Small Bridges", description: "Score Studio, Sheet Music, Daily Beat, Karaoke." });
+  usePageMeta({ title: "Music — Small Bridges", description: "Score Studio, Daily Beat." });
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();
   const [reels, setReels] = useState<MusicReel[]>([]);
@@ -109,8 +119,16 @@ export default function MusicHub() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const openStudio = (kind: "score" | "karaoke" | "sheet" | "beat") => {
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const openStudio = (kind: "score" | "beat") => {
     if (!user) { navigate("/auth"); return; }
+    // Score Studio is a real in-page generator. Other rooms still hand off
+    // to /create (with a sessionStorage intent so the right composer opens).
+    if (kind === "score") {
+      setScoreOpen(true);
+      return;
+    }
     try { sessionStorage.setItem('smallbridges.studio_intent', kind); } catch {}
     navigate("/create");
   };
@@ -131,7 +149,7 @@ export default function MusicHub() {
           eyebrow="Tonight"
           title="Score"
           accent="the room."
-          subtitle="Generate a soundtrack from a prompt. Read sheet music with an AI accompanist. Build on today's beat. Sing the chorus. Every score lives in the market the moment you ship it."
+          subtitle="Generate a soundtrack from a prompt. Build on today's beat. Sing the chorus. Every score lives in the market the moment you ship it."
           status={["Compose", "Mix", "Master"]}
           subhead={usingDemo ? "Sample music videos" : `${reels.length} reels`}
         >
@@ -148,6 +166,14 @@ export default function MusicHub() {
           >
             {(tab === "all" || tab === "scores") && (
               <StudioGrid openStudio={openStudio} />
+            )}
+
+            {(tab === "all" || tab === "mine") && (
+              <MyTracksPanel
+                signedIn={!!user}
+                onUpload={() => { if (!user) { navigate("/auth"); return; } setUploadOpen(true); }}
+                onSignIn={() => navigate("/auth")}
+              />
             )}
             {(tab === "all" || tab === "scores") && (
               <DailyBeatCard
@@ -173,38 +199,450 @@ export default function MusicHub() {
               </>
             )}
 
-            {tab === "sheet" && <SheetMusicStrip onOpen={() => openStudio("sheet")} />}
-            {tab === "karaoke" && <KaraokeStrip onOpen={() => openStudio("karaoke")} />}
           </motion.div>
         </AnimatePresence>
 
-        {/* CROSS-LINK */}
-        <section className="mt-12">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ License music · own scores</div>
-              <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
-                Every score is also a market listing.
-              </h2>
-              <p className="text-muted-foreground mt-3 max-w-xl text-[13px] leading-relaxed">
-                When you publish a track, it lands in the market as a sheet-music + soundtrack listing. Other directors license it; you earn credits per use.
-              </p>
-            </div>
-            <Link
-              to="/market"
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-foreground shrink-0"
-              style={{
-                background: "linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)",
-                boxShadow: "0 0 18px hsla(215,100%,60%,0.30), inset 0 1px 0 hsla(0,0%,100%,0.10)",
-              }}
-            >
-              Open music market <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </section>
         </EditorialCanvas>
       </div>
+      <ScoreStudioDialog open={scoreOpen} onClose={() => setScoreOpen(false)} />
+      <UploadTrackDialog open={uploadOpen} onClose={() => setUploadOpen(false)} />
     </FoundationShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MyTracksPanel — the user's own uploaded + generated audio library. Closes
+// the long-standing gap where music was display-only: directors can now bring
+// their own downloaded tracks into the app and keep them in one place.
+// ─────────────────────────────────────────────────────────────────────────────
+function MyTracksPanel({
+  signedIn, onUpload, onSignIn,
+}: { signedIn: boolean; onUpload: () => void; onSignIn: () => void }) {
+  const { assets, loading, remove } = useMediaLibrary({ mediaType: "audio", limit: 60 });
+
+  return (
+    <section className="mb-12">
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <SectionLabel label="My tracks" icon={FileMusic} meta={signedIn ? `${assets.length} saved` : undefined} />
+        <button
+          onClick={onUpload}
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] shrink-0"
+        >
+          <UploadCloud className="w-3.5 h-3.5" /> Upload track
+        </button>
+      </div>
+
+      {!signedIn ? (
+        <div className="text-center py-12 max-w-md mx-auto">
+          <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
+          <p className="text-muted-foreground text-[13px] mb-5">Sign in to upload your own music and build a personal track library.</p>
+          <button onClick={onSignIn} className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white/[0.07] hover:bg-white/[0.12] text-[11px] font-mono uppercase tracking-[0.22em] text-foreground">
+            Sign in
+          </button>
+        </div>
+      ) : loading ? (
+        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Spinner size="md" tone="muted" />
+          <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading your tracks…</span>
+        </div>
+      ) : assets.length === 0 ? (
+        <div className="text-center py-12 max-w-md mx-auto rounded-2xl border border-dashed border-white/[0.10]">
+          <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
+          <h3 className="font-display italic text-[20px] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No tracks yet.</h3>
+          <p className="text-muted-foreground text-[13px] mb-5">Upload music you've downloaded or made elsewhere — MP3, WAV, M4A, FLAC. It'll live here for use across your projects.</p>
+          <button onClick={onUpload} className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em]">
+            <UploadCloud className="w-3.5 h-3.5" /> Upload your first track
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {assets.map((a) => <TrackRow key={a.id} asset={a} onRemove={remove} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function fmtDuration(sec: number | null): string {
+  if (!sec || !isFinite(sec)) return "";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: string) => Promise<void> }) {
+  const [removing, setRemoving] = useState(false);
+  const title = asset.title || asset.prompt || "Untitled track";
+  const isUpload = asset.source === "upload";
+
+  const del = async () => {
+    setRemoving(true);
+    try { await onRemove(asset.id); toast.success("Track removed"); }
+    catch { toast.error("Could not remove track"); setRemoving(false); }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/12 p-4 transition-colors">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl border border-white/[0.08] bg-[hsl(265_60%_55%/0.12)] text-[hsl(265_70%_78%)] flex items-center justify-center shrink-0">
+          <Music2 className="w-4 h-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] text-foreground truncate">{title}</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/55 flex items-center gap-2">
+            <span>{isUpload ? "Uploaded" : (asset.source ?? "Generated")}</span>
+            {asset.duration_seconds ? <span>· {fmtDuration(asset.duration_seconds)}</span> : null}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <a
+            href={asset.asset_url}
+            target="_blank"
+            rel="noreferrer"
+            download
+            aria-label="Download track"
+            className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-white/30 text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </a>
+          <button
+            onClick={del}
+            disabled={removing}
+            aria-label="Delete track"
+            className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-rose-300/40 text-foreground/55 hover:text-rose-200 flex items-center justify-center transition-colors disabled:opacity-50"
+          >
+            {removing ? <Spinner size="sm" tone="muted" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+      <audio src={asset.asset_url} controls preload="none" className="w-full h-9" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UploadTrackDialog — bring your own audio into the app. Validates +
+// probes duration in-browser, uploads to the public video-clips bucket
+// (owner-scoped path), and registers it in the unified media library so
+// it shows up in "My tracks" and the Editor's media panel.
+// ─────────────────────────────────────────────────────────────────────────────
+function UploadTrackDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reset = () => { setFile(null); setTitle(""); setBusy(false); };
+  const close = () => { if (busy) return; reset(); onClose(); };
+
+  const pick = (f: File | null) => {
+    if (!f) return;
+    if (!f.type.startsWith("audio/")) { toast.error("Please choose an audio file."); return; }
+    setFile(f);
+    if (!title) setTitle(f.name.replace(/\.[a-zA-Z0-9]{2,5}$/, "").replace(/[-_.]+/g, " ").trim().slice(0, 80));
+  };
+
+  const submit = async () => {
+    if (!user) { toast.error("Please sign in."); return; }
+    if (!file) { toast.error("Choose an audio file."); return; }
+    setBusy(true);
+    try {
+      const validated = await validateUploadFile(file).catch((e) => { throw new Error(describeIngestError(e)); });
+      const id = crypto.randomUUID();
+      const m = file.name.match(/\.([a-zA-Z0-9]{2,5})$/);
+      const ext = (m ? m[1] : "mp3").toLowerCase();
+      const path = `${user.id}/music/${id}.${ext}`;
+
+      const up = await supabase.storage
+        .from("video-clips")
+        .upload(path, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+      if (up.error) throw up.error;
+      const url = supabase.storage.from("video-clips").getPublicUrl(path).data.publicUrl;
+
+      const { error: recErr } = await supabase.rpc("record_user_media", {
+        p_user_id: user.id,
+        p_media_type: "audio",
+        p_asset_url: url,
+        p_title: (title.trim() || file.name).slice(0, 120),
+        p_source: "upload",
+        p_duration_seconds: Math.round(validated.durationSec),
+        p_mime_type: file.type,
+        p_file_size_bytes: file.size,
+      });
+      if (recErr) throw recErr;
+
+      toast.success("Track added to your library");
+      reset();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && close()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display italic text-[24px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+            Upload a track
+          </DialogTitle>
+          <DialogDescription className="text-[12px] text-muted-foreground/85 mt-1">
+            Bring your own music into Small Bridges. MP3 / WAV / M4A / AAC / OGG / FLAC, up to 10 minutes.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4 space-y-4">
+          {!file ? (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0] ?? null); }}
+              className="w-full rounded-2xl border border-dashed border-white/[0.14] hover:border-accent/50 bg-white/[0.02] hover:bg-white/[0.04] transition-colors py-10 flex flex-col items-center justify-center gap-3"
+            >
+              <UploadCloud className="w-7 h-7 text-muted-foreground" strokeWidth={1.4} />
+              <span className="text-[13px] text-foreground/80">Click to choose audio, or drop a file here</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/50">audio/* · ≤ 500 MB · ≤ 10 min</span>
+            </button>
+          ) : (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 flex items-center gap-3">
+              <Music2 className="w-5 h-5 text-accent shrink-0" />
+              <span className="text-[13px] text-foreground truncate flex-1">{file.name}</span>
+              {!busy && (
+                <button onClick={() => setFile(null)} className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70 hover:text-foreground">Change</button>
+              )}
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="audio/*" className="sr-only" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">Title</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={80}
+              placeholder="Name this track"
+              className="w-full h-11 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[14px] focus:outline-none focus:border-accent/55"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="mt-6">
+          <button type="button" onClick={close} disabled={busy} className="h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="button" onClick={submit} disabled={busy || !file} className="h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] disabled:opacity-50 inline-flex items-center gap-2">
+            {busy ? <><Spinner size="sm" tone="inherit" />Uploading…</> : <><UploadCloud className="w-3.5 h-3.5" />Add to library</>}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ScoreStudioDialog — prompt → soundtrack via generate-music edge fn.
+// Sync edge call (Replicate poll happens server-side), returns a public
+// musicUrl. We mount a player + download once it returns.
+// ─────────────────────────────────────────────────────────────────────────────
+function ScoreStudioDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [prompt, setPrompt] = useState("Hans Zimmer cinematic strings building to a triumphant brass crescendo.");
+  const [composer, setComposer] = useState<string>("hans-zimmer");
+  const [intensity, setIntensity] = useState<"subtle" | "moderate" | "intense" | "explosive">("moderate");
+  const [duration, setDuration] = useState<number>(30);
+  const [generating, setGenerating] = useState(false);
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const COMPOSERS = [
+    { id: "hans-zimmer",       label: "Hans Zimmer" },
+    { id: "john-williams",     label: "John Williams" },
+    { id: "ennio-morricone",   label: "Ennio Morricone" },
+    { id: "howard-shore",      label: "Howard Shore" },
+    { id: "thomas-newman",     label: "Thomas Newman" },
+    { id: "alexandre-desplat", label: "Alexandre Desplat" },
+    { id: "ludwig-goransson",  label: "Ludwig Göransson" },
+    { id: "ramin-djawadi",     label: "Ramin Djawadi" },
+  ];
+  const INTENSITIES: Array<"subtle" | "moderate" | "intense" | "explosive"> = ["subtle", "moderate", "intense", "explosive"];
+  const DURATIONS = [15, 30, 60, 90];
+
+  const generate = async () => {
+    if (!prompt.trim()) { toast.error("Describe the soundtrack you want."); return; }
+    setGenerating(true);
+    setError(null);
+    setMusicUrl(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-music", {
+        body: {
+          prompt: prompt.trim(),
+          duration,
+          intensity,
+          referenceComposer: composer,
+        },
+      });
+      if (error) throw error;
+      const payload = (data ?? {}) as { musicUrl?: string; success?: boolean; error?: string };
+      if (!payload.success || !payload.musicUrl) {
+        throw new Error(payload.error || "No music returned");
+      }
+      setMusicUrl(payload.musicUrl);
+      toast.success("Score ready.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Generation failed";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-display italic text-[26px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+            Score Studio
+          </DialogTitle>
+          <DialogDescription className="text-[12px] text-muted-foreground/85 mt-1">
+            Describe the soundtrack. Pick a composer voice. We render via MusicGen Stereo Large.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-5 space-y-5">
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+              Prompt
+            </label>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={3}
+              maxLength={800}
+              className="w-full px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:border-accent/55"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+                Composer voice
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {COMPOSERS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setComposer(c.id)}
+                    className={
+                      "h-8 px-3 rounded-full text-[11px] font-mono uppercase tracking-[0.16em] transition-colors " +
+                      (composer === c.id
+                        ? "bg-accent/85 text-black"
+                        : "bg-white/[0.04] text-foreground/80 hover:bg-white/[0.08]")
+                    }
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+                Intensity
+              </label>
+              <div className="flex gap-1.5">
+                {INTENSITIES.map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setIntensity(i)}
+                    className={
+                      "flex-1 h-9 rounded-md text-[11px] font-mono uppercase tracking-[0.18em] transition-colors capitalize " +
+                      (intensity === i
+                        ? "bg-accent/85 text-black"
+                        : "bg-white/[0.04] text-foreground/80 hover:bg-white/[0.08]")
+                    }
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+              <label className="block mt-4 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+                Duration
+              </label>
+              <div className="flex gap-1.5">
+                {DURATIONS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDuration(d)}
+                    className={
+                      "flex-1 h-9 rounded-md text-[11px] font-mono uppercase tracking-[0.18em] transition-colors tabular-nums " +
+                      (duration === d
+                        ? "bg-accent/85 text-black"
+                        : "bg-white/[0.04] text-foreground/80 hover:bg-white/[0.08]")
+                    }
+                  >
+                    {d}s
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {musicUrl && (
+            <div className="rounded-xl border border-emerald-300/30 bg-emerald-300/5 p-4">
+              <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-emerald-200/85 mb-2">
+                Score ready
+              </div>
+              <audio src={musicUrl} controls autoPlay className="w-full" />
+              <div className="flex items-center gap-3 mt-3">
+                <a
+                  href={musicUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-white/[0.07] hover:bg-white/[0.12] text-[11px] font-mono uppercase tracking-[0.16em] text-foreground/85"
+                >
+                  Download MP3
+                </a>
+                <button
+                  type="button"
+                  onClick={generate}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-white/[0.07] hover:bg-white/[0.12] text-[11px] font-mono uppercase tracking-[0.16em] text-foreground/85"
+                >
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="text-[12px] text-rose-300/85">{error}</div>
+          )}
+        </div>
+
+        <DialogFooter className="mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground transition-colors"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={generate}
+            disabled={generating}
+            className="h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {generating ? <><Spinner size="sm" tone="inherit" />Composing…</> : "Generate score"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -219,12 +657,10 @@ function SectionLabel({ label, meta, icon: Icon }: { label: string; meta?: strin
   );
 }
 
-function StudioGrid({ openStudio }: { openStudio: (k: "score" | "karaoke" | "sheet" | "beat") => void }) {
+function StudioGrid({ openStudio }: { openStudio: (k: "score" | "beat") => void }) {
   const tiles = [
     { kind: "score" as const,   icon: Piano,  title: "Score Studio",       sub: "Prompt → soundtrack",   accent: 280 },
-    { kind: "sheet" as const,   icon: Music2, title: "Sheet Music Reader", sub: "MIDI · notation",       accent: 195 },
     { kind: "beat"  as const,   icon: Drum,   title: "Daily Beat",         sub: "Build on today's stem", accent: 14 },
-    { kind: "karaoke" as const, icon: Mic2,   title: "Karaoke",            sub: "Sing over any score",   accent: 160 },
   ];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
@@ -319,28 +755,3 @@ function MusicVideoCard({ reel, demo }: { reel: MusicReel; demo: boolean }) {
   );
 }
 
-function SheetMusicStrip({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div className="text-center py-12 max-w-md mx-auto">
-      <Music2 className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
-      <h3 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light text-foreground mb-3" style={{ fontFamily: "'Fraunces', serif" }}>Sheet Music Reader.</h3>
-      <p className="text-muted-foreground text-[13px] mb-6">Load any MIDI or notation. Play along with an AI accompanist; transpose any key, simplify for beginners.</p>
-      <button onClick={onOpen} className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
-        <Music2 className="w-3.5 h-3.5" /> Open the reader
-      </button>
-    </div>
-  );
-}
-
-function KaraokeStrip({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div className="text-center py-12 max-w-md mx-auto">
-      <Volume2 className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
-      <h3 className="font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light text-foreground mb-3" style={{ fontFamily: "'Fraunces', serif" }}>Karaoke Mode.</h3>
-      <p className="text-muted-foreground text-[13px] mb-6">Sing over any track. Auto-pitch helps the rough edges, share the result as a music reel.</p>
-      <button onClick={onOpen} className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-amber-300/90 hover:bg-amber-300 text-black text-[11px] font-mono uppercase tracking-[0.22em]">
-        <Mic2 className="w-3.5 h-3.5" /> Start a take
-      </button>
-    </div>
-  );
-}

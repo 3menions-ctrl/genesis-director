@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useUserPrefs } from '@/contexts/UserPreferencesContext';
 
 type CreditState = { balance: number; held: number; available: number };
 
@@ -215,7 +216,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // Default engine: 'wan' for everyone — purchased users will see Wan as the
   // free option but can flip to Kling for richer features. New free-tier
   // users land directly on the engine that won't blow through their grant.
-  const [videoEngine, setVideoEngine] = useState<EngineKey>('wan');
+  // Defaults seed from the user's persisted preferences (Settings →
+  // Playback → Generation). Falls back to 'wan' for first-run users.
+  const userPrefs = useUserPrefs();
+  const [videoEngine, setVideoEngine] = useState<EngineKey>(
+    (userPrefs.defaultEngine === 'kling' ? 'kling' : 'wan') as EngineKey,
+  );
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -230,7 +236,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [aspectRatio, setAspectRatio] = useState(userPrefs.defaultAspectRatio ?? '16:9');
   const [clipDuration, setClipDuration] = useState(5);
   // Per-scene durations. Always kept in lockstep with `clipCount` and the
   // active engine — every entry must be one of `engineCaps.durations`.
@@ -284,7 +290,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   }, [leadIdFromCast, castTemplatesLoading]);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [genre, setGenre] = useState('cinematic');
+  const [genre, setGenre] = useState(userPrefs.defaultGenre ?? 'cinematic');
   const [mood, setMood] = useState('epic');
 
   const isBreakoutTemplate = appliedSettings?.isBreakout === true;
@@ -475,7 +481,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const estMin = Math.floor(estimatedDuration / 60);
   const estSec = estimatedDuration % 60;
   const estimatedCredits = useMemo(
-    () => calculateCreditsForDurations(alignedDurations, videoEngine as any),
+    // EngineKey and VideoEngine are the same union — no cast needed.
+    // Keeping it typed means a future engine added to one but not the
+    // other fails the build instead of silently defaulting the cost
+    // (which would under-charge the user).
+    () => calculateCreditsForDurations(alignedDurations, videoEngine),
     [alignedDurations, videoEngine]
   );
 

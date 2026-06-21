@@ -28,6 +28,7 @@
  */
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { readEdgeError } from "@/lib/edgeError";
 import { toast } from "sonner";
 
 /** Per-boundary transition descriptor — when the stitcher honors
@@ -67,7 +68,24 @@ interface Args {
  */
 interface EditorArgs {
   sessionId: string;
-  clips: { url: string; duration?: number; clipId?: string }[];
+  /** Per-clip render inputs. `colorGrade`, `effects`, and `audioMix`
+   *  are forwarded as-is to the stitcher, which compiles them via the
+   *  Deno-side gradeToFfmpeg + bakeClipEffects + compileClipAudioFilter
+   *  (in `_shared/`) and injects the resulting filter chains. Compilation
+   *  is server-side so there's a single source of truth for the
+   *  FFmpeg syntax. */
+  clips: {
+    url: string;
+    duration?: number;
+    clipId?: string;
+    colorGrade?: import("@/lib/editor/color-grade").ColorGrade | null;
+    effects?: import("@/lib/editor/effects").EffectInstance[];
+    audioMix?: import("@/lib/editor/audio-mix").AudioMix | null;
+  }[];
+  /** Project-level master loudness preset — applied as a `loudnorm`
+   *  filter after the audio xfade chain so the whole edit ships at
+   *  the right LUFS for the delivery platform. */
+  masterLoudness?: import("@/lib/editor/audio-mix").MasterLoudnessPreset;
   title?: string;
   includeIntro?: boolean;
   transitionDuration?: number;
@@ -104,7 +122,7 @@ export function useSeamlessStitch() {
         },
       },
     );
-    if (error) throw error;
+    if (error) throw new Error(await readEdgeError(error, "stitch_failed"));
     if (!data || !data.ok || !data.url) {
       throw new Error(data?.error ?? "stitch_failed");
     }
@@ -185,10 +203,11 @@ export function useSeamlessStitch() {
               transitionType: args.transitionType,
               transitions: args.transitions,
               forceRestitch: args.forceRestitch,
+              masterLoudness: args.masterLoudness,
             },
           },
         );
-        if (error) throw error;
+        if (error) throw new Error(await readEdgeError(error, "stitch_failed"));
         if (!data || !data.ok || !data.url) {
           throw new Error(data?.error ?? "stitch_failed");
         }

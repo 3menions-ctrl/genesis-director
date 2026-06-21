@@ -27,6 +27,7 @@ import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { FoundationShell } from '@/components/foundation/FoundationShell';
 import { usePendingVideoRecovery } from '@/hooks/usePendingVideoRecovery';
+import { ADMIN_ENABLED } from '@/admin/adminEnabled';
 
 interface AppShellProps {
   children: ReactNode;
@@ -41,7 +42,10 @@ export function AppShell({ children }: AppShellProps) {
   // personal surface (typically via a deep link or legacy bookmark),
   // bounce them home so the admin console stays the single point of
   // truth for the admin role.
-  if (isAdmin && !location.pathname.startsWith('/admin')) {
+  // Only confine admins to /admin when the admin console is part of this build.
+  // In the public production build (admin excluded) the admin user browses
+  // normally — otherwise they'd be bounced to a non-existent /admin.
+  if (ADMIN_ENABLED && isAdmin && !location.pathname.startsWith('/admin')) {
     return <Navigate to="/admin" replace />;
   }
 

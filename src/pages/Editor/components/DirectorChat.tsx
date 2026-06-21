@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { Surface, SurfaceHeader, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 import { supabase } from "@/integrations/supabase/client";
-import type { EditorProject } from "@/lib/editor/types";
+import type { EditorProject, TransitionKind } from "@/lib/editor/types";
+import { TRANSITION_KINDS } from "@/lib/editor/types";
 import {
   setPlayhead,
   setPlaybackSpeed,
@@ -116,11 +117,20 @@ export function DirectorChat({ project, open, onClose }: Props) {
       if (m) {
         const dur = m[1] ? parseFloat(m[1]) : 0.4;
         const kindRaw = m[2] || "fade";
-        const kind = kindRaw === "wipe" ? "wipeleft" : kindRaw === "slide" ? "slideleft" : kindRaw;
+        // Normalize short aliases ("wipe" → "wipeleft", "slide" → "slideleft")
+        // and then validate against the canonical enum. Previously this
+        // landed in addTransition `as any` — a typo silently created a
+        // transition that the store's switch hit at the default branch
+        // and dropped.
+        const normalized = kindRaw === "wipe" ? "wipeleft"
+          : kindRaw === "slide" ? "slideleft"
+          : kindRaw;
+        const kind: TransitionKind = (TRANSITION_KINDS as string[]).includes(normalized)
+          ? (normalized as TransitionKind)
+          : "fade";
         let count = 0;
         for (let i = 0; i < clips.length - 1; i++) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          addTransition(clips[i].id, clips[i + 1].id, kind as any, dur);
+          addTransition(clips[i].id, clips[i + 1].id, kind, dur);
           count += 1;
         }
         return count > 0
@@ -282,9 +292,12 @@ export function DirectorChat({ project, open, onClose }: Props) {
     }
     if (/open\s+(?:the\s+)?(stage|timeline|script|storyboard)/.test(p)) {
       const lens = p.match(/(stage|timeline|script|storyboard)/)?.[1];
-      if (lens) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setView(lens as any);
+      // The regex above already constrains to the EditorView union;
+      // narrow the type explicitly so a future regex change is caught
+      // by the type checker instead of crashing at runtime.
+      const validLenses = ["stage", "timeline", "script", "storyboard"] as const;
+      if (lens && (validLenses as readonly string[]).includes(lens)) {
+        setView(lens as (typeof validLenses)[number]);
         return `Switched to ${lens}.`;
       }
     }

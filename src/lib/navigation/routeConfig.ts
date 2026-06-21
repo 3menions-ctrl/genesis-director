@@ -26,7 +26,7 @@
        'Syncing your preferences...',
        'Preparing studio environment...',
      ],
-     minDuration: 800,
+     minDuration: 0,
    },
    '/production': {
      messages: [
@@ -35,7 +35,7 @@
        'Syncing clips data...',
        'Preparing render context...',
      ],
-     minDuration: 600,
+     minDuration: 0,
    },
    '/avatars': {
      messages: [
@@ -43,35 +43,35 @@
        'Initializing voice engine...',
        'Preparing character models...',
      ],
-     minDuration: 600,
+     minDuration: 0,
    },
    '/projects': {
      messages: [
        'Loading your projects...',
        'Syncing latest updates...',
      ],
-     minDuration: 400,
+     minDuration: 0,
    },
    '/creators': {
      messages: [
        'Loading community content...',
        'Fetching latest creations...',
      ],
-     minDuration: 400,
+     minDuration: 0,
    },
    '/templates': {
      messages: [
        'Loading template library...',
        'Preparing previews...',
      ],
-     minDuration: 400,
+     minDuration: 0,
    },
    '/environments': {
      messages: [
        'Loading environments...',
        'Preparing scene presets...',
      ],
-     minDuration: 400,
+     minDuration: 0,
    },
  };
  
@@ -115,4 +115,9 @@
   * Default completion delay for heavy routes.
   * This gives gatekeepers time to call markReady().
   */
- export const HEAVY_ROUTE_COMPLETION_DELAY_MS = 800;
+ // Was 800ms — forced a hard wait on every nav to a "heavy" route
+ // (Library, Avatars, Templates, etc.) even after the page rendered.
+ // Killed the perceived navigation responsiveness. Now: complete on
+ // route change immediately; the existing 6s safety net in
+ // NavigationLoadingContext still catches anything that hangs.
+ export const HEAVY_ROUTE_COMPLETION_DELAY_MS = 0;

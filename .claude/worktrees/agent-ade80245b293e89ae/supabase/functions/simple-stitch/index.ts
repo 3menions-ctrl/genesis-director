@@ -1,0 +1,629 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
+
+/**
+ * Simple Stitch Edge Function v8 - SERVER-SIDE FFMPEG CONCAT (STANDARD)
+ *
+ * Standard behavior: produce a single seamless MP4 via Replicate FFmpeg
+ * (concat filter) and set it as the project's video_url. The HLS playlist
+ * and JSON manifest are still written as fallbacks for the player, but the
+ * primary playback source is the stitched MP4.
+ *
+ * Multi-clip projects must not be marked completed with manifest/HLS fallback,
+ * because clip-to-clip HLS playback creates visible gaps. If FFmpeg is still
+ * processing, the project remains in `stitching` until the Replicate webhook
+ * persists the single MP4 and marks it completed.
+ */
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+// Replicate models reused from editor-stitch (kept in sync)
+const FFMPEG_MODEL_VERSION = "efd0b79b577bcd58ae7d035bce9de5c4659a59e09faafac4d426d61c04249251";
+const CONCAT_MODEL_VERSION = "03c0802dc63ff01bb16f967f9ce4d7a784cbb697e9e7a593dd5f08bb83807ced";
+
+/**
+ * Server-side FFmpeg concat via Replicate.
+ * Returns the temporary Replicate output URL, or null on failure / timeout.
+ * Inline polling budget ~90s — sufficient for typical 3-6 clip projects.
+ */
+async function stitchClipsServerSide(
+  clipUrls: string[],
+  projectId: string,
+  replicateKey: string,
+  supabaseUrl: string,
+): Promise<{ outputUrl: string | null; predictionId: string | null; mode: string; status: "completed" | "processing" | "failed" | "single_clip" }> {
+  if (clipUrls.length < 2) {
+    return { outputUrl: clipUrls[0] || null, predictionId: null, mode: "single_clip", status: "single_clip" };
+  }
+
+  let predictionId: string | null = null;
+  let mode = "ffmpeg_concat";
+
+  try {
+    if (clipUrls.length <= 4) {
+      // cog-ffmpeg with concat filter — seamless, re-encoded, +faststart
+      const n = clipUrls.length;
+      const concatInputs = clipUrls.map((_, i) => `[${i}:v][${i}:a]`).join("");
+      const filter = `${concatInputs}concat=n=${n}:v=1:a=1[vout][aout]`;
+      const inputArgs = clipUrls.map((_, i) => `-i file${i + 1}`).join(" ");
+      const command = `ffmpeg ${inputArgs} -filter_complex "${filter}" -map "[vout]" -map "[aout]" -c:v libx264 -preset fast -crf 20 -c:a aac -b:a 192k -movflags +faststart output1`;
+
+      const input: Record<string, string> = {
+        command,
+        output1: `stitch_${projectId}.mp4`,
+      };
+      clipUrls.forEach((url, i) => { input[`file${i + 1}`] = url; });
+
+      const res = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          version: FFMPEG_MODEL_VERSION,
+          input,
+          webhook: `${supabaseUrl}/functions/v1/replicate-webhook`,
+          webhook_events_filter: ["completed"],
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[SimpleStitch] FFmpeg submit failed: ${res.status} ${await res.text()}`);
+        return { outputUrl: null, predictionId: null, mode, status: "failed" };
+      }
+      predictionId = (await res.json()).id;
+    } else {
+      // >4 clips: bfirsh/concatenate-videos (no transitions, simple concat)
+      mode = "concatenate_videos";
+      const res = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${replicateKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          version: CONCAT_MODEL_VERSION,
+          input: { videos: clipUrls },
+          webhook: `${supabaseUrl}/functions/v1/replicate-webhook`,
+          webhook_events_filter: ["completed"],
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[SimpleStitch] Concat submit failed: ${res.status} ${await res.text()}`);
+        return { outputUrl: null, predictionId: null, mode, status: "failed" };
+      }
+      predictionId = (await res.json()).id;
+    }
+
+    console.log(`[SimpleStitch] Stitch prediction started: ${predictionId} (${mode})`);
+
+    // Inline fast path: poll briefly. If still processing, the webhook completes it.
+    const deadline = Date.now() + 45_000;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 3000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: { Authorization: `Bearer ${replicateKey}` },
+      });
+      if (!pollRes.ok) continue;
+      const pred = await pollRes.json();
+      if (pred.status === "succeeded") {
+        const out = pred.output?.files || pred.output;
+        const url = Array.isArray(out) ? out[0] : out;
+        if (typeof url === "string" && url.startsWith("http")) {
+          console.log(`[SimpleStitch] ✅ Stitch succeeded: ${url}`);
+          return { outputUrl: url, predictionId, mode, status: "completed" };
+        }
+        return { outputUrl: null, predictionId, mode, status: "failed" };
+      }
+      if (pred.status === "failed" || pred.status === "canceled") {
+        console.error(`[SimpleStitch] Stitch ${pred.status}: ${pred.error || "no detail"}`);
+        return { outputUrl: null, predictionId, mode, status: "failed" };
+      }
+    }
+
+    console.warn(`[SimpleStitch] Stitch still processing for ${predictionId}; webhook will finalize project`);
+    return { outputUrl: null, predictionId, mode, status: "processing" };
+  } catch (err) {
+    console.error("[SimpleStitch] Stitch error:", err);
+    return { outputUrl: null, predictionId, mode, status: "failed" };
+  }
+}
+
+interface SimpleStitchRequest {
+  projectId: string;
+  userId?: string;
+}
+
+interface ClipData {
+  shotId: string;
+  videoUrl: string;
+  durationSeconds: number;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+  
+  try {
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
+    const { projectId } = await req.json() as SimpleStitchRequest;
+
+    if (!projectId) {
+      throw new Error("projectId is required");
+    }
+
+    console.log(`[SimpleStitch] Starting manifest creation for project: ${projectId}`);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // =====================================================
+    // CHECK EXPECTED CLIP COUNT FROM PIPELINE STATE
+    // For avatar projects, pipeline_state.asyncJobData has the true clip count
+    // =====================================================
+    const { data: projectMeta } = await supabase
+      .from('movie_projects')
+      .select('pipeline_state, mode, pending_video_tasks')
+      .eq('id', projectId)
+      .maybeSingle();
+    
+    const pipelineState = projectMeta?.pipeline_state as Record<string, unknown> | null;
+    const asyncJobData = pipelineState?.asyncJobData as Record<string, unknown> | null;
+    const predictions = asyncJobData?.predictions as Array<{ status?: string; videoUrl?: string }> | undefined;
+    const existingTasks = projectMeta?.pending_video_tasks as Record<string, unknown> | null;
+    
+    // Calculate expected clip count from pipeline_state (authoritative for avatar projects)
+    const expectedFromPipeline = (asyncJobData?.totalClips as number) || predictions?.length || 0;
+    const expectedFromTasks = (existingTasks?.clipCount as number) || (existingTasks?.shotCount as number) || 0;
+    const expectedClipCount = expectedFromPipeline || expectedFromTasks;
+    
+    console.log(`[SimpleStitch] Expected clips: ${expectedClipCount} (pipeline: ${expectedFromPipeline}, tasks: ${expectedFromTasks})`);
+
+    // =====================================================
+    // IRON-CLAD BEST CLIP SELECTION
+    // Step 1: Load ALL completed clips with quality_score
+    // Then select the BEST clip per shot_index (highest quality_score)
+    // =====================================================
+    console.log("[SimpleStitch] Loading completed clips with quality scores...");
+    
+    const { data: allClips, error: clipsError } = await supabase
+      .from('video_clips')
+      .select('id, shot_index, video_url, duration_seconds, quality_score, created_at')
+      .eq('project_id', projectId)
+      .eq('status', 'completed')
+      .order('shot_index')
+      .order('quality_score', { ascending: false, nullsFirst: false });
+
+    if (clipsError) {
+      throw new Error(`Failed to load clips: ${clipsError.message}`);
+    }
+
+    if (!allClips || allClips.length === 0) {
+      throw new Error("No completed clips found for this project");
+    }
+
+    // GUARD: If we know the expected count and don't have enough clips, refuse to stitch
+    if (expectedClipCount > 0 && allClips.length < expectedClipCount) {
+      console.warn(`[SimpleStitch] ⚠️ BLOCKING PREMATURE STITCH: Only ${allClips.length}/${expectedClipCount} clips ready`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Only ${allClips.length} of ${expectedClipCount} clips are ready. Cannot stitch incomplete project.`,
+          reason: 'clips_pending',
+          clipsReady: allClips.length,
+          clipsExpected: expectedClipCount,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[SimpleStitch] Found ${allClips.length} total completed clip versions`);
+    
+    // =====================================================
+    // BEST CLIP SELECTION ALGORITHM
+    // For each shot_index, pick the clip with:
+    // 1. Highest quality_score (if available)
+    // 2. Most recent (latest created_at) if scores are null/equal
+    // =====================================================
+    const bestClipsMap = new Map<number, typeof allClips[0]>();
+    
+    for (const clip of allClips) {
+      const existing = bestClipsMap.get(clip.shot_index);
+      
+      if (!existing) {
+        bestClipsMap.set(clip.shot_index, clip);
+      } else {
+        const existingScore = existing.quality_score ?? -1;
+        const newScore = clip.quality_score ?? -1;
+        
+        if (newScore > existingScore) {
+          bestClipsMap.set(clip.shot_index, clip);
+          console.log(`[SimpleStitch] Shot ${clip.shot_index}: Upgraded to clip ${clip.id.substring(0, 8)} (score: ${newScore} > ${existingScore})`);
+        } else if (newScore === existingScore && clip.created_at > existing.created_at) {
+          bestClipsMap.set(clip.shot_index, clip);
+          console.log(`[SimpleStitch] Shot ${clip.shot_index}: Upgraded to newer clip ${clip.id.substring(0, 8)} (same score: ${newScore})`);
+        }
+      }
+    }
+    
+    // Convert map to sorted array
+    const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
+    
+    // Log quality summary
+    const MINIMUM_QUALITY_THRESHOLD = 65;
+    const lowQualityClips = clips.filter(c => c.quality_score !== null && c.quality_score < MINIMUM_QUALITY_THRESHOLD);
+    
+    console.log(`[SimpleStitch] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
+    
+    if (lowQualityClips.length > 0) {
+      console.warn(`[SimpleStitch] ⚠️ WARNING: ${lowQualityClips.length} clip(s) below quality threshold (${MINIMUM_QUALITY_THRESHOLD}). Visual artifacts may be visible.`);
+      // We proceed anyway to avoid blocking the user, but log it for diagnostics
+    }
+
+    // Get project details including pro_features_data for musicSyncPlan
+    const { data: project } = await supabase
+      .from('movie_projects')
+      .select('title, voice_audio_url, music_url, user_id, include_narration, pipeline_state, mode, pro_features_data')
+      .eq('id', projectId)
+      .maybeSingle();
+
+    // Extract music sync plan for dialogue ducking and volume automation
+    const proFeatures = project?.pro_features_data as Record<string, unknown> | null;
+    const postProduction = existingTasks?.postProduction as Record<string, unknown> | undefined;
+    const taskAudioAssets = postProduction?.audioAssets as Record<string, unknown> | undefined;
+    const masterAudioUrl = (project?.voice_audio_url as string | null) || (taskAudioAssets?.voice as string | null) || null;
+    const musicUrl = (project?.music_url as string | null) || (taskAudioAssets?.music as string | null) || null;
+    const hasExternalAudio = !!masterAudioUrl || !!musicUrl;
+    const musicSyncPlan = proFeatures?.musicSyncPlan as {
+      timingMarkers?: Array<{ timestamp: number; shotId: string; hasDialogue: boolean; recommendedVolume: number }>;
+      musicCues?: Array<{ timestamp: number; type: string; description: string; targetMood?: string }>;
+      intensity?: string;
+      referenceComposer?: string;
+    } | null;
+
+    // =====================================================
+    // PERSIST TEMPORARY REPLICATE URLs TO PERMANENT STORAGE
+    // Replicate delivery URLs expire after ~1 hour. We MUST save
+    // them to permanent storage before creating the manifest.
+    // =====================================================
+    // PERF FIX: Parallelize persistence instead of sequential to prevent timeouts
+    const persistPromises = clips
+      .filter(clip => isTemporaryReplicateUrl(clip.video_url))
+      .map(async (clip) => {
+        console.log(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} has temporary Replicate URL — persisting...`);
+        try {
+          const permanentUrl = await persistVideoToStorage(
+            supabase,
+            clip.video_url,
+            projectId,
+            { prefix: `stitch_clip${clip.shot_index}`, clipIndex: clip.shot_index }
+          );
+          if (permanentUrl && permanentUrl !== clip.video_url) {
+            await supabase
+              .from('video_clips')
+              .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
+              .eq('id', clip.id);
+            clip.video_url = permanentUrl;
+            console.log(`[SimpleStitch] ✅ Clip ${clip.shot_index} persisted to permanent storage`);
+          } else {
+            throw new Error(`Clip ${clip.shot_index} permanent storage failed; refusing expiring provider URL`);
+          }
+        } catch (err) {
+          console.error(`[SimpleStitch] ❌ Clip ${clip.shot_index} persistence error:`, err);
+          throw err;
+        }
+      });
+
+    const persistenceResults = await Promise.allSettled(persistPromises);
+    const persistenceFailures = persistenceResults.filter(r => r.status === 'rejected');
+    if (persistenceFailures.length > 0) {
+      throw new Error(`${persistenceFailures.length} clip(s) could not be saved to permanent storage`);
+    }
+
+    // Prepare clip data
+    const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({
+      shotId: clip.id,
+      videoUrl: clip.video_url,
+      durationSeconds: clip.duration_seconds || 10,
+    }));
+
+    const totalDuration = clipData.reduce((sum, c) => sum + c.durationSeconds, 0);
+
+    // Create manifest for client-side playback
+    console.log("[SimpleStitch] Creating playback manifest...");
+    
+    const timestamp = Date.now();
+    const includeNarration = project?.include_narration === true;
+    
+    // EMBEDDED AUDIO STRATEGY: All clips use their native embedded audio
+    // No master audio overlay needed - Kling generates audio with each clip
+    const isAvatarProject = project?.mode === 'avatar';
+    
+    console.log(`[SimpleStitch] Audio config: EMBEDDED AUDIO ONLY (no master overlay), isAvatar=${isAvatarProject}`);
+    
+    // =========================================================================
+    // GENERATE HLS PLAYLIST FOR iOS SAFARI
+    // Creates an M3U8 file with discontinuity markers between clips
+    // =========================================================================
+    
+    let hlsPlaylistUrl: string | null = null;
+    try {
+      // Calculate max duration for target duration header
+      const maxClipDuration = Math.ceil(Math.max(...clipData.map(c => c.durationSeconds)));
+      
+      let hlsContent = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:${maxClipDuration}
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+`;
+
+      clipData.forEach((clip, index) => {
+        if (index > 0) {
+          // Discontinuity tag required between different source clips
+          hlsContent += `#EXT-X-DISCONTINUITY\n`;
+        }
+        hlsContent += `#EXTINF:${clip.durationSeconds.toFixed(6)},\n`;
+        hlsContent += `${clip.videoUrl}\n`;
+      });
+      
+      hlsContent += `#EXT-X-ENDLIST\n`;
+      
+      // Use fixed filename to prevent storage bloat, with cache control for updates
+      const hlsFileName = `hls_${projectId}.m3u8`;
+      const hlsBytes = new TextEncoder().encode(hlsContent);
+      
+      await supabase.storage
+        .from('temp-frames')
+        .upload(hlsFileName, hlsBytes, { 
+          contentType: 'application/vnd.apple.mpegurl',
+          upsert: true,
+          cacheControl: '30' // 30 seconds cache to ensure fresh playlist during generation
+        });
+      
+      hlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;
+      console.log(`[SimpleStitch] ✅ HLS playlist created: ${hlsPlaylistUrl}`);
+    } catch (hlsErr) {
+      console.warn("[SimpleStitch] HLS generation failed (non-fatal):", hlsErr);
+    }
+    
+    // =========================================================================
+    // CREATE JSON MANIFEST
+    // =========================================================================
+    
+    // =========================================================================
+    // BUILD VOLUME AUTOMATION KEYFRAMES FROM MUSIC SYNC PLAN
+    // This implements dialogue ducking - music fades during speech
+    // =========================================================================
+    const volumeAutomation: Array<{ timestamp: number; musicVolume: number; reason: string }> = [];
+    
+    if (musicSyncPlan?.timingMarkers) {
+      for (const marker of musicSyncPlan.timingMarkers) {
+        volumeAutomation.push({
+          timestamp: marker.timestamp,
+          musicVolume: marker.hasDialogue ? 0.2 : 0.7, // Duck to 20% during dialogue
+          reason: marker.hasDialogue ? 'dialogue_ducking' : 'normal',
+        });
+      }
+      console.log(`[SimpleStitch] ✅ Volume automation: ${volumeAutomation.length} keyframes for dialogue ducking`);
+    }
+    
+    // Build music cue markers for potential frontend visualization
+    const musicCueMarkers = musicSyncPlan?.musicCues?.map(cue => ({
+      timestamp: cue.timestamp,
+      type: cue.type,
+      description: cue.description,
+    })) || [];
+    
+    const manifest = {
+      version: "2.3", // Bumped for volume automation support
+      projectId,
+      mode: "client_side_concat",
+      createdAt: new Date().toISOString(),
+      // HLS URL for iOS Safari native playback
+      hlsPlaylistUrl,
+      clips: clipData.map((clip, index) => {
+        const clipStartTime = clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0);
+        
+        // Find volume automation for this clip's timestamp
+        const clipVolumeMarker = volumeAutomation.find(
+          v => v.timestamp >= clipStartTime && v.timestamp < clipStartTime + clip.durationSeconds
+        );
+        
+        return {
+          index,
+          shotId: clip.shotId,
+          videoUrl: clip.videoUrl,
+          duration: clip.durationSeconds,
+          startTime: clipStartTime,
+          transitionOut: 'fade',
+          // Per-clip volume hint from sync plan
+          musicVolumeHint: clipVolumeMarker?.musicVolume ?? 0.7,
+          hasDialogue: clipVolumeMarker?.reason === 'dialogue_ducking',
+        };
+      }),
+      totalDuration,
+      voiceUrl: masterAudioUrl,
+      masterAudioUrl,
+      isAvatarProject,
+      musicUrl,
+      // Volume automation keyframes for real-time ducking
+      volumeAutomation,
+      // Music cue markers for visual sync
+      musicCueMarkers,
+      // Scoring metadata from sync plan
+      scoringMetadata: musicSyncPlan ? {
+        intensity: musicSyncPlan.intensity,
+        referenceComposer: musicSyncPlan.referenceComposer,
+        cueCount: musicCueMarkers.length,
+      } : null,
+      audioConfig: {
+        includeNarration: !!masterAudioUrl,
+        muteClipAudio: hasExternalAudio,
+        musicVolume: isAvatarProject ? 0.3 : 0.8,
+        fadeIn: 1,
+        fadeOut: 2,
+        enableDialogueDucking: volumeAutomation.length > 0,
+        embeddedAudioOnly: !hasExternalAudio,
+      },
+    };
+
+    const fileName = `manifest_${projectId}_${timestamp}.json`;
+    const manifestJson = JSON.stringify(manifest, null, 2);
+    const manifestBytes = new TextEncoder().encode(manifestJson);
+
+    await supabase.storage
+      .from('temp-frames')
+      .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
+
+    const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+
+    // =========================================================================
+    // SERVER-SIDE FFMPEG STITCH (STANDARD) — produce single seamless MP4
+    // This is the primary playback source. Manifest/HLS remain as fallback.
+    // =========================================================================
+    let stitchedMp4Url: string | null = null;
+    let stitchPredictionId: string | null = null;
+    let stitchMode = "skipped";
+
+    const replicateKey = Deno.env.get("REPLICATE_API_KEY");
+    if (!replicateKey) {
+      console.warn("[SimpleStitch] REPLICATE_API_KEY missing — using manifest fallback only");
+    } else {
+      const stitchResult = await stitchClipsServerSide(
+        clipData.map(c => c.videoUrl),
+        projectId,
+        replicateKey,
+        supabaseUrl,
+      );
+      stitchPredictionId = stitchResult.predictionId;
+      stitchMode = stitchResult.mode;
+
+      if (stitchResult.outputUrl) {
+        // Persist Replicate temp URL to permanent storage
+        try {
+          const persisted = await persistVideoToStorage(
+            supabase,
+            stitchResult.outputUrl,
+            projectId,
+            { prefix: `stitched_${projectId}_${timestamp}`, clipIndex: 0 }
+          );
+          stitchedMp4Url = persisted && persisted.startsWith("http") ? persisted : stitchResult.outputUrl;
+          console.log(`[SimpleStitch] ✅ Stitched MP4 persisted: ${stitchedMp4Url}`);
+        } catch (persistErr) {
+          console.error("[SimpleStitch] Stitched MP4 persistence failed:", persistErr);
+          stitchedMp4Url = stitchResult.outputUrl; // use temp URL rather than nothing
+        }
+      }
+    }
+
+    if (!stitchedMp4Url && clipData.length > 1) {
+      const stillProcessing = !!stitchPredictionId && stitchMode !== "single_clip";
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: stillProcessing ? 'stitching' : 'stitching_failed',
+          video_url: null,
+          pending_video_tasks: {
+            ...(existingTasks || {}),
+            stage: 'stitching',
+            progress: stillProcessing ? 96 : 90,
+            mode: stillProcessing ? 'server_stitching' : 'server_stitch_failed',
+            stitchPredictionId,
+            stitchMode,
+            manifestUrl,
+            hlsPlaylistUrl,
+            mseClipUrls: clipData.map(c => c.videoUrl),
+            clipCount: clips.length,
+            totalDuration,
+            stitchingStartedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      console.log(`[SimpleStitch] ${stillProcessing ? '⏳ Still stitching' : '❌ Stitch failed'} — not completing with gapped HLS fallback`);
+      return new Response(
+        JSON.stringify({
+          success: stillProcessing,
+          mode: stillProcessing ? 'server_stitching' : 'server_stitch_failed',
+          finalVideoUrl: null,
+          stitchedVideoUrl: null,
+          manifestUrl,
+          hlsPlaylistUrl,
+          stitchPredictionId,
+          clipsProcessed: clips.length,
+          totalDuration,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: stillProcessing ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const finalVideoUrl = stitchedMp4Url || clipData[0]?.videoUrl || manifestUrl;
+
+    // Update project to completed
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'completed',
+        video_url: finalVideoUrl,
+      pending_video_tasks: {
+          stage: 'complete',
+          progress: 100,
+          mode: stitchedMp4Url ? 'server_stitched_mp4' : 'single_clip',
+          stitchedVideoUrl: stitchedMp4Url,
+          stitchPredictionId,
+          stitchMode,
+          manifestUrl,
+          hlsPlaylistUrl,
+          // mseClipUrls for crossfade fallback and download merge - ORDERED by shot_index
+          mseClipUrls: clipData.map(c => c.videoUrl),
+          clipCount: clips.length,
+          totalDuration,
+          completedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    console.log(`[SimpleStitch] ✅ Done. video_url=${finalVideoUrl} (mode=${stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback'})`);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        mode: stitchedMp4Url ? 'server_stitched_mp4' : 'manifest_playback',
+        finalVideoUrl,
+        stitchedVideoUrl: stitchedMp4Url,
+        manifestUrl,
+        hlsPlaylistUrl,
+        clipUrls: clipData.map(c => c.videoUrl),
+        clipsProcessed: clips.length,
+        totalDuration,
+        processingTimeMs: Date.now() - startTime,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.error("[SimpleStitch] Error:", errorMsg);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: errorMsg,
+        processingTimeMs: Date.now() - startTime,
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

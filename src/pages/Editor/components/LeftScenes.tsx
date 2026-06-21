@@ -7,22 +7,57 @@
  * accent. The full storyboard grid view is now a focus mode reached
  * via the toolbar; the rail keeps the user oriented while editing.
  */
-import { Film, GripVertical } from "lucide-react";
+import { Film, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence, Reorder, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorProject, EditorScene } from "@/lib/editor/types";
 import { moveScene, selectScene, setPlayhead } from "@/lib/editor/store";
+
+const STORAGE_KEY = "smallbridges.editor.leftRail.v1";
 
 interface Props {
   project: EditorProject;
   selectedSceneId: string | null;
 }
 
+function readCollapsed(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    return JSON.parse(raw).collapsed === true;
+  } catch { return false; }
+}
+function writeCollapsed(v: boolean): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ collapsed: v })); } catch { /* quota */ }
+}
+
 export function LeftScenes({ project, selectedSceneId }: Props) {
   const reducedMotion = useReducedMotion();
   const scenes = project.scenes;
+
+  const [collapsed, setCollapsedState] = useState<boolean>(() => readCollapsed());
+  const setCollapsed = useCallback((v: boolean) => {
+    setCollapsedState(v);
+    writeCollapsed(v);
+  }, []);
+
+  // ] toggles the left rail — mirrors `[` on the right rail. Skip when
+  // typing in an input so it doesn't fight text entry.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
+      if (e.key === "]") {
+        e.preventDefault();
+        setCollapsed(!collapsed);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [collapsed, setCollapsed]);
 
   const [localOrder, setLocalOrder] = useState<EditorScene[]>(scenes);
   useEffect(() => {
@@ -45,22 +80,69 @@ export function LeftScenes({ project, selectedSceneId }: Props) {
     if (firstClip) setPlayhead(firstClip.timelineStartSec);
   };
 
+  // ────── Collapsed strip ────────────────────────────────────────
+  // Mirrors the right rail: a 44px vertical icon strip with the scene
+  // count + chevron to expand. Clicking the strip anywhere expands.
+  if (collapsed) {
+    return (
+      <aside
+        aria-label="Scenes (collapsed)"
+        className="shrink-0 w-[44px] border-r border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex flex-col items-center py-3 gap-2"
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title="Expand scenes · ]"
+          aria-label="Expand scenes"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+        >
+          <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+        <div className="my-1 h-px w-6 bg-white/[0.06]" />
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title={`${scenes.length} ${scenes.length === 1 ? "scene" : "scenes"} · click to expand`}
+          className="inline-flex flex-col items-center justify-center h-10 w-8 rounded-md text-foreground/75 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+        >
+          <Film className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+          <span className="mt-0.5 font-mono text-[10px] tabular-nums text-foreground/80">
+            {scenes.length}
+          </span>
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside
       aria-label="Scenes"
       className="shrink-0 w-[240px] border-r border-white/[0.04] flex flex-col bg-[hsl(220_30%_4%/0.35)]"
     >
       <header className="shrink-0 px-4 pt-4 pb-3">
-        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
-          <Film className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
-          <span>◆ Scenes</span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] flex items-center gap-2")}>
+              <Film className="h-3 w-3 text-accent/70" strokeWidth={1.5} />
+              <span>◆ Scenes</span>
+            </div>
+            <h2
+              className="mt-1.5 font-display italic text-[15.5px] font-light tracking-tight text-foreground/95"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}.
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            title="Collapse scenes · ]"
+            aria-label="Collapse scenes"
+            className="shrink-0 -mr-1 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
+          </button>
         </div>
-        <h2
-          className="mt-1.5 font-display italic text-[15.5px] font-light tracking-tight text-foreground/95"
-          style={{ fontFamily: "'Fraunces', serif" }}
-        >
-          {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}.
-        </h2>
       </header>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-3">

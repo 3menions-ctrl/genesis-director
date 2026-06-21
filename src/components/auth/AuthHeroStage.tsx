@@ -1,28 +1,32 @@
 /**
- * AuthHeroStage — full-bleed cosmic editorial composition.
+ * AuthHeroStage — full-bleed cinematic editorial composition.
  *
- * Foundation: NASA/JPL artist's concept of the surface of Kepler-1649c,
- * an Earth-sized exoplanet in the habitable zone of a red dwarf star.
- * The horizon shows the host star setting with a small companion moon
- * visible alongside it.
+ * Foundation: a looping in-app generation — the detective "break the
+ * screen" shot (Seedance) — running full-bleed behind the editorial
+ * chrome, so the very first thing a visitor sees is the product's own
+ * output punching through the glass toward them.
  *
  * Motion layer:
- *   1. Very slow Ken-Burns drift on the photograph (~52s loop).
- *   2. A soft, breathing star-glow halo anchored to the host-star
- *      position in the painting so the sky feels alive.
+ *   1. The looping video itself (autoplay, muted, object-cover), with a
+ *      faint static zoom so the frame edges never bleed.
+ *   2. A soft breathing accent glow tying the cyan break to the brand
+ *      blue and giving the lower third depth.
+ *   prefers-reduced-motion → the poster still frame instead of the video.
  *
  * Blending:
  *   - Top vignette so the logo + index hold.
- *   - Strong bottom-left wash anchoring the headline against the
- *     alien terrain.
+ *   - Strong bottom-left wash anchoring the headline.
  *   - Right edge fades to #0a0b0f — the form-pane color — so the seam
  *     between hero and form disappears.
- *
- * Credit (legal): NASA / JPL-Caltech.
  */
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
-import cosmosImage from "@/assets/cosmos/kepler-1649c.jpg";
+
+const HERO_VIDEO = "/cinema-assets/breakouts/auth-detective.mp4";
+const HERO_POSTER = "/cinema-assets/breakouts/auth-detective-poster.jpg";
+// The glass shatters at ~2.4s — the blind dissolves precisely on the break.
+const BREAK_AT = 2.4;
 
 interface Props {
   className?: string;
@@ -30,6 +34,7 @@ interface Props {
 
 export function AuthHeroStage({ className }: Props) {
   const reducedMotion = useReducedMotion();
+  const [broken, setBroken] = useState(false);
 
   return (
     <aside
@@ -38,46 +43,62 @@ export function AuthHeroStage({ className }: Props) {
         className,
       ].join(" ")}
     >
-      {/* ── 1. Alien horizon w/ slow Ken-Burns drift ─────────────── */}
-      <motion.div
-        className="absolute inset-0"
-        initial={{ scale: 1.08, x: 0, y: 0 }}
-        animate={
-          reducedMotion
-            ? { scale: 1.08 }
-            : { scale: [1.08, 1.14, 1.08], x: [0, -10, 0], y: [0, -6, 0] }
-        }
-        transition={{ duration: 52, ease: "easeInOut", repeat: Infinity }}
+      {/* ── 1. Looping in-app generation, full-bleed ─────────────── */}
+      {reducedMotion ? (
+        <img
+          src={HERO_POSTER}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full scale-[1.04] object-cover"
+        />
+      ) : (
+        <video
+          src={HERO_VIDEO}
+          poster={HERO_POSTER}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden
+          onTimeUpdate={(e) => { if (!broken && e.currentTarget.currentTime >= BREAK_AT) setBroken(true); }}
+          className="absolute inset-0 h-full w-full scale-[1.04] object-cover"
+        />
+      )}
+
+      {/* subtle cinematic grade — deepens the blacks, cools toward brand blue */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url(${cosmosImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center 50%",
+          background:
+            "linear-gradient(150deg, rgba(10,11,15,0) 30%, rgba(10,11,15,0.32) 100%)",
+          mixBlendMode: "multiply",
         }}
       />
 
-      {/* ── 2. Breathing star-glow over the host sun ─────────────── */}
+      {/* ── 2. Breathing accent glow (ties the break to brand blue) ── */}
       <motion.div
         aria-hidden
         className="absolute pointer-events-none"
         style={{
-          left: "38%",
-          top: "32%",
-          width: 360,
-          height: 360,
-          transform: "translate(-50%, -50%)",
+          left: "30%",
+          bottom: "12%",
+          width: 460,
+          height: 460,
+          transform: "translate(-50%, 50%)",
           background:
-            "radial-gradient(circle, hsla(38, 100%, 75%, 0.55) 0%, hsla(20, 90%, 55%, 0.25) 35%, transparent 70%)",
+            "radial-gradient(circle, hsla(214, 90%, 62%, 0.40) 0%, hsla(200, 90%, 55%, 0.16) 38%, transparent 70%)",
           mixBlendMode: "screen",
-          filter: "blur(12px)",
+          filter: "blur(20px)",
         }}
-        initial={{ opacity: reducedMotion ? 0.8 : 0.6, scale: 1 }}
+        initial={{ opacity: reducedMotion ? 0.5 : 0.4, scale: 1 }}
         animate={
           reducedMotion
-            ? { opacity: 0.8, scale: 1 }
-            : { opacity: [0.6, 0.92, 0.6], scale: [1, 1.08, 1] }
+            ? { opacity: 0.5, scale: 1 }
+            : { opacity: [0.4, 0.7, 0.4], scale: [1, 1.08, 1] }
         }
         transition={{
-          duration: 6.5,
+          duration: 7,
           ease: "easeInOut",
           repeat: reducedMotion ? 0 : Infinity,
         }}
@@ -112,6 +133,20 @@ export function AuthHeroStage({ className }: Props) {
             "linear-gradient(to right, transparent 0%, rgba(10,11,15,0.65) 55%, #0a0b0f 100%)",
         }}
       />
+
+      {/* ── The blind — exactly the right form-pane shade (#0a0b0f). It veils the
+           hero so left + right read as one seamless dark panel, then DISSOLVES
+           the instant the detective shatters the glass (timed to the break at
+           ~2.4s). Once broken it stays revealed. ── */}
+      {!reducedMotion && (
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none bg-[#0a0b0f]"
+          initial={false}
+          animate={{ opacity: broken ? 0 : 1 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+        />
+      )}
 
       {/* ── 6. Editorial chrome ──────────────────────────────────── */}
       <div className="relative z-10 h-full w-full px-14 pt-12 pb-14 flex flex-col">
@@ -181,7 +216,7 @@ export function AuthHeroStage({ className }: Props) {
           transition={{ duration: 0.8, delay: 0.5 }}
         >
           <span>small bridges · est. 2026</span>
-          <span title="Image credit: NASA / JPL-Caltech">NASA · JPL-Caltech</span>
+          <span title="This shot was generated in-app">every frame · generated</span>
         </motion.footer>
       </div>
     </aside>

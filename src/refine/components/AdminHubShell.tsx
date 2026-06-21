@@ -15,7 +15,9 @@
  */
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
 import { AdminPageShell, AdminEmbeddedProvider } from "./AdminPageShell";
 
 export interface HubTab {
@@ -85,8 +87,14 @@ export function AdminHubShell({
       <div
         role="tablist"
         aria-label={`${title} tabs`}
-        className="flex items-center gap-1 flex-wrap mb-6 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-1.5 backdrop-blur-md"
+        className="relative mb-6 flex flex-wrap items-center gap-1 overflow-hidden rounded-2xl p-1.5 backdrop-blur-xl shadow-[0_30px_90px_-50px_rgba(0,0,0,0.95)]"
+        style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))" }}
       >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
+        />
         {tabs.map((t) => {
           const isActive = t.id === activeTab?.id;
           return (
@@ -97,25 +105,41 @@ export function AdminHubShell({
               aria-selected={isActive}
               onClick={() => setActive(t.id)}
               className={cn(
-                "relative flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-mono uppercase tracking-[0.22em] transition-colors",
-                isActive
-                  ? "text-white bg-primary/[0.10] shadow-[inset_0_0_0_1px_rgba(10,132,255,0.20)]"
-                  : "text-white/45 hover:text-white hover:bg-white/[0.025]",
+                "relative flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-[12px] uppercase tracking-[0.22em] transition-colors",
+                isActive ? "text-white" : "text-white/45 hover:text-white",
               )}
             >
-              {t.label}
+              {isActive && (
+                <motion.span
+                  layoutId={`hub-tab-${title}`}
+                  aria-hidden
+                  className="absolute inset-0 rounded-xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${accent(0.2)}, ${accent(0.06)})`,
+                    boxShadow: `0 8px 30px -12px ${accent(0.5)}`,
+                  }}
+                  transition={{ type: "spring", stiffness: 480, damping: 38 }}
+                />
+              )}
+              <span className="relative">{t.label}</span>
               {t.badge !== undefined && (
-                <span className={cn(
-                  "text-[9px] tracking-normal px-1.5 py-0.5 rounded-full",
-                  isActive
-                    ? "bg-primary/20 text-primary/80"
-                    : "bg-glass-hover text-white/45",
-                )}>
+                <span
+                  className="relative rounded-full px-1.5 py-0.5 text-[9px] tracking-normal"
+                  style={
+                    isActive
+                      ? { background: accent(0.18), color: ACCENT_HSL }
+                      : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }
+                  }
+                >
                   {t.badge}
                 </span>
               )}
               {t.suggested && !isActive && (
-                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#0A84FF]" />
+                <span
+                  aria-hidden
+                  className="relative h-1.5 w-1.5 rounded-full"
+                  style={{ background: ACCENT_HSL, boxShadow: `0 0 6px ${accent(0.9)}` }}
+                />
               )}
             </button>
           );

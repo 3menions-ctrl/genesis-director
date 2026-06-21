@@ -323,14 +323,19 @@ class NavigationCoordinatorImpl {
 
     this.log('info', `Navigation started: ${fromRoute} → ${toRoute}`);
 
-    // Run pre-navigation cleanup with summary
-    const cleanupSummary = await this.runCleanups(fromRoute);
-    if (cleanupSummary.failedCleanups > 0) {
-      this.log('warn', `Cleanup summary: ${cleanupSummary.successfulCleanups}/${cleanupSummary.totalCleanups} succeeded, ${cleanupSummary.failedCleanups} failed`);
-      if (cleanupSummary.errors.length > 0) {
-        this.log('warn', 'Cleanup errors:', cleanupSummary.errors.slice(0, 3).join('; '));
+    // FIRE-AND-FORGET cleanup. Previously awaited up to 1500ms × N
+    // registered cleanups before allowing the route transition — every
+    // page the user visited added another global cleanup to the queue,
+    // making navigation accumulate latency over the session. Cleanups
+    // still run; we just don't block the user's nav on them.
+    void this.runCleanups(fromRoute).then((cleanupSummary) => {
+      if (cleanupSummary.failedCleanups > 0) {
+        this.log('warn', `Cleanup summary: ${cleanupSummary.successfulCleanups}/${cleanupSummary.totalCleanups} succeeded, ${cleanupSummary.failedCleanups} failed`);
+        if (cleanupSummary.errors.length > 0) {
+          this.log('warn', 'Cleanup errors:', cleanupSummary.errors.slice(0, 3).join('; '));
+        }
       }
-    }
+    });
 
     // Abort all media playback (using registered elements + DOM query)
     this.abortAllMedia();

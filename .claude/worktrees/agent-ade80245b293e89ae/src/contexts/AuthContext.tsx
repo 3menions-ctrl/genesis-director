@@ -1,0 +1,775 @@
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
+import { stabilityMonitor } from '@/lib/stabilityMonitor';
+import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { resetQueryCache } from '@/lib/queryClient';
+
+interface UserProfile {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  credits_balance: number;
+  total_credits_purchased: number;
+  total_credits_used: number;
+  role: string | null;
+  use_case: string | null;
+  company: string | null;
+  country: string | null;
+  onboarding_completed: boolean;
+  created_at: string;
+  preferences: Record<string, unknown> | null;
+  notification_settings: Record<string, unknown> | null;
+  auto_recharge_enabled: boolean | null;
+  has_seen_welcome_video: boolean | null;
+  has_seen_welcome_offer: boolean | null;
+  security_version: number | null;
+  account_type: 'personal' | 'business' | 'enterprise' | 'admin' | null;
+  account_tier: string | null;
+}
+
+// Storage key for the security version stamp
+const SECURITY_VERSION_KEY = 'app_security_version';
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+const COLE_ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  profile: UserProfile | null;
+  loading: boolean;
+  isSessionVerified: boolean;
+  profileError: string | null;
+  isAdmin: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithApple: () => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  retryProfileFetch: () => Promise<void>;
+  getValidSession: () => Promise<Session | null>;
+  waitForSession: <T>(callback: (session: Session) => Promise<T>) => Promise<T | null>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Profile fetch timeout in milliseconds
+const PROFILE_FETCH_TIMEOUT = 10000;
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSessionVerified, setIsSessionVerified] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Ref to track current session for synchronous access
+  const sessionRef = useRef<Session | null>(null);
+
+  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+    // Always verify session before profile fetch to avoid RLS issues
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession) {
+      console.warn('[AuthContext] fetchProfile: No valid session');
+      return null;
+    }
+
+    // Create a minimal fallback profile for timeout/error scenarios
+    // CRITICAL: onboarding_completed must be false so OAuth users are never allowed to skip onboarding
+    const createFallbackProfile = (): UserProfile => ({
+      id: userId,
+      email: currentSession.user.email || null,
+      display_name: currentSession.user.email?.split('@')[0] || 'User',
+      full_name: null,
+      avatar_url: null,
+      credits_balance: 0,
+      total_credits_purchased: 0,
+      total_credits_used: 0,
+      role: null,
+      use_case: null,
+      company: null,
+      country: null,
+      onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
+      created_at: new Date().toISOString(),
+      preferences: null,
+      notification_settings: null,
+      auto_recharge_enabled: false,
+      has_seen_welcome_video: false,
+      has_seen_welcome_offer: false,
+      security_version: null,
+      account_type: 'personal',
+      account_tier: 'free',
+    });
+
+    try {
+      // Create a timeout promise
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), PROFILE_FETCH_TIMEOUT);
+      });
+      
+      // Create the fetch promise
+      const fetchPromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      // Race between fetch and timeout
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (result.error) {
+        if (result.error.message === 'timeout') {
+          console.debug('[AuthContext] Profile fetch timed out, using fallback');
+          setProfileError(null); // Don't show error for timeout - we have fallback
+          return createFallbackProfile();
+        }
+        // CRITICAL: For network errors, use fallback silently instead of showing error UI
+        const isNetworkError = result.error.message?.includes('Load failed') || 
+                               result.error.message?.includes('fetch') ||
+                               result.error.message?.includes('network');
+        if (isNetworkError) {
+          console.debug('[AuthContext] Network error, using fallback profile');
+          setProfileError(null);
+          return createFallbackProfile();
+        }
+        console.debug('[AuthContext] Profile fetch error:', result.error.message?.substring(0, 50));
+        setProfileError('Failed to load profile');
+        return null;
+      }
+      
+      setProfileError(null);
+      
+      // If profile not found (e.g. trigger hasn't finished for OAuth signup), retry once after delay
+      if (!result.data) {
+        console.debug('[AuthContext] Profile not found, retrying after delay (OAuth race condition)');
+        await new Promise(r => setTimeout(r, 1500));
+        const retryResult = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        if (retryResult.data) {
+          return retryResult.data as UserProfile;
+        }
+        // Still no profile — return fallback with onboarding_completed=false
+        console.debug('[AuthContext] Profile still not found after retry, using fallback');
+        return createFallbackProfile();
+      }
+      
+      return result.data as UserProfile;
+    } catch {
+      // Silent catch with fallback - prevents crash cascade
+      console.debug('[AuthContext] Profile fetch exception, using fallback');
+      return createFallbackProfile();
+    }
+  };
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      setProfileError(null);
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
+  }, [user]);
+
+  // Listen for credit updates from Hoppy agent chat
+  useEffect(() => {
+    const handleCreditsUpdated = () => {
+      refreshProfile();
+    };
+    window.addEventListener('credits-updated', handleCreditsUpdated);
+    return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
+  }, [refreshProfile]);
+
+  const retryProfileFetch = async () => {
+    if (user) {
+      setProfileError(null);
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
+  };
+
+  const checkAdminRole = async (userId: string): Promise<boolean> => {
+    if (userId !== COLE_ADMIN_USER_ID) return false;
+
+    try {
+      // Use Promise.race with timeout to prevent hanging on network issues
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
+      });
+      
+      const fetchPromise = supabase.rpc('is_admin', { _user_id: userId });
+      
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (result.error) {
+        // Silent fail for network errors - don't log noise, just return false
+        if (result.error.message !== 'timeout') {
+          console.debug('[AuthContext] Admin check skipped:', result.error.message?.substring(0, 50));
+        }
+        return false;
+      }
+      
+      return result.data === true;
+    } catch {
+      // Silent catch - network failures shouldn't log errors
+      return false;
+    }
+  };
+
+  // Track intentional sign-out to prevent session resurrection
+  const signedOutRef = useRef(false);
+  // Track the last observed authenticated user id so we can detect identity
+  // transitions (login, logout, account-switch in another tab) and hard-reset
+  // the React Query cache. Without this, the previous user's profile / credits
+  // / projects rows remain in cache and can be returned to the next user.
+  const lastUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    let refreshInterval: ReturnType<typeof setInterval> | null = null;
+    let isInitializing = true;
+    
+    // Critical: Set loading to true at start
+    setLoading(true);
+
+    // Helper to complete auth initialization with profile/admin data
+    const completeAuthInit = async (userId: string) => {
+      try {
+        const [profileData, adminStatus] = await Promise.all([
+          fetchProfile(userId),
+          checkAdminRole(userId)
+        ]);
+
+        if (!mounted) return;
+
+        // ── SECURITY VERSION CHECK ──────────────────────────────────────────
+        // The security_version mechanism works as follows:
+        // - On login, we store the CURRENT server version in localStorage (session stamp)
+        // - On subsequent loads, if the server version has INCREASED beyond the stored
+        //   stamp, it means an admin invalidated sessions AFTER this session was created.
+        // - A null/missing localStorage entry means fresh login — always accept and stamp.
+        if (profileData?.security_version != null) {
+          const storedRaw = localStorage.getItem(SECURITY_VERSION_KEY);
+          
+          if (storedRaw !== null) {
+            // We have a previously stored stamp — check if server invalidated it
+            const storedVersion = parseInt(storedRaw, 10);
+            if (profileData.security_version > storedVersion) {
+              console.warn('[AuthContext] Security version mismatch — forcing sign-out');
+              // Update stamp BEFORE sign-out so next login succeeds
+              localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+              // Clear cached queries before the forced sign-out so the
+              // invalidated session cannot leak rows to whatever loads next.
+              lastUserIdRef.current = null;
+              resetQueryCache('security version invalidation');
+              await supabase.auth.signOut({ scope: 'global' });
+              if (mounted) {
+                setProfile(null);
+                setIsAdmin(false);
+                setLoading(false);
+              }
+              return;
+            }
+          } else {
+            // No stored stamp = fresh login. Just stamp the current version.
+            localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+          }
+        }
+        // ────────────────────────────────────────────────────────────────────
+
+        setProfile(profileData);
+        setIsAdmin(adminStatus);
+      } catch (err) {
+        console.error('[AuthContext] Failed to complete auth init:', err);
+        // CRITICAL: Even on error, set a fallback profile to prevent UI blocking
+        if (mounted) {
+          setProfile({
+            id: userId,
+            email: null,
+            display_name: 'User',
+            full_name: null,
+            avatar_url: null,
+            credits_balance: 0,
+            total_credits_purchased: 0,
+            total_credits_used: 0,
+            role: null,
+            use_case: null,
+            company: null,
+            country: null,
+            onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
+            created_at: new Date().toISOString(),
+            preferences: null,
+            notification_settings: null,
+            auto_recharge_enabled: false,
+            has_seen_welcome_video: false,
+            has_seen_welcome_offer: false,
+            security_version: null,
+            account_type: 'personal',
+            account_tier: 'free',
+          });
+          setIsAdmin(false);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    // Set up auth state listener FIRST
+    // CRITICAL FIX: Ongoing auth changes should NOT control loading state or isSessionVerified
+    // Only the initial load controls these - prevents race condition crashes on navigation
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        if (!mounted) return;
+        
+        // CRITICAL: If user explicitly signed out, ignore any session events
+        // This prevents stale token refresh or tab-sync from resurrecting a session
+        if (signedOutRef.current && event !== 'SIGNED_IN') {
+          console.log('[AuthContext] Ignoring auth event after intentional sign-out:', event);
+          return;
+        }
+        
+        // Clear the sign-out flag on explicit sign-in
+        if (event === 'SIGNED_IN') {
+          signedOutRef.current = false;
+        }
+        
+        console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
+
+        // ── CROSS-USER CACHE ISOLATION ─────────────────────────────────────
+        // Detect any identity transition (login, logout, or account switch via
+        // another tab broadcasting SIGNED_IN with a different user id) and
+        // synchronously purge the React Query cache. Done BEFORE we update
+        // session state so no consumer effect can fire a query against the
+        // new identity while stale rows from the previous user are still
+        // resolvable from cache.
+        const previousUserId = lastUserIdRef.current;
+        const incomingUserId = newSession?.user?.id ?? null;
+        if (previousUserId !== incomingUserId && previousUserId !== null) {
+          resetQueryCache(`auth transition (${event}): ${previousUserId} → ${incomingUserId ?? 'none'}`);
+        }
+        lastUserIdRef.current = incomingUserId;
+        // ───────────────────────────────────────────────────────────────────
+
+        // Update session state synchronously
+        sessionRef.current = newSession;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        // Skip if this is during initialization - initSession will handle it
+        if (isInitializing) return;
+
+        // CRITICAL: For ongoing auth changes (login/logout AFTER initial load),
+        // fire-and-forget the profile/admin fetch - DO NOT await, DO NOT control loading
+        // The isSessionVerified stays true (set during initial load), preventing redirects
+        if (newSession?.user) {
+          // Fire and forget - update profile/admin in background
+          fetchProfile(newSession.user.id).then(profileData => {
+            if (mounted) setProfile(profileData);
+          }).catch(console.error);
+          
+          checkAdminRole(newSession.user.id).then(isAdminResult => {
+            if (mounted) setIsAdmin(isAdminResult);
+          }).catch(console.error);
+        } else {
+          // Logged out
+          setProfile(null);
+          setProfileError(null);
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    const initSession = async () => {
+      try {
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
+        
+        sessionRef.current = existingSession;
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        
+        // Update diagnostics state snapshot
+        updateAuthState({
+          user: !!existingSession?.user,
+          session: !!existingSession,
+          isSessionVerified: false,
+          loading: true,
+          isAdmin: false,
+          profileLoaded: false,
+        }, 'initSession');
+        
+        if (existingSession?.user) {
+          await completeAuthInit(existingSession.user.id);
+        } else {
+          setIsAdmin(false);
+          setLoading(false);
+        }
+        
+        // CRITICAL: Mark session as verified AFTER all initialization is complete
+        // This ensures ProtectedRoute won't redirect prematurely
+        setIsSessionVerified(true);
+        
+        // Update diagnostics with final state
+        updateAuthState({
+          user: !!existingSession?.user,
+          session: !!existingSession,
+          isSessionVerified: true,
+          loading: false,
+          isAdmin,
+          profileLoaded: !!profile,
+        }, 'sessionVerified');
+      } catch (err) {
+        console.error('[AuthContext] Session init error:', err);
+        // Still mark as verified even on error to unblock UI
+        if (mounted) {
+          setIsSessionVerified(true);
+          setLoading(false);
+        }
+      } finally {
+        isInitializing = false;
+      }
+    };
+    
+    initSession();
+
+    // Proactive session refresh every 10 minutes to prevent timeout
+    // This ensures long-running video generation doesn't get interrupted
+    refreshInterval = setInterval(async () => {
+      if (!mounted) return;
+      
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession) {
+        // Check if token expires in less than 15 minutes
+        const expiresAt = currentSession.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+        
+        if (timeUntilExpiry < 15 * 60) {
+          console.log('[AuthContext] Proactively refreshing session (expires in', Math.round(timeUntilExpiry / 60), 'min)');
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error('[AuthContext] Session refresh failed:', error);
+          } else if (data.session) {
+            console.log('[AuthContext] Session refreshed successfully');
+          }
+        }
+      }
+    }, 10 * 60 * 1000); // Check every 10 minutes
+
+    // Also refresh on window focus (user returns to tab) - with debounce
+    let visibilityDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastVisibilityCheck = 0;
+    const VISIBILITY_DEBOUNCE_MS = 2000; // Minimum 2 seconds between checks
+    
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible' || !mounted) return;
+      
+      const now = Date.now();
+      // Skip if we checked recently (prevents rapid tab switching thrash)
+      if (now - lastVisibilityCheck < VISIBILITY_DEBOUNCE_MS) {
+        return;
+      }
+      
+      // Debounce the actual check
+      if (visibilityDebounceTimer) {
+        clearTimeout(visibilityDebounceTimer);
+      }
+      
+      visibilityDebounceTimer = setTimeout(async () => {
+        if (!mounted) return;
+        lastVisibilityCheck = Date.now();
+        
+        console.log('[AuthContext] Tab became visible, checking session...');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          const expiresAt = currentSession.expires_at;
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? expiresAt - nowSeconds : 0;
+          
+          // If less than 30 minutes until expiry, refresh
+          if (timeUntilExpiry < 30 * 60) {
+            console.log('[AuthContext] Refreshing session on tab focus');
+            await supabase.auth.refreshSession();
+          }
+        }
+      }, 500); // 500ms debounce delay
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      if (refreshInterval) clearInterval(refreshInterval);
+      if (visibilityDebounceTimer) clearTimeout(visibilityDebounceTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    // ── BRUTE FORCE PROTECTION ─────────────────────────────────────────────
+    // Check client-side lockout first (localStorage) to avoid unnecessary requests
+    const lockoutKey = `login_lockout_${email.toLowerCase()}`;
+    const lockoutData = localStorage.getItem(lockoutKey);
+    if (lockoutData) {
+      const { count, since } = JSON.parse(lockoutData);
+      const elapsed = Date.now() - since;
+      if (count >= MAX_LOGIN_ATTEMPTS && elapsed < LOGIN_LOCKOUT_MS) {
+        const remaining = Math.ceil((LOGIN_LOCKOUT_MS - elapsed) / 60000);
+        return { error: new Error(`Too many failed attempts. Try again in ${remaining} minute(s).`) };
+      }
+      // Reset if lockout period expired
+      if (elapsed >= LOGIN_LOCKOUT_MS) {
+        localStorage.removeItem(lockoutKey);
+      }
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
+    let data, error;
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      data = result.data;
+      error = result.error;
+    } catch (err) {
+      console.error('[AuthContext] signInWithPassword exception:', err);
+      return { error: err instanceof Error ? err : new Error('Login failed unexpectedly') };
+    }
+
+    // Track attempt in DB (fire-and-forget, non-blocking)
+    void supabase.rpc('log_login_attempt', {
+      p_email: email.toLowerCase(),
+      p_success: !error,
+    });
+
+    // Update client-side lockout counter
+    if (error) {
+      const existing = localStorage.getItem(lockoutKey);
+      const parsed = existing ? JSON.parse(existing) : { count: 0, since: Date.now() };
+      // Reset counter if previous lockout window has expired
+      const isExpired = Date.now() - parsed.since >= LOGIN_LOCKOUT_MS;
+      const updated = {
+        count: isExpired ? 1 : parsed.count + 1,
+        since: isExpired ? Date.now() : parsed.since,
+      };
+      localStorage.setItem(lockoutKey, JSON.stringify(updated));
+    } else {
+      // Clear on success
+      localStorage.removeItem(lockoutKey);
+    }
+    
+    // CRITICAL: Wait for session to be persisted to localStorage before returning
+    // This prevents redirect loops where the app navigates before session is saved
+    if (!error && data?.session) {
+      // Store the security version so future refreshes don't force-logout the user
+      // who just successfully logged in
+      const profileRes = await supabase
+        .from('profiles')
+        .select('security_version')
+        .eq('id', data.session.user.id)
+        .maybeSingle();
+      if (profileRes.data?.security_version) {
+        localStorage.setItem(SECURITY_VERSION_KEY, String(profileRes.data.security_version));
+      }
+
+      // Wait for the session to propagate through the auth state listener
+      await new Promise<void>((resolve) => {
+        let iterations = 0;
+        const MAX_ITERATIONS = 40;
+        
+        const checkSession = () => {
+          iterations++;
+          if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else if (iterations >= MAX_ITERATIONS) {
+            console.warn('[AuthContext] Session sync timed out after max iterations');
+            resolve();
+          } else {
+            setTimeout(checkSession, 50);
+          }
+        };
+        setTimeout(checkSession, 100);
+      });
+    }
+    
+    return { error: error as Error | null };
+  };
+
+  const signUp = async (email: string, password: string) => {
+    // Use OTP-based email verification (no redirect link)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    
+    // Wait for session persistence if signup auto-confirms
+    // FIX: Added max iteration guard to prevent stack overflow
+    if (!error && data?.session) {
+      await new Promise<void>((resolve) => {
+        let iterations = 0;
+        const MAX_ITERATIONS = 40; // 40 * 50ms = 2 seconds max
+        
+        const checkSession = () => {
+          iterations++;
+          if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else if (iterations >= MAX_ITERATIONS) {
+            console.warn('[AuthContext] Session sync timed out after max iterations');
+            resolve();
+          } else {
+            setTimeout(checkSession, 50);
+          }
+        };
+        setTimeout(checkSession, 100);
+      });
+    }
+    
+    return { error: error as Error | null };
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      return { error: result.error ? (result.error as Error) : null };
+    } catch (err) {
+      console.error('[AuthContext] Google sign-in exception:', err);
+      return { error: err instanceof Error ? err : new Error('Google sign-in failed') };
+    }
+  };
+
+  const signInWithApple = async () => {
+    try {
+      const result = await lovable.auth.signInWithOAuth('apple', {
+        redirect_uri: window.location.origin,
+      });
+      return { error: result.error ? (result.error as Error) : null };
+    } catch (err) {
+      console.error('[AuthContext] Apple sign-in exception:', err);
+      return { error: err instanceof Error ? err : new Error('Apple sign-in failed') };
+    }
+  };
+
+  const signOut = async () => {
+    // Set flag BEFORE calling signOut to prevent onAuthStateChange from resurrecting session
+    signedOutRef.current = true;
+    sessionRef.current = null;
+    lastUserIdRef.current = null;
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setProfileError(null);
+    setIsAdmin(false);
+
+    // Clear workspace-scoped local state so next sign-in does not inherit
+    // the previous user's selected org.
+    try { localStorage.removeItem('apex.currentOrgId'); } catch {}
+    // Clear the cached security-version stamp so the next user on this
+    // device starts a fresh stamp on their first profile load.
+    try { localStorage.removeItem(SECURITY_VERSION_KEY); } catch {}
+
+    // Hard-reset React Query cache so no consumer can read the prior
+    // user's rows (profile, credits, projects, billing) between signOut
+    // and the next login. This is the primary cross-user isolation gate.
+    resetQueryCache('explicit signOut');
+
+    // Use global scope to clear session across all tabs
+    await supabase.auth.signOut({ scope: 'global' });
+  };
+
+  /**
+   * Get a verified valid session directly from Supabase.
+   * Use this before any critical operation to avoid stale React state.
+   */
+  const getValidSession = async (): Promise<Session | null> => {
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
+    return freshSession;
+  };
+
+  /**
+   * Wrapper that ensures a valid session exists before executing a callback.
+   * Returns null if no session, otherwise executes the callback with the session.
+   * This consolidates functionality from useSessionGuard and useAuthenticatedSupabase.
+   */
+  const waitForSession = useCallback(
+    async <T,>(callback: (session: Session) => Promise<T>): Promise<T | null> => {
+      // Always get fresh session from Supabase to avoid stale React state
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      
+      if (!freshSession) {
+        console.warn('[AuthContext] waitForSession: No valid session for operation');
+        return null;
+      }
+      
+      return callback(freshSession);
+    },
+    []
+  );
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      session,
+      profile,
+      loading,
+      isSessionVerified,
+      profileError,
+      isAdmin,
+      signIn,
+      signUp,
+      signInWithGoogle,
+      signInWithApple,
+      signOut,
+      refreshProfile,
+      retryProfileFetch,
+      getValidSession,
+      waitForSession,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    // FIX: Return safe fallback instead of throwing to prevent cascade crashes
+    // This can happen during SSR, testing, or edge cases during app initialization
+    console.warn('[useAuth] AuthContext not available, returning safe fallback');
+    return {
+      user: null,
+      session: null,
+      profile: null,
+      loading: true,
+      isSessionVerified: false,
+      profileError: null,
+      isAdmin: false,
+      signIn: async () => ({ error: new Error('Auth not initialized') }),
+      signUp: async () => ({ error: new Error('Auth not initialized') }),
+      signInWithGoogle: async () => ({ error: new Error('Auth not initialized') }),
+      signInWithApple: async () => ({ error: new Error('Auth not initialized') }),
+      signOut: async () => {},
+      refreshProfile: async () => {},
+      retryProfileFetch: async () => {},
+      getValidSession: async () => null,
+      waitForSession: async () => null,
+    } as AuthContextType;
+  }
+  return context;
+}

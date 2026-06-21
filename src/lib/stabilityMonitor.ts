@@ -260,15 +260,26 @@ export function handleStabilityError(
     silent: options?.silent,
   });
 
-  // Show user-friendly toast
+  // Show user-friendly toast — include the real error message + first
+  // stack frame in the description so the user can read it without
+  // opening devtools. Without this surface the user is blind to the
+  // actual cause and can only see the generic "Something went wrong".
   if (options?.showToast !== false && !options?.silent) {
     const suggestion = getRecoverySuggestion(category);
-    
+    const stackHead = error instanceof Error && error.stack
+      ? error.stack.split("\n").slice(1, 3).join(" ⇢ ").trim()
+      : "";
+    const description = [message, stackHead, suggestion].filter(Boolean).join(" — ");
+
     // Don't spam toasts for race conditions
     if (category !== 'ASYNC_RACE') {
+      // Two seconds — pairs with the new sonner duration. Previously
+      // 8s, which lingered well past when the user had moved on AND
+      // overlapped with the error boundary's full-screen fallback,
+      // creating two "Something went wrong" surfaces at once.
       toast.error('Something went wrong. Please try again.', {
-        description: suggestion,
-        duration: 5000,
+        description: description || suggestion,
+        duration: 2000,
       });
     }
   }

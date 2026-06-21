@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createDraftProject } from "@/lib/editor/createDraftProject";
 import type { EditorProject } from "@/lib/editor/types";
 import { useEditor } from "@/hooks/editor/useEditor";
 import {
@@ -63,6 +64,18 @@ const ASPECT_OPTIONS: { value: string; label: string }[] = [
   { value: "1:1", label: "Square · 1:1" },
   { value: "21:9", label: "Cinematic · 21:9" },
 ];
+
+type QualityProfile = "standard" | "fps60" | "uhd4k";
+const QUALITY_OPTIONS: { value: QualityProfile; label: string; sub: string; surcharge: number }[] = [
+  { value: "standard", label: "Standard 30fps", sub: "Default model output", surcharge: 0 },
+  { value: "fps60",    label: "Smooth 60fps",   sub: "RIFE interpolation",   surcharge: 5 },
+  { value: "uhd4k",    label: "4K Cinema",      sub: "Topaz / RealESRGAN",   surcharge: 5 },
+];
+function qualityToOptions(q: QualityProfile): { fps60?: boolean; upscale4k?: boolean } {
+  if (q === "fps60") return { fps60: true };
+  if (q === "uhd4k") return { upscale4k: true };
+  return {};
+}
 
 /**
  * In-component polling — keeps this concern local rather than
@@ -122,6 +135,7 @@ export function CreatePanel({ project, open, onClose }: Props) {
   const [prompt, setPrompt] = useState("");
   const [durationSec, setDurationSec] = useState<Duration>(5);
   const [aspect, setAspect] = useState<string>("16:9");
+  const [quality, setQuality] = useState<QualityProfile>("standard");
   const [submitting, setSubmitting] = useState(false);
 
   // The active poll cancel function — when the user closes the
@@ -151,25 +165,43 @@ export function CreatePanel({ project, open, onClose }: Props) {
       toast.error("Sign in to generate clips");
       return;
     }
-    if (isOnEmptyProject) {
-      toast.error("Open a project first", {
-        description: "Or hit Start new film below to create one in Studio.",
-      });
-      return;
-    }
     setSubmitting(true);
+
+    // ── 0. If the user is on the empty NLE surface, mint a draft
+    //       project on the fly so their first verb just works. We do
+    //       this BEFORE the clip insert + edge submit so every
+    //       subsequent DB write attaches to the right project_id. The
+    //       navigate() at the end of this block re-mounts the editor
+    //       at /editor/{newId}, but the clip + prediction live in the
+    //       DB already, so the new editor surface picks them up on
+    //       useProject reload.
+    let projectId = project.id;
+    let mintedProjectId: string | null = null;
+    if (isOnEmptyProject) {
+      const newId = await createDraftProject();
+      if (!newId) {
+        setSubmitting(false);
+        toast.error("Couldn't create a project", {
+          description: "Try again in a moment, or open one from Library.",
+        });
+        return;
+      }
+      projectId = newId;
+      mintedProjectId = newId;
+    }
 
     // ── 1. Insert the video_clips row first so a refresh / collaborator
     //       sees the pending atom too. The local store will optimistically
-    //       mirror this shortly after.
-    const shotIndex = project.scenes.flatMap((s) => s.clips).length;
+    //       mirror this shortly after. shot_index=0 when minting a fresh
+    //       project (we know there are no other clips yet).
+    const shotIndex = mintedProjectId ? 0 : project.scenes.flatMap((s) => s.clips).length;
     const idempotencyKey = `cp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
     const { data: rowData, error: rowErr } = await supabase
       .from("video_clips")
       .insert({
-        project_id: project.id,
+        project_id: projectId,
         user_id: user.id,
         shot_index: shotIndex,
         prompt: brief,
@@ -188,14 +220,21 @@ export function CreatePanel({ project, open, onClose }: Props) {
     const clipId = rowData.id as string;
 
     // ── 2. Optimistic local insert so the editor reads as in-flight
-    //       within the same frame the user clicked Generate.
-    appendPendingClip({
-      id: clipId,
-      prompt: brief,
-      durationSec,
-      thumbnailUrl: null,
-      takeNumber: 1,
-    });
+    //       within the same frame the user clicked Generate. Skip
+    //       this when we just minted the project — we're about to
+    //       navigate, which re-mounts the editor; the local store
+    //       resets and re-hydrates from DB, so the pending atom
+    //       would vanish anyway. The DB row IS the source of truth
+    //       across the navigation.
+    if (!mintedProjectId) {
+      appendPendingClip({
+        id: clipId,
+        prompt: brief,
+        durationSec,
+        thumbnailUrl: null,
+        takeNumber: 1,
+      });
+    }
 
     // ── 3. Kick off the edge function. The submit call returns a
     //       prediction id; the polling loop translates it into a
@@ -211,8 +250,9 @@ export function CreatePanel({ project, open, onClose }: Props) {
           prompt: brief,
           duration: durationSec,
           aspectRatio: aspect,
-          projectId: project.id,
+          projectId,
           idempotencyKey,
+          qualityOptions: qualityToOptions(quality),
         },
       });
       if (error) throw error;
@@ -243,6 +283,20 @@ export function CreatePanel({ project, open, onClose }: Props) {
     const toastId = toast.loading("Rendering clip…", {
       description: `${durationSec}s · ${aspect} · seedance-1-pro`,
     });
+
+    // If we just minted the project, navigate now — the editor will
+    // re-mount at /editor/{newId}, see the clip in the DB with
+    // status="generating", and the existing reload + clip-status
+    // refresh paths pick it up from there. We intentionally do NOT
+    // start the local pollUntilDone here, because the cancelRef
+    // cleanup on unmount would kill it the moment we navigate.
+    if (mintedProjectId) {
+      toast.success("Project created", {
+        description: "Generating your first clip — your new project is open.",
+      });
+      navigate(`/editor/${mintedProjectId}`);
+      return;
+    }
 
     cancelRef.current?.();
     cancelRef.current = pollUntilDone(predictionId!, (result) => {
@@ -417,6 +471,40 @@ export function CreatePanel({ project, open, onClose }: Props) {
           </div>
         </div>
 
+        <div className="mt-5">
+          <span className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.30em]")}>
+            ◆ Quality
+          </span>
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            {QUALITY_OPTIONS.map((opt) => {
+              const active = quality === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setQuality(opt.value)}
+                  className={cn(
+                    "rounded-md ring-1 ring-inset transition-colors text-left px-2 py-2",
+                    active
+                      ? "bg-[hsl(212_100%_60%/0.14)] text-accent ring-accent/45"
+                      : "bg-white/[0.02] text-foreground/85 ring-white/[0.07] hover:bg-white/[0.05]",
+                  )}
+                >
+                  <div className="text-[12px] font-medium leading-tight">{opt.label}</div>
+                  <div className={cn(TYPE_META, "mt-1 text-muted-foreground/55 tracking-[0.18em]")}>
+                    {opt.sub}
+                  </div>
+                  {opt.surcharge > 0 && (
+                    <div className={cn(TYPE_META, "mt-1 text-amber-300/85 tracking-[0.18em]")}>
+                      +{opt.surcharge} credits
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="mt-6 rounded-xl ring-1 ring-inset ring-white/[0.05] bg-white/[0.012] p-4">
           <div className="flex items-start gap-3">
             <Sparkles className="h-3.5 w-3.5 text-accent mt-0.5 shrink-0" strokeWidth={1.5} />
@@ -425,7 +513,11 @@ export function CreatePanel({ project, open, onClose }: Props) {
                 className="font-display italic text-[14px] text-foreground/90"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
-                {durationSec === 5 ? "65 credits" : "95 credits"} · Seedance 1 Pro
+                {(() => {
+                  const base = durationSec === 5 ? 65 : 95;
+                  const surcharge = QUALITY_OPTIONS.find((q) => q.value === quality)?.surcharge ?? 0;
+                  return `${base + surcharge} credits`;
+                })()} · Seedance 1 Pro
               </p>
               <p className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">
                 Continuity chain auto-locks the look, lighting, and characters to your previous clip — no character drift between shots.

@@ -10,6 +10,7 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 // Curated featured list — first paint of the model picker.
 const FEATURED = [
+  { owner: 'wan-ai', name: 'wan-2.5-t2v', label: 'Wan 2.5 — Free', category: 'video', tier: 'standard' },
   { owner: 'kwaivgi', name: 'kling-v2.1-master', label: 'Kling V3', category: 'video', tier: 'standard' },
   { owner: 'bytedance', name: 'seedance-1-pro', label: 'Seedance 2.0', category: 'video', tier: 'pro' },
   { owner: 'google', name: 'veo-3-fast', label: 'Veo 3 Fast', category: 'video', tier: 'cinema' },

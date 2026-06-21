@@ -1,25 +1,29 @@
 /**
- * BuyCreditsModal — beta-free version.
+ * BuyCreditsModal — pick a credit pack and check out via Stripe.
  *
- * Surfaces a "Request more credits" form. Writes to support_messages so an
- * operator can grant the top-up manually while Small Bridges is in beta. Keeps the
- * same export name + props shape so existing call sites (BillingSettings,
- * CostConfirmationDialog, CreationHub) continue to work unchanged.
+ * Selecting a pack opens hosted Stripe Checkout (redirect). Credits are
+ * granted server-side by the payments-webhook on
+ * `checkout.session.completed`, then reflected on return to
+ * /credits?payment=success.
+ *
+ * Same export name + props as before so existing call sites
+ * (BillingSettings, CostConfirmationDialog, CreationHub, Pricing,
+ * Profile) keep working unchanged.
  */
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation } from '@/lib/navigation';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Sparkles, Send, BadgeCheck } from 'lucide-react';
+import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PrimaryCTA } from '@/components/ui/PrimaryCTA';
+import { cn } from '@/lib/utils';
+import { CREDIT_PACKAGES, approxClips, startCreditCheckout, type CreditPackage } from '@/lib/payments/creditPackages';
 
 interface BuyCreditsModalProps {
   open: boolean;
@@ -27,120 +31,71 @@ interface BuyCreditsModalProps {
   onPurchaseComplete?: () => void;
 }
 
-export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyCreditsModalProps) {
-  const { user, profile } = useAuth();
-  const [amount, setAmount] = useState('200');
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
+export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
+  const { user } = useAuth();
+  const { navigate } = useSafeNavigation();
+  const [pending, setPending] = useState<CreditPackage['id'] | null>(null);
 
-  const close = () => {
-    onOpenChange(false);
-    // Reset for next open after exit animation
-    setTimeout(() => {
-      setSent(false);
-      setReason('');
-      setAmount('200');
-    }, 250);
-  };
-
-  const submit = async () => {
-    if (!user || !profile) {
-      toast.error('Sign in to request more credits');
+  const buy = async (pkg: CreditPackage) => {
+    if (!user) {
+      onOpenChange(false);
+      navigate('/auth');
       return;
     }
-    const n = Number(amount);
-    if (!Number.isFinite(n) || n < 50 || n > 5000) {
-      toast.error('Pick an amount between 50 and 5,000 credits');
-      return;
+    if (pending) return;
+    setPending(pkg.id);
+    try {
+      await startCreditCheckout(pkg.id); // redirects on success
+    } catch (e) {
+      setPending(null);
+      toast.error(e instanceof Error ? e.message : 'Could not start checkout');
     }
-    setBusy(true);
-    const { error } = await supabase.from('support_messages').insert({
-      user_id: user.id,
-      name: profile.display_name ?? profile.email?.split('@')[0] ?? 'Small Bridges user',
-      email: profile.email ?? user.email ?? '',
-      source: 'credits_request',
-      subject: `Beta credit top-up — ${n} credits`,
-      message:
-        `User requesting ${n} additional credits while Small Bridges is in beta.\n` +
-        `Current balance: ${profile.credits_balance ?? 0}\n` +
-        `Lifetime used: ${profile.total_credits_used ?? 0}\n\n` +
-        `Reason:\n${reason || '(none provided)'}`,
-    });
-    setBusy(false);
-    if (error) {
-      toast.error(error.message ?? 'Could not send request');
-      return;
-    }
-    setSent(true);
-    toast.success("Request sent — we'll reply within one business day");
-    onPurchaseComplete?.();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-[hsl(220,14%,3.5%)] border-white/[0.08] text-white">
-        <div className="flex items-center gap-3 mb-1">
-          <span className="px-2 py-0.5 rounded-full border border-emerald-400/40 bg-emerald-500/[0.06] text-emerald-300 text-[9px] font-mono font-bold tracking-[0.32em] uppercase">
-            BETA · FREE
-          </span>
-        </div>
-        <DialogTitle className="text-white text-[22px] font-display font-light">
-          Request more credits
+      <DialogContent className="max-w-xl bg-[hsl(220,14%,3.5%)] border-white/[0.08] text-white">
+        <DialogTitle className="text-white text-[22px] font-display font-light flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-accent" /> Buy credits
         </DialogTitle>
         <DialogDescription className="text-white/55 text-[13px]">
-          Small Bridges is free while we&rsquo;re in beta. We hand-allocate credit top-ups by request.
+          Credits never expire. You&rsquo;re only charged once — there&rsquo;s no subscription. Secure checkout via Stripe.
         </DialogDescription>
 
-        {sent ? (
-          <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] p-5 flex items-start gap-3">
-            <BadgeCheck className="w-5 h-5 text-emerald-300 mt-0.5" />
-            <div>
-              <div className="text-white text-[14px] mb-1">Request received</div>
-              <p className="text-white/65 text-[12px] leading-relaxed">
-                We&rsquo;ll review and reply within one business day. You&rsquo;ll see the additional credits in your ledger once granted.
-              </p>
-              <Button onClick={close} className="mt-4 bg-glass-hover border border-white/[0.08] hover:bg-glass-active">Close</Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="mt-5 grid grid-cols-1 gap-4">
-              <label className="block">
-                <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">Credits requested</span>
-                <input
-                  type="number"
-                  min={50}
-                  max={5000}
-                  step={50}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="ds-input mt-1 font-mono text-[14px]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">What are you building? (optional)</span>
-                <textarea
-                  rows={3}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="A short product video for a launch on Friday…"
-                  className="ds-input mt-1 resize-none"
-                />
-              </label>
-            </div>
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <Button onClick={close} variant="ghost" className="text-white/55 hover:text-white">Cancel</Button>
-              <PrimaryCTA onClick={submit} loading={busy} icon={Send}>
-                Send request
-              </PrimaryCTA>
-            </div>
-            <p className="mt-4 text-[10px] font-mono uppercase tracking-[0.22em] text-white/30 flex items-center gap-2">
-              <Sparkles className="w-3 h-3" />
-              No payment processor. No card stored. Free during beta.
-            </p>
-          </>
-        )}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {CREDIT_PACKAGES.map((pkg) => (
+            <button
+              key={pkg.id}
+              onClick={() => buy(pkg)}
+              disabled={!!pending}
+              className={cn(
+                'group relative text-left rounded-2xl border p-4 transition-colors disabled:opacity-60',
+                pkg.popular
+                  ? 'border-accent/40 bg-[hsl(var(--accent)/0.06)] hover:border-accent/60'
+                  : 'border-white/[0.08] bg-white/[0.015] hover:border-white/25',
+              )}
+            >
+              {pkg.popular && (
+                <span className="absolute -top-2 right-3 px-2 py-0.5 rounded-full bg-accent text-black text-[9px] font-mono uppercase tracking-[0.22em]">
+                  Popular
+                </span>
+              )}
+              <div className="flex items-baseline justify-between">
+                <span className="text-[15px] text-white">{pkg.name}</span>
+                <span className="text-[18px] font-display tabular-nums text-white">${pkg.price}</span>
+              </div>
+              <div className="mt-1 text-[12px] text-white/55">{pkg.blurb}</div>
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-accent/85">
+                {pending === pkg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                {pkg.credits.toLocaleString()} credits · ~{approxClips(pkg.credits)} clips
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-4 text-[10px] font-mono uppercase tracking-[0.22em] text-white/30">
+          Refunds for failed renders land back in your balance automatically.
+        </p>
       </DialogContent>
     </Dialog>
   );

@@ -2,7 +2,7 @@
  * StudioAurora — the cinematic backdrop that lives behind every Small Bridges page.
  *
  * Extracted from the Create page so every consumer surface (Lobby, Watch,
- * Market, Music, Crews, Search…) carries the same visual signature: deep
+ * Market, Music, Search…) carries the same visual signature: deep
  * radial base, slow-rotating conic aurora sweep, primary blue glow, cool
  * cyan counter-glow, edge vignette, film grain.
  *

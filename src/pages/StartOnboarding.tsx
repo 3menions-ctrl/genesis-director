@@ -14,6 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { BetaHero } from '@/components/ui/BetaHero';
+import { OAuthProviders } from '@/components/auth/OAuthProviders';
+import { AuthOtpInput } from '@/components/auth/AuthOtpInput';
 import { cn } from '@/lib/utils';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
@@ -66,17 +68,19 @@ const BUSINESS_PLANS: Plan[] = [
 
 // Personal onboarding is intentionally lean: pick a plan, create an account, verify.
 // Taste/goals/channels/experience are collected later in Settings so first-run feels effortless.
-const PERSONAL_STEPS = ['plan', 'account', 'verify'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'plan', 'account', 'verify'] as const;
+const PERSONAL_STEPS = ['account', 'verify'] as const;
+// The plan step only rendered the auto-claiming BetaFreePlanCard (no real
+// choice), so it's dropped for business too — the "free during beta" value
+// message now lives in the account step header.
+const BUSINESS_STEPS = ['company', 'team', 'account', 'verify'] as const;
 
 type StepKey = typeof PERSONAL_STEPS[number] | typeof BUSINESS_STEPS[number];
 
 const STEP_META: Record<StepKey, { chapter: string; question: string; whisper: string }> = {
   company: { chapter: 'Chapter I', question: 'Introduce\nyour company.', whisper: 'A few firmographics so we can shape the workspace around you.' },
   team:    { chapter: 'Chapter II', question: 'Sketch out\nyour operation.', whisper: 'Team, role, monthly volume, brand voice — defaults baked in.' },
-  plan:    { chapter: 'Chapter III', question: 'Small Bridges is\nfree right now.', whisper: 'We\u2019re in beta. You get starter credits the moment you sign up \u2014 no card, no checkout.' },
-  account: { chapter: 'Chapter IV', question: 'Make it\nofficial.', whisper: 'Create your account with email — quick and private.' },
-  verify:  { chapter: 'Chapter V', question: 'Verify and\nstep inside.', whisper: 'Six-digit code from your email. Optional teammate invites & billing details below.' },
+  account: { chapter: 'Chapter III', question: 'Make it\nofficial.', whisper: 'One step to claim your 100 free credits — no card, ever.' },
+  verify:  { chapter: 'Chapter IV', question: 'Verify and\nstep inside.', whisper: 'Last step — confirm your email and your studio opens.' },
 };
 
 /* ───────── Vocab ───────── */
@@ -243,6 +247,16 @@ export default function StartOnboarding() {
     setStepIdx(0);
   }, [accountType]);
 
+  // Post-OAuth landing. The intent token (persisted before the OAuth redirect
+  // fires) is carried on the `next` URL so /onboarding consumes the same
+  // onboarding intent after the round-trip. sessionStorage is the fallback.
+  const oauthNext = useMemo(() => {
+    const base = '/onboarding';
+    return intentToken
+      ? `${base}?intent=${encodeURIComponent(intentToken)}&audience=${accountType}`
+      : `${base}?audience=${accountType}`;
+  }, [intentToken, accountType]);
+
   /* ── Validation ────────────────────────────────────────────── */
   const validate = useCallback((): boolean => {
     setErrors({});
@@ -260,12 +274,6 @@ export default function StartOnboarding() {
       if (!form.job_role) fe.job_role = 'Pick a role';
       if (!form.monthly_volume) fe.monthly_volume = 'Pick a volume';
       if (!form.brand_voice) fe.brand_voice = 'Pick a voice';
-    }
-    // Plan selection is optional during beta — the app is free. We default
-    // selected_plan_id to 'beta_free' if the user skips this step so any
-    // downstream code expecting a value still gets one.
-    if (currentStep === 'plan' && !form.selected_plan_id) {
-      form.selected_plan_id = 'beta_free';
     }
     if (currentStep === 'account') {
       if (user) {
@@ -334,14 +342,45 @@ export default function StartOnboarding() {
     catch (e) { console.warn('[start] consume_onboarding_intent', e); }
   };
 
+  // Eagerly persist the onboarding intent the moment an unauthenticated user
+  // lands on the account step, so OAuth (which redirects away immediately on
+  // click) can carry the token on its `next` URL.
+  const eagerPersistTried = useRef(false);
+  useEffect(() => {
+    if (currentStep !== 'account' || user || intentToken || eagerPersistTried.current) return;
+    eagerPersistTried.current = true;
+    void ensureIntentPersisted();
+    // ensureIntentPersisted is a stable closure for this purpose; we only want
+    // this to run once when the account step is first reached.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, user, intentToken]);
+
+  /* ── OTP verify (shared by the footer button + auto-submit) ──── */
+  const submitVerify = async (code: string) => {
+    if (submitting) return;
+    if (code.length < 6) { setErrors({ otp: 'Enter the verification code from your email' }); return; }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: form.email.trim(), token: code, type: 'signup',
+      });
+      if (error) { toast.error(error.message || 'Invalid code.'); return; }
+      toast.success('Email verified.');
+      await persistIntentAndConsume();
+      void finish();
+    } finally { setSubmitting(false); }
+  };
+
   /* ── Navigation ────────────────────────────────────────────── */
   const next = async () => {
     if (!validate()) return;
 
     if (currentStep === 'account') {
+      // OAuth / already-authenticated users have no email to verify — skip the
+      // verify step entirely and drop them straight into the studio.
       if (user) {
         await persistIntentAndConsume();
-        setDirection(1); setStepIdx(i => i + 1);
+        void finish();
         return;
       }
       setSubmitting(true);
@@ -368,16 +407,7 @@ export default function StartOnboarding() {
 
     if (currentStep === 'verify') {
       if (user) { await persistIntentAndConsume(); void finish(); return; }
-      setSubmitting(true);
-      try {
-        const { error } = await supabase.auth.verifyOtp({
-          email: form.email.trim(), token: otpCode, type: 'signup',
-        });
-        if (error) { toast.error(error.message || 'Invalid code.'); return; }
-        toast.success('Email verified.');
-        await persistIntentAndConsume();
-        void finish();
-      } finally { setSubmitting(false); }
+      await submitVerify(otpCode);
       return;
     }
 
@@ -427,9 +457,9 @@ export default function StartOnboarding() {
         return;
       }
       navigate(target, { replace: true });
-    } catch (e: any) {
+    } catch (e) {
       console.error('[start] finish', e);
-      toast.error(e?.message ?? 'Could not save your choices.');
+      toast.error((e as Error)?.message ?? 'Could not save your choices.');
     } finally { setSubmitting(false); }
   };
 
@@ -643,22 +673,28 @@ export default function StartOnboarding() {
               </div>
             )}
 
-            {/* PLAN — beta is free, paid plans deferred */}
-            {currentStep === 'plan' && (
-              <BetaFreePlanCard
-                onContinue={() =>
-                  setForm((f) => ({
-                    ...f,
-                    selected_plan_id: 'beta_free',
-                    selected_plan_kind: 'beta',
-                  }))
-                }
-              />
-            )}
-
             {/* ACCOUNT */}
             {currentStep === 'account' && (
               <div className="space-y-5 max-w-md mx-auto">
+                {/* Beta-free value strip — folded in from the retired plan step. */}
+                <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.06] px-4 py-3 text-center">
+                  <Gem className="w-4 h-4 text-emerald-300 shrink-0" />
+                  <p className="text-[12.5px] text-white/75 leading-snug">
+                    <span className="text-emerald-300 font-semibold">100 free credits</span> the moment you sign up — no card, no checkout.
+                  </p>
+                </div>
+
+                {!user && (
+                  <>
+                    <OAuthProviders next={oauthNext} />
+                    <div className="flex items-center gap-3 py-1">
+                      <span className="h-px flex-1 bg-white/10" />
+                      <span className="text-[10px] uppercase tracking-[0.28em] text-white/40 font-medium">or continue with email</span>
+                      <span className="h-px flex-1 bg-white/10" />
+                    </div>
+                  </>
+                )}
+
                 <Field label="Your name" error={errors.display_name}>
                   <input
                     placeholder="Jordan Lin"
@@ -734,42 +770,12 @@ export default function StartOnboarding() {
                     <p className="text-sm text-white/65 text-center">
                       Code sent to <span className="text-white font-medium">{form.email}</span>
                     </p>
-                    <div className="flex gap-1.5 justify-center">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <input
-                          key={i}
-                          id={`sb-otp-${i}`}
-                          type="text" inputMode="numeric" maxLength={1}
-                          value={otpCode[i] || ''}
-                          onChange={(e) => {
-                            const v = e.target.value.replace(/\D/g, '').slice(0, 1);
-                            const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 6);
-                            setOtpCode(next);
-                            if (v && i < 5) document.getElementById(`sb-otp-${i + 1}`)?.focus();
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
-                              document.getElementById(`sb-otp-${i - 1}`)?.focus();
-                            }
-                          }}
-                          onPaste={(e) => {
-                            const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                            if (pasted.length >= 1) {
-                              e.preventDefault();
-                              setOtpCode(pasted);
-                              document.getElementById(`sb-otp-${Math.min(pasted.length, 5)}`)?.focus();
-                            }
-                          }}
-                          className={cn(
-                            'w-12 h-14 text-center text-xl font-semibold rounded-xl tabular-nums',
-                            'bg-white/[0.035] border border-white/10 text-white outline-none',
-                            'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-glass-hover transition-all',
-                            otpCode[i] && 'border-[hsla(212,100%,55%,0.45)] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
-                          )}
-                          autoFocus={i === 0}
-                        />
-                      ))}
-                    </div>
+                    <AuthOtpInput
+                      value={otpCode}
+                      onChange={setOtpCode}
+                      onComplete={(full) => { void submitVerify(full); }}
+                      disabled={submitting}
+                    />
                     {errors.otp && <p className="text-[11px] text-rose-400 text-center">{errors.otp}</p>}
                     <div className="text-center space-y-3">
                       <div className="flex items-start gap-2 text-left rounded-xl bg-glass border border-white/[0.06] px-3.5 py-2.5 max-w-sm mx-auto">
@@ -896,13 +902,24 @@ export default function StartOnboarding() {
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> {stepIdx === 0 ? 'Exit' : 'Back'}
           </button>
 
-          <p className="hidden md:block text-[10px] tracking-[0.28em] uppercase text-white/35 font-sans">
-            {currentStep === 'account' || currentStep === 'verify'
-              ? 'Encrypted · we never share your email'
-              : currentStep === 'plan'
-                ? 'No charge until you confirm checkout'
-                : 'Saved automatically as you go'}
-          </p>
+          {currentStep === 'account' || currentStep === 'verify' ? (
+            <div className="hidden md:flex flex-col items-center gap-1.5">
+              <div className="flex items-center gap-2 text-[10px] tracking-[0.26em] uppercase text-white/40 font-sans">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300/70" />
+                <span>Bank-grade encryption · No card required · Cancel anytime</span>
+              </div>
+              <div className="flex items-center gap-1 text-white/40">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-3 h-3 text-amber-300 fill-amber-300" />
+                ))}
+                <span className="ml-1.5 text-[10px] tracking-[0.2em] uppercase text-white/35 font-sans">Encrypted · we never share your email</span>
+              </div>
+            </div>
+          ) : (
+            <p className="hidden md:block text-[10px] tracking-[0.28em] uppercase text-white/35 font-sans">
+              Saved automatically as you go
+            </p>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -952,7 +969,6 @@ function CinematicBackdrop({ accountType, stepKey }: { accountType: AccountType;
   const hueByStep: Record<StepKey, { angle: string; tint: string; pos: string }> = {
     company: { angle: '15% 0%',  tint: 'hsla(212,100%,40%,0.22)', pos: '85% 100%' },
     team:    { angle: '85% 0%',  tint: 'hsla(195,100%,55%,0.18)', pos: '15% 100%' },
-    plan:    { angle: '50% 0%',  tint: 'hsla(212,100%,55%,0.20)', pos: '50% 100%' },
     account: { angle: '20% 100%',tint: 'hsla(212,100%,45%,0.18)', pos: '80% 0%'   },
     verify:  { angle: '50% 50%', tint: 'hsla(195,100%,65%,0.20)', pos: '50% 0%'   },
   };

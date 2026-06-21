@@ -928,8 +928,20 @@ function ProductionContentInner() {
   
   // Auto-stitch
   useEffect(() => {
-    const allComplete = completedClips >= expectedClipCount && expectedClipCount > 0;
-    const shouldTrigger = allComplete && 
+    // The `completedClips` counter can drift from reality when the
+    // watchdog clears or re-queues clips. Before triggering an
+    // expensive stitch, confirm there are actually `expectedClipCount`
+    // clips carrying a real videoUrl — otherwise the stitcher runs on
+    // a gapped set and fails silently. The counter is only a fast-path
+    // hint; clipResults is the authoritative signal.
+    const realCompleted = clipResults.filter(
+      (c) => c.status === 'completed' && !!c.videoUrl,
+    ).length;
+    const allComplete =
+      realCompleted >= expectedClipCount &&
+      completedClips >= expectedClipCount &&
+      expectedClipCount > 0;
+    const shouldTrigger = allComplete &&
       !['completed', 'stitching', 'failed'].includes(projectStatus) &&
       !autoStitchAttempted && !isSimpleStitching;
 
@@ -1152,8 +1164,18 @@ function ProductionContentInner() {
 
   const handleApproveScript = async (approvedShots: ScriptShot[]) => {
     if (!projectId || !user || isApprovingScript) return;
+    // Guard against an empty shot list. Approving with zero shots
+    // resumed the pipeline into production with nothing to generate —
+    // progress sat at 0% forever with no error, looking hung. Fail
+    // loud instead.
+    if (!Array.isArray(approvedShots) || approvedShots.length === 0) {
+      toast.error("No shots to approve", {
+        description: "The script has no shots — regenerate it before approving.",
+      });
+      return;
+    }
     setIsApprovingScript(true);
-    
+
     try {
       addLog('Approving script...', 'info');
       

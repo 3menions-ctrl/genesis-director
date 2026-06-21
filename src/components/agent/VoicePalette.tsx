@@ -57,8 +57,6 @@ function getRecognizer(): SpeechRecognitionLike | null {
 
 const COMMAND_MAP: Array<{ pattern: RegExp; route: string }> = [
   { pattern: /open lobby|go to lobby/i,    route: "/lobby" },
-  { pattern: /open market|go to market/i,  route: "/market" },
-  { pattern: /open crews|my crews/i,       route: "/crews" },
   { pattern: /open studio|new project/i,   route: "/create" },
   { pattern: /open library|projects/i,     route: "/projects" },
   { pattern: /credits|my credits/i,        route: "/credits" },

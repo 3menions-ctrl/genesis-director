@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, type VideoHTMLAttributes } from 'react';
+import { useUserPrefs } from '@/contexts/UserPreferencesContext';
 
 /**
  * Concurrent-decoder limiter. Browsers (especially Chromium on Linux/Windows
@@ -55,10 +56,24 @@ export const LazyAutoVideo = memo(function LazyAutoVideo({
   ...rest
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
+  const prefs = useUserPrefs();
+
+  // Apply user-preference defaults whenever they change (or on mount).
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.volume = Math.min(1, Math.max(0, (prefs.defaultVolume ?? 80) / 100));
+    el.playbackRate = prefs.defaultPlaybackSpeed ?? 1;
+    // Captions default — best-effort: enable the first text track if there is one.
+    if (prefs.captionsDefault && el.textTracks && el.textTracks.length > 0) {
+      el.textTracks[0].mode = 'showing';
+    }
+  }, [prefs.defaultVolume, prefs.defaultPlaybackSpeed, prefs.captionsDefault]);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !src) return;
+    if (!prefs.autoplayVideos) return; // user opted out — load on tap only
 
     let visible = false;
     const io = new IntersectionObserver(
@@ -92,9 +107,19 @@ export const LazyAutoVideo = memo(function LazyAutoVideo({
       document.removeEventListener('visibilitychange', onVis);
       release(el);
     };
-  }, [src, rootMargin]);
+  }, [src, rootMargin, prefs.autoplayVideos]);
 
-  // Render without `src` initially. IntersectionObserver assigns it on demand.
+  // When user turns autoplay off mid-session, assign the src up-front so
+  // the poster doesn't stay blank — but never call play().
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !src) return;
+    if (!prefs.autoplayVideos && !el.src) {
+      el.src = src as string;
+      el.load();
+    }
+  }, [src, prefs.autoplayVideos]);
+
   return (
     <video
       ref={ref}
@@ -102,6 +127,7 @@ export const LazyAutoVideo = memo(function LazyAutoVideo({
       loop
       playsInline
       preload="none"
+      controls={!prefs.autoplayVideos}
       {...rest}
     />
   );

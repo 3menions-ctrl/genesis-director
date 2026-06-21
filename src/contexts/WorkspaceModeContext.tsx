@@ -12,6 +12,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 export type WorkspaceMode = 'quick' | 'advanced';
 
@@ -74,21 +75,16 @@ const WorkspaceModeContext = createContext<WorkspaceModeContextType | null>(null
 
 export function WorkspaceModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<WorkspaceMode>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return (stored === 'quick' || stored === 'advanced') ? stored : 'quick';
-    }
-    return 'quick';
+    const stored = safeLocalStorage.get(STORAGE_KEY);
+    return (stored === 'quick' || stored === 'advanced') ? stored : 'quick';
   });
-  
+
   const features = mode === 'quick' ? QUICK_MODE_FEATURES : ADVANCED_MODE_FEATURES;
-  
+
   // Persist mode preference
   const setMode = useCallback((newMode: WorkspaceMode) => {
     setModeState(newMode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, newMode);
-    }
+    safeLocalStorage.set(STORAGE_KEY, newMode);
   }, []);
   
   const toggleMode = useCallback(() => {

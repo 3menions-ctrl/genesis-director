@@ -1,0 +1,555 @@
+[
+  {
+    "id": "795bff39-3dc8-4ba0-9065-ea69d2f31d9d",
+    "name": "Baby Cupid",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "30643d9f-42d2-4828-ab35-6dc6bc13c9f7",
+    "name": "Cupid Heartstring",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "1ab91379-1060-4e68-b045-8751e9d789d5",
+    "name": "Cupid Valentine",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "6a065f72-a7f7-44ef-a912-5fc434ad9b6a",
+    "name": "Luna Stardust",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "a27a8aa3-e217-49d5-b38e-3d82c2337ee1",
+    "name": "Dragon Li",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "6f6ce7e1-6a9a-45eb-a1d9-a2afd095f15a",
+    "name": "Blitz The Cheetah",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "b8742e3c-1e01-4ce9-9fb5-9bede0eb0812",
+    "name": "Jade The Panda",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "f55920e0-889d-4363-9233-ef8c4158035e",
+    "name": "Firework Fairy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "93d0bbd3-e155-4a97-8725-bcc22553fd34",
+    "name": "Diwali Sprite",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "840278ea-f8ec-4684-8330-79d40c6c5b38",
+    "name": "Elf Jingle",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "047bbc47-0420-45aa-86bf-ac48974a3d39",
+    "name": "Astro Vega",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "034ed7da-ff1d-4379-b287-270b26879212",
+    "name": "Friendly Ghost",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "9c991481-8db9-4376-9296-5952d80ed6ca",
+    "name": "Coral The Mermaid",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "fb5efa1f-4f04-456c-9aa0-194de4f85480",
+    "name": "Ember The Dragon",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "2c8be55e-af64-4553-95e4-9a574c24517e",
+    "name": "Maple The Autumn Fairy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "06e89c5a-f800-4982-90e4-6489ef6b2891",
+    "name": "Alien Splork",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:cartoon"
+  },
+  {
+    "id": "47f3ba92-1132-458d-92ae-7bd25d0d3638",
+    "name": "Lil' Pumpkin Patch",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "e47d8b7c-7c3f-4288-9f04-e813c9bc7700",
+    "name": "Atlas The Elephant",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "0d5640bf-614c-452b-a39d-aac63e42e4e3",
+    "name": "Cosmo The Space Cat",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "e41b0d9f-d893-4b08-8c92-0186547dbab2",
+    "name": "Frosty The Snowman",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "a83e85f2-90f8-46ec-a63f-a3b54c5d4a62",
+    "name": "River Phoenix",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "c18dc7a4-7a26-45a3-9d64-e9de1a40baf5",
+    "name": "Pixel The Robot",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "bf0aee44-1c3e-49c6-91db-c3bd4e791228",
+    "name": "Ruby The Cardinal",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "f6919523-11d8-4288-b5da-86b498aa06e1",
+    "name": "Nova Cosmic",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "76c459ca-846a-4d50-b1c4-b711aa0a8f06",
+    "name": "Tech Knight Aegis",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "6f13a7d3-3224-483e-9e03-e211120ded96",
+    "name": "Shonen Hero Kaito",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "0f4fcf89-1f42-4a8c-a4f7-c1b6b589aa40",
+    "name": "Sakura Fairy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "74327021-d3c6-4541-98fa-756bce24b1dd",
+    "name": "Thunder Bear",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "c4602f59-dc56-4aa9-84c0-aa777d62a589",
+    "name": "Rex Titanium",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "6907422a-9d9c-4a0a-8a91-ce6994610f63",
+    "name": "Sterling The Snow Leopard",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "d36ad122-f497-41dd-8f5b-6451c3cbee50",
+    "name": "Tooth Fairy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "542dc16b-c8fb-41c4-8f3f-1350b60f8185",
+    "name": "Frost the Elf",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:the+creature"
+  },
+  {
+    "id": "4875a223-4bac-4282-bf06-ada7b8a15b54",
+    "name": "Cupid Iris",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "2b2b0721-7816-4d97-b554-176788c58d84",
+    "name": "Surfer Coral",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "125d2129-4de9-442b-b55b-a1847466c477",
+    "name": "Bella the Baker",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "66a474f2-dedb-4459-883c-7c3fbd430d02",
+    "name": "Captain Whiskers",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:animated"
+  },
+  {
+    "id": "2bc3e8c3-ff22-439e-a583-c52c21447c1c",
+    "name": "Mira the Explorer",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "c9991885-33f2-405d-bf5c-7d579fd02e22",
+    "name": "Pip the Inventor",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "75021395-d1e4-43a2-ab57-ecaa2eadd8ad",
+    "name": "Boom the Robot",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:animated"
+  },
+  {
+    "id": "1941f5ad-c181-4ec6-bb26-a2ecb6abb271",
+    "name": "Daisy Doodle",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "66326b09-871a-49f6-a2ab-80cc90182d1a",
+    "name": "Granddad Oak",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "6ee560ca-171d-486d-99c1-bca0631f35b0",
+    "name": "Ziggy Squiggle",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "59b78b21-0d16-449f-9402-d48bae3567ad",
+    "name": "Bouncing Beans",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "03d165ae-338d-43ae-bec9-1b1d378e0117",
+    "name": "Mayor McMuffin",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "070e2b0b-6c45-456d-b2db-88fc0d194583",
+    "name": "Vlad the Inventor",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "d2696f37-f2bc-4e9b-98d0-d0f5361d47d3",
+    "name": "Inkline Vega",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "c5aed37e-b0fe-4947-890c-4a68226816d9",
+    "name": "Crosshatch Knox",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "4d00f6d8-5485-4482-8c43-c7c5a2b7f8da",
+    "name": "Halftone Jett",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "059663e9-16ae-4c93-a61e-fdd901b8bfcc",
+    "name": "Ms. Mystery Lila",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "cc7f1a1b-7ebd-4f71-bb37-534ea71050c7",
+    "name": "Origami Crane Sumi",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "5c6e87e6-0ffb-4a09-9cbd-7fc68652a882",
+    "name": "Paper Doll Nia",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "75e6c75e-136c-457c-83ad-732eefd9a1fe",
+    "name": "Flat-Vector Aya",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "9cba5a54-4824-4fac-a88a-54c4f9aff1f8",
+    "name": "Flat-Vector Theo",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "25b8b550-ae67-42bd-9bda-75724175c39b",
+    "name": "Low-Poly Ranger Vex",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:low-poly"
+  },
+  {
+    "id": "6bac6f2d-0635-4362-9e19-6a1f87b7847b",
+    "name": "Boba Buddy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:kawaii"
+  },
+  {
+    "id": "60a8c826-64f3-4971-92a7-1414f62c14ac",
+    "name": "Cloudpup Nimbus",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:kawaii"
+  },
+  {
+    "id": "d1253488-153d-4880-a946-872d9bb1bf57",
+    "name": "Mochi the Mascot",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:kawaii"
+  },
+  {
+    "id": "04681c4e-0cc5-429e-8462-315e21e04f2f",
+    "name": "Spicy Pepper Pip",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:kawaii"
+  },
+  {
+    "id": "18e7df52-2873-41e3-a306-89b49d45075e",
+    "name": "Storybook Ellie",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "16579f20-3901-4aae-a4a3-a428e2ca4f62",
+    "name": "Storybook Wolf Fenn",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "98f10d3c-afd4-4ea5-b560-c1224351a21d",
+    "name": "Retro Rocketeer Zara",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "48b99346-c02f-4eb3-b043-31b911f6ee01",
+    "name": "Robo-Buddy Tin-9",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "15697b4e-2dc6-44f4-b19c-c01879738b13",
+    "name": "Vampling Vince",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "3e171f63-dde4-4544-9d81-97bb8156b1ab",
+    "name": "Ghost Friend Boo",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:kawaii"
+  },
+  {
+    "id": "571cb158-259a-4fb6-a1e0-2a6c9d8a1928",
+    "name": "Reindeer Pal Rudy",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:cartoon"
+  },
+  {
+    "id": "17be770e-2f88-4f76-a7f4-a47cf8a4cde4",
+    "name": "Snowpal Frostie",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "d4e989db-0b6c-4401-9fff-0c49c657f9e4",
+    "name": "Tiny Elf Tinsel",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "tag:cartoon"
+  },
+  {
+    "id": "5a302907-c4ba-4303-9ae5-20792fa9a8a6",
+    "name": "Sushi-chan Nigiri",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:chibi"
+  },
+  {
+    "id": "d6cedddb-dd0d-45f9-9ce8-a2d5fa0dd033",
+    "name": "Donut Dottie",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:anime"
+  },
+  {
+    "id": "c10e27c1-8edd-4b0e-a746-f6a2f5506a0f",
+    "name": "Pillow Pip",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:chibi"
+  },
+  {
+    "id": "6415a065-07e4-47f7-99c7-636f93d018a5",
+    "name": "Trashcan Travis",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:stylized"
+  },
+  {
+    "id": "2b5bac3f-9c72-4c51-a3de-0934b730e07e",
+    "name": "Robo-Pal Bolt",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "1082e660-3297-480a-9324-02f23399e958",
+    "name": "Sunny the Sun",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:cartoon"
+  },
+  {
+    "id": "1081468b-b60a-4c92-b672-06563e4ee153",
+    "name": "Moony Luna",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  },
+  {
+    "id": "0be46979-6599-44a3-905c-5fc62b1ba0bf",
+    "name": "Mushy the Mushroom",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:chibi"
+  },
+  {
+    "id": "db828953-f87b-4c28-903f-00cf250901db",
+    "name": "Snowflake Sniffles",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:chibi"
+  },
+  {
+    "id": "f48cc232-7df2-44d6-836e-0d14b8fba0af",
+    "name": "Skully the Friendly Skull",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:cartoon"
+  },
+  {
+    "id": "21128271-16de-4f75-b23e-3e841f476eaf",
+    "name": "Heart Harper",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "desc:chibi"
+  },
+  {
+    "id": "cc194260-0579-4a8d-9d82-7d54beeb639d",
+    "name": "Solar Sail Drifter Ona",
+    "before": "realistic",
+    "after": "animated",
+    "reason": "name:creature"
+  }
+]

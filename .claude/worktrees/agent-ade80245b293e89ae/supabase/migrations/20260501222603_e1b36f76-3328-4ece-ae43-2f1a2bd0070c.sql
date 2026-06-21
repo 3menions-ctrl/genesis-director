@@ -1,0 +1,14 @@
+DROP POLICY IF EXISTS "scoped_read_final_videos"     ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_scene_images"     ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_avatars"          ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_thumbnails"       ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_video_thumbnails" ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_video_clips"      ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_voice_tracks"     ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_photo_edits"      ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_character_refs"   ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_genesis_castings" ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_hoppy_uploads"    ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_temp_frames"      ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_user_uploads"     ON storage.objects;
+DROP POLICY IF EXISTS "scoped_read_videos"           ON storage.objects;

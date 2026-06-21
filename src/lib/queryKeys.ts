@@ -79,14 +79,6 @@ export const qk = {
     sellerStats: (sellerId: UserId) => ['market', 'seller', sellerId] as const,
   },
 
-  // Crews
-  crews: {
-    _all: ['crews'] as const,
-    list:    (uid: UserId) => ['crews', uid] as const,
-    detail:  (crewId: string) => ['crews', 'detail', crewId] as const,
-    members: (crewId: string) => ['crews', crewId, 'members'] as const,
-  },
-
   // Help / Blog / static
   static: {
     blog: () => ['static', 'blog'] as const,

@@ -1,0 +1,22 @@
+{
+  "name": "F01-title-clip",
+  "description": "Two clips with a default fade transition + one title overlay on the second clip's window. Asserts xfade math, drawtext window, and the basic encode profile.",
+  "inputs": [
+    { "url": "file://clip-a.mp4", "duration": 4, "isIntro": false },
+    { "url": "file://clip-b.mp4", "duration": 4, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "titleClips": [
+    {
+      "text": "HELLO WORLD",
+      "color": "#ffffff",
+      "startSec": 4.5,
+      "durationSec": 2,
+      "sizePct": 8
+    }
+  ]
+}

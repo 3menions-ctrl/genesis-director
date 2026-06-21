@@ -13,6 +13,7 @@ import { ReactNode, useEffect, useRef } from "react";
 import { X, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { ACCENT_HSL, accent, ROSE } from "@/admin/ui/primitives";
 
 interface InspectPanelProps {
   open: boolean;
@@ -90,33 +91,53 @@ export function InspectPanel({
         aria-labelledby={title ? "inspect-panel-title" : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 bottom-0 flex flex-col",
-          "bg-background/95 backdrop-blur-2xl border-l border-white/[0.06]",
-          "shadow-[-40px_0_80px_-40px_rgba(0,0,0,0.9)]",
+          "absolute right-0 top-0 bottom-0 flex flex-col overflow-hidden backdrop-blur-2xl",
+          "shadow-[-40px_0_120px_-40px_rgba(0,0,0,0.95)]",
           "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           "outline-none",
           WIDTH[width],
           open ? "translate-x-0" : "translate-x-full",
         )}
+        style={{
+          background:
+            "linear-gradient(200deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02) 45%, rgba(6,7,10,0.96))",
+        }}
       >
-        {/* Brand rail */}
+        {/* Leading-edge specular highlight */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[#0A84FF]/40 to-transparent"
+          className="pointer-events-none absolute left-0 top-0 bottom-0 w-px"
+          style={{
+            background: `linear-gradient(to bottom, transparent, ${accent(0.45)}, transparent)`,
+          }}
+        />
+        {/* Accent bloom in the top-leading corner */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full blur-3xl"
+          style={{ background: `radial-gradient(closest-side, ${accent(0.18)}, transparent 70%)` }}
         />
 
         {/* Header */}
-        <header className="shrink-0 px-6 py-5 border-b border-white/[0.05] flex items-start gap-4">
+        <header className="relative shrink-0 px-6 py-5 flex items-start gap-4">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
+          />
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <div className="text-[9px] uppercase tracking-[0.32em] text-primary/80 font-mono mb-2">
+              <div
+                className="text-[9px] uppercase tracking-[0.32em] font-mono mb-2"
+                style={{ color: ACCENT_HSL }}
+              >
                 {eyebrow}
               </div>
             )}
             {title && (
               <h2
                 id="inspect-panel-title"
-                className="font-display text-[20px] text-white font-light leading-tight truncate"
+                className="font-display text-[20px] text-white font-semibold tracking-[-0.02em] leading-tight truncate"
               >
                 {title}
               </h2>
@@ -130,7 +151,7 @@ export function InspectPanel({
             {deepLinkTo && (
               <Link
                 to={deepLinkTo}
-                className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-primary/40 hover:text-primary text-white/55 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/55 hover:text-white flex items-center justify-center transition-colors"
                 title="Open full page"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -139,21 +160,29 @@ export function InspectPanel({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full border border-white/[0.08] hover:border-rose-400/40 hover:text-rose-300 text-white/55 flex items-center justify-center transition-colors"
+              className="group/close w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/55 flex items-center justify-center transition-colors"
               title="Close (Esc)"
               aria-label="Close inspector"
             >
-              <X className="w-3.5 h-3.5" />
+              <X
+                className="w-3.5 h-3.5 transition-colors group-hover/close:[color:var(--close-rose)]"
+                style={{ ["--close-rose" as string]: ROSE }}
+              />
             </button>
           </div>
         </header>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="relative flex-1 overflow-y-auto px-6 py-5">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <footer className="shrink-0 px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
+          <footer className="relative shrink-0 px-6 py-4 bg-white/[0.03]">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
+            />
             {footer}
           </footer>
         )}

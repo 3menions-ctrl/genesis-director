@@ -289,7 +289,7 @@ export default function Press() {
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <img src="/small-bridges-logo.webp" alt="Small Bridges" className="w-12 h-12 object-contain" />
+                    <Logo size="lg" />
                     <div className="text-left">
                       <div className="font-semibold">Small Bridges</div>
                       <div className="text-sm text-muted-foreground">smallbridges.co</div>

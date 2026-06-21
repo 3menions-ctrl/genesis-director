@@ -25,6 +25,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminCard, ACCENT_HSL, accent, CYAN, ROSE, AMBER } from "@/admin/ui/primitives";
 
 // ── Public types ─────────────────────────────────────────────────────────
 
@@ -117,12 +118,12 @@ export interface AdminRow {
 
 // ── Implementation ───────────────────────────────────────────────────────
 
-const toneText: Record<SignalTone, string> = {
-  blue: "text-primary/80",
-  amber: "text-amber-300",
-  emerald: "text-emerald-300",
-  rose: "text-rose-300",
-  neutral: "text-white",
+const toneColor: Record<SignalTone, string> = {
+  blue: ACCENT_HSL,
+  amber: AMBER,
+  emerald: CYAN,
+  rose: ROSE,
+  neutral: "#ffffff",
 };
 
 export function AdminConsoleV2<T extends AdminRow = AdminRow>(
@@ -231,30 +232,29 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
   return (
     <div className="space-y-8">
       {/* Intro band + signals */}
-      <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.025] to-transparent p-8 lg:p-10 overflow-hidden">
+      <AdminCard className="p-8 lg:p-10">
         <div
           aria-hidden
           className="absolute -top-24 right-0 w-[420px] h-[420px] rounded-full pointer-events-none"
           style={{
-            background:
-              "radial-gradient(circle, rgba(10,132,255,0.12), transparent 65%)",
+            background: `radial-gradient(circle, ${accent(0.14)}, transparent 65%)`,
             filter: "blur(60px)",
           }}
         />
         <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <span className="px-2.5 py-1 rounded-full border border-emerald-400/40 bg-emerald-500/[0.06] text-emerald-300 text-[9px] font-mono font-bold tracking-[0.32em] uppercase">
+              <span
+                className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold tracking-[0.32em] uppercase"
+                style={{ color: CYAN, background: "hsl(188 92% 58% / 0.12)" }}
+              >
                 LIVE
               </span>
-              <span className="h-px w-8 bg-white/10" />
-              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/30">
+              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/45">
                 Operator Console
               </span>
             </div>
-            <p
-              className="text-[15px] text-white/65 leading-relaxed font-light max-w-xl"
-            >
+            <p className="text-[15px] text-white/70 leading-relaxed font-light max-w-xl">
               {intro}
             </p>
           </div>
@@ -262,7 +262,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             <button
               onClick={refresh}
               disabled={loading}
-              className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2.5 rounded-lg border border-white/[0.06] hover:border-white/20 transition-colors inline-flex items-center gap-2 disabled:opacity-50"
+              className="text-[11px] uppercase tracking-[0.22em] text-white/60 hover:text-white px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors inline-flex items-center gap-2 disabled:opacity-50"
             >
               <RefreshCcw
                 className={cn("w-3.5 h-3.5", loading && "animate-spin")}
@@ -272,7 +272,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             {primaryCta && (
               <button
                 onClick={primaryCta.onClick}
-                className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-white px-5 py-2.5 rounded-lg border border-primary/50 bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] shadow-[0_8px_24px_-10px_rgba(10,132,255,0.6)] hover:shadow-[0_12px_32px_-10px_rgba(10,132,255,0.8)] transition-shadow"
+                className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] font-semibold text-[#0a0b0e] px-5 py-2.5 rounded-full bg-white hover:bg-white/90 transition-colors"
               >
                 {primaryCta.label}
                 <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -282,25 +282,23 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
         </div>
 
         {signals && signals.length > 0 && (
-          <div className="relative mt-8 pt-6 border-t border-white/[0.05] grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="relative mt-8 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
             {signals.map((s, i) => {
               const value = s.value(rows as AdminRow[]);
               const trend = s.trend?.(rows as AdminRow[]);
               return (
                 <div key={i}>
-                  <div className="text-[9px] text-white/35 font-mono uppercase tracking-[0.32em] mb-2">
+                  <div className="text-[9px] text-white/45 font-mono uppercase tracking-[0.32em] mb-2">
                     {s.label}
                   </div>
                   <div
-                    className={cn(
-                      "text-2xl font-display font-light tabular-nums",
-                      toneText[s.tone || "neutral"],
-                    )}
+                    className="text-2xl font-display font-semibold tracking-[-0.02em] tabular-nums"
+                    style={{ color: toneColor[s.tone || "neutral"] }}
                   >
                     {loading ? <span className="text-white/20">…</span> : value}
                   </div>
                   {trend && (
-                    <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.2em]">
+                    <div className="text-[10px] text-white/45 mt-1 font-mono uppercase tracking-[0.2em]">
                       {trend}
                     </div>
                   )}
@@ -309,19 +307,19 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             })}
           </div>
         )}
-      </div>
+      </AdminCard>
 
       {/* Search + filter row */}
       {(searchKey || (filters && filters.length > 0)) && (
         <div className="flex flex-wrap items-center gap-3">
           {searchKey && (
             <div className="relative flex-1 min-w-[240px] max-w-md">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+              <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-white/[0.06] bg-glass text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-primary/40"
+                className="w-full pl-10 pr-3 py-2.5 rounded-full bg-white/[0.06] text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:bg-white/[0.1] transition-colors"
               />
             </div>
           )}
@@ -332,7 +330,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
               onChange={(e) =>
                 setFilterState((s) => ({ ...s, [f.key]: e.target.value }))
               }
-              className="px-3 py-2.5 rounded-lg border border-white/[0.06] bg-glass text-[12px] text-white/70 focus:outline-none focus:border-primary/40"
+              className="px-4 py-2.5 rounded-full bg-white/[0.06] text-[12px] text-white/70 focus:outline-none focus:bg-white/[0.1] transition-colors"
             >
               <option value="">{f.label}: all</option>
               {f.options?.map((o) => (
@@ -346,21 +344,22 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
       )}
 
       {/* Table */}
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.015]">
+      <AdminCard className="overflow-hidden">
         {error ? (
           <div className="p-12 text-center text-white/60">
-            <AlertCircle className="w-6 h-6 mx-auto mb-3 text-rose-300" />
+            <AlertCircle className="w-6 h-6 mx-auto mb-3" style={{ color: ROSE }} />
             <p className="text-[13px] mb-2">Could not load records</p>
-            <p className="text-[11px] text-white/40 font-mono">{error}</p>
+            <p className="text-[11px] text-white/45 font-mono">{error}</p>
             <button
               onClick={refresh}
-              className="mt-4 text-[11px] uppercase tracking-[0.22em] text-primary/80 hover:text-white"
+              className="mt-4 text-[11px] uppercase tracking-[0.22em] hover:text-white transition-colors"
+              style={{ color: ACCENT_HSL }}
             >
               Retry
             </button>
           </div>
         ) : loading && rows.length === 0 ? (
-          <div className="p-16 flex items-center justify-center gap-3 text-white/40">
+          <div className="p-16 flex items-center justify-center gap-3 text-white/45">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-[12px] font-mono uppercase tracking-[0.22em]">
               Loading…
@@ -368,13 +367,11 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
           </div>
         ) : rows.length === 0 ? (
           <div className="p-16 text-center">
-            <Inbox className="w-7 h-7 mx-auto mb-3 text-white/20" />
-            <p
-              className="text-[15px] text-white/70 mb-2"
-            >
+            <Inbox className="w-7 h-7 mx-auto mb-3 text-white/25" />
+            <p className="text-[15px] font-display font-semibold tracking-[-0.02em] text-white/80 mb-2">
               {emptyTitle}
             </p>
-            <p className="text-[12px] text-white/40 max-w-md mx-auto">
+            <p className="text-[12px] text-white/45 max-w-md mx-auto">
               {emptyDescription}
             </p>
           </div>
@@ -382,13 +379,13 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-white/[0.05]">
+                <tr className="bg-white/[0.04]">
                   {visibleColumns.map((c) => (
                     <th
                       key={c.key}
                       style={{ width: c.width }}
                       className={cn(
-                        "px-5 py-3 text-[10px] font-mono uppercase tracking-[0.22em] text-white/35",
+                        "px-5 py-3.5 text-[10px] font-mono uppercase tracking-[0.22em] text-white/45",
                         c.align === "right" ? "text-right" : "text-left",
                       )}
                     >
@@ -396,17 +393,20 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                     </th>
                   ))}
                   {actions && actions.length > 0 && (
-                    <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">
+                    <th className="px-5 py-3.5 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">
                       Actions
                     </th>
                   )}
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {rows.map((row, rowIndex) => (
                   <tr
                     key={String(row.id)}
-                    className="border-b border-white/[0.03] hover:bg-glass transition-colors"
+                    className={cn(
+                      "transition-colors hover:bg-white/[0.05]",
+                      rowIndex % 2 === 1 && "bg-white/[0.015]",
+                    )}
                   >
                     {visibleColumns.map((c) => {
                       const raw = row[c.key];
@@ -430,16 +430,22 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                             .filter((a) => !a.show || a.show(row))
                             .map((a, i) => {
                               const Icon = a.icon;
+                              const destructive = a.variant === "destructive";
                               return (
                                 <button
                                   key={i}
                                   onClick={() => runAction(a, row)}
                                   className={cn(
-                                    "text-[11px] px-3 py-1.5 rounded-md border transition-colors inline-flex items-center gap-1.5",
-                                    a.variant === "destructive"
-                                      ? "border-rose-400/20 text-rose-300 hover:bg-rose-500/[0.08] hover:border-rose-400/40"
-                                      : "border-white/[0.08] text-white/60 hover:text-white hover:border-white/20",
+                                    "text-[11px] px-3 py-1.5 rounded-full transition-colors inline-flex items-center gap-1.5",
+                                    destructive
+                                      ? "hover:brightness-110"
+                                      : "bg-white/[0.06] text-white/70 hover:bg-white/[0.12] hover:text-white",
                                   )}
+                                  style={
+                                    destructive
+                                      ? { color: ROSE, background: "hsl(350 90% 70% / 0.12)" }
+                                      : undefined
+                                  }
                                 >
                                   {Icon && <Icon className="w-3 h-3" />}
                                   {a.label}
@@ -453,7 +459,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                 ))}
               </tbody>
             </table>
-            <div className="px-5 py-3 border-t border-white/[0.05] text-[10px] font-mono uppercase tracking-[0.22em] text-white/30">
+            <div className="px-5 py-3 text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
               {rows.length} record{rows.length === 1 ? "" : "s"}
               {loading && (
                 <Loader2 className="w-3 h-3 ml-2 inline animate-spin" />
@@ -461,7 +467,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             </div>
           </div>
         )}
-      </div>
+      </AdminCard>
 
       {children}
     </div>
@@ -473,12 +479,12 @@ function formatCell(v: unknown): ReactNode {
   if (typeof v === "boolean")
     return (
       <span
-        className={cn(
-          "text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider",
+        className="text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider"
+        style={
           v
-            ? "bg-emerald-500/[0.08] text-emerald-300 border border-emerald-400/20"
-            : "bg-glass-hover text-white/40 border border-white/[0.06]",
-        )}
+            ? { color: CYAN, background: "hsl(188 92% 58% / 0.12)" }
+            : { color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.06)" }
+        }
       >
         {v ? "true" : "false"}
       </span>

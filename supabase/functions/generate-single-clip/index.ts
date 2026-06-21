@@ -39,14 +39,23 @@ import {
 // strengths instead of receiving a one-size-fits-all string.
 // ─────────────────────────────────────────────────────────────────────
 function tuneForEngine(
-  engine: 'kling' | 'seedance' | 'veo' | 'sora' | 'runway',
+  engine: 'wan' | 'kling' | 'seedance' | 'veo' | 'sora' | 'runway',
   prompt: string,
   opts: { isAvatarMode: boolean; hasStartImage: boolean }
 ): string {
   const has = (re: RegExp) => re.test(prompt);
   let p = prompt;
 
-  if (engine === 'kling') {
+  if (engine === 'wan') {
+    // Wan 2.5 is the FREE tier — it performs best with short, action-forward
+    // subject/verb/setting grammar, NOT the dense cinematographic stack the
+    // cinema engines reward. Strip lens/dolly jargon (mirrors
+    // _shared/video-engines.ts:optimizeForWan) and keep the prompt compact.
+    p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic( lens)?|lens|dolly( in| out)?|crane( shot)?|tracking shot|pan left|pan right|zoom in|zoom out)\b/gi, '')
+         .replace(/\s{2,}/g, ' ').trim();
+    // Wan rewards a clear motion cue but chokes on long prompts — hard cap short.
+    return p.slice(0, 700);
+  } else if (engine === 'kling') {
     // Kling V3: lens grammar, lip-sync hints, controlled camera moves.
     if (opts.isAvatarMode && !has(/\blip[- ]sync|mouth shapes\b/i)) {
       p += `\n\n[CAMERA] 85mm portrait, eye-level, subtle handheld breath. [LIP-SYNC] Mouth shapes precisely match the spoken dialogue; natural micro-expressions; blink cadence every 3-5s.`;
@@ -1645,7 +1654,7 @@ serve(async (req) => {
     if (videoEngine === 'wan') {
       console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-ai/wan-2.5-t2v) — FREE TIER ══`);
       const wanResult = await createWan25Prediction(
-        tuneForEngine('kling', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        tuneForEngine('wan', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,

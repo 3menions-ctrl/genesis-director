@@ -1,0 +1,18 @@
+{
+  "name": "F04-keyframed",
+  "description": "A clip with pre-compiled video and audio keyframe chains. Asserts the stitcher splices videoKfChain into the per-input normalize stage and audioKfChain into the audio normalize stage at the correct position.",
+  "inputs": [
+    {
+      "url": "file://clip-a.mp4",
+      "duration": 6,
+      "isIntro": false,
+      "videoKfChain": "scale=w='iw*(1+(t-0)/(3-0)*0.5)':h='ih*(1+(t-0)/(3-0)*0.5)':eval=frame,crop=iw0:ih0:(iw-iw0)/2:(ih-ih0)/2,format=yuva420p,colorchannelmixer=aa='0+(1-0)*((t-0)/(3-0))':eval=frame",
+      "audioKfChain": "volume='0+(1-0)*((t-0)/(2-0))':eval=frame"
+    }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4"
+}

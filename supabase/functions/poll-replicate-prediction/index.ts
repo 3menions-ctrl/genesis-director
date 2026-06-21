@@ -264,7 +264,21 @@ serve(async (req) => {
 
       console.log(`[PollReplicate] ✅ Clip ${shotIndex + 1} stored and marked completed`);
 
-      // Chain to continue-production for next clip
+      // Chain to continue-production for next clip.
+      //
+      // SEEDANCE EXCEPTION: seedance-pipeline dispatches ALL clips up front in
+      // parallel (its documented async-by-design contract), so the next clip is
+      // ALREADY rendering. Re-dispatching it here would double-render (and race
+      // the parallel job). For seedance we therefore ONLY fall through to
+      // continue-production on the FINAL clip — that invocation triggers
+      // post-production (final-assembly) and never re-dispatches. Inter-clip
+      // continuity for seedance comes from its pre-seeded scene-image end-frame
+      // morph, not from sequential frame hand-off.
+      const isSeedanceParallel = (pipelineContext?.videoEngine === 'seedance');
+      const isLastClip = (shotIndex + 1) >= (totalClips || 3);
+      if (isSeedanceParallel && !isLastClip) {
+        console.log(`[PollReplicate] ⏭️ Seedance parallel dispatch — clip ${shotIndex + 1}/${totalClips} done; NOT re-dispatching next clip (already rendering). Watchdog/last-clip will trigger post-production.`);
+      } else {
       try {
         const continueResponse = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
           method: 'POST',
@@ -292,6 +306,7 @@ serve(async (req) => {
         }
       } catch (chainErr) {
         console.error(`[PollReplicate] Failed to chain continue-production:`, chainErr);
+      }
       }
 
       // Log cost — use per-output-second pricing for Kling v3

@@ -12,12 +12,14 @@
  *   - Aspect ratio + duration pill (typography only) on the far right
  */
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch, Wand2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Download, Eye, MessageCircle, Sparkles, GitBranch, Wand2, Plus, Film, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import type { EditorProject, EditorView } from "@/lib/editor/types";
 import { ASPECT_RATIOS } from "@/lib/editor/types";
 import { ViewSwitcher } from "./ViewSwitcher";
+import { SaveDialog } from "./SaveDialog";
 
 interface Props {
   project: EditorProject | null;
@@ -28,6 +30,7 @@ interface Props {
   onOpenDirector?: () => void;
   onOpenVersions?: () => void;
   onOpenLibrary?: () => void;
+  onOpenMedia?: () => void;
   onOpenCreate?: () => void;
   presenceCount: number;
 }
@@ -48,6 +51,7 @@ export function TopStatusBar({
   onOpenDirector,
   onOpenVersions,
   onOpenLibrary,
+  onOpenMedia,
   onOpenCreate,
   presenceCount,
 }: Props) {
@@ -58,19 +62,23 @@ export function TopStatusBar({
         <div className="flex items-center gap-5 min-w-0">
           <Link
             to="/library"
-            className="group/back inline-flex items-center gap-1.5 text-[13px] text-muted-foreground/65 hover:text-foreground transition-colors"
+            aria-label="Back to library"
+            title="Back to library"
+            className={cn(
+              "group/back relative inline-flex items-center justify-center h-9 w-9 rounded-full",
+              "bg-white text-[hsl(220_30%_4%)]",
+              "shadow-[0_2px_12px_-2px_hsla(0_0%_0%/0.55),0_0_0_1px_hsla(0_0%_0%/0.04)]",
+              "transition-all duration-200",
+              "hover:bg-[hsl(0_0%_94%)] hover:scale-[1.06]",
+              "active:scale-95",
+              // Make sure nothing in the header sits above and blocks clicks.
+              "z-10",
+            )}
           >
             <ArrowLeft
-              className="h-3.5 w-3.5 transition-transform group-hover/back:-translate-x-0.5"
-              strokeWidth={1.5}
+              className="h-4 w-4 transition-transform duration-200 group-hover/back:-translate-x-0.5"
+              strokeWidth={2}
             />
-            <span className="relative">
-              Library
-              <span
-                aria-hidden
-                className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 group-hover/back:scale-x-100"
-              />
-            </span>
           </Link>
 
           {/* Pulsing accent + project title */}
@@ -109,7 +117,12 @@ export function TopStatusBar({
           <ViewSwitcher view={view} onChange={onViewChange} />
         </div>
 
-        {/* RIGHT — aspect / duration / export */}
+        {/* RIGHT — aspect / duration / action buttons.
+            Project-dependent displays (aspect + runtime + presence)
+            still gate on `project`. Action buttons (Create / Library /
+            Media / Director / Versions / Comments / Export) render
+            even on an empty editor so the user can always reach them
+            to open / start a project. */}
         <div className="flex items-center gap-5 lg:justify-end shrink-0">
           {project && (
             <>
@@ -140,7 +153,10 @@ export function TopStatusBar({
                   <span className={cn(TYPE_META, "text-muted-foreground/55")}>viewing</span>
                 </div>
               )}
-              {onOpenCreate && (
+            </>
+          )}
+          {/* Action buttons — always visible. */}
+          {onOpenCreate && (
                 <button
                   type="button"
                   onClick={onOpenCreate}
@@ -174,6 +190,24 @@ export function TopStatusBar({
                     />
                   </span>
                   <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧L</span>
+                </button>
+              )}
+              {onOpenMedia && (
+                <button
+                  type="button"
+                  onClick={onOpenMedia}
+                  className="group/mlib inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-accent transition-colors"
+                  aria-label="Media library (Shift+M)"
+                >
+                  <Film className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span className="relative">
+                    Media
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/mlib:scale-x-100"
+                    />
+                  </span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧M</span>
                 </button>
               )}
               {onOpenDirector && (
@@ -215,39 +249,85 @@ export function TopStatusBar({
               <button
                 type="button"
                 onClick={onToggleComments}
-                className="group/com inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-foreground transition-colors"
                 aria-label="Toggle comments (C)"
+                title="Comments · C"
+                className={cn(
+                  "group/com inline-flex items-center justify-center h-9 w-9 rounded-full",
+                  "bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]",
+                  "text-foreground/80 hover:text-foreground hover:bg-white/[0.08] hover:ring-white/[0.18]",
+                  "transition-all duration-200 active:scale-95",
+                )}
               >
-                <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
-                <span className="relative">
-                  Comments
-                  <span
-                    aria-hidden
-                    className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 group-hover/com:scale-x-100"
-                  />
-                </span>
-                <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>C</span>
+                <MessageCircle className="h-4 w-4" strokeWidth={1.6} />
               </button>
+              <SaveButton project={project} onOpenExport={onOpenExport} />
               <button
                 type="button"
                 onClick={onOpenExport}
-                className="group/exp inline-flex items-center gap-2 text-[13px] text-accent transition-colors hover:text-foreground"
                 aria-label="Open export panel (E)"
+                title="Export · E"
+                className={cn(
+                  "group/exp inline-flex items-center justify-center h-9 w-9 rounded-full",
+                  "bg-gradient-to-br from-accent/30 to-accent/10 ring-1 ring-inset ring-accent/35",
+                  "text-accent hover:text-foreground hover:from-accent/45 hover:ring-accent/60",
+                  "shadow-[0_2px_12px_-4px_hsl(var(--accent)/0.55)]",
+                  "transition-all duration-200 active:scale-95 hover:scale-[1.04]",
+                )}
               >
-                <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
-                <span className="relative">
-                  Export
-                  <span
-                    aria-hidden
-                    className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/exp:scale-x-100"
-                  />
-                </span>
-                <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>E</span>
+                <Download className="h-4 w-4" strokeWidth={1.6} />
               </button>
-            </>
-          )}
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * SaveButton — icon-only button between Comments and Export. Opens a
+ * dialog that prompts for the project's title, category and short
+ * description before flipping status to 'completed' (which pins it to
+ * the Library with a Complete badge) and offering "render now &
+ * publish" as the natural next step.
+ */
+function SaveButton({
+  project, onOpenExport,
+}: {
+  project: EditorProject | null;
+  onOpenExport?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const disabled = !project;
+  // Listen for the shell's Cmd-S dispatch. Saved here so any view
+  // (Stage, Timeline, Script, Storyboard) can trigger Save without
+  // each one needing local state. We DON'T require the project to
+  // be non-null to fire — the dialog handles the empty case.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("editor:open-save", onOpen);
+    return () => window.removeEventListener("editor:open-save", onOpen);
+  }, []);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        aria-label="Save project · open Save dialog · Cmd-S"
+        title="Save · Cmd-S"
+        className={cn(
+          "group/save inline-flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 active:scale-95",
+          "bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] text-foreground/80 hover:text-foreground hover:bg-white/[0.08] hover:ring-white/[0.18]",
+          disabled && "opacity-65 cursor-not-allowed",
+        )}
+      >
+        <Save className="h-4 w-4" strokeWidth={1.6} />
+      </button>
+      <SaveDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        project={project}
+        onOpenExport={onOpenExport}
+      />
+    </>
   );
 }

@@ -247,7 +247,7 @@ serve(async (req) => {
                       .maybeSingle();
                     const pendingMeta = (projMeta?.pending_video_tasks || {}) as Record<string, any>;
                     const totalClips = pendingMeta.clipCount || 3;
-                    const persistedEngine = (projMeta?.video_engine as 'kling' | 'seedance' | 'veo' | null) || 'kling';
+                    const persistedEngine = (projMeta?.video_engine as 'wan' | 'kling' | 'seedance' | 'veo' | null) || 'kling';
                     
                     console.log(`[CheckStatus] 🔗 Triggering continue-production: clip ${shotIndex + 1}/${totalClips}`);
                     console.log(`[CheckStatus] 🎬 Forwarding videoEngine=${persistedEngine} to continue-production`);

@@ -1,0 +1,14 @@
+{
+  "name": "F08-speed",
+  "description": "Three clips at varying speeds: 0.5x slow-mo, 1.0x normal, 2.5x fast. Asserts setpts=PTS/N on video and the atempo chain on audio. Speeds outside [0.5, 2] decompose into multiple atempo stages.",
+  "inputs": [
+    { "url": "file://slow.mp4", "duration": 4, "isIntro": false, "speed": 0.5 },
+    { "url": "file://normal.mp4", "duration": 4, "isIntro": false, "speed": 1 },
+    { "url": "file://fast.mp4", "duration": 4, "isIntro": false, "speed": 2.5 }
+  ],
+  "transitionDuration": 0.3,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4"
+}

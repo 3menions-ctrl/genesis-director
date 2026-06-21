@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Wand2, Image as ImageIcon, Upload, Download, Sparkles,
-  X, Loader2, Pencil, Maximize2, Send, Layers,
+  X, Loader2, Pencil, Maximize2, Send, Layers, Check, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/shell';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 type Aspect = '1:1' | '16:9' | '9:16' | '3:4' | '4:3' | '21:9';
@@ -47,9 +48,22 @@ interface GeneratedImage {
   aspect: Aspect;
   style: StyleKey;
   ts: number;
+  /** undefined = not yet attempted, true = persisted to library, false = save failed */
+  saved?: boolean;
+}
+
+/** A row from user_media_assets surfaced in the persistent "Your images" gallery. */
+interface SavedImage {
+  id: string;
+  url: string;
+  prompt: string;
+  title: string | null;
+  engine: string | null;
+  createdAt: string;
 }
 
 export function ImageStudioHub() {
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<StyleKey>('cinematic');
 
@@ -72,6 +86,126 @@ export function ImageStudioHub() {
   const [results, setResults] = useState<GeneratedImage[]>([]);
   const [preview, setPreview] = useState<GeneratedImage | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Persistent library of saved images for the signed-in user.
+  const [saved, setSaved] = useState<SavedImage[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [archiving, setArchiving] = useState<string | null>(null);
+
+  // Load (and reload) the user's saved images from user_media_assets.
+  const loadSaved = useCallback(async () => {
+    if (!user?.id) {
+      setSaved([]);
+      return;
+    }
+    setSavedLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_media_assets')
+        .select('id, asset_url, prompt, title, engine, created_at')
+        .eq('user_id', user.id)
+        .eq('media_type', 'image')
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      setSaved(
+        (data ?? []).map((r) => ({
+          id: r.id,
+          url: r.asset_url,
+          prompt: r.prompt ?? '',
+          title: r.title,
+          engine: r.engine,
+          createdAt: r.created_at,
+        })),
+      );
+    } catch (e) {
+      console.warn('[ImageStudioHub] load saved images failed:', e);
+    } finally {
+      setSavedLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    void loadSaved();
+  }, [loadSaved]);
+
+  /**
+   * Persist one freshly-generated image: fetch its bytes, upload to the
+   * public `scene-images` bucket, then insert a user_media_assets row.
+   * Returns true on success. Best-effort — never throws.
+   */
+  const persistResult = useCallback(
+    async (img: GeneratedImage): Promise<boolean> => {
+      if (!user?.id) return false;
+      try {
+        const resp = await fetch(img.url);
+        if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+        const blob = await resp.blob();
+        const path = `${user.id}/studio/${img.id}.png`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('scene-images')
+          .upload(path, blob, {
+            contentType: 'image/png',
+            upsert: true,
+          });
+        if (uploadError) throw uploadError;
+
+        const { data: pub } = supabase.storage.from('scene-images').getPublicUrl(path);
+        const assetUrl = pub.publicUrl;
+
+        const aspectMeta = ASPECTS.find((a) => a.key === img.aspect);
+        const { error: insertError } = await supabase.from('user_media_assets').insert({
+          user_id: user.id,
+          media_type: 'image',
+          asset_url: assetUrl,
+          source: 'studio-image',
+          engine: hq ? 'nano-banana-pro' : 'nano-banana',
+          generation_mode: img.style,
+          prompt: img.prompt.slice(0, 4000),
+          title: `${STYLES.find((s) => s.key === img.style)?.label ?? 'Image'} · ${img.aspect}`,
+          mime_type: 'image/png',
+          metadata: {
+            aspect: img.aspect,
+            style: img.style,
+            aspect_w: aspectMeta?.w ?? null,
+            aspect_h: aspectMeta?.h ?? null,
+            hq,
+          },
+        });
+        if (insertError) throw insertError;
+
+        return true;
+      } catch (e) {
+        console.warn('[ImageStudioHub] persist image failed:', e);
+        return false;
+      }
+    },
+    [user?.id, hq],
+  );
+
+  // Archive (soft-delete) a saved image from the persistent gallery.
+  const archiveSaved = useCallback(async (id: string) => {
+    setArchiving(id);
+    // Optimistic removal.
+    const prev = saved;
+    setSaved((s) => s.filter((x) => x.id !== id));
+    try {
+      const { error } = await supabase
+        .from('user_media_assets')
+        .update({ is_archived: true })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Removed from your images');
+    } catch (e) {
+      console.warn('[ImageStudioHub] archive failed:', e);
+      setSaved(prev);
+      toast.error('Could not remove image');
+    } finally {
+      setArchiving(null);
+    }
+  }, [saved]);
 
   const handleRefUpload = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -106,17 +240,35 @@ export function ImageStudioHub() {
       const fresh: GeneratedImage[] = (data?.images || []).map((url: string, i: number) => ({
         id: `${Date.now()}-${i}`,
         url, prompt: p, aspect, style, ts: Date.now(),
+        saved: user?.id ? undefined : false,
       }));
       setResults(prev => [...fresh, ...prev]);
       toast.success(reference ? 'Image edited' : `Generated ${fresh.length} image${fresh.length > 1 ? 's' : ''}`);
+
+      // Persist each result to storage + the media library so they survive
+      // reloads. Best-effort and non-blocking — generation already succeeded.
+      if (user?.id) {
+        void (async () => {
+          let savedAny = false;
+          for (const img of fresh) {
+            const ok = await persistResult(img);
+            savedAny = savedAny || ok;
+            setResults(prev => prev.map(r => (r.id === img.id ? { ...r, saved: ok } : r)));
+          }
+          if (savedAny) {
+            toast.success('Saved to your images');
+            void loadSaved();
+          }
+        })();
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Generation failed');
     } finally {
       setBusy(false);
     }
-  }, [prompt, style, aspect, count, hq, reference]);
+  }, [prompt, style, aspect, count, hq, reference, user?.id, persistResult, loadSaved]);
 
-  const useAsReference = (img: GeneratedImage) => {
+  const applyAsReference = (img: GeneratedImage) => {
     setReference(img.url);
     setPreview(null);
     toast.message('Using image as reference', { description: 'Edit the prompt and generate to remix.' });
@@ -392,7 +544,7 @@ export function ImageStudioHub() {
                           size="icon"
                           variant="ghost"
                           className="bg-background/70 backdrop-blur border border-foreground/[0.08] hover:bg-background"
-                          onClick={(e) => { e.stopPropagation(); useAsReference(img); }}
+                          onClick={(e) => { e.stopPropagation(); applyAsReference(img); }}
                           aria-label="Remix"
                         >
                           <Layers className="w-4 h-4" />
@@ -410,6 +562,16 @@ export function ImageStudioHub() {
                       <div className="absolute top-3 left-3 inline-flex items-center h-6 px-2.5 rounded-full bg-background/70 backdrop-blur border border-foreground/[0.08] text-[10px] uppercase tracking-[0.2em] font-mono text-muted-foreground">
                         {STYLES.find(s => s.key === img.style)?.label} · {img.aspect}
                       </div>
+                      {/* saved state */}
+                      {img.saved === undefined && user?.id ? (
+                        <div className="absolute top-3 right-3 inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-background/70 backdrop-blur border border-foreground/[0.08] text-[10px] uppercase tracking-[0.2em] font-mono text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Saving
+                        </div>
+                      ) : img.saved ? (
+                        <div className="absolute top-3 right-3 inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-primary/15 backdrop-blur border border-primary/30 text-[10px] uppercase tracking-[0.2em] font-mono text-primary">
+                          <Check className="w-3 h-3" /> Saved
+                        </div>
+                      ) : null}
                     </div>
                   </Surface>
                 </motion.div>
@@ -418,6 +580,106 @@ export function ImageStudioHub() {
           </div>
         )}
       </div>
+
+      {/* ─────────────────── Your images (persisted) ─────────────────── */}
+      {user?.id && (
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-mono">
+                {savedLoading
+                  ? 'Loading…'
+                  : saved.length === 0
+                    ? 'Nothing saved yet'
+                    : `${saved.length} saved`}
+              </div>
+              <h3 className="text-display-luxe text-2xl mt-1">Your images</h3>
+            </div>
+            <button
+              onClick={() => void loadSaved()}
+              className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {savedLoading && saved.length === 0 ? (
+            <Surface className="grid place-items-center" style={{ minHeight: 160 }}>
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </Surface>
+          ) : saved.length === 0 ? (
+            <Surface className="relative overflow-hidden">
+              <div className="relative grid place-items-center text-center" style={{ minHeight: 160 }}>
+                <div className="space-y-2 max-w-md">
+                  <div className="mx-auto w-10 h-10 rounded-full bg-foreground/[0.04] border border-foreground/[0.08] grid place-items-center">
+                    <ImageIcon className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-body-muted text-sm">
+                    Images you generate are saved here and reappear every time you return.
+                  </p>
+                </div>
+              </div>
+            </Surface>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {saved.map((img) => (
+                <Surface
+                  key={img.id}
+                  padded={false}
+                  hover
+                  className="group relative overflow-hidden cursor-pointer"
+                  onClick={() =>
+                    setPreview({
+                      id: img.id,
+                      url: img.url,
+                      prompt: img.prompt,
+                      aspect: '1:1',
+                      style: 'cinematic',
+                      ts: new Date(img.createdAt).getTime(),
+                      saved: true,
+                    })
+                  }
+                >
+                  <div className="relative aspect-square bg-foreground/[0.02]">
+                    <img
+                      src={img.url}
+                      alt={(img.title || img.prompt || 'Saved image').slice(0, 80)}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute bottom-0 inset-x-0 p-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500 flex items-center gap-2">
+                      <a
+                        href={img.url}
+                        download={`smallbridges-${img.id}.png`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex h-8 px-3 items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Save
+                      </a>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void archiveSaved(img.id);
+                        }}
+                        disabled={archiving === img.id}
+                        aria-label="Remove image"
+                        className="ml-auto h-8 w-8 grid place-items-center rounded-full bg-background/70 backdrop-blur border border-foreground/[0.08] text-muted-foreground hover:text-destructive disabled:opacity-50"
+                      >
+                        {archiving === img.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </Surface>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─────────────────── Preview ─────────────────── */}
       <AnimatePresence>
@@ -459,7 +721,7 @@ export function ImageStudioHub() {
                       <Download className="w-4 h-4" /> Download
                     </a>
                   </Button>
-                  <Button variant="ghost" onClick={() => useAsReference(preview)}>
+                  <Button variant="ghost" onClick={() => applyAsReference(preview)}>
                     <Layers className="w-4 h-4" /> Remix
                   </Button>
                 </div>

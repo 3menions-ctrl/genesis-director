@@ -1,1219 +1,814 @@
-import { useState, useEffect, useRef, memo, forwardRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
-import { AppHeader } from '@/components/layout/AppHeader';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  LayoutTemplate, Search, Play, Clock, Users, Sparkles,
-  Film, Megaphone, BookOpen, Smile, Briefcase, TrendingUp,
-  ArrowRight, Star, Flame, Zap, Heart, Eye
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
-import { TemplatePreviewPlayer } from '@/components/templates/TemplatePreviewPlayer';
+/**
+ * Templates — the editorial gallery surface.
+ *
+ * Architectural intent: matches ProfileDashboard's "everything floats"
+ * language. No heavy containers, no boxed cards. Gradient text titles,
+ * floating filter pills, glassmorphic tiles. Hero band is a full-bleed
+ * editorial header with stats living as floating numbers.
+ *
+ * Source of truth: TEMPLATE_BLUEPRINTS from lib/templates/registry —
+ * one unified rich schema (engine, aspect, clips[], transitions[],
+ * VFX presets, color grade, music mood). The legacy three-silo split
+ * (BUILT_IN_TEMPLATES / BREAKOUT_TEMPLATES / vfx_templates) is unified.
+ *
+ * Clicking a card opens the TemplateDetailDrawer with the full
+ * storyboard preview. "Use this template" navigates to /create.
+ */
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useSafeNavigation, useRouteCleanup } from "@/lib/navigation";
+import {
+  Search,
+  Play,
+  Clock,
+  Users,
+  Sparkles,
+  Film,
+  Megaphone,
+  BookOpen,
+  Smile,
+  Briefcase,
+  TrendingUp,
+  Layers,
+  Zap,
+  Cpu,
+  Wand2,
+  ArrowRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
+import { AutoGallery } from "@/components/foundation/AutoGallery";
+import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop";
+import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { TemplateDetailDrawer } from "@/components/templates/TemplateDetailDrawer";
 
-// Import AI-generated template thumbnails
-import viralHookImg from '@/assets/templates/viral-hook.jpg';
-import aestheticVlogImg from '@/assets/templates/aesthetic-vlog.jpg';
-import transformationImg from '@/assets/templates/transformation.jpg';
-import asmrSatisfyingImg from '@/assets/templates/asmr-satisfying.jpg';
-import storytimeImg from '@/assets/templates/storytime.jpg';
-import documentaryImg from '@/assets/templates/documentary.jpg';
-import neoNoirImg from '@/assets/templates/neo-noir.jpg';
-import actionMontageImg from '@/assets/templates/action-montage.jpg';
-import animeStyleImg from '@/assets/templates/anime-style.jpg';
-import productRevealImg from '@/assets/templates/product-reveal.jpg';
-import foodLifestyleImg from '@/assets/templates/food-lifestyle.jpg';
-import techShowcaseImg from '@/assets/templates/tech-showcase.jpg';
-import ugcTestimonialImg from '@/assets/templates/ugc-testimonial.jpg';
-import educationalImg from '@/assets/templates/educational.jpg';
-import tutorialImg from '@/assets/templates/tutorial.jpg';
-import viralSocialImg from '@/assets/templates/viral-social.jpg';
-import travelVlogImg from '@/assets/templates/travel-vlog.jpg';
-import musicVideoImg from '@/assets/templates/music-video.jpg';
-import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
-import brandStoryImg from '@/assets/templates/brand-story.jpg';
-import teamIntroImg from '@/assets/templates/team-intro.jpg';
-import lectureRecapImg from '@/assets/templates/lecture-recap.jpg';
-import microLessonImg from '@/assets/templates/micro-lesson.jpg';
-import whiteboardExplainerImg from '@/assets/templates/whiteboard-explainer.jpg';
-import languageDrillImg from '@/assets/templates/language-drill.jpg';
-import scienceDemoImg from '@/assets/templates/science-demo.jpg';
-import courseTrailerImg from '@/assets/templates/course-trailer.jpg';
-import examCramImg from '@/assets/templates/exam-cram.jpg';
+import {
+  getAllTemplateBlueprints,
+  getTemplateBlueprint,
+} from "@/lib/templates/registry";
+import {
+  type TemplateBlueprint,
+  type TemplateCategory,
+  totalClipDuration,
+  totalVfxPresetCount,
+} from "@/lib/templates/blueprint";
+import { ENGINES } from "@/lib/video/engines";
+import { ASPECT_RATIOS } from "@/lib/editor/types";
+import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
 
-// 🔥 NEW 5 PREMIUM BREAKOUT EFFECT THUMBNAILS
-import postEscapeImg from '@/assets/templates/post-escape.jpg';
-import scrollGrabImg from '@/assets/templates/scroll-grab.jpg';
-import freezeWalkImg from '@/assets/templates/freeze-walk.jpg';
-import realityRipImg from '@/assets/templates/reality-rip.jpg';
-import aspectEscapeImg from '@/assets/templates/aspect-escape.jpg';
-import mirrorShatterImg from '@/assets/templates/mirror-shatter.jpg';
-import canvasEmergeImg from '@/assets/templates/canvas-emerge.jpg';
-import billboardLeapImg from '@/assets/templates/billboard-leap.jpg';
-import pageBurstImg from '@/assets/templates/page-burst.jpg';
-import hologramMaterializeImg from '@/assets/templates/hologram-materialize.jpg';
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter constants
+// ─────────────────────────────────────────────────────────────────────────────
+const CATEGORIES: { id: TemplateCategory | "all"; label: string; icon: typeof Film }[] = [
+  { id: "all",           label: "All",           icon: Layers },
+  { id: "trending",      label: "Trending",      icon: TrendingUp },
+  { id: "cinematic",     label: "Cinematic",     icon: Film },
+  { id: "commercial",    label: "Commercial",    icon: Megaphone },
+  { id: "educational",   label: "Educational",   icon: BookOpen },
+  { id: "entertainment", label: "Entertainment", icon: Smile },
+  { id: "corporate",     label: "Corporate",     icon: Briefcase },
+];
 
-import { usePageMeta } from '@/hooks/usePageMeta';
-import { FoundationShell } from '@/components/foundation/FoundationShell';
-import { EditorialCanvas } from '@/components/foundation/EditorialCanvas';
-import { useLiveRenderTimecode } from '@/hooks/useLiveRenderTimecode';
-interface Template {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string | null;
-  thumbnail_url: string | null;
-  is_public: boolean | null;
-  use_count: number | null;
-  genre: string | null;
-  mood: string | null;
-  quality_tier: string | null;
-  target_duration_minutes: number | null;
-  clip_count: number | null;
-  created_at: string;
+type EngineFilter = "all" | "free" | "standard" | "pro" | "cinema";
+const ENGINE_FILTERS: { id: EngineFilter; label: string }[] = [
+  { id: "all",      label: "Any engine" },
+  { id: "free",     label: "Free · Wan" },
+  { id: "standard", label: "Standard" },
+  { id: "pro",      label: "Pro" },
+  { id: "cinema",   label: "Cinema" },
+];
+
+type AspectFilter = "all" | "vertical" | "wide" | "square" | "cinema";
+const ASPECT_FILTERS: { id: AspectFilter; label: string }[] = [
+  { id: "all",      label: "Any aspect" },
+  { id: "vertical", label: "Vertical · 9:16 / 4:5" },
+  { id: "wide",     label: "Wide · 16:9 / 4:3" },
+  { id: "square",   label: "Square · 1:1" },
+  { id: "cinema",   label: "Cinema · 21:9" },
+];
+
+const TIER_HUE: Record<string, string> = {
+  standard: "hsl(195 90% 70%)",
+  pro:      "hsl(48 90% 70%)",
+  cinema:   "hsl(330 90% 72%)",
+};
+
+// Halo color the hero AutoGallery uses to tint its ambient glow as the
+// active blueprint changes — matches the editorial tone of each category.
+function templateCategoryGlow(cat: TemplateBlueprint["category"]): string {
+  const map: Record<string, string> = {
+    trending:      "hsl(0 85% 65% / 0.45)",
+    cinematic:     "hsl(45 95% 65% / 0.50)",
+    commercial:    "hsl(215 100% 70% / 0.45)",
+    educational:   "hsl(180 70% 60% / 0.45)",
+    entertainment: "hsl(285 90% 70% / 0.45)",
+    corporate:     "hsl(220 30% 65% / 0.40)",
+    vfx:           "hsl(215 100% 60% / 0.55)",
+  };
+  return map[cat] ?? "hsl(45 95% 65% / 0.45)";
 }
 
-const CATEGORIES = [
-  { id: 'all', label: 'All', icon: LayoutTemplate },
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'cinematic', label: 'Cinematic', icon: Film },
-  { id: 'commercial', label: 'Commercial', icon: Megaphone },
-  { id: 'educational', label: 'Educational', icon: BookOpen },
-  { id: 'entertainment', label: 'Entertainment', icon: Smile },
-  { id: 'corporate', label: 'Corporate', icon: Briefcase },
-];
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
 
-// Trendy, viral-ready templates based on what people love making
-const BUILT_IN_TEMPLATES = [
-  // 🔥 PREMIUM BREAKOUT EFFECTS ROW
-  {
-    id: 'post-escape',
-    name: 'Post Escape',
-    description: 'Flagship 4th-wall VFX. Avatar trapped inside a social post smashes the glass UI into volumetric shards and steps into reality.',
-    category: 'trending',
-    thumbnail_url: postEscapeImg,
-    use_count: 184200,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'scroll-grab',
-    name: 'Scroll Grab',
-    description: 'Most-shared 4th-wall effect. Avatar bulges the screen, grabs the bezel, and pulls themselves out of a vertical feed.',
-    category: 'trending',
-    thumbnail_url: scrollGrabImg,
-    use_count: 167500,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'action',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'freeze-walk',
-    name: 'Freeze & Walk',
-    description: 'Advanced 2D→3D 4th-wall step-out. Avatar freezes in a live call grid while everyone else keeps moving, then walks into the room.',
-    category: 'trending',
-    thumbnail_url: freezeWalkImg,
-    use_count: 152800,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'mysterious',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'reality-rip',
-    name: 'Reality Rip',
-    description: 'Cinema-grade 4th-wall rupture. Reality tears like fabric and the avatar emerges through a glowing supernova rift.',
-    category: 'trending',
-    thumbnail_url: realityRipImg,
-    use_count: 141300,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'aspect-escape',
-    name: 'Aspect Ratio Escape',
-    description: 'Format-bending 4th-wall move. Avatar shatters the vertical frame and steps into widescreen with cinema lighting.',
-    category: 'trending',
-    thumbnail_url: aspectEscapeImg,
-    use_count: 128900,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'action',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'mirror-shatter',
-    name: 'Mirror Shatter',
-    description: 'Baroque 4th-wall break. Avatar SHATTERS a gilded silvered mirror in a candlelit ballroom and steps onto marble.',
-    category: 'trending',
-    thumbnail_url: mirrorShatterImg,
-    use_count: 119200,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'canvas-emerge',
-    name: 'Canvas Emerge',
-    description: 'Museum-grade 4th-wall step-out. Avatar walks out of a Renaissance oil painting with wet pigment dripping off them.',
-    category: 'trending',
-    thumbnail_url: canvasEmergeImg,
-    use_count: 108700,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'mysterious',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'billboard-leap',
-    name: 'Billboard Leap',
-    description: 'Blockbuster 4th-wall jump. Avatar LEAPS from a Times Square LED billboard onto a neon-soaked rainy street.',
-    category: 'trending',
-    thumbnail_url: billboardLeapImg,
-    use_count: 134500,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'action',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'page-burst',
-    name: 'Page Burst',
-    description: 'Literary 4th-wall blast. Avatar BURSTS through the page of a giant book in a candlelit library, ink and paper flying.',
-    category: 'trending',
-    thumbnail_url: pageBurstImg,
-    use_count: 97300,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  {
-    id: 'hologram-materialize',
-    name: 'Hologram Materialize',
-    description: 'Sci-fi 4th-wall arrival. Avatar compressed in a glitching hologram MATERIALIZES into reality on an obsidian plinth.',
-    category: 'trending',
-    thumbnail_url: hologramMaterializeImg,
-    use_count: 112600,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'mysterious',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-    is_breakout: true,
-  },
-  // 🔥 TRENDING - Viral & Social
-  {
-    id: 'viral-hook',
-    name: 'Viral Hook Opener',
-    description: 'Stop-the-scroll hooks that capture attention in 0.5 seconds',
-    category: 'trending',
-    thumbnail_url: viralHookImg,
-    use_count: 96400,
-    target_duration_minutes: 1,
-    clip_count: 4,
-    mood: 'action',
-    genre: 'vlog',
-    is_featured: true,
-    is_trending: true,
-  },
-  {
-    id: 'aesthetic-vlog',
-    name: 'Aesthetic Day-in-Life',
-    description: 'Dreamy, soft-lit vlogs with that perfect cozy aesthetic',
-    category: 'trending',
-    thumbnail_url: aestheticVlogImg,
-    use_count: 74500,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'peaceful',
-    genre: 'vlog',
-    is_featured: true,
-    is_trending: true,
-  },
-  {
-    id: 'transformation',
-    name: 'Glow-Up Transformation',
-    description: 'Dramatic before/after reveals with cinematic transitions',
-    category: 'trending',
-    thumbnail_url: transformationImg,
-    use_count: 88700,
-    target_duration_minutes: 1,
-    clip_count: 5,
-    mood: 'uplifting',
-    genre: 'vlog',
-    is_featured: true,
-    is_trending: true,
-  },
-  {
-    id: 'asmr-satisfying',
-    name: 'Satisfying ASMR',
-    description: 'Oddly satisfying visuals with calming, hypnotic sequences',
-    category: 'trending',
-    thumbnail_url: asmrSatisfyingImg,
-    use_count: 81200,
-    target_duration_minutes: 1,
-    clip_count: 6,
-    mood: 'peaceful',
-    genre: 'ad',
-    is_trending: true,
-    is_featured: true,
-  },
-  {
-    id: 'storytime',
-    name: 'Storytime Drama',
-    description: 'Captivating personal stories with dramatic pauses and reveals',
-    category: 'trending',
-    thumbnail_url: storytimeImg,
-    use_count: 67300,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'emotional',
-    genre: 'storytelling',
-    is_trending: true,
-    is_featured: true,
-  },
-  // 🎬 CINEMATIC
-  {
-    id: 'featured-2',
-    name: 'Documentary Story',
-    description: 'Authentic storytelling with intimate interviews and cinematic B-roll',
-    category: 'cinematic',
-    thumbnail_url: documentaryImg,
-    use_count: 8200,
-    target_duration_minutes: 5,
-    clip_count: 12,
-    mood: 'emotional',
-    genre: 'documentary',
-    is_featured: true,
-  },
-  {
-    id: 'template-noir-1',
-    name: 'Neo-Noir Thriller',
-    description: 'Moody atmospherics with neon-lit shadows and tension',
-    category: 'cinematic',
-    thumbnail_url: neoNoirImg,
-    use_count: 6400,
-    target_duration_minutes: 3,
-    clip_count: 8,
-    mood: 'mysterious',
-    genre: 'cinematic',
-  },
-  {
-    id: 'template-action-1',
-    name: 'Action Montage',
-    description: 'High-octane sequences with adrenaline-pumping cuts',
-    category: 'cinematic',
-    thumbnail_url: actionMontageImg,
-    use_count: 7800,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'action',
-    genre: 'cinematic',
-  },
-  {
-    id: 'anime-style',
-    name: 'Anime-Inspired',
-    description: 'Dynamic anime-style cuts with bold visuals and energy',
-    category: 'cinematic',
-    thumbnail_url: animeStyleImg,
-    use_count: 11200,
-    target_duration_minutes: 2,
-    clip_count: 8,
-    mood: 'epic',
-    genre: 'cinematic',
-    is_trending: true,
-  },
-  // 📺 COMMERCIAL
-  {
-    id: 'featured-1',
-    name: 'Product Reveal',
-    description: 'Stunning product showcase with dramatic lighting',
-    category: 'commercial',
-    thumbnail_url: productRevealImg,
-    use_count: 9500,
-    target_duration_minutes: 2,
-    clip_count: 8,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-  },
-  {
-    id: 'template-food-1',
-    name: 'Food & Lifestyle',
-    description: 'Mouthwatering food cinematography',
-    category: 'commercial',
-    thumbnail_url: foodLifestyleImg,
-    use_count: 8900,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'uplifting',
-    genre: 'ad',
-  },
-  {
-    id: 'template-tech-1',
-    name: 'Tech Showcase',
-    description: 'Sleek product demos with futuristic visuals',
-    category: 'commercial',
-    thumbnail_url: techShowcaseImg,
-    use_count: 7200,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'epic',
-    genre: 'ad',
-  },
-  {
-    id: 'ugc-testimonial',
-    name: 'UGC Testimonial',
-    description: 'Authentic user-generated style testimonials',
-    category: 'commercial',
-    thumbnail_url: ugcTestimonialImg,
-    use_count: 13400,
-    target_duration_minutes: 1,
-    clip_count: 4,
-    mood: 'uplifting',
-    genre: 'ad',
-    is_trending: true,
-  },
-  // 📚 EDUCATIONAL
-  {
-    id: 'template-edu-1',
-    name: 'Educational Breakdown',
-    description: 'Visual explainers that make complex topics simple',
-    category: 'educational',
-    thumbnail_url: educationalImg,
-    use_count: 5600,
-    target_duration_minutes: 3,
-    clip_count: 8,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'how-to-tutorial',
-    name: 'Step-by-Step Tutorial',
-    description: 'Clear, engaging how-to guides with visual steps',
-    category: 'educational',
-    thumbnail_url: tutorialImg,
-    use_count: 8100,
-    target_duration_minutes: 3,
-    clip_count: 6,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'lecture-recap',
-    name: 'Lecture Recap',
-    description: '2-minute recap of a long lecture: hook, four chapter beats, takeaway payoff',
-    category: 'educational',
-    thumbnail_url: lectureRecapImg,
-    use_count: 4720,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'micro-lesson',
-    name: 'Micro-Lesson',
-    description: '60-second single-concept lesson in 4 beats: hook, teach, example, payoff',
-    category: 'educational',
-    thumbnail_url: microLessonImg,
-    use_count: 6310,
-    target_duration_minutes: 1,
-    clip_count: 4,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'whiteboard-explainer',
-    name: 'Whiteboard Explainer',
-    description: '2-minute hand-drawn breakdown: hook, four diagram beats, summary payoff',
-    category: 'educational',
-    thumbnail_url: whiteboardExplainerImg,
-    use_count: 3980,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'language-drill',
-    name: 'Language Drill',
-    description: '60-second vocab drill in 5 beats: hook word, three reps, recall payoff',
-    category: 'educational',
-    thumbnail_url: languageDrillImg,
-    use_count: 5210,
-    target_duration_minutes: 1,
-    clip_count: 5,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  {
-    id: 'science-demo',
-    name: 'Science Demo',
-    description: '3-minute cinematic experiment in 8 beats: setup, six macro reactions, slow-mo payoff',
-    category: 'educational',
-    thumbnail_url: scienceDemoImg,
-    use_count: 4640,
-    target_duration_minutes: 3,
-    clip_count: 8,
-    mood: 'epic',
-    genre: 'educational',
-  },
-  {
-    id: 'course-trailer',
-    name: 'Course Trailer',
-    description: '60-second sales trailer in 5 beats: hook promise, three module previews, CTA payoff',
-    category: 'educational',
-    thumbnail_url: courseTrailerImg,
-    use_count: 3870,
-    target_duration_minutes: 1,
-    clip_count: 5,
-    mood: 'epic',
-    genre: 'educational',
-  },
-  {
-    id: 'exam-cram',
-    name: 'Exam Cram Sheet',
-    description: '2-minute rapid review in 7 beats: hook, five must-know facts, recall payoff',
-    category: 'educational',
-    thumbnail_url: examCramImg,
-    use_count: 7090,
-    target_duration_minutes: 2,
-    clip_count: 7,
-    mood: 'uplifting',
-    genre: 'educational',
-    is_trending: true,
-  },
-  // 🎉 ENTERTAINMENT
-  {
-    id: 'featured-3',
-    name: 'Viral Social Content',
-    description: 'Hook-driven content for TikTok & Reels',
-    category: 'entertainment',
-    thumbnail_url: viralSocialImg,
-    use_count: 16800,
-    target_duration_minutes: 1,
-    clip_count: 5,
-    mood: 'uplifting',
-    genre: 'vlog',
-    is_featured: true,
-  },
-  {
-    id: 'template-travel-1',
-    name: 'Travel Vlog',
-    description: 'Wanderlust-inducing journeys with stunning landscapes',
-    category: 'entertainment',
-    thumbnail_url: travelVlogImg,
-    use_count: 11200,
-    target_duration_minutes: 3,
-    clip_count: 8,
-    mood: 'uplifting',
-    genre: 'vlog',
-  },
-  {
-    id: 'template-music-1',
-    name: 'Music Video',
-    description: 'Rhythm-synced visuals with artistic flair',
-    category: 'entertainment',
-    thumbnail_url: musicVideoImg,
-    use_count: 9400,
-    target_duration_minutes: 4,
-    clip_count: 10,
-    mood: 'epic',
-    genre: 'cinematic',
-  },
-  {
-    id: 'podcast-clips',
-    name: 'Podcast Clips',
-    description: 'Engaging podcast highlights with captions',
-    category: 'entertainment',
-    thumbnail_url: podcastClipsImg,
-    use_count: 7600,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'uplifting',
-    genre: 'educational',
-  },
-  // 💼 CORPORATE
-  {
-    id: 'template-corp-1',
-    name: 'Brand Story',
-    description: 'Premium corporate narratives that humanize brands',
-    category: 'corporate',
-    thumbnail_url: brandStoryImg,
-    use_count: 6800,
-    target_duration_minutes: 3,
-    clip_count: 8,
-    mood: 'uplifting',
-    genre: 'corporate',
-  },
-  {
-    id: 'team-intro',
-    name: 'Team Introduction',
-    description: 'Professional team showcases with personality',
-    category: 'corporate',
-    thumbnail_url: teamIntroImg,
-    use_count: 4200,
-    target_duration_minutes: 2,
-    clip_count: 6,
-    mood: 'uplifting',
-    genre: 'corporate',
-  },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// Aspect-fit helper for filter
+// ─────────────────────────────────────────────────────────────────────────────
+function aspectMatchesFilter(asp: string, f: AspectFilter): boolean {
+  if (f === "all") return true;
+  if (f === "vertical") return asp === "9:16" || asp === "4:5";
+  if (f === "wide")     return asp === "16:9" || asp === "4:3";
+  if (f === "square")   return asp === "1:1";
+  if (f === "cinema")   return asp === "21:9";
+  return true;
+}
 
-type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
+function engineMatchesFilter(engineId: string, f: EngineFilter): boolean {
+  if (f === "all") return true;
+  const tier = ENGINES[engineId as keyof typeof ENGINES]?.tier;
+  if (f === "free")     return engineId === "wan-25";
+  if (f === "standard") return tier === "standard" && engineId !== "wan-25";
+  if (f === "pro")      return tier === "pro";
+  if (f === "cinema")   return tier === "cinema";
+  return true;
+}
 
-/**
- * TemplateCard - STABILITY FIX: Uses CSS animations instead of Framer Motion
- * 
- * ROOT CAUSE: 26+ motion.div instances with individual animation state
- * caused memory pressure and GPU exhaustion on mobile/constrained devices.
- * CSS animations are GPU-composited and don't create JS object overhead.
- */
-const TemplateCard = memo(function TemplateCard({ 
-  template,
-  onUse,
-  onPreview,
-  index = 0,
-}: { 
-  template: TemplateItem;
-  onUse: () => void;
-  onPreview?: () => void;
-  index?: number;
+// ─────────────────────────────────────────────────────────────────────────────
+// Card — glassmorphic floating tile with rich badges
+// ─────────────────────────────────────────────────────────────────────────────
+const TemplateCard = memo(function TemplateCard({
+  bp, onOpen, index,
+}: {
+  bp: TemplateBlueprint;
+  onOpen: () => void;
+  index: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const [hover, setHover] = useState(false);
+  const engine = ENGINES[bp.engine];
+  const aspectDims = ASPECT_RATIOS[bp.aspectRatio];
+  const totalSec = totalClipDuration(bp);
+  const vfxCount = totalVfxPresetCount(bp);
 
   return (
-    <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={onUse}
-      className="group relative cursor-pointer animate-fade-in"
-      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+    <button
+      type="button"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onOpen}
+      className="group relative block text-left cursor-pointer animate-fade-in w-full"
+      style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
-      {/* Compact Card */}
-      <div className={cn(
-        "relative aspect-[3/4] rounded-xl overflow-hidden",
-        "bg-[hsl(220,14%,4%)] transition-all duration-500",
-        "ring-1 ring-[hsla(215,100%,60%,0.10)] hover:ring-[hsla(215,100%,60%,0.45)]",
-        isHovered && "shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.55)] -translate-y-0.5"
-      )}>
-        {/* Image */}
-        {template.thumbnail_url && (
-          <img 
-            src={template.thumbnail_url} 
-            alt={template.name}
+      <div
+        className={cn(
+          "relative aspect-[3/4] rounded-2xl overflow-hidden",
+          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "transition-all duration-500",
+          hover && "ring-white/[0.12] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
+        )}
+      >
+        {/* Thumbnail */}
+        {bp.thumbnailUrl && (
+          <img
+            src={bp.thumbnailUrl}
+            alt={bp.name}
             loading="lazy"
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-transform duration-500",
-              isHovered ? "scale-105" : "scale-100"
+              "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+              hover ? "scale-[1.06]" : "scale-100",
             )}
           />
         )}
-        
-        {/* Gradient Overlay */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-300",
-          isHovered 
-            ? "bg-gradient-to-t from-[hsl(220,14%,2%)] via-[hsla(220,14%,2%,0.55)] to-[hsla(215,100%,60%,0.10)]"
-            : "bg-gradient-to-t from-black/70 via-black/20 to-transparent"
-        )} />
-        {/* Cursor halo on hover */}
-        {isHovered && (
+
+        {/* Gradient overlay */}
+        <div
+          className={cn(
+            "absolute inset-0 transition-opacity duration-500 pointer-events-none",
+            hover
+              ? "bg-gradient-to-t from-[hsl(220_30%_2%)] via-[hsl(220_30%_2%)]/55 to-[hsla(215,100%,60%,0.10)]"
+              : "bg-gradient-to-t from-[hsl(220_30%_3%)] via-[hsl(220_30%_3%)]/30 to-transparent",
+          )}
+        />
+
+        {/* Soft cursor halo on hover */}
+        {hover && (
           <div
-            className="absolute -inset-px rounded-xl pointer-events-none"
+            aria-hidden
+            className="absolute -inset-px rounded-2xl pointer-events-none"
             style={{
-              background: 'radial-gradient(circle at 50% 0%, hsla(215,100%,60%,0.35), transparent 60%)',
-              mixBlendMode: 'screen',
+              background: "radial-gradient(circle at 50% 0%, hsla(215,100%,60%,0.30), transparent 65%)",
+              mixBlendMode: "screen",
             }}
           />
         )}
 
-        {/* Top Badges */}
-        <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
-          <div className="flex gap-1.5">
-            {template.is_breakout && (
-              <Badge className="bg-[hsl(215,100%,60%)] text-foreground border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
-                <Zap className="w-2.5 h-2.5 mr-0.5" />
-                4th Wall · Pro
-              </Badge>
+        {/* ── TOP BADGES ────────────────────────────────────── */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {bp.isBreakout && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-[hsl(215,100%,60%)] text-foreground text-[9px] font-mono uppercase tracking-[0.18em] shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)]">
+                <Zap className="w-2.5 h-2.5" />
+                4th Wall
+              </span>
             )}
-            {template.is_trending && !template.is_breakout && (
-              <Badge className="bg-[hsla(215,100%,60%,0.18)] text-[hsl(215,100%,82%)] border border-[hsla(215,100%,60%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
-                <Flame className="w-2.5 h-2.5 mr-0.5" />
+            {bp.isTrending && !bp.isBreakout && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/25 ring-1 ring-inset ring-rose-300/40 text-rose-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+                <Sparkles className="w-2.5 h-2.5" />
                 Hot
-              </Badge>
+              </span>
             )}
-            {template.is_featured && !template.is_trending && !template.is_breakout && (
-              <Badge className="bg-[hsla(220,14%,4%,0.7)] text-[hsl(215,100%,82%)] border border-[hsla(215,100%,60%,0.35)] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
-                <Star className="w-2.5 h-2.5 mr-0.5" />
+            {bp.isPro && !bp.isBreakout && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/25 ring-1 ring-inset ring-amber-300/40 text-amber-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+                Pro
+              </span>
+            )}
+            {bp.isFeatured && !bp.isTrending && !bp.isBreakout && !bp.isPro && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-white/10 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 Featured
-              </Badge>
-            )}
-            {template.category === 'educational' && template.target_duration_minutes != null && (
-              <Badge className="bg-[hsla(220,14%,8%,0.75)] text-muted-foreground border border-white/[0.12] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
-                <Clock className="w-2.5 h-2.5 mr-0.5 opacity-70" />
-                {template.target_duration_minutes <= 1 ? '≤1m' : template.target_duration_minutes === 2 ? '2m' : template.target_duration_minutes === 3 ? '3m' : '3m+'}
-              </Badge>
+              </span>
             )}
           </div>
-          
-          <div className="flex items-center gap-1.5">
-            {onPreview && (
-              <button
-                type="button"
-                title="Preview pacing"
-                aria-label="Preview pacing"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPreview();
-                }}
-                className={cn(
-                  "w-8 h-8 rounded-full bg-[hsla(220,14%,4%,0.85)] backdrop-blur",
-                  "border border-[hsla(215,100%,60%,0.45)] flex items-center justify-center",
-                  "shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.7)] transition-all duration-200",
-                  isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
-                )}
-              >
-                <Eye className="w-3.5 h-3.5 text-[hsl(215,100%,82%)]" />
-              </button>
-            )}
-            {/* Quick Use Button - CSS transition instead of motion */}
-            <button
-              type="button"
-              title="Use template"
-              aria-label="Use template"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUse();
-              }}
-              className={cn(
-                "w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg",
-                "transition-all duration-200",
-                isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
-              )}
-            >
-              <Play className="w-4 h-4 text-black ml-0.5" />
-            </button>
-          </div>
+
+          {/* Aspect chip — top right */}
+          <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/55 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+            <span
+              className="inline-block ring-1 ring-inset ring-white/40 rounded-[2px]"
+              style={{ width: 12, height: Math.max((12 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.20)" }}
+            />
+            {bp.aspectRatio}
+          </span>
         </div>
 
-        {/* Bottom Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-sm font-semibold text-foreground mb-1 line-clamp-1">
-            {template.name}
+        {/* ── BOTTOM CONTENT ────────────────────────────────── */}
+        <div className="absolute left-0 right-0 bottom-0 p-3 z-10">
+          {/* Title */}
+          <h3 className="text-[14px] sm:text-[15px] font-display italic font-light leading-tight text-foreground/95 line-clamp-2">
+            {bp.name}
           </h3>
-          
-          <p className={cn(
-            "text-xs text-muted-foreground line-clamp-1 transition-all duration-300 mb-2",
-            isHovered ? "opacity-100" : "opacity-0 h-0 mb-0"
-          )}>
-            {template.description}
-          </p>
-          
-          {/* Stats Row */}
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-0.5">
-              <Film className="w-3 h-3" />
-              {template.clip_count}
+
+          {/* Engine + clips meta row */}
+          <div className="mt-1.5 flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.18em]">
+            <span
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              style={{
+                color: TIER_HUE[engine.tier],
+                background: `${TIER_HUE[engine.tier].replace(")", " / 0.08)").replace("hsl(", "hsla(")}`,
+                borderColor: `${TIER_HUE[engine.tier].replace(")", " / 0.25)").replace("hsl(", "hsla(")}`,
+              }}
+            >
+              <Cpu className="w-2.5 h-2.5" />
+              {engine.shortLabel}
             </span>
-            <span className="flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {template.target_duration_minutes}m
-            </span>
-            {template.use_count && template.use_count > 1000 && (
-              <span className="flex items-center gap-0.5">
-                <Users className="w-3 h-3" />
-                {(template.use_count / 1000).toFixed(1)}k
+            <span className="text-foreground/55 tabular-nums">{bp.clips.length}c · {totalSec}s</span>
+          </div>
+
+          {/* Bottom info row — only visible on hover or always (compact) */}
+          <div className="mt-1.5 flex items-center justify-between gap-2 text-[9px] font-mono uppercase tracking-[0.18em] text-foreground/50">
+            <div className="flex items-center gap-2">
+              {(bp.transitions?.length ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  <Film className="w-2.5 h-2.5" />
+                  {bp.transitions!.length}
+                </span>
+              )}
+              {vfxCount > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  <Wand2 className="w-2.5 h-2.5" />
+                  {vfxCount}
+                </span>
+              )}
+            </div>
+            {bp.useCount > 1000 && (
+              <span className="inline-flex items-center gap-0.5">
+                <Users className="w-2.5 h-2.5" />
+                {compactNum(bp.useCount)}
               </span>
             )}
           </div>
         </div>
+
+        {/* Hover CTA */}
+        {hover && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <span className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-foreground/95 text-background text-[11px] font-medium tracking-wide shadow-[0_15px_45px_-12px_hsla(0,0%,100%,0.45)] animate-fade-in">
+              <Play className="w-3.5 h-3.5" />
+              Preview blueprint
+            </span>
+          </div>
+        )}
       </div>
-    </div>
+    </button>
   );
 });
 
-TemplateCard.displayName = 'TemplateCard';
+TemplateCard.displayName = "TemplateCard";
 
-// Main content component separated for error boundary
-const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TemplatesContent(_, ref) {
-  // Unified navigation - safe navigation with locking
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter pill — shared style
+// ─────────────────────────────────────────────────────────────────────────────
+function FilterPill({
+  active, onClick, children, icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
+        active
+          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
+          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page body
+// ─────────────────────────────────────────────────────────────────────────────
+function TemplatesContent() {
+  usePageTone(TONE_PRESETS.templates);
   const { navigate } = useSafeNavigation();
 
-  // Preview player state — opens the schematic pacing preview for a template.
-  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
-  
-  // FIX: useAuth now returns safe fallback if context is missing
-  const { user } = useAuth();
-  
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Persist search, category, duration filter, and duration mode across reloads / revisits.
-  // URL query parameters take priority (shareable links), then localStorage fallback.
+  // Persist filters across reloads — URL params win over localStorage.
   const [searchParams, setSearchParams] = useSearchParams();
-  const FILTERS_KEY = 'sb_templates_filters_v1';
-  type DurationFilter = 'any' | '1' | '2' | '3' | '3plus';
-  type DurationMode = 'bucket' | 'exact';
+  const FILTERS_KEY = "sb_templates_filters_v2";
   type PersistedFilters = {
     search: string;
-    category: string;
-    duration: DurationFilter;
-    durationMode: DurationMode;
+    category: TemplateCategory | "all";
+    engine: EngineFilter;
+    aspect: AspectFilter;
   };
-
-  const loadLocalFilters = (): PersistedFilters => {
+  const loadLocal = (): PersistedFilters => {
     try {
       const raw = localStorage.getItem(FILTERS_KEY);
       if (raw) {
         const p = JSON.parse(raw);
         return {
-          search: typeof p.search === 'string' ? p.search : '',
-          category: typeof p.category === 'string' ? p.category : 'all',
-          duration: ['any', '1', '2', '3', '3plus'].includes(p.duration) ? p.duration : 'any',
-          durationMode: p.durationMode === 'exact' ? 'exact' : 'bucket',
+          search:   typeof p.search === "string" ? p.search : "",
+          category: typeof p.category === "string" ? p.category : "all",
+          engine:   ENGINE_FILTERS.some(e => e.id === p.engine) ? p.engine : "all",
+          aspect:   ASPECT_FILTERS.some(a => a.id === p.aspect) ? p.aspect : "all",
         };
       }
-    } catch {}
-    return { search: '', category: 'all', duration: 'any', durationMode: 'bucket' };
+    } catch { /* noop */ }
+    return { search: "", category: "all", engine: "all", aspect: "all" };
   };
-
-  // URL params always win over localStorage so shared links load correctly.
-  const initialFilters = ((): PersistedFilters => {
-    const local = loadLocalFilters();
-    const urlSearch = searchParams.get('search') ?? local.search;
-    const urlCategory = searchParams.get('category') ?? local.category;
-    const urlDuration = (searchParams.get('duration') as DurationFilter | null) ?? local.duration;
-    const urlMode = (searchParams.get('mode') as DurationMode | null) ?? local.durationMode;
+  const initial = useMemo(() => {
+    const local = loadLocal();
     return {
-      search: urlSearch,
-      category: urlCategory,
-      duration: ['any', '1', '2', '3', '3plus'].includes(urlDuration) ? urlDuration : 'any',
-      durationMode: urlMode === 'exact' ? 'exact' : 'bucket',
+      search:   searchParams.get("search")   ?? local.search,
+      category: (searchParams.get("category") as TemplateCategory | "all") ?? local.category,
+      engine:   (searchParams.get("engine")   as EngineFilter)             ?? local.engine,
+      aspect:   (searchParams.get("aspect")   as AspectFilter)             ?? local.aspect,
     };
-  })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const [searchQuery, setSearchQuery] = useState(initialFilters.search);
-  const [activeCategory, setActiveCategory] = useState(initialFilters.category);
-  // Educational-tab-only: filter by target length bucket.
-  const [durationFilter, setDurationFilter] = useState<DurationFilter>(initialFilters.duration);
-  // Educational-tab-only: toggle between bucketed ranges and exact minute matching.
-  const [durationMode, setDurationMode] = useState<DurationMode>(initialFilters.durationMode);
+  const [searchQuery, setSearchQuery] = useState(initial.search);
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory | "all">(initial.category);
+  const [engineFilter, setEngineFilter] = useState<EngineFilter>(initial.engine);
+  const [aspectFilter, setAspectFilter] = useState<AspectFilter>(initial.aspect);
+  const [drawerOpenId, setDrawerOpenId] = useState<string | null>(null);
 
-  // Sync filter changes to URL (replace, no history bloat) and localStorage.
+  // Sync to URL + localStorage
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set('search', searchQuery.trim());
-    if (activeCategory !== 'all') params.set('category', activeCategory);
-    if (durationFilter !== 'any') params.set('duration', durationFilter);
-    if (durationMode !== 'bucket') params.set('mode', durationMode);
-    setSearchParams(params, { replace: true });
+    const p = new URLSearchParams();
+    if (searchQuery.trim()) p.set("search", searchQuery.trim());
+    if (activeCategory !== "all") p.set("category", activeCategory);
+    if (engineFilter !== "all")   p.set("engine", engineFilter);
+    if (aspectFilter !== "all")   p.set("aspect", aspectFilter);
+    setSearchParams(p, { replace: true });
     try {
-      localStorage.setItem(
-        FILTERS_KEY,
-        JSON.stringify({ search: searchQuery, category: activeCategory, duration: durationFilter, durationMode }),
-      );
-    } catch {}
-  }, [searchQuery, activeCategory, durationFilter, durationMode]);
+      localStorage.setItem(FILTERS_KEY, JSON.stringify({ search: searchQuery, category: activeCategory, engine: engineFilter, aspect: aspectFilter }));
+    } catch { /* noop */ }
+  }, [searchQuery, activeCategory, engineFilter, aspectFilter, setSearchParams]);
 
-  // "Jump to results" — auto-scroll to the first matching educational template
-  // whenever the duration filter changes (skips initial mount and the "any" reset).
-  const firstMatchRef = useRef<HTMLDivElement>(null);
-  const didMountDurationRef = useRef(false);
-  useEffect(() => {
-    if (!didMountDurationRef.current) {
-      didMountDurationRef.current = true;
-      return;
-    }
-    if (activeCategory !== 'educational' || durationFilter === 'any') return;
-    // Wait one frame so the filtered grid has re-rendered.
-    const id = window.requestAnimationFrame(() => {
-      const el = firstMatchRef.current;
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-[hsla(215,100%,65%,0.55)]', 'rounded-xl');
-      window.setTimeout(() => {
-        el.classList.remove('ring-2', 'ring-[hsla(215,100%,65%,0.55)]', 'rounded-xl');
-      }, 1400);
+  useRouteCleanup(() => { /* noop */ }, []);
+
+  // Source: unified registry
+  const allBlueprints = useMemo(() => getAllTemplateBlueprints(), []);
+
+  // Filter
+  const filtered = useMemo(() => {
+    return allBlueprints.filter((bp) => {
+      // Search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const hit = bp.name.toLowerCase().includes(q)
+          || bp.description.toLowerCase().includes(q)
+          || bp.mood.toLowerCase().includes(q)
+          || bp.genre.toLowerCase().includes(q)
+          || (bp.tags?.some(t => t.toLowerCase().includes(q)) ?? false);
+        if (!hit) return false;
+      }
+      // Category
+      if (activeCategory === "trending") {
+        if (!bp.isTrending) return false;
+      } else if (activeCategory !== "all") {
+        if (bp.category !== activeCategory) return false;
+      }
+      // Engine
+      if (!engineMatchesFilter(bp.engine, engineFilter)) return false;
+      // Aspect
+      if (!aspectMatchesFilter(bp.aspectRatio, aspectFilter)) return false;
+      return true;
     });
-    return () => window.cancelAnimationFrame(id);
-  }, [durationFilter, activeCategory]);
+  }, [allBlueprints, searchQuery, activeCategory, engineFilter, aspectFilter]);
 
-  // Cleanup on navigation away
-  useRouteCleanup(() => {
-    // No-op: lightweight page, no async to cancel
-  }, []);
+  // Sort: trending first → featured → useCount desc
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      if (a.isTrending && !b.isTrending) return -1;
+      if (!a.isTrending && b.isTrending) return 1;
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return b.useCount - a.useCount;
+    });
+  }, [filtered]);
 
-  useEffect(() => {
-    let cancelled = false;
-    
-    const fetchTemplates = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('project_templates')
-          .select('*')
-          .eq('is_public', true)
-          .order('use_count', { ascending: false })
-          .limit(50);
-        
-        if (error) throw error;
-        if (!cancelled) setTemplates(data || []);
-      } catch (err) {
-        console.error('Failed to fetch templates:', err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
+  // Hero stats from filtered set
+  const stats = useMemo(() => ({
+    total:     sorted.length,
+    featured:  sorted.filter(t => t.isFeatured).length,
+    trending:  sorted.filter(t => t.isTrending).length,
+    breakout:  sorted.filter(t => t.isBreakout).length,
+  }), [sorted]);
 
-    fetchTemplates();
-    return () => { cancelled = true; };
-  }, []);
+  const openTemplate = useTemplateOpener(navigate);
+  const handleUse = useCallback((bp: TemplateBlueprint) => {
+    openTemplate(bp);
+    setDrawerOpenId(null);
+  }, [openTemplate]);
 
-  // Combine DB templates with built-in templates
-  const allTemplates: TemplateItem[] = [...BUILT_IN_TEMPLATES, ...templates.map((t) => ({
-    ...t,
-    is_featured: false,
-    is_trending: false,
-  }))];
-
-  const filteredTemplates = allTemplates.filter(template => {
-    const matchesSearch = !searchQuery || 
-      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.mood?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesCategory = activeCategory === 'all' || template.category === activeCategory;
-    
-    // "Trending" shows all templates with is_trending flag
-    if (activeCategory === 'trending') {
-      matchesCategory = template.is_trending === true;
-    }
-
-    // Duration filter applies only on the Educational tab.
-    let matchesDuration = true;
-    if (activeCategory === 'educational' && durationFilter !== 'any') {
-      const d = template.target_duration_minutes ?? 0;
-      if (durationMode === 'bucket') {
-        if (durationFilter === '1') matchesDuration = d <= 1;
-        else if (durationFilter === '2') matchesDuration = d === 2;
-        else if (durationFilter === '3') matchesDuration = d === 3;
-        else if (durationFilter === '3plus') matchesDuration = d > 3;
-      } else {
-        // exact mode: match the exact minute value (stored as string in durationFilter)
-        matchesDuration = d === Number(durationFilter);
-      }
-    }
-
-    return matchesSearch && matchesCategory && matchesDuration;
-  });
-
-  // Unique exact durations for the Educational tab (derived from currently visible edu templates before duration filtering)
-  const exactDurations = activeCategory === 'educational'
-    ? Array.from(new Set(
-        allTemplates
-          .filter(t => t.category === 'educational')
-          .map(t => t.target_duration_minutes ?? 0)
-          .filter(d => d > 0)
-      )).sort((a, b) => a - b)
-    : [];
-
-  // Sort: trending first, then featured, then by use count
-  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
-    if (a.is_trending && !b.is_trending) return -1;
-    if (!a.is_trending && b.is_trending) return 1;
-    if (a.is_featured && !b.is_featured) return -1;
-    if (!a.is_featured && b.is_featured) return 1;
-    return (b.use_count || 0) - (a.use_count || 0);
-  });
-
-  const handleUseTemplate = useCallback((template: TemplateItem) => {
-    navigate(`/create?template=${template.id}`);
-    toast.success(`Using "${template.name}" template`);
-  }, [navigate]);
+  const activeBlueprint = drawerOpenId ? getTemplateBlueprint(drawerOpenId) ?? null : null;
 
   return (
-    <div ref={ref} className="min-h-screen text-foreground overflow-x-hidden relative">
-      <CinematicAtmosphere ns="tmpl" stars={26} />
-      <AppHeader />
-      
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Diagnostic ticker */}
-        <div className="flex justify-center pt-12">
-          <DiagnosticTicker
-            ns="tmpl"
-            items={[
-              { code: 'LIB', label: 'Library' },
-              { code: 'CUR', label: 'Curated' },
-              { code: 'LIVE', label: 'Stream' },
-            ]}
+    <div className="relative">
+      {/* ── HERO + FILTERS — one cinematic top section with the
+            auto-gallery cycling behind the title, search, and filter
+            pills. The image bed is full-bleed: it breaks out of the
+            page's max-w-[1440px] wrapper AND extends 320px further
+            left to slide behind the LeftRail, so the kinetic backdrop
+            reads as a single uninterrupted band across the viewport. */}
+      <section className="relative mb-8">
+        <HeroGalleryBackdrop>
+          <AutoGallery
+            items={allBlueprints.map((bp) => ({
+              id: bp.id,
+              name: bp.name,
+              imageUrl: bp.thumbnailUrl,
+              caption: bp.category,
+              glow: templateCategoryGlow(bp.category),
+            }))}
+            variant="hero"
           />
-        </div>
-        {/* Premium editorial header */}
-        <div className="pt-6 sm:pt-8">
-          <PremiumPageHero
-            eyebrow="Library · Curated"
-            titlePrefix="Premium"
-            titleHighlight="templates"
-            titleSuffix="."
-            description="Production-ready scene blueprints. Pick a template, swap your story, ship in minutes."
-            stats={[
-              { label: 'Templates', value: sortedTemplates.length, accent: 'text-foreground' },
-              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-[hsl(var(--primary))]' },
-              { label: 'Featured', value: sortedTemplates.filter((t: any) => t.is_featured).length, accent: 'text-foreground/90' },
-              { label: 'Trending', value: sortedTemplates.filter((t: any) => (t.use_count || 0) > 100).length, accent: 'text-foreground/90' },
-            ] as HeroStat[]}
-            actions={
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/80" />
-                <Input
-                  placeholder="Search templates..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-glass-hover border-white/[0.08] text-foreground placeholder:text-muted-foreground rounded-full text-sm backdrop-blur-md"
-                />
-              </div>
-            }
-          />
-        </div>
+        </HeroGalleryBackdrop>
 
-        {/* Category Pills - Scrollable */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide justify-center">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium whitespace-nowrap transition-all uppercase tracking-[0.18em]",
-                activeCategory === cat.id
-                  ? "text-foreground shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)] border border-[hsla(215,100%,75%,0.3)]"
-                  : "bg-[hsla(220,14%,4%,0.6)] text-muted-foreground hover:text-foreground hover:bg-[hsla(215,100%,60%,0.08)] border border-[hsla(215,100%,60%,0.12)] hover:border-[hsla(215,100%,60%,0.32)] backdrop-blur-xl"
-              )}
-              style={activeCategory === cat.id ? {
-                background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-              } : undefined}
-            >
-              <cat.icon className="w-3.5 h-3.5" />
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        {/* Foreground — title block, search, and filter pills */}
+        <div className="relative z-10 pt-8 sm:pt-12 pb-7">
+          <EditorialEyebrow>Templates</EditorialEyebrow>
+          <EditorialHeadline className="mt-5" size="md">
+            Blueprints.
+          </EditorialHeadline>
+          <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-foreground/75">
+            Pick a blueprint, swap your story, ship in minutes.
+          </p>
 
-        {/* Educational-only duration filter rail */}
-        {activeCategory === 'educational' && (
-          <div className="-mt-2 mb-6 flex flex-col items-center gap-3">
-            {/* Mode toggle */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.5)] border border-[hsla(215,100%,60%,0.12)] backdrop-blur-xl">
-              <button
-                onClick={() => { setDurationMode('bucket'); setDurationFilter('any'); }}
-                className={cn(
-                  'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
-                  durationMode === 'bucket'
-                    ? 'text-foreground shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
-                    : 'text-muted-foreground hover:text-muted-foreground'
-                )}
-                style={durationMode === 'bucket' ? {
-                  background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                } : undefined}
-              >
-                Buckets
-              </button>
-              <button
-                onClick={() => { setDurationMode('exact'); setDurationFilter('any'); }}
-                className={cn(
-                  'px-3 py-1 rounded-full text-[11px] font-medium tracking-wide transition-all',
-                  durationMode === 'exact'
-                    ? 'text-foreground shadow-[0_4px_12px_-6px_hsla(215,100%,60%,0.6)]'
-                    : 'text-muted-foreground hover:text-muted-foreground'
-                )}
-                style={durationMode === 'exact' ? {
-                  background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                } : undefined}
-              >
-                Exact
-              </button>
-            </div>
-
-            {/* Filter pills */}
-            <div className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-[hsla(220,14%,4%,0.6)] border border-[hsla(215,100%,60%,0.18)] backdrop-blur-xl">
-              <span className="hidden sm:inline-flex items-center gap-1.5 pl-2 pr-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                <Clock className="w-3 h-3" /> Length
-              </span>
-              {durationMode === 'bucket' ? (
-                ([
-                  { id: 'any', label: 'Any' },
-                  { id: '1', label: '≤ 1 min' },
-                  { id: '2', label: '2 min' },
-                  { id: '3', label: '3 min' },
-                  { id: '3plus', label: '3 min+' },
-                ] as const).map((opt) => {
-                  const active = durationFilter === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => setDurationFilter(opt.id)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
-                        active
-                          ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
-                      )}
-                      style={active ? {
-                        background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                      } : undefined}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })
-              ) : (
-                <>
-                  <button
-                    onClick={() => setDurationFilter('any')}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
-                      durationFilter === 'any'
-                        ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
-                    )}
-                    style={durationFilter === 'any' ? {
-                      background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                    } : undefined}
-                  >
-                    Any
-                  </button>
-                  {exactDurations.map((d) => {
-                    const id = String(d) as DurationFilter;
-                    const active = durationFilter === id;
-                    return (
-                      <button
-                        key={id}
-                        onClick={() => setDurationFilter(id)}
-                        className={cn(
-                          'px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all whitespace-nowrap',
-                          active
-                            ? 'text-foreground shadow-[0_8px_24px_-10px_hsla(215,100%,60%,0.7)]'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-glass-hover'
-                        )}
-                        style={active ? {
-                          background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
-                        } : undefined}
-                      >
-                        {d} min
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Templates Grid - Compact 5-column */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {sortedTemplates.map((template, index) => (
-            <div
-              key={template.id}
-              ref={index === 0 ? firstMatchRef : undefined}
-              className="scroll-mt-24"
-            >
-              <TemplateCard
-                template={template}
-                onUse={() => handleUseTemplate(template)}
-                onPreview={
-                  template.category === 'educational'
-                    ? () => setPreviewTemplate(template)
-                    : undefined
-                }
-                index={index}
+          {/* Search */}
+          <div className="mt-7 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/65" />
+              <Input
+                placeholder="Search by name, mood, genre, tag…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-11 h-12 bg-white/[0.06] ring-1 ring-inset ring-white/[0.12] focus:ring-white/[0.25] border-0 text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl"
               />
             </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {sortedTemplates.length === 0 && (
-          <div className="text-center py-16 animate-fade-in">
-            <div className="w-12 h-12 rounded-xl bg-glass-hover flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-foreground/80" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No templates found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Try adjusting your search or filter
-            </p>
-            <Button 
-              variant="outline" 
-              className="border-white/20 text-foreground hover:bg-white/10"
-              onClick={() => {
-                setSearchQuery('');
-                setActiveCategory('all');
-                setDurationFilter('any');
-                setDurationMode('bucket');
-              }}
-            >
-              Clear filters
-            </Button>
           </div>
-        )}
-      </main>
 
-      {/* Schematic pacing preview for learning templates */}
-      <TemplatePreviewPlayer
-        template={previewTemplate}
-        onClose={() => setPreviewTemplate(null)}
-        onApply={handleUseTemplate}
+          {/* Filter pills — engine + aspect rows */}
+          <div className="mt-6 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
+                Engine
+              </span>
+              {ENGINE_FILTERS.map((opt) => (
+                <FilterPill
+                  key={opt.id}
+                  active={engineFilter === opt.id}
+                  onClick={() => setEngineFilter(opt.id)}
+                  icon={opt.id === "all" ? undefined : <Cpu className="w-3.5 h-3.5" />}
+                >
+                  {opt.label}
+                </FilterPill>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
+                Aspect
+              </span>
+              {ASPECT_FILTERS.map((opt) => (
+                <FilterPill
+                  key={opt.id}
+                  active={aspectFilter === opt.id}
+                  onClick={() => setAspectFilter(opt.id)}
+                  icon={opt.id === "all" ? undefined : <Film className="w-3.5 h-3.5" />}
+                >
+                  {opt.label}
+                </FilterPill>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CATEGORY PRESENTATION ──────────────────────────────── */}
+      {activeCategory === "all" ? (
+        // Editorial rails — one per category (skip empties)
+        <section className="pb-16 space-y-12">
+          {(searchQuery.trim() || engineFilter !== "all" || aspectFilter !== "all") && (
+            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 -mt-2">
+              {sorted.length} match{sorted.length === 1 ? "" : "es"} across filters
+            </div>
+          )}
+          {CATEGORIES.filter(c => c.id !== "all").map((cat) => {
+            const inRail = sorted.filter(bp =>
+              cat.id === "trending" ? bp.isTrending : bp.category === cat.id,
+            );
+            if (inRail.length === 0) return null;
+            return (
+              <CategoryRail
+                key={cat.id}
+                category={cat}
+                items={inRail}
+                onOpenCard={(id) => setDrawerOpenId(id)}
+                onSeeAll={() => {
+                  setActiveCategory(cat.id);
+                  // Scroll to top of grid
+                  window.requestAnimationFrame(() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  });
+                }}
+              />
+            );
+          })}
+          {sorted.length === 0 && (
+            <EmptyState
+              onReset={() => {
+                setSearchQuery("");
+                setActiveCategory("all");
+                setEngineFilter("all");
+                setAspectFilter("all");
+              }}
+            />
+          )}
+        </section>
+      ) : (
+        // Dense grid for a single category, with a back link
+        <section className="pb-16">
+          <div className="flex items-baseline justify-between mb-5 gap-4 flex-wrap">
+            <div className="flex items-baseline gap-4">
+              <button
+                onClick={() => setActiveCategory("all")}
+                className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 hover:text-foreground/85 transition-colors inline-flex items-center gap-1.5"
+              >
+                ← All categories
+              </button>
+              <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-display italic font-light leading-tight">
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  {CATEGORIES.find(c => c.id === activeCategory)?.label}
+                </span>
+                <span className="ml-3 font-mono text-[12px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+                  {sorted.length}
+                </span>
+              </h2>
+            </div>
+            <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
+              tap any card to preview the storyboard
+            </span>
+          </div>
+
+          {sorted.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              {sorted.map((bp, i) => (
+                <TemplateCard
+                  key={bp.id}
+                  bp={bp}
+                  index={i}
+                  onOpen={() => setDrawerOpenId(bp.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              onReset={() => {
+                setSearchQuery("");
+                setActiveCategory("all");
+                setEngineFilter("all");
+                setAspectFilter("all");
+              }}
+            />
+          )}
+        </section>
+      )}
+
+      {/* ── DETAIL DRAWER ──────────────────────────────────────── */}
+      <TemplateDetailDrawer
+        template={activeBlueprint}
+        open={!!activeBlueprint}
+        onClose={() => setDrawerOpenId(null)}
+        onUse={handleUse}
       />
     </div>
   );
-}));
+}
 
-// Wrapper with error boundary for fault isolation
+// ─────────────────────────────────────────────────────────────────────────────
+// Floating stat — like ProfileDashboard's StatsGrid items
+// ─────────────────────────────────────────────────────────────────────────────
+function FloatingStat({
+  label, value, hue,
+}: {
+  label: string;
+  value: number;
+  hue?: string;
+}) {
+  return (
+    <div className="inline-block">
+      <div className={cn("text-[clamp(1.5rem,3vw,2rem)] font-display italic font-light leading-none tabular-nums", hue ?? "text-foreground/95")}>
+        {value}
+      </div>
+      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CategoryRail — editorial header + horizontal-scroll strip of cards
+// ─────────────────────────────────────────────────────────────────────────────
+function CategoryRail({
+  category, items, onOpenCard, onSeeAll,
+}: {
+  category: { id: TemplateCategory | "all"; label: string; icon: typeof Film };
+  items: TemplateBlueprint[];
+  onOpenCard: (id: string) => void;
+  onSeeAll: () => void;
+}) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const Icon = category.icon;
+
+  const scrollBy = (delta: number) => {
+    railRef.current?.scrollBy({ left: delta, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative">
+      {/* Editorial header */}
+      <div className="flex items-baseline justify-between gap-4 mb-4">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <Icon className="w-4 h-4 text-foreground/45 self-center" />
+          <h3 className="text-[clamp(1.4rem,3vw,2rem)] font-display italic font-light leading-tight truncate">
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              {category.label}
+            </span>
+            <span className="ml-3 font-mono text-[11px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+              {items.length}
+            </span>
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* scroll arrows — desktop only */}
+          <button
+            onClick={() => scrollBy(-560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll left"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => scrollBy(560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll right"
+          >
+            ›
+          </button>
+          <button
+            onClick={onSeeAll}
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+          >
+            See all {items.length}
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Horizontal rail */}
+      <div className="relative -mx-1">
+        {/* Edge fades */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 bottom-0 left-0 w-12 z-10"
+          style={{ background: "linear-gradient(90deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 bottom-0 right-0 w-12 z-10"
+          style={{ background: "linear-gradient(270deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          ref={railRef}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 px-1"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {items.map((bp, i) => (
+            <div
+              key={bp.id}
+              className="snap-start flex-shrink-0 w-[42vw] sm:w-[260px] md:w-[240px] lg:w-[220px]"
+            >
+              <TemplateCard bp={bp} index={i} onOpen={() => onOpenCard(bp.id)} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="text-center py-20">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+        <Search className="w-6 h-6 text-foreground/55" />
+      </div>
+      <h3 className="text-xl font-display italic text-foreground/95 mb-2">No blueprints matched</h3>
+      <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
+        Try clearing a filter or two — your category + engine + aspect combination might be too narrow.
+      </p>
+      <Button
+        variant="outline"
+        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        onClick={onReset}
+      >
+        Clear filters
+        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+      </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Use template — best-effort use_count increment + navigate
+// ─────────────────────────────────────────────────────────────────────────────
+function useTemplateOpener(navigate: ReturnType<typeof useSafeNavigation>["navigate"]) {
+  // Stable callback that nudges use_count for DB-backed templates only,
+  // then navigates to /create.
+  return useRef((bp: TemplateBlueprint) => {
+    navigate(`/create?template=${bp.id}`);
+    toast.success(`Using "${bp.name}"`);
+    if (/^[0-9a-f-]{36}$/i.test(bp.id)) {
+      void supabase
+        .rpc("increment_template_use_count" as never, { p_template_id: bp.id } as never)
+        .then(({ error }) => {
+          if (error) {
+            void supabase
+              .from("project_templates")
+              .update({ use_count: (bp.useCount ?? 0) + 1 })
+              .eq("id", bp.id);
+          }
+        });
+    }
+  }).current;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public page
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Templates() {
-  usePageMeta({ title: "Templates — Small Bridges", description: "Cinematic, animated, and breakout templates ready to launch your next scene." });
+  usePageMeta({
+    title: "Templates — Small Bridges",
+    description: "Production-ready blueprints. Engine, aspect, clips, transitions, VFX, color grade — all declared, ready to ship.",
+  });
   const liveRenderTimecode = useLiveRenderTimecode();
 
   return (

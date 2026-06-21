@@ -45,10 +45,14 @@ import {
   Lock,
   VolumeX,
   Volume2,
+  Eye,
+  EyeOff,
   Music2,
   Type as TypeIcon,
   Video,
   Disc3,
+  Upload as UploadIcon,
+  Plus as PlusIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
@@ -81,11 +85,17 @@ import {
   updateTransition as updateTransitionMut,
   removeTransition as removeTransitionMut,
   selectTransition as selectTransitionMut,
+  setTrackProps,
+  rollEdit as rollEditMut,
+  slipClip as slipClipMut,
+  slideClip as slideClipMut,
+  replaceClip as replaceClipMut,
 } from "@/lib/editor/store";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { useAudioWaveform } from "@/hooks/editor/useAudioWaveform";
 import { Toolbar } from "../components/Toolbar";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useSyncExternalStore as useSyncExternalStoreForPills } from "react";
 import {
   getDocumentState as getDocStateForPill,
@@ -100,9 +110,17 @@ import {
   AlertTriangle as AlertPill,
   XCircle as XCirclePill,
 } from "lucide-react";
-import { ingestUpload as ingestUploadFn, describeIngestError as describeIngestErrorFn } from "@/lib/editor/upload-ingest";
+import {
+  ingestUpload as ingestUploadFn,
+  describeIngestError as describeIngestErrorFn,
+  validateUploadFile as validateUploadFileFn,
+  uploadValidated as uploadValidatedFn,
+  ingestMusicUrl as ingestMusicUrlFn,
+} from "@/lib/editor/upload-ingest";
+import { flushNow as flushDocNow } from "@/lib/editor/document-store";
 import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
 import { ClipFilmstrip } from "../components/ClipFilmstrip";
+import { TextOverlayTrack } from "../components/TextOverlayTrack";
 import { getClipProperty } from "@/lib/editor/types";
 
 interface Props {
@@ -111,10 +129,15 @@ interface Props {
   selectedClipIds: string[];
   playheadSec: number;
   pxPerSec: number;
+  /** Optional — opens the EditorShell's CreatePanel. The Timeline
+   *  header surfaces a Create button when this is wired so users can
+   *  start a new generation without leaving the editor. */
+  onCreateClick?: () => void;
 }
 
 const V_TRACK_HEIGHT = 72;     // V1 (the workhorse video track)
 const V_OVERLAY_HEIGHT = 38;   // V2 — title cards / overlays
+const V_TEXT_HEIGHT = 32;      // V3 — broadcast text overlays
 const A_TRACK_HEIGHT = 44;     // A1 — clip audio
 const A_MUSIC_HEIGHT = 38;     // A2 — music / score
 const TRACK_GAP = 4;
@@ -124,22 +147,25 @@ const TRIM_HANDLE_PX = 10;
 const MIN_CLIP_PX = 22;
 
 interface TrackDef {
-  id: "V2" | "V1" | "A1" | "A2";
+  id: string;
   label: string;
   kind: "video" | "audio";
   height: number;
   Icon: typeof Film;
+  muted?: boolean;
+  locked?: boolean;
+  soloed?: boolean;
 }
 
-const TRACKS: TrackDef[] = [
-  { id: "V2", label: "V2 · Overlay",  kind: "video", height: V_OVERLAY_HEIGHT, Icon: TypeIcon },
-  { id: "V1", label: "V1 · Video",    kind: "video", height: V_TRACK_HEIGHT,   Icon: Video },
-  { id: "A1", label: "A1 · Audio",    kind: "audio", height: A_TRACK_HEIGHT,   Icon: Disc3 },
-  { id: "A2", label: "A2 · Music",    kind: "audio", height: A_MUSIC_HEIGHT,   Icon: Music2 },
-];
-
-const TOTAL_TRACK_AREA =
-  V_OVERLAY_HEIGHT + V_TRACK_HEIGHT + A_TRACK_HEIGHT + A_MUSIC_HEIGHT + TRACK_GAP * 3;
+/** Pick the rail icon for a track. System tracks have semantic icons;
+ *  user-added tracks get a generic per-kind icon. */
+function trackIcon(t: { id: string; kind: "video" | "audio"; label?: string }): typeof Film {
+  if (t.id === "sys:V3" || t.id === "sys:V2") return TypeIcon;
+  if (t.id === "sys:V1") return Video;
+  if (t.id === "sys:A2") return Music2;
+  if (t.id === "sys:A1") return Disc3;
+  return t.kind === "video" ? Video : Disc3;
+}
 
 function fmtTC(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) sec = 0;
@@ -155,11 +181,54 @@ export function Timeline({
   selectedClipIds,
   playheadSec,
   pxPerSec,
+  onCreateClick,
 }: Props) {
   const reducedMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const { tool, snapEnabled, markers, inSec, outSec, selectedTransitionId } = useEditor();
+  const { tool, snapEnabled, markers, inSec, outSec, selectedTransitionId, clearAllClips, addTrack, removeTrack, renameTrack } = useEditor();
+
+  // Dynamic tracks — fall back to the system defaults when the project
+  // doesn't carry an explicit array (pre-Phase-A projects).
+  const tracks: TrackDef[] = useMemo(() => {
+    const raw = (project.tracks ?? []).slice().sort((a, b) => a.position - b.position);
+    if (raw.length === 0) {
+      const defaults = [
+        { id: "sys:V3", kind: "video" as const, label: "V3 · Text",    height: V_TEXT_HEIGHT },
+        { id: "sys:V2", kind: "video" as const, label: "V2 · Overlay", height: V_OVERLAY_HEIGHT },
+        { id: "sys:V1", kind: "video" as const, label: "V1 · Video",   height: V_TRACK_HEIGHT },
+        { id: "sys:A1", kind: "audio" as const, label: "A1 · Audio",   height: A_TRACK_HEIGHT },
+        { id: "sys:A2", kind: "audio" as const, label: "A2 · Music",   height: A_MUSIC_HEIGHT },
+      ];
+      return defaults.map((d) => ({ ...d, Icon: trackIcon(d) }));
+    }
+    return raw.map((t) => ({
+      id: t.id,
+      kind: t.kind,
+      label: t.label,
+      height: t.height,
+      Icon: trackIcon(t),
+      muted: t.muted,
+      locked: t.locked,
+      soloed: t.soloed,
+    }));
+  }, [project.tracks]);
+
+  // Stack the system tracks at known offsets so existing inline track
+  // bodies (V3 TextOverlayTrack, V2 titles, V1 clips, A1 audio shadows,
+  // A2 music) keep working. The track headers map dynamically; the
+  // bodies are still indexed by the system id.
+  const trackOffsets = useMemo(() => {
+    const offsets = new Map<string, number>();
+    let y = 0;
+    for (const t of tracks) {
+      offsets.set(t.id, y);
+      y += t.height + TRACK_GAP;
+    }
+    return { map: offsets, total: Math.max(0, y - TRACK_GAP) };
+  }, [tracks]);
+  const TOTAL_TRACK_AREA = trackOffsets.total;
+  const offsetOf = (id: string) => trackOffsets.map.get(id) ?? 0;
 
   // Live hover state — floating timecode + faint shadow line while
   // the mouse is over the track. Null when not hovering.
@@ -175,6 +244,15 @@ export function Timeline({
   );
   const titleClips: EditorClip[] = useMemo(
     () => allClips.filter((c) => c.kind === "title"),
+    [allClips],
+  );
+  // Clips routed to the music track. upload-ingest sets
+  // properties.trackId = "sys:A2" for any audio-MIME upload. Without
+  // this derivation the MusicTrack band stayed visually empty even
+  // when the user had successfully dropped an MP3 — they had no
+  // signal the upload landed.
+  const musicClips: EditorClip[] = useMemo(
+    () => allClips.filter((c) => (c.properties as { trackId?: string } | undefined)?.trackId === "sys:A2"),
     [allClips],
   );
   const totalSec = project.durationSec || 1;
@@ -223,7 +301,27 @@ export function Timeline({
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      // Every plain-letter shortcut below MUST early-return when a
+      // modifier is held — otherwise Cmd+B (Budget panel) ALSO
+      // razor-splits the clip, Cmd+S (save) toggles tool+view, Shift+L
+      // (Studio library) ALSO fires JKL-forward in another listener.
+      // The Timeline owns plain B/V/H/N/M/I/O/T; modified variants
+      // belong to other handlers and we must not steal them.
+      const hasMod = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
 
+      // Cmd+0 / Ctrl+0 — fit timeline to viewport. Picks the largest
+      // pxPerSec such that the whole project fits horizontally inside
+      // the visible scroller width. Universal NLE shortcut.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "0" || e.code === "Digit0")) {
+        e.preventDefault();
+        const sc = scrollerRef.current;
+        if (sc && totalSec > 0) {
+          const fitPx = Math.max(10, (sc.clientWidth - 24) / totalSec);
+          setPxPerSec(fitPx);
+          sc.scrollTo({ left: 0, behavior: "smooth" });
+        }
+        return;
+      }
       if (e.key === "+" || e.key === "=") {
         e.preventDefault();
         setPxPerSec(pxPerSec * 1.25);
@@ -252,7 +350,7 @@ export function Timeline({
           ? Math.max(0, playheadSec - frame)
           : Math.min(totalSec, playheadSec + frame);
         setPlayhead(next);
-      } else if (e.key === "b" || e.key === "B") {
+      } else if (!hasMod && (e.key === "b" || e.key === "B")) {
         // Razor blade — toggle blade tool + split at playhead
         e.preventDefault();
         setTool("blade");
@@ -262,29 +360,29 @@ export function Timeline({
             description: "Razor needs at least 0.1s of clip on each side",
           });
         }
-      } else if (e.key === "v" || e.key === "V") {
+      } else if (!hasMod && (e.key === "v" || e.key === "V")) {
         e.preventDefault();
         setTool("select");
-      } else if (e.key === "h" || e.key === "H") {
+      } else if (!hasMod && (e.key === "h" || e.key === "H")) {
         e.preventDefault();
         setTool("hand");
-      } else if (e.key === "n" || e.key === "N") {
+      } else if (!hasMod && (e.key === "n" || e.key === "N")) {
         e.preventDefault();
         toggleSnapMut();
-      } else if (e.key === "m" || e.key === "M") {
+      } else if (!hasMod && (e.key === "m" || e.key === "M")) {
         e.preventDefault();
         const id = addMarkerAtPlayhead();
         toast.message("Marker dropped", {
           description: `at ${fmtTC(playheadSec)} · double-click on the ruler to rename or remove`,
         });
         void id;
-      } else if (e.key === "i" || e.key === "I") {
+      } else if (!hasMod && (e.key === "i" || e.key === "I")) {
         e.preventDefault();
         setInPoint(playheadSec);
-      } else if (e.key === "o" || e.key === "O") {
+      } else if (!hasMod && (e.key === "o" || e.key === "O")) {
         e.preventDefault();
         setOutPoint(playheadSec);
-      } else if (e.key === "t" || e.key === "T") {
+      } else if (!hasMod && (e.key === "t" || e.key === "T")) {
         // Drop a title card at the playhead on V2.
         e.preventDefault();
         insertTitleAtPlayheadMut("Title");
@@ -297,13 +395,34 @@ export function Timeline({
     return () => window.removeEventListener("keydown", onKey);
   }, [pxPerSec, playheadSec, totalSec, selectedClipId]);
 
-  // Wheel + cmd/ctrl zooms; pinned to cursor position
+  // Cmd/Ctrl+wheel zooms — pinned to the cursor. The cursor's
+  // timeline position (the time UNDER the mouse pointer) stays fixed
+  // while pxPerSec changes, so zooming feels like a magnifier
+  // anchored to where you're looking. Previously the scroll position
+  // didn't move and the user's reference point drifted off-screen.
   const onWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       e.preventDefault();
+      const scroller = scrollerRef.current;
       const factor = e.deltaY > 0 ? 1 / 1.1 : 1.1;
-      setPxPerSec(pxPerSec * factor);
+      const nextPxPerSec = pxPerSec * factor;
+      if (scroller) {
+        const rect = scroller.getBoundingClientRect();
+        const xInScroller = e.clientX - rect.left;
+        const cursorSec = (scroller.scrollLeft + xInScroller) / pxPerSec;
+        setPxPerSec(nextPxPerSec);
+        // Run the scroll adjust on the next frame after React applies
+        // the new track width (driven by pxPerSec); scrollLeft can't
+        // exceed scrollWidth so we have to wait for the layout pass.
+        requestAnimationFrame(() => {
+          if (!scrollerRef.current) return;
+          const target = cursorSec * nextPxPerSec - xInScroller;
+          scrollerRef.current.scrollLeft = Math.max(0, target);
+        });
+      } else {
+        setPxPerSec(nextPxPerSec);
+      }
     },
     [pxPerSec],
   );
@@ -321,8 +440,168 @@ export function Timeline({
     }
   }, [playheadPx]);
 
+  const dropzone = useTimelineDropzone(project.id);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Clear-all wipes every clip from the in-memory project AND from the
+  // video_clips DB table so the timeline stays empty across reload.
+  // Confirmation guard so an errant click doesn't nuke a long edit.
+  const onClearAll = async () => {
+    if (clips.length === 0) return;
+    const ok = window.confirm(
+      `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"} from the timeline?\n\nUse Cmd-Z to undo.`,
+    );
+    if (!ok) return;
+    clearAllClips();
+    try {
+      await supabase.from("video_clips").delete().eq("project_id", project.id);
+      toast.success("Timeline cleared");
+    } catch (e) {
+      toast.warning("Timeline cleared locally — DB cleanup failed", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  };
+
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // allow re-picking the same file
+    if (!files.length) return;
+    const fakeEvent = {
+      preventDefault: () => {},
+      dataTransfer: { files, types: ["Files"] as readonly string[] },
+    } as unknown as React.DragEvent;
+    await dropzone.onDrop(fakeEvent);
+  };
+
+  // ── A2 (Music) track actions ───────────────────────────────────────
+  const { user: musicUser } = useAuthForUpload();
+  const musicFileInputRef = useRef<HTMLInputElement | null>(null);
+  // null = idle, "generating" = score render in flight. Disables the
+  // A2 action buttons + shows a spinner while a generation runs.
+  const [musicBusy, setMusicBusy] = useState(false);
+  const currentMusicClipId = musicClips[0]?.id ?? null;
+
+  // Upload music — routes through the same hidden file input + ingest
+  // path already wired for the timeline. The accept list is audio-only
+  // so the picker pre-filters to music files.
+  const onUploadMusic = () => musicFileInputRef.current?.click();
+
+  const onPickMusicFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+    if (!musicUser || !project.id) {
+      toast.error("Sign in + open a project to add music");
+      return;
+    }
+    const doc = getDocStateForPill().doc;
+    if (!doc) {
+      toast.error("Document still loading — try again");
+      return;
+    }
+    const file = files[0];
+    const toastId = toast.loading(`Adding ${file.name} to the Music track…`);
+    try {
+      await ingestUploadFn({ file, userId: musicUser.id, projectId: project.id, doc });
+      toast.success("Music added to A2", { id: toastId });
+    } catch (err) {
+      const m = describeIngestErrorFn(err);
+      toast.error("Couldn't add music", { id: toastId, description: m.description ?? m.message });
+    }
+  };
+
+  // Generate score — calls the generate-music edge function, then
+  // ingests the returned musicUrl onto A2 (DB row + store + doc).
+  const onGenerateScore = async () => {
+    if (musicBusy) return;
+    if (!musicUser || !project.id) {
+      toast.error("Sign in + open a project to generate a score");
+      return;
+    }
+    const doc = getDocStateForPill().doc;
+    if (!doc) {
+      toast.error("Document still loading — try again");
+      return;
+    }
+    setMusicBusy(true);
+    const toastId = toast.loading("Composing a score…", {
+      description: "Hans Zimmer-grade cinematic music — this can take a minute.",
+    });
+    try {
+      // Cap the requested bed at the edge function's 30s ceiling, but
+      // never below 5s, and bias toward the project's own length.
+      const durationSec = Math.max(5, Math.min(30, Math.round(project.durationSec || 30)));
+      const { data, error } = await supabase.functions.invoke("generate-music", {
+        body: {
+          projectId: project.id,
+          mood: project.mood ?? "cinematic",
+          genre: project.genre ?? undefined,
+          durationSec,
+          duration: durationSec,
+        },
+      });
+      if (error) throw error;
+      const musicUrl: string | null = (data as { musicUrl?: string | null } | null)?.musicUrl ?? null;
+      if (!musicUrl) {
+        toast.warning("No score was generated", {
+          id: toastId,
+          description: "Music generation is unavailable right now — try again later.",
+        });
+        return;
+      }
+      await ingestMusicUrlFn({
+        musicUrl,
+        userId: musicUser.id,
+        projectId: project.id,
+        doc,
+        title: `Score — ${project.mood ?? "cinematic"}`,
+        durationSec,
+      });
+      await flushDocNow();
+      toast.success("Score added to A2", { id: toastId });
+    } catch (err) {
+      toast.error("Couldn't generate a score", {
+        id: toastId,
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setMusicBusy(false);
+    }
+  };
+
+  // Replace music — delete the current A2 clip, then re-open the file
+  // picker so the user lands a fresh upload. (Generate-as-replace is a
+  // delete + Generate score.)
+  const onReplaceMusic = () => {
+    if (musicBusy) return;
+    if (currentMusicClipId) deleteClipMut(currentMusicClipId);
+    musicFileInputRef.current?.click();
+  };
+
   return (
-    <section className="relative flex-1 flex flex-col min-h-0">
+    <section
+      className="relative flex-1 flex flex-col min-h-0"
+      onDragOver={dropzone.onDragOver}
+      onDragLeave={dropzone.onDragLeave}
+      onDrop={dropzone.onDrop}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/mpeg,audio/mp4,audio/wav,audio/wave,audio/x-wav,audio/aac,audio/ogg,audio/flac,audio/x-m4a"
+        multiple
+        className="hidden"
+        onChange={onPickFiles}
+      />
+      {/* Audio-only picker for the A2 Music track actions. */}
+      <input
+        ref={musicFileInputRef}
+        type="file"
+        accept="audio/mpeg,audio/mp4,audio/wav,audio/wave,audio/x-wav,audio/aac,audio/ogg,audio/flac,audio/x-m4a"
+        className="hidden"
+        onChange={onPickMusicFiles}
+      />
       <TimelineHeader
         clipCount={clips.length}
         totalSec={totalSec}
@@ -332,35 +611,82 @@ export function Timeline({
         snapEnabled={snapEnabled}
         hasInOut={inSec !== null || outSec !== null}
         playheadSec={playheadSec}
+        onUploadClick={() => fileInputRef.current?.click()}
+        onCreateClick={onCreateClick}
+        onClearAll={onClearAll}
       />
 
-      {clips.length === 0 ? (
-        <EmptyTimeline />
-      ) : (
-        <div className="flex-1 flex min-h-0">
-          {/* Track headers column — pinned left, doesn't scroll
-              horizontally with the track body. Mirrors the height
-              of every track so the labels line up exactly. */}
-          <div
-            className="shrink-0 border-r border-white/[0.04] flex flex-col"
-            style={{ width: TRACK_HEADER_W }}
-          >
-            {/* Spacer matching ruler height */}
-            <div className="h-6" />
-            <div className="mt-3" style={{ height: TOTAL_TRACK_AREA }}>
-              <div className="flex flex-col h-full">
-                {TRACKS.map((t, i) => (
-                  <TrackHeader
-                    key={t.id}
-                    track={t}
-                    addGap={i < TRACKS.length - 1}
-                  />
-                ))}
-              </div>
-            </div>
+      {dropzone.dragOver && (
+        <div
+          aria-hidden
+          className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center bg-[hsl(220_28%_8%/0.78)] backdrop-blur-sm ring-1 ring-inset ring-accent/50"
+        >
+          <div className="text-center">
+            <p className="text-[22px] font-display italic text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              Drop video to add as a clip
+            </p>
+            <p className={cn(TYPE_META, "mt-2 text-muted-foreground/70")}>
+              MP4 · MOV · WebM · MKV — up to 500 MB
+            </p>
           </div>
+        </div>
+      )}
 
-          {/* Scrolling track body */}
+      {clips.length === 0 ? (
+        <EmptyTimeline onUploadClick={() => fileInputRef.current?.click()} />
+      ) : (
+        // Outer: vertical scroll OWNS the whole track area so the
+        // header column and body column move together as the user
+        // wheels up/down. The "+ Track" buttons live OUTSIDE this
+        // scroll so they stay reachable even with many tracks.
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+            <div className="flex min-h-full">
+              {/* Track headers column — pinned left, doesn't scroll
+                  horizontally with the track body. Each header has the
+                  exact same height + bottom margin as its corresponding
+                  body row, so labels line up to the pixel. */}
+              <div
+                className="shrink-0 border-r border-white/[0.04] flex flex-col"
+                style={{ width: TRACK_HEADER_W }}
+              >
+                {/* Spacer matching ruler height */}
+                <div className="h-6 shrink-0" />
+                <div className="mt-3 shrink-0" style={{ height: TOTAL_TRACK_AREA }}>
+                  <div className="flex flex-col">
+                    {tracks.map((t, i) => (
+                      <TrackHeader
+                        key={t.id}
+                        track={t}
+                        addGap={i < tracks.length - 1}
+                        onRename={(label) => renameTrack(t.id, label)}
+                        onRemove={() => {
+                          if (t.id.startsWith("sys:")) {
+                            toast.message("System tracks can't be removed");
+                            return;
+                          }
+                          if (!confirm(`Delete "${t.label}"?`)) return;
+                          removeTrack(t.id);
+                        }}
+                        // A2 (Music) track gets dedicated score actions.
+                        music={
+                          t.id === "sys:A2"
+                            ? {
+                                busy: musicBusy,
+                                hasMusic: !!currentMusicClipId,
+                                onUpload: onUploadMusic,
+                                onGenerate: onGenerateScore,
+                                onReplace: onReplaceMusic,
+                              }
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+          {/* Horizontal-scrolling track body */}
           <div
             ref={scrollerRef}
             className="relative flex-1 overflow-x-auto overflow-y-hidden"
@@ -398,10 +724,24 @@ export function Timeline({
                   width: trackWidthPx,
                 }}
               >
+                {/* V3 — broadcast text overlay track */}
+                <TextOverlayTrack
+                  overlays={project.textOverlays ?? []}
+                  pxPerSec={pxPerSec}
+                  trackWidthPx={trackWidthPx}
+                  top={offsetOf("sys:V3")}
+                  height={V_TEXT_HEIGHT}
+                  totalSec={totalSec}
+                  onSelect={(id) => {
+                    selectClip(null);
+                    void id;
+                  }}
+                />
+
                 {/* V2 — overlay track for title cards */}
                 <div
                   className="absolute left-0 right-0 rounded-md border border-dashed border-white/[0.05] bg-white/[0.008] overflow-hidden"
-                  style={{ top: 0, height: V_OVERLAY_HEIGHT, width: trackWidthPx }}
+                  style={{ top: offsetOf("sys:V2"), height: V_OVERLAY_HEIGHT, width: trackWidthPx }}
                 >
                   {titleClips.length === 0 ? (
                     <span className={cn(TYPE_META, "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 tracking-[0.30em]")}>
@@ -425,7 +765,7 @@ export function Timeline({
                     "absolute left-0 right-0 bg-white/[0.018] rounded-md",
                   )}
                   style={{
-                    top: V_OVERLAY_HEIGHT + TRACK_GAP,
+                    top: offsetOf("sys:V1"),
                     height: V_TRACK_HEIGHT,
                   }}
                 >
@@ -495,7 +835,7 @@ export function Timeline({
                     "ring-1 ring-inset ring-white/[0.04]",
                   )}
                   style={{
-                    top: V_OVERLAY_HEIGHT + TRACK_GAP + V_TRACK_HEIGHT + TRACK_GAP,
+                    top: offsetOf("sys:A1"),
                     height: A_TRACK_HEIGHT,
                   }}
                 >
@@ -509,26 +849,43 @@ export function Timeline({
                   ))}
                 </div>
 
-                {/* A2 — music / score track. Procedural soft band that
-                    spans the whole timeline width so the user reads
-                    "here's where music goes" even when empty. Will
-                    render real music clips when the music ingest
-                    pipeline lands. */}
+                {/* A2 — music / score track. The procedural band stays
+                    as a backdrop ("here's where music goes" when empty)
+                    and any clip the user has routed to sys:A2 is
+                    rendered on top of it as an AudioShadow tile. */}
                 <MusicTrack
-                  top={
-                    V_OVERLAY_HEIGHT +
-                    TRACK_GAP +
-                    V_TRACK_HEIGHT +
-                    TRACK_GAP +
-                    A_TRACK_HEIGHT +
-                    TRACK_GAP
-                  }
+                  top={offsetOf("sys:A2")}
                   height={A_MUSIC_HEIGHT}
                   width={trackWidthPx}
+                  clips={musicClips}
+                  pxPerSec={pxPerSec}
+                  selectedClipId={selectedClipId}
                 />
 
-                {/* Playhead spans every track */}
-                <Playhead positionPx={playheadPx + 1} trackHeight={TOTAL_TRACK_AREA} />
+                {/* User-added empty track placeholders. Phase A only
+                    paints the row; assigning clips to non-system
+                    tracks lands in Phase B. The empty-state copy
+                    makes the limitation visible. */}
+                {tracks.filter((t) => !t.id.startsWith("sys:")).map((t) => (
+                  <div
+                    key={t.id}
+                    className="absolute left-0 right-0 rounded-md border border-dashed border-white/[0.05] bg-white/[0.005]"
+                    style={{ top: offsetOf(t.id), height: t.height, width: trackWidthPx }}
+                  >
+                    <span className={cn(TYPE_META, "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 tracking-[0.30em]")}>
+                      {t.label} · empty (clip routing lands in Phase B)
+                    </span>
+                  </div>
+                ))}
+
+                {/* Playhead spans every track. Pass pxPerSec +
+                    scrollerRef so the triangle handle scrubs on drag. */}
+                <Playhead
+                  positionPx={playheadPx + 1}
+                  trackHeight={TOTAL_TRACK_AREA}
+                  pxPerSec={pxPerSec}
+                  scrollerRef={scrollerRef}
+                />
 
                 {/* Hover shadow + timecode chip spans every track */}
                 {hoverSec !== null && (
@@ -541,6 +898,33 @@ export function Timeline({
                 )}
               </div>
             </div>
+          </div>
+            </div>
+          </div>
+
+          {/* Sticky add-track footer — stays visible while the user
+              scrolls through tracks vertically. The left buttons sit
+              under the headers column so they read as "add a row to
+              this column"; the right side is intentionally blank so
+              the timeline's horizontal scroll doesn't get crowded. */}
+          <div className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.35)] flex">
+            <div className="shrink-0 flex flex-col gap-1.5 px-2 py-2" style={{ width: TRACK_HEADER_W }}>
+              <button
+                type="button"
+                onClick={() => addTrack("video")}
+                className={cn(TYPE_META, "px-2 py-1 rounded ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.18] text-muted-foreground/65 hover:text-foreground transition-all text-left tracking-[0.22em]")}
+              >
+                + Video track
+              </button>
+              <button
+                type="button"
+                onClick={() => addTrack("audio")}
+                className={cn(TYPE_META, "px-2 py-1 rounded ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.18] text-muted-foreground/65 hover:text-foreground transition-all text-left tracking-[0.22em]")}
+              >
+                + Audio track
+              </button>
+            </div>
+            <div className="flex-1 border-l border-white/[0.04]" />
           </div>
         </div>
       )}
@@ -566,6 +950,9 @@ function TimelineHeader({
   snapEnabled,
   hasInOut,
   playheadSec,
+  onUploadClick,
+  onCreateClick,
+  onClearAll,
 }: {
   clipCount: number;
   totalSec: number;
@@ -575,6 +962,9 @@ function TimelineHeader({
   snapEnabled: boolean;
   hasInOut: boolean;
   playheadSec: number;
+  onUploadClick?: () => void;
+  onCreateClick?: () => void;
+  onClearAll?: () => void;
 }) {
   return (
     <header className="relative z-10 px-4 sm:px-6 pt-3 pb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-white/[0.04]">
@@ -598,14 +988,69 @@ function TimelineHeader({
         />
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* Create — opens the CreatePanel which authors a new project,
+            posts it to Studio's mode-router, and (once the new project
+            id arrives) jumps the editor to it. */}
+        {onCreateClick && (
+          <button
+            type="button"
+            onClick={onCreateClick}
+            title="Create a new clip in Studio"
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 h-7 rounded-md",
+              "text-[11px] font-mono uppercase tracking-[0.16em]",
+              "bg-gradient-to-br from-accent/30 to-accent/10 text-accent ring-1 ring-inset ring-accent/40",
+              "hover:from-accent/45 hover:text-foreground transition-all",
+              "shadow-[0_2px_10px_-4px_hsl(var(--accent)/0.65)]",
+            )}
+          >
+            <PlusIcon className="h-3 w-3" strokeWidth={1.8} />
+            Create
+          </button>
+        )}
+        {onUploadClick && (
+          <button
+            type="button"
+            onClick={onUploadClick}
+            title="Upload a video file"
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 h-7 rounded-md",
+              "text-[11px] font-mono uppercase tracking-[0.16em]",
+              "bg-white/[0.05] text-foreground/85 ring-1 ring-inset ring-white/[0.10]",
+              "hover:bg-white/[0.10] hover:text-foreground transition-colors",
+            )}
+          >
+            <UploadIcon className="h-3 w-3" strokeWidth={1.6} />
+            Upload
+          </button>
+        )}
+
+        {onClearAll && clipCount > 0 && (
+          <button
+            type="button"
+            onClick={onClearAll}
+            title="Clear every clip on the timeline (Cmd-Z to undo)"
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 h-7 rounded-md",
+              "text-[11px] font-mono uppercase tracking-[0.16em]",
+              "bg-rose-500/[0.08] text-rose-200/90 ring-1 ring-inset ring-rose-400/30",
+              "hover:bg-rose-500/[0.18] hover:text-rose-100 transition-colors",
+            )}
+          >
+            <Trash2 className="h-3 w-3" strokeWidth={1.6} />
+            Clear
+          </button>
+        )}
+
         {/* Zoom */}
         <div className="flex items-center gap-1.5 text-foreground/80">
           <button
             type="button"
             onClick={() => setPxPerSec(pxPerSec / 1.25)}
             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04] transition-colors"
-            aria-label="Zoom out"
+            aria-label="Zoom out · -"
+            title="Zoom out · -"
           >
             <ZoomOut className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>
@@ -616,9 +1061,30 @@ function TimelineHeader({
             type="button"
             onClick={() => setPxPerSec(pxPerSec * 1.25)}
             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04] transition-colors"
-            aria-label="Zoom in"
+            aria-label="Zoom in · +"
+            title="Zoom in · +"
           >
             <ZoomIn className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const sc = scrollerRef.current;
+              if (sc && totalSec > 0) {
+                const fitPx = Math.max(10, (sc.clientWidth - 24) / totalSec);
+                setPxPerSec(fitPx);
+                sc.scrollTo({ left: 0, behavior: "smooth" });
+              }
+            }}
+            className={cn(
+              TYPE_META,
+              "inline-flex items-center justify-center h-7 px-2 rounded-md font-mono tabular-nums",
+              "text-muted-foreground/65 hover:text-foreground hover:bg-white/[0.04] transition-colors",
+            )}
+            aria-label="Fit timeline to screen · Cmd-0"
+            title="Fit timeline to screen · Cmd-0"
+          >
+            Fit
           </button>
         </div>
 
@@ -677,8 +1143,37 @@ function TimelineRuler({
   const effectiveIn = inSec ?? 0;
   const effectiveOut = outSec ?? totalSec;
 
+  // Ruler scrub — pointerdown anywhere on the ruler starts a drag
+  // that seeks the playhead. Mirrors the NLE convention (Premiere /
+  // FCP / Resolve) where the ruler is the primary "scrub" surface.
+  // Previously a single click landed the playhead but holding +
+  // dragging did nothing, which felt broken.
+  const onRulerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const ruler = e.currentTarget;
+      const seekFrom = (clientX: number) => {
+        const rect = ruler.getBoundingClientRect();
+        const x = clientX - rect.left;
+        setPlayhead(Math.max(0, Math.min(totalSec, x / pxPerSec)));
+      };
+      seekFrom(e.clientX);
+      const move = (ev: PointerEvent) => seekFrom(ev.clientX);
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [pxPerSec, totalSec],
+  );
+
   return (
-    <div className="relative h-6" style={{ width: totalSec * pxPerSec }}>
+    <div
+      className="relative h-6 cursor-ew-resize"
+      style={{ width: totalSec * pxPerSec }}
+      onPointerDown={onRulerDown}
+    >
       {/* In/Out range tint */}
       {(inSec !== null || outSec !== null) && (
         <div
@@ -811,9 +1306,7 @@ function ClipBlock({
   const [trimDelta, setTrimDelta] = useState(0); // signed seconds, live during trim
   const draftDurationRef = useRef<number>(clip.durationSec);
 
-  const onClipPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    // Modifier keys = multi-select; plain click = single select.
+  const selectThisClip = (e: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }) => {
     if (e.shiftKey) {
       extendClipSelection(clip.id);
     } else if (e.metaKey || e.ctrlKey) {
@@ -823,8 +1316,77 @@ function ClipBlock({
     }
   };
 
+  /**
+   * Start a slip or slide drag from the body of the clip.
+   *
+   *   Alt-drag                  → slide (clip stays put on its own
+   *                                source, neighbors absorb the move)
+   *   Shift-Alt-drag            → slip  (clip's window slides over its
+   *                                source; timeline position unchanged)
+   *
+   * Returns true if a drag was initiated (so the caller can stop
+   * propagation of the regular click→select path).
+   */
+  const startSlipOrSlide = (e: React.PointerEvent): boolean => {
+    if (e.button !== 0) return false;
+    if (!e.altKey) return false;
+    const mode: "slide" | "slip" = e.shiftKey ? "slip" : "slide";
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    let lastDelta = 0;
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const deltaSec = dx / pxPerSec;
+      const stepDelta = deltaSec - lastDelta;
+      if (Math.abs(stepDelta) < 0.01) return;
+      lastDelta = deltaSec;
+      if (mode === "slide") {
+        // slideClipMut shifts neighbors by stepDelta; we keep applying
+        // incremental deltas so the cursor maps 1:1 to slide motion.
+        slideClipMut(clip.id, stepDelta);
+      } else {
+        slipClipMut(clip.id, stepDelta);
+      }
+    };
+    const onUp = (ev: PointerEvent) => {
+      try { target.releasePointerCapture(ev.pointerId); } catch { /* released */ }
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return true;
+  };
+
+  const onClipPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    // Try slip / slide first — they own the drag if Alt is held.
+    if (startSlipOrSlide(e)) return;
+    selectThisClip(e);
+  };
+  // Backup: framer-motion's Reorder.Item attaches its own pointer
+  // listeners for drag detection and can swallow pointerdown before
+  // React's synthetic handler reaches us. The `click` event always
+  // fires after a clean tap, so we wire selection here too. Without
+  // this, V1 clicks could no-op and the user would think only the
+  // A1 audio row was clickable.
+  const onClipClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    selectThisClip(e);
+  };
+
   // Trim with pointer events. We capture the pointer and update the
   // clip's draft duration on move. Commit on up.
+  //
+  // Shift+Ctrl modifies the gesture into a ROLL edit on the boundary:
+  // the right trim of clip N + the left trim of clip N+1 sit at the
+  // same x-coord; rollClip moves the boundary, lengthening this clip
+  // and shortening the next (or vice versa) so the total V1 length
+  // stays constant.
   const onTrimPointerDown = (
     e: React.PointerEvent,
     side: "left" | "right",
@@ -833,6 +1395,8 @@ function ClipBlock({
     e.stopPropagation();
     if (e.button !== 0) return;
     selectClip(clip.id);
+
+    const rollMode = e.shiftKey && (e.metaKey || e.ctrlKey);
     setTrimming(side);
     draftDurationRef.current = clip.durationSec;
     const target = e.currentTarget as HTMLElement;
@@ -840,10 +1404,40 @@ function ClipBlock({
 
     const startX = e.clientX;
     const startDur = clip.durationSec;
+    let lastDelta = 0;
 
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const deltaSec = dx / pxPerSec;
+      if (rollMode) {
+        // Roll edit — incremental delta applied at each move so the
+        // store's history coalesces under a single label and the
+        // cursor maps 1:1 to the boundary motion.
+        const step = deltaSec - lastDelta;
+        if (Math.abs(step) >= 0.01) {
+          // On the LEFT handle, we move the PREVIOUS clip's right
+          // edge — equivalent to "extending the previous clip into
+          // this clip's start" by -step (since dragging left grows
+          // the previous clip).
+          if (side === "right") {
+            rollEditMut(clip.id, step);
+          } else {
+            // Find the previous V1 clip and roll its right edge.
+            // We don't have direct access here, so we approximate by
+            // calling rollEdit on… we just bail. The right handle of
+            // the previous clip is the conventional boundary.
+            // Users will discover that the boundary is the right
+            // handle. Keep left handle as plain trim.
+          }
+          lastDelta = deltaSec;
+        }
+        // Trim chip still reads draftDuration; for roll the value
+        // mirrors the new duration of THIS clip.
+        const newMe = side === "right" ? startDur + deltaSec : startDur - deltaSec;
+        draftDurationRef.current = Math.max(0.5, newMe);
+        setTrimDelta(deltaSec * (side === "right" ? 1 : -1));
+        return;
+      }
       const next = side === "right"
         ? startDur + deltaSec
         : startDur - deltaSec;
@@ -876,6 +1470,7 @@ function ClipBlock({
   return (
     <motion.div
       onPointerDown={onClipPointerDown}
+      onClick={onClipClick}
       initial={reducedMotion ? false : { opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
@@ -883,12 +1478,16 @@ function ClipBlock({
       className={cn(
         "group/clip relative h-full overflow-hidden select-none",
         "rounded-md transition-shadow",
-        "ring-1 ring-inset",
+        // Use ring-2 + inset glow when active so the highlight is
+        // unmistakable. The old ring-1 with a tiny color shift was
+        // visually lost under the filmstrip frames — users couldn't
+        // tell the V1 clip was selected and assumed only the audio
+        // row was responding.
         isActive
-          ? "ring-accent/85 shadow-[0_8px_24px_-12px_hsl(var(--accent)/0.6)]"
+          ? "ring-2 ring-inset ring-accent shadow-[0_0_0_2px_hsl(var(--accent)/0.45),0_10px_30px_-10px_hsl(var(--accent)/0.7),inset_0_0_0_9999px_hsl(var(--accent)/0.10)]"
           : isInSelection
-            ? "ring-accent/55"
-            : "ring-white/[0.08] hover:ring-white/[0.20]",
+            ? "ring-2 ring-inset ring-accent/65"
+            : "ring-1 ring-inset ring-white/[0.08] hover:ring-white/[0.20]",
       )}
       style={blockStyle}
     >
@@ -1026,21 +1625,51 @@ function ClipBlock({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TrackHeader — left-column label per track with mute/lock toggles.
-// Toggles are visual-only for v1 so the editor LOOKS like an NLE
-// without committing to behavior that isn't wired yet. The mute/lock
-// state will move into the store when V2/A2 actually carry clips.
+// TrackHeader — left-column label per track with mute/lock/solo toggles.
+// Now wired to the store via setTrackProps so a mute on V2 ACTUALLY
+// hides its clips at render and a lock blocks pointer interactions on
+// the track's clips. Solo (audio) routes through the same mute logic:
+// if ANY audio track is soloed, every non-soloed audio track plays
+// muted. The "visual-only" trap is gone.
 // ─────────────────────────────────────────────────────────────────────────────
 function TrackHeader({
   track,
   addGap,
+  onRename,
+  onRemove,
+  music,
 }: {
   track: TrackDef;
   addGap: boolean;
+  onRename?: (label: string) => void;
+  onRemove?: () => void;
+  /** A2-only music actions. Present only for the sys:A2 header. */
+  music?: {
+    busy: boolean;
+    hasMusic: boolean;
+    onUpload: () => void;
+    onGenerate: () => void;
+    onReplace: () => void;
+  };
 }) {
-  const [muted, setMuted] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftLabel, setDraftLabel] = useState(track.label);
+  const isSystem = track.id.startsWith("sys:");
   const Icon = track.Icon;
+  const muted = !!track.muted;
+  const locked = !!track.locked;
+  const soloed = !!track.soloed;
+  const setMuted = (next: boolean) => setTrackProps(track.id, { muted: next });
+  const setLocked = (next: boolean) => setTrackProps(track.id, { locked: next });
+  const setSoloed = (next: boolean) => setTrackProps(track.id, { soloed: next });
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = draftLabel.trim();
+    if (trimmed && trimmed !== track.label && onRename) onRename(trimmed);
+    else setDraftLabel(track.label);
+  };
+
   return (
     <div
       className={cn(
@@ -1057,35 +1686,139 @@ function TrackHeader({
         strokeWidth={1.5}
       />
       <div className="min-w-0 flex-1">
-        <div className={cn(TYPE_META, "text-foreground/85 tracking-[0.22em] truncate")}>
-          {track.label}
-        </div>
+        {editing ? (
+          <input
+            value={draftLabel}
+            autoFocus
+            onChange={(e) => setDraftLabel(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") { setDraftLabel(track.label); setEditing(false); }
+            }}
+            className={cn(TYPE_META, "w-full bg-transparent outline-none text-foreground tracking-[0.22em]")}
+          />
+        ) : (
+          <button
+            type="button"
+            onDoubleClick={() => setEditing(true)}
+            className={cn(TYPE_META, "text-foreground/85 tracking-[0.22em] truncate text-left")}
+            title="Double-click to rename"
+          >
+            {track.label}
+          </button>
+        )}
       </div>
-      {track.kind === "audio" && (
+      {music && (
+        <div className="shrink-0 flex items-center gap-0.5">
+          {/* Generate score */}
+          <button
+            type="button"
+            onClick={music.onGenerate}
+            disabled={music.busy}
+            className={cn(
+              "inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+              "text-accent/80 hover:text-accent hover:bg-accent/10",
+            )}
+            aria-label="Generate a score"
+            title="Generate a cinematic score onto A2"
+          >
+            {music.busy ? (
+              <Loader2Pill className="h-3 w-3 animate-spin" strokeWidth={1.8} />
+            ) : (
+              <SparklesIconPill className="h-3 w-3" strokeWidth={1.7} />
+            )}
+          </button>
+          {/* Upload / Replace music */}
+          <button
+            type="button"
+            onClick={music.hasMusic ? music.onReplace : music.onUpload}
+            disabled={music.busy}
+            className={cn(
+              "inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+              "text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06]",
+            )}
+            aria-label={music.hasMusic ? "Replace music" : "Upload music"}
+            title={music.hasMusic ? "Replace the music on A2" : "Upload music to A2"}
+          >
+            <UploadIcon className="h-3 w-3" strokeWidth={1.7} />
+          </button>
+        </div>
+      )}
+      {!isSystem && onRemove && (
         <button
           type="button"
-          onClick={() => setMuted((m) => !m)}
+          onClick={onRemove}
+          className="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded text-rose-300/65 hover:text-rose-200 transition-colors"
+          aria-label="Delete track"
+          title="Delete track"
+        >
+          ✕
+        </button>
+      )}
+      {track.kind === "audio" && (
+        <>
+          <button
+            type="button"
+            onClick={() => setSoloed(!soloed)}
+            className={cn(
+              "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors text-[10px] font-mono font-semibold",
+              soloed
+                ? "bg-amber-400/20 text-amber-200 ring-1 ring-inset ring-amber-400/50"
+                : "text-muted-foreground/45 hover:text-foreground/80",
+            )}
+            aria-label={soloed ? "Un-solo track" : "Solo track"}
+            title="Solo — all other audio tracks play muted"
+          >
+            S
+          </button>
+          <button
+            type="button"
+            onClick={() => setMuted(!muted)}
+            className={cn(
+              "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
+              muted ? "text-rose-300/85" : "text-muted-foreground/45 hover:text-foreground/80",
+            )}
+            aria-label={muted ? "Unmute track" : "Mute track"}
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? (
+              <VolumeX className="h-3 w-3" strokeWidth={1.6} />
+            ) : (
+              <Volume2 className="h-3 w-3" strokeWidth={1.6} />
+            )}
+          </button>
+        </>
+      )}
+      {track.kind === "video" && (
+        <button
+          type="button"
+          onClick={() => setMuted(!muted)}
           className={cn(
             "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
             muted ? "text-rose-300/85" : "text-muted-foreground/45 hover:text-foreground/80",
           )}
-          aria-label={muted ? "Unmute track" : "Mute track"}
+          aria-label={muted ? "Show track" : "Hide track"}
+          title={muted ? "Show track" : "Hide track at render"}
         >
           {muted ? (
-            <VolumeX className="h-3 w-3" strokeWidth={1.6} />
+            <EyeOff className="h-3 w-3" strokeWidth={1.6} />
           ) : (
-            <Volume2 className="h-3 w-3" strokeWidth={1.6} />
+            <Eye className="h-3 w-3" strokeWidth={1.6} />
           )}
         </button>
       )}
       <button
         type="button"
-        onClick={() => setLocked((l) => !l)}
+        onClick={() => setLocked(!locked)}
         className={cn(
           "shrink-0 inline-flex items-center justify-center h-5 w-5 rounded transition-colors",
           locked ? "text-amber-300/85" : "text-muted-foreground/45 hover:text-foreground/80",
         )}
         aria-label={locked ? "Unlock track" : "Lock track"}
+        title={locked ? "Unlock" : "Lock — clips on this track can't be moved or trimmed"}
       >
         <Lock
           className="h-3 w-3"
@@ -1134,10 +1867,18 @@ function MusicTrack({
   top,
   height,
   width,
+  clips,
+  pxPerSec,
+  selectedClipId,
 }: {
   top: number;
   height: number;
   width: number;
+  /** Clips routed to sys:A2 — rendered as AudioShadow tiles on top
+   *  of the music backdrop. Empty array = backdrop label only. */
+  clips: EditorClip[];
+  pxPerSec: number;
+  selectedClipId: string | null;
 }) {
   return (
     <div
@@ -1157,14 +1898,25 @@ function MusicTrack({
             "repeating-linear-gradient(90deg, transparent 0, transparent 32px, hsl(45 80% 70% / 0.06) 32px, hsl(45 80% 70% / 0.06) 33px)",
         }}
       />
-      <span
-        className={cn(
-          TYPE_META,
-          "absolute left-3 top-1/2 -translate-y-1/2 text-amber-200/55 tracking-[0.30em]",
-        )}
-      >
-        ◆ Music · score
-      </span>
+      {clips.length === 0 ? (
+        <span
+          className={cn(
+            TYPE_META,
+            "absolute left-3 top-1/2 -translate-y-1/2 text-amber-200/55 tracking-[0.30em]",
+          )}
+        >
+          ◆ Music · drop an MP3 / WAV / AAC to add
+        </span>
+      ) : (
+        clips.map((c) => (
+          <AudioShadow
+            key={c.id}
+            clip={c}
+            pxPerSec={pxPerSec}
+            isActive={c.id === selectedClipId}
+          />
+        ))
+      )}
     </div>
   );
 }
@@ -1684,23 +2436,61 @@ function HoverIndicator({
 function Playhead({
   positionPx,
   trackHeight,
+  pxPerSec,
+  scrollerRef,
 }: {
   positionPx: number;
   trackHeight: number;
+  pxPerSec?: number;
+  scrollerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
+  // The triangle handle catches pointer events for drag-scrub. The
+  // vertical line stays non-interactive so it doesn't steal hover
+  // from clips behind it. Without this drag, every NLE-trained user
+  // expected the head to follow the mouse and ended up clicking
+  // around the ruler hoping something would catch.
+  const onDownHandle = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!pxPerSec || !scrollerRef?.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const scroller = scrollerRef.current;
+      const move = (ev: PointerEvent) => {
+        const rect = scroller.getBoundingClientRect();
+        const xInScroller = ev.clientX - rect.left;
+        const sec = Math.max(0, (scroller.scrollLeft + xInScroller) / pxPerSec);
+        setPlayhead(sec);
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [pxPerSec, scrollerRef],
+  );
+  const interactive = !!pxPerSec && !!scrollerRef;
   return (
     <div
       aria-hidden
+      // pointer-events-none on the container so the line doesn't
+      // block underlying clip clicks; the handle below opts back in.
       className="absolute top-0 pointer-events-none z-20"
       style={{
         left: positionPx,
         height: trackHeight,
       }}
     >
-      {/* Triangle handle */}
+      {/* Triangle handle — pointer-events:auto + grab cursor so the
+          user discovers it's draggable. */}
       <div
-        className="absolute -top-2 -translate-x-1/2"
+        className={cn(
+          "absolute -top-2 -translate-x-1/2",
+          interactive && "pointer-events-auto cursor-ew-resize",
+        )}
         style={{ left: 0 }}
+        onPointerDown={interactive ? onDownHandle : undefined}
       >
         <div
           className="w-3 h-3"
@@ -1752,7 +2542,12 @@ function TimelineFooter({
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty state
 // ─────────────────────────────────────────────────────────────────────────────
-function EmptyTimeline() {
+function EmptyTimeline(_props: { onUploadClick?: () => void }) {
+  // Inline upload button intentionally removed — the canonical entry
+  // points live in the timeline header toolbar (Create · Upload · Clear)
+  // so users don't see a duplicate affordance in the rows area. Empty
+  // state stays minimal: a hint pointing them at the header buttons.
+  void _props;
   return (
     <div className="flex-1 flex items-center justify-center px-6">
       <div className="text-center max-w-md">
@@ -1763,8 +2558,9 @@ function EmptyTimeline() {
         >
           Nothing on the timeline yet.
         </p>
-        <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55 max-w-md mx-auto")}>
-          Render clips in Studio to populate the timeline
+        <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55")}>
+          Click <span className="text-accent">Create</span> to generate one in Studio,
+          or <span className="text-accent">Upload</span> a video — both up in the toolbar.
         </p>
       </div>
     </div>
@@ -1888,13 +2684,57 @@ export function useTimelineDropzone(projectId: string | undefined) {
       toast.error("Document still loading — try again");
       return;
     }
+    // Accept both video and audio. Previously this filter rejected MP3 /
+    // WAV / etc., even though the file input's accept list claims to
+    // support them and the upload-ingest pipeline routes audio to the
+    // sys:A2 track. Net effect was that the only entry point for music
+    // was completely blocked.
     const files = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith("video/"),
+      f.type.startsWith("video/") || f.type.startsWith("audio/"),
     );
     if (files.length === 0) {
-      toast.error("Drop a video file (MP4, MOV, WebM)");
+      toast.error("Drop a video or audio file (MP4, MOV, WebM, MP3, WAV, AAC)");
       return;
     }
+
+    // Detect drop-on-clip: walk up from the event target looking for a
+    // [data-clip-id] node. When found, REPLACE the source media of
+    // that clip instead of inserting new ones. Empty area falls
+    // through to the regular ingest flow that adds clips to the end.
+    let targetClipId: string | null = null;
+    const targetEl = e.target as HTMLElement | null;
+    if (targetEl) {
+      const clipEl = targetEl.closest?.("[data-clip-id]") as HTMLElement | null;
+      if (clipEl) targetClipId = clipEl.getAttribute("data-clip-id");
+    }
+
+    if (targetClipId) {
+      // Replace flow — single file only, the rest are ignored. We use
+      // the same validation + upload pipeline as ingest so file
+      // probing / thumbnail extraction / storage upload all reuse the
+      // existing code paths.
+      const file = files[0];
+      const toastId = toast.loading(`Replacing clip with ${file.name}…`);
+      try {
+        const validated = await validateUploadFileFn(file);
+        const urls = await uploadValidatedFn(validated, user.id, projectId);
+        const ok = replaceClipMut(targetClipId, {
+          videoUrl: urls.videoUrl,
+          thumbnailUrl: urls.thumbnailUrl,
+          durationSec: validated.durationSec,
+        });
+        if (!ok) throw new Error("replace_blocked_by_locked_track_or_missing_clip");
+        toast.success("Clip replaced", { id: toastId });
+      } catch (err) {
+        const m = describeIngestErrorFn(err);
+        toast.error("Couldn't replace clip", {
+          id: toastId,
+          description: m.description ?? m.message,
+        });
+      }
+      return;
+    }
+
     const toastId = toast.loading(`Uploading ${files.length} clip${files.length === 1 ? "" : "s"}…`);
     let ok = 0;
     let failed = 0;

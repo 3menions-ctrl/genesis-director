@@ -1,0 +1,13 @@
+{
+  "name": "F02-two-clip-fade",
+  "description": "Two clips with a default fade transition. Isolates the xfade math: offset = sum(durs) - sum(X) - X, clamp X to min(adjacent) - 0.05, matching acrossfade for audio.",
+  "inputs": [
+    { "url": "file://clip-a.mp4", "duration": 5, "isIntro": false },
+    { "url": "file://clip-b.mp4", "duration": 3, "isIntro": false }
+  ],
+  "transitionDuration": 0.6,
+  "transitionType": "dissolve",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4"
+}

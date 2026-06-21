@@ -13,6 +13,10 @@ import smallBusinessVideo from '@/assets/blog/small-business-video.jpg';
 import videoAiPossibilities from '@/assets/blog/video-ai-possibilities.jpg';
 import futureVideoCreation from '@/assets/blog/future-of-video-creation.jpg';
 import aiAvatarGeneration from '@/assets/blog/ai-avatar-video-generation.jpg';
+import seedanceMotion from '@/assets/blog/new/rise-of-generative-video.jpg';
+import ecommerceAiVideo from '@/assets/blog/new/ecommerce-ai-video.jpg';
+import tiktokCreatorsAi from '@/assets/blog/new/tiktok-creators-ai.jpg';
+import multiSceneContinuity from '@/assets/blog/new/multi-character-dialogue.jpg';
 
 const IMAGE_REGISTRY: Record<string, string> = {
   aiVideoEvolution,
@@ -20,6 +24,10 @@ const IMAGE_REGISTRY: Record<string, string> = {
   videoAiPossibilities,
   futureVideoCreation,
   aiAvatarGeneration,
+  seedanceMotion,
+  ecommerceAiVideo,
+  tiktokCreatorsAi,
+  multiSceneContinuity,
 };
 
 export interface BlogArticle {

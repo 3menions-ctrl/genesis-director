@@ -16,7 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
 import { OnboardingWizard } from '@/components/workspace/OnboardingWizard';
-import logoImage from '@/assets/small-bridges-logo.webp';
+import { BrandTile } from '@/components/cinema/Logo';
 
 interface NavItem {
   to: string;
@@ -199,9 +199,7 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
           <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
             <div className="relative shrink-0">
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(215,100%,55%/0.35)] to-[hsl(215,100%,40%/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
-              <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
-                <img src={logoImage} alt="Small Bridges" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
-              </div>
+              <BrandTile className="h-9 w-9 transition-transform duration-300 group-hover:scale-105" />
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0 lg:flex">

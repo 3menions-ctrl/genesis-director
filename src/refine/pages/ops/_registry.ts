@@ -67,6 +67,13 @@ export const OPS_PAGES = [
     "code": "STA"
   },
   {
+    "file": "AdminObservabilityPage",
+    "path": "/admin/observability",
+    "section": "Observability",
+    "label": "Render telemetry",
+    "code": "OBS"
+  },
+  {
     "file": "AdminBackupsPage",
     "path": "/admin/backups",
     "section": "Observability",

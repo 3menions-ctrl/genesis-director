@@ -13,6 +13,9 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Events                = lazy(() => import("../ops/AdminEventsPage"));
+const Traffic               = lazy(() => import("../ops/AdminTrafficPage"));
+const Insights              = lazy(() => import("../ops/AdminInsightsPage"));
 const Analytics             = lazy(() => import("../ops/AdminAnalyticsPage"));
 const OnboardingAnalytics   = lazy(() => import("../ops/AdminOnboardingAnalyticsPage"));
 const Experiments           = lazy(() => import("../ops/AdminExperimentsPage"));
@@ -27,6 +30,7 @@ const AvatarCatalog         = lazy(() => import("../ops/AdminAvatarCatalogPage")
 const GalleryCuration       = lazy(() => import("../ops/AdminGalleryCurationPage"));
 const Templates             = lazy(() => import("../ops/AdminTemplatesAdminPage"));
 const ContentSafety         = lazy(() => import("../ops/AdminContentSafetyPage"));
+const Comments              = lazy(() => import("../ops/AdminCommentsPage"));
 
 const wrap = (Comp: React.ComponentType) => (
   <Suspense fallback={
@@ -41,7 +45,10 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function GrowthHubPage() {
   const tabs: HubTab[] = [
-    { id: "analytics",       label: "Analytics",       suggested: true, render: () => wrap(Analytics) },
+    { id: "events",          label: "Events",          suggested: true, render: () => wrap(Events) },
+    { id: "traffic",         label: "Traffic",         render: () => wrap(Traffic) },
+    { id: "insights",        label: "Insights",        render: () => wrap(Insights) },
+    { id: "analytics",       label: "Analytics",       render: () => wrap(Analytics) },
     { id: "onboarding",      label: "Onboarding",      render: () => wrap(OnboardingAnalytics) },
     { id: "experiments",     label: "A/B Tests",       render: () => wrap(Experiments) },
     { id: "cohorts",         label: "Cohorts",         render: () => wrap(Cohorts) },
@@ -55,6 +62,7 @@ export default function GrowthHubPage() {
     { id: "gallery",         label: "Gallery",         render: () => wrap(GalleryCuration) },
     { id: "templates",       label: "Templates",       render: () => wrap(Templates) },
     { id: "content-safety",  label: "Safety",          render: () => wrap(ContentSafety) },
+    { id: "comments",        label: "Comments",        render: () => wrap(Comments) },
   ];
 
   return (

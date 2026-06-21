@@ -42,6 +42,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  validateAuth,
+  unauthorizedResponse,
+  resolveEffectiveUserId,
+  forbiddenResponse,
+} from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,14 +65,49 @@ interface Request {
   userId?: string;
 }
 
+/**
+ * SSRF guard. The source video must come from our own Supabase storage
+ * or a known render-output CDN — never an arbitrary host (which the
+ * service-role fetch could otherwise use to reach internal/metadata
+ * endpoints). https only.
+ */
+function isAllowedSourceUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  let supabaseHost = "";
+  try { supabaseHost = new URL(Deno.env.get("SUPABASE_URL")!).host; } catch { /* noop */ }
+  const allowedHosts = new Set([supabaseHost].filter(Boolean));
+  const allowedSuffixes = [".replicate.delivery", ".supabase.co", ".supabase.in"];
+  if (allowedHosts.has(u.host)) return true;
+  return allowedSuffixes.some((s) => u.host === s.slice(1) || u.host.endsWith(s));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const { videoUrl, projectId, userId } = (await req.json()) as Request;
+    // Authenticate first — this function runs with the service role and
+    // fetches a caller-supplied URL, so it must never be anonymous.
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) return unauthorizedResponse(corsHeaders);
+
+    const { videoUrl, projectId, userId: bodyUserId } = (await req.json()) as Request;
     if (!videoUrl || !videoUrl.startsWith("http")) {
       throw new Error("videoUrl required");
+    }
+    if (!isAllowedSourceUrl(videoUrl)) {
+      return forbiddenResponse(corsHeaders, "videoUrl host not allowed");
+    }
+
+    // Effective user id comes from the JWT, never the body (end users
+    // cannot brand a download into someone else's storage path).
+    let userId: string;
+    try {
+      userId = resolveEffectiveUserId(auth, bodyUserId);
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, e instanceof Error ? e.message : "Forbidden");
     }
 
     const supabase = createClient(

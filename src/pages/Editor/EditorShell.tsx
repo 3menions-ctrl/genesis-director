@@ -32,6 +32,8 @@ import type { EditorProject } from "@/lib/editor/types";
 import { ProjectBackdrop } from "./components/ProjectBackdrop";
 import { TopStatusBar } from "./components/TopStatusBar";
 import { TakesDrawer } from "./components/TakesDrawer";
+import { EditorRightRail } from "./components/EditorRightRail";
+import { TimelineMonitorPIP } from "./components/TimelineMonitorPIP";
 
 /**
  * Synthetic empty project — used when no real project is loaded
@@ -57,6 +59,7 @@ import { ExportPanel } from "./components/ExportPanel";
 import { DirectorChat } from "./components/DirectorChat";
 import { VersionsPanel } from "./components/VersionsPanel";
 import { StudioLibrary } from "./components/StudioLibrary";
+import { MediaLibrary } from "./components/MediaLibrary";
 import { CreatePanel } from "./components/CreatePanel";
 import { BudgetPanel } from "./components/BudgetPanel";
 import { CrossoverComposer } from "./components/CrossoverComposer";
@@ -71,7 +74,7 @@ import { StatusBar } from "./components/StatusBar";
 import { MarkersPanel } from "./components/MarkersPanel";
 import { EffectsPalette } from "./components/EffectsPalette";
 import { AudioMixer } from "./components/AudioMixer";
-import { switchActiveTake } from "@/lib/editor/store";
+import { switchActiveTake, overwriteAtPlayhead, getEditorState } from "@/lib/editor/store";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
 import { Storyboard } from "./views/Storyboard";
@@ -94,6 +97,9 @@ export function EditorShell() {
     redo,
     copySelected,
     pasteFromClipboard,
+    cutSelected,
+    duplicateSelected,
+    selectAllClips,
     deleteSelected,
     clearSelection,
     theaterMode,
@@ -119,6 +125,7 @@ export function EditorShell() {
   const [directorOpen, setDirectorOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [vfxOpen, setVfxOpen] = useState(false);
@@ -163,6 +170,52 @@ export function EditorShell() {
       setFocus("edit");
     }
   }, [urlTab]);
+
+  // Auto-save on exit. The document store debounces flushes by 600ms,
+  // so a user that closes the tab inside the debounce window would lose
+  // their last edit. Two safety nets:
+  //   • beforeunload   — fires on tab close / navigation away. Calls
+  //     flushNow() which writes the in-memory doc straight to the DB.
+  //     Synchronous-ish: the browser waits ~30ms before unloading.
+  //   • visibilitychange (hidden) — fires when the tab is backgrounded
+  //     or the user switches to another window. We flush here too so
+  //     long-running sessions persist even without an explicit close.
+  // Both are best-effort — we don't return false / preventDefault, so
+  // the user never sees the "Leave site?" dialog.
+  useEffect(() => {
+    let dynImport: typeof import("@/lib/editor/document-store") | null = null;
+    let dynSync: typeof import("@/hooks/editor/useClipPropertiesSync") | null = null;
+    void import("@/lib/editor/document-store").then((m) => { dynImport = m; });
+    void import("@/hooks/editor/useClipPropertiesSync").then((m) => { dynSync = m; });
+    const flush = () => {
+      // Previously this catch was empty — the single most important
+      // "don't lose work" moment silently swallowed any failure.
+      // Log to Sentry so we can spot persistent failures from
+      // production telemetry instead of guessing why a user lost an
+      // edit. The flush itself is still best-effort (we can't block
+      // navigation reliably) but the failure mode is now visible.
+      try { void dynImport?.flushNow(); } catch (e) {
+        void import("@/lib/observability").then((o) => {
+          o.captureException(e, { surface: "editor.flush.document" });
+        }).catch(() => {});
+      }
+      try { void dynSync?.flushPendingClipWrites(); } catch (e) {
+        void import("@/lib/observability").then((o) => {
+          o.captureException(e, { surface: "editor.flush.clipProps" });
+        }).catch(() => {});
+      }
+    };
+    const onBeforeUnload = () => flush();
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+      // Also flush on unmount (route-level navigation inside the SPA).
+      flush();
+    };
+  }, []);
 
   /**
    * `currentView` — derived from state + URL. The ViewSwitcher uses
@@ -242,6 +295,32 @@ export function EditorShell() {
         if (ok) toast.message("Copied to clipboard");
         return;
       }
+      // Cmd+Ctrl+V (Mac) / Ctrl+Alt+V (Windows): overwrite at playhead.
+      // Pastes the first clipboard clip at the playhead, replacing
+      // whatever V1 clip sits there for the duration. Distinct from
+      // Cmd+V which ripples a paste.
+      if (
+        !focusedEditable &&
+        ((e.metaKey && e.ctrlKey) || (e.ctrlKey && e.altKey)) &&
+        (e.key === "v" || e.key === "V")
+      ) {
+        e.preventDefault();
+        const cb = getEditorState().clipboard;
+        const first = cb?.clips[0];
+        if (!first?.videoUrl) {
+          toast.message("Nothing on the clipboard to overwrite with — copy a clip first");
+          return;
+        }
+        const id = overwriteAtPlayhead({
+          videoUrl: first.videoUrl,
+          thumbnailUrl: first.thumbnailUrl ?? null,
+          durationSec: first.durationSec,
+          prompt: first.prompt,
+        });
+        if (id) toast.success("Overwrote at playhead");
+        else toast.message("Playhead isn't inside a V1 clip");
+        return;
+      }
       if (
         !focusedEditable &&
         (e.metaKey || e.ctrlKey) &&
@@ -250,6 +329,39 @@ export function EditorShell() {
         e.preventDefault();
         const ok = pasteFromClipboard();
         if (ok) toast.message("Pasted");
+        return;
+      }
+      // Cmd-X = cut (copy + delete). Cmd-D = duplicate selected.
+      // Cmd-A = select every clip on the timeline.
+      if (
+        !focusedEditable &&
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === "x" || e.key === "X")
+      ) {
+        e.preventDefault();
+        const ok = cutSelected();
+        if (ok) toast.message("Cut to clipboard");
+        return;
+      }
+      if (
+        !focusedEditable &&
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        (e.key === "d" || e.key === "D")
+      ) {
+        e.preventDefault();
+        const ok = duplicateSelected();
+        if (ok) toast.message("Duplicated");
+        return;
+      }
+      if (
+        !focusedEditable &&
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === "a" || e.key === "A")
+      ) {
+        e.preventDefault();
+        const ok = selectAllClips();
+        if (ok) toast.message("All clips selected");
         return;
       }
       if (!focusedEditable && (e.key === "Escape")) {
@@ -277,34 +389,53 @@ export function EditorShell() {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      // ── Modifier-aware plain-letter shortcuts ───────────────
+      // Every plain-letter handler below MUST guard against modifier
+      // keys. Otherwise Cmd-S (which we want to map to Save) falls
+      // through to plain-S and toggles Script view; Shift+M (markers
+      // panel) ALSO fires plain-M (drop marker) in Timeline; Cmd-B
+      // (Budget) ALSO razor-splits in Timeline. These shadows were
+      // the explicit "playback controls don't work" report.
+      const hasMod = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
+
+      // Cmd-S → Save. The Timeline view also accepts plain S as a
+      // view-toggle, but Cmd-S MUST land here first so users don't
+      // lose work hitting the universal save shortcut. SaveDialog
+      // is locally state'd inside TopStatusBar; we dispatch a custom
+      // event there instead of lifting state.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("editor:open-save"));
+        return;
+      }
       if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         e.preventDefault();
         setHelpOpen(true);
         return;
       }
-      if (e.key === "e" || e.key === "E") {
+      if (!hasMod && (e.key === "e" || e.key === "E")) {
         e.preventDefault();
         setExportOpen(true);
         return;
       }
-      if (e.key === "q" || e.key === "Q") {
+      if (!hasMod && (e.key === "q" || e.key === "Q")) {
         e.preventDefault();
         setQueueOpen((o) => !o);
         return;
       }
       // Shift+M opens the markers panel (M without shift drops a
       // marker — handled in Timeline view).
-      if ((e.key === "M") && e.shiftKey) {
+      if ((e.key === "M") && e.shiftKey && !(e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setMarkersPanelOpen((o) => !o);
         return;
       }
-      if (e.key === "f" || e.key === "F") {
+      if (!hasMod && (e.key === "f" || e.key === "F")) {
         e.preventDefault();
         setEffectsOpen((o) => !o);
         return;
       }
-      if (e.key === "x" || e.key === "X") {
+      if (!hasMod && (e.key === "x" || e.key === "X")) {
         e.preventDefault();
         setMixerOpen((o) => !o);
         return;
@@ -334,15 +465,16 @@ export function EditorShell() {
         }
         return;
       }
-      if (e.key === "c" || e.key === "C") {
+      if (!hasMod && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
         setCommentsOpen((o) => !o);
         return;
       }
-      if (e.key === "s" || e.key === "S") {
+      if (!hasMod && (e.key === "s" || e.key === "S")) {
         // S toggles Script ↔ Stage just like the digit keys do — it
         // routes through switchView so click + S + tab-bar all
-        // share one write path.
+        // share one write path. Plain S only; Cmd-S is handled
+        // earlier as Save.
         e.preventDefault();
         switchViewRef.current(
           currentViewRef.current === "script" ? "stage" : "script",
@@ -398,6 +530,12 @@ export function EditorShell() {
         setLibraryOpen((o) => !o);
         return;
       }
+      // Shift+M — open the Media Library (browse + click-to-add videos).
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "M")) {
+        e.preventDefault();
+        setMediaOpen((o) => !o);
+        return;
+      }
       // N — open the Create panel (add a clip without leaving the
       // editor). No-modifier `n` is the cleanest key here; the
       // input-aware skip above means typing N in a text field still
@@ -425,6 +563,14 @@ export function EditorShell() {
         setCastOpen((o) => !o);
         return;
       }
+      // Shift+T — toggle Theater mode (player expands, timeline drops
+      // to a thin scrub strip). The exit chip references this shortcut
+      // in its title; without this handler the chip was the only entry.
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "T" || e.key === "t")) {
+        e.preventDefault();
+        toggleTheaterMode();
+        return;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -449,6 +595,7 @@ export function EditorShell() {
           onOpenDirector={() => setDirectorOpen(true)}
           onOpenVersions={() => setVersionsOpen(true)}
           onOpenLibrary={() => setLibraryOpen(true)}
+          onOpenMedia={() => setMediaOpen(true)}
           onOpenCreate={() => setCreateOpen(true)}
           presenceCount={presence.count}
         />
@@ -468,45 +615,78 @@ export function EditorShell() {
                 />
               )}
 
-              {/* CENTER — player + timeline split.
-                  In theater mode the player expands and the timeline
-                  drops to a thin scrub strip so the audience-vs-editor
-                  split stays useful. Esc or Shift+T returns. */}
-              <div className="flex-1 min-w-0 flex flex-col">
-                <div className="flex-1 min-h-0">
-                  <PlayerCanvas
-                    project={displayProject}
-                    selectedClipId={selectedClipId}
-                    playheadSec={playheadSec}
-                  />
-                </div>
-                {/* Timeline strip — fixed 320px in normal editing
-                    mode, 120px in theater mode (the program monitor
-                    rules the room there). A previous attempt made
-                    this adapt to the view (Stage 120, Timeline flex-1)
-                    but the shrink-0 + conditional flex-1 conflicted
-                    and broke playback area sizing. Reverted until
-                    we can land a verified, CSS-clean alternative. */}
-                <div
-                  className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)] transition-[height] duration-300 ease-out"
-                  style={{ height: theaterMode ? 120 : 320 }}
-                >
-                  <Timeline
-                    project={displayProject}
-                    selectedClipId={selectedClipId}
-                    selectedClipIds={selectedClipIds}
-                    playheadSec={playheadSec}
-                    pxPerSec={pxPerSec}
-                  />
-                </div>
-              </div>
+              {/* CENTER — layout depends on view:
+                  Stage view  → big player above, timeline strip below
+                  Timeline view → timeline is the whole canvas (all rows
+                    full-height), small monitor PIP floats top-right so
+                    you can still see what's at the playhead while you
+                    work the tracks
+                  Theater mode → player expands, timeline shrinks to a
+                    thin scrub strip regardless of view */}
+              {currentView === "timeline" && !theaterMode ? (
+                <div className="relative flex-1 min-w-0 flex flex-col">
+                  {/* Timeline takes the whole column */}
+                  <div className="flex-1 min-h-0 bg-[hsl(220_30%_4%/0.30)]">
+                    <Timeline
+                      project={displayProject}
+                      selectedClipId={selectedClipId}
+                      selectedClipIds={selectedClipIds}
+                      playheadSec={playheadSec}
+                      pxPerSec={pxPerSec}
+                      onCreateClick={() => setCreateOpen(true)}
+                    />
+                  </div>
 
-              {/* RIGHT — inspector (hidden in theater mode) */}
+                  {/* Floating draggable monitor — full transport on
+                      hover, persisted position, 100% video fill. */}
+                  <TimelineMonitorPIP
+                    project={displayProject}
+                    playheadSec={playheadSec}
+                    selectedClipId={selectedClipId}
+                    onOpenFullStage={() => setView("stage")}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <PlayerCanvas
+                      project={displayProject}
+                      selectedClipId={selectedClipId}
+                      playheadSec={playheadSec}
+                    />
+                  </div>
+                  {/* Timeline strip — fixed 320px in normal editing
+                      mode, 120px in theater mode (the program monitor
+                      rules the room there). */}
+                  <div
+                    className="shrink-0 border-t border-white/[0.04] bg-[hsl(220_30%_4%/0.30)] transition-[height] duration-300 ease-out"
+                    style={{ height: theaterMode ? 120 : 320 }}
+                  >
+                    <Timeline
+                      project={displayProject}
+                      selectedClipId={selectedClipId}
+                      selectedClipIds={selectedClipIds}
+                      playheadSec={playheadSec}
+                      pxPerSec={pxPerSec}
+                      onCreateClick={() => setCreateOpen(true)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* RIGHT — tabbed toolkit rail (hidden in theater mode).
+                  Inspector tab wraps the existing TakesDrawer; Tools
+                  and Project tabs expose every Era 1 capability that
+                  was previously keyboard-only. Press `[` to collapse. */}
               {!theaterMode && (
-                <TakesDrawer
+                <EditorRightRail
                   project={displayProject}
                   selectedClipId={selectedClipId}
-                  embedded
+                  onOpenEffectsPalette={() => setEffectsOpen(true)}
+                  onOpenAudioMixer={() => setMixerOpen(true)}
+                  onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenDirector={() => setDirectorOpen(true)}
+                  onOpenExport={() => setExportOpen(true)}
                 />
               )}
             </>
@@ -532,20 +712,50 @@ export function EditorShell() {
           )}
 
           {focus === "storyboard" && (
-            <div className="flex-1 min-w-0 flex flex-col">
-              <Storyboard
-                project={displayProject}
-                selectedSceneId={selectedSceneId}
-                onOpenCreate={() => setCreateOpen(true)}
-                onLeaveToEdit={() => switchView("stage")}
-              />
-            </div>
+            <>
+              <div className="flex-1 min-w-0 flex flex-col">
+                <Storyboard
+                  project={displayProject}
+                  selectedSceneId={selectedSceneId}
+                  onOpenCreate={() => setCreateOpen(true)}
+                  onLeaveToEdit={() => switchView("stage")}
+                />
+              </div>
+              {/* Keep the right rail (and its Library tab) mounted in
+                  Storyboard view — was unmounting it when leaving the
+                  edit focus, so the user lost the panel they were
+                  using to track completed work. */}
+              {!theaterMode && (
+                <EditorRightRail
+                  project={displayProject}
+                  selectedClipId={selectedClipId}
+                  onOpenEffectsPalette={() => setEffectsOpen(true)}
+                  onOpenAudioMixer={() => setMixerOpen(true)}
+                  onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenDirector={() => setDirectorOpen(true)}
+                  onOpenExport={() => setExportOpen(true)}
+                />
+              )}
+            </>
           )}
 
           {focus === "script" && (
-            <div className="flex-1 min-w-0 flex flex-col">
-              <Script project={displayProject} />
-            </div>
+            <>
+              <div className="flex-1 min-w-0 flex flex-col">
+                <Script project={displayProject} />
+              </div>
+              {!theaterMode && (
+                <EditorRightRail
+                  project={displayProject}
+                  selectedClipId={selectedClipId}
+                  onOpenEffectsPalette={() => setEffectsOpen(true)}
+                  onOpenAudioMixer={() => setMixerOpen(true)}
+                  onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenDirector={() => setDirectorOpen(true)}
+                  onOpenExport={() => setExportOpen(true)}
+                />
+              )}
+            </>
           )}
 
           {/* Soft loading shimmer in the center when fetching the
@@ -621,16 +831,23 @@ export function EditorShell() {
           }}
         />
       )}
-      <RenderQueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
-
-      {/* Markers panel — ⇧M to toggle */}
-      <MarkersPanel
-        open={markersPanelOpen}
-        onClose={() => setMarkersPanelOpen(false)}
-      />
-
-      {/* Effects palette — F to toggle */}
-      {project && (
+      {/* CRITICAL: every modal/panel is mounted CONDITIONALLY on its
+          open state. Previously these 15+ components rendered with
+          `open={false}` but still mounted — their useEffects, Supabase
+          subscriptions, and useEditor() subscriptions all ran. Net
+          result was a heavyweight subtree behind every keystroke in
+          the editor. Conditional mount means the subtree only exists
+          while visible; closing returns memory immediately. */}
+      {queueOpen && (
+        <RenderQueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
+      )}
+      {markersPanelOpen && (
+        <MarkersPanel
+          open={markersPanelOpen}
+          onClose={() => setMarkersPanelOpen(false)}
+        />
+      )}
+      {project && effectsOpen && (
         <EffectsPalette
           project={project}
           selectedClipIds={selectedClipIds}
@@ -638,53 +855,59 @@ export function EditorShell() {
           onClose={() => setEffectsOpen(false)}
         />
       )}
-
-      {/* Audio mixer — X to toggle. Reads global isPlaying from store. */}
-      <AudioMixer open={mixerOpen} onClose={() => setMixerOpen(false)} />
-
-      {/* Director Chat — Cmd+/ */}
-      <DirectorChat
-        project={displayProject}
-        open={directorOpen}
-        onClose={() => setDirectorOpen(false)}
-      />
-
-      {/* Versions panel — Cmd+Shift+V */}
-      <VersionsPanel
-        open={versionsOpen}
-        onClose={() => setVersionsOpen(false)}
-      />
-
-      {/* Studio Library — Shift+L */}
-      <StudioLibrary
-        open={libraryOpen}
-        onClose={() => setLibraryOpen(false)}
-      />
-
-      {/* Create panel — N */}
-      <CreatePanel
-        project={displayProject}
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-      />
-
-      {/* Budget panel — Cmd+B */}
-      <BudgetPanel
-        open={budgetOpen}
-        onClose={() => setBudgetOpen(false)}
-      />
-
-      {/* Crossover VFX composer — Shift+V */}
-      <CrossoverComposer
-        open={vfxOpen}
-        onClose={() => setVfxOpen(false)}
-      />
-
-      {/* Cast editor — Cmd+J */}
-      <CastEditor
-        open={castOpen}
-        onClose={() => setCastOpen(false)}
-      />
+      {mixerOpen && (
+        <AudioMixer open={mixerOpen} onClose={() => setMixerOpen(false)} />
+      )}
+      {directorOpen && (
+        <DirectorChat
+          project={displayProject}
+          open={directorOpen}
+          onClose={() => setDirectorOpen(false)}
+        />
+      )}
+      {versionsOpen && (
+        <VersionsPanel
+          open={versionsOpen}
+          onClose={() => setVersionsOpen(false)}
+        />
+      )}
+      {libraryOpen && (
+        <StudioLibrary
+          open={libraryOpen}
+          onClose={() => setLibraryOpen(false)}
+        />
+      )}
+      {mediaOpen && (
+        <MediaLibrary
+          open={mediaOpen}
+          onClose={() => setMediaOpen(false)}
+        />
+      )}
+      {createOpen && (
+        <CreatePanel
+          project={displayProject}
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+        />
+      )}
+      {budgetOpen && (
+        <BudgetPanel
+          open={budgetOpen}
+          onClose={() => setBudgetOpen(false)}
+        />
+      )}
+      {vfxOpen && (
+        <CrossoverComposer
+          open={vfxOpen}
+          onClose={() => setVfxOpen(false)}
+        />
+      )}
+      {castOpen && (
+        <CastEditor
+          open={castOpen}
+          onClose={() => setCastOpen(false)}
+        />
+      )}
     </div>
   );
 }

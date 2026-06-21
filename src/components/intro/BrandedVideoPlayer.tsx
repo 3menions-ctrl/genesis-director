@@ -326,6 +326,14 @@ export const BrandedVideoPlayer = memo(
           try { hlsRef.current.destroy(); } catch { /* ignore */ }
           hlsRef.current = null;
         }
+        // Clear the src on the video element so the browser releases
+        // the underlying media buffer + network connection. Without
+        // this, an unmounted player keeps the connection open and
+        // accumulates MediaElement instances over the session.
+        const v = videoRef.current;
+        if (v) {
+          try { v.removeAttribute("src"); v.load(); } catch { /* ignore */ }
+        }
       };
     }, [resolvedSrc, retryNonce, playerKey]);
 
@@ -392,8 +400,22 @@ export const BrandedVideoPlayer = memo(
     //     the user gets the cinematic surface on the first click instead
     //     of needing a second tap.
     const onContentClick = useCallback((e: React.MouseEvent) => {
-      // Ignore clicks that land on a button / control / link descendant —
-      // those handle their own actions and shouldn't trigger play/pause.
+      // When the native <video controls> shadow-DOM UI handles its
+      // own play/pause/scrub, clicks on those controls retarget to
+      // `e.target === videoRef.current` (the shadow DOM hides the
+      // internal button identity from React). The `.closest('button')`
+      // guard misses them, which caused the wrapper to re-enter
+      // immersive mode AND call play() in parallel with the native
+      // handler — and on the immersive remount the video element was
+      // replaced with a srcless fresh node. Net result on Reel page
+      // (which uses `controls={true}`): nothing ever played.
+      //
+      // Two guards: (1) if useNativeControls is on, the native UI owns
+      // play/pause — never re-enter immersive from a wrapper click;
+      // (2) belt+braces, bail if the click target IS the video itself
+      // (shadow-DOM retarget case).
+      if (useNativeControls) return;
+      if (e.target === videoRef.current) return;
       if ((e.target as HTMLElement).closest("button, a, input")) return;
       const v = videoRef.current;
       if (!v) return;
@@ -407,7 +429,7 @@ export const BrandedVideoPlayer = memo(
         setImmersive(true);
         document.dispatchEvent(new CustomEvent("branded-video:immersed", { detail: { playerKey } }));
       }
-    }, [clickToImmerse, immersive, playerKey]);
+    }, [clickToImmerse, immersive, playerKey, useNativeControls]);
 
     // ── Esc closes immersive; F toggles fullscreen; etc. ──
     useEffect(() => {
@@ -589,6 +611,16 @@ export const BrandedVideoPlayer = memo(
       >
         <video
           ref={videoRef}
+          // Set src DECLARATIVELY when the source is a plain mp4 (not
+          // HLS). The imperative useEffect that assigns `video.src`
+          // does NOT re-run when the immersive toggle remounts the
+          // video element (different JSX subtree → fresh node, but
+          // effect deps unchanged → no re-attach). Setting src in JSX
+          // ensures every mount of this element has its bytes.
+          // For HLS, we let the effect call hls.attachMedia — but
+          // even there, the effect now runs on mount because the
+          // callback ref (videoRef.current change) triggers it.
+          src={resolvedSrc && !isHlsManifest(resolvedSrc) ? resolvedSrc : undefined}
           poster={poster}
           autoPlay={autoPlay && revealVideo}
           muted={muted}
@@ -609,8 +641,7 @@ export const BrandedVideoPlayer = memo(
             (!objectFit || objectFit === "contain") && "object-contain",
           )}
           preload={preload}
-          // @ts-expect-error - Safari-only AirPlay opt-in attribute
-          x-webkit-airplay="allow"
+          {...({ "x-webkit-airplay": "allow" } as Record<string, string>)}
         >
           {(captions ?? []).map((t, i) => (
             <track

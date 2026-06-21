@@ -25,6 +25,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
+
+const PALETTE_BG = "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015)), #070809";
 
 type ResultKind = "user" | "project" | "org" | "hub" | "action";
 interface PaletteResult {
@@ -216,22 +219,30 @@ export function AdminPalette() {
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 bg-black/75 backdrop-blur-md"
         onClick={() => setOpen(false)}
       />
 
       {/* Card */}
       <div
-        className="relative w-[640px] max-w-[92vw] rounded-2xl border border-white/[0.08] bg-background/95 backdrop-blur-2xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
+        className="relative w-[640px] max-w-[92vw] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
+        style={{ background: PALETTE_BG }}
       >
+        {/* Top specular highlight */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
+        />
         {/* Brand rail */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[#0A84FF]/60 to-transparent"
+          className="absolute left-0 top-0 bottom-0 w-px"
+          style={{ background: `linear-gradient(to bottom, transparent, ${accent(0.6)}, transparent)` }}
         />
 
         {/* Search bar */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.05]">
+        <div className="flex items-center gap-3 px-5 py-4">
           <Search className="w-4 h-4 text-white/40 shrink-0" />
           <input
             ref={inputRef}
@@ -244,11 +255,11 @@ export function AdminPalette() {
             autoComplete="off"
           />
           {loading ? (
-            <span className="text-[10px] text-white/40 font-mono uppercase tracking-[0.24em] animate-pulse">
+            <span className="text-[10px] text-white/45 font-mono uppercase tracking-[0.24em] animate-pulse">
               Searching…
             </span>
           ) : (
-            <kbd className="text-[10px] text-white/30 font-mono px-1.5 py-0.5 rounded border border-white/[0.08]">
+            <kbd className="text-[10px] text-white/45 font-mono px-1.5 py-0.5 rounded bg-white/[0.06]">
               Esc
             </kbd>
           )}
@@ -257,7 +268,7 @@ export function AdminPalette() {
         {/* Recents (only when query is empty) */}
         {!q && recents.length > 0 && (
           <div className="px-5 pt-4 pb-2">
-            <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/30 mb-2 flex items-center gap-2">
+            <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/45 mb-2 flex items-center gap-2">
               <ClockIcon className="w-3 h-3" /> Recently visited
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -267,9 +278,9 @@ export function AdminPalette() {
                   <button
                     key={r.id}
                     onClick={() => activate(r)}
-                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full bg-glass border border-white/[0.06] hover:border-primary/40 hover:bg-primary/[0.06] transition-colors"
+                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
                   >
-                    <Icon className="w-3 h-3 text-white/50 group-hover:text-primary" />
+                    <Icon className="w-3 h-3 text-white/50 group-hover:text-white transition-colors" />
                     <span className="text-[11px] text-white/75 truncate max-w-[180px]">{r.label}</span>
                   </button>
                 );
@@ -281,7 +292,7 @@ export function AdminPalette() {
         {/* Results */}
         <div ref={listRef} className="max-h-[55vh] overflow-y-auto py-2">
           {visible.length === 0 ? (
-            <div className="text-center py-12 text-[12px] text-white/35">
+            <div className="text-center py-12 text-[12px] text-white/45">
               {q ? "No matches." : "Type to search."}
             </div>
           ) : (
@@ -296,31 +307,30 @@ export function AdminPalette() {
                   onClick={() => activate(r)}
                   className={cn(
                     "group w-full text-left px-5 py-3 flex items-center gap-3 transition-colors",
-                    focused
-                      ? "bg-primary/[0.10]"
-                      : "hover:bg-glass",
+                    !focused && "hover:bg-white/[0.05]",
                   )}
+                  style={focused ? { background: accent(0.12), boxShadow: `inset 2px 0 0 0 ${ACCENT_HSL}` } : undefined}
                 >
                   {/* Avatar / thumbnail / icon */}
                   {r.avatar ? (
                     <img
                       src={r.avatar}
                       alt=""
-                      className="w-8 h-8 rounded-lg object-cover border border-white/[0.08] shrink-0"
+                      className="w-8 h-8 rounded-lg object-cover shrink-0"
                     />
                   ) : r.thumbnail ? (
                     <img
                       src={r.thumbnail}
                       alt=""
-                      className="w-8 h-8 rounded-lg object-cover border border-white/[0.08] shrink-0"
+                      className="w-8 h-8 rounded-lg object-cover shrink-0"
                     />
                   ) : (
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg border flex items-center justify-center shrink-0",
-                      focused
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-white/[0.06] bg-glass text-white/55",
-                    )}>
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={focused
+                        ? { background: `linear-gradient(135deg, ${accent(0.22)}, ${accent(0.08)})`, color: ACCENT_HSL }
+                        : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}
+                    >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                   )}
@@ -329,21 +339,21 @@ export function AdminPalette() {
                       {r.label}
                     </div>
                     {r.sub && (
-                      <div className="text-[11px] text-white/40 truncate font-mono">
+                      <div className="text-[11px] text-white/45 truncate font-mono">
                         {r.sub}
                       </div>
                     )}
                   </div>
-                  <span className={cn(
-                    "text-[9px] font-mono uppercase tracking-[0.28em] shrink-0",
-                    focused ? "text-primary" : "text-white/25",
-                  )}>
+                  <span
+                    className="text-[9px] font-mono uppercase tracking-[0.28em] shrink-0"
+                    style={focused ? { color: ACCENT_HSL } : { color: "rgba(255,255,255,0.3)" }}
+                  >
                     {r.kind}
                   </span>
-                  <ArrowRight className={cn(
-                    "w-3.5 h-3.5 shrink-0 transition-opacity",
-                    focused ? "opacity-100 text-primary" : "opacity-0",
-                  )} />
+                  <ArrowRight
+                    className={cn("w-3.5 h-3.5 shrink-0 transition-opacity", focused ? "opacity-100" : "opacity-0")}
+                    style={focused ? { color: ACCENT_HSL } : undefined}
+                  />
                 </button>
               );
             })
@@ -351,10 +361,10 @@ export function AdminPalette() {
         </div>
 
         {/* Footer key hints */}
-        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.22em] text-white/30">
+        <div className="px-5 py-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded border border-white/[0.08]">↑↓</kbd> navigate</span>
-            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded border border-white/[0.08]">⏎</kbd> open</span>
+            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded bg-white/[0.06]">↑↓</kbd> navigate</span>
+            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded bg-white/[0.06]">⏎</kbd> open</span>
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-3 h-3" /> Admin Membrane

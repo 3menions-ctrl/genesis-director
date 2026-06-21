@@ -1,0 +1,16 @@
+{
+  "name": "F12-autoduck",
+  "description": "Auto-ducking enabled with one V1 voice clip and one A2 music aux. Asserts the master audio is asplit into one keep + one sidechain per aux, each aux runs through sidechaincompress, then amix joins them. This is the broadcast-style 'duck the music when the voice is present' path.",
+  "inputs": [
+    { "url": "file://voice.mp4", "duration": 10, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "autoDuck": true,
+  "auxAudio": [
+    { "timelineStartSec": 0, "durationSec": 10 }
+  ]
+}

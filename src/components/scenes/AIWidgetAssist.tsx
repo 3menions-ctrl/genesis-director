@@ -105,8 +105,11 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
           clipCount: 1,
           clipDuration: scene.type === 'cta' ? 5 : 6,
           aspectRatio: selectedStyle === 'minimal_embed' ? '9:16' : '16:9',
-          includeVoice: scene.type === 'cta',
-          includeMusic: scene.type === 'hero',
+          // mode-router reads enableNarration/enableMusic — the old
+          // includeVoice/includeMusic names were silently dropped, so
+          // CTA voiceover and hero music never got requested.
+          enableNarration: scene.type === 'cta',
+          enableMusic: scene.type === 'hero',
           qualityTier: 'professional',
           genre: 'commercial',
           mood: scene.mood || 'cinematic',

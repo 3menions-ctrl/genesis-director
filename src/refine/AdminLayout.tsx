@@ -5,8 +5,9 @@
  * each with internal tabs, and two Tools entries (Audit / Config). The ⌘K
  * palette is the primary navigation device — typing an email or project
  * title jumps directly to the right profile.
- * Pro-Dark + #0A84FF. Fraunces nav labels, frosted operator card, ambient
- * grain + radial glow, refined typographic hierarchy.
+ * Deep-dark + single cinema accent hsl(214 90% 62%). Borderless gradient
+ * glass surfaces, Fraunces nav labels, frosted operator card, ambient grain
+ * + radial glow, refined typographic hierarchy.
  */
 import { useState, useEffect, memo } from "react";
 import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
@@ -22,6 +23,7 @@ import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
 import { scopeForPath } from "./rbac/scopes";
 import { AdminNotificationBell } from "./components/AdminNotificationBell";
 import { AdminPalette } from "./components/AdminPalette";
+import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
 import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };
@@ -101,9 +103,9 @@ function RefineAdminLayoutInner() {
 
   if (isAdmin === null) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-4 h-4 text-primary animate-spin" />
-        <span className="ml-3 text-[10px] uppercase tracking-[0.32em] text-white/40 font-mono">
+      <div className="min-h-screen bg-[#06070a] flex items-center justify-center">
+        <Loader2 className="w-4 h-4 animate-spin" style={{ color: ACCENT_HSL }} />
+        <span className="ml-3 text-[10px] uppercase tracking-[0.32em] text-white/45 font-mono">
           Verifying privileged access…
         </span>
       </div>
@@ -128,7 +130,7 @@ function RefineAdminLayoutInner() {
 
   return (
     <div
-      className="admin-skin min-h-screen w-full bg-background text-white/80 flex selection:bg-primary/30 relative overflow-hidden"
+      className="admin-skin min-h-screen w-full bg-[#06070a] text-white/70 flex selection:bg-[hsl(214_90%_62%/0.3)] relative overflow-hidden"
       style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}
     >
       {/* Ambient grain */}
@@ -141,19 +143,22 @@ function RefineAdminLayoutInner() {
       <div
         aria-hidden
         className="pointer-events-none fixed -top-60 right-0 w-[800px] h-[800px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(10,132,255,0.07), transparent 65%)", filter: "blur(80px)" }}
+        style={{ background: `radial-gradient(circle, ${accent(0.1)}, transparent 65%)`, filter: "blur(80px)" }}
       />
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "relative z-10 border-r border-white/5 bg-background/70 backdrop-blur-xl flex flex-col shrink-0 transition-[width] duration-300",
+          "relative z-10 bg-white/[0.02] backdrop-blur-xl flex flex-col shrink-0 transition-[width] duration-300",
           collapsed ? "w-[72px]" : "w-64"
         )}
+        style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.01))", boxShadow: "0 30px 90px -50px rgba(0,0,0,0.95)" }}
       >
+        {/* top specular highlight */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }} />
         <div className="px-6 py-7 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_#0A84FF] shrink-0" />
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: ACCENT_HSL, boxShadow: `0 0 10px ${accent(0.8)}` }} />
             {!collapsed && (
               <span className="text-[10px] font-mono font-semibold tracking-[0.28em] text-white uppercase truncate">
                 Admin Membrane
@@ -162,7 +167,7 @@ function RefineAdminLayoutInner() {
           </div>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="w-6 h-6 rounded-full border border-white/10 hover:border-primary/50 hover:text-primary text-white/40 flex items-center justify-center transition-colors"
+            className="w-6 h-6 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/45 hover:text-white flex items-center justify-center transition-colors"
             aria-label="Toggle sidebar"
           >
             <ChevronLeft className={cn("w-3 h-3 transition-transform", collapsed && "rotate-180")} />
@@ -197,13 +202,13 @@ function RefineAdminLayoutInner() {
                     {section.code} <span className="text-white/15">//</span> {section.label}
                   </span>
                   {section.live && (
-                    <span className="text-primary/70 italic normal-case tracking-normal text-[11px]">
+                    <span className="italic normal-case tracking-normal text-[11px]" style={{ color: accent(0.8) }}>
                       live
                     </span>
                   )}
                 </button>
               ) : (
-                <div className="mx-auto mb-2 w-6 h-px bg-white/5" />
+                <div className="mx-auto mb-2 w-6 h-px bg-white/[0.06]" />
               )}
               <div className={cn("space-y-1 overflow-hidden", !isOpen && "hidden")}>
                 {section.items.map(({ label, icon: Icon, path, n }) => (
@@ -219,11 +224,11 @@ function RefineAdminLayoutInner() {
                     tabIndex={allowed ? undefined : -1}
                     className={({ isActive }) =>
                       cn(
-                        "admin-nav-item group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                        "admin-nav-item group relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all",
                         !allowed && "opacity-40 cursor-not-allowed hover:bg-transparent",
                         isActive
-                          ? "is-active bg-primary/12 text-white shadow-[inset_0_0_0_1px_rgba(10,132,255,0.18)]"
-                          : "text-white/45 hover:bg-glass hover:text-white"
+                          ? "is-active bg-[hsl(214_90%_62%/0.12)] text-white"
+                          : "text-white/45 hover:bg-white/[0.05] hover:text-white"
                       )
                     }
                     title={!allowed ? `Locked · ${scopeForPath(path)} scope required` : (collapsed ? label : undefined)}
@@ -231,9 +236,10 @@ function RefineAdminLayoutInner() {
                     {/* Active rail (locked-standard 2px glow) */}
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r bg-primary opacity-0 shadow-[0_0_10px_#0A84FF] transition-opacity group-[.is-active]:opacity-100"
+                      className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r opacity-0 transition-opacity group-[.is-active]:opacity-100"
+                      style={{ background: ACCENT_HSL, boxShadow: `0 0 10px ${accent(0.7)}` }}
                     />
-                    <Icon className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100 group-[.is-active]:opacity-100 group-[.is-active]:text-primary" />
+                    <Icon className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100 group-[.is-active]:opacity-100 group-[.is-active]:text-[hsl(214_90%_62%)]" />
                     {!collapsed && (
                       <>
                         <span
@@ -243,14 +249,15 @@ function RefineAdminLayoutInner() {
                           {label}
                         </span>
                         {allowed ? (
-                          <span className="text-[9px] opacity-25 group-[.is-active]:opacity-70 group-[.is-active]:text-primary font-mono tracking-wider">{n}</span>
+                          <span className="text-[9px] opacity-25 group-[.is-active]:opacity-70 group-[.is-active]:text-[hsl(214_90%_62%)] font-mono tracking-wider">{n}</span>
                         ) : (
                           <Lock className="w-3 h-3 opacity-50" />
                         )}
                         {/* 6px right dot */}
                         <span
                           aria-hidden
-                          className="pointer-events-none w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#0A84FF] opacity-0 group-[.is-active]:opacity-100 transition-opacity"
+                          className="pointer-events-none w-1.5 h-1.5 rounded-full opacity-0 group-[.is-active]:opacity-100 transition-opacity"
+                          style={{ background: ACCENT_HSL, boxShadow: `0 0 6px ${accent(0.7)}` }}
                         />
                       </>
                     )}
@@ -265,17 +272,20 @@ function RefineAdminLayoutInner() {
 
         {/* Operator card */}
         <div className="p-5">
-          <div className={cn(
-            "flex items-center gap-3 p-3 rounded-2xl bg-glass border border-white/5",
-            collapsed && "justify-center p-2 rounded-full"
-          )}>
-            <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-[#0A84FF]/40 via-[#0A84FF]/10 to-transparent border border-white/10 flex items-center justify-center text-white text-[12px] font-semibold shrink-0">
+          <div
+            className={cn(
+              "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden",
+              collapsed && "justify-center p-2 rounded-full"
+            )}
+            style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))", boxShadow: "0 30px 90px -50px rgba(0,0,0,0.95)" }}
+          >
+            <div className="relative w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-semibold shrink-0" style={{ background: `linear-gradient(135deg, ${accent(0.4)}, ${accent(0.08)})` }}>
               {initial}
-              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <div className="text-[9px] text-white/40 uppercase tracking-[0.22em] font-mono leading-none mb-1">
+                <div className="text-[9px] text-white/45 uppercase tracking-[0.22em] font-mono leading-none mb-1">
                   Administrator
                 </div>
                 <div
@@ -288,7 +298,7 @@ function RefineAdminLayoutInner() {
             {!collapsed && (
               <button
                 onClick={() => signOut?.()}
-                className="w-7 h-7 rounded-full border border-white/5 hover:border-red-500/40 hover:text-red-400 text-white/30 flex items-center justify-center transition-colors shrink-0"
+                className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-[hsl(350_90%_70%/0.16)] hover:text-[hsl(350_90%_70%)] text-white/40 flex items-center justify-center transition-colors shrink-0"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -301,18 +311,19 @@ function RefineAdminLayoutInner() {
 
       {/* Main */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="h-16 border-b border-white/5 px-10 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] shrink-0 bg-background/40 backdrop-blur-md">
+        <header className="relative h-16 px-10 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] shrink-0 bg-white/[0.02] backdrop-blur-md">
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
           <div className="flex items-center gap-4 font-mono">
-            <span className="text-white/20">Directory</span>
-            <span className="text-white/10">/</span>
-            <span className="text-white/30">{activeSection || "Pulse"}</span>
-            <span className="text-white/10">/</span>
+            <span className="text-white/25">Directory</span>
+            <span className="text-white/15">/</span>
+            <span className="text-white/35">{activeSection || "Pulse"}</span>
+            <span className="text-white/15">/</span>
             <span className="text-white/70">{activeItem || "Telemetry"}</span>
           </div>
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse" />
-              <span className="text-emerald-500/70 font-mono">Uptime 99.98%</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse" />
+              <span className="text-emerald-400/70 font-mono">Uptime 99.98%</span>
             </div>
             <button
               type="button"
@@ -321,11 +332,11 @@ function RefineAdminLayoutInner() {
                   new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
                 );
               }}
-              className="hidden md:flex items-center gap-2 px-3 h-7 rounded-full border border-white/[0.08] hover:border-primary/40 hover:text-primary text-white/45 transition-colors font-mono normal-case"
+              className="hidden md:flex items-center gap-2 px-3 h-7 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/55 hover:text-white transition-colors font-mono normal-case"
               title="Open command palette (⌘K)"
             >
               <span className="text-[11px] tracking-[0.12em]">Search…</span>
-              <kbd className="text-[10px] px-1.5 py-0.5 rounded border border-white/[0.08] text-white/55">⌘K</kbd>
+              <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.08] text-white/60">⌘K</kbd>
             </button>
             <Clock />
             <AdminNotificationBell />

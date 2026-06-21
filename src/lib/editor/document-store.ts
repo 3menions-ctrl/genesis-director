@@ -86,7 +86,7 @@ function notify(): void {
  */
 export function setDocument(doc: ScriptDocument | null): void {
   state.doc = doc;
-  state.lastFlushAt = doc ? new Date(0).toISOString() : null;
+  state.lastFlushAt = doc ? new Date().toISOString() : null;
   state.dirtyAt = null;
   state.lastError = null;
   notify();
@@ -111,7 +111,12 @@ const FLUSH_DELAY_MS = 600;
 let flushHandle: number | null = null;
 
 function markDirty(by: AuthorshipSource): void {
-  state.dirtyAt = new Date(0).toISOString();
+  // MUST be wall-clock "now": meta.authoredAt is the monotonic key the
+  // realtime conflict guard in useScriptDocument uses to skip stale echoes
+  // (cur.authoredAt > incoming.authoredAt). A constant timestamp here (e.g.
+  // the 1970 epoch) makes that comparison always false, so every realtime
+  // echo overwrites the in-flight local edit → silent lost-update.
+  state.dirtyAt = new Date().toISOString();
   if (state.doc) {
     state.doc.meta.authoredAt = state.dirtyAt;
     state.doc.meta.authoredBy = by;
@@ -138,12 +143,34 @@ export async function flushNow(): Promise<void> {
   const doc = state.doc;
   if (!doc) return;
   try {
+    // Try the dedicated column first. If the column doesn't exist
+    // (PGRST204), fall back to nesting under pipeline_state.scriptDocument
+    // so writes never silently disappear. After migration
+    // 20260621000000_add_script_document.sql is applied, the first path
+    // succeeds and we stop touching pipeline_state.
     const { error } = await supabase
       .from("movie_projects")
-      .update({ script_document: doc })
+      .update({ script_document: doc } as never)
       .eq("id", doc.meta.projectId);
-    if (error) throw error;
-    state.lastFlushAt = new Date(0).toISOString();
+    if (error) {
+      const msg = error.message || "";
+      const isColumnMissing = /script_document/.test(msg) && /does not exist|PGRST204/i.test(msg);
+      if (!isColumnMissing) throw error;
+      // Fallback path — fetch + merge into pipeline_state.
+      const { data: row } = await supabase
+        .from("movie_projects")
+        .select("pipeline_state")
+        .eq("id", doc.meta.projectId)
+        .maybeSingle();
+      const pipeline = ((row as { pipeline_state?: Record<string, unknown> } | null)?.pipeline_state ?? {}) as Record<string, unknown>;
+      pipeline.scriptDocument = doc;
+      const { error: fbErr } = await supabase
+        .from("movie_projects")
+        .update({ pipeline_state: pipeline as never } as never)
+        .eq("id", doc.meta.projectId);
+      if (fbErr) throw fbErr;
+    }
+    state.lastFlushAt = new Date().toISOString();
     state.dirtyAt = null;
     state.lastError = null;
   } catch (e) {
@@ -228,7 +255,7 @@ export function updateBeat(
           owningShot.approval = {
             ...owningShot.approval,
             state: "needs-regen",
-            changedAt: new Date(0).toISOString(),
+            changedAt: new Date().toISOString(),
             changedBy: ctx.by ?? "user",
             reason: "Beat edited after approval",
           };
@@ -321,7 +348,7 @@ export function addShot(
     generated: base.generated,
     approval: base.approval ?? {
       state: "draft",
-      changedAt: new Date(0).toISOString(),
+      changedAt: new Date().toISOString(),
       changedBy: ctx.by ?? "user",
     },
     cost: {
@@ -358,7 +385,7 @@ export function setShotApproval(
     {
       approval: {
         state: next,
-        changedAt: new Date(0).toISOString(),
+        changedAt: new Date().toISOString(),
         changedBy: ctx.by ?? "user",
         reason: ctx.reason,
       },
@@ -394,7 +421,7 @@ export function persistGenerated(
     generated: artifact,
     approval: {
       state: "completed",
-      changedAt: new Date(0).toISOString(),
+      changedAt: new Date().toISOString(),
       changedBy: ctx.by ?? "manual-edit",
     },
   });
@@ -410,7 +437,7 @@ export function persistFailure(
   return updateShot(shotId, {
     approval: {
       state: "failed",
-      changedAt: new Date(0).toISOString(),
+      changedAt: new Date().toISOString(),
       changedBy: ctx.by ?? "user",
       reason: errorMessage,
     },

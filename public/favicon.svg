@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="sb-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14171d"/>
+      <stop offset="1" stop-color="#090a0d"/>
+    </linearGradient>
+    <radialGradient id="sb-glow" cx="50%" cy="0%" r="85%">
+      <stop offset="0" stop-color="hsl(214 90% 62%)" stop-opacity="0.42"/>
+      <stop offset="0.6" stop-color="hsl(214 90% 62%)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sb-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d7e3f5"/>
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="url(#sb-bg)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="url(#sb-glow)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="1.5"/>
+  <!-- top accent hairline -->
+  <rect x="14" y="2.4" width="36" height="1.4" rx="0.7" fill="hsl(214 90% 62%)" fill-opacity="0.8"/>
+  <text x="32" y="34" text-anchor="middle" dominant-baseline="central"
+        font-family="'Helvetica Neue', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
+        font-weight="700" font-size="30" letter-spacing="-1.5" fill="url(#sb-ink)">SB</text>
+</svg>

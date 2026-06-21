@@ -1,0 +1,17 @@
+{
+  "name": "F10-color-grade",
+  "description": "A clip with a pre-compiled color-grade filter chain (colorbalance + eq + colortemperature). Asserts the grade lands before the format conversion stage and AFTER the scale/pad/fps pipeline.",
+  "inputs": [
+    {
+      "url": "file://graded.mp4",
+      "duration": 6,
+      "isIntro": false,
+      "colorFilter": "colorbalance=rs=0.100:gs=0.000:bs=-0.080:rm=0.060:gm=0.000:bm=-0.040:rh=0.040:gh=0.020:bh=-0.020,eq=contrast=1.150:saturation=1.080,colortemperature=temperature=5950"
+    }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4"
+}

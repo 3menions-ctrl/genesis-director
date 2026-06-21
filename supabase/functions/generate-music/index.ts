@@ -607,6 +607,74 @@ async function uploadToStorage(
   }
 }
 
+/**
+ * Insert a video_clips row for the generated score on the A2 (Music)
+ * track. Probes the current max shot_index for the project and writes
+ * max+1, retrying on a UNIQUE (project_id, shot_index) collision so a
+ * concurrent clip insert doesn't lose the slot. Mirrors the client-side
+ * insertWithNextShotIndex in src/lib/editor/upload-ingest.ts.
+ */
+async function insertMusicClip(
+  supabase: any,
+  args: {
+    projectId: string;
+    userId: string;
+    videoUrl: string;
+    durationSec: number;
+    mood?: string;
+  },
+): Promise<string | null> {
+  const prompt = `Score: ${args.mood ?? "cinematic"}`;
+  const MAX_RETRIES = 5;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const { data: maxRow, error: maxErr } = await supabase
+      .from("video_clips")
+      .select("shot_index")
+      .eq("project_id", args.projectId)
+      .order("shot_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (maxErr) {
+      console.warn("[Music] shot_index probe failed:", maxErr);
+      return null;
+    }
+    const baseIdx =
+      maxRow && typeof maxRow.shot_index === "number" ? maxRow.shot_index + 1 : 0;
+    const shotIndex = baseIdx + attempt;
+
+    const { data: row, error } = await supabase
+      .from("video_clips")
+      .insert({
+        project_id: args.projectId,
+        user_id: args.userId,
+        shot_index: shotIndex,
+        prompt,
+        // duration_seconds is INTEGER — round + floor to ≥1.
+        duration_seconds: Math.max(1, Math.round(args.durationSec)),
+        status: "completed",
+        video_url: args.videoUrl,
+        start_image_url: null,
+        properties: { trackId: "sys:A2" },
+      })
+      .select("id")
+      .single();
+
+    if (!error && row) {
+      console.log("[Music] ✅ A2 video_clips row inserted:", row.id);
+      return row.id as string;
+    }
+
+    // 23505 = unique_violation on (project_id, shot_index) — retry at a
+    // higher slot. Anything else is fatal for this insert.
+    if (error?.code !== "23505") {
+      console.warn("[Music] video_clips insert rejected:", error);
+      return null;
+    }
+  }
+  console.warn("[Music] gave up on A2 insert after shot_index collisions");
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -682,6 +750,25 @@ serve(async (req) => {
           .from('movie_projects')
           .update({ music_url: storedUrl })
           .eq('id', projectId);
+
+        // EDITOR TIMELINE: also drop the score onto the A2 (Music)
+        // track as a video_clips row so it lands directly on the editor
+        // timeline — the loader renders the timeline from this table.
+        // Mirrors the shape insertWithNextShotIndex / upload-ingest
+        // writes (properties.trackId='sys:A2'). Best-effort: a failure
+        // here must not fail the whole generation, music_url is still
+        // written above so the legacy-load fallback covers it.
+        try {
+          await insertMusicClip(supabase, {
+            projectId,
+            userId: ownerId ?? auth.userId!,
+            videoUrl: storedUrl,
+            durationSec: duration,
+            mood,
+          });
+        } catch (e) {
+          console.warn('[Music] A2 video_clips insert failed (non-fatal):', (e as Error).message);
+        }
       }
 
       // MEDIA LIBRARY: durable record of the music asset.

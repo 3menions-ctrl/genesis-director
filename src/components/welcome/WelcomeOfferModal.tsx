@@ -65,16 +65,18 @@ function WelcomeOfferModalInner() {
     setPurchasing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
-        body: { packageId: 'mini', welcomeOffer: true },
-      });
+      // Route through the active payments provider (Polar) rather than a
+      // Stripe-specific edge function, so the welcome offer follows the
+      // same provider swap as every other checkout.
+      const { getPaymentsProvider } = await import('@/lib/payments');
+      const provider = await getPaymentsProvider();
+      const returnUrl = `${window.location.origin}/credits?payment=success`;
+      const { url } = await provider.createCreditCheckout({ packageId: 'mini', returnUrl });
 
-      if (error) throw error;
-
-      if (data?.url) {
+      if (url) {
         markOfferSeen();
         setTimeout(() => {
-          window.location.href = data.url;
+          window.location.href = url;
         }, 100);
       } else {
         throw new Error('No checkout URL received');

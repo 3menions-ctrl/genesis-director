@@ -123,6 +123,61 @@ export function resetIdentity() {
   }
 }
 
+// ── Crash + event capture ────────────────────────────────────────────
+// The wrappers swallow their own errors so a telemetry failure can
+// never escalate to a user-visible crash. Both no-op cleanly before
+// observability has finished booting.
+
+/**
+ * Report a thrown error to Sentry, tagged with a `surface` so the
+ * issues list can be filtered by feature area (`editor.save`,
+ * `editor.render`, `lobby.feed`, etc.).
+ *
+ * Always non-fatal: a missing Sentry DSN, a throw inside the SDK, or
+ * an early boot all return without surfacing to the caller. The
+ * caller is responsible for whatever user-facing recovery applies —
+ * this just makes the error visible in triage.
+ */
+export function captureException(
+  err: unknown,
+  context?: { surface?: string; tags?: Record<string, string>; extra?: Record<string, unknown> },
+): void {
+  if (!SentryMod) return;
+  try {
+    SentryMod.withScope((scope) => {
+      if (context?.surface) scope.setTag("surface", context.surface);
+      if (context?.tags) {
+        for (const [k, v] of Object.entries(context.tags)) scope.setTag(k, v);
+      }
+      if (context?.extra) {
+        for (const [k, v] of Object.entries(context.extra)) scope.setExtra(k, v);
+      }
+      SentryMod!.captureException(err);
+    });
+  } catch {
+    /* never let telemetry crash production */
+  }
+}
+
+/**
+ * Capture a product analytics event in PostHog. The `surface` prop
+ * mirrors the Sentry tag so the same axis filters both error and
+ * usage signals. Use sparingly — only for events that meaningfully
+ * inform a product decision (save/render/critical-CTA), not for
+ * every render or hover.
+ */
+export function captureEvent(
+  name: string,
+  props?: Record<string, unknown> & { surface?: string },
+): void {
+  if (!posthogMod) return;
+  try {
+    posthogMod.capture(name, props ?? {});
+  } catch {
+    /* never let telemetry crash production */
+  }
+}
+
 // ── PII scrubbers ────────────────────────────────────────────────────
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const PHONE_RE = /\+?\d[\d\s().-]{7,}\d/g;

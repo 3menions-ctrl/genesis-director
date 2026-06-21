@@ -26,13 +26,19 @@ serve(async (req) => {
       });
     }
 
-    const { text, voiceId } = await req.json();
+    const { text, voiceId, projectId, persist } = await req.json();
     if (!text) {
       return new Response(JSON.stringify({ error: "No text provided" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // When `persist:true` is set, the function uploads the generated
+    // audio to storage and returns a signed URL the client can
+    // immediately insert as an audio clip. Without persist, audio
+    // bytes are streamed back (legacy behavior). Without persist OR
+    // projectId, the bytes vanish — which was the dead-wire flagged
+    // in the prior audit.
 
     // Default to a natural-sounding voice
     const selectedVoiceId = voiceId || "JBFqnCBsd6RMkjVDRZzb"; // George
@@ -82,6 +88,48 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
+
+    // Persist path — upload to storage and return a public URL
+    // alongside the bytes. The client can then insert as an A1
+    // audio clip via insertWithNextShotIndex.
+    if (persist && projectId) {
+      try {
+        const { createClient } = await import(
+          "https://esm.sh/@supabase/supabase-js@2.39.3"
+        );
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        const path = `${auth.userId ?? "anon"}/${projectId}/tts-${Date.now()}.mp3`;
+        const { error: upErr } = await supabase.storage
+          .from("video-clips")
+          .upload(path, new Uint8Array(audioBuffer), {
+            contentType: "audio/mpeg",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage
+          .from("video-clips")
+          .getPublicUrl(path);
+        return new Response(
+          JSON.stringify({
+            audioUrl: pub.publicUrl,
+            storagePath: path,
+            voiceId: selectedVoiceId,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      } catch (e) {
+        console.error("editor-tts persist failed", e);
+        return new Response(
+          JSON.stringify({ error: e instanceof Error ? e.message : "persist_failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     return new Response(audioBuffer, {
       headers: {

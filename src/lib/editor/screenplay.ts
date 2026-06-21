@@ -90,6 +90,51 @@ interface ParseOutput {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// JSON-shots → screenplay prose
+//
+// The generation pipelines persist `generated_script` as a JSON shot list
+// ({ shots: [{ title, description, dialogue }] }), but the editor renders
+// screenplay TEXT. Feeding raw JSON to parseScreenplay produces garbage, so we
+// render the shots into proper screenplay prose first.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Render a JSON shots/clips payload as screenplay prose. Returns null if `raw`
+ *  isn't a recognisable shot list. */
+export function shotsJsonToScreenplay(raw: string): string | null {
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return null; }
+  const p = parsed as Record<string, unknown>;
+  const shots = Array.isArray((p as { shots?: unknown }).shots) ? (p as { shots: unknown[] }).shots
+    : Array.isArray((p as { clips?: unknown }).clips) ? (p as { clips: unknown[] }).clips
+    : Array.isArray(parsed) ? (parsed as unknown[]) : null;
+  if (!shots || shots.length === 0) return null;
+
+  const out: string[] = [];
+  shots.forEach((raw, i) => {
+    const sh = (raw ?? {}) as Record<string, unknown>;
+    const title = String(sh.title ?? sh.name ?? `Shot ${i + 1}`).toUpperCase().slice(0, 60);
+    out.push(`SCENE ${i + 1} — ${title}`, "");
+    const desc = String(sh.description ?? sh.prompt ?? sh.action ?? "").trim();
+    if (desc) out.push(desc, "");
+    const line = String(sh.dialogue ?? sh.line ?? sh.voiceover ?? "").trim();
+    if (line) {
+      const speaker = String(sh.speaker ?? sh.character ?? "").trim();
+      if (speaker && /^[a-z0-9 .'#-]{1,28}$/i.test(speaker)) out.push(speaker.toUpperCase(), line, "");
+      else out.push(`"${line.replace(/^["']|["']$/g, "")}"`, "");
+    }
+  });
+  return out.join("\n").trim();
+}
+
+/** If `raw` is a JSON shot list, render it as screenplay prose; otherwise return
+ *  it unchanged. Safe to call on any script string (prose passes through). */
+export function coerceScreenplay(raw: string | null | undefined): string {
+  const s = (raw ?? "").trim();
+  if (!s || (s[0] !== "{" && s[0] !== "[")) return s;
+  return shotsJsonToScreenplay(s) ?? s;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Regex bank — kept narrow so the heuristics stay debuggable
 // ─────────────────────────────────────────────────────────────────────────────
 

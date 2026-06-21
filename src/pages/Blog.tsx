@@ -18,7 +18,8 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { BLOG_ARTICLES, type BlogArticle } from '@/content/blog';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
-const Footer = lazy(() => import('@/components/landing/Footer'));
+// Unified site footer — same one used on the landing & studio-showcase pages.
+const Footer = lazy(() => import('@/components/cinema/Footer').then((m) => ({ default: m.Footer })));
 
 export default function Blog() {
   usePageMeta({

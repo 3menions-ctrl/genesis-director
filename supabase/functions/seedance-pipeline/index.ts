@@ -32,6 +32,7 @@ import {
   forbiddenResponse,
 } from "../_shared/auth-guard.ts";
 import { markProjectFailedAndRefund } from "../_shared/pipeline-failure.ts";
+import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -406,7 +407,9 @@ serve(async (req) => {
     const clipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
     const clipDuration = Math.max(2, Math.min(12, request.clipDuration ?? 10));
     const aspectRatio = (request.aspectRatio ?? "16:9") as '16:9' | '9:16' | '1:1';
-    const cameraFixed = request.cameraFixed ?? false;
+    // GUARDRAIL: breakouts lock the camera — the screen/plate stays stationary,
+    // only the subject moves and breaks out (see _shared/breakout-guardrails.ts).
+    const cameraFixed = request.isBreakout ? true : (request.cameraFixed ?? false);
     const includeVoice = request.includeVoice ?? false;
     const includeMusic = request.includeMusic ?? true;
     const isResuming = !!request.resumeFrom;
@@ -543,10 +546,12 @@ serve(async (req) => {
       const clip3WithLine = userLine
         ? `${cfg.clip3} Speaking the line: "${userLine.slice(0, 280)}".`
         : cfg.clip3;
+      // GUARDRAIL: every breakout clip prompt is moderation-sanitised (IP/brand
+      // triggers neutralised) and hard-clamped to Seedance's 4000-char limit.
       shots = [
-        { id: "breakout_1", title: "The Trap",     description: cfg.clip1, durationSeconds: Math.min(12, clipDuration) },
-        { id: "breakout_2", title: "The Break",    description: cfg.clip2, durationSeconds: Math.min(12, clipDuration) },
-        { id: "breakout_3", title: "The Emerge",   description: clip3WithLine, durationSeconds: Math.min(12, clipDuration), dialogue: userLine || undefined },
+        { id: "breakout_1", title: "The Trap",     description: enforceBreakoutScript(cfg.clip1),     durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_2", title: "The Break",    description: enforceBreakoutScript(cfg.clip2),     durationSeconds: Math.min(12, clipDuration) },
+        { id: "breakout_3", title: "The Emerge",   description: enforceBreakoutScript(clip3WithLine), durationSeconds: Math.min(12, clipDuration), dialogue: userLine || undefined },
       ];
       // Breakout start image becomes the reference for clip 1
       if (request.breakoutStartImageUrl && !request.referenceImageUrl) {

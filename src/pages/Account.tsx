@@ -11,7 +11,7 @@
  * panel comes in lazily so the initial bundle stays lean.
  */
 import { lazy, Suspense, useMemo } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, Navigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   User as UserIcon,
@@ -45,10 +45,10 @@ import {
 // Panels — lazy
 // ─────────────────────────────────────────────────────────────────────────────
 const ProfileDashboard = lazy(() => import("./account/ProfileDashboard"));
-const SettingsPanel = lazy(() => import("./Settings"));
+const SettingsPanel = lazy(() => import("./account/SettingsDashboard"));
 const CreditsPanel = lazy(() => import("./Credits"));
-const NotificationsPanel = lazy(() => import("./Notifications"));
-const MessagesPanel = lazy(() => import("./account/MessagesPanel"));
+// Messages + notifications now live at /inbox. The legacy tab values
+// just redirect there via the SECTIONS map.
 const DevelopersPanel = lazy(() => import("./account/DevelopersPanel"));
 
 type Tab =
@@ -220,8 +220,7 @@ export default function Account() {
                 transition={{ duration: 0.42, ease: EASE_PREMIUM, delay: 0.05 }}
               >
                 <Suspense fallback={<PanelSkeleton />}>
-                  {tab === "messages" && <MessagesPanel />}
-                  {tab === "notifications" && <NotificationsPanel />}
+                  {(tab === "messages" || tab === "notifications") && <Navigate to={`/inbox?lane=${tab === "messages" ? "people" : "all"}`} replace />}
                   {tab === "credits" && <CreditsPanel />}
                   {tab === "settings" && <SettingsPanel />}
                   {tab === "developers" && <DevelopersPanel />}

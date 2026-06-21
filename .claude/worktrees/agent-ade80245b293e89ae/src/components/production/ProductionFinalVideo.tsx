@@ -1,0 +1,186 @@
+import { memo, forwardRef, useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
+import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2, Film } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { UniversalVideoPlayer } from '@/components/player';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
+interface ProductionFinalVideoProps {
+  videoUrl: string;
+  projectId?: string;
+}
+
+export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl, projectId }, ref) {
+  const navigate = useNavigate();
+  const isManifest = videoUrl.endsWith('.json');
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      if (isManifest) {
+        // videoUrl is a manifest JSON — parse it to get the actual clip URLs
+        const manifestRes = await fetch(videoUrl, { mode: 'cors' });
+        if (!manifestRes.ok) throw new Error('Failed to fetch manifest');
+        const manifest = await manifestRes.json();
+        
+        // Extract actual video clip URLs from manifest
+        const clipUrls: string[] = manifest.clips?.map((c: { videoUrl?: string }) => c.videoUrl).filter(Boolean) || [];
+        
+        if (clipUrls.length === 0) {
+          throw new Error('No clip URLs found in manifest');
+        }
+        
+        // Download each clip
+        toast.info(`Downloading ${clipUrls.length} clips...`);
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const res = await fetch(clipUrls[i], { mode: 'cors' });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = clipUrls.length === 1 ? 'video-complete.mp4' : `video-clip${i + 1}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            // Stagger downloads
+            if (i < clipUrls.length - 1) {
+              await new Promise(r => setTimeout(r, 800));
+            }
+          } catch (clipErr) {
+            console.warn(`[ProductionFinalVideo] Clip ${i + 1} download failed:`, clipErr);
+          }
+        }
+        toast.success(`Downloaded ${clipUrls.length} clip(s)!`);
+      } else {
+        // Direct MP4 URL — download normally
+        const response = await fetch(videoUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'video-complete.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        toast.success('Video downloaded!');
+      }
+    } catch (err) {
+      console.error('[ProductionFinalVideo] Download error:', err);
+      window.open(videoUrl, '_blank');
+      toast.info('Opening video in new tab for download');
+    } finally {
+      setDownloading(false);
+    }
+  }, [videoUrl, isManifest]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="relative group"
+    >
+      {/* Premium multi-color glow */}
+      <div className="absolute -inset-3 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 blur-3xl pointer-events-none"
+        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(139,92,246,0.15), rgba(6,182,212,0.25), rgba(245,158,11,0.1))' }}
+      />
+      
+      <div className={cn(
+        "relative overflow-hidden rounded-3xl",
+        "bg-black/40 border border-white/[0.08]",
+        "backdrop-blur-3xl shadow-2xl shadow-black/40"
+      )}>
+        {/* Top edge light */}
+        <div className="absolute top-0 inset-x-6 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+        
+        {/* Header */}
+        <div className="relative flex items-center justify-between px-7 py-6 border-b border-white/[0.05]">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] via-transparent to-violet-500/[0.02]" />
+          
+          <div className="relative flex items-center gap-4">
+            <motion.div 
+              className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center border relative overflow-hidden",
+                "bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border-emerald-500/25",
+                "shadow-lg shadow-emerald-500/10"
+              )}
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <CheckCircle2 className="w-7 h-7 text-emerald-400 relative z-10" />
+              {/* Glass highlight */}
+              <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.06] to-transparent" />
+            </motion.div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-lg font-bold text-white">Video Complete</h3>
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+              </div>
+              <p className="text-xs text-emerald-400/40 mt-0.5 font-medium">✦ Assembled and ready for export</p>
+            </div>
+          </div>
+          
+          <div className="relative flex gap-2.5">
+            {projectId && (
+              <Button 
+                size="sm"
+                variant="ghost"
+                className="h-10 px-4 text-xs gap-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl font-semibold"
+                onClick={() => navigate(`/editor?project=${projectId}`)}
+              >
+                <Film className="w-3.5 h-3.5" />
+                Edit in Studio
+              </Button>
+            )}
+            <Button 
+              size="sm"
+              variant="ghost"
+              className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
+              onClick={() => window.open(videoUrl, '_blank')}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Open
+            </Button>
+            <Button 
+              size="sm" 
+              disabled={downloading}
+              className={cn(
+                "h-10 px-5 text-xs gap-2 rounded-xl",
+                "bg-gradient-to-r from-emerald-500 to-teal-500",
+                "hover:from-emerald-400 hover:to-teal-400",
+                "text-white font-bold",
+                "shadow-lg shadow-emerald-500/20",
+                "transition-all duration-200"
+              )}
+              onClick={handleDownload}
+            >
+              {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {downloading ? 'Downloading...' : 'Download'}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Video Player */}
+        <div className="relative aspect-video bg-black/80">
+          <UniversalVideoPlayer
+            source={isManifest ? { manifestUrl: videoUrl } : { urls: [videoUrl] }}
+            mode="inline"
+            controls={{ showDownload: !isManifest }}
+            className="w-full h-full"
+          />
+        </div>
+        
+        {/* Bottom gradient */}
+        <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+      </div>
+    </motion.div>
+  );
+}));

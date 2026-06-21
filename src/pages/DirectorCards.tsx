@@ -187,7 +187,7 @@ export default function DirectorCards() {
           <h2 className="font-display font-medium text-[26px] mb-2">No data yet for {year}.</h2>
           <p className="text-white/45 text-[13px] mb-6">Publish a reel first, then come back.</p>
           <Link
-            to="/start"
+            to="/auth?mode=signup"
             className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white text-black text-[11px] font-mono uppercase tracking-[0.22em]"
           >
             <Wand2 className="w-3.5 h-3.5" />Direct your first reel

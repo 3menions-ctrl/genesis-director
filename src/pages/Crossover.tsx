@@ -1,338 +1,839 @@
 /**
  * Crossover — /crossover
  *
- * The "next-gen clip" surface. Curated VFX template library where every
- * card is one of the screen-breakout effects (character / object steps
- * out of a digital UI into the physical world). Tap a card → composer
- * modal → tweak → Generate → goes through mode-router → ends up in
- * /production for status.
+ * Editorial scene library for the 50 "fourth wall break" VFX templates.
+ * Matches the Templates + Environments page system:
+ *   - Editorial glassmorphic hero (gradient italic title, floating stats)
+ *   - Search + secondary filter rails (engine tier, aspect, accepts-subject)
+ *   - When "All": 5 editorial rails (one per category) + Featured rail
+ *   - When a single category: dense grid + back link
+ *   - Cards open CrossoverDetailDrawer with the full blueprint
+ *   - "Customize & generate" in the drawer opens the legacy TemplateComposer
  *
- * Five categories of 10 templates each (50 total seeded in migration
- * 20260615000000_crossover_templates.sql).
+ * All 50 DB rows preserved. crossover_browse RPC preserved. Generation
+ * path through mode-router preserved.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Sparkles, Wand2, Search as SearchIcon, X, Wand, Tv, Monitor, Layers,
-  Cpu, Palette, ArrowRight, Flame,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { StudioHero } from "@/components/studio/StudioHero";
-import { StudioTabs } from "@/components/studio/StudioTabs";
-import { usePageMeta } from "@/hooks/usePageMeta";
-import { Spinner } from "@/components/ui/Spinner";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  ChromePreview, type ChromeKind,
-} from "@/components/crossover/ChromePreview";
-import {
-  TemplateComposer, type CrossoverTemplate,
-} from "@/components/crossover/TemplateComposer";
+  Search,
+  Star,
+  Sparkles,
+  ArrowRight,
+  Cpu,
+  Film,
+  Wand2,
+  User as UserIcon,
+  Loader2,
+  Flame,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
-import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
+import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { AnimatePresence } from "framer-motion";
 
-type CategoryKey = "all" | "vertical_ui" | "desktop_ui" | "social_feed" | "retro_holo" | "surreal";
+import {
+  useAllCrossoverBlueprints,
+  findCrossoverBlueprint,
+} from "@/lib/crossovers/registry";
+import {
+  type CrossoverBlueprint,
+  type CrossoverCategory,
+  type CrossoverMood,
+  CROSSOVER_CATEGORY_LABELS,
+  CROSSOVER_CATEGORY_SHORT,
+  composeCrossoverPrompt,
+} from "@/lib/crossovers/blueprint";
+import { CrossoverDetailDrawer } from "@/components/crossover/CrossoverDetailDrawer";
+import { ChromePreview } from "@/components/crossover/ChromePreview";
+import { TemplateComposer, type CrossoverTemplate } from "@/components/crossover/TemplateComposer";
+import { ENGINES } from "@/lib/video/engines";
+import { ASPECT_RATIOS } from "@/lib/editor/types";
+import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
 
-const CATEGORIES: { key: CategoryKey; label: string; icon: React.ElementType }[] = [
-  { key: "all",          label: "All",          icon: Sparkles },
-  { key: "vertical_ui",  label: "Vertical UI",  icon: Wand },
-  { key: "desktop_ui",   label: "Desktop · TV", icon: Monitor },
-  { key: "social_feed",  label: "Social feeds", icon: Layers },
-  { key: "retro_holo",   label: "Retro · Holo", icon: Cpu },
-  { key: "surreal",      label: "Surreal",      icon: Palette },
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter constants
+// ─────────────────────────────────────────────────────────────────────────────
+type CategoryFilter = CrossoverCategory | "all" | "favorites";
+
+const CATEGORY_ORDER_FOR_RAILS: CrossoverCategory[] = [
+  "vertical_ui", "desktop_ui", "social_feed", "retro_holo", "surreal",
 ];
 
-export default function Crossover() {
-  usePageMeta({
-    title: "Crossover — Small Bridges",
-    description: "Break through the screen. 50 next-gen VFX templates that cross from digital to physical.",
-  });
+type EngineFilter = "all" | "free" | "standard" | "pro" | "cinema";
+const ENGINE_FILTERS: { id: EngineFilter; label: string }[] = [
+  { id: "all",      label: "Any engine" },
+  { id: "free",     label: "Free · Wan" },
+  { id: "standard", label: "Standard" },
+  { id: "pro",      label: "Pro" },
+  { id: "cinema",   label: "Cinema" },
+];
 
-  const { user } = useAuth();
-  const { navigate } = useSafeNavigation();
+type AspectFilter = "all" | "vertical" | "wide" | "square" | "cinema";
+const ASPECT_FILTERS: { id: AspectFilter; label: string }[] = [
+  { id: "all",      label: "Any aspect" },
+  { id: "vertical", label: "Vertical · 9:16" },
+  { id: "wide",     label: "Wide · 16:9 / 4:3" },
+  { id: "square",   label: "Square · 1:1" },
+  { id: "cinema",   label: "Cinema · 21:9" },
+];
 
-  const [category, setCategory] = useState<CategoryKey>("all");
-  const [search, setSearch] = useState("");
-  const [templates, setTemplates] = useState<CrossoverTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<CrossoverTemplate | null>(null);
+const TIER_HUE: Record<string, string> = {
+  standard: "hsl(195 90% 70%)",
+  pro:      "hsl(48 90% 70%)",
+  cinema:   "hsl(330 90% 72%)",
+};
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc("crossover_browse" as never, {
-        p_category: category === "all" ? null : category,
-        p_query: search.trim() || null,
-      } as never);
-      if (error) throw error;
-      setTemplates((data as unknown as CrossoverTemplate[]) ?? []);
-    } catch (e) {
-      console.warn("[Crossover] load failed", e);
-      setTemplates([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [category, search]);
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
 
+function aspectMatchesFilter(asp: string, f: AspectFilter): boolean {
+  if (f === "all") return true;
+  if (f === "vertical") return asp === "9:16" || asp === "4:5";
+  if (f === "wide")     return asp === "16:9" || asp === "4:3";
+  if (f === "square")   return asp === "1:1";
+  if (f === "cinema")   return asp === "21:9";
+  return true;
+}
+function engineMatchesFilter(engineId: string, f: EngineFilter): boolean {
+  if (f === "all") return true;
+  const tier = ENGINES[engineId as keyof typeof ENGINES]?.tier;
+  if (f === "free")     return engineId === "wan-25";
+  if (f === "standard") return tier === "standard" && engineId !== "wan-25";
+  if (f === "pro")      return tier === "pro";
+  if (f === "cinema")   return tier === "cinema";
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Favorites — localStorage with cross-tab sync (mirrors Environments pattern)
+// ─────────────────────────────────────────────────────────────────────────────
+const FAVORITES_KEY = "sb:crossover:favorites";
+function readFavorites(): Set<string> {
+  try {
+    const raw = typeof window === "undefined" ? null : window.localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.filter(s => typeof s === "string") : []);
+  } catch { return new Set(); }
+}
+function writeFavorites(ids: Set<string>) {
+  try { window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(ids))); } catch { /* noop */ }
+}
+function useFavorites(): [Set<string>, (id: string) => void] {
+  const [favs, setFavs] = useState<Set<string>>(() => readFavorites());
   useEffect(() => {
-    const t = setTimeout(() => { void load(); }, search ? 250 : 0);
-    return () => clearTimeout(t);
-  }, [load, search]);
-
-  // Group by category when showing "all" so the page reads like a department store.
-  const grouped = useMemo(() => {
-    if (category !== "all") return null;
-    const map: Record<string, CrossoverTemplate[]> = {};
-    for (const t of templates) {
-      (map[t.category] ??= []).push(t);
-    }
-    return map;
-  }, [templates, category]);
-
-  const featured = useMemo(() => templates.find((t) => t.is_featured) ?? templates[0], [templates]);
-
-  const startFeatured = () => {
-    if (!featured) return;
-    if (!user) { navigate("/auth"); return; }
-    setSelected(featured);
-  };
-
-  const liveRenderTimecode = useLiveRenderTimecode();
-
-  return (
-    <FoundationShell>
-      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
-        <EditorialCanvas
-          maxWidth="100%"
-          chrome={{
-            crumbs: ["Small Bridges", "crossover"],
-            timecode: liveRenderTimecode ?? `${templates.length} TEMPLATES`,
-          }}
-        >
-        <StudioHero
-          eyebrow="Tonight"
-          title="Break"
-          accent="the screen."
-          subtitle="50 next-gen clip templates. Dancers leap out of TikTok. Tigers pounce through TVs. Code rains onto people who walk out of monitors. Pick a template, tweak, render."
-          status={["50 templates", "Live", "AI-powered"]}
-          subhead={loading ? "Loading…" : `${templates.length} live · ${CATEGORIES.length - 1} categories`}
-        >
-          <StudioTabs<CategoryKey>
-            items={CATEGORIES}
-            value={category}
-            onChange={(k) => setCategory(k)}
-            layoutId="crossover-cat"
-          />
-        </StudioHero>
-
-        {/* SEARCH */}
-        <div className="mb-8 relative max-w-xl mx-auto">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/35" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search effects — dancer, tiger, code, oil painting…"
-            className="w-full h-12 pl-11 pr-12 rounded-2xl bg-glass border border-white/[0.06] focus:border-primary/40 outline-none text-[13px] text-white placeholder:text-white/30 transition-colors"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border border-white/[0.08] hover:border-white/30 flex items-center justify-center text-white/55 hover:text-white"
-              aria-label="Clear"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-
-        {/* FEATURED HERO RAIL */}
-        {featured && category === "all" && search.length === 0 && (
-          <FeaturedRail template={featured} onOpen={startFeatured} />
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
-            <Spinner size="md" tone="muted" />
-            <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading templates…</span>
-          </div>
-        ) : templates.length === 0 ? (
-          <div className="text-center py-20 max-w-md mx-auto">
-            <Sparkles className="w-7 h-7 mx-auto mb-4 text-white/45" />
-            <h3 className="font-display font-medium text-[22px] text-white mb-2">No matches.</h3>
-            <p className="text-[12px] text-white/45 leading-relaxed">
-              Try a different category or clear the search.
-            </p>
-          </div>
-        ) : grouped ? (
-          // ── ALL VIEW — section per category ──
-          Object.entries(grouped).map(([cat, list]) => (
-            <section key={cat} className="mb-14">
-              <SectionLabel
-                label={CATEGORIES.find((c) => c.key === cat as CategoryKey)?.label ?? cat}
-                meta={`${list.length} templates`}
-                icon={CATEGORIES.find((c) => c.key === cat as CategoryKey)?.icon ?? Sparkles}
-              />
-              <Grid templates={list} onPick={setSelected} />
-            </section>
-          ))
-        ) : (
-          // ── FILTERED VIEW ──
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${category}-${search}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-16"
-            >
-              <Grid templates={templates} onPick={setSelected} />
-            </motion.div>
-          </AnimatePresence>
-        )}
-        </EditorialCanvas>
-      </div>
-
-      <AnimatePresence>
-        {selected && (
-          <TemplateComposer template={selected} onClose={() => setSelected(null)} />
-        )}
-      </AnimatePresence>
-    </FoundationShell>
-  );
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === FAVORITES_KEY) setFavs(readFavorites());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const toggle = useCallback((id: string) => {
+    setFavs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      writeFavorites(next);
+      return next;
+    });
+  }, []);
+  return [favs, toggle];
 }
 
-// ───────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Card — chrome preview + rich badges
+// ─────────────────────────────────────────────────────────────────────────────
+const CrossoverCard = memo(function CrossoverCard({
+  bp, onOpen, isFavorite, onToggleFavorite, index,
+}: {
+  bp: CrossoverBlueprint;
+  onOpen: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  index: number;
+}) {
+  const [hover, setHover] = useState(false);
+  const engine = ENGINES[bp.engine];
+  const aspectDims = ASPECT_RATIOS[bp.aspectRatio];
 
-function Grid({ templates, onPick }: { templates: CrossoverTemplate[]; onPick: (t: CrossoverTemplate) => void }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {templates.map((t) => (
-        <TemplateCard key={t.id} template={t} onPick={() => onPick(t)} />
-      ))}
-    </div>
-  );
-}
-
-function TemplateCard({ template, onPick }: { template: CrossoverTemplate; onPick: () => void }) {
   return (
     <button
-      onClick={onPick}
-      className="group relative text-left rounded-3xl overflow-hidden border border-white/[0.06] bg-white/[0.015] hover:border-white/20 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40"
+      type="button"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onOpen}
+      className="group relative block text-left cursor-pointer animate-fade-in w-full"
+      style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
-      {/* Chrome preview slot */}
-      <div className="relative">
+      <div
+        className={cn(
+          "relative rounded-2xl overflow-hidden",
+          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "transition-all duration-500",
+          hover && "ring-white/[0.14] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
+        )}
+      >
+        {/* Chrome preview is the hero — its own aspect ratio determines tile height */}
         <ChromePreview
-          kind={template.chrome_kind as ChromeKind}
-          aspectRatio={template.aspect_ratio}
-          posterUrl={template.thumbnail_url}
+          kind={bp.chrome.kind}
+          aspectRatio={bp.aspectRatio}
+          posterUrl={bp.thumbnailUrl}
           className="rounded-none"
         />
-        {/* Hover gradient + featured badge */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-        {template.is_featured && (
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.28em] bg-primary/15 backdrop-blur-md border border-primary/30 text-primary">
-            <Flame className="w-2.5 h-2.5" /> Featured
-          </span>
-        )}
-        {/* Aspect badge */}
-        <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-mono bg-black/55 backdrop-blur-md border border-white/[0.10] text-white/85">
-          {template.aspect_ratio}
-        </span>
 
-        {/* Title overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80 mb-1">
-            {prettyCategory(template.category)}
-          </div>
-          <h3 className="text-[16px] lg:text-[18px] font-display font-light leading-tight text-white tracking-tight">
-            {template.name}
-          </h3>
-          {template.hook && (
-            <p className="mt-1.5 text-[11px] text-white/65 leading-snug line-clamp-2">{template.hook}</p>
+        {/* Gradient overlay */}
+        <div
+          className={cn(
+            "absolute inset-0 transition-opacity duration-500 pointer-events-none",
+            hover
+              ? "bg-gradient-to-t from-[hsl(220_30%_2%)] via-[hsl(220_30%_2%)]/50 to-[hsla(215,100%,60%,0.10)]"
+              : "bg-gradient-to-t from-[hsl(220_30%_3%)] via-[hsl(220_30%_3%)]/30 to-transparent",
           )}
-        </div>
-      </div>
+        />
 
-      {/* Footer CTA */}
-      <div className="flex items-center justify-between p-3 border-t border-white/[0.04]">
-        <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">
-          Tap to compose
-        </span>
-        <div className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 group-hover:text-white transition-colors">
-          <Wand2 className="w-3 h-3" />
-          Build
-          <ArrowRight className="w-3 h-3" />
+        {hover && (
+          <div
+            aria-hidden
+            className="absolute -inset-px rounded-2xl pointer-events-none"
+            style={{
+              background: "radial-gradient(circle at 50% 0%, hsla(215,100%,60%,0.30), transparent 65%)",
+              mixBlendMode: "screen",
+            }}
+          />
+        )}
+
+        {/* Top badges */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {bp.isFeatured && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/90 text-foreground text-[9px] font-mono uppercase tracking-[0.18em] shadow-[0_8px_20px_-8px_hsla(45,95%,55%,0.8)]">
+                <Flame className="w-2.5 h-2.5" />
+                Featured
+              </span>
+            )}
+            {bp.acceptsSubject && (
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/25 ring-1 ring-inset ring-emerald-300/40 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+                <UserIcon className="w-2.5 h-2.5" />
+                Subject
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              title={isFavorite ? "Remove from favorites" : "Save to favorites"}
+              className={cn(
+                "h-6 w-6 rounded-full backdrop-blur ring-1 ring-inset flex items-center justify-center transition-all",
+                isFavorite
+                  ? "bg-amber-300 text-black ring-amber-300/60"
+                  : "bg-black/40 text-foreground/85 ring-white/15 hover:bg-black/60",
+              )}
+            >
+              <Star className="w-3 h-3" fill={isFavorite ? "currentColor" : "none"} strokeWidth={1.6} />
+            </button>
+
+            <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/55 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+              <span
+                className="inline-block ring-1 ring-inset ring-white/40 rounded-[2px]"
+                style={{ width: 10, height: Math.max((10 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.20)" }}
+              />
+              {bp.aspectRatio}
+            </span>
+          </div>
         </div>
+
+        {/* Bottom content */}
+        <div className="absolute left-0 right-0 bottom-0 p-3 z-10">
+          <div className="text-[9px] font-mono uppercase tracking-[0.22em] text-foreground/55 mb-1">
+            {CROSSOVER_CATEGORY_SHORT[bp.category]}
+          </div>
+          <h3 className="text-[14px] sm:text-[15px] font-display italic font-light leading-tight text-foreground/95 line-clamp-2">
+            {bp.name}
+          </h3>
+          {bp.hook && (
+            <p className="mt-1 text-[10.5px] text-foreground/55 italic line-clamp-2">{bp.hook}</p>
+          )}
+
+          {/* Engine + cost meta */}
+          <div className="mt-2 flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.18em]">
+            <span
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              style={{
+                color: TIER_HUE[engine.tier],
+                background: `${TIER_HUE[engine.tier].replace(")", " / 0.08)").replace("hsl(", "hsla(")}`,
+                borderColor: `${TIER_HUE[engine.tier].replace(")", " / 0.25)").replace("hsl(", "hsla(")}`,
+              }}
+            >
+              <Cpu className="w-2.5 h-2.5" />
+              {engine.shortLabel}
+            </span>
+            <span className="text-foreground/55 tabular-nums">{bp.estimatedDurationSec}s · {bp.estimatedCreditCost === 0 ? "free" : `${bp.estimatedCreditCost}c`}</span>
+          </div>
+        </div>
+
+        {/* Hover CTA */}
+        {hover && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <span className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-foreground/95 text-background text-[11px] font-medium tracking-wide shadow-[0_15px_45px_-12px_hsla(0,0%,100%,0.45)] animate-fade-in">
+              <Wand2 className="w-3.5 h-3.5" />
+              Build crossover
+            </span>
+          </div>
+        )}
       </div>
+    </button>
+  );
+});
+CrossoverCard.displayName = "CrossoverCard";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter pill — shared style
+// ─────────────────────────────────────────────────────────────────────────────
+function FilterPill({
+  active, onClick, children, icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
+        active
+          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
+          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+      )}
+    >
+      {icon}
+      {children}
     </button>
   );
 }
 
-function SectionLabel({ label, meta, icon: Icon }: { label: string; meta?: string; icon: React.ElementType }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Category rail
+// ─────────────────────────────────────────────────────────────────────────────
+function CategoryRail({
+  category, items, onOpenCard, onSeeAll, favorites, onToggleFavorite,
+}: {
+  category: { id: CrossoverCategory; label: string };
+  items: CrossoverBlueprint[];
+  onOpenCard: (bp: CrossoverBlueprint) => void;
+  onSeeAll: () => void;
+  favorites: Set<string>;
+  onToggleFavorite: (id: string) => void;
+}) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const scrollBy = (delta: number) => railRef.current?.scrollBy({ left: delta, behavior: "smooth" });
+
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <Icon className="w-3.5 h-3.5 text-primary/80" />
-      <span className="text-[11px] font-mono uppercase tracking-[0.32em] text-foreground/65">{label}</span>
-      <div className="h-px flex-1 bg-gradient-to-r from-white/[0.07] to-transparent" />
-      {meta && <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/50">{meta}</span>}
+    <div className="relative">
+      <div className="flex items-baseline justify-between gap-4 mb-4">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h3 className="text-[clamp(1.4rem,3vw,2rem)] font-display italic font-light leading-tight truncate">
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+              {category.label}
+            </span>
+            <span className="ml-3 font-mono text-[11px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+              {items.length}
+            </span>
+          </h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => scrollBy(-560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll left"
+          >‹</button>
+          <button
+            onClick={() => scrollBy(560)}
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            aria-label="Scroll right"
+          >›</button>
+          <button
+            onClick={onSeeAll}
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+          >
+            See all {items.length}
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative -mx-1">
+        <div
+          aria-hidden className="pointer-events-none absolute top-0 bottom-0 left-0 w-12 z-10"
+          style={{ background: "linear-gradient(90deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          aria-hidden className="pointer-events-none absolute top-0 bottom-0 right-0 w-12 z-10"
+          style={{ background: "linear-gradient(270deg, hsl(220 30% 3% / 0.85), transparent)" }}
+        />
+        <div
+          ref={railRef}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 px-1"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {items.map((bp, i) => (
+            <div key={bp.id} className="snap-start flex-shrink-0 w-[58vw] sm:w-[300px] md:w-[280px] lg:w-[260px]">
+              <CrossoverCard
+                bp={bp}
+                index={i}
+                onOpen={() => onOpenCard(bp)}
+                isFavorite={favorites.has(bp.id)}
+                onToggleFavorite={() => onToggleFavorite(bp.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function FeaturedRail({ template, onOpen }: { template: CrossoverTemplate; onOpen: () => void }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Page body
+// ─────────────────────────────────────────────────────────────────────────────
+function CrossoverContent() {
+  usePageTone(TONE_PRESETS.crossover);
+  const { user } = useAuth();
+  const { navigate } = useSafeNavigation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { blueprints, loading, error } = useAllCrossoverBlueprints();
+  const [favorites, toggleFavorite] = useFavorites();
+
+  // Persisted filters
+  const FILTERS_KEY = "sb_crossover_filters_v2";
+  type Persisted = {
+    search: string;
+    category: CategoryFilter;
+    engine: EngineFilter;
+    aspect: AspectFilter;
+    subjectOnly: boolean;
+  };
+  const loadLocal = (): Persisted => {
+    try {
+      const raw = localStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          search:      typeof p.search === "string" ? p.search : "",
+          category:    typeof p.category === "string" ? p.category : "all",
+          engine:      ENGINE_FILTERS.some(e => e.id === p.engine) ? p.engine : "all",
+          aspect:      ASPECT_FILTERS.some(a => a.id === p.aspect) ? p.aspect : "all",
+          subjectOnly: !!p.subjectOnly,
+        };
+      }
+    } catch { /* noop */ }
+    return { search: "", category: "all", engine: "all", aspect: "all", subjectOnly: false };
+  };
+  const initial = useMemo(() => {
+    const local = loadLocal();
+    return {
+      search:      searchParams.get("search")   ?? local.search,
+      category:    (searchParams.get("category") as CategoryFilter)    ?? local.category,
+      engine:      (searchParams.get("engine")   as EngineFilter)      ?? local.engine,
+      aspect:      (searchParams.get("aspect")   as AspectFilter)      ?? local.aspect,
+      subjectOnly: searchParams.get("subject") === "1" || local.subjectOnly,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [searchQuery, setSearchQuery] = useState(initial.search);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(initial.category);
+  const [engineFilter, setEngineFilter] = useState<EngineFilter>(initial.engine);
+  const [aspectFilter, setAspectFilter] = useState<AspectFilter>(initial.aspect);
+  const [subjectOnly, setSubjectOnly] = useState(initial.subjectOnly);
+  const [drawerOpenId, setDrawerOpenId] = useState<string | null>(null);
+  const [composerTemplate, setComposerTemplate] = useState<CrossoverTemplate | null>(null);
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (searchQuery.trim()) p.set("search", searchQuery.trim());
+    if (categoryFilter !== "all") p.set("category", categoryFilter);
+    if (engineFilter !== "all")   p.set("engine", engineFilter);
+    if (aspectFilter !== "all")   p.set("aspect", aspectFilter);
+    if (subjectOnly)              p.set("subject", "1");
+    setSearchParams(p, { replace: true });
+    try {
+      localStorage.setItem(FILTERS_KEY, JSON.stringify({
+        search: searchQuery, category: categoryFilter, engine: engineFilter, aspect: aspectFilter, subjectOnly,
+      }));
+    } catch { /* noop */ }
+  }, [searchQuery, categoryFilter, engineFilter, aspectFilter, subjectOnly, setSearchParams]);
+
+  const filtered = useMemo(() => {
+    return blueprints.filter((bp) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const hit = bp.name.toLowerCase().includes(q)
+          || bp.hook.toLowerCase().includes(q)
+          || bp.purePrompt.toLowerCase().includes(q)
+          || (bp.tags?.some(t => t.toLowerCase().includes(q)) ?? false);
+        if (!hit) return false;
+      }
+      if (categoryFilter === "favorites") {
+        if (!favorites.has(bp.id)) return false;
+      } else if (categoryFilter !== "all") {
+        if (bp.category !== categoryFilter) return false;
+      }
+      if (!engineMatchesFilter(bp.engine, engineFilter)) return false;
+      if (!aspectMatchesFilter(bp.aspectRatio, aspectFilter)) return false;
+      if (subjectOnly && !bp.acceptsSubject) return false;
+      return true;
+    });
+  }, [blueprints, searchQuery, categoryFilter, engineFilter, aspectFilter, subjectOnly, favorites]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      const so = (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999);
+      if (so !== 0) return so;
+      return (b.useCount ?? 0) - (a.useCount ?? 0);
+    });
+  }, [filtered]);
+
+  const featured = useMemo(() => sorted.filter(t => t.isFeatured), [sorted]);
+
+  const stats = useMemo(() => ({
+    total:    sorted.length,
+    featured: sorted.filter(t => t.isFeatured).length,
+    favs:     favorites.size,
+    subject:  sorted.filter(t => t.acceptsSubject).length,
+  }), [sorted, favorites]);
+
+  const activeBlueprint = drawerOpenId ? findCrossoverBlueprint(blueprints, drawerOpenId) ?? null : null;
+
+  // Convert a blueprint back into the legacy CrossoverTemplate shape that
+  // TemplateComposer expects (we still use that as the customisation flow).
+  const toLegacyTemplate = (bp: CrossoverBlueprint): CrossoverTemplate => ({
+    id: bp.id,
+    slug: bp.slug,
+    name: bp.name,
+    category: bp.category,
+    pure_prompt: bp.purePrompt,
+    hook: bp.hook,
+    chrome_kind: bp.chrome.kind,
+    aspect_ratio: bp.aspectRatio as CrossoverTemplate["aspect_ratio"],
+    accepts_subject: bp.acceptsSubject,
+    accepts_source_video: bp.acceptsSourceVideo,
+    thumbnail_url: bp.thumbnailUrl,
+    is_featured: !!bp.isFeatured,
+  });
+
+  const onCustomize = (bp: CrossoverBlueprint) => {
+    if (!user) { navigate("/auth"); return; }
+    setDrawerOpenId(null);
+    setComposerTemplate(toLegacyTemplate(bp));
+  };
+
+  const onQuickGenerate = async (bp: CrossoverBlueprint, mood: CrossoverMood) => {
+    if (!user) { navigate("/auth"); return; }
+    setQuickSubmitting(true);
+    try {
+      const composed = composeCrossoverPrompt(bp, "", mood);
+      const { data, error } = await supabase.functions.invoke("mode-router", {
+        body: {
+          mode: "text-to-video",
+          prompt: composed,
+          stylePreset: "cinematic",
+          crossoverTemplateSlug: bp.slug,
+          aspectRatio: bp.aspectRatio,
+        },
+      });
+      if (error || data?.error) throw error || new Error(data?.error || "Generation failed to start");
+      if (!data?.projectId) throw new Error("No project id returned");
+      toast.success("Crossover generation started");
+      navigate(`/production/${data.projectId}`);
+      setDrawerOpenId(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Generation failed";
+      toast.error(msg);
+    } finally {
+      setQuickSubmitting(false);
+    }
+  };
+
   return (
-    <section className="mb-12">
-      <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-center">
-        <div className="relative py-4 lg:py-6">
-          <div aria-hidden className="absolute -top-24 -left-20 w-[360px] h-[360px] rounded-full opacity-50 pointer-events-none"
-            style={{ background: "radial-gradient(circle, hsla(215,100%,60%,0.30), transparent 60%)", filter: "blur(60px)" }} />
+    <div className="relative">
+      {/* ── HEADER ─────────────────────────────────────────────── */}
+      <header className="relative pb-8 pt-8 sm:pt-10">
+        <EditorialEyebrow>Crossover</EditorialEyebrow>
+        <EditorialHeadline className="mt-5" size="md">
+          Break the screen.
+        </EditorialHeadline>
+        <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
+          VFX crossovers — pick a recipe, drop your subject, render.
+        </p>
+
+        <div className="mt-7 max-w-md">
           <div className="relative">
-            <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-primary/80 mb-3 flex items-center gap-2">
-              <Flame className="w-3 h-3" /> ◆ Featured tonight · {prettyCategory(template.category)}
-            </div>
-            <h2 className="font-display italic font-light text-[clamp(2rem,4vw,3rem)] leading-[1.0] tracking-tight text-white" style={{ fontFamily: "'Fraunces', serif" }}>
-              {template.name}.
-            </h2>
-            {template.hook && (
-              <p className="mt-5 text-[14px] text-white/65 leading-relaxed max-w-md">{template.hook}</p>
-            )}
-            <div className="mt-6 flex flex-wrap gap-2">
-              <button
-                onClick={onOpen}
-                className="inline-flex items-center gap-2 h-11 px-6 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-foreground"
-                style={{
-                  background: "linear-gradient(180deg, hsla(215,100%,60%,0.32) 0%, hsla(215,100%,55%,0.14) 100%)",
-                  boxShadow: "0 0 28px hsla(215,100%,60%,0.45), inset 0 1px 0 hsla(0,0%,100%,0.14)",
-                }}
-              >
-                <Wand2 className="w-3.5 h-3.5" /> Build this crossover <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="relative flex items-center justify-center">
-          <div className="w-full max-w-[280px]">
-            <ChromePreview
-              kind={template.chrome_kind as ChromeKind}
-              aspectRatio={template.aspect_ratio}
-              posterUrl={template.thumbnail_url}
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55" />
+            <Input
+              placeholder="Search — dancer, tiger, code, oil painting…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 h-12 bg-white/[0.02] ring-1 ring-inset ring-white/[0.06] focus:ring-white/[0.18] border-0 text-foreground placeholder:text-foreground/35 rounded-full text-[13px] backdrop-blur"
             />
           </div>
         </div>
-      </div>
-    </section>
+      </header>
+
+      {/* ── SECONDARY FILTERS ──────────────────────────────────── */}
+      <section className="space-y-3 pb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">
+            Engine
+          </span>
+          {ENGINE_FILTERS.map((opt) => (
+            <FilterPill
+              key={opt.id}
+              active={engineFilter === opt.id}
+              onClick={() => setEngineFilter(opt.id)}
+              icon={opt.id === "all" ? undefined : <Cpu className="w-3.5 h-3.5" />}
+            >
+              {opt.label}
+            </FilterPill>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">
+            Aspect
+          </span>
+          {ASPECT_FILTERS.map((opt) => (
+            <FilterPill
+              key={opt.id}
+              active={aspectFilter === opt.id}
+              onClick={() => setAspectFilter(opt.id)}
+              icon={opt.id === "all" ? undefined : <Film className="w-3.5 h-3.5" />}
+            >
+              {opt.label}
+            </FilterPill>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">
+            Extras
+          </span>
+          <FilterPill active={subjectOnly} onClick={() => setSubjectOnly(!subjectOnly)} icon={<UserIcon className="w-3.5 h-3.5" />}>
+            Accepts subject
+          </FilterPill>
+          <FilterPill
+            active={categoryFilter === "favorites"}
+            onClick={() => setCategoryFilter(categoryFilter === "favorites" ? "all" : "favorites")}
+            icon={<Star className="w-3.5 h-3.5" fill={categoryFilter === "favorites" ? "currentColor" : "none"} />}
+          >
+            Favorites {favorites.size > 0 ? `(${favorites.size})` : ""}
+          </FilterPill>
+        </div>
+      </section>
+
+      <div className="border-t border-white/[0.05] my-6" />
+
+      {/* ── BODY ──────────────────────────────────────────────── */}
+      {loading ? (
+        <div className="flex items-center justify-center py-24 gap-3 text-foreground/55">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading crossovers…</span>
+        </div>
+      ) : error ? (
+        <div className="text-center py-20 max-w-md mx-auto">
+          <Sparkles className="w-8 h-8 mx-auto mb-4 text-rose-300/60" />
+          <h3 className="font-display italic text-[22px] text-foreground/95 mb-2">Couldn't load crossovers</h3>
+          <p className="text-[12px] text-foreground/55">{error.message}</p>
+        </div>
+      ) : categoryFilter === "all" ? (
+        <section className="pb-16 space-y-12">
+          {(searchQuery.trim() || engineFilter !== "all" || aspectFilter !== "all" || subjectOnly) && (
+            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 -mt-2">
+              {sorted.length} match{sorted.length === 1 ? "" : "es"} across filters
+            </div>
+          )}
+
+          {/* Featured rail (only when there are featured items and no other filters narrow the set) */}
+          {featured.length > 0 && (
+            <CategoryRail
+              category={{ id: "vertical_ui", label: "◆ Featured tonight" }}
+              items={featured}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onOpenCard={(bp) => setDrawerOpenId(bp.id)}
+              onSeeAll={() => { /* no-op for featured */ }}
+            />
+          )}
+
+          {CATEGORY_ORDER_FOR_RAILS.map((catId) => {
+            const inRail = sorted.filter(bp => bp.category === catId);
+            if (inRail.length === 0) return null;
+            return (
+              <CategoryRail
+                key={catId}
+                category={{ id: catId, label: CROSSOVER_CATEGORY_LABELS[catId] }}
+                items={inRail}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                onOpenCard={(bp) => setDrawerOpenId(bp.id)}
+                onSeeAll={() => {
+                  setCategoryFilter(catId);
+                  window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+                }}
+              />
+            );
+          })}
+
+          {sorted.length === 0 && (
+            <EmptyState onReset={() => {
+              setSearchQuery(""); setCategoryFilter("all"); setEngineFilter("all"); setAspectFilter("all"); setSubjectOnly(false);
+            }} />
+          )}
+        </section>
+      ) : (
+        <section className="pb-16">
+          <div className="flex items-baseline justify-between mb-5 gap-4 flex-wrap">
+            <div className="flex items-baseline gap-4">
+              <button
+                onClick={() => setCategoryFilter("all")}
+                className="font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 hover:text-foreground/85 transition-colors inline-flex items-center gap-1.5"
+              >
+                ← All crossovers
+              </button>
+              <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-display italic font-light leading-tight">
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  {categoryFilter === "favorites" ? "Favorites" : CROSSOVER_CATEGORY_LABELS[categoryFilter as CrossoverCategory]}
+                </span>
+                <span className="ml-3 font-mono text-[12px] font-normal not-italic uppercase tracking-[0.22em] text-foreground/40 tabular-nums">
+                  {sorted.length}
+                </span>
+              </h2>
+            </div>
+            <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
+              tap any card to inspect the blueprint
+            </span>
+          </div>
+
+          {sorted.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              {sorted.map((bp, i) => (
+                <CrossoverCard
+                  key={bp.id}
+                  bp={bp}
+                  index={i}
+                  onOpen={() => setDrawerOpenId(bp.id)}
+                  isFavorite={favorites.has(bp.id)}
+                  onToggleFavorite={() => toggleFavorite(bp.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState onReset={() => {
+              setSearchQuery(""); setCategoryFilter("all"); setEngineFilter("all"); setAspectFilter("all"); setSubjectOnly(false);
+            }} />
+          )}
+        </section>
+      )}
+
+      {/* ── DETAIL DRAWER ──────────────────────────────────────── */}
+      <CrossoverDetailDrawer
+        crossover={activeBlueprint}
+        open={!!activeBlueprint}
+        onClose={() => setDrawerOpenId(null)}
+        onCustomize={onCustomize}
+        onQuickGenerate={(bp, mood) => { if (!quickSubmitting) void onQuickGenerate(bp, mood); }}
+        isFavorite={activeBlueprint ? favorites.has(activeBlueprint.id) : false}
+        onToggleFavorite={() => { if (activeBlueprint) toggleFavorite(activeBlueprint.id); }}
+      />
+
+      {/* ── LEGACY COMPOSER MODAL (Customize CTA) ──────────────── */}
+      <AnimatePresence>
+        {composerTemplate && (
+          <TemplateComposer template={composerTemplate} onClose={() => setComposerTemplate(null)} />
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
-function prettyCategory(c: string): string {
-  return c === "vertical_ui" ? "Vertical UI"
-       : c === "desktop_ui"  ? "Desktop · TV"
-       : c === "social_feed" ? "Social feed"
-       : c === "retro_holo"  ? "Retro · Holo"
-       : c === "surreal"     ? "Surreal"
-       : c;
+function FloatingStat({
+  label, value, hue,
+}: { label: string; value: number; hue?: string; }) {
+  return (
+    <div className="inline-block">
+      <div className={cn("text-[clamp(1.5rem,3vw,2rem)] font-display italic font-light leading-none tabular-nums", hue ?? "text-foreground/95")}>
+        {value}
+      </div>
+      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">{label}</div>
+    </div>
+  );
+}
+
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="text-center py-20">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+        <Sparkles className="w-6 h-6 text-foreground/55" />
+      </div>
+      <h3 className="text-xl font-display italic text-foreground/95 mb-2">No crossovers matched</h3>
+      <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
+        Try clearing a filter — your category + engine + aspect combination might be too narrow.
+      </p>
+      <Button
+        variant="outline"
+        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        onClick={onReset}
+      >
+        Clear filters
+        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+      </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public page
+// ─────────────────────────────────────────────────────────────────────────────
+export default function Crossover() {
+  usePageMeta({
+    title: "Crossover — Small Bridges",
+    description: "Fifty VFX crossovers that break the fourth wall. Engine + aspect + chrome + recipe + 10 moods, ready to render.",
+  });
+  const liveRenderTimecode = useLiveRenderTimecode();
+
+  return (
+    <ErrorBoundary>
+      <FoundationShell>
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+          <EditorialCanvas
+            maxWidth="100%"
+            chrome={{
+              crumbs: ["Small Bridges", "crossover"],
+              timecode: liveRenderTimecode ?? "CROSSOVER · LIVE",
+            }}
+          >
+            <CrossoverContent />
+          </EditorialCanvas>
+        </div>
+      </FoundationShell>
+    </ErrorBoundary>
+  );
 }

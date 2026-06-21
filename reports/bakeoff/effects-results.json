@@ -1,0 +1,62 @@
+[
+  {
+    "id": "fx_crossover_seedance",
+    "effect": "Crossover",
+    "engine": "seedance",
+    "model": "seedance-2.0",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/W0SziJzfJyxwGqAuTJhPLQDseGyPAb5uupbtxAKl2R5goRxWA/tmpn_pkzcih.mp4",
+    "predictTime": 170.731456676,
+    "file": "fx_crossover_seedance.mp4"
+  },
+  {
+    "id": "fx_crossover_kling",
+    "effect": "Crossover",
+    "engine": "kling",
+    "model": "kling-v2.6",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/Lg2B0Hc3eoV4HCiyNfQSFrzvZGveEFOJRwf6zlirXU1JrGFbB/tmp6fhrk6o1.mp4",
+    "predictTime": 141.509613345,
+    "file": "fx_crossover_kling.mp4"
+  },
+  {
+    "id": "fx_fourthwall_seedance",
+    "effect": "Break the 4th wall",
+    "engine": "seedance",
+    "model": "seedance-2.0",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/R2gTm07PxZZbLxhaK6zYLE9z9Rk4EQRoru77K4jRckYObUsF/tmpozm8zlcj.mp4",
+    "predictTime": 129.53339911,
+    "file": "fx_fourthwall_seedance.mp4"
+  },
+  {
+    "id": "fx_fourthwall_kling",
+    "effect": "Break the 4th wall",
+    "engine": "kling",
+    "model": "kling-v2.6",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/aXwYOSe1VG2yJa7ecHgehCer1PIbSEdVIk56Egxnm3oy7GFbB/tmp4gy0q6be.mp4",
+    "predictTime": 127.251982797,
+    "file": "fx_fourthwall_kling.mp4"
+  },
+  {
+    "id": "fx_breakscreen_seedance",
+    "effect": "Break the screen",
+    "engine": "seedance",
+    "model": "seedance-2.0",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/kPF44WrHL77eMSv2ZXo06ITJprWfIsPz50xTlsdotdA6wRxWA/tmpppv5nak9.mp4",
+    "predictTime": 124.014331642,
+    "file": "fx_breakscreen_seedance.mp4"
+  },
+  {
+    "id": "fx_breakscreen_kling",
+    "effect": "Break the screen",
+    "engine": "kling",
+    "model": "kling-v2.6",
+    "status": "succeeded",
+    "url": "https://replicate.delivery/xezq/g6gvXMOdfC3zaCuyQyN8nblWOBIxYNGk7nW8p7E0he9AzRxWA/tmp3ymmci6m.mp4",
+    "predictTime": 127.720417082,
+    "file": "fx_breakscreen_kling.mp4"
+  }
+]

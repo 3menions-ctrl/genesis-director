@@ -20,18 +20,18 @@
 import { type ReactNode, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Search, Sparkles, User as UserIcon, Command } from "lucide-react";
+import { Search, Sparkles, User as UserIcon, Command, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
 import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 import { LeftRail } from "@/components/foundation/LeftRail";
-import { useLeftRail } from "@/hooks/useLeftRail";
-import { LEFT_RAIL_WIDTH } from "@/lib/left-rail-store";
 import { useRenderCompleteNotifier } from "@/hooks/useRenderCompleteNotifier";
+import { NotificationBell } from "@/components/social/NotificationBell";
+import { WelcomeSalutation } from "@/components/foundation/WelcomeSalutation";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
-import logoImage from "@/assets/small-bridges-logo.webp";
+import { BrandTile } from "@/components/cinema/Logo";
 
 interface Props {
   children: ReactNode;
@@ -73,17 +73,39 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
   // tool palettes.
   const showRail = !!user;
 
-  // When the rail is open AND we're at md+ widths, push the page
-  // content rightward by the pane width so the rail never overlaps
-  // anything. On phones we let the rail overlay instead — pushing
-  // would leave the page squeezed into a useless sliver.
-  const { open: railOpen } = useLeftRail();
-  void LEFT_RAIL_WIDTH; // imported for the className shift below
+  // The LeftRail is now an always-on icon bar, so the shell permanently
+  // reserves its width and the page sits beside it. Width is kept in sync
+  // with the <aside> in LeftRail.tsx (72px phone / 96px md+).
 
   if (bare) return (
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
       <div className="relative z-10">{children}</div>
+      {/* Bell — present even on bare surfaces (the Editor) so render-
+          done / mention / support reply is always one click away. We
+          sit just under the modals (z-100) and the Editor's mid-page
+          panels (z-40), so toolbars stay on top while the bell remains
+          reachable from the top-right corner. */}
+      {user && (
+        <div className="fixed top-2 right-3 z-[60] flex items-center gap-2">
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl text-foreground/80 transition-colors hover:border-accent/40 hover:text-foreground"
+          >
+            <Search className="h-4 w-4" strokeWidth={1.6} />
+          </Link>
+          <Link
+            to="/inbox"
+            aria-label="Inbox"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl text-foreground/80 transition-colors hover:border-accent/40 hover:text-foreground"
+          >
+            <Inbox className="h-4 w-4" strokeWidth={1.6} />
+          </Link>
+          <NotificationBell />
+        </div>
+      )}
+      {user && <WelcomeSalutation />}
     </div>
   );
 
@@ -91,15 +113,13 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
     <div className="relative min-h-[100dvh] text-foreground">
       <SpineBackdrop />
       {showRail && <LeftRail />}
-      {/* Content shift wrapper — pushes the entire chrome + page
-          content rightward by the rail width when open. md+ only;
-          phones let the rail overlay instead so the page doesn't
-          collapse into a sliver. transition-[padding-left] gives the
-          shift the same easing the rail uses on slide-in. */}
+      {/* Content wrapper — always reserves the icon bar's width so the
+          page sits beside it (the bar is permanently pinned). Width
+          matches the <aside> in LeftRail.tsx. */}
       <div
         className={cn(
-          "relative transition-[padding-left] duration-300 ease-out",
-          railOpen && "md:pl-[320px]",
+          "relative",
+          showRail && "pl-[72px] md:pl-[96px]",
         )}
       >
       {false && (
@@ -121,11 +141,7 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
             className="group flex items-center gap-2.5"
             aria-label="Small Bridges — home"
           >
-            <img
-              src={logoImage}
-              alt=""
-              className="h-7 w-7 rounded-md ring-1 ring-inset ring-border/30 transition-shadow group-hover:ring-accent/40"
-            />
+            <BrandTile className="h-7 w-7" />
             <span className="hidden sm:flex items-center gap-2">
               <span className="font-display text-[15px] font-light tracking-tight">
                 Small Bridges
@@ -227,6 +243,38 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
 
       <main className="relative z-10">{children}</main>
       </div>
+      {/* Top-right cluster — a single Search icon + the NotificationBell.
+          Visible on every authenticated Foundation surface; sits above
+          page chrome but under modals (z-100) and the LeftRail handle. */}
+      {user && (
+        <div className="fixed top-3 right-4 z-50 flex items-center gap-2">
+          {/* Credit balance — taps straight through to the credits ledger. */}
+          <Link
+            to="/account?tab=credits"
+            aria-label={`Credits: ${balance ?? 0}`}
+            className="flex h-9 items-center gap-1.5 rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl px-3 text-foreground/85 transition-colors hover:border-accent/40 hover:text-foreground"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
+            <span className="font-mono text-[12.5px] tabular-nums">{(balance ?? 0).toLocaleString()}</span>
+          </Link>
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl text-foreground/80 transition-colors hover:border-accent/40 hover:text-foreground"
+          >
+            <Search className="h-4 w-4" strokeWidth={1.6} />
+          </Link>
+          <Link
+            to="/inbox"
+            aria-label="Inbox"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl text-foreground/80 transition-colors hover:border-accent/40 hover:text-foreground"
+          >
+            <Inbox className="h-4 w-4" strokeWidth={1.6} />
+          </Link>
+          <NotificationBell />
+        </div>
+      )}
+      {user && <WelcomeSalutation />}
     </div>
   );
 }

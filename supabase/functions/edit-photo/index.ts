@@ -325,8 +325,17 @@ Deno.serve(async (req) => {
       throw new Error('Failed to save edited image');
     }
 
-    const { data: publicUrl } = supabase.storage.from('photo-edits').getPublicUrl(fileName);
-    const editedUrl = publicUrl.publicUrl;
+    // photo-edits is a PRIVATE bucket (user images may be sensitive), so
+    // sign a long-lived URL instead of getPublicUrl. 1-year TTL keeps the
+    // stored edited_url usable across sessions.
+    const { data: signed, error: signErr } = await supabase.storage
+      .from('photo-edits')
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+    if (signErr || !signed?.signedUrl) {
+      console.error('[edit-photo] Sign error:', signErr);
+      throw new Error('Failed to sign edited image URL');
+    }
+    const editedUrl = signed.signedUrl;
 
     const processingTime = Date.now() - startTime;
 

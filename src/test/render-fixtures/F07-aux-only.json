@@ -1,0 +1,18 @@
+{
+  "name": "F07-aux-only",
+  "description": "A single V1 clip with one A2 music track but no muting / soloing. Asserts the aux audio path in isolation (without the F05 muting interaction).",
+  "inputs": [
+    { "url": "file://main.mp4", "duration": 12, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "auxAudio": [
+    {
+      "timelineStartSec": 3,
+      "durationSec": 9
+    }
+  ]
+}

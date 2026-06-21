@@ -1,0 +1,2168 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkContentSafety } from "../_shared/content-safety.ts";
+import {
+  acquireGenerationLock,
+  releaseGenerationLock,
+  checkContinuityReady,
+  persistPipelineContext,
+  updateFrameExtractionStatus,
+} from "../_shared/generation-mutex.ts";
+import {
+  buildComprehensivePrompt,
+  validatePipelineData,
+  logPipelineState,
+  type PromptBuildRequest,
+  type IdentityBible,
+  type ContinuityManifest,
+  type MotionVectors,
+  type MasterSceneAnchor,
+  type ExtractedCharacter,
+  type FaceLock,
+  type MultiViewIdentityBible,
+} from "../_shared/prompt-builder.ts";
+import {
+  GUARD_RAIL_CONFIG,
+  getClip0StartImage,
+  getClip0LastFrame,
+  getGuaranteedLastFrame,
+  isValidImageUrl,
+  checkAndRecoverStaleMutex,
+  runPreGenerationChecks,
+} from "../_shared/pipeline-guard-rails.ts";
+
+// ─────────────────────────────────────────────────────────────────────
+// Per-engine prompt optimizers — each model rewards a different prompt
+// grammar. The upstream `buildComprehensivePrompt` already handled identity,
+// continuity, motion vectors, and dialogue. These tuners only adjust the
+// final cinematographic phrasing per model so each engine plays to its
+// strengths instead of receiving a one-size-fits-all string.
+// ─────────────────────────────────────────────────────────────────────
+function tuneForEngine(
+  engine: 'kling' | 'seedance' | 'veo' | 'sora' | 'runway',
+  prompt: string,
+  opts: { isAvatarMode: boolean; hasStartImage: boolean }
+): string {
+  const has = (re: RegExp) => re.test(prompt);
+  let p = prompt;
+
+  if (engine === 'kling') {
+    // Kling V3: lens grammar, lip-sync hints, controlled camera moves.
+    if (opts.isAvatarMode && !has(/\blip[- ]sync|mouth shapes\b/i)) {
+      p += `\n\n[CAMERA] 85mm portrait, eye-level, subtle handheld breath. [LIP-SYNC] Mouth shapes precisely match the spoken dialogue; natural micro-expressions; blink cadence every 3-5s.`;
+    } else if (!has(/\b(lens|anamorphic|85mm|35mm|24mm|50mm)\b/i)) {
+      p += `\n\n[CAMERA] Cinematic anamorphic lens, deliberate movement, natural parallax. [LIGHT] Motivated practicals, soft key, controlled contrast.`;
+    }
+  } else if (engine === 'seedance') {
+    // Seedance 2.0 auto-frames; explicit lens/dolly jargon hurts it.
+    p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic lens|dolly in|dolly out|pan left|pan right|zoom in|zoom out|crane shot|tracking shot)\b/gi, '')
+         .replace(/\s{2,}/g, ' ').trim();
+    if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
+      p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;
+    }
+  } else if (engine === 'veo') {
+    // Veo 3 generates audio natively — explicit audio cues materially help.
+    if (!has(/\b(audio|sound|ambient|dialogue|music|voice|whisper|footsteps|wind|rain)\b/i)) {
+      p += `\n\n[AUDIO] Subtle ambient room tone; natural diegetic sound matching the action. No music unless action implies it.`;
+    }
+    if (!has(/\b(beat|pacing|single shot|no cuts)\b/i)) {
+      p += `\n\n[PACING] Single coherent beat — establish, develop, resolve. No scene cuts.`;
+    }
+  } else if (engine === 'sora') {
+    // Sora 2 rewards narrative scaffolding and longer coherent shots.
+    if (!has(/\b(subject|action|camera|lighting|style|audio):/i)) {
+      p = `Narrative beat — ${p}\n\nCamera: deliberate and observational. Lighting: natural and motivated. Style: cinematic, photoreal, 35mm film aesthetic. Audio: ambient diegetic sound.`;
+    }
+  } else if (engine === 'runway') {
+    // Runway Gen-4 Turbo: concise, action-forward; reward visual nouns.
+    p = p.replace(/\s{2,}/g, ' ').trim();
+    if (!has(/\b(motion|camera|action)\b/i)) {
+      p += `\n\nMotion-forward: clear primary action, single deliberate camera intent, photoreal grading.`;
+    }
+  }
+
+  // Hard cap to keep us inside every provider's prompt window.
+  return p.slice(0, 2400);
+}
+
+// ============================================================================
+// Kling V3 via Replicate - ALL modes: Text-to-Video, Image-to-Video, Avatar
+// Model: kwaivgi/kling-v3-video
+// Supports: up to 15s clips, native audio with lip-sync, 1080p pro mode
+// Both T2V (no image) and I2V (start_image) are supported natively
+// ============================================================================
+const KLING_MODEL_OWNER = "kwaivgi";
+const KLING_MODEL_NAME = "kling-v3-video";
+const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
+const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
+
+// ─── Seedance 2.0 (ByteDance) — premium alt-engine ─────────────────────────
+// Model: bytedance/seedance-2.0 — hyperreal motion, 2-12s clips, 1080p
+const SEEDANCE_MODEL_OWNER = "bytedance";
+const SEEDANCE_MODEL_NAME = "seedance-2.0";
+const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
+
+// ─── Runway Gen-4 Turbo (Replicate-hosted) ─────────────────────────────────
+// Model: runwayml/gen4-turbo — best-in-class character consistency, 5s/10s clips
+const RUNWAY_MODEL_OWNER = "runwayml";
+const RUNWAY_MODEL_NAME = "gen4-turbo";
+const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}/predictions`;
+
+// ─── OpenAI Sora 2 (Replicate-hosted) ──────────────────────────────────────
+// Model: openai/sora-2 — state-of-the-art realism, native audio, 4–15s clips
+const SORA_MODEL_OWNER = "openai";
+const SORA_MODEL_NAME = "sora-2";
+const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
+
+const VEO_MODEL_OWNER = "google";
+const VEO_MODEL_NAME = "veo-3-fast";
+const VEO_MODEL_URL = `https://api.replicate.com/v1/models/${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}/predictions`;
+
+// Kling V3: native audio with dialogue lip-sync — enable for avatar mode
+// When enabled, include dialogue in prompt inside quotes for lip-sync
+const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio
+const KLING_ENABLE_AUDIO_T2V = false;     // T2V: no audio (music overlay instead)
+const KLING_ENABLE_AUDIO_I2V = false;     // I2V: no audio (TTS overlay instead)
+
+// Frame extraction retry configuration - use guard rail config
+const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
+const FRAME_EXTRACTION_BACKOFF_MS = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_BACKOFF_MS;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Kling V3: Default to 10s (supports 3–15s). Extended = 15s.
+const DEFAULT_CLIP_DURATION = 10;
+
+// =====================================================
+// APEX MANDATORY QUALITY SUFFIX
+// =====================================================
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, clean sharp image";
+
+// =====================================================
+// REPLICATE KLING VIDEO GENERATION
+// =====================================================
+
+interface ReplicatePrediction {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output?: string | string[];
+  error?: string;
+  urls?: {
+    get: string;
+    cancel: string;
+  };
+  metrics?: {
+    predict_time?: number; // GPU seconds billed by Replicate
+    total_time?: number;
+  };
+  // Official models may include per-output pricing
+  model?: string;
+  version?: string;
+}
+
+/**
+ * Create a Kling V3 prediction via Replicate.
+ * 
+ * Kling V3 (kwaivgi/kling-v3-video) unifies all modes:
+ *   - Text-to-Video: no start_image, prompt only
+ *   - Image-to-Video: start_image + prompt
+ *   - Avatar: start_image + dialogue in prompt + generate_audio=true for native lip-sync
+ * 
+ * Duration: 3–15 seconds (default 10s)
+ * Mode: "pro" for 1080p
+ */
+async function createKlingV3Prediction(
+  prompt: string,
+  negativePrompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = DEFAULT_CLIP_DURATION,
+  enableAudio: boolean = false
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Kling V3: clamp duration to 3–15 seconds
+  const duration = Math.max(3, Math.min(15, durationSeconds));
+
+  // Build Kling V3 input — pro mode always for 1080p
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    negative_prompt: negativePrompt.slice(0, 1500),
+    aspect_ratio: aspectRatio,
+    duration,
+    mode: "pro", // 1080p HD
+    generate_audio: enableAudio,
+    seed: Math.floor(Math.random() * 2147483647), // Random seed for each attempt
+  };
+
+  // I2V: add start image for frame-chaining continuity
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.start_image = startImageUrl;
+    input.safety_tolerance = 2; // Max allowed when images are used — prevents E006 rejections
+    console.log(`[SingleClip][KlingV3] Using start image for I2V frame-chaining (safety_tolerance=2)`);
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][KlingV3] Creating ${mode} prediction:`, {
+    model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+    mode: input.mode,
+    hasStartImage: !!input.start_image,
+    duration: input.duration,
+    aspectRatio: input.aspect_ratio,
+    generateAudio: input.generate_audio,
+    promptLength: prompt.length,
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // WEBHOOK: Tell Replicate to call us the INSTANT this prediction
+  // finishes. This eliminates ALL polling gaps.
+  // ═══════════════════════════════════════════════════════════════
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl 
+    ? `${supabaseUrl}/functions/v1/replicate-webhook`
+    : null;
+
+  const requestBody: Record<string, any> = { input };
+  
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"]; // Only fire on terminal states
+    console.log(`[SingleClip][KlingV3] 📡 Webhook registered: ${webhookUrl}`);
+  }
+
+  const response = await fetch(REPLICATE_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][KlingV3] Replicate API error:", response.status, errorText);
+    throw new Error(`Kling V3 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  
+  if (!prediction.id) {
+    console.error("[SingleClip][KlingV3] No prediction ID in response:", prediction);
+    throw new Error("No prediction ID in Kling V3 response");
+  }
+
+  console.log(`[SingleClip][KlingV3] ✅ ${mode} prediction created: ${prediction.id} (webhook=${!!webhookUrl})`);
+  return { predictionId: prediction.id };
+}
+
+// Keep alias for backward compatibility with imports from network-resilience
+const createReplicatePrediction = createKlingV3Prediction;
+
+/**
+ * Create a Seedance 2.0 prediction via Replicate.
+ *
+ * Model: bytedance/seedance-2.0
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 2–12 seconds (default 5)
+ *   - Resolution: 1080p (default)
+ *   - No native audio (TTS / music overlay added in post)
+ */
+async function createSeedancePrediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = DEFAULT_CLIP_DURATION,
+  endImageUrl?: string | null,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Seedance 2.0: clamp duration to 2–12 seconds
+  const duration = Math.max(2, Math.min(12, durationSeconds));
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    resolution: "1080p",
+    aspect_ratio: aspectRatio,
+    fps: 24,
+    camera_fixed: false,
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+    // Seedance 2.0 unique capability: target end-frame interpolation.
+    // Only valid when a start `image` is also provided.
+    if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
+      input.last_frame_image = endImageUrl;
+    }
+  }
+
+  const mode = startImageUrl
+    ? (input.last_frame_image ? "I2V+EndFrame" : "I2V")
+    : "T2V";
+  console.log(`[SingleClip][Seedance2] Creating ${mode} prediction:`, {
+    model: `${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}`,
+    duration,
+    aspectRatio,
+    hasStartImage: !!input.image,
+    hasEndImage: !!input.last_frame_image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(SEEDANCE_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Seedance2] Replicate API error:", response.status, errorText);
+    throw new Error(`Seedance 2.0 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Seedance 2.0 response");
+  }
+
+  console.log(`[SingleClip][Seedance2] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+
+/**
+ * Create a Runway Gen-4 Turbo prediction via Replicate.
+ *
+ * Model: runwayml/gen4-turbo
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 5s or 10s
+ *   - Aspect ratios mapped to Runway's pixel ratios
+ */
+async function createRunwayGen4Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Runway Gen-4 Turbo: only 5s or 10s. Snap to nearest.
+  const duration = durationSeconds <= 7 ? 5 : 10;
+
+  // Map our aspect ratios to Runway's pixel ratios (gen4-turbo schema).
+  const ratioMap: Record<'16:9' | '9:16' | '1:1', string> = {
+    '16:9': '1280:720',
+    '9:16': '720:1280',
+    '1:1':  '960:960',
+  };
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    ratio: ratioMap[aspectRatio] || '1280:720',
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][RunwayGen4] Creating ${mode} prediction:`, {
+    model: `${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}`,
+    duration,
+    ratio: input.ratio,
+    hasStartImage: !!input.image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(RUNWAY_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][RunwayGen4] Replicate API error:", response.status, errorText);
+    throw new Error(`Runway Gen-4 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Runway Gen-4 response");
+  }
+
+  console.log(`[SingleClip][RunwayGen4] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+/**
+ * Create an OpenAI Sora 2 prediction via Replicate.
+ *
+ * Model: openai/sora-2
+ *   - Text-to-Video and Image-to-Video
+ *   - Duration: 4–15s (we clamp to engine spec)
+ *   - Native audio supported
+ */
+async function createSora2Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 10,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Sora 2: clamp to 4–15s.
+  // Sora 2 (Replicate openai/sora-2) supports seconds: 4, 8, 12. Snap to nearest.
+  const allowed = [4, 8, 12];
+  const seconds = allowed.reduce((best, d) =>
+    Math.abs(d - durationSeconds) < Math.abs(best - durationSeconds) ? d : best, 8);
+
+  // Sora 2 uses "portrait" / "landscape" — NOT "16:9" / "9:16"
+  const soraAspect = aspectRatio === "9:16" ? "portrait" : "landscape";
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    aspect_ratio: soraAspect,
+    seconds,
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    // Per Replicate docs: field is `input_reference`, not `input_image`
+    input.input_reference = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Sora2] Creating ${mode} prediction:`, {
+    model: `${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}`,
+    seconds,
+    aspectRatio: soraAspect,
+    hasStartImage: !!input.input_reference,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(SORA_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Sora2] Replicate API error:", response.status, errorText);
+    throw new Error(`Sora 2 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Sora 2 response");
+  }
+
+  console.log(`[SingleClip][Sora2] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+/**
+ * Create a Google Veo 3 Fast prediction via Replicate.
+ *
+ * Model: google/veo-3-fast
+ *   - Text-to-Video and Image-to-Video
+ *   - Native audio generation (ambient + diegetic)
+ *   - Allowed durations: 4, 6, 8 seconds (snap to nearest)
+ *   - Aspect ratios: 16:9 or 9:16 only
+ */
+async function createVeo3FastPrediction(
+  prompt: string,
+  negativePrompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = 8,
+  enableAudio: boolean = true,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  const allowed = [4, 6, 8];
+  const duration = allowed.reduce((best, d) =>
+    Math.abs(d - durationSeconds) < Math.abs(best - durationSeconds) ? d : best, 8);
+
+  // Veo 3 Fast does not support 1:1 — fall back to 16:9.
+  const veoAspect = aspectRatio === "9:16" ? "9:16" : "16:9";
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    negative_prompt: (negativePrompt || "").slice(0, 1500),
+    aspect_ratio: veoAspect,
+    duration,
+    resolution: "1080p",
+    generate_audio: enableAudio !== false,
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Veo3Fast] Creating ${mode} prediction:`, {
+    model: `${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}`,
+    duration,
+    aspectRatio: veoAspect,
+    hasStartImage: !!input.image,
+    audio: input.generate_audio,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(VEO_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Veo3Fast] Replicate API error:", response.status, errorText);
+    if (response.status === 403 || response.status === 404) {
+      throw new Error(`Veo 3 Fast access not enabled on this Replicate account. Visit replicate.com/google/veo-3-fast to request access. (${response.status})`);
+    }
+    throw new Error(`Veo 3 Fast API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Veo 3 Fast response");
+  }
+
+  console.log(`[SingleClip][Veo3Fast] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+// Poll a Replicate prediction until it completes (works for both Kling and Veo)
+async function pollReplicatePrediction(
+  predictionId: string,
+  supabase: any,
+  projectId: string,
+  shotIndex: number,
+  totalShots: number,
+  maxAttempts = 90,      // 90 attempts x 4 seconds = 6 minutes max
+  pollInterval = 4000    // 4 second intervals
+): Promise<{ videoUrl: string; predictTime?: number; totalTime?: number }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  const statusUrl = `${REPLICATE_PREDICTIONS_URL}/${predictionId}`;
+  
+  // Progress update helper - updates pipeline_state for UI
+  const updateProgress = async (stage: string, progress: number, message: string) => {
+    try {
+      await supabase
+        .from('movie_projects')
+        .update({
+          pipeline_state: {
+            stage,
+            progress,
+            message,
+            currentClip: shotIndex + 1,
+            totalClips: totalShots,
+            predictionId,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+    } catch (e) {
+      console.log(`[SingleClip] Progress update failed (non-critical):`, e);
+    }
+  };
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    
+    const response = await fetch(statusUrl, {
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      },
+    });
+    
+    if (!response.ok) {
+      console.log(`[SingleClip] Poll attempt ${attempt + 1}: ${response.status}`);
+      continue;
+    }
+    
+    const prediction: ReplicatePrediction = await response.json();
+    
+    console.log(`[SingleClip] Poll attempt ${attempt + 1}: status=${prediction.status}`);
+    
+    // Calculate progress: each clip is a portion of total, within clip we estimate based on poll attempts
+    // Assume 25 polls average to completion (~100 seconds)
+    const clipProgress = Math.min(95, Math.round((attempt / 25) * 100));
+    const baseProgress = Math.round((shotIndex / totalShots) * 100);
+    const clipContribution = Math.round((1 / totalShots) * clipProgress);
+    const overallProgress = Math.min(95, baseProgress + clipContribution);
+    
+    // Update progress every 3 polls to avoid excessive DB writes
+    if (attempt % 3 === 0) {
+      const messages = [
+        'Initializing neural render engine...',
+        'Mapping character consistency anchors...',
+        'Generating motion vectors...',
+        'Rendering cinematic frames...',
+        'Applying lighting algorithms...',
+        'Synthesizing temporal coherence...',
+        'Finalizing HD video output...',
+      ];
+      const messageIndex = Math.min(Math.floor(attempt / 4), messages.length - 1);
+      
+      await updateProgress(
+        'rendering',
+        overallProgress,
+        `Clip ${shotIndex + 1}/${totalShots}: ${messages[messageIndex]}`
+      );
+    }
+    
+    switch (prediction.status) {
+      case "succeeded":
+        // Extract video URL from output
+        const output = prediction.output;
+        let videoUrl: string | null = null;
+        
+        if (typeof output === "string") {
+          videoUrl = output;
+        } else if (Array.isArray(output) && output.length > 0) {
+          videoUrl = output[0];
+        }
+        
+        if (!videoUrl) {
+          throw new Error("No video URL in completed Replicate response");
+        }
+        
+        // Update progress to show clip completed
+        await updateProgress(
+          'rendering',
+          Math.round(((shotIndex + 1) / totalShots) * 100),
+          `Clip ${shotIndex + 1}/${totalShots} complete! ${shotIndex + 1 < totalShots ? 'Starting next clip...' : 'Finalizing video...'}`
+        );
+        
+        console.log(`[SingleClip] ✓ Clip completed: ${videoUrl.substring(0, 80)}... (predict_time: ${prediction.metrics?.predict_time || 'N/A'}s)`);
+        return { videoUrl, predictTime: prediction.metrics?.predict_time, totalTime: prediction.metrics?.total_time };
+        
+      case "failed":
+        const errorMsg = prediction.error || "Replicate generation failed";
+        await updateProgress('error', overallProgress, `Clip ${shotIndex + 1} failed: ${errorMsg.substring(0, 100)}`);
+        throw new Error(`Video generation failed: ${errorMsg}`);
+        
+      case "canceled":
+        await updateProgress('canceled', overallProgress, 'Generation was canceled');
+        throw new Error("Video generation was canceled");
+        
+      case "starting":
+      case "processing":
+        // Still running, continue polling
+        break;
+    }
+  }
+  
+  throw new Error("Kling operation timed out after maximum polling attempts");
+}
+
+// =====================================================
+// MEMORY-EFFICIENT VIDEO STORAGE
+// Handles large base64 videos (19MB+) without exceeding memory limits
+// Uses chunked decoding to prevent OOM crashes
+// =====================================================
+
+// Store video from URL directly to Supabase storage
+async function storeVideoFromUrl(
+  supabase: any,
+  videoUrl: string,
+  projectId: string,
+  clipIndex: number
+): Promise<string> {
+  console.log(`[SingleClip] Downloading video from URL for storage...`);
+  
+  const response = await fetch(videoUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download video: ${response.status}`);
+  }
+  
+  const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
+  const storagePath = `${projectId}/${fileName}`;
+  
+  // STREAM upload: pipe fetch response body directly to storage
+  // This avoids loading entire video into memory (prevents OOM on 19MB+ files)
+  if (response.body) {
+    // Convert ReadableStream to Uint8Array in chunks to stay within memory limits
+    const chunks: Uint8Array[] = [];
+    let totalSize = 0;
+    const reader = response.body.getReader();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      totalSize += value.byteLength;
+      // Safety: abort if video exceeds 50MB (shouldn't happen with Kling clips)
+      if (totalSize > 50 * 1024 * 1024) {
+        reader.cancel();
+        throw new Error(`Video too large: ${totalSize} bytes exceeds 50MB limit`);
+      }
+    }
+    
+    // Concatenate chunks
+    const videoData = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      videoData.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    
+    console.log(`[SingleClip] Uploading ${totalSize} bytes to storage...`);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('video-clips')
+      .upload(storagePath, videoData, {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error(`[SingleClip] Storage upload failed:`, uploadError);
+      throw new Error(`Failed to upload video: ${uploadError.message}`);
+    }
+  } else {
+    // Fallback for environments without ReadableStream
+    const videoData = await response.arrayBuffer();
+    console.log(`[SingleClip] Uploading ${videoData.byteLength} bytes to storage (fallback)...`);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('video-clips')
+      .upload(storagePath, new Uint8Array(videoData), {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error(`[SingleClip] Storage upload failed:`, uploadError);
+      throw new Error(`Failed to upload video: ${uploadError.message}`);
+    }
+  }
+  
+  const { data: { publicUrl } } = supabase.storage
+    .from('video-clips')
+    .getPublicUrl(storagePath);
+  
+  console.log(`[SingleClip] Video stored successfully: ${publicUrl}`);
+  return publicUrl;
+}
+
+// =====================================================
+// DATABASE PERSISTENCE HELPERS
+// CRITICAL: Register clips BEFORE generation to prevent data loss
+// =====================================================
+
+/**
+ * Insert or update a clip record in video_clips table
+ * Called BEFORE generation starts with status='pending' and prediction_id
+ * Updated to 'completed' when video is ready
+ */
+async function upsertClipRecord(
+  supabase: any,
+  options: {
+    projectId: string;
+    userId: string;
+    shotIndex: number;
+    prompt: string;
+    status: 'pending' | 'generating' | 'completed' | 'failed';
+    predictionId?: string;
+    videoUrl?: string;
+    lastFrameUrl?: string;
+    durationSeconds?: number;
+    motionVectors?: any;
+    errorMessage?: string;
+  }
+): Promise<string> {
+  const {
+    projectId,
+    userId,
+    shotIndex,
+    prompt,
+    status,
+    predictionId,
+    videoUrl,
+    lastFrameUrl,
+    durationSeconds,
+    motionVectors,
+    errorMessage,
+  } = options;
+
+  // Check if clip record already exists
+  const { data: existingClip } = await supabase
+    .from('video_clips')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('shot_index', shotIndex)
+    .maybeSingle();
+
+  const clipData: Record<string, any> = {
+    project_id: projectId,
+    user_id: userId,
+    shot_index: shotIndex,
+    prompt: prompt.substring(0, 5000), // Limit prompt length
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Add optional fields if provided
+  if (predictionId) {
+    clipData.veo_operation_name = predictionId; // Reuse this column for prediction tracking
+  }
+  if (videoUrl) {
+    clipData.video_url = videoUrl;
+    clipData.completed_at = new Date().toISOString();
+  }
+  if (lastFrameUrl) {
+    clipData.last_frame_url = lastFrameUrl;
+  }
+  if (durationSeconds) {
+    clipData.duration_seconds = durationSeconds;
+  }
+  if (motionVectors) {
+    clipData.motion_vectors = motionVectors;
+  }
+  if (errorMessage) {
+    clipData.error_message = errorMessage;
+  }
+
+  let clipId: string;
+
+  if (existingClip?.id) {
+    // Update existing clip
+    const { error: updateError } = await supabase
+      .from('video_clips')
+      .update(clipData)
+      .eq('id', existingClip.id);
+
+    if (updateError) {
+      console.error(`[SingleClip] Failed to update clip record:`, updateError);
+      throw new Error(`Failed to update clip record: ${updateError.message}`);
+    }
+
+    clipId = existingClip.id;
+    console.log(`[SingleClip] ✓ Updated clip record ${clipId} with status=${status}`);
+  } else {
+    // Insert new clip
+    const { data: newClip, error: insertError } = await supabase
+      .from('video_clips')
+      .insert(clipData)
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error(`[SingleClip] Failed to insert clip record:`, insertError);
+      throw new Error(`Failed to insert clip record: ${insertError.message}`);
+    }
+
+    clipId = newClip.id;
+    console.log(`[SingleClip] ✓ Created clip record ${clipId} with status=${status}, predictionId=${predictionId}`);
+  }
+
+  return clipId;
+}
+
+// =====================================================
+// SINGLE CLIP GENERATION RESPONSE
+// =====================================================
+
+interface SingleClipResult {
+  success: boolean;
+  videoUrl?: string;
+  audioUrl?: string;
+  lastFrameUrl?: string;
+  durationSeconds?: number;
+  error?: string;
+  clipId?: string;
+  predictionId?: string;
+  motionVectors?: {
+    endVelocity?: string;
+    endDirection?: string;
+    cameraMomentum?: string;
+  };
+}
+
+// =====================================================
+// MAIN HANDLER
+// =====================================================
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+
+  // Initialize Supabase early for error handling
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } =
+    await import("../_shared/auth-guard.ts");
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
+  let projectId: string | undefined;
+  let userId: string | undefined;
+  let shotIndex = 0;
+  let clipId: string | undefined;
+
+  try {
+    const body = await req.json();
+    projectId = body.projectId;
+    // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
+    try {
+      userId = resolveEffectiveUserId(auth, body.userId ?? null);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+      if (msg === 'SERVICE_ROLE_REQUIRES_USER_ID') {
+        return new Response(JSON.stringify({ success: false, error: 'userId required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return unauthorizedResponse(corsHeaders, msg);
+    }
+    shotIndex = body.shotIndex || body.clipIndex || 0;
+    
+    const {
+      prompt,
+      negativePrompt = "",
+      // startImageUrl handled below as `let` so the chain-ordering gate
+      // can override it with the predecessor's persisted tail frame.
+      aspectRatio = "16:9",
+      durationSeconds = DEFAULT_CLIP_DURATION,
+      sceneContext,
+      identityBible,
+      faceLock, // FACE LOCK - highest priority identity system
+      multiViewIdentityBible, // MULTI-VIEW IDENTITY - 5-angle character consistency
+      skipPolling = false,
+      triggerNextClip = false,
+      totalClips,
+      pipelineContext,
+      // Additional continuity data
+      previousMotionVectors,
+      previousContinuityManifest,
+      masterSceneAnchor,
+      goldenFrameData,
+      accumulatedAnchors,
+      extractedCharacters,
+      referenceImageUrl,
+      sceneImageUrl,
+      endImageUrl, // Optional target end-frame (Seedance 2.0 only)
+      videoEngine: rawVideoEngine = "kling",
+      isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
+      // Optional credit reservation handle. When present, we'll consume it on
+      // successful prediction creation and release it on any failure path so
+      // concurrent renders cannot drift past the pre-flight check.
+      holdId,
+    } = body;
+    let startImageUrl: string | null | undefined = body.startImageUrl;
+
+    if (!projectId || !prompt) {
+      throw new Error("projectId and prompt are required");
+    }
+
+    // ── Continuity payload (server-side ordering enforcement) ────────────
+    // The client may mark a scene as "Independent" (chainFromPrevious=false)
+    // — in which case we render it as a standalone shot, no predecessor
+    // dependency. Otherwise (the default) the scene is "Continuous" and we
+    // MUST inherit the previous shot's tail frame as startImageUrl.
+    const chainFromPrevious: boolean = body.chainFromPrevious !== false;
+
+    // ── Credit hold helpers (no-op when holdId is missing). Idempotent —
+    // the underlying RPCs short-circuit on already-consumed/released holds.
+    let holdSettled = false;
+    const consumeHold = async (description?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        const { data, error } = await supabase.rpc('consume_credit_hold', {
+          p_hold_id: holdId,
+          p_description: description || `Clip ${shotIndex + 1}`,
+          p_clip_duration: typeof body.durationSeconds === 'number' ? body.durationSeconds : null,
+        });
+        if (error) {
+          console.warn(`[SingleClip] consume_credit_hold error:`, error.message);
+          holdSettled = false;
+        } else if ((data as any)?.success !== true) {
+          console.warn(`[SingleClip] consume_credit_hold not successful:`, data);
+        } else {
+          console.log(`[SingleClip] 💳 Credit hold ${holdId} consumed (${(data as any).amount} cr)`);
+        }
+      } catch (e) {
+        console.warn(`[SingleClip] consume_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
+    const releaseHold = async (reason?: string) => {
+      if (!holdId || holdSettled) return;
+      holdSettled = true;
+      try {
+        await supabase.rpc('release_credit_hold', {
+          p_hold_id: holdId,
+          p_reason: reason || 'generate-single-clip failed',
+        });
+        console.log(`[SingleClip] 🔓 Credit hold ${holdId} released (${reason || 'failure'})`);
+      } catch (e) {
+        console.warn(`[SingleClip] release_credit_hold threw:`, e);
+        holdSettled = false;
+      }
+    };
+
+    // ═══ ENGINE SELECTION — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
+    // Why: hollywood-pipeline / continue-production / watchdog / resume-pipeline
+    // can re-invoke this function across many hops. Any caller that forgets
+    // to forward `videoEngine` would silently decay the project to Kling
+    // (the body default), causing a Seedance project to flip mid-generation.
+    //
+    // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
+    // The body param is only a hint and can never override the DB lock.
+    type BackendEngine = 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
+    try {
+      const { data: projRow } = await supabase
+        .from('movie_projects')
+        .select('video_engine')
+        .eq('id', projectId)
+        .maybeSingle();
+      const persistedEngine = (projRow?.video_engine as BackendEngine | null) || null;
+      if (persistedEngine) {
+        if (persistedEngine !== rawVideoEngine) {
+          console.warn(
+            `[SingleClip] 🛡️ ENGINE LOCK ENFORCED: body videoEngine="${rawVideoEngine}" overridden by persisted video_engine="${persistedEngine}" (project ${projectId}). Preventing decay.`
+          );
+        }
+        videoEngine = persistedEngine;
+      } else {
+        console.warn(
+          `[SingleClip] ⚠️ No persisted video_engine for project ${projectId} — using body value "${rawVideoEngine}". This should not happen for projects created via mode-router.`
+        );
+      }
+    } catch (engineLookupErr) {
+      console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);
+    }
+    console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
+    if (videoEngine === 'seedance' && isAvatarModeFlag) {
+      console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
+    }
+    const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
+      kling:    'kwaivgi/kling-v3-video',
+      seedance: 'bytedance/seedance-2.0',
+      veo:      'google/veo-3-fast',
+      runway:   'runwayml/gen4-turbo',
+      sora:     'openai/sora-2',
+    };
+    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${ENGINE_ROUTE_LABEL[videoEngine]}`);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SERVER-SIDE ORDERING GATE for continuous (chained) scenes
+    // ═══════════════════════════════════════════════════════════════════════
+    // Even if the client fires every scene's request in parallel, the backend
+    // refuses to render a chained scene until its predecessor has produced a
+    // real last_frame_url. Behaviour:
+    //   • If predecessor.status !== 'completed' OR no last_frame_url:
+    //       - park the full payload in scene_chain_queue
+    //       - release any credit hold (we'll re-reserve when the queued
+    //         payload re-fires)
+    //       - return 202 { queued: true, waitingOnShot }
+    //   • Else override startImageUrl with predecessor.last_frame_url
+    //     (server is source of truth — defeats stale client payloads).
+    //
+    // Independent scenes (chainFromPrevious === false) bypass this entirely.
+    if (chainFromPrevious && shotIndex > 0 && projectId && userId) {
+      try {
+        const { data: prevClip } = await supabase
+          .from('video_clips')
+          .select('status, last_frame_url, video_url')
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex - 1)
+          .maybeSingle();
+
+        const predecessorReady =
+          prevClip?.status === 'completed' && !!prevClip?.last_frame_url;
+
+        if (!predecessorReady) {
+          // Park the request. UPSERT so duplicate parallel hits don't error.
+          const queuePayload = { ...body };
+          // Strip the holdId — we release it now and will re-reserve when
+          // the queued payload re-fires (otherwise the hold would expire
+          // while waiting and the re-fire would fail credit-check).
+          delete queuePayload.holdId;
+
+          const { error: queueErr } = await supabase
+            .from('scene_chain_queue')
+            .upsert({
+              project_id: projectId,
+              shot_index: shotIndex,
+              user_id: userId,
+              payload: queuePayload,
+              hold_id: holdId || null,
+              status: 'waiting',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'project_id,shot_index' });
+
+          if (queueErr) {
+            console.error(`[SingleClip] 🛑 Chain queue insert failed:`, queueErr);
+            await releaseHold('chain_queue_insert_failed');
+            return new Response(
+              JSON.stringify({ success: false, error: 'Could not queue chained scene' }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Ensure a 'pending' video_clips row exists so the UI can poll
+          // (status will flip to 'generating' when the drain re-fires this).
+          await upsertClipRecord(supabase, {
+            projectId,
+            userId,
+            shotIndex,
+            prompt,
+            status: 'pending',
+          });
+
+          await releaseHold('queued_waiting_predecessor');
+          console.log(`[SingleClip] ⏸ Chain gate: shot ${shotIndex} parked, waiting on shot ${shotIndex - 1} (predecessor status=${prevClip?.status ?? 'missing'})`);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              queued: true,
+              waitingOnShot: shotIndex - 1,
+              predecessorStatus: prevClip?.status ?? 'missing',
+              message: `Shot ${shotIndex + 1} queued — will auto-start when shot ${shotIndex} completes`,
+            }),
+            { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Predecessor ready → SERVER overrides client startImageUrl with the
+        // persisted last_frame_url. Client payloads can be stale (cached
+        // brief ref / cast image) so we always trust the DB here.
+        const persistedTail = prevClip!.last_frame_url as string;
+        if (startImageUrl !== persistedTail) {
+          console.log(`[SingleClip] 🔗 Chain gate: overriding client startImageUrl with predecessor tail frame (shot ${shotIndex - 1})`);
+          startImageUrl = persistedTail;
+        }
+      } catch (gateErr) {
+        // Fail-open: log and proceed with the client-provided startImageUrl
+        // rather than blocking the render entirely on a transient lookup error.
+        console.warn(`[SingleClip] ⚠️ Chain gate lookup failed (proceeding with client payload):`, gateErr);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - Final defense layer at clip generation
+    // ═══════════════════════════════════════════════════════════════════════════
+    const safetyCheck = checkContentSafety(prompt);
+    if (!safetyCheck.isSafe) {
+      console.error(`[SingleClip] ⛔ CONTENT BLOCKED - ${safetyCheck.category}: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      
+      // CRITICAL: Update clip status to failed in DB to prevent zombie clips
+      if (projectId && userId) {
+        await upsertClipRecord(supabase, {
+          projectId,
+          userId,
+          shotIndex,
+          prompt,
+          status: 'failed',
+          errorMessage: `Content policy violation: ${safetyCheck.category}`,
+        });
+      }
+      await releaseHold('content_policy_violation');
+      return new Response(
+        JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[SingleClip] Starting generation for project ${projectId}, shot ${shotIndex}`);
+    console.log(`[SingleClip] Engine param received: videoEngine="${videoEngine}"`);
+
+    // =========================================================
+    // GUARD RAIL #0: Auto-recover stale mutexes before anything
+    // =========================================================
+    const mutexRecovery = await checkAndRecoverStaleMutex(supabase, projectId);
+    if (mutexRecovery.wasStale) {
+      console.log(`[SingleClip] 🔓 Auto-recovered stale mutex from clip ${mutexRecovery.releasedClip}`);
+    }
+
+    // =========================================================
+    // GUARD RAIL #1: Pre-generation validation with fallback resolution
+    // NOTE: We NEVER block generation - always use degraded mode if needed
+    // =========================================================
+    const preCheck = await runPreGenerationChecks(supabase, projectId, shotIndex, {
+      referenceImageUrl,
+      sceneImageUrl,
+      previousClipLastFrame: startImageUrl,
+      identityBibleImageUrl: identityBible?.originalReferenceUrl,
+    });
+    
+    for (const warning of preCheck.warnings) {
+      console.warn(`[SingleClip] ⚠️ ${warning}`);
+    }
+    
+    // Log blockers but DON'T fail - use degraded mode instead
+    if (shotIndex > 0 && !preCheck.canProceed) {
+      console.warn(`[SingleClip] ⚠️ Pre-generation checks have blockers (proceeding in degraded mode):`);
+      for (const blocker of preCheck.blockers) {
+        console.warn(`[SingleClip]   - ${blocker}`);
+      }
+      
+      // FIX #11: Replace broken jsonb_set_nested RPC (doesn't exist) with proper merge
+      try {
+        const { data: currentProject } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks')
+          .eq('id', projectId)
+          .maybeSingle();
+        
+        const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+        await supabase
+          .from('movie_projects')
+          .update({
+            pending_video_tasks: {
+              ...currentTasks,
+              degradation: {
+                ...(currentTasks.degradation || {}),
+                continuityCheckFailed: true,
+              },
+            },
+          })
+          .eq('id', projectId);
+      } catch (degradeErr) {
+        console.warn('[SingleClip] Failed to store degradation flag:', degradeErr);
+      }
+    }
+
+    // =========================================================
+    // GUARD RAIL #2: Clip 0 ALWAYS uses reference image as start
+    // For other clips, use EXHAUSTIVE fallback chain
+    // =========================================================
+    let resolvedStartImage = startImageUrl;
+    
+    if (shotIndex === 0 && GUARD_RAIL_CONFIG.CLIP_0_ALWAYS_USE_REFERENCE) {
+      const clip0Start = getClip0StartImage(referenceImageUrl, sceneImageUrl, identityBible?.originalReferenceUrl);
+      if (clip0Start.imageUrl) {
+        resolvedStartImage = clip0Start.imageUrl;
+        console.log(`[SingleClip] ✓ Clip 0: Using ${clip0Start.source} as start image (GUARANTEED)`);
+      }
+    } else if (preCheck.resolvedFrameUrl) {
+      resolvedStartImage = preCheck.resolvedFrameUrl;
+      console.log(`[SingleClip] ✓ Using resolved frame from ${preCheck.resolvedFrameSource}`);
+    } else if (shotIndex > 0) {
+      // EXHAUSTIVE FALLBACK for non-clip-0
+      const fallbackResult = getGuaranteedLastFrame(shotIndex - 1, {
+        extractedFrame: startImageUrl,
+        previousClipLastFrame: startImageUrl,
+        referenceImageUrl,
+        sceneImageUrl,
+        identityBibleImageUrl: identityBible?.originalReferenceUrl,
+        goldenFrameUrl: goldenFrameData?.goldenFrameUrl,
+        sourceImageUrl: pipelineContext?.referenceImageUrl,
+      });
+      
+      if (fallbackResult.frameUrl) {
+        resolvedStartImage = fallbackResult.frameUrl;
+        console.log(`[SingleClip] ✓ Exhaustive fallback found: ${fallbackResult.source} (${fallbackResult.confidence})`);
+      } else {
+        console.warn(`[SingleClip] ⚠️ No start image available - proceeding without (text-to-video mode)`);
+      }
+    }
+
+    // =========================================================
+    // FAILSAFE #2: Generation Mutex (prevent parallel generation)
+    // =========================================================
+    const lockId = crypto.randomUUID();
+    const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
+    
+    if (!lockResult.acquired) {
+      console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'GENERATION_LOCKED',
+          message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
+          lockAgeSeconds: lockResult.lockAgeSeconds,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
+    
+    const releaseLock = async () => {
+      await releaseGenerationLock(supabase, projectId!, lockId);
+    };
+
+    // =========================================================
+    // COMPREHENSIVE PROMPT BUILDING (BULLETPROOF)
+    // Uses centralized prompt-builder for guaranteed data injection
+    // =========================================================
+    
+    // Resolve identity bible from multiple sources
+    const resolvedIdentityBible: IdentityBible | undefined = identityBible 
+      || pipelineContext?.identityBible;
+    
+    // Resolve master scene anchor
+    const resolvedMasterSceneAnchor: MasterSceneAnchor | undefined = masterSceneAnchor 
+      || pipelineContext?.masterSceneAnchor;
+    
+    // Resolve extracted characters
+    const resolvedExtractedCharacters: ExtractedCharacter[] | undefined = extractedCharacters 
+      || pipelineContext?.extractedCharacters;
+    
+    // Resolve motion vectors and continuity from previous clip
+    const resolvedMotionVectors: MotionVectors | undefined = previousMotionVectors;
+    const resolvedContinuityManifest: ContinuityManifest | undefined = previousContinuityManifest;
+    
+    // VALIDATE PIPELINE DATA (log warnings for missing critical data)
+    const validation = validatePipelineData(
+      shotIndex,
+      resolvedIdentityBible,
+      {
+        lastFrameUrl: startImageUrl,
+        motionVectors: resolvedMotionVectors,
+        continuityManifest: resolvedContinuityManifest,
+      },
+      resolvedMasterSceneAnchor
+    );
+    
+    // BUILD COMPREHENSIVE PROMPT with all data injection
+    // Resolve face lock from request or pipeline context
+    const resolvedFaceLock: FaceLock | undefined = 
+      faceLock || 
+      pipelineContext?.faceLock;
+    
+    // Resolve multi-view identity bible from request or pipeline context
+    const resolvedMultiViewIdentity: MultiViewIdentityBible | undefined = 
+      multiViewIdentityBible || 
+      pipelineContext?.multiViewIdentityBible;
+    
+    if (resolvedFaceLock) {
+      console.log(`[SingleClip] ✓ FACE LOCK ACTIVE: ${resolvedFaceLock.goldenReference?.substring(0, 60) || 'enabled'}...`);
+    }
+    
+    if (resolvedMultiViewIdentity) {
+      console.log(`[SingleClip] ✓ MULTI-VIEW IDENTITY ACTIVE: 5-angle character consistency enabled`);
+    }
+    
+    const promptRequest: PromptBuildRequest = {
+      basePrompt: prompt,
+      clipIndex: shotIndex,
+      totalClips: totalClips || 6,
+      faceLock: resolvedFaceLock, // FACE LOCK - HIGHEST PRIORITY
+      multiViewIdentityBible: resolvedMultiViewIdentity, // MULTI-VIEW IDENTITY - 5-ANGLE CONSISTENCY
+      identityBible: resolvedIdentityBible,
+      extractedCharacters: resolvedExtractedCharacters,
+      previousContinuityManifest: resolvedContinuityManifest,
+      previousMotionVectors: resolvedMotionVectors,
+      masterSceneAnchor: resolvedMasterSceneAnchor,
+      sceneContext: sceneContext,
+      userNegativePrompt: negativePrompt,
+    };
+    
+    const builtPrompt = buildComprehensivePrompt(promptRequest);
+    
+    // LOG PIPELINE STATE (for debugging)
+    logPipelineState(shotIndex, validation, builtPrompt);
+    
+    const enhancedPrompt = builtPrompt.enhancedPrompt;
+    const fullNegativePrompt = builtPrompt.negativePrompt;
+    
+    // =========================================================
+    // VALIDATE AND USE START IMAGE (use resolved image from guard rails)
+    // =========================================================
+    let validatedStartImage: string | null = null;
+    const imageToValidate = resolvedStartImage || startImageUrl;
+    
+    if (imageToValidate) {
+      // Use guard rail validation function
+      if (!isValidImageUrl(imageToValidate)) {
+        console.warn(`[SingleClip] ⚠️ REJECTED: startImageUrl failed validation: ${imageToValidate.substring(0, 50)}...`);
+      } else {
+        try {
+          const imageCheckResponse = await fetch(imageToValidate, { method: 'HEAD' });
+          if (imageCheckResponse.ok) {
+            validatedStartImage = imageToValidate;
+            console.log(`[SingleClip] ✓ Start image validated: ${imageToValidate.substring(0, 60)}...`);
+          }
+        } catch (urlError) {
+          console.warn(`[SingleClip] ⚠️ Failed to HEAD check start image, using anyway`);
+          // Still use the image even if HEAD check fails (some CDNs don't support HEAD)
+          validatedStartImage = imageToValidate;
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENGINE: Kling V3 (kwaivgi/kling-v3-video) — ALL modes
+    //   T2V: no start_image → pure text-to-video
+    //   I2V: start_image → image-to-video with frame continuity
+    //   Avatar: start_image + generate_audio=true → native lip-synced dialogue
+    // isAvatarMode is an EXPLICIT flag from the pipeline — NOT derived from videoEngine
+    // ═══════════════════════════════════════════════════════════════════════════
+    const isAvatarMode = !!isAvatarModeFlag; // Explicit flag from pipeline, NOT from videoEngine
+    const hasStartImage = !!validatedStartImage;
+    const engineLabel = videoEngine === 'seedance'
+      ? (isAvatarMode
+          ? `Seedance 2.0 Avatar (I2V from start image, TTS audio overlaid post-stitch)`
+          : hasStartImage
+            ? `Seedance 2.0 I2V (image-to-video, no native audio)`
+            : `Seedance 2.0 T2V (text-to-video, no native audio)`)
+      : (isAvatarMode
+          ? `Kling V3 Avatar (I2V + native lip-sync, ${hasStartImage ? 'frame-chained' : 'scene image'})`
+          : hasStartImage
+            ? "Kling V3 I2V (image-to-video, no native audio)"
+            : "Kling V3 T2V (text-to-video, no native audio)");
+    console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", isAvatarMode=${isAvatarMode}, hasStartImage=${hasStartImage}) ══`);
+    
+    // Avatar mode: enable native audio for lip-sync. I2V/T2V: no native audio
+    const enableNativeAudio = isAvatarMode ? KLING_ENABLE_AUDIO_AVATAR : (hasStartImage ? KLING_ENABLE_AUDIO_I2V : KLING_ENABLE_AUDIO_T2V);
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // ATOMIC CLAIM: Database-level mutex to prevent duplicate Kling prompts
+    // This is the LAST LINE OF DEFENSE — even if two instances of this
+    // function run concurrently, only ONE can claim the clip.
+    // ═══════════════════════════════════════════════════════════════════
+    const claimToken = crypto.randomUUID();
+    let claimed: boolean | null = null;
+    let claimError: { message: string } | null = null;
+    
+    // DEFENSIVE: Try atomic claim with auto-retry on stale state
+    // The atomic_claim_clip RPC now auto-initializes predictions, but we add
+    // a belt-and-suspenders retry in case of transient failures.
+    for (let claimAttempt = 0; claimAttempt < 2; claimAttempt++) {
+      const result = await supabase.rpc('atomic_claim_clip', {
+        p_project_id: projectId,
+        p_clip_index: shotIndex,
+        p_claim_token: claimToken,
+      });
+      claimed = result.data;
+      claimError = result.error;
+      
+      if (claimError) {
+        console.warn(`[SingleClip] atomic_claim_clip attempt ${claimAttempt + 1} failed: ${claimError.message}`);
+        if (claimAttempt === 0) {
+          // Wait briefly and retry — may be a transient lock contention
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+      }
+      break;
+    }
+    
+    if (claimError) {
+      console.error(`[SingleClip] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, claimError.message);
+      await releaseLock();
+      await releaseHold('atomic_claim_rpc_failed');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLAIM_RPC_FAILED',
+          message: `Atomic claim RPC failed for clip ${shotIndex}: ${claimError.message}. Refusing to proceed to prevent duplicate Kling prompt.`,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else if (claimed === false) {
+      console.error(`[SingleClip] ❌ ATOMIC CLAIM REJECTED: clip ${shotIndex} already claimed by another process`);
+      await releaseLock();
+      await releaseHold('clip_already_claimed');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLIP_ALREADY_CLAIMED',
+          message: `Clip ${shotIndex} was already claimed by another pipeline instance`,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      console.log(`[SingleClip] ✓ Atomic claim acquired for clip ${shotIndex}, token: ${claimToken}`);
+    }
+
+    let predictionId: string;
+    if (videoEngine === 'seedance') {
+      console.log(`[SingleClip] ══ ROUTING TO SEEDANCE 2.0 (bytedance/seedance-2.0) ══`);
+      const seedanceResult = await createSeedancePrediction(
+        tuneForEngine('seedance', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        endImageUrl, // Optional Seedance-only end-frame target
+      );
+      predictionId = seedanceResult.predictionId;
+    } else if (videoEngine === 'runway') {
+      console.log(`[SingleClip] ══ ROUTING TO RUNWAY GEN-4 TURBO (runwayml/gen4-turbo) ══`);
+      const runwayResult = await createRunwayGen4Prediction(
+        tuneForEngine('runway', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = runwayResult.predictionId;
+    } else if (videoEngine === 'sora') {
+      console.log(`[SingleClip] ══ ROUTING TO SORA 2 (openai/sora-2) ══`);
+      const soraResult = await createSora2Prediction(
+        tuneForEngine('sora', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = soraResult.predictionId;
+    } else if (videoEngine === 'veo') {
+      console.log(`[SingleClip] ══ ROUTING TO VEO 3 FAST (google/veo-3-fast) ══`);
+      const veoResult = await createVeo3FastPrediction(
+        tuneForEngine('veo', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        fullNegativePrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        enableNativeAudio !== false,
+      );
+      predictionId = veoResult.predictionId;
+    } else {
+      // 'kling' renders via Kling V3 (default + avatar lip-sync).
+      const klingResult = await createKlingV3Prediction(
+        tuneForEngine('kling', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        fullNegativePrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        enableNativeAudio,
+      );
+      predictionId = klingResult.predictionId;
+    }
+
+    // ─── Provider call succeeded → finalize the credit hold. We bill on
+    // prediction creation (we've committed GPU spend) regardless of whether
+    // polling/post-processing later fails. The watchdog will refund via
+    // refund_credits if the prediction itself fails terminally.
+    await consumeHold(`Clip ${shotIndex + 1} (${videoEngine})`);
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // IMMEDIATE PREDICTION REGISTRATION in pending_video_tasks
+    // Ensures watchdog sees the predictionId and does NOT re-prompt
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const { data: projData } = await supabase
+        .from('movie_projects')
+        .select('pending_video_tasks')
+        .eq('id', projectId)
+        .maybeSingle();
+      
+      if (projData?.pending_video_tasks) {
+        const tasks = projData.pending_video_tasks as any;
+        if (tasks?.predictions && Array.isArray(tasks.predictions)) {
+          const updatedPredictions = tasks.predictions.map((p: any) => {
+            if (p.clipIndex === shotIndex) {
+              return { ...p, predictionId, status: 'processing', claimToken };
+            }
+            return p;
+          });
+          await supabase.from('movie_projects').update({
+            pending_video_tasks: { ...tasks, predictions: updatedPredictions, lastProgressAt: new Date().toISOString() },
+          }).eq('id', projectId);
+          console.log(`[SingleClip] ✓ predictionId ${predictionId} registered in pending_video_tasks for clip ${shotIndex}`);
+        }
+      }
+    } catch (regErr) {
+      console.warn(`[SingleClip] ⚠️ Failed to register predictionId in pending_video_tasks:`, regErr);
+      // Non-fatal — clip record below is the primary tracking mechanism
+    }
+
+    // =========================================================
+    // CRITICAL FIX: Register clip in database BEFORE polling
+    // This ensures clip is tracked even if function times out
+    // =========================================================
+    if (userId) {
+      clipId = await upsertClipRecord(supabase, {
+        projectId,
+        userId,
+        shotIndex,
+        prompt: enhancedPrompt,
+        status: 'generating',
+        predictionId,
+        durationSeconds,
+      });
+      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} registered with predictionId=${predictionId}`);
+    }
+
+    // If skipPolling, fire the dedicated poller and return immediately
+    if (skipPolling) {
+      // 🚀 CRITICAL: Fire poll-replicate-prediction to aggressively track this prediction
+      // This replaces the broken webhook approach with a reliable self-chaining poller
+      const supabaseUrlForPoller = Deno.env.get("SUPABASE_URL");
+      const supabaseKeyForPoller = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrlForPoller && supabaseKeyForPoller) {
+        fetch(`${supabaseUrlForPoller}/functions/v1/poll-replicate-prediction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKeyForPoller}`,
+          },
+          body: JSON.stringify({
+            predictionId,
+            projectId,
+            userId,
+            shotIndex,
+            totalClips: totalClips || 3,
+            chainDepth: 0,
+            // CRITICAL FIX: Pass the FULL pipelineContext from upstream, not a stripped version.
+            // The stripped version was missing pendingVideoTasks (avatar dialogue),
+            // extractedCharacters, masterSceneAnchor, goldenFrameData, accumulatedAnchors,
+            // and sceneImageLookup — forcing continue-production into fragile DB fallbacks.
+            pipelineContext: pipelineContext || {
+              videoEngine: videoEngine || 'kling',
+              isAvatarMode,
+              identityBible,
+              faceLock,
+              multiViewIdentityBible,
+              referenceImageUrl: startImageUrl,
+              clipDuration: durationSeconds,
+              aspectRatio,
+            },
+          }),
+        }).catch(err => console.warn(`[SingleClip] Failed to fire poller:`, err));
+        console.log(`[SingleClip] 🚀 Fired poll-replicate-prediction for prediction ${predictionId}`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          clipId,
+          predictionId,
+          provider: "replicate",
+          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+          pollerFired: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Poll for completion with real-time progress updates
+    const { videoUrl, predictTime, totalTime } = await pollReplicatePrediction(
+      predictionId,
+      supabase,
+      projectId,
+      shotIndex,
+      totalClips || 1
+    );
+
+    // Store video in Supabase storage
+    const storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, projectId, shotIndex);
+
+    // =========================================================
+    // POST-PROCESSING: Extract frame and continuity data
+    // CRITICAL: Must happen BEFORE callback to pass real data
+    // FAILSAFE #3: Frame extraction with retries and fallback
+    // =========================================================
+    let extractedLastFrameUrl: string | null = null;
+    let extractedMotionVectors: any = null;
+    let extractedContinuityManifest: any = null;
+    let frameExtractionAttempts = 0;
+    let frameExtractionStatus: 'pending' | 'success' | 'failed' | 'fallback_used' = 'pending';
+
+    // Step 1: Extract last frame from video with retries
+    console.log(`[SingleClip] Extracting last frame from clip ${shotIndex + 1} (max ${FRAME_EXTRACTION_MAX_RETRIES} attempts)...`);
+    
+    for (let attempt = 1; attempt <= FRAME_EXTRACTION_MAX_RETRIES; attempt++) {
+      frameExtractionAttempts = attempt;
+      
+      try {
+        const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            videoUrl: storedVideoUrl,
+            projectId,
+            shotIndex,
+            shotPrompt: prompt,
+            sceneImageUrl: sceneContext?.environment ? undefined : undefined,
+            position: 'last',
+          }),
+        });
+        
+        if (frameResponse.ok) {
+          const frameResult = await frameResponse.json();
+          if (frameResult.success && frameResult.frameUrl) {
+            extractedLastFrameUrl = frameResult.frameUrl;
+            frameExtractionStatus = 'success';
+            console.log(`[SingleClip] ✓ Last frame extracted on attempt ${attempt}: ${extractedLastFrameUrl?.substring(0, 60)}...`);
+            break;
+          } else {
+            console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction returned no URL:`, frameResult.error);
+          }
+        } else {
+          const errorText = await frameResponse.text().catch(() => 'unknown');
+          console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction HTTP ${frameResponse.status}: ${errorText.substring(0, 100)}`);
+        }
+      } catch (frameErr) {
+        console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction exception:`, frameErr);
+      }
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < FRAME_EXTRACTION_MAX_RETRIES) {
+        const backoffMs = FRAME_EXTRACTION_BACKOFF_MS * Math.pow(2, attempt - 1);
+        console.log(`[SingleClip] Waiting ${backoffMs}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+    }
+    
+    // GUARD RAIL #4: Use guaranteed fallback chain for last frame - ONLY IF EXTRACTION FAILED
+    if (!extractedLastFrameUrl) {
+      console.error(`[SingleClip] ⚠️ All ${FRAME_EXTRACTION_MAX_RETRIES} frame extraction attempts failed!`);
+      
+      // Use guard rail guaranteed fallback function
+      const fallbackResult = getGuaranteedLastFrame(shotIndex, {
+        extractedFrame: undefined, // We already know extraction failed
+        referenceImageUrl: pipelineContext?.referenceImageUrl || referenceImageUrl,
+        sceneImageUrl: pipelineContext?.sceneImageLookup?.[shotIndex] || sceneImageUrl,
+        identityBibleImageUrl: identityBible?.originalReferenceUrl,
+      });
+      
+      if (fallbackResult.frameUrl) {
+        console.log(`[SingleClip] ✓ Using fallback ${fallbackResult.source} (confidence: ${fallbackResult.confidence})`);
+        extractedLastFrameUrl = fallbackResult.frameUrl;
+        frameExtractionStatus = 'fallback_used';
+      } else {
+        frameExtractionStatus = 'failed';
+        console.error(`[SingleClip] ❌ CRITICAL: All fallbacks exhausted - frame chain will be broken!`);
+      }
+    }
+    
+    // CRITICAL FIX: For clip 0, prefer the EXTRACTED last frame over reference image
+    // This ensures clip 1 starts from where clip 0 actually ended, not from the original upload
+    // The reference image is only used as a FALLBACK if extraction failed
+    if (shotIndex === 0) {
+      if (extractedLastFrameUrl && extractedLastFrameUrl !== referenceImageUrl) {
+        console.log(`[SingleClip] ✓ Clip 0: Using EXTRACTED last frame for clip 1 continuity (${extractedLastFrameUrl.substring(0, 60)}...)`);
+        // Keep the extracted frame - this is correct behavior
+      } else if (!extractedLastFrameUrl && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+        console.log(`[SingleClip] ⚠️ Clip 0: No extracted frame, falling back to reference image`);
+        extractedLastFrameUrl = referenceImageUrl;
+        frameExtractionStatus = 'fallback_used';
+      }
+    }
+    
+    // Update frame extraction status in DB
+    if (clipId) {
+      await updateFrameExtractionStatus(supabase, clipId, frameExtractionStatus, frameExtractionAttempts);
+    }
+
+    // Step 2: Extract continuity manifest from the last frame (if we have it)
+    if (extractedLastFrameUrl) {
+      console.log(`[SingleClip] Extracting continuity manifest for clip ${shotIndex + 1}...`);
+      try {
+        const manifestResponse = await fetch(`${supabaseUrl}/functions/v1/extract-continuity-manifest`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            frameUrl: extractedLastFrameUrl,
+            projectId,
+            shotIndex,
+            shotDescription: prompt,
+          }),
+        });
+        
+        if (manifestResponse.ok) {
+          const manifestResult = await manifestResponse.json();
+          if (manifestResult.success && manifestResult.manifest) {
+            extractedContinuityManifest = manifestResult.manifest;
+            console.log(`[SingleClip] ✓ Continuity manifest extracted with ${manifestResult.manifest?.criticalAnchors?.length || 0} anchors`);
+            
+            // Extract motion vectors from manifest action data
+            if (manifestResult.manifest?.action) {
+              extractedMotionVectors = {
+                exitMotion: manifestResult.manifest.action.poseAtCut,
+                dominantDirection: manifestResult.manifest.action.movementDirection,
+                continuityPrompt: manifestResult.manifest.action.expectedContinuation,
+                actionContinuity: manifestResult.manifest.action.gestureInProgress,
+              };
+              console.log(`[SingleClip] ✓ Motion vectors derived from manifest`);
+            }
+          }
+        }
+      } catch (manifestErr) {
+        console.warn(`[SingleClip] Manifest extraction error:`, manifestErr);
+      }
+    }
+
+    // =========================================================
+    // Update clip record with completed video URL AND extracted data
+    // =========================================================
+    if (userId && clipId) {
+      await upsertClipRecord(supabase, {
+        projectId,
+        userId,
+        shotIndex,
+        prompt: enhancedPrompt,
+        status: 'completed',
+        predictionId,
+        videoUrl: storedVideoUrl,
+        // CRITICAL: Ensure fallback frame is persisted if extraction failed
+        lastFrameUrl: extractedLastFrameUrl || (frameExtractionStatus === 'fallback_used' ? extractedLastFrameUrl : undefined),
+        durationSeconds,
+        motionVectors: extractedMotionVectors || undefined,
+      });
+      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked completed with videoUrl and frame data`);
+      
+      // Also persist continuity manifest to clip record
+      if (extractedContinuityManifest) {
+        try {
+          await supabase
+            .from('video_clips')
+            .update({
+              continuity_manifest: extractedContinuityManifest,
+              color_profile: {
+                dominantColors: extractedContinuityManifest?.lighting?.colorTint ? [extractedContinuityManifest.lighting.colorTint] : [],
+                brightness: extractedContinuityManifest?.lighting?.ambientLevel === 'bright' ? 0.8 : 0.5,
+                warmth: extractedContinuityManifest?.lighting?.colorTemperature === 'warm' ? 0.7 : 0.4,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', clipId);
+          console.log(`[SingleClip] ✓ Continuity manifest persisted to DB`);
+        } catch (manifestDbErr) {
+          console.warn(`[SingleClip] Failed to persist manifest:`, manifestDbErr);
+        }
+      }
+    }
+
+    // Log API cost — Kling V3 (official model on Replicate)
+    // Replicate bills Kling v3 per output-second at ~$0.25-0.30/sec
+    // We use predict_time from the API response when available for actual GPU cost,
+    // and estimate per-output-second cost for the billing component.
+    // Credits charged MUST match what mode-router actually deducts per clip.
+    try {
+      // Kling v3 ACTUAL Replicate pricing (from replicate.com/kwaivgi/kling-v3-video):
+      // Pro mode (1080p), no audio: $0.224/sec of output video
+      // Pro mode (1080p), with audio: $0.336/sec of output video
+      // Standard mode (720p), no audio: $0.168/sec | with audio: $0.252/sec
+      // We use Pro mode → rates below are for Pro
+      const KLING_V3_COST_PER_OUTPUT_SEC_CENTS = 22.4; // $0.224/sec (pro, no audio)
+      const KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS = 33.6; // $0.336/sec (pro + audio)
+      
+      const perSecRate = isAvatarMode ? KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS : KLING_V3_COST_PER_OUTPUT_SEC_CENTS;
+      const realCostCents = Math.round(durationSeconds * perSecRate);
+      
+      const isExtended = durationSeconds > 10;
+      const creditsCharged = isAvatarMode
+        ? (isExtended ? 90 : 60)
+        : (isExtended ? 75 : 50);
+
+      await supabase.rpc('log_api_cost', {
+        p_project_id: projectId,
+        p_shot_id: `shot_${shotIndex}`,
+        p_service: 'replicate-kling-v3',
+        p_operation: 'single_clip_generation',
+        p_credits_charged: creditsCharged,
+        p_real_cost_cents: realCostCents,
+        p_duration_seconds: durationSeconds,
+        p_status: 'completed',
+        p_metadata: JSON.stringify({ 
+          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+          engine: engineLabel,
+          predictionId,
+          hasStartImage: !!validatedStartImage,
+          hasLastFrame: !!extractedLastFrameUrl,
+          hasContinuityManifest: !!extractedContinuityManifest,
+          replicate_predict_time_sec: predictTime || null,
+          replicate_total_time_sec: totalTime || null,
+          cost_method: 'per_output_second',
+          cost_rate_cents_per_sec: perSecRate,
+        }),
+      });
+      console.log(`[SingleClip] 💰 Cost logged: ${realCostCents}¢ (${durationSeconds}s × ${perSecRate}¢/s), predict_time=${predictTime || 'N/A'}s`);
+    } catch (costError) {
+      console.warn('[SingleClip] Failed to log cost:', costError);
+    }
+
+    const processingTimeMs = Date.now() - startTime;
+    console.log(`[SingleClip] Complete in ${processingTimeMs}ms`);
+
+    const result: SingleClipResult = {
+      success: true,
+      clipId,
+      predictionId,
+      videoUrl: storedVideoUrl,
+      lastFrameUrl: extractedLastFrameUrl || undefined,
+      durationSeconds,
+      motionVectors: extractedMotionVectors || undefined,
+    };
+
+    // =========================================================
+    // FAILSAFE #5: Persist pipeline context before triggering next clip
+    // =========================================================
+    const updatedContext = {
+      ...pipelineContext,
+      // CRITICAL: Always explicitly carry videoEngine so it survives all callback hops.
+      // Do NOT rely solely on spread — the interface may strip unknown keys during parsing.
+      videoEngine: videoEngine || pipelineContext?.videoEngine || 'kling',
+      accumulatedAnchors: [
+        ...(pipelineContext?.accumulatedAnchors || []),
+        {
+          clipIndex: shotIndex,
+          lastFrameUrl: extractedLastFrameUrl,
+          motionVectors: extractedMotionVectors,
+          continuityManifest: extractedContinuityManifest,
+          timestamp: Date.now(),
+        },
+      ],
+      goldenFrameData: shotIndex === 0 && extractedLastFrameUrl 
+        ? { goldenFrameUrl: extractedLastFrameUrl, clipIndex: 0, extractedAt: Date.now() }
+        : pipelineContext?.goldenFrameData,
+      referenceImageUrl: pipelineContext?.referenceImageUrl || (shotIndex === 0 ? extractedLastFrameUrl : null),
+    };
+    
+    await persistPipelineContext(supabase, projectId, updatedContext);
+    console.log(`[SingleClip] ✓ Pipeline context persisted with ${updatedContext.accumulatedAnchors.length} anchors`);
+
+    // =========================================================
+    // Release generation lock BEFORE triggering next clip
+    // =========================================================
+    await releaseLock();
+    console.log(`[SingleClip] ✓ Generation lock released`);
+
+    // =========================================================
+    // CHAIN QUEUE DRAIN — auto-resume the next chained shot if a
+    // parallel request had been parked waiting on THIS shot's tail
+    // frame. Server-side ordering enforcement: the next shot will
+    // re-enter generate-single-clip and the predecessor gate above
+    // will now find this clip 'completed' and inject the real tail.
+    // =========================================================
+    try {
+      const { data: queuedRow } = await supabase
+        .from('scene_chain_queue')
+        .select('payload, hold_id')
+        .eq('project_id', projectId)
+        .eq('shot_index', shotIndex + 1)
+        .maybeSingle();
+
+      if (queuedRow?.payload) {
+        console.log(`[SingleClip] ▶ Chain drain: re-firing parked shot ${shotIndex + 1} now that shot ${shotIndex} is complete`);
+
+        // Delete first so a duplicate completion can't double-fire.
+        await supabase
+          .from('scene_chain_queue')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex + 1);
+
+        // Re-fire with the freshly-extracted tail frame stamped in. The
+        // predecessor-gate on re-entry will also pick this up from DB, but
+        // we set it here so the very first prompt path sees it.
+        const replayBody = {
+          ...(queuedRow.payload as Record<string, unknown>),
+          startImageUrl: extractedLastFrameUrl || (queuedRow.payload as any).startImageUrl,
+          holdId: queuedRow.hold_id || undefined,
+        };
+
+        // Fire-and-forget. If this fails the watchdog will pick it up.
+        fetch(`${supabaseUrl}/functions/v1/generate-single-clip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify(replayBody),
+        }).catch(err => console.warn(`[SingleClip] Chain drain re-fire failed:`, err));
+      }
+    } catch (drainErr) {
+      console.warn(`[SingleClip] Chain queue drain error (non-fatal):`, drainErr);
+    }
+
+    // =========================================================
+    // Trigger next clip generation via continue-production
+    // CRITICAL FIX: Now passes REAL extracted data, not nulls!
+    // =========================================================
+    if (triggerNextClip && totalClips) {
+      console.log(`[SingleClip] Triggering continue-production for clip ${shotIndex + 2}/${totalClips}...`);
+      console.log(`[SingleClip] Passing: lastFrameUrl=${extractedLastFrameUrl ? 'YES' : 'NO'}, manifest=${extractedContinuityManifest ? 'YES' : 'NO'}`);
+      
+      try {
+        // Fire and forget - don't wait for response
+        const continueUrl = `${supabaseUrl}/functions/v1/continue-production`;
+        
+        // Use await to ensure error handling catches network issues
+        const response = await fetch(continueUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            projectId,
+            userId,
+            completedClipIndex: shotIndex,
+            completedClipResult: {
+              videoUrl: storedVideoUrl,
+              lastFrameUrl: extractedLastFrameUrl, // REAL extracted frame, not video URL!
+              motionVectors: extractedMotionVectors,
+              continuityManifest: extractedContinuityManifest,
+            },
+            totalClips,
+            pipelineContext: updatedContext, // Pass updated context with all anchors
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Continue-production fetch failed: ${response.status} ${await response.text()}`);
+        }
+        console.log(`[SingleClip] ✓ Continue-production triggered successfully`);
+        
+      } catch (continueErr) {
+        console.error(`[SingleClip] ❌ Error triggering continue-production:`, continueErr);
+        // We log it but don't fail the current function because the clip WAS generated successfully.
+        // The watchdog will pick up the stalled project eventually.
+      }
+    }
+
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[SingleClip] Error:", error);
+    // Release any active credit hold so the user isn't charged for a failed render.
+    try { await releaseHold(error instanceof Error ? error.message : 'unknown_error'); } catch {}
+    
+    // =========================================================
+    // CRITICAL: Release lock on error
+    // =========================================================
+    if (projectId) {
+      try {
+        // Try to release any lock this function might have acquired
+        // FIX #22: Use a valid UUID for lock release instead of empty string
+        // Empty string causes the lock to never actually release (UUID comparison fails)
+        const { data: proj } = await supabase
+          .from('movie_projects')
+          .select('generation_lock')
+          .eq('id', projectId)
+          .maybeSingle();
+        const lockId = (proj?.generation_lock as any)?.lock_id;
+        if (lockId) {
+          await releaseGenerationLock(supabase, projectId, lockId);
+        }
+      } catch (lockErr) {
+        console.warn(`[SingleClip] Failed to release lock on error:`, lockErr);
+      }
+    }
+    
+    // =========================================================
+    // CRITICAL: Update clip record with failure status
+    // This ensures failed clips are tracked for recovery
+    // =========================================================
+    if (userId && projectId) {
+      try {
+        // CRITICAL FIX: Preserve the original prompt from the request body
+        // NEVER overwrite prompt with error messages - this corrupts future retries
+        const body = await req.clone().json().catch(() => ({}));
+        const originalPrompt = body.prompt || `Shot ${shotIndex + 1}`;
+        
+        await upsertClipRecord(supabase, {
+          projectId,
+          userId,
+          shotIndex,
+          prompt: originalPrompt, // Keep original prompt, NOT "Generation failed"
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        });
+        console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked as failed (original prompt preserved)`);
+      } catch (dbError) {
+        console.error(`[SingleClip] Failed to update clip status:`, dbError);
+      }
+    }
+    
+    const result: SingleClipResult = {
+      success: false,
+      clipId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+    return new Response(
+      JSON.stringify(result),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

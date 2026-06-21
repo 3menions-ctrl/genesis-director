@@ -6,14 +6,14 @@
  *   - /create (the actual workshop, in the old AppShell)
  *   - /director (alternate director cockpit)
  *
- * Built on the canonical Foundation: FoundationShell + EditorialCanvas
- * + SpineBackdrop, sharing the same room as Library, Account, and Reel.
+ * Built on FoundationShell + SpineBackdrop and laid out with the same
+ * borderless, cover-overlap arrangement as the Profile page — open
+ * containers, generous spacing, a big serif identity, centered tabs.
  *
  * Anatomy:
- *   - FoundationShell header — Cmd+K command center + credits + account
- *   - Editorial chrome — breadcrumb, live timecode, credit pulse
- *   - Big serif headline + subhead
- *   - Glass segmented tabs: Create · Image · Scenes · Photo
+ *   - Full-bleed aurora cover band (no border)
+ *   - Hero pulled up to overlap: avatar · identity · actions
+ *   - Centered glass segmented tabs: Create · Image · Scenes · Photo
  *   - Sub-hub region — embeds the existing CreationHub / ImageStudioHub /
  *     PhotoEditorHub / ScenesHub primitives without modification.
  *
@@ -32,16 +32,16 @@ import {
   Compass,
   Library as LibraryIcon,
   Theater as TheaterIcon,
+  ArrowLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
-import {
-  EditorialCanvas,
-  EditorialEyebrow,
-  EditorialHeadline,
-} from "@/components/foundation/EditorialCanvas";
+import { PageShell } from "@/components/shell";
 import { CreationHub } from "@/components/studio/CreationHub";
+import { CreationStudio } from "@/components/studio/CreationStudio";
+import { FirstTakeTour } from "@/components/onboarding/FirstTakeTour";
+import { StudioBackdrop } from "@/components/studio/StudioBackdrop";
 import { ScenesHub } from "@/components/scenes/ScenesHub";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
@@ -77,7 +77,9 @@ import {
 } from "@/lib/creditSystem";
 import { getAuthoritativeCreditState } from "@/lib/credits/authoritativeCreditState";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { useModuleLink, useModuleBase, isMappedInModule } from "@/components/foundation/moduleBase";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tab model — same four modes as the legacy workshop, restated in
@@ -201,8 +203,19 @@ const LoadingOverlay = memo(function LoadingOverlay({
 // ─────────────────────────────────────────────────────────────────────────────
 function StudioContentInner() {
   const { navigate, emergencyNavigate } = useSafeNavigation();
-  const { user } = useAuth();
+  const moduleLink = useModuleLink();
+  const inModule = !!useModuleBase();
+  const { user, profile } = useAuth();
   const credits = useCredits();
+  // First name for the personalized hero greeting (Profile-page
+  // language). Falls back to the email local-part, then "Director".
+  const studioName = (() => {
+    const dn = (profile?.display_name ?? "").trim();
+    if (dn) return dn.split(/\s+/)[0];
+    const local = (user?.email ?? "").split("@")[0];
+    if (local) return local.charAt(0).toUpperCase() + local.slice(1);
+    return "Director";
+  })();
   const cinemaGuard = useCinemaGuard();
   const liveRenderTimecode = useLiveRenderTimecode();
   const reducedMotion = useReducedMotion();
@@ -267,6 +280,11 @@ function StudioContentInner() {
     }
   }, [isCreating]);
 
+  const [searchParams] = useSearchParams();
+  const initialPrompt =
+    searchParams.get("prompt") ??
+    (typeof window !== "undefined" ? window.sessionStorage.getItem("smallbridges.tour_prompt") ?? undefined : undefined);
+
   const handleHubReady = useCallback(() => {
     setIsHubReady(true);
   }, []);
@@ -302,7 +320,7 @@ function StudioContentInner() {
       templateStyleAnchor?: unknown;
       templateCharacters?: unknown[];
       templateEnvironmentLock?: unknown;
-      videoEngine?: "kling" | "veo" | "seedance" | "sora";
+      videoEngine?: "wan" | "kling" | "veo" | "seedance" | "sora";
     }) => {
       if (!user) {
         toast.error("Please sign in to create videos");
@@ -445,7 +463,7 @@ function StudioContentInner() {
   const activeMeta = STUDIO_TABS.find((t) => t.key === activeTab);
 
   return (
-    <FoundationShell>
+    <>
       {gatekeeper.isLoading && (
         <CinemaLoader
           isVisible={true}
@@ -457,119 +475,87 @@ function StudioContentInner() {
         />
       )}
 
+      {/* Borderless, cover-overlap arrangement — mirrors the Profile
+          page: a full-bleed aurora cover band, content pulled up to
+          overlap it, an open three-column hero (avatar · identity ·
+          actions) with no card chrome, then centered tabs. The creation
+          pipeline below is untouched — this is shell only. */}
       <div
-        className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10"
+        className="relative min-h-screen flex flex-col"
         style={{
           opacity: gatekeeper.isLoading ? 0 : 1,
           transition: "opacity 0.3s ease-out",
         }}
       >
-        <EditorialCanvas
-          maxWidth="100%"
-          chrome={{
-            crumbs: ["Small Bridges", "studio"],
-            timecode:
-              liveRenderTimecode ??
-              `${activeMeta?.label.toUpperCase() ?? "STUDIO"} · LIVE`,
-          }}
+        <StudioBackdrop />
+        <motion.section
+          style={{ position: "relative", zIndex: 1 }}
+          initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full"
         >
-          {/* ── Headline row ─────────────────────────────────────── */}
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="min-w-0 max-w-2xl">
-              <EditorialEyebrow>Studio</EditorialEyebrow>
-              <EditorialHeadline className="mt-5">
-                Create cinema.
-              </EditorialHeadline>
-              <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
-                Compose a film, sculpt a scene, refine a still. Every workflow
-                lives in one workshop — pick a mode and start directing.
-              </p>
-            </div>
-
-            {/* Quick exits — three doors back to the rest of the app. */}
-            <div className="flex flex-wrap gap-2">
-              {STUDIO_EXITS.map(({ to, label, sub, Icon }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className={cn(
-                    "group inline-flex items-center gap-2.5 rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] pl-3 pr-4 h-9",
-                    "transition-colors hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.05)]",
-                  )}
-                >
-                  <Icon
-                    className="h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-accent"
-                    strokeWidth={1.5}
-                  />
-                  <div className="flex items-baseline gap-2 leading-none">
-                    <span className="text-[12.5px] text-foreground/90">
-                      {label}
-                    </span>
-                    <span
-                      className={cn(TYPE_META, "text-muted-foreground/40")}
-                    >
-                      {sub}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Hairline rule + tabs ─────────────────────────────── */}
-          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-            <StudioTabs value={activeTab} onChange={setActiveTab} />
-            <div
-              className={cn(TYPE_META, "text-muted-foreground/50")}
-            >
-              {activeMeta?.sub}
-            </div>
-          </div>
-
-          {/* ── Sub-hub content ──────────────────────────────────── */}
-          <div className="mt-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={
-                  reducedMotion
-                    ? { opacity: 1 }
-                    : { opacity: 0, y: 16, filter: "blur(6px)" }
-                }
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: -8, filter: "blur(4px)" }
-                }
-                transition={{ duration: 0.45, ease: EASE_PREMIUM }}
+          <PageShell width="wide" pad>
+            {/* Slim, editor-style top bar — a back arrow to the lobby on the
+                left (replaces the foundation left-rail), credits + the other
+                doors on the right. No cover band, no profile puck. */}
+            <div className="flex items-center justify-between gap-3 pt-6 pb-5">
+              <Link
+                to={moduleLink("/lobby")}
+                aria-label="Back to lobby"
+                className="group inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-[hsl(220_30%_8%/0.5)] backdrop-blur-md px-4 h-9 transition-colors hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.07)]"
               >
-                {activeTab === "create" ? (
-                  <CreationHub
-                    onStartCreation={handleStartCreation}
-                    onReady={handleHubReady}
-                  />
-                ) : activeTab === "image" ? (
-                  <ImageStudioHub />
-                ) : activeTab === "photo" ? (
-                  <PhotoEditorHub />
-                ) : (
-                  <ScenesHub />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </EditorialCanvas>
+                <ArrowLeft className="h-4 w-4 text-white/70 group-hover:text-accent" strokeWidth={1.7} />
+                <span className="text-[13px] text-white/85 group-hover:text-white">Lobby</span>
+              </Link>
+
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="inline-flex items-center gap-2.5 rounded-full border border-white/[0.1] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
+                  <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
+                  <span className="text-[13px] font-medium text-white/90 tabular-nums">
+                    {credits.available.toLocaleString()}
+                  </span>
+                  <span className={cn(TYPE_META, "text-white/40")}>credits</span>
+                </div>
+                {STUDIO_EXITS.filter(({ to }) => to !== "/lobby" && (!inModule || isMappedInModule(to))).map(({ to, label, Icon }) => (
+                  <Link
+                    key={to}
+                    to={moduleLink(to)}
+                    className={cn(
+                      "group hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[hsl(220_30%_8%/0.45)] backdrop-blur-md px-3.5 h-9",
+                      "transition-colors hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.07)]",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5 text-white/60 group-hover:text-accent" strokeWidth={1.5} />
+                    <span className="text-[12.5px] text-white/85 group-hover:text-white">{label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* The Runway/Canva-style creation studio — left rail of modules,
+                a live canvas, and a persistent composition bar. Replaces the
+                old tabbed CreationHub / ImageStudioHub / Scenes / Photo layout. */}
+            <CreationStudio
+              onStartCreation={handleStartCreation}
+              onReady={handleHubReady}
+              initialPrompt={initialPrompt}
+            />
+          </PageShell>
+        </motion.section>
       </div>
 
       {isCreating && <LoadingOverlay status={creationStatus} />}
-    </FoundationShell>
+      <FirstTakeTour />
+    </>
   );
 }
 
 const StudioContent = withSafePageRef(StudioContentInner, "StudioContent");
+
+// Shell-agnostic workbench — the Studio content with no FoundationShell, for
+// embedding inside another shell (e.g. BusinessShell).
+export const StudioWorkbench = StudioContent;
 
 export default function Studio() {
   usePageMeta({
@@ -577,10 +563,13 @@ export default function Studio() {
     description:
       "Compose cinematic scenes, avatars, and environments in one studio.",
   });
+  usePageTone(TONE_PRESETS.studio);
 
   return (
     <ErrorBoundary>
-      <StudioContent />
+      <FoundationShell bare>
+        <StudioContent />
+      </FoundationShell>
     </ErrorBoundary>
   );
 }

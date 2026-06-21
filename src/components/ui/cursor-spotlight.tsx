@@ -32,28 +32,67 @@ export function CursorSpotlight() {
     let currentX = targetX;
     let currentY = targetY;
     let rafId = 0;
+    let running = false;
 
-    const onMove = (e: MouseEvent) => {
-      targetX = e.clientX;
-      targetY = e.clientY;
+    const startLoop = () => {
+      if (running) return;
+      if (document.visibilityState === "hidden") return;
+      running = true;
+      rafId = requestAnimationFrame(tick);
     };
 
     const tick = () => {
-      // Light damping so the spotlight follows but with a tiny lag.
-      currentX += (targetX - currentX) * 0.15;
-      currentY += (targetY - currentY) * 0.15;
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      // Snap when close enough to stop the loop entirely. The unconditional
+      // rAF + style-write was writing 60 transforms/sec for the entire
+      // app lifetime — primary cause of cursor lag + nav slowdowns,
+      // especially with mix-blend-mode: screen on a fixed full-viewport
+      // layer forcing GPU composite every frame.
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+        currentX = targetX;
+        currentY = targetY;
+        if (ref.current) {
+          ref.current.style.transform = `translate3d(${currentX - SPOTLIGHT_RADIUS}px, ${currentY - SPOTLIGHT_RADIUS}px, 0)`;
+        }
+        running = false;
+        return;
+      }
+      currentX += dx * 0.15;
+      currentY += dy * 0.15;
       if (ref.current) {
         ref.current.style.transform = `translate3d(${currentX - SPOTLIGHT_RADIUS}px, ${currentY - SPOTLIGHT_RADIUS}px, 0)`;
       }
       rafId = requestAnimationFrame(tick);
     };
 
+    const onMove = (e: MouseEvent) => {
+      targetX = e.clientX;
+      targetY = e.clientY;
+      startLoop();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        cancelAnimationFrame(rafId);
+        running = false;
+      } else {
+        startLoop();
+      }
+    };
+
     window.addEventListener("mousemove", onMove, { passive: true });
-    rafId = requestAnimationFrame(tick);
+    document.addEventListener("visibilitychange", onVisibility);
+    // Render the initial position, then idle until the cursor moves.
+    if (ref.current) {
+      ref.current.style.transform = `translate3d(${currentX - SPOTLIGHT_RADIUS}px, ${currentY - SPOTLIGHT_RADIUS}px, 0)`;
+    }
 
     return () => {
       window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("visibilitychange", onVisibility);
       cancelAnimationFrame(rafId);
+      running = false;
     };
   }, []);
 

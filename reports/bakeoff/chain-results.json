@@ -1,0 +1,13 @@
+{
+  "shot1": {
+    "url": "https://replicate.delivery/xezq/tnMpCv61siKEFlSZ3g7H9igsljyP7AAk6cZBKO0UlouGMUsF/tmpts5acvzu.mp4",
+    "predictTime": 57.920109577
+  },
+  "shot2": {
+    "url": "https://replicate.delivery/xezq/z6r3r3fspCwPZS1lStn9SASgncU6rvi5Zcgf4M4tjeIKlhitA/tmp0k9gz7qa.mp4",
+    "predictTime": 131.209634654
+  },
+  "seed": 42,
+  "shot1Prompt": "Cinematic tracking shot, 35mm anamorphic. A young woman in a deep red wool coat walks toward camera down a foggy cobblestone street at first light. Soft volumetric haze, cool blue dawn light with warm sodium streetlamps bleeding through the mist. Her dark hair moves with real weight, coat hem sways naturally, breath faintly visible in the cold. Wet cobblestones reflect the lamps with motivated specular highlights. Shallow depth of field, gentle handheld micro-motion, filmic grain, cinematic color grade. No plastic CGI sheen, no warping, no morphing.",
+  "shot2Prompt": "Continuous shot — the SAME young woman in the SAME deep red wool coat on the SAME foggy cobblestone street slows to a stop and turns to face the camera. Subtle, believable head and shoulder motion with real human weight; her expression settles, eyes meeting the lens. Breath visible in the cold air, hair settling naturally. Identical lighting and wardrobe continuity, shallow depth of field, filmic grain, cinematic grade. No identity drift, no warping, no morphing, no flicker."
+}

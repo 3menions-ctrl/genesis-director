@@ -92,7 +92,12 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 10, 10: 20 }, d),
+    // Free tier — the user-facing UI advertises 0 credits and the
+    // sign-up grant pre-loads enough credits to cover the optional
+    // 60fps surcharge. Charging here would be a billing-correctness
+    // bug; the FE/BE parity test in src/test/engines/fe-be-parity.test.ts
+    // pins this contract.
+    baseCreditsFor: (d) => tableCost({ 5: 0, 10: 0 }, d),
   },
   // -------- STANDARD --------
   'kling-v3': {

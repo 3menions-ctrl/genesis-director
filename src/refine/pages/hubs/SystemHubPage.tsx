@@ -9,6 +9,7 @@ import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
 const Config        = lazy(() => import("../AdminConfigPage"));
+const DbDiagnostics = lazy(() => import("../ops/AdminDbDiagnosticsPage"));
 const Audit         = lazy(() => import("../ops/AdminAuditLogPage"));
 const ApiKeys       = lazy(() => import("../ops/AdminApiKeysPage"));
 const Webhooks      = lazy(() => import("../ops/AdminWebhooksPage"));
@@ -29,8 +30,9 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function SystemHubPage() {
   const tabs: HubTab[] = [
-    { id: "config",     label: "Config",     suggested: true, render: () => wrap(Config) },
-    { id: "audit",      label: "Audit",      render: () => wrap(Audit) },
+    { id: "config",      label: "Config",      suggested: true, render: () => wrap(Config) },
+    { id: "diagnostics", label: "Diagnostics", render: () => wrap(DbDiagnostics) },
+    { id: "audit",       label: "Audit",       render: () => wrap(Audit) },
     { id: "api-keys",   label: "API Keys",   render: () => wrap(ApiKeys) },
     { id: "webhooks",   label: "Webhooks",   render: () => wrap(Webhooks) },
     { id: "secrets",    label: "Secrets",    render: () => wrap(Secrets) },

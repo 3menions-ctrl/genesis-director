@@ -1,0 +1,24 @@
+{
+  "name": "F03-title-styled",
+  "description": "A title overlay with custom position, hex color, bold flag, and explicit size. Asserts drawtext for both the shadow + main pass, escaped text, color hex translation, and bordercolor for the bold pass.",
+  "inputs": [
+    { "url": "file://background.mp4", "duration": 8, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "titleClips": [
+    {
+      "text": "Lower-Third Title",
+      "color": "#ff6b00",
+      "startSec": 1,
+      "durationSec": 3,
+      "x": 0.1,
+      "y": 0.85,
+      "sizePct": 5,
+      "bold": true
+    }
+  ]
+}

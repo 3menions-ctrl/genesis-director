@@ -165,6 +165,44 @@ Deno.serve(async (req) => {
     )
   }
 
+  // 2b. User-preference gate — respects emailNotifications master,
+  //     per-category toggle, and quiet hours (critical categories bypass).
+  //     Look up the recipient's user_id from the profiles table.
+  const category =
+    (body as { category?: string }).category ??
+    (template as { category?: string }).category ??
+    templateName;
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', effectiveRecipient.toLowerCase())
+    .maybeSingle();
+
+  if (profileRow?.id) {
+    const { data: shouldSend, error: gateErr } = await supabase.rpc('should_send_email_to', {
+      p_user_id: profileRow.id,
+      p_category: category,
+    });
+    if (gateErr) {
+      console.warn('Email preference gate failed open', { error: gateErr, profileId: profileRow.id, category });
+    } else if (shouldSend === false) {
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'suppressed_by_preference',
+      })
+      console.log('Email suppressed by user preference', { effectiveRecipient, templateName, category })
+      return new Response(
+        JSON.stringify({ success: false, reason: 'suppressed_by_preference' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+  }
+
   // 3. Get or create unsubscribe token (one token per email address)
   const normalizedEmail = effectiveRecipient.toLowerCase()
   let unsubscribeToken: string

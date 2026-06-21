@@ -1,0 +1,23 @@
+{
+  "name": "F05-muted-with-aux",
+  "description": "Voice clip with muted audio (audioFilter=volume=0) and an A2 aux music track. Asserts the voice clip's audio chain forces silence at the bake level and the aux music track is adelay'd in at its timeline start with amix.",
+  "inputs": [
+    {
+      "url": "file://voice.mp4",
+      "duration": 8,
+      "isIntro": false,
+      "audioFilter": "volume=0"
+    }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "auxAudio": [
+    {
+      "timelineStartSec": 0,
+      "durationSec": 8
+    }
+  ]
+}

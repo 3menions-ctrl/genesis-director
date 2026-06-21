@@ -14,7 +14,9 @@
  *   - Brand   — palette / fonts / logos / voice profile (placeholder
  *               for personal brand identity)
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -424,20 +426,257 @@ function MascotsTab() {
 // Workspace already has its own brand surface for business accounts; this
 // one is the personal-account equivalent and ships in a follow-up commit.
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// BrandTab — personal brand identity kit.
+//
+// Stores a simple identity manifest in localStorage scoped to the user id.
+// (Workspace-scoped brand_kits already exist for orgs; this is the personal
+// equivalent and intentionally does not require a DB migration.)
+// ─────────────────────────────────────────────────────────────────────────────
+type BrandProfile = {
+  name: string;
+  tagline: string;
+  palette: string[]; // hex strings
+  headingFont: string;
+  bodyFont: string;
+  voiceProfile: string;
+};
+
+const BRAND_FONTS = [
+  "Fraunces",
+  "Inter",
+  "Playfair Display",
+  "Space Grotesk",
+  "DM Sans",
+  "JetBrains Mono",
+];
+
+const DEFAULT_BRAND: BrandProfile = {
+  name: "",
+  tagline: "",
+  palette: ["#0F172A", "#E11D48", "#FCD34D"],
+  headingFont: "Fraunces",
+  bodyFont: "Inter",
+  voiceProfile: "",
+};
+
+function brandKey(userId: string | undefined) {
+  return userId ? `sb:brand:${userId}` : "sb:brand:anonymous";
+}
+function loadBrand(userId: string | undefined): BrandProfile {
+  try {
+    const raw = window.localStorage.getItem(brandKey(userId));
+    if (!raw) return DEFAULT_BRAND;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_BRAND, ...parsed };
+  } catch {
+    return DEFAULT_BRAND;
+  }
+}
+function saveBrand(userId: string | undefined, b: BrandProfile) {
+  try {
+    window.localStorage.setItem(brandKey(userId), JSON.stringify(b));
+  } catch {
+    /* ignore */
+  }
+}
+
 function BrandTab() {
+  const { user } = useAuth();
+  const [brand, setBrand] = useState<BrandProfile>(() => loadBrand(user?.id));
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setBrand(loadBrand(user?.id));
+    setDirty(false);
+  }, [user?.id]);
+
+  const update = <K extends keyof BrandProfile>(field: K, value: BrandProfile[K]) => {
+    setBrand((prev) => ({ ...prev, [field]: value }));
+    setDirty(true);
+  };
+
+  const setPaletteAt = (i: number, color: string) => {
+    setBrand((prev) => {
+      const next = [...prev.palette];
+      next[i] = color;
+      return { ...prev, palette: next };
+    });
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    saveBrand(user?.id, brand);
+    setDirty(false);
+    toast.success("Brand profile saved");
+  };
+
   return (
-    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
-      <div className="p-12 text-center">
-        <Palette className="mx-auto h-8 w-8 text-accent/60" strokeWidth={1.2} />
-        <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
-          Brand — coming online.
-        </h3>
-        <p className="mt-4 max-w-xl mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
-          Save your palette, fonts, logo, and voice profile so every film
-          you direct stays on-brand. Lighter version of the workspace
-          brand kit, scoped to personal accounts. Wires in next pass.
-        </p>
+    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl p-6 sm:p-8">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.32em] text-accent/85">
+            <Palette className="h-3 w-3" />Brand identity
+          </div>
+          <h3 className="mt-3 font-display italic text-[28px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+            Your visual + verbal kit.
+          </h3>
+          <p className="mt-2 text-[13px] text-muted-foreground/75 max-w-xl">
+            Save your palette, type pair, and tone. Studio will use these defaults whenever you generate.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!dirty}
+          className="shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] disabled:opacity-40"
+        >
+          {dirty ? "Save brand" : "Saved"}
+        </button>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Identity strings */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5 space-y-4">
+          <Field label="Brand name">
+            <input
+              type="text"
+              value={brand.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Slow Cinema Co."
+              maxLength={60}
+              className="w-full h-10 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[14px] focus:outline-none focus:border-accent/55"
+            />
+          </Field>
+          <Field label="Tagline">
+            <input
+              type="text"
+              value={brand.tagline}
+              onChange={(e) => update("tagline", e.target.value)}
+              placeholder="e.g. Quiet stories, deeply filmed."
+              maxLength={120}
+              className="w-full h-10 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[14px] focus:outline-none focus:border-accent/55"
+            />
+          </Field>
+          <Field label="Voice / tone notes">
+            <textarea
+              value={brand.voiceProfile}
+              onChange={(e) => update("voiceProfile", e.target.value)}
+              rows={4}
+              maxLength={600}
+              placeholder="Narration style, vocabulary, what to avoid…"
+              className="w-full px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:border-accent/55"
+            />
+          </Field>
+        </div>
+
+        {/* Visual identity */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5 space-y-5">
+          <Field label="Palette">
+            <div className="grid grid-cols-3 gap-3">
+              {brand.palette.map((color, i) => (
+                <div key={i} className="rounded-lg border border-white/[0.06] bg-black/30 overflow-hidden">
+                  <div className="h-16" style={{ backgroundColor: color }} />
+                  <div className="p-2">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setPaletteAt(i, e.target.value)}
+                      className="w-full h-6 rounded cursor-pointer bg-transparent border-0"
+                    />
+                    <input
+                      type="text"
+                      value={color}
+                      onChange={(e) => setPaletteAt(i, e.target.value)}
+                      maxLength={9}
+                      className="w-full mt-1 h-7 px-2 rounded bg-white/[0.04] text-[11px] font-mono text-foreground/85 text-center focus:outline-none focus:bg-white/[0.07]"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Field>
+          <Field label="Heading font">
+            <FontPicker value={brand.headingFont} onChange={(v) => update("headingFont", v)} />
+          </Field>
+          <Field label="Body font">
+            <FontPicker value={brand.bodyFont} onChange={(v) => update("bodyFont", v)} />
+          </Field>
+        </div>
+      </div>
+
+      {/* Live preview */}
+      <div
+        className="mt-6 rounded-xl p-8"
+        style={{
+          background: `linear-gradient(135deg, ${brand.palette[0] ?? "#0F172A"} 0%, ${brand.palette[0] ?? "#0F172A"}cc 100%)`,
+          color: "#fafafa",
+        }}
+      >
+        <div
+          className="text-[12px] uppercase tracking-[0.32em]"
+          style={{ color: brand.palette[2] ?? "#FCD34D", fontFamily: brand.bodyFont }}
+        >
+          Preview
+        </div>
+        <div
+          className="mt-3 text-[34px] font-light leading-tight"
+          style={{ fontFamily: brand.headingFont, color: "#fafafa" }}
+        >
+          {brand.name || "Your brand name"}
+        </div>
+        <div className="mt-2 text-[16px] opacity-85" style={{ fontFamily: brand.bodyFont }}>
+          {brand.tagline || "Your tagline appears here."}
+        </div>
+        <div className="mt-5 inline-flex items-center gap-2">
+          <span
+            className="inline-block h-9 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] flex items-center"
+            style={{ backgroundColor: brand.palette[1] ?? "#E11D48", color: "#0a0a0a", fontFamily: brand.bodyFont }}
+          >
+            Primary action
+          </span>
+          <span
+            className="inline-block h-9 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] flex items-center border"
+            style={{ borderColor: brand.palette[2] ?? "#FCD34D", color: brand.palette[2] ?? "#FCD34D", fontFamily: brand.bodyFont }}
+          >
+            Secondary
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70 mb-2">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function FontPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {BRAND_FONTS.map((f) => (
+        <button
+          key={f}
+          type="button"
+          onClick={() => onChange(f)}
+          className={cn(
+            "h-9 px-3 rounded-md text-[12px] transition-colors",
+            value === f
+              ? "bg-accent/85 text-black"
+              : "bg-white/[0.03] text-foreground/80 hover:bg-white/[0.08]",
+          )}
+          style={{ fontFamily: f }}
+        >
+          {f}
+        </button>
+      ))}
     </div>
   );
 }

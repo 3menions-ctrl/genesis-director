@@ -3,7 +3,7 @@
  *
  * Steps:
  *   1. Type — pick the atom_type (voice / character / location / look / score
- *      / vfx_pack / sheet_music / course). Each type has its own icon +
+ *      / vfx_pack / course). Each type has its own icon +
  *      description so the seller knows what they're listing.
  *   2. Details — name, description, atom_ref (the ID into the appropriate
  *      atom table, or external ref like a Voice ID), and tags.
@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 
 export type AtomType =
   | "voice" | "character" | "location" | "look"
-  | "score" | "vfx_pack" | "sheet_music" | "course";
+  | "score" | "vfx_pack" | "course";
 
 interface TypeMeta {
   key: AtomType;
@@ -49,7 +49,6 @@ const TYPES: TypeMeta[] = [
   { key: "look",        label: "Look / LUT",   icon: Layers,         hint: "A grade / film stock — a look that propagates across reels.",          refLabel: "Look ID",       refPlaceholder: "LUT path or look ref" },
   { key: "score",       label: "Score",        icon: Music2,         hint: "A finished cinematic cue — stems optional, license included.",         refLabel: "Score URL",     refPlaceholder: "https://… or storage path" },
   { key: "vfx_pack",    label: "VFX Pack",     icon: Sparkles,       hint: "A pack of overlays, motion graphics, or effect bundles.",              refLabel: "Pack URL",      refPlaceholder: "https://… or storage path" },
-  { key: "sheet_music", label: "Sheet music",  icon: Music2,         hint: "Notation PDF / MIDI. Bundle stems + arrangement notes.",               refLabel: "Sheet URL",     refPlaceholder: "https://… or PDF path" },
   { key: "course",      label: "Masterclass",  icon: GraduationCap,  hint: "Long-form teaching content — multi-lesson, certified.",                refLabel: "Course URL",    refPlaceholder: "https://… or course path" },
 ];
 

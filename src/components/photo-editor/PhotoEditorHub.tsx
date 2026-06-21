@@ -5,7 +5,7 @@ import {
   Upload, Image, Wand2, Download, Trash2,
   Loader2, CheckCircle2, AlertCircle, Layers,
   MessageSquare, Sparkles, X, Plus, Zap,
-  RotateCcw, ChevronRight, ChevronDown, ChevronUp, Video,
+  RotateCcw, ChevronRight, ChevronDown, ChevronUp, Video, Eraser,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,11 +16,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { PhotoTemplateGrid } from './PhotoTemplateGrid';
-import { PhotoEditCanvas } from './PhotoEditCanvas';
+import { PhotoEditCanvas, type PhotoEditCanvasHandle } from './PhotoEditCanvas';
 import { PhotoBulkPanel } from './PhotoBulkPanel';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
-export type PhotoEditMode = 'templates' | 'chat' | 'bulk';
+export type PhotoEditMode = 'templates' | 'chat' | 'bulk' | 'remove';
 
 interface UploadedPhoto {
   id: string;
@@ -44,8 +44,10 @@ export function PhotoEditorHub() {
   const [editedUrl, setEditedUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [chatInstruction, setChatInstruction] = useState('');
+  const [removePrompt, setRemovePrompt] = useState('');
   const [showControls, setShowControls] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<PhotoEditCanvasHandle>(null);
   const imageUpload = useFileUpload({ maxSizeMB: 15, allowedTypes: ['image/*'] });
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
@@ -132,7 +134,7 @@ export function PhotoEditorHub() {
       if (error) {
         let msg = 'Failed to process edit';
         try {
-          const ctx = (error as any)?.context;
+          const ctx = (error as { context?: { body?: { text?: () => Promise<string> } } })?.context;
           if (ctx?.body && typeof ctx.body.text === 'function') {
             const errBody = await ctx.body.text();
             const parsed = JSON.parse(errBody);
@@ -197,7 +199,7 @@ export function PhotoEditorHub() {
       if (error) {
         let msg = 'Failed to process edit';
         try {
-          const ctx = (error as any)?.context;
+          const ctx = (error as { context?: { body?: { text?: () => Promise<string> } } })?.context;
           if (ctx?.body && typeof ctx.body.text === 'function') {
             const errBody = await ctx.body.text();
             const parsed = JSON.parse(errBody);
@@ -226,6 +228,82 @@ export function PhotoEditorHub() {
     }
   }, [activePhoto, chatInstruction, user]);
 
+  const handleRemoveObject = useCallback(async () => {
+    if (!activePhoto) {
+      toast.error('Please upload a photo first');
+      return;
+    }
+    const maskDataUrl = canvasRef.current?.exportMask() || null;
+    if (!maskDataUrl) {
+      toast.error('Paint over the object you want to remove first');
+      return;
+    }
+    // Block if insufficient credits
+    if (userCredits < 2) {
+      setShowBuyCredits(true);
+      return;
+    }
+    setIsProcessing(true);
+    setEditedUrl(null);
+    try {
+      const { data: editRecord } = await supabase
+        .from('photo_edits')
+        .insert({
+          user_id: user!.id,
+          original_url: activePhoto.url,
+          custom_instruction: removePrompt.trim() || 'Remove masked object',
+          edit_type: 'object_removal',
+          status: 'pending',
+        })
+        .select('id')
+        .single();
+
+      const { data, error } = await supabase.functions.invoke('inpaint-photo', {
+        body: {
+          imageUrl: activePhoto.url,
+          maskDataUrl,
+          prompt: removePrompt.trim() || undefined,
+          editId: editRecord?.id,
+        },
+      });
+
+      if (error) {
+        let msg = 'Failed to remove object';
+        try {
+          const ctx = (error as { context?: { body?: { text?: () => Promise<string> } } })?.context;
+          if (ctx?.body && typeof ctx.body.text === 'function') {
+            const errBody = await ctx.body.text();
+            const parsed = JSON.parse(errBody);
+            if (parsed?.error) msg = parsed.error;
+          } else if (typeof ctx?.body === 'string') {
+            const parsed = JSON.parse(ctx.body);
+            if (parsed?.error) msg = parsed.error;
+          }
+        } catch {}
+        toast.error(msg);
+        return;
+      }
+      if (data?.error) {
+        if (data.error.includes('Insufficient credits')) {
+          toast.error(`Need ${data.required} credits (have ${data.available})`);
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+
+      setEditedUrl(data.editedUrl);
+      setRemovePrompt('');
+      canvasRef.current?.clearMask();
+      toast.success(`Object removed in ${(data.processingTimeMs / 1000).toFixed(1)}s`);
+    } catch (err) {
+      console.error('Object removal failed:', err);
+      toast.error('Failed to remove object');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [activePhoto, removePrompt, user, userCredits]);
+
   const handleDownload = useCallback(async () => {
     const url = editedUrl || activePhoto?.url;
     if (!url) return;
@@ -252,6 +330,7 @@ export function PhotoEditorHub() {
   const modes = [
     { id: 'templates' as const, label: 'Templates', icon: Layers },
     { id: 'chat' as const, label: 'AI Chat', icon: MessageSquare },
+    { id: 'remove' as const, label: 'Remove', icon: Eraser },
     { id: 'bulk' as const, label: 'Bulk', icon: Sparkles },
   ];
 
@@ -342,6 +421,7 @@ export function PhotoEditorHub() {
               {[
                 { icon: Layers,        label: 'Templates' },
                 { icon: MessageSquare, label: 'AI Chat' },
+                { icon: Eraser,        label: 'Remove Object' },
                 { icon: Sparkles,      label: 'Bulk' },
                 { icon: Video,         label: 'Use in Video' },
               ].map(({ icon: Ic, label }) => (
@@ -481,11 +561,13 @@ export function PhotoEditorHub() {
         {/* Main canvas */}
         <div className="lg:col-span-6">
           <PhotoEditCanvas
+            ref={canvasRef}
             originalUrl={activePhoto?.url || null}
             editedUrl={editedUrl}
             isProcessing={isProcessing}
             onDownload={handleDownload}
             onUseInVideo={handleUseInVideo}
+            maskMode={mode === 'remove'}
           />
         </div>
 
@@ -497,7 +579,7 @@ export function PhotoEditorHub() {
             className="lg:hidden w-full flex items-center justify-between p-3 rounded-xl bg-glass border border-white/[0.06] mb-2"
           >
             <span className="text-sm font-medium text-white/60">
-              {mode === 'templates' ? 'Templates' : mode === 'chat' ? 'AI Chat' : 'Bulk Edit'}
+              {mode === 'templates' ? 'Templates' : mode === 'chat' ? 'AI Chat' : mode === 'remove' ? 'Remove Object' : 'Bulk Edit'}
             </span>
             {showControls ? (
               <ChevronUp className="w-4 h-4 text-white/40" />
@@ -557,6 +639,48 @@ export function PhotoEditorHub() {
                     </div>
                   )}
 
+
+                  {mode === 'remove' && (
+                    <div className="flex flex-col h-full">
+                      <h3 className="text-sm font-medium text-white/60 mb-1.5">Remove an object</h3>
+                      <p className="text-xs text-white/30 mb-3 sm:mb-4 leading-relaxed">
+                        Paint over the object on the canvas with the brush, then run the removal. The masked area is regenerated as a clean background.
+                      </p>
+                      <div className="flex-1 flex flex-col justify-end gap-3 sm:gap-4">
+                        <div>
+                          <label className="text-xs text-white/40 mb-1.5 block">
+                            Fill prompt <span className="text-white/25">(optional)</span>
+                          </label>
+                          <Textarea
+                            value={removePrompt}
+                            onChange={e => setRemovePrompt(e.target.value)}
+                            placeholder="Leave blank for a clean background, or describe what should fill the area…"
+                            className="min-h-[64px] sm:min-h-[88px] bg-glass border-white/[0.08] text-white resize-none text-sm"
+                          />
+                        </div>
+                        <Button
+                          onClick={handleRemoveObject}
+                          disabled={isProcessing || !activePhoto}
+                          className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Removing…
+                            </>
+                          ) : (
+                            <>
+                              <Eraser className="w-4 h-4 mr-2" />
+                              Remove Object
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-white/30 text-center">
+                          2 credits per removal
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {mode === 'bulk' && (
                     <PhotoBulkPanel

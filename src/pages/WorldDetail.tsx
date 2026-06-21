@@ -140,7 +140,7 @@ export default function WorldDetail() {
                 </div>
                 <div className="relative flex flex-wrap items-center gap-3">
                   <Link
-                    to="/start"
+                    to="/auth?mode=signup"
                     className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-black hover:bg-white/90 transition-colors font-mono uppercase tracking-[0.22em] text-[11px]"
                   >
                     <Wand2 className="w-3.5 h-3.5" />Direct a {world.name.toLowerCase()} scene

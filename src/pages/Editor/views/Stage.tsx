@@ -64,6 +64,16 @@ export function Stage({ project, selectedClipId }: Props) {
     return activeClip.timelineStartSec + currentSec;
   }, [activeClip, currentSec]);
 
+  // Clamp activeIdx when clips shrink (e.g. user deleted the currently
+  // playing clip). Without this, the player jumps to EmptyCanvas and
+  // looks like the project broke.
+  useEffect(() => {
+    if (activeIdx >= clips.length && clips.length > 0) {
+      setActiveIdx(Math.max(0, clips.length - 1));
+      setCurrentSec(0);
+    }
+  }, [clips.length, activeIdx]);
+
   // Sync `activeIdx` with external selection
   useEffect(() => {
     if (!selectedClipId) return;

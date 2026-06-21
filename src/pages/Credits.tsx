@@ -14,15 +14,16 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Sparkles, Send, History, BadgeCheck, ArrowUpRight, Wand2, Coins } from 'lucide-react';
+import { Sparkles, History, ArrowUpRight, Wand2, Coins, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useSafeNavigation } from '@/lib/navigation';
 import { toast } from 'sonner';
-import { PrimaryCTA } from '@/components/ui/PrimaryCTA';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
+import { CREDIT_PACKAGES, approxClips, startCreditCheckout, type CreditPackage } from '@/lib/payments/creditPackages';
 
 interface CreditTransaction {
   id: string;
@@ -38,14 +39,12 @@ export default function Credits() {
     description: 'See your current Small Bridges credit balance and request more during beta.',
   });
 
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { navigate } = useSafeNavigation();
+  const credits = useCredits();
   const [history, setHistory] = useState<CreditTransaction[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [requestSubmitting, setRequestSubmitting] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
-  const [requestReason, setRequestReason] = useState('');
-  const [requestedAmount, setRequestedAmount] = useState('200');
+  const [buying, setBuying] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -68,42 +67,70 @@ export default function Credits() {
     };
   }, [user]);
 
+  // Handle the return from Stripe Checkout. Credits are granted
+  // server-side by the payments webhook; here we just confirm + refresh.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    if (!payment) return;
+    if (payment === 'success') {
+      toast.success('Payment complete — your credits have been added.');
+      void refreshProfile();
+      void credits.reconcile();
+    } else if (payment === 'cancelled') {
+      toast.info('Checkout cancelled — no charge was made.');
+    }
+    params.delete('payment');
+    params.delete('credits');
+    params.delete('session_id');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    // Run once on mount; refreshProfile/credits are stable enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const balance = profile?.credits_balance ?? 0;
   const used = profile?.total_credits_used ?? 0;
   const purchased = profile?.total_credits_purchased ?? 0;
 
-  const submitRequest = async () => {
-    if (!user || !profile) return;
-    const amount = Number(requestedAmount);
-    if (!Number.isFinite(amount) || amount < 50 || amount > 5000) {
-      toast.error('Pick an amount between 50 and 5,000 credits');
-      return;
+  const buy = async (pkg: CreditPackage) => {
+    if (!user) { navigate('/auth'); return; }
+    if (buying) return;
+    setBuying(pkg.id);
+    try {
+      await startCreditCheckout(pkg.id); // redirects on success
+    } catch (e) {
+      setBuying(null);
+      toast.error(e instanceof Error ? e.message : 'Could not start checkout');
     }
-    setRequestSubmitting(true);
-    const { error } = await supabase.from('support_messages').insert({
-      user_id: user.id,
-      name: profile.display_name ?? profile.email?.split('@')[0] ?? 'Small Bridges user',
-      email: profile.email ?? user.email ?? '',
-      source: 'credits_request',
-      subject: `Beta credit top-up — ${amount} credits`,
-      message:
-        `User requesting ${amount} additional credits while Small Bridges is in beta.\n` +
-        `Current balance: ${balance}\n` +
-        `Lifetime used: ${used}\n\n` +
-        `Reason:\n${requestReason || '(none provided)'}`,
-    });
-    setRequestSubmitting(false);
-    if (error) {
-      toast.error(error.message ?? 'Could not send request');
-      return;
-    }
-    setRequestSent(true);
-    toast.success("Request sent — we'll reply within one business day");
   };
 
   return (
     <div className="text-white">
-      <div className="max-w-[1180px] mx-auto px-6 pt-16 pb-24 space-y-16">
+      {/* Credits-only premium backdrop — a deep, molten orange gradient that
+          overrides the app's blue spine while you're on this page. Fixed +
+          pointer-events-none so it sits behind the content and unmounts when
+          you navigate away. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(115% 85% at 18% 0%, hsla(28,95%,52%,0.28) 0%, transparent 52%)," +
+            "radial-gradient(110% 80% at 100% 12%, hsla(14,90%,48%,0.22) 0%, transparent 50%)," +
+            "radial-gradient(120% 90% at 80% 100%, hsla(36,95%,50%,0.16) 0%, transparent 55%)," +
+            "linear-gradient(160deg, hsl(22 55% 7%) 0%, hsl(20 45% 4.5%) 55%, hsl(24 35% 3%) 100%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+        }}
+      />
+      <div className="relative z-10 max-w-[1180px] mx-auto px-6 pt-16 pb-24 space-y-16">
         {/* HERO — floating typography, animated balance counter, sparkline */}
         <CreditsHero
           balance={balance}
@@ -112,69 +139,47 @@ export default function Credits() {
           history={history}
         />
 
-        {/* Request more credits — floating, no container */}
+        {/* Buy credits — package cards → Stripe checkout */}
         <section>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-4 h-4 text-primary/80" />
             <h2 className="text-[18px] text-white font-display font-light">
-              Need more credits?
+              Buy more credits
             </h2>
           </div>
-          {requestSent ? (
-            <div className="flex items-start gap-4 py-2">
-              <BadgeCheck className="w-5 h-5 text-emerald-300 mt-0.5" />
-              <div>
-                <div className="text-white text-[14px] mb-1">Request received</div>
-                <p className="text-white/65 text-[13px] leading-relaxed max-w-2xl">
-                  We&rsquo;ll review and reply within one business day. In the meantime keep building — refunds for failed generations land back in your balance automatically.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="text-white/55 text-[13px] mb-5 leading-relaxed max-w-2xl">
-                During beta we hand-allocate credits to power users. Tell us how many you need and what you&rsquo;re building, and we&rsquo;ll top you up.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 max-w-3xl">
-                <label className="block">
-                  <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
-                    Credits requested
+          <p className="text-white/55 text-[13px] mb-6 leading-relaxed max-w-2xl">
+            One-time purchase, no subscription. Credits never expire, and refunds for failed renders land back in your balance automatically. Secure checkout via Stripe.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {CREDIT_PACKAGES.map((pkg) => (
+              <button
+                key={pkg.id}
+                onClick={() => buy(pkg)}
+                disabled={!!buying}
+                className={cn(
+                  'group relative text-left rounded-2xl border p-5 transition-colors disabled:opacity-60',
+                  pkg.popular
+                    ? 'border-accent/40 bg-[hsl(var(--accent)/0.06)] hover:border-accent/60'
+                    : 'border-white/[0.08] bg-white/[0.015] hover:border-white/25',
+                )}
+              >
+                {pkg.popular && (
+                  <span className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-accent text-black text-[9px] font-mono uppercase tracking-[0.22em]">
+                    Popular
                   </span>
-                  <input
-                    type="number"
-                    min={50}
-                    max={5000}
-                    step={50}
-                    value={requestedAmount}
-                    onChange={(e) => setRequestedAmount(e.target.value)}
-                    className="ds-input mt-1 font-mono"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
-                    What are you building? (optional)
-                  </span>
-                  <textarea
-                    rows={3}
-                    value={requestReason}
-                    onChange={(e) => setRequestReason(e.target.value)}
-                    placeholder="A short product video for a launch on Friday…"
-                    className="ds-input mt-1 resize-none"
-                  />
-                </label>
-              </div>
-              <div className="mt-6">
-                <PrimaryCTA
-                  size="lg"
-                  loading={requestSubmitting}
-                  onClick={submitRequest}
-                  icon={Send}
-                >
-                  Send request
-                </PrimaryCTA>
-              </div>
-            </>
-          )}
+                )}
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[15px] text-white">{pkg.name}</span>
+                  <span className="text-[20px] font-display tabular-nums text-white">${pkg.price}</span>
+                </div>
+                <div className="mt-1 text-[12px] text-white/55">{pkg.blurb}</div>
+                <div className="mt-4 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-accent/85">
+                  {buying === pkg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  {pkg.credits.toLocaleString()} credits · ~{approxClips(pkg.credits)} clips
+                </div>
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* CTA back to creation — floating */}
@@ -286,9 +291,6 @@ function CreditsHero({
   return (
     <section>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">
-        <span className="px-2 py-0.5 rounded-full border border-emerald-400/40 bg-emerald-500/[0.06] text-emerald-300 text-[9px] font-mono font-bold tracking-[0.32em]">
-          BETA · FREE
-        </span>
         <span>◆ Treasury</span>
       </div>
 
@@ -303,7 +305,7 @@ function CreditsHero({
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] font-light leading-relaxed text-muted-foreground/70">
-            Small Bridges is free while we&rsquo;re in beta. Generate, edit, and ship — every credit you spend is tracked here, every refund lands back in your balance automatically.
+            Generate, edit, and ship — every credit you spend is tracked here, and every refund for a failed render lands back in your balance automatically.
           </p>
         </div>
 

@@ -10,7 +10,6 @@
  *   - Sign in (email + password)
  *   - Create account (email + password + agree-to-terms + strength meter)
  *   - OTP verification after signup (six-cell code, paste-friendly)
- *   - OAuth (Apple, Google) via existing OAuthProviders component
  *   - Resend code + "use a different email" escape hatches
  *
  * Notable upgrades vs. the prior 1,046-line version:
@@ -28,10 +27,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { z } from "zod";
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ADMIN_ENABLED } from "@/admin/adminEnabled";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
@@ -39,11 +39,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { OAuthProviders } from "@/components/auth/OAuthProviders";
 import { AuthHeroStage } from "@/components/auth/AuthHeroStage";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
 import { AuthErrorBanner, classifyAuthError, type AuthErrorCue } from "@/components/auth/AuthErrorBanner";
-import { IntroOverlay } from "@/components/intro/IntroOverlay";
 import { sfx } from "@/lib/sound";
 import { celebrate } from "@/lib/celebrate";
 
@@ -119,44 +117,30 @@ export default function Auth() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
 
-  // Intro state. `pendingDest` holds where to navigate after the intro
-  // completes; while it's set, the auto-redirect effect doesn't fire.
-  const [introOpen, setIntroOpen] = useState(false);
-  const [pendingDest, setPendingDest] = useState<string | null>(null);
-
   const strength = useMemo(() => passwordStrength(password), [password]);
 
-  // ── Auto-redirect (or stage the intro) after sign in ───────────────
+  // ── Auto-redirect after sign in ────────────────────────────────────
+  // The cinematic "Small Bridges" intro (THE CROSSING) is retired here — it
+  // now plays ONLY on the landing-page entrance. Authenticated users route
+  // straight to their destination with no pre-roll animation.
   useEffect(() => {
     if (authLoading || !user || !profile) return;
-    if (introOpen) return; // intro already running
 
-    const dest = isAdmin
+    // Business/enterprise accounts land in the business module; everyone
+    // else in the consumer library.
+    const isBusinessAcct =
+      profile.account_type === "business" || profile.account_type === "enterprise";
+    const dest = (ADMIN_ENABLED && isAdmin)
       ? "/admin"
       : !profile.onboarding_completed
         ? nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : "/onboarding"
-        : (nextParam || "/library");
+        : (nextParam || (isBusinessAcct ? "/business" : "/library"));
 
-    // If this is a fresh sign-in (flag was set on submit / OAuth start),
-    // play the cinematic intro before redirecting.
-    const freshSignIn =
-      typeof window !== "undefined" &&
-      window.sessionStorage.getItem(INTRO_FLAG) === "1";
-
-    if (freshSignIn) {
-      window.sessionStorage.removeItem(INTRO_FLAG);
-      setPendingDest(dest);
-      setIntroOpen(true);
-      return;
-    }
+    // Clear any stale fresh-sign-in marker; it no longer gates an intro.
+    try { window.sessionStorage.removeItem(INTRO_FLAG); } catch { /* ignore */ }
 
     navigate(dest, { replace: true });
-  }, [authLoading, user, profile, isAdmin, nextParam, navigate, introOpen]);
-
-  const completeIntroAndGo = useCallback(() => {
-    setIntroOpen(false);
-    if (pendingDest) navigate(pendingDest, { replace: true });
-  }, [pendingDest, navigate]);
+  }, [authLoading, user, profile, isAdmin, nextParam, navigate]);
 
   // ── Submit ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(
@@ -265,7 +249,6 @@ export default function Auth() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
-      <IntroOverlay open={introOpen} onComplete={completeIntroAndGo} />
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
@@ -396,21 +379,7 @@ export default function Auth() {
                     ))}
                   </div>
 
-                  {/* OAuth row */}
-                  <div className="mt-7">
-                    <OAuthProviders next={nextParam} />
-                  </div>
-
-                  <div className="relative my-6" aria-hidden>
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-white/[0.06]" />
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-[#0a0b0f] px-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
-                        or
-                      </span>
-                    </div>
-                  </div>
+                  <div className="mt-7" />
 
                   <AuthErrorBanner cue={banner} />
 
@@ -598,6 +567,38 @@ export default function Auth() {
                       )}
                     </p>
                   </form>
+
+                  {/* Business account entry — only while creating an account */}
+                  {mode === "signup" && (
+                    <div className="mt-6">
+                      <div className="relative my-5" aria-hidden>
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-white/[0.06]" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-[#0a0b0f] px-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
+                            Working with a team?
+                          </span>
+                        </div>
+                      </div>
+                      <Link
+                        to="/business/start"
+                        onClick={() => sfx.play("click")}
+                        className="group flex items-center gap-3 w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md px-4 py-3.5 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:shadow-[0_0_0_1px_hsla(212,100%,62%,0.4),0_12px_36px_-16px_hsla(212,100%,55%,0.6)]"
+                      >
+                        <span className="w-9 h-9 rounded-lg bg-primary/[0.14] backdrop-blur-md flex items-center justify-center shrink-0">
+                          <Building2 className="w-4 h-4 text-primary" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13.5px] font-semibold text-white">Set up a business account</span>
+                          <span className="block text-[11.5px] text-white/50 leading-snug">
+                            Brand kit, team seats, plans & enterprise controls
+                          </span>
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      </Link>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

@@ -56,6 +56,10 @@ Disallow: /production
 Disallow: /production/
 Disallow: /script-review
 Disallow: /training-video
+# /loft — the Hidden Room. Built as a word-of-mouth easter egg; the
+# original commit promised "no nav entry, excluded from the sitemap."
+# Honoring that promise here belt-and-braces in case the sitemap drifts.
+Disallow: /loft
 Disallow: /editor
 Disallow: /create
 Disallow: /create/

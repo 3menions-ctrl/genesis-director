@@ -125,7 +125,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
     // Optional daily-prompt entry.
     if (enterPrompt && prompt) {
       try {
-        const { error } = await supabase.from("prompt_submissions").insert({
+        let { error } = await supabase.from("prompt_submissions").insert({
           prompt_id: prompt.id,
           reel_id: reelId,
           user_id: undefined, // RLS uses auth.uid()
@@ -134,14 +134,25 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
           // RLS on prompt_submissions requires user_id = auth.uid() — fetch and retry.
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            await supabase.from("prompt_submissions").insert({
+            const retry = await supabase.from("prompt_submissions").insert({
               prompt_id: prompt.id, reel_id: reelId, user_id: user.id,
             });
+            error = retry.error;
           }
         }
-        toast.success("Entered today's prompt");
+        // Only claim success when the insert actually landed. Previously
+        // the toast fired unconditionally — if both attempts were
+        // blocked by RLS the user was told their prompt entry succeeded
+        // when it silently failed.
+        if (error) {
+          console.warn("[PublishWizard] prompt entry failed", error.message);
+          toast.error("Couldn't enter today's prompt", { description: error.message });
+        } else {
+          toast.success("Entered today's prompt");
+        }
       } catch (e) {
         console.warn("[PublishWizard] prompt entry failed", e);
+        toast.error("Couldn't enter today's prompt");
       }
     }
 

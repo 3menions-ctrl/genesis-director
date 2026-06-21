@@ -46,15 +46,24 @@ const Toaster = ({ ...props }: ToasterProps) => {
   // as the complete CSS color.
   //
   // Same fix applied to the per-tier glow shells below.
+  // World-class glassmorphic toast shell.
+  // — Heavier backdrop blur (40px) for true depth-of-field separation
+  //   from the page behind.
+  // — Glass plate built from a top-down translucent gradient so the
+  //   surface reads as a refracted slab, not a flat block.
+  // — Generous border-radius (24px = rounded-3xl) keeps the chip
+  //   feeling premium at desktop sizes.
+  // — Per-tier override below adds a 3px accent stripe on the left
+  //   edge that bleeds into a soft inner glow of the same hue.
   const SHELL =
-    "group toast pointer-events-auto " +
-    "group-[.toaster]:rounded-2xl group-[.toaster]:px-6 group-[.toaster]:py-5 group-[.toaster]:gap-4 " +
-    "group-[.toaster]:backdrop-blur-2xl " +
-    "group-[.toaster]:bg-[hsl(220_14%_3%/0.94)] " +
-    "group-[.toaster]:border group-[.toaster]:border-white/[0.06] " +
-    "group-[.toaster]:min-w-[380px] group-[.toaster]:max-w-[520px] " +
+    "group toast pointer-events-auto relative overflow-hidden " +
+    "group-[.toaster]:rounded-3xl group-[.toaster]:px-6 group-[.toaster]:py-5 group-[.toaster]:gap-4 " +
+    "group-[.toaster]:backdrop-blur-[40px] " +
+    "group-[.toaster]:bg-[linear-gradient(135deg,hsl(220_30%_8%/0.88)_0%,hsl(220_30%_4%/0.92)_100%)] " +
+    "group-[.toaster]:border group-[.toaster]:border-white/[0.10] " +
+    "group-[.toaster]:min-w-[400px] group-[.toaster]:max-w-[560px] " +
     "group-[.toaster]:text-white " +
-    "group-[.toaster]:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.04)]";
+    "group-[.toaster]:shadow-[0_40px_100px_-24px_rgba(0,0,0,0.92),0_0_0_1px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_0_rgba(255,255,255,0.02)]";
 
   return (
     <Sonner
@@ -69,16 +78,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position="bottom-center"
       gap={14}
       offset={56}
-      visibleToasts={3}
+      // One at a time, two seconds. Stacked toasts read as "the app is
+      // yelling at me"; the user explicitly asked for less.
+      visibleToasts={1}
       toastOptions={{
-        duration: 4500,
+        duration: 2000,
         classNames: {
           toast: SHELL,
           title:
-            "group-[.toast]:font-display group-[.toast]:text-white group-[.toast]:font-semibold " +
-            "group-[.toast]:tracking-[-0.01em] group-[.toast]:text-[15px] group-[.toast]:leading-snug",
+            "group-[.toast]:font-display group-[.toast]:text-white group-[.toast]:font-medium " +
+            "group-[.toast]:tracking-[-0.015em] group-[.toast]:text-[16px] group-[.toast]:leading-snug",
           description:
-            "group-[.toast]:text-white/55 group-[.toast]:text-[13px] group-[.toast]:leading-relaxed group-[.toast]:mt-0.5",
+            "group-[.toast]:text-white/60 group-[.toast]:text-[13px] group-[.toast]:leading-relaxed group-[.toast]:mt-1",
           actionButton:
             "group-[.toast]:bg-primary group-[.toast]:text-white group-[.toast]:rounded-full " +
             "group-[.toast]:font-medium group-[.toast]:px-4 group-[.toast]:py-1.5 group-[.toast]:text-[12px] " +
@@ -94,18 +105,32 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:text-white/30 group-[.toast]:hover:text-white/80 group-[.toast]:transition-colors",
           icon: "group-[.toast]:[&>div]:h-8 group-[.toast]:[&>div]:w-8",
           success:
-            SHELL + " group-[.toaster]:!border-emerald-400/25 " +
-            "group-[.toaster]:shadow-[0_0_60px_rgba(16,185,129,0.18),0_0_120px_rgba(16,185,129,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(16,185,129,0.10)]",
+            SHELL + " group-[.toaster]:!border-emerald-400/35 " +
+            "group-[.toaster]:bg-[linear-gradient(135deg,hsl(155_45%_8%/0.92)_0%,hsl(220_30%_4%/0.94)_55%)] " +
+            "group-[.toaster]:before:absolute group-[.toaster]:before:inset-y-0 group-[.toaster]:before:left-0 group-[.toaster]:before:w-[3px] " +
+            "group-[.toaster]:before:bg-gradient-to-b group-[.toaster]:before:from-emerald-300 group-[.toaster]:before:via-emerald-400 group-[.toaster]:before:to-emerald-500/60 " +
+            "group-[.toaster]:shadow-[0_0_80px_rgba(16,185,129,0.28),0_0_160px_rgba(16,185,129,0.10),0_40px_100px_-24px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(16,185,129,0.18)]",
           error:
-            SHELL + " group-[.toaster]:!border-rose-400/25 " +
-            "group-[.toaster]:shadow-[0_0_60px_rgba(244,63,94,0.18),0_0_120px_rgba(244,63,94,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(244,63,94,0.10)]",
+            SHELL + " group-[.toaster]:!border-rose-400/35 " +
+            "group-[.toaster]:bg-[linear-gradient(135deg,hsl(0_55%_10%/0.92)_0%,hsl(220_30%_4%/0.94)_55%)] " +
+            "group-[.toaster]:before:absolute group-[.toaster]:before:inset-y-0 group-[.toaster]:before:left-0 group-[.toaster]:before:w-[3px] " +
+            "group-[.toaster]:before:bg-gradient-to-b group-[.toaster]:before:from-rose-300 group-[.toaster]:before:via-rose-400 group-[.toaster]:before:to-rose-500/60 " +
+            "group-[.toaster]:shadow-[0_0_80px_rgba(244,63,94,0.28),0_0_160px_rgba(244,63,94,0.10),0_40px_100px_-24px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(244,63,94,0.18)]",
           warning:
-            SHELL + " group-[.toaster]:!border-amber-400/25 " +
-            "group-[.toaster]:shadow-[0_0_60px_rgba(245,158,11,0.18),0_0_120px_rgba(245,158,11,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(245,158,11,0.10)]",
+            SHELL + " group-[.toaster]:!border-amber-400/35 " +
+            "group-[.toaster]:bg-[linear-gradient(135deg,hsl(35_55%_10%/0.92)_0%,hsl(220_30%_4%/0.94)_55%)] " +
+            "group-[.toaster]:before:absolute group-[.toaster]:before:inset-y-0 group-[.toaster]:before:left-0 group-[.toaster]:before:w-[3px] " +
+            "group-[.toaster]:before:bg-gradient-to-b group-[.toaster]:before:from-amber-300 group-[.toaster]:before:via-amber-400 group-[.toaster]:before:to-amber-500/60 " +
+            "group-[.toaster]:shadow-[0_0_80px_rgba(245,158,11,0.28),0_0_160px_rgba(245,158,11,0.10),0_40px_100px_-24px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(245,158,11,0.18)]",
           info:
-            SHELL + " group-[.toaster]:!border-primary/30 " +
-            "group-[.toaster]:shadow-[0_0_60px_rgba(10,132,255,0.18),0_0_120px_rgba(10,132,255,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(10,132,255,0.10)]",
-          loading: SHELL,
+            SHELL + " group-[.toaster]:!border-primary/40 " +
+            "group-[.toaster]:bg-[linear-gradient(135deg,hsl(215_55%_12%/0.92)_0%,hsl(220_30%_4%/0.94)_55%)] " +
+            "group-[.toaster]:before:absolute group-[.toaster]:before:inset-y-0 group-[.toaster]:before:left-0 group-[.toaster]:before:w-[3px] " +
+            "group-[.toaster]:before:bg-gradient-to-b group-[.toaster]:before:from-sky-300 group-[.toaster]:before:via-primary group-[.toaster]:before:to-primary/60 " +
+            "group-[.toaster]:shadow-[0_0_80px_rgba(10,132,255,0.28),0_0_160px_rgba(10,132,255,0.10),0_40px_100px_-24px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(10,132,255,0.18)]",
+          loading: SHELL +
+            " group-[.toaster]:before:absolute group-[.toaster]:before:inset-y-0 group-[.toaster]:before:left-0 group-[.toaster]:before:w-[3px] " +
+            "group-[.toaster]:before:bg-gradient-to-b group-[.toaster]:before:from-white/50 group-[.toaster]:before:via-white/30 group-[.toaster]:before:to-white/10",
         },
       }}
       icons={{

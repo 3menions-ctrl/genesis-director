@@ -12,6 +12,7 @@
 
 export type PaymentsProviderName =
   | "stripe"
+  | "polar"
   | "lemonsqueezy"
   | "paddle"
   | "btcpay";
@@ -64,6 +65,11 @@ export async function getPaymentsProvider(): Promise<PaymentsProvider> {
     case "stripe": {
       const { stripeProvider } = await import("./stripe");
       cached = stripeProvider;
+      return cached;
+    }
+    case "polar": {
+      const { polarProvider } = await import("./polar");
+      cached = polarProvider;
       return cached;
     }
     case "lemonsqueezy": {

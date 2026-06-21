@@ -1,6 +1,11 @@
 /** Shared primitives for admin create/edit dialogs — keeps each page terse. */
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 import { PrimaryCTA } from "@/components/ui/PrimaryCTA";
+import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
+
+const PANEL_BG =
+  "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))";
 
 export function AdminDialog({
   title,
@@ -20,17 +25,39 @@ export function AdminDialog({
   children: ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-primary/80" />}
-          <h2 className="text-white text-lg font-display font-light">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-lg space-y-4 overflow-hidden overflow-y-auto rounded-2xl p-6 backdrop-blur-xl"
+        style={{
+          background: PANEL_BG,
+          maxHeight: "90vh",
+          boxShadow: "0 40px 120px -50px rgba(0,0,0,0.95)",
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
+        />
+        <div className="flex items-center gap-3">
+          {Icon && (
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: `linear-gradient(135deg, ${accent(0.22)}, ${accent(0.08)})`, color: ACCENT_HSL }}
+            >
+              <Icon className="h-4 w-4" strokeWidth={1.8} />
+            </span>
+          )}
+          <h2 className="font-display text-lg font-semibold tracking-[-0.02em] text-white">{title}</h2>
         </div>
         <div className="space-y-3">{children}</div>
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2.5 pt-2">
           <button
             onClick={onClose}
-            className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2 rounded-lg border border-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
+            className="rounded-full bg-white/[0.06] px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-white/55 transition-colors hover:bg-white/[0.12] hover:text-white focus-visible:outline-none"
           >
             Cancel
           </button>
@@ -38,7 +65,7 @@ export function AdminDialog({
             {submitLabel}
           </PrimaryCTA>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -54,11 +81,11 @@ export function AdminField({
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
+      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
         {label}
       </span>
       {children}
-      {hint && <span className="block mt-1 text-[10px] text-white/30">{hint}</span>}
+      {hint && <span className="mt-1 block text-[10px] font-light text-white/35">{hint}</span>}
     </label>
   );
 }

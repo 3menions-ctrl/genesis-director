@@ -23,9 +23,6 @@ const FIRED = new WeakSet<Element>();
 /** Register a prefetcher for a route. Pass the same `() => import(...)`
  *  callback used in the `lazy(...)` call. */
 export function registerPrefetch(routePath: string, fn: PrefetchFn): void {
-  // Normalize trailing slash variants and dynamic-segment templates to a
-  // base path so `/library/cast` and `/library/looks` both hit the same
-  // entry for `/library/:atom`.
   REGISTRY.set(routePath, fn);
 }
 

@@ -1,0 +1,18 @@
+{
+  "name": "F06-v2-overlay",
+  "description": "A V2 overlay clip composited onto a V1 background clip. Asserts the overlay's per-input normalize, the overlay filter with enable=between(t,…) at the right window, and eof_action=pass so the overlay can extend past its source.",
+  "inputs": [
+    { "url": "file://background.mp4", "duration": 10, "isIntro": false }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4",
+  "overlays": [
+    {
+      "timelineStartSec": 2,
+      "durationSec": 4
+    }
+  ]
+}

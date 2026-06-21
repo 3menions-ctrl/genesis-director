@@ -1,5 +1,5 @@
 /**
- * HubShell — chrome shared by Lobby, Watch, Market, Music, Crews.
+ * HubShell — chrome shared by Lobby, Watch, Market, Music.
  *
  * It's the visible identity of the consumer-facing surfaces and the way
  * users move between them. Living header with persistent top nav, a
@@ -17,9 +17,11 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  Film, ShoppingBag, Music2, Users, Sparkles, Search, Tv, Layers,
+  Film, Music2, Users, Sparkles, Search, Tv, Layers,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { NotificationBell } from "@/components/social/NotificationBell";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HubShellProps {
   /** Optional accent override (HSL string e.g. "213 100% 53%") — usually
@@ -37,13 +39,12 @@ interface HubShellProps {
 const NAV: Array<{ label: string; to: string; icon: React.ElementType }> = [
   { label: "Lobby",  to: "/lobby",  icon: Tv },
   { label: "Music",  to: "/music",  icon: Music2 },
-  { label: "Market", to: "/market", icon: ShoppingBag },
-  { label: "Crews",  to: "/crews",  icon: Users },
   { label: "Studio", to: "/projects", icon: Film },
 ];
 
 export function HubShell({ accentHsl, eyebrow, children, fullBleed = false, hideSidebar = false }: HubShellProps) {
   const location = useLocation();
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -146,6 +147,11 @@ export function HubShell({ accentHsl, eyebrow, children, fullBleed = false, hide
             <span className="text-[11px] font-mono tracking-[0.12em]">Search</span>
             <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] text-white/55">⌘K</kbd>
           </button>
+
+          {/* Bell — sits to the right of Search so the chrome reads
+              left→right as nav → search → inbox → profile. Hidden when
+              unauthenticated. */}
+          {user && <NotificationBell />}
         </div>
 
         {eyebrow && (

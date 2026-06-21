@@ -1,0 +1,23 @@
+{
+  "threshold": 0,
+  "reporters": ["console", "json"],
+  "output": "./.jscpd",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.claude/**",
+    "**/supabase/functions/**",
+    "src/integrations/supabase/types.ts",
+    "src/refine/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test/**"
+  ],
+  "format": ["typescript", "tsx"],
+  "min-tokens": 80,
+  "min-lines": 12,
+  "absolute": false,
+  "gitignore": true
+}

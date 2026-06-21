@@ -12,6 +12,7 @@
 import { ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ACCENT_HSL, accent, ROSE } from "@/admin/ui/primitives";
 
 interface BulkActionBarProps {
   count: number;
@@ -34,17 +35,27 @@ export function BulkActionBar({ count, itemNoun = "item", onClear, children }: B
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none",
       )}
     >
-      <div className="relative rounded-2xl border border-white/[0.08] bg-background/95 backdrop-blur-2xl px-4 py-3 flex items-center gap-3 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.9)]">
+      <div
+        className="relative overflow-hidden rounded-2xl backdrop-blur-2xl px-4 py-3 flex items-center gap-3 shadow-[0_30px_90px_-40px_rgba(0,0,0,0.95)]"
+        style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))" }}
+      >
+        {/* Top specular highlight */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
+        />
         {/* Brand rail */}
         <span
           aria-hidden
-          className="absolute left-0 top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-[#0A84FF]/60 to-transparent"
+          className="absolute left-0 top-3 bottom-3 w-px"
+          style={{ background: `linear-gradient(to bottom, transparent, ${accent(0.6)}, transparent)` }}
         />
 
         <button
           type="button"
           onClick={onClear}
-          className="w-7 h-7 rounded-full border border-white/[0.08] hover:border-rose-400/40 hover:text-rose-300 text-white/55 flex items-center justify-center transition-colors shrink-0"
+          className="w-7 h-7 rounded-full bg-white/[0.06] text-white/55 hover:bg-white/[0.12] hover:text-white flex items-center justify-center transition-colors shrink-0"
           aria-label="Clear selection"
           title="Clear selection"
         >
@@ -52,7 +63,7 @@ export function BulkActionBar({ count, itemNoun = "item", onClear, children }: B
         </button>
 
         <div className="flex items-baseline gap-2">
-          <span className="text-[14px] text-white font-light tabular-nums">{count}</span>
+          <span className="font-display text-[15px] text-white font-semibold tracking-[-0.02em] tabular-nums">{count}</span>
           <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45">
             {count === 1 ? itemNoun : `${itemNoun}s`} selected
           </span>
@@ -78,18 +89,20 @@ export function BulkActionButton({
   onClick: () => void;
   disabled?: boolean;
 }) {
+  const toneStyle =
+    tone === "rose"
+      ? { color: ROSE, background: "hsl(350 90% 70% / 0.12)" }
+      : tone === "blue"
+      ? { color: ACCENT_HSL, background: accent(0.14) }
+      : { color: "rgba(255,255,255,0.75)", background: "rgba(255,255,255,0.06)" };
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      style={toneStyle}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border text-[11px] font-mono uppercase tracking-[0.22em] transition-colors",
-        tone === "rose"
-          ? "border-rose-400/30 text-rose-200 hover:bg-rose-400/[0.10] hover:border-rose-300/50"
-          : tone === "blue"
-          ? "border-primary/30 text-primary/80 hover:bg-primary/[0.10] hover:border-primary/50"
-          : "border-white/[0.08] text-white/75 hover:bg-glass-hover hover:border-white/20 hover:text-white",
+        "inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] transition-all hover:brightness-125",
         disabled && "opacity-40 cursor-not-allowed",
       )}
     >

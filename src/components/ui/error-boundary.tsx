@@ -3,6 +3,39 @@ import { AlertTriangle, RefreshCw, Home, Bug, Send, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Map a pathname like `/editor/abc-123/timeline` to a single short
+ * surface tag (`editor`). The Sentry issues list filters by this
+ * tag so a regression in the editor surface doesn't get lost in the
+ * noise from a hundred unrelated routes.
+ *
+ * Top-level segment is enough — sub-routes share a code area in this
+ * repo, so further granularity adds dimensions without payoff.
+ */
+export function deriveSurfaceFromPath(pathname: string): string {
+  const seg = (pathname || '').replace(/^\/+/, '').split('/')[0] || 'root';
+  // Auth + admin land are distinct from public routes; collapse the
+  // rest under their first segment.
+  switch (seg) {
+    case '': return 'root';
+    case 'editor': return 'editor';
+    case 'admin': return 'admin';
+    case 'account': return 'account';
+    case 'profile': return 'profile';
+    case 'lobby': return 'lobby';
+    case 'studio': return 'studio';
+    case 'library': return 'library';
+    case 'market': return 'market';
+    case 'reel': return 'reel';
+    case 'auth':
+    case 'login':
+    case 'signup':
+    case 'reset-password':
+    case 'forgot-password': return 'auth';
+    default: return seg;
+  }
+}
+
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
@@ -99,7 +132,29 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     
     console.error('[ErrorBoundary] Uncaught error:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
-    
+
+    // Surface the crash to Sentry with a `surface` tag derived from
+    // the current pathname. The tag lets the issues list be filtered
+    // by feature area without having to grep stack traces. Lazy
+    // import so the error boundary stays free of telemetry deps in
+    // tests + environments without a DSN.
+    try {
+      const surface = deriveSurfaceFromPath(
+        typeof window !== 'undefined' ? window.location?.pathname ?? '' : '',
+      );
+      import('@/lib/observability').then(({ captureException }) => {
+        captureException(error, {
+          surface,
+          tags: { errorName },
+          extra: { componentStack: errorInfo.componentStack },
+        });
+      }).catch(() => {
+        /* telemetry import failure must not cascade */
+      });
+    } catch {
+      /* defensive */
+    }
+
     this.setState({ errorInfo });
   }
 

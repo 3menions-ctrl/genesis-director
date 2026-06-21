@@ -1,0 +1,743 @@
+/**
+ * ProjectCard Component — Gallery-Tier Premium Redesign
+ * 
+ * Inspired by Apple TV+, MUBI, and Criterion Collection galleries.
+ * Rich cinematic cards with:
+ * - Deep atmospheric gradient overlays
+ * - Refined glassmorphic interactions
+ * - Editorial typography with subtle metadata
+ * - Luminous hover states with depth
+ */
+
+import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
+import { 
+  MoreVertical, Trash2, Film, Play, 
+  Download, Loader2, Clock, 
+  Pencil, RefreshCw,
+  Pin, PinOff, Globe, Lock, MonitorPlay,
+  Layers, Calendar
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { Project } from '@/types/studio';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { LazyVideoThumbnail, requestLoadSlot, releaseLoadSlot } from '@/components/ui/LazyVideoThumbnail';
+
+// ============= HELPERS =============
+
+const isManifestUrl = (url: string): boolean => url?.endsWith('.json');
+
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+// ============= TYPES =============
+
+export interface ProjectCardProps {
+  project: Project;
+  index: number;
+  onPlay: () => void;
+  onEdit: () => void;
+  onOpenInEditor?: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onDownload: () => void;
+  onRetryStitch?: () => void;
+  onBrowserStitch?: () => void;
+  onTogglePin?: () => void;
+  onTogglePublic?: () => void;
+  isActive: boolean;
+  isRetrying?: boolean;
+  isBrowserStitching?: boolean;
+  isPinned?: boolean;
+  viewMode?: 'grid' | 'list';
+  /** Pre-resolved clip URL from parent to avoid N+1 queries */
+  preResolvedClipUrl?: string | null;
+}
+
+// ============= COMPONENT =============
+
+export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(function ProjectCard({ 
+  project,
+  index,
+  onPlay,
+  onEdit,
+  onOpenInEditor,
+  onRename,
+  onDelete,
+  onDownload,
+  onRetryStitch,
+  onBrowserStitch,
+  onTogglePin,
+  onTogglePublic,
+  isActive,
+  isRetrying = false,
+  isBrowserStitching = false,
+  isPinned = false,
+  viewMode = 'grid',
+  preResolvedClipUrl,
+}, ref) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isMountedRef = useRef(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [videoSlotGranted, setVideoSlotGranted] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [scrubProgress, setScrubProgress] = useState<number | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+  
+  const status = project.status as string;
+  const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
+  const isManifest = project.video_url && isManifestUrl(project.video_url);
+  
+  const pendingTasks = project.pending_video_tasks as unknown as Record<string, unknown> | null;
+  const hasAvatarVideo = pendingTasks?.predictions 
+    ? Array.isArray(pendingTasks.predictions) && 
+      (pendingTasks.predictions as Array<{ videoUrl?: string; status?: string }>).some(
+        p => p.videoUrl && p.status === 'completed'
+      )
+    : false;
+  
+  const mseClipUrls = Array.isArray(pendingTasks?.mseClipUrls) ? pendingTasks.mseClipUrls as string[] : null;
+  const hasMseClips = Boolean(mseClipUrls && mseClipUrls.length > 0);
+  
+  const [isIOSSafari, setIsIOSSafari] = useState(false);
+  useEffect(() => {
+    const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(isTouchDev);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    setIsIOSSafari(isIOS && isSafari);
+  }, []);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+  
+  const [selfResolvedClipUrl, setSelfResolvedClipUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (preResolvedClipUrl || selfResolvedClipUrl) return;
+    if (project.video_clips?.length) return;
+    if (isDirectVideo) return;
+    
+    const fetchClip = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await supabase
+          .from('video_clips')
+          .select('video_url')
+          .eq('project_id', project.id)
+          .not('video_url', 'is', null)
+          .order('shot_index', { ascending: true })
+          .limit(1);
+        
+        const validClip = data?.find(clip => 
+          clip.video_url && !clip.video_url.includes('replicate.delivery')
+        );
+        
+        if (validClip?.video_url && isMountedRef.current) {
+          setSelfResolvedClipUrl(validClip.video_url);
+        }
+      } catch (err) {
+        // Silently fail
+      }
+    };
+    fetchClip();
+  }, [project.id, preResolvedClipUrl, selfResolvedClipUrl, project.video_clips, isDirectVideo]);
+  
+  const videoSrc = useMemo(() => {
+    if (preResolvedClipUrl) return preResolvedClipUrl;
+    if (selfResolvedClipUrl) return selfResolvedClipUrl;
+    if (project.video_clips?.length) {
+      const permanentClip = project.video_clips.find(url => 
+        url && !url.includes('replicate.delivery')
+      );
+      if (permanentClip) return permanentClip;
+      return project.video_clips[0];
+    }
+    if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
+      return project.video_url;
+    }
+    if (mseClipUrls && mseClipUrls.length > 0) {
+      return mseClipUrls[0];
+    }
+    return null;
+  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl, mseClipUrls]);
+
+  const visualSrc = project.thumbnail_url || project.source_image_url || videoSrc || null;
+  const hasVideo = Boolean(
+    videoSrc ||
+    preResolvedClipUrl ||
+    selfResolvedClipUrl ||
+    project.video_clips?.length ||
+    isDirectVideo ||
+    isManifest ||
+    hasAvatarVideo ||
+    pendingTasks?.hlsPlaylistUrl ||
+    hasMseClips
+  );
+
+  const handleVideoMetadataLoaded = useCallback(() => {
+    if (!isMountedRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
+    const duration = video.duration;
+    if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) return;
+    try {
+      const targetTime = Math.min(duration * 0.1, 1);
+      if (isFinite(targetTime) && targetTime >= 0) video.currentTime = targetTime;
+      if (isMountedRef.current) setVideoLoaded(true);
+    } catch (err) {
+      if (isMountedRef.current) setVideoError(true);
+    }
+  }, []);
+
+  const handleInteractionStart = useCallback(() => {
+    if (!isMountedRef.current) return;
+    if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+    setIsHovered(true);
+
+    if (!hasVideo || !videoSrc) return;
+
+    hoverTimerRef.current = setTimeout(async () => {
+      if (!isMountedRef.current) return;
+      await requestLoadSlot();
+      if (!isMountedRef.current) { releaseLoadSlot(); return; }
+      setVideoSlotGranted(true);
+    }, 150);
+  }, [hasVideo, videoSrc]);
+
+  const handleInteractionEnd = useCallback(() => {
+    if (!isMountedRef.current) return;
+    if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+    setIsHovered(false);
+    setScrubProgress(null);
+    if (videoSlotGranted) {
+      const video = videoRef.current;
+      if (video) safePause(video);
+      releaseLoadSlot();
+      setVideoSlotGranted(false);
+    }
+  }, [videoSlotGranted]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (videoSlotGranted) releaseLoadSlot();
+    };
+  }, [videoSlotGranted]);
+  
+  const handleMouseEnter = handleInteractionStart;
+  const handleMouseLeave = handleInteractionEnd;
+  
+  // Quick preview scrubbing — horizontal mouse position controls video time
+  const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!videoSlotGranted || !videoRef.current || !cardContainerRef.current) return;
+    const rect = cardContainerRef.current.getBoundingClientRect();
+    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setScrubProgress(fraction);
+    const vid = videoRef.current;
+    if (vid.duration && isFinite(vid.duration) && vid.duration > 0) {
+      const targetTime = vid.duration * fraction;
+      safeSeek(vid, targetTime);
+      safePause(vid); // pause while scrubbing for frame-accurate preview
+    }
+  }, [videoSlotGranted]);
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isHovered) { e.preventDefault(); handleInteractionStart(); }
+  }, [isHovered, handleInteractionStart]);
+  
+  const handleTouchEnd = useCallback(() => {}, []);
+
+  const isProcessing = ['generating', 'rendering', 'stitching', 'pending', 'awaiting_approval'].includes(status);
+  const isFailed = status === 'stitching_failed' || status === 'failed';
+  const visualStatus = hasVideo ? 'ready' : isProcessing ? 'rendering' : isFailed ? 'archived' : 'draft';
+
+  // ============= LIST VIEW =============
+  if (viewMode === 'list') {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
+          "bg-white/[0.015]",
+          "hover:bg-white/[0.04] hover:scale-[1.005]",
+          isActive && "ring-1 ring-[hsla(215,100%,60%,0.35)]"
+        )}
+        onClick={onPlay}
+      >
+        <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-white/[0.02] shrink-0">
+          {hasVideo && videoSrc ? (
+            <ThumbWithFallback
+              thumbnailUrl={project.thumbnail_url}
+              videoSrc={videoSrc}
+              alt={project.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              {isProcessing ? <Loader2 className="w-4 h-4 text-white/20 animate-spin" /> : <Film className="w-4 h-4 text-white/[0.06]" />}
+            </div>
+          )}
+          {isPinned && (
+            <div className="absolute top-1 left-1 w-4 h-4 rounded bg-primary/80 flex items-center justify-center">
+              <Pin className="w-2.5 h-2.5 text-primary-foreground" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-light tracking-[-0.005em] text-white/90 truncate">{project.name}</h3>
+          <p className="text-xs text-white/35 font-light mt-0.5">{formatTimeAgo(project.updated_at)}</p>
+        </div>
+
+        <div className="shrink-0">
+          {visualStatus === 'ready' && <StatusPill color="emerald" label="Ready" />}
+          {visualStatus === 'rendering' && <StatusPill color="white" label="Rendering" pulse />}
+          {visualStatus === 'archived' && <StatusPill color="white" label="Archived" />}
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {hasVideo && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
+              <Play className="w-3.5 h-3.5" fill="currentColor" />
+            </Button>
+          )}
+          <CardDropdown {...{ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ============= GRID VIEW — GALLERY PREMIUM =============
+  const showContentOverlay = isTouchDevice || isHovered;
+  
+  const handleCardClick = useCallback(() => {
+    if (hasVideo) onPlay();
+    else onEdit();
+  }, [hasVideo, onPlay, onEdit]);
+  
+  // Compute metadata for overlay
+  const clipCount = project.video_clips?.length || 0;
+  const formattedDate = new Date(project.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  
+  return (
+    <div
+      ref={(node) => {
+        cardContainerRef.current = node;
+        if (ref) {
+          if (typeof ref === 'function') ref(node);
+          else (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }
+      }}
+      className={cn(
+        "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out animate-fade-in",
+        "rounded-2xl",
+        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_50px_120px_-30px_hsla(215,100%,50%,0.25)]"
+      )}
+      style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
+      onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
+      onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
+      onMouseMove={!isTouchDevice ? handleMouseMove : undefined}
+      onTouchStart={isTouchDevice ? handleTouchStart : undefined}
+      onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
+      onClick={handleCardClick}
+    >
+      {/* Luminous edge on hover — cinematic blue glow */}
+      <div className={cn(
+        "absolute -inset-px rounded-[17px] transition-opacity duration-700 z-0 pointer-events-none",
+        isHovered ? "opacity-100" : "opacity-0"
+      )} style={{
+        background: 'linear-gradient(135deg, hsla(215,100%,60%,0.45), hsla(215,100%,70%,0.18), hsla(215,100%,60%,0.10))',
+      }} />
+
+      {/* Vignette bloom — radial glow from edges on hover */}
+      <div className={cn(
+        "absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-1000 z-0",
+        isHovered ? "opacity-70" : "opacity-0"
+      )} style={{
+        background: 'radial-gradient(ellipse at center, hsla(215,100%,60%,0.20) 0%, transparent 70%)',
+        filter: 'blur(28px)',
+      }} />
+
+      {/* Card body */}
+      <div className={cn(
+        "relative overflow-hidden rounded-2xl transition-all duration-700",
+        "bg-white/[0.018]",
+        "aspect-video",
+        isActive && "ring-1 ring-[hsla(215,100%,60%,0.45)]"
+      )}>
+        
+        {/* Video/Thumbnail layer — Ken Burns slow zoom on hover */}
+        {videoSrc ? (
+          <>
+            {isIOSSafari ? (
+              videoSlotGranted ? (
+                <video ref={videoRef} src={videoSrc}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                    isHovered ? "scale-[1.12]" : "scale-100"
+                  )}
+                  loop muted playsInline preload="none"
+                  onLoadedMetadata={handleVideoMetadataLoaded}
+                  onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
+                  onError={() => setVideoError(true)} />
+              ) : (
+                <ThumbWithFallback
+                  thumbnailUrl={project.thumbnail_url}
+                  videoSrc={videoSrc}
+                  alt={project.name}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                    isHovered ? "scale-[1.08]" : "scale-100"
+                  )}
+                />
+              )
+            ) : (
+              <>
+                <div className={cn(
+                  "absolute inset-0 w-full h-full transition-all duration-700",
+                  isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
+                )}>
+                  <ThumbWithFallback
+                    thumbnailUrl={project.thumbnail_url}
+                    videoSrc={videoSrc}
+                    alt={project.name}
+                    className={cn(
+                      "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )}
+                  />
+                </div>
+                {videoSlotGranted && (
+                  <video ref={videoRef} src={videoSrc}
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out opacity-100",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )}
+                    loop muted playsInline preload="none"
+                    onLoadedMetadata={handleVideoMetadataLoaded}
+                    onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
+                    onError={() => setVideoError(true)} />
+                )}
+              </>
+            )}
+          </>
+        ) : visualSrc ? (
+          <div className="absolute inset-0">
+            {project.thumbnail_url || project.source_image_url ? (
+              <img
+                src={visualSrc}
+                alt={project.name}
+                loading="lazy"
+                decoding="async"
+                className={cn(
+                  "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                  isHovered ? "scale-[1.08]" : "scale-100"
+                )}
+              />
+            ) : (
+              <LazyVideoThumbnail
+                src={visualSrc}
+                alt={project.name}
+                className="absolute inset-0 w-full h-full"
+              />
+            )}
+          </div>
+        ) : (
+          <CinematicTitlePlate title={project.name} index={index} isRendering={isProcessing} />
+        )}
+
+        {/* Cinematic gradient overlay — rich atmospheric depth */}
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-700 pointer-events-none",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-50")
+        )} style={{
+          background: 'linear-gradient(to top, hsl(250 15% 4% / 0.95) 0%, hsl(250 15% 4% / 0.5) 35%, hsl(250 15% 4% / 0.1) 65%, transparent 100%)',
+        }} />
+
+        {/* Top vignette for status badges */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
+
+        {/* Center play orb — glassmorphic with luminous ring */}
+        {hasVideo && (
+          <div className={cn(
+            "absolute inset-0 flex items-center justify-center z-10 transition-all duration-500",
+            isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
+          )}>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPlay(); }}
+              className={cn(
+                "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500",
+                "bg-white/[0.12] backdrop-blur-2xl border border-white/[0.18]",
+                "hover:bg-white/[0.20] hover:scale-110 hover:border-white/[0.28]",
+                "shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.05)]"
+              )}
+            >
+              <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
+            </button>
+          </div>
+        )}
+
+        {/* Top-left: Status indicator — minimal pill */}
+        <div className="absolute top-3 left-3 z-20">
+          {visualStatus === 'ready' && <StatusPill color="emerald" label="Ready" glass />}
+          {visualStatus === 'rendering' && <StatusPill color="white" label="Rendering" pulse glass />}
+          {visualStatus === 'archived' && (
+            isFailed && (project as { last_error?: string }).last_error ? (
+              <span
+                title={(project as { last_error?: string }).last_error || ''}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[hsla(0,72%,52%,0.18)] border border-[hsla(0,72%,62%,0.35)] px-2.5 py-1 text-[10px] font-light tracking-[0.08em] uppercase text-[hsl(0,72%,82%)] backdrop-blur-md max-w-[180px]"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(0,72%,62%)]" />
+                <span className="truncate">Failed · {(project as { last_error?: string }).last_error}</span>
+              </span>
+            ) : (
+              <StatusPill color="white" label="Archived" glass />
+            )
+          )}
+        </div>
+
+        {/* Top-right: Actions — appear on hover */}
+        <div className={cn(
+          "absolute top-3 right-3 z-30 flex items-center gap-1.5 transition-all duration-500",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
+        )}>
+          {isPinned && (
+            <div className="w-6 h-6 rounded-full bg-[hsla(215,100%,60%,0.85)] flex items-center justify-center backdrop-blur-sm shadow-[0_0_16px_hsla(215,100%,60%,0.5)]">
+              <Pin className="w-2.5 h-2.5 text-white" strokeWidth={1.8} />
+            </div>
+          )}
+          <CardDropdown {...{ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
+        </div>
+
+        {/* Bottom metadata — editorial typography + metadata overlays on hover */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-3.5 z-20">
+          <h3 className="font-display font-light tracking-[-0.01em] text-white text-[15px] leading-snug line-clamp-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+            {project.name}
+          </h3>
+          <div className={cn(
+            "flex items-center gap-2.5 mt-1.5 transition-all duration-500",
+          )}>
+            <span className="text-[10px] text-white/35 font-light tracking-[0.02em]">
+              {formatTimeAgo(project.updated_at)}
+            </span>
+            {/* Extended metadata on hover */}
+            <div className={cn(
+              "flex items-center gap-2 transition-all duration-500 overflow-hidden",
+              isHovered ? "opacity-100 max-w-[300px]" : "opacity-0 max-w-0"
+            )}>
+              {clipCount > 0 && (
+                <>
+                  <span className="w-px h-2.5 bg-white/[0.08]" />
+                  <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
+                    <Layers className="w-2.5 h-2.5" strokeWidth={1.5} />
+                    {clipCount} clip{clipCount !== 1 ? 's' : ''}
+                  </span>
+                </>
+              )}
+              <span className="w-px h-2.5 bg-white/[0.08]" />
+              <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
+                <Calendar className="w-2.5 h-2.5" strokeWidth={1.5} />
+                {formattedDate}
+              </span>
+            </div>
+            {project.is_public && (
+              <>
+                <span className="w-px h-2.5 bg-white/[0.08]" />
+                <Globe className="w-2.5 h-2.5 text-emerald-400/40" />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Scrub progress indicator — thin bar at bottom */}
+        {isHovered && scrubProgress !== null && hasVideo && (
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] z-30 bg-white/[0.06]">
+            <div
+              className="h-full bg-[hsla(215,100%,65%,0.85)] shadow-[0_0_12px_hsla(215,100%,60%,0.6)] transition-[width] duration-75 ease-linear"
+              style={{ width: `${scrubProgress * 100}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}));
+
+ProjectCard.displayName = 'ProjectCard';
+
+// ============= SUB-COMPONENTS =============
+
+function CinematicTitlePlate({ title, index, isRendering }: { title: string; index: number; isRendering?: boolean }) {
+  const palettes = [
+    ['hsl(217 91% 10%)', 'hsl(220 14% 3%)', 'hsl(190 70% 18%)'],
+    ['hsl(220 14% 5%)', 'hsl(211 100% 13%)', 'hsl(160 55% 12%)'],
+    ['hsl(220 14% 4%)', 'hsl(38 85% 10%)', 'hsl(217 91% 12%)'],
+  ];
+  const palette = palettes[index % palettes.length];
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center p-8"
+      style={{
+        background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 54%, ${palette[2]} 100%)`,
+      }}
+    >
+      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 15%, hsl(var(--primary) / 0.22), transparent 34%)' }} />
+      <div className="relative text-center max-w-[78%]">
+        {isRendering && <div className="mx-auto mb-5 h-9 w-9 rounded-full border border-foreground/10 border-t-primary/50 animate-spin" />}
+        <div className="mx-auto mb-4 h-px w-16 bg-primary/50" />
+        <p className="font-display text-lg sm:text-xl font-semibold leading-tight text-foreground line-clamp-2">
+          {title}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Renders project.thumbnail_url as <img>, but on load error/404 falls back
+ *  to the cached LazyVideoThumbnail (frame extraction + persistent cache).
+ *  This prevents broken/expired thumbnails from showing as a "Failed" tile. */
+function ThumbWithFallback({
+  thumbnailUrl,
+  videoSrc,
+  alt,
+  className,
+}: {
+  thumbnailUrl: string | null | undefined;
+  videoSrc: string;
+  alt: string;
+  className?: string;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (thumbnailUrl && !imgFailed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={alt}
+        loading="lazy"
+        className={className}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+  return (
+    <LazyVideoThumbnail
+      src={videoSrc}
+      posterUrl={thumbnailUrl ?? null}
+      alt={alt}
+      className={className}
+    />
+  );
+}
+
+const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; pulse?: boolean; glass?: boolean }>(
+  function StatusPill({ color, label, pulse, glass }, ref) {
+    const colors: Record<string, string> = {
+      emerald: 'bg-emerald-400',
+      white: 'bg-white/40',
+      red: 'bg-red-400',
+    };
+    return (
+      <span ref={ref} className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
+        glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
+      )}>
+        <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
+        <span className={cn(
+          "text-[10px] font-medium tracking-wide",
+          color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
+        )}>{label}</span>
+      </span>
+    );
+  }
+);
+StatusPill.displayName = 'StatusPill';
+
+function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }: any) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-2xl text-white/60 hover:text-white hover:bg-black/60 hover:scale-110 transition-all duration-300 border-0"
+        >
+          <MoreVertical className="w-3.5 h-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-48 rounded-2xl border-0 shadow-2xl p-1"
+        style={{
+          background: 'hsla(220,14%,4%,0.85)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+          boxShadow: '0 24px 64px -16px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+        }}
+      >
+        {hasVideo && onOpenInEditor && (
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpenInEditor(); }} className="gap-2 text-sm font-light text-[hsl(215,100%,75%)] focus:text-[hsl(215,100%,85%)] focus:bg-[hsla(215,100%,60%,0.1)] rounded-xl py-2 px-2.5">
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />Open in Editor
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+          {isPinned ? <PinOff className="w-4 h-4" strokeWidth={1.5} /> : <Pin className="w-4 h-4" strokeWidth={1.5} />}
+          {isPinned ? 'Unpin' : 'Pin to Top'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+          <Pencil className="w-4 h-4" strokeWidth={1.5} />Rename
+        </DropdownMenuItem>
+        {hasVideo && (
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm font-light rounded-xl py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/70 focus:text-white focus:bg-white/[0.06]")}>
+            {project.is_public ? <Globe className="w-4 h-4" strokeWidth={1.5} /> : <Lock className="w-4 h-4" strokeWidth={1.5} />}
+            {project.is_public ? 'Public' : 'Share to Feed'}
+          </DropdownMenuItem>
+        )}
+        {status === 'stitching_failed' && onRetryStitch && (
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm font-light text-warning focus:text-warning/80 focus:bg-warning/10 rounded-xl py-2 px-2.5">
+            <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} strokeWidth={1.5} />Retry Stitch
+          </DropdownMenuItem>
+        )}
+        {onBrowserStitch && (
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onBrowserStitch(); }} disabled={isBrowserStitching} className="gap-2 text-sm font-light text-[hsl(215,100%,75%)] focus:text-[hsl(215,100%,85%)] focus:bg-[hsla(215,100%,60%,0.1)] rounded-xl py-2 px-2.5">
+            <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} strokeWidth={1.5} />Browser Stitch
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator className="bg-white/[0.05] my-0.5" />
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm font-light text-destructive focus:text-destructive/80 focus:bg-destructive/10 rounded-xl py-2 px-2.5">
+          <Trash2 className="w-4 h-4" strokeWidth={1.5} />Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export default ProjectCard;

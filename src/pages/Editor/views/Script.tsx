@@ -92,9 +92,12 @@ import {
 import {
   parseScreenplay,
   fmtSceneTimecode,
+  coerceScreenplay,
 } from "@/lib/editor/screenplay";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { createDraftProject } from "@/lib/editor/createDraftProject";
 import { toast } from "sonner";
 import {
   getDocumentState,
@@ -202,6 +205,7 @@ function ScriptInner({ project }: Props) {
     getDocumentState,
   );
   const doc = docState.doc;
+  const navigate = useNavigate();
 
   const isEmptyProject = !project.id || project.id === "no-project";
   const initial = (project.scriptContent ?? "").trim();
@@ -227,8 +231,8 @@ function ScriptInner({ project }: Props) {
           .eq("id", project.id)
           .maybeSingle();
         if (cancelled || error || !data) return;
-        const draft = (data.generated_script ?? "").trim();
-        const approved = (data.script_content ?? "").trim();
+        const draft = coerceScreenplay(data.generated_script);
+        const approved = coerceScreenplay(data.script_content);
         if (draft && draft.toLowerCase() !== approved.toLowerCase()) {
           setPendingDraft(draft);
         } else {
@@ -365,25 +369,37 @@ function ScriptInner({ project }: Props) {
 
   // ── Save the whole script (used by Redraft + global Edit fallback)
   const saveWholeScript = useCallback(async () => {
-    if (isEmptyProject) {
-      toast.error("Open a project first to save the screenplay.");
-      return;
-    }
     setSaving(true);
     setScriptContent(value);
     try {
+      // If the user is writing into the empty NLE surface, mint a draft
+      // project so their first save just works. The project id is then
+      // used for the update; we navigate after the write lands so the
+      // editor re-mounts on the new project with the script loaded.
+      let targetId = project.id;
+      let mintedProjectId: string | null = null;
+      if (isEmptyProject) {
+        const newId = await createDraftProject();
+        if (!newId) throw new Error("Couldn't create a project to save into.");
+        targetId = newId;
+        mintedProjectId = newId;
+      }
       const { error } = await supabase
         .from("movie_projects")
         .update({ script_content: value })
-        .eq("id", project.id);
+        .eq("id", targetId);
       if (error) throw error;
       setSavedAt(Date.now());
+      if (mintedProjectId) {
+        toast.success("Project created · screenplay saved");
+        navigate(`/editor/${mintedProjectId}`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save.");
     } finally {
       setSaving(false);
     }
-  }, [value, project.id, isEmptyProject]);
+  }, [value, project.id, isEmptyProject, navigate]);
 
   // Per-block edit: save just the one beat.
   const commitBlockEdit = useCallback(
@@ -540,6 +556,17 @@ function ScriptInner({ project }: Props) {
   }
 
   // ── Render: no script yet ──────────────────────────────────────
+  // Differentiate two cases:
+  //   1. Generated project that just hasn't been written yet — show
+  //      "Draft with AI" CTA.
+  //   2. Upload-only project (every clip is `Imported:` / `User upload:` —
+  //      no generator wrote a screenplay) — show "No script available
+  //      for this video" honest empty state.
+  const allClips = project.scenes.flatMap((s) => s.clips);
+  const isUploadOnly = allClips.length > 0 && allClips.every((c) => {
+    const p = (c.prompt ?? "").toLowerCase();
+    return p.startsWith("imported:") || p.startsWith("user upload:");
+  });
   if (!displayText.trim()) {
     return (
       <section className="relative flex-1 min-h-0 flex items-center justify-center px-8">
@@ -549,8 +576,13 @@ function ScriptInner({ project }: Props) {
             className="mt-5 font-display italic text-[22px] font-light text-foreground/85"
             style={{ fontFamily: "'Fraunces', serif" }}
           >
-            No screenplay yet.
+            {isUploadOnly ? "No script available for this video." : "No screenplay yet."}
           </p>
+          {isUploadOnly && (
+            <p className={cn(TYPE_META, "mt-3 text-muted-foreground/55 leading-relaxed")}>
+              This project was assembled from uploaded clips. A screenplay can still be drafted from the video — click Draft with AI.
+            </p>
+          )}
           <button
             type="button"
             onClick={() => void regenerate()}
@@ -968,7 +1000,7 @@ function SceneSection({
             <span className={cn(TYPE_META, "tabular-nums tracking-[0.24em] text-muted-foreground/55 font-mono")}>
               SCENE {String(sceneIndex + 1).padStart(2, "0")}
             </span>
-            <span className="font-mono uppercase tracking-[0.18em] text-[13px] text-accent group-hover/slug:text-foreground transition-colors">
+            <span className="font-mono uppercase tracking-[0.18em] text-[15px] text-accent group-hover/slug:text-foreground transition-colors">
               ◆ {scene.slug}
             </span>
             {firstClip && (
@@ -978,7 +1010,7 @@ function SceneSection({
             )}
           </div>
           {(scene.mood || scene.timeOfDay) && (
-            <div className="mt-1 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground/55">
+            <div className="mt-1.5 flex items-center gap-2 text-[12.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/65">
               {scene.timeOfDay && <span>{scene.timeOfDay}</span>}
               {scene.timeOfDay && scene.mood && <span className="text-muted-foreground/30">·</span>}
               {scene.mood && <span>{scene.mood}</span>}
@@ -1093,7 +1125,7 @@ function BeatRenderer({
           }}
           className={cn(
             "block w-full resize-none bg-transparent outline-none",
-            "font-display italic text-[14px] leading-snug text-foreground",
+            "font-display italic text-[17px] leading-[1.6] text-foreground",
             "caret-accent",
           )}
           style={{ fontFamily: "'Fraunces', serif" }}
@@ -1134,8 +1166,8 @@ function BeatRenderer({
             className="block w-full text-left rounded-md py-1 px-2 -mx-2 transition-colors hover:bg-white/[0.025]"
           >
             <p
-              className="text-[14px] leading-[1.65] whitespace-pre-wrap font-display italic font-light text-foreground/95"
-              style={{ fontFamily: "'Fraunces', serif" }}
+              className="text-[20px] leading-[1.65] whitespace-pre-wrap font-display italic text-foreground"
+              style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
             >
               {beat.text}
             </p>
@@ -1149,7 +1181,7 @@ function BeatRenderer({
     case "character":
       return (
         <div className="text-center mt-3">
-          <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
+          <span className="font-mono uppercase tracking-[0.18em] text-[14px] text-foreground/95">
             {beat.text}
           </span>
         </div>
@@ -1157,7 +1189,7 @@ function BeatRenderer({
 
     case "paren":
       return (
-        <div className="mx-auto max-w-[60%] text-center text-[12px] text-muted-foreground/65 italic">
+        <div className="mx-auto max-w-[60%] text-center text-[13.5px] text-muted-foreground/75 italic leading-snug">
           {beat.text}
         </div>
       );
@@ -1169,11 +1201,11 @@ function BeatRenderer({
           {character && (
             <div className="flex items-center justify-center gap-2 mb-1">
               <CharacterAvatar character={character} size="sm" />
-              <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
+              <span className="font-mono uppercase tracking-[0.18em] text-[14px] text-foreground/95">
                 {character.name}
               </span>
               {beat.voiceDirection && (
-                <span className="text-[11px] text-muted-foreground/65 italic">({beat.voiceDirection})</span>
+                <span className="text-[12.5px] text-muted-foreground/75 italic">({beat.voiceDirection})</span>
               )}
             </div>
           )}
@@ -1186,7 +1218,7 @@ function BeatRenderer({
             )}
           >
             <p
-              className="mx-auto max-w-[72%] text-[14.5px] leading-[1.55] whitespace-pre-wrap font-display italic text-foreground/95"
+              className="mx-auto max-w-[72%] text-[17.5px] leading-[1.6] whitespace-pre-wrap font-display italic text-foreground/95"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
               {beat.text}
@@ -1200,7 +1232,7 @@ function BeatRenderer({
 
     case "transition":
       return (
-        <div className="font-mono uppercase tracking-[0.16em] text-[12px] text-muted-foreground/65 text-right my-4">
+        <div className="font-mono uppercase tracking-[0.16em] text-[13.5px] text-muted-foreground/75 text-right my-5">
           {beat.text}
         </div>
       );
@@ -1210,7 +1242,7 @@ function BeatRenderer({
     case "music-cue":
     default:
       return (
-        <div className="mx-auto max-w-[72%] text-center text-[12.5px] text-muted-foreground/75 italic">
+        <div className="mx-auto max-w-[72%] text-center text-[14px] text-muted-foreground/85 italic leading-snug">
           [{beat.kind}] {beat.text}
         </div>
       );
@@ -1245,8 +1277,8 @@ function ParsedBlockRenderer({
     case "action":
       return (
         <p
-          className="text-[14px] leading-[1.65] whitespace-pre-wrap font-display italic font-light text-foreground/95"
-          style={{ fontFamily: "'Fraunces', serif" }}
+          className="text-[20px] leading-[1.65] whitespace-pre-wrap font-display italic text-foreground"
+          style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
         >
           {block.text}
         </p>
@@ -1254,7 +1286,7 @@ function ParsedBlockRenderer({
     case "character":
       return (
         <div className="text-center mt-3">
-          <span className="font-mono uppercase tracking-[0.18em] text-[12.5px] text-foreground/95">
+          <span className="font-mono uppercase tracking-[0.18em] text-[14px] text-foreground/95">
             {block.speaker ?? block.text}
             {block.speakerExtension && (
               <span className="text-muted-foreground/55 ml-2">({block.speakerExtension})</span>
@@ -1264,14 +1296,14 @@ function ParsedBlockRenderer({
       );
     case "paren":
       return (
-        <div className="mx-auto max-w-[60%] text-center text-[12px] text-muted-foreground/65 italic">
+        <div className="mx-auto max-w-[60%] text-center text-[13.5px] text-muted-foreground/75 italic leading-snug">
           {block.text}
         </div>
       );
     case "dialogue":
       return (
         <p
-          className="mx-auto max-w-[72%] text-center text-[14.5px] leading-[1.55] whitespace-pre-wrap font-display italic text-foreground/95"
+          className="mx-auto max-w-[72%] text-center text-[17.5px] leading-[1.6] whitespace-pre-wrap font-display italic text-foreground/95"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {block.text}
@@ -1279,12 +1311,12 @@ function ParsedBlockRenderer({
       );
     case "transition":
       return (
-        <div className="font-mono uppercase tracking-[0.16em] text-[12px] text-muted-foreground/65 text-right my-4">
+        <div className="font-mono uppercase tracking-[0.16em] text-[13.5px] text-muted-foreground/75 text-right my-5">
           {block.text}
         </div>
       );
     default:
-      return <p className="text-[14px]">{block.text}</p>;
+      return <p className="text-[17px] leading-[1.7]">{block.text}</p>;
   }
 }
 

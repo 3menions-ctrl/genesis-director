@@ -18,7 +18,7 @@
  * commentary or schedule a party; guests get playback + the synced
  * sidebar when arriving via ?party=:id.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -32,6 +32,8 @@ import {
   Eye,
   AlertCircle,
   Sparkles,
+  Send,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -61,6 +63,10 @@ import { useSafeNavigation } from "@/lib/navigation";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { TimelinePlayer, type PlayerClip } from "@/components/player/TimelinePlayer";
+import { clipVisual } from "@/lib/editor/clip-css";
+import { getClipProperty, type EditorClip } from "@/lib/editor/types";
+import { PublishWizard } from "@/components/publish/PublishWizard";
 import {
   EASE_PREMIUM,
   TYPE_EYEBROW,
@@ -96,6 +102,87 @@ interface PartyMeta {
   status: string;
 }
 
+// ── Free render-less timeline ────────────────────────────────────────
+// Reconstruct the editor's clip list (saved arrangement first, then raw
+// rows) and map each clip to a PlayerClip with its effects baked into
+// CSS, so the watch page can sequence the whole edit in the browser.
+function rowToEditorClip(
+  r: { id: string; video_url: string | null; duration_seconds: number | null; start_image_url: string | null; properties: unknown; effects: unknown },
+  i: number,
+): EditorClip {
+  const rawProps = r.properties && typeof r.properties === "object"
+    ? (r.properties as Record<string, unknown>)
+    : null;
+  let keyframes: EditorClip["keyframes"];
+  let properties: EditorClip["properties"];
+  if (rawProps) {
+    const { keyframes: kf, ...rest } = rawProps;
+    if (Array.isArray(kf)) keyframes = kf as EditorClip["keyframes"];
+    properties = Object.keys(rest).length > 0 ? (rest as EditorClip["properties"]) : undefined;
+  }
+  return {
+    id: r.id,
+    index: i,
+    timelineStartSec: 0,
+    durationSec: r.duration_seconds ?? 4,
+    videoUrl: r.video_url,
+    thumbnailUrl: r.start_image_url,
+    prompt: "",
+    takes: [],
+    properties,
+    effects: Array.isArray(r.effects) ? (r.effects as EditorClip["effects"]) : undefined,
+    keyframes,
+  };
+}
+
+function toPlayerClip(clip: EditorClip): PlayerClip | null {
+  if (clip.kind === "title") return null;
+  if (!clip.videoUrl) return null;
+  const v = clipVisual(clip);
+  return {
+    id: clip.id,
+    videoUrl: clip.videoUrl,
+    durationSec: clip.durationSec || 4,
+    filter: v.filter,
+    transform: v.transform,
+    opacity: v.opacity,
+    speed: getClipProperty(clip, "speed"),
+    muted: getClipProperty(clip, "muted"),
+    volume: getClipProperty(clip, "volume"),
+  };
+}
+
+async function buildTimelineClips(
+  projectId: string,
+  editorState: unknown,
+): Promise<PlayerClip[]> {
+  try {
+    const es = editorState && typeof editorState === "object"
+      ? (editorState as { clips?: unknown })
+      : null;
+    const restored = es && Array.isArray(es.clips) && es.clips.length > 0
+      ? (es.clips as EditorClip[])
+      : null;
+
+    let editorClips: EditorClip[];
+    if (restored) {
+      editorClips = restored;
+    } else {
+      const { data: rows } = await supabase
+        .from("video_clips")
+        .select("id, video_url, duration_seconds, start_image_url, properties, effects, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true });
+      editorClips = (rows ?? [])
+        .filter((r) => typeof r.video_url === "string" && r.video_url.length > 0)
+        .map((r, i) => rowToEditorClip(r as Parameters<typeof rowToEditorClip>[0], i));
+    }
+    return editorClips.map(toPlayerClip).filter((c): c is PlayerClip => c !== null);
+  } catch {
+    return [];
+  }
+}
+
 export default function Reel() {
   const { id } = useParams<{ id: string }>();
   const [params, setParams] = useSearchParams();
@@ -106,10 +193,15 @@ export default function Reel() {
 
   const [reel, setReel] = useState<ReelData | null>(null);
   const [publishedReel, setPublishedReel] = useState<PublishedReelLink | null>(null);
+  // The edited timeline played for FREE (no render): all clips in
+  // sequence with their effects applied live. Empty → single-file path.
+  const [timelineClips, setTimelineClips] = useState<PlayerClip[]>([]);
+  const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sheet state — Commentary recorder, Watch Party launcher.
+  // Sheet state — Commentary recorder, Watch Party launcher, Publish.
+  const [publishOpen, setPublishOpen] = useState(false);
   const [recorderOpen, setRecorderOpen] = useState(false);
   const [partySheetOpen, setPartySheetOpen] = useState(false);
   const [partyBusy, setPartyBusy] = useState(false);
@@ -146,20 +238,58 @@ export default function Reel() {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: e1 } = await supabase
+        const PROJECT_COLS =
+          "id, title, video_url, thumbnail_url, created_at, updated_at, user_id, is_public, likes_count, pending_video_tasks, editor_state";
+        const initialRes = await supabase
           .from("movie_projects")
-          .select(
-            "id, title, video_url, thumbnail_url, created_at, updated_at, user_id, is_public, likes_count",
-          )
+          .select(PROJECT_COLS)
           .eq("id", id)
           .maybeSingle();
-        if (e1) throw e1;
+        if (initialRes.error) throw initialRes.error;
+        let data = initialRes.data;
+
+        // The URL id may be a published_reels.id rather than a
+        // movie_projects.id — most discovery surfaces (Profile grid,
+        // Search, the post-publish redirect) link with the published id.
+        // Resolve it to the source project and treat it as public, since
+        // a live published reel is public by definition.
+        let viaPublishedReel = false;
+        if (!data) {
+          const { data: pub } = await supabase
+            .from("published_reels")
+            .select("project_id, is_taken_down")
+            .eq("id", id)
+            .maybeSingle();
+          if (pub?.project_id && !pub.is_taken_down) {
+            viaPublishedReel = true;
+            const reReg = await supabase
+              .from("movie_projects")
+              .select(PROJECT_COLS)
+              .eq("id", pub.project_id)
+              .maybeSingle();
+            data = reReg.data;
+          }
+        }
+
         if (!data) {
           if (!cancelled) setError("not_found");
           return;
         }
-        // Owner can view their own private reels; otherwise must be public.
-        if (!data.is_public && data.user_id !== user?.id) {
+        // Fallback resolution — same pattern usePaginatedProjects uses
+        // (mapDbProjectToProject). If movie_projects.video_url is null
+        // but pending_video_tasks carries an HLS playlist or manifest
+        // URL (from an in-flight render), use it so the player can
+        // show the partial-stream preview instead of "Still rendering…".
+        if (!data.video_url) {
+          const pt = (data as { pending_video_tasks?: { hlsPlaylistUrl?: string; manifestUrl?: string } }).pending_video_tasks;
+          if (pt?.hlsPlaylistUrl) data.video_url = pt.hlsPlaylistUrl;
+          else if (pt?.manifestUrl) data.video_url = pt.manifestUrl;
+        }
+        // Owner can view their own private reels; otherwise must be
+        // public — unless we arrived via a live published_reels row,
+        // which is itself the public signal (publishing doesn't flip
+        // movie_projects.is_public).
+        if (!viaPublishedReel && !data.is_public && data.user_id !== user?.id) {
           if (!cancelled) setError("private");
           return;
         }
@@ -179,6 +309,13 @@ export default function Reel() {
             .limit(1)
             .maybeSingle(),
         ]);
+        // Build the FREE, render-less timeline: every clip in sequence
+        // with its effects applied live. Source of truth is
+        // editor_state.clips (the saved edit) when present; otherwise the
+        // raw video_clips rows. Best-effort — failure just falls back to
+        // the single-file player.
+        const players = await buildTimelineClips(data.id, (data as { editor_state?: unknown }).editor_state);
+
         if (!cancelled) {
           setReel({ ...data, creator: creatorRes.data ?? undefined });
           setPublishedReel(
@@ -186,6 +323,7 @@ export default function Reel() {
               ? (pubRes.data as PublishedReelLink)
               : null,
           );
+          setTimelineClips(players);
           setLoading(false);
         }
       } catch (err) {
@@ -226,6 +364,62 @@ export default function Reel() {
   }, [partyId]);
 
   const isOwner = !!user && reel?.user_id === user.id;
+
+  // ── Download ─────────────────────────────────────────────────────
+  // Fetch the video as a blob and save it. A plain <a download> on a
+  // cross-origin URL is ignored by browsers (it just opens the file),
+  // so we fetch → blob → object URL to force a real download.
+  const handleDownload = async () => {
+    if (!reel?.video_url || downloading) return;
+    setDownloading(true);
+    const toastId = toast.loading("Preparing download…");
+    try {
+      const res = await fetch(reel.video_url);
+      if (!res.ok) throw new Error(`Couldn't fetch the video (${res.status})`);
+      const blob = await res.blob();
+      const ext = blob.type.includes("webm") ? "webm" : "mp4";
+      const safeTitle =
+        (reel.title || "small-bridges-reel")
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/^-+|-+$/g, "")
+          .toLowerCase() || "reel";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${safeTitle}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded", { id: toastId });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed", { id: toastId });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Re-fetch the matched published_reel after publishing so Commentary +
+  // Watch Party (which require a published copy) light up without a reload.
+  const refetchPublished = useCallback(async () => {
+    if (!reel?.id) return;
+    const { data } = await supabase
+      .from("published_reels")
+      .select("id, is_taken_down")
+      .eq("project_id", reel.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setPublishedReel(data && !data.is_taken_down ? (data as PublishedReelLink) : null);
+  }, [reel?.id]);
+
+  // The Watch Party "Publish now" toast action dispatches this event;
+  // open the wizard in response so that path actually works.
+  useEffect(() => {
+    const onOpen = () => setPublishOpen(true);
+    window.addEventListener("openPublishWizard", onOpen as EventListener);
+    return () => window.removeEventListener("openPublishWizard", onOpen as EventListener);
+  }, []);
 
   const handleShare = async () => {
     if (!reel) return;
@@ -279,11 +473,15 @@ export default function Reel() {
       return;
     }
     if (!publishedReel) {
-      toast.info(
-        isOwner
-          ? "Publish your reel first — watch parties require a public copy."
-          : "This reel isn't published yet.",
-      );
+      // A watch party needs a public copy. For the owner, jump straight
+      // into the Publish flow (don't auto-publish silently — let them
+      // pick a world + tags first); guests just learn it isn't public.
+      if (isOwner) {
+        toast.info("Publish this reel to the Lobby first, then start a watch party.");
+        setPublishOpen(true);
+      } else {
+        toast.info("This reel isn't published yet.");
+      }
       return;
     }
     // Already inside a party — just open the sheet for the share URL.
@@ -431,7 +629,20 @@ export default function Reel() {
           bodyClassName="!p-0"
         >
           <div className="aspect-video w-full overflow-hidden bg-black">
-            {reel.video_url ? (
+            {/* Multi-clip edit OR a single clip carrying effects → play
+                the timeline for free in-browser (no render). A plain
+                single clip keeps the BrandedVideoPlayer so commentary +
+                watch-party stay wired to its video handle. */}
+            {(timelineClips.length >= 2 ||
+              (timelineClips.length === 1 &&
+                !!(timelineClips[0].filter || timelineClips[0].transform || (timelineClips[0].opacity ?? 1) !== 1))) ? (
+              <TimelinePlayer
+                clips={timelineClips}
+                poster={reel.thumbnail_url}
+                autoPlay
+                className="h-full w-full"
+              />
+            ) : reel.video_url ? (
               <BrandedVideoPlayer
                 ref={videoHandleRef}
                 src={reel.video_url}
@@ -468,7 +679,7 @@ export default function Reel() {
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground/65">
               {reel.creator && (
                 <Link
-                  to={`/u/${reel.creator.id}`}
+                  to={`/c/${reel.creator.id}`}
                   className="group flex items-center gap-2.5 transition-colors hover:text-foreground"
                 >
                   {reel.creator.avatar_url ? (
@@ -501,6 +712,21 @@ export default function Reel() {
           {/* Glass action rail */}
           <div className="flex flex-wrap items-center gap-2">
             <ActionPill onClick={handleShare} Icon={Share2} label="Share" />
+            {reel.video_url && (
+              <ActionPill
+                onClick={() => void handleDownload()}
+                Icon={downloading ? Loader2 : Download}
+                label={downloading ? "Downloading…" : "Download"}
+              />
+            )}
+            {isOwner && !publishedReel && (
+              <ActionPill
+                onClick={() => setPublishOpen(true)}
+                Icon={Send}
+                label="Publish to Lobby"
+                tone="accent"
+              />
+            )}
             {isOwner && (
               <ActionPill
                 onClick={() => navigate(`/editor/${reel.id}`)}
@@ -545,7 +771,7 @@ export default function Reel() {
           transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
           className="mt-10"
         >
-          <VideoReactionsBar videoId={reel.id} />
+          <VideoReactionsBar projectId={reel.id} />
         </motion.div>
 
         <motion.div
@@ -554,7 +780,7 @@ export default function Reel() {
           transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
           className="mt-8"
         >
-          <VideoCommentsSection videoId={reel.id} />
+          <VideoCommentsSection projectId={reel.id} />
         </motion.div>
       </div>
 
@@ -566,6 +792,19 @@ export default function Reel() {
           partyId={party.id}
           hostId={party.host_id}
           videoRef={videoElRef}
+        />
+      )}
+
+      {/* ── Publish to Lobby — turns this project into a public reel. ── */}
+      {isOwner && reel && (
+        <PublishWizard
+          open={publishOpen}
+          projectId={reel.id}
+          onClose={() => setPublishOpen(false)}
+          onPublished={() => {
+            setPublishOpen(false);
+            void refetchPublished();
+          }}
         />
       )}
 

@@ -1,0 +1,18 @@
+{
+  "seed": 7,
+  "anchor": {
+    "predictTime": null
+  },
+  "beat1": {
+    "predictTime": null
+  },
+  "beat2": {
+    "url": "https://replicate.delivery/xezq/gzZe94YmL12GJiSdtAEPN8NPnfo8fS0KJCmUHltsoU8ooiitA/tmppimft3h7.mp4",
+    "predictTime": 181.193104593
+  },
+  "beat3": {
+    "url": "https://replicate.delivery/xezq/FUeuYcOrlPWlcqfm2hu8ioYgqTSMIGtKN6DXcfHi86z6uiitA/tmp73fpequg.mp4",
+    "predictTime": 200.67035228700001
+  },
+  "scoreOk": true
+}

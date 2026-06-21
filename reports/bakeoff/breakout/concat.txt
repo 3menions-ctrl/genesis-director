@@ -1,0 +1,3 @@
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/bbl_trap.mp4'
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/bbl_break.mp4'
+file '/Users/briancole/Developer/genesis-director/reports/bakeoff/clips/bbl_emerge.mp4'

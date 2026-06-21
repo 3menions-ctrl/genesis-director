@@ -1,41 +1,22 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { safeLocalStorage } from '@/lib/safeStorage';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { identifyUser as identifyPostHog, resetAnalytics } from '@/admin/analytics/posthog';
+import { identify as trackIdentify, resetTracking } from '@/lib/analytics/track';
+import { trackEvent, EVENTS } from '@/lib/analytics/events';
 import { resetQueryCache } from '@/lib/queryClient';
 import { identifyUser, resetIdentity } from '@/lib/observability';
+import { type UserProfile, buildFallbackProfile, reconcileProfile } from './authProfile';
 
-interface UserProfile {
-  id: string;
-  email: string | null;
-  display_name: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  credits_balance: number;
-  total_credits_purchased: number;
-  total_credits_used: number;
-  role: string | null;
-  use_case: string | null;
-  company: string | null;
-  country: string | null;
-  onboarding_completed: boolean;
-  created_at: string;
-  preferences: Record<string, unknown> | null;
-  notification_settings: Record<string, unknown> | null;
-  auto_recharge_enabled: boolean | null;
-  has_seen_welcome_video: boolean | null;
-  has_seen_welcome_offer: boolean | null;
-  security_version: number | null;
-  account_type: 'personal' | 'business' | 'enterprise' | 'admin' | null;
-  account_tier: string | null;
-}
+export type { UserProfile };
 
 // Storage key for the security version stamp
 const SECURITY_VERSION_KEY = 'app_security_version';
 const MAX_LOGIN_ATTEMPTS = 10;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
-const COLE_ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
 
 interface AuthContextType {
   user: User | null;
@@ -71,40 +52,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   // Ref to track current session for synchronous access
   const sessionRef = useRef<Session | null>(null);
+  // Mirror of the latest committed profile, read synchronously by fetch
+  // reconciliation so a transient/fallback refetch can never downgrade an
+  // established account_type. See reconcileProfile.
+  const profileRef = useRef<UserProfile | null>(null);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
-  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+  /**
+   * Fetch the profile row. Returns `{ profile, authoritative }`:
+   *  - authoritative=true  → a real DB read (or confirmed row). Safe to commit.
+   *  - authoritative=false → a fallback (timeout/network/missing). The caller
+   *    MUST funnel this through reconcileProfile so it cannot downgrade an
+   *    already-established profile for the same user.
+   */
+  const fetchProfile = async (
+    userId: string,
+  ): Promise<{ profile: UserProfile | null; authoritative: boolean }> => {
     // Always verify session before profile fetch to avoid RLS issues
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     if (!currentSession) {
       console.warn('[AuthContext] fetchProfile: No valid session');
-      return null;
+      return { profile: null, authoritative: false };
     }
 
-    // Create a minimal fallback profile for timeout/error scenarios
-    // CRITICAL: onboarding_completed must be false so OAuth users are never allowed to skip onboarding
-    const createFallbackProfile = (): UserProfile => ({
-      id: userId,
-      email: currentSession.user.email || null,
-      display_name: currentSession.user.email?.split('@')[0] || 'User',
-      full_name: null,
-      avatar_url: null,
-      credits_balance: 0,
-      total_credits_purchased: 0,
-      total_credits_used: 0,
-      role: null,
-      use_case: null,
-      company: null,
-      country: null,
-      onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
-      created_at: new Date().toISOString(),
-      preferences: null,
-      notification_settings: null,
-      auto_recharge_enabled: false,
-      has_seen_welcome_video: false,
-      has_seen_welcome_offer: false,
-      security_version: null,
-      account_type: 'personal',
-      account_tier: 'free',
+    const fallback = (): { profile: UserProfile; authoritative: false } => ({
+      profile: buildFallbackProfile(userId, currentSession.user.email ?? null),
+      authoritative: false,
     });
 
     try {
@@ -112,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
         setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), PROFILE_FETCH_TIMEOUT);
       });
-      
+
       // Create the fetch promise
       const fetchPromise = supabase
         .from('profiles')
@@ -122,29 +95,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Race between fetch and timeout
       const result = await Promise.race([fetchPromise, timeoutPromise]);
-      
+
       if (result.error) {
         if (result.error.message === 'timeout') {
           console.debug('[AuthContext] Profile fetch timed out, using fallback');
           setProfileError(null); // Don't show error for timeout - we have fallback
-          return createFallbackProfile();
+          return fallback();
         }
         // CRITICAL: For network errors, use fallback silently instead of showing error UI
-        const isNetworkError = result.error.message?.includes('Load failed') || 
+        const isNetworkError = result.error.message?.includes('Load failed') ||
                                result.error.message?.includes('fetch') ||
                                result.error.message?.includes('network');
         if (isNetworkError) {
           console.debug('[AuthContext] Network error, using fallback profile');
           setProfileError(null);
-          return createFallbackProfile();
+          return fallback();
         }
         console.debug('[AuthContext] Profile fetch error:', result.error.message?.substring(0, 50));
         setProfileError('Failed to load profile');
-        return null;
+        // Non-authoritative null → reconcileProfile keeps any prior profile
+        // rather than blanking/downgrading it.
+        return { profile: null, authoritative: false };
       }
-      
+
       setProfileError(null);
-      
+
       // If profile not found (e.g. trigger hasn't finished for OAuth signup), retry once after delay
       if (!result.data) {
         console.debug('[AuthContext] Profile not found, retrying after delay (OAuth race condition)');
@@ -155,26 +130,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', userId)
           .maybeSingle();
         if (retryResult.data) {
-          return retryResult.data as UserProfile;
+          return { profile: retryResult.data as UserProfile, authoritative: true };
         }
-        // Still no profile — return fallback with onboarding_completed=false
+        // Still no profile — fallback (won't overwrite an established profile).
         console.debug('[AuthContext] Profile still not found after retry, using fallback');
-        return createFallbackProfile();
+        return fallback();
       }
-      
-      return result.data as UserProfile;
+
+      return { profile: result.data as UserProfile, authoritative: true };
     } catch {
       // Silent catch with fallback - prevents crash cascade
       console.debug('[AuthContext] Profile fetch exception, using fallback');
-      return createFallbackProfile();
+      return fallback();
     }
   };
 
   const refreshProfile = useCallback(async () => {
     if (user) {
       setProfileError(null);
-      const profileData = await fetchProfile(user.id);
-      setProfile(profileData);
+      const { profile: profileData, authoritative } = await fetchProfile(user.id);
+      setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
     }
   }, [user]);
 
@@ -190,14 +165,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const retryProfileFetch = async () => {
     if (user) {
       setProfileError(null);
-      const profileData = await fetchProfile(user.id);
-      setProfile(profileData);
+      const { profile: profileData, authoritative } = await fetchProfile(user.id);
+      setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
     }
   };
 
   const checkAdminRole = async (userId: string): Promise<boolean> => {
-    if (userId !== COLE_ADMIN_USER_ID) return false;
-
+    // Admin status is authoritative server-side (is_admin RPC, SECURITY DEFINER).
+    // No client-side id hardcode — trust the server so re-pointing the admin (or
+    // future multi-admin) needs no client change.
     try {
       // Use Promise.race with timeout to prevent hanging on network issues
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
@@ -242,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Helper to complete auth initialization with profile/admin data
     const completeAuthInit = async (userId: string) => {
       try {
-        const [profileData, adminStatus] = await Promise.all([
+        const [{ profile: profileData, authoritative }, adminStatus] = await Promise.all([
           fetchProfile(userId),
           checkAdminRole(userId)
         ]);
@@ -284,36 +260,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         // ────────────────────────────────────────────────────────────────────
 
-        setProfile(profileData);
+        setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
         setIsAdmin(adminStatus);
+        // Tie product analytics to this user (no-op until VITE_POSTHOG_KEY is set).
+        identifyPostHog(userId, { account_type: profileData?.account_type, is_admin: adminStatus });
+        trackIdentify(userId, { account_type: profileData?.account_type, is_admin: adminStatus });
       } catch (err) {
         console.error('[AuthContext] Failed to complete auth init:', err);
-        // CRITICAL: Even on error, set a fallback profile to prevent UI blocking
+        // Even on error, set a fallback profile to prevent UI blocking — but
+        // NEVER clobber an already-loaded profile (functional update keeps a
+        // previously-resolved business/enterprise profile intact).
         if (mounted) {
-          setProfile({
-            id: userId,
-            email: null,
-            display_name: 'User',
-            full_name: null,
-            avatar_url: null,
-            credits_balance: 0,
-            total_credits_purchased: 0,
-            total_credits_used: 0,
-            role: null,
-            use_case: null,
-            company: null,
-            country: null,
-            onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
-            created_at: new Date().toISOString(),
-            preferences: null,
-            notification_settings: null,
-            auto_recharge_enabled: false,
-            has_seen_welcome_video: false,
-            has_seen_welcome_offer: false,
-            security_version: null,
-            account_type: 'personal',
-            account_tier: 'free',
-          });
+          setProfile(prev => prev ?? buildFallbackProfile(userId, sessionRef.current?.user?.email ?? null));
           setIsAdmin(false);
         }
       } finally {
@@ -340,6 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Clear the sign-out flag on explicit sign-in
         if (event === 'SIGNED_IN') {
           signedOutRef.current = false;
+          trackEvent(EVENTS.SIGNED_IN);
         }
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
@@ -376,14 +335,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // breadcrumbs, but the identifier itself is intentional.
           identifyUser({ id: newSession.user.id, email: newSession.user.email });
 
-          // Fire and forget - update profile/admin in background
-          fetchProfile(newSession.user.id).then(profileData => {
-            if (mounted) setProfile(profileData);
-          }).catch(console.error);
+          // SECURITY: only (re)fetch the profile when the user IDENTITY actually
+          // changed (login / account switch) or we don't have one yet. A plain
+          // TOKEN_REFRESHED for the SAME user — fired on navigation to heavy
+          // pages (e.g. the editor) and on tab focus — must NOT refetch+clobber:
+          // a slow or RLS-denied refetch returned the 'personal' fallback and
+          // silently downgraded business/enterprise accounts. Even when we do
+          // refetch, reconcileProfile prevents a fallback from downgrading.
+          const identityChanged = previousUserId !== incomingUserId;
+          if (identityChanged || !profileRef.current) {
+            fetchProfile(newSession.user.id).then(({ profile: profileData, authoritative }) => {
+              if (mounted) setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
+            }).catch(console.error);
 
-          checkAdminRole(newSession.user.id).then(isAdminResult => {
-            if (mounted) setIsAdmin(isAdminResult);
-          }).catch(console.error);
+            checkAdminRole(newSession.user.id).then(isAdminResult => {
+              if (mounted) setIsAdmin(isAdminResult);
+            }).catch(console.error);
+          }
         } else {
           // Logged out — clear identity in observability tools.
           resetIdentity();
@@ -554,9 +522,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // ── BRUTE FORCE PROTECTION ─────────────────────────────────────────────
     // Check client-side lockout first (localStorage) to avoid unnecessary requests
     const lockoutKey = `login_lockout_${email.toLowerCase()}`;
-    const lockoutData = localStorage.getItem(lockoutKey);
+    // safeLocalStorage never throws — Safari private mode would
+    // otherwise make `localStorage.getItem` blow up here and block
+    // login entirely.
+    const lockoutData = safeLocalStorage.get(lockoutKey);
     if (lockoutData) {
-      const { count, since } = JSON.parse(lockoutData);
+      let count = 0, since = Date.now();
+      try { ({ count, since } = JSON.parse(lockoutData)); } catch { /* malformed → treat as no lockout */ }
       const elapsed = Date.now() - since;
       if (count >= MAX_LOGIN_ATTEMPTS && elapsed < LOGIN_LOCKOUT_MS) {
         const remaining = Math.ceil((LOGIN_LOCKOUT_MS - elapsed) / 60000);
@@ -564,7 +536,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       // Reset if lockout period expired
       if (elapsed >= LOGIN_LOCKOUT_MS) {
-        localStorage.removeItem(lockoutKey);
+        safeLocalStorage.remove(lockoutKey);
       }
     }
     // ──────────────────────────────────────────────────────────────────────
@@ -587,18 +559,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update client-side lockout counter
     if (error) {
-      const existing = localStorage.getItem(lockoutKey);
-      const parsed = existing ? JSON.parse(existing) : { count: 0, since: Date.now() };
+      const existing = safeLocalStorage.get(lockoutKey);
+      let parsed = { count: 0, since: Date.now() };
+      if (existing) {
+        try { parsed = JSON.parse(existing); } catch { /* malformed → reset */ }
+      }
       // Reset counter if previous lockout window has expired
       const isExpired = Date.now() - parsed.since >= LOGIN_LOCKOUT_MS;
       const updated = {
         count: isExpired ? 1 : parsed.count + 1,
         since: isExpired ? Date.now() : parsed.since,
       };
-      localStorage.setItem(lockoutKey, JSON.stringify(updated));
+      safeLocalStorage.set(lockoutKey, JSON.stringify(updated));
     } else {
       // Clear on success
-      localStorage.removeItem(lockoutKey);
+      safeLocalStorage.remove(lockoutKey);
     }
     
     // CRITICAL: Wait for session to be persisted to localStorage before returning
@@ -702,6 +677,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setProfileError(null);
     setIsAdmin(false);
+    resetAnalytics();
+    resetTracking();
 
     // Clear all sb.* keys from both storages so the next user on this
     // device starts clean: workspace selection, intent token, security stamp.

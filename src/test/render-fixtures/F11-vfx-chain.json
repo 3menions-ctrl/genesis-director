@@ -1,0 +1,18 @@
+{
+  "name": "F11-vfx-chain",
+  "description": "A clip with a pre-compiled VFX effect chain that uses the {vIn}/{vOut} label-template convention. Asserts the stitcher splices the templated labels into the real per-clip namespace (vG0/vE0) and inserts an intermediate scratch label (fxFB1).",
+  "inputs": [
+    {
+      "url": "file://vfx.mp4",
+      "duration": 8,
+      "isIntro": false,
+      "colorFilter": "eq=contrast=1.05",
+      "effectChain": "[{vIn}]drawbox=x=0:y=0:w=iw:h=10:color=red@0.8:t=fill:enable='between(t,2,4)'[fxFB1];[fxFB1]drawbox=x=0:y='ih-10':w=iw:h=10:color=red@0.8:t=fill:enable='between(t,2,4)'[{vOut}]"
+    }
+  ],
+  "transitionDuration": 0.4,
+  "transitionType": "fade",
+  "aspectRatio": "16:9",
+  "resolution": "1080p",
+  "format": "mp4"
+}

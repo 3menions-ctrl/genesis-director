@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_create_personal_org ON public.profiles;

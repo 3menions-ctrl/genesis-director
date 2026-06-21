@@ -1,25 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export type NotificationType = 
-  | 'like' 
-  | 'comment' 
-  | 'follow' 
-  | 'achievement' 
+export type NotificationType =
+  | 'like'
+  | 'comment'
+  | 'follow'
+  | 'achievement'
   | 'challenge_complete'
-  | 'message' 
-  | 'universe_invite' 
-  | 'character_borrow_request' 
+  | 'message'
+  | 'universe_invite'
+  | 'character_borrow_request'
   | 'level_up'
-  | 'streak_milestone' 
-  | 'video_complete' 
+  | 'streak_milestone'
+  | 'video_complete'
   | 'video_started'
   | 'video_failed'
   | 'low_credits'
-  | 'mention';
+  | 'mention'
+  | 'system';
 
 export interface Notification {
   id: string;
@@ -29,31 +30,88 @@ export interface Notification {
   body: string | null;
   data: Record<string, unknown>;
   read: boolean;
+  link?: string | null;
+  actor_id?: string | null;
+  read_at?: string | null;
   created_at: string;
+}
+
+/**
+ * Urgent categories surface a sonner toast in addition to landing in the
+ * inbox. Everything else lands silently in the bell so the room stays
+ * calm — only mentions, render-completes, and admin replies interrupt.
+ */
+const URGENT_TYPES = new Set<NotificationType>([
+  'mention',
+  'video_complete',
+  'video_failed',
+  'message',
+]);
+
+function isUrgent(n: Partial<Notification> | undefined): boolean {
+  if (!n?.type) return false;
+  if (URGENT_TYPES.has(n.type)) return true;
+  // Support-replies from admin land as type='system' with an
+  // admin_reply marker — surface those too.
+  const d = (n.data ?? {}) as Record<string, unknown>;
+  if (typeof d.admin_reply === 'boolean' && d.admin_reply) return true;
+  return false;
+}
+
+const LAST_SEEN_KEY = 'smallbridges.notifications.lastSeen';
+
+function readLastSeen(): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return window.localStorage.getItem(LAST_SEEN_KEY); } catch { return null; }
+}
+function writeLastSeen(iso: string) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(LAST_SEEN_KEY, iso); } catch { /* ignore */ }
 }
 
 export function useNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // Number of rows the query fetches. Bumps in increments of 50 when
+  // the bell's "Load more" button is tapped at the bottom of the list.
+  const [pageSize, setPageSize] = useState(50);
 
   // Fetch notifications
   const { data: notifications, isLoading } = useQuery({
-    queryKey: ['notifications', user?.id],
+    queryKey: ['notifications', user?.id, pageSize],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
-      
+        .limit(pageSize);
+
       if (error) throw error;
       return data as Notification[];
     },
     enabled: !!user,
   });
+
+  // "New since you last visited" — persisted lastSeen timestamp.
+  const [lastSeen, setLastSeen] = useState<string | null>(readLastSeen);
+  const newSinceLastSeen = useMemo(() => {
+    if (!notifications || !lastSeen) return notifications?.length ?? 0;
+    return notifications.filter((n) => n.created_at > lastSeen).length;
+  }, [notifications, lastSeen]);
+
+  /** Pin the lastSeen marker — called when the popover opens. */
+  const markSeen = useCallback(() => {
+    const iso = new Date().toISOString();
+    writeLastSeen(iso);
+    setLastSeen(iso);
+  }, []);
+
+  const loadMore = useCallback(() => {
+    setPageSize((n) => n + 50);
+  }, []);
 
   // Stable ref for queryClient to avoid re-subscribing on every render
   const queryClientRef = useRef(queryClient);
@@ -80,8 +138,22 @@ export function useNotifications() {
         (payload) => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
           const n = (payload as unknown as { new?: Partial<Notification> }).new;
-          if (n?.title) {
-            toast(n.title, { description: n.body ?? undefined, duration: 4500 });
+          if (!n?.title) return;
+          // Toast bridge — only urgent categories interrupt the room.
+          // The rest land silently in the bell so nothing buzzes during
+          // deep work unless it really matters.
+          if (isUrgent(n)) {
+            const link = (n.link ?? (n.data as Record<string, unknown>)?.link) as string | undefined;
+            toast(n.title, {
+              description: n.body ?? undefined,
+              duration: 6000,
+              action: link
+                ? {
+                    label: 'Open',
+                    onClick: () => { window.location.assign(link); },
+                  }
+                : undefined,
+            });
           }
         }
       )
@@ -165,11 +237,24 @@ export function useNotifications() {
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
 
   return {
+    /** Canonical list of recent notifications (capped at pageSize). */
     notifications,
+    /** Spec-style alias — `items` is the verbiage in the master backlog. */
+    items: notifications ?? [],
     isLoading,
     unreadCount,
+    /** Count of rows created after the user's last visit to the bell. */
+    newSinceLastSeen,
+    /** Pin the lastSeen marker — call when the popover opens. */
+    markSeen,
+    /** Append 50 more rows to the page. */
+    loadMore,
     markAsRead,
+    /** Spec-style alias for the single-row mark-as-read mutator. */
+    markRead: (id: string) => markAsRead.mutate(id),
     markAllAsRead,
+    /** Spec-style alias for "mark every unread row as read". */
+    markAllRead: () => markAllAsRead.mutate(),
     deleteNotification,
     clearAll,
   };

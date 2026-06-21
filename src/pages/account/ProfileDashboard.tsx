@@ -1843,7 +1843,7 @@ function UpNextRow({
 // ─────────────────────────────────────────────────────────────────────────────
 function DirectorToolsBand({ children }: { children: React.ReactNode }) {
   return (
-    <section className="relative text-left rounded-3xl ring-1 ring-inset ring-white/[0.06] bg-gradient-to-b from-white/[0.02] to-white/[0.005] backdrop-blur-sm p-6 sm:p-8 lg:p-10">
+    <section className="relative text-left rounded-3xl bg-gradient-to-b from-white/[0.025] to-white/[0.008] backdrop-blur-sm p-6 sm:p-8 lg:p-10">
       <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className={cn(TYPE_META, "text-accent/70 tracking-[0.34em] inline-flex items-center gap-2")}>
@@ -1860,7 +1860,7 @@ function DirectorToolsBand({ children }: { children: React.ReactNode }) {
             Analytics, achievements, your channel trailer picker — private to you, never shown to visitors.
           </p>
         </div>
-        <span className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.24em] inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] px-3 h-7")}>
+        <span className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.24em] inline-flex items-center gap-1.5 rounded-full bg-white/[0.05] px-3 h-7")}>
           <Lock className="h-2.5 w-2.5" strokeWidth={1.7} /> Private
         </span>
       </header>
@@ -1887,7 +1887,7 @@ function YearInReviewTeaser({
   const year = new Date().getFullYear();
 
   return (
-    <section className="relative overflow-hidden rounded-2xl ring-1 ring-inset ring-accent/20 bg-gradient-to-br from-accent/[0.07] via-white/[0.02] to-transparent backdrop-blur p-6 sm:p-8">
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/[0.09] via-white/[0.025] to-transparent backdrop-blur p-6 sm:p-8">
       <div aria-hidden className="pointer-events-none absolute -top-1/3 -right-10 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
       <header className="relative mb-7">
         <div
@@ -3033,7 +3033,7 @@ function StatsRow({
   ];
 
   return (
-    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
+    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <header className="mb-7">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
           ◆ The numbers
@@ -3093,10 +3093,10 @@ function FloatingStat({
   return (
     <div
       className={cn(
-        "h-full rounded-xl ring-1 ring-inset px-4 py-4 transition-colors",
+        "h-full rounded-xl px-4 py-4 transition-colors",
         accent
-          ? "bg-accent/[0.06] ring-accent/25"
-          : "bg-white/[0.02] ring-white/[0.06] hover:ring-white/[0.12]",
+          ? "bg-accent/[0.08]"
+          : "bg-white/[0.03] hover:bg-white/[0.05]",
       )}
     >
       <div className="flex items-center gap-2">
@@ -3172,7 +3172,7 @@ function ActivityHeatmap({
   };
 
   return (
-    <section className="h-full rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
+    <section className="h-full rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <header className="flex items-end justify-between gap-3 flex-wrap mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3271,7 +3271,7 @@ function AchievementsFloat({
   achievements: Array<{ label: string; sub: string; tier: 1 | 2 | 3 }>;
 }) {
   return (
-    <section className="h-full rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
+    <section className="h-full rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <header className="flex items-end justify-between gap-3 mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3490,7 +3490,7 @@ function DirectorReelMaker({
   };
 
   return (
-    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
+    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <header className="mb-6">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] inline-flex items-center gap-2")}>
           <Sparkles className="h-3 w-3 text-accent/85" strokeWidth={1.6} />
@@ -3624,7 +3624,7 @@ function CompletenessMeter({
   const missing = items.filter((i) => !i.done).slice(0, 4);
   if (pct === 100) return null;
   return (
-    <section className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-6 sm:p-7">
+    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] mb-3 inline-flex items-center gap-2")}>
         <Target className="h-3 w-3 text-accent/80" strokeWidth={1.6} />
         ◆ Profile completeness · <span className="tabular-nums text-accent/85">{pct}%</span>

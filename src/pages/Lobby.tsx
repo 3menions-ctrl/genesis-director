@@ -1620,10 +1620,10 @@ function TrendingSection({
     <section className="mb-24">
       <SectionLabel label="Trending now" icon={Flame} meta={`${reels.length} reels`} />
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i}>
-              <div className="rounded-2xl aspect-video bg-white/[0.02] animate-pulse" />
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6">
+          {[16 / 9, 9 / 16, 1, 4 / 5, 16 / 9, 9 / 16].map((ar, i) => (
+            <div key={i} className="mb-6 break-inside-avoid">
+              <div className="rounded-2xl bg-white/[0.02] animate-pulse" style={{ aspectRatio: String(ar) }} />
               <div className="pt-3 px-1 space-y-2">
                 <div className="h-3 w-3/4 bg-white/[0.04] rounded animate-pulse" />
                 <div className="h-2 w-1/2 bg-white/[0.03] rounded animate-pulse" />
@@ -1643,7 +1643,7 @@ function TrendingSection({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.5, ease: EASE_PREMIUM }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12"
+            className="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]"
           >
             {reels.map((r, i) => (
               <ReelTile key={r.id} reel={r} demo={demo} onOpen={onOpen} index={i} />
@@ -1663,6 +1663,17 @@ function ReelTile({ reel, demo, onOpen, index }: { reel: FeedRow; demo: boolean;
   const accent = reel.world_accent ?? "213 100% 60%";
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(reel.like_count);
+  // Each tile sizes to the media's OWN aspect ratio so nothing is cropped.
+  // Defaults to 16:9 until the real dimensions load; clamped so a stray
+  // ultra-tall/ultra-wide asset can't blow out the masonry column.
+  const [aspect, setAspect] = useState(16 / 9);
+  const applyAspect = (w: number, h: number) => {
+    if (w > 0 && h > 0) setAspect(Math.min(2, Math.max(0.5, w / h)));
+  };
+  const onVideoMeta = () => {
+    const v = videoRef.current;
+    if (v) applyAspect(v.videoWidth, v.videoHeight);
+  };
 
   // Usher the reel into autoplay once it can; keep it looping (don't
   // pause on mouse-leave — the card should stay alive after its entrance).
@@ -1717,9 +1728,12 @@ function ReelTile({ reel, demo, onOpen, index }: { reel: FeedRow; demo: boolean;
       onMouseEnter={ensurePlaying}
       onClick={handleClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}
-      className="group/tile block cursor-pointer outline-none"
+      className="group/tile mb-6 inline-block w-full break-inside-avoid cursor-pointer align-top outline-none"
     >
-      <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/40">
+      <div
+        className="relative rounded-2xl overflow-hidden bg-black/55 ring-1 ring-inset ring-white/[0.06] shadow-[0_24px_60px_-30px_rgba(0,0,0,0.85)] transition-shadow duration-500 group-hover/tile:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.95)]"
+        style={{ aspectRatio: String(aspect) }}
+      >
         {reel.video_url && !demo ? (
           <video
             ref={videoRef}
@@ -1727,10 +1741,16 @@ function ReelTile({ reel, demo, onOpen, index }: { reel: FeedRow; demo: boolean;
             poster={reel.thumbnail_url ?? undefined}
             autoPlay muted loop playsInline preload="auto"
             onCanPlay={ensurePlaying}
-            className="absolute inset-0 w-full h-full object-cover scale-[1.01] group-hover/tile:scale-[1.06] transition-transform duration-700 ease-out"
+            onLoadedMetadata={onVideoMeta}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover/tile:scale-[1.04]"
           />
         ) : reel.thumbnail_url ? (
-          <img src={reel.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover scale-[1.01] group-hover/tile:scale-[1.06] transition-transform duration-700 ease-out" />
+          <img
+            src={reel.thumbnail_url}
+            alt=""
+            onLoad={(e) => applyAspect(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover/tile:scale-[1.04]"
+          />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
         <div

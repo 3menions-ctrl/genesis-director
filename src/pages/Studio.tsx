@@ -42,7 +42,6 @@ import { CreationHub } from "@/components/studio/CreationHub";
 import { CreationStudio } from "@/components/studio/CreationStudio";
 import { FirstTakeTour } from "@/components/onboarding/FirstTakeTour";
 import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
-import { ScenesHub } from "@/components/scenes/ScenesHub";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
 import { useAuth } from "@/contexts/AuthContext";

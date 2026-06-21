@@ -22,7 +22,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Wand2, Image as ImageIcon, Scissors, Clapperboard, Users, Mic, Music as MusicIcon,
+  Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon,
   Globe2, Palette, PenLine, LayoutGrid, Sparkles, ArrowRight, ArrowLeft, Lock, Volume2, Check,
   Cpu, Film, Search, UserPlus, Loader2, type LucideIcon,
 } from "lucide-react";
@@ -39,11 +39,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ImageStudioHub = lazy(() => import("./ImageStudioHub").then((m) => ({ default: m.ImageStudioHub })));
 const PhotoEditorHub = lazy(() => import("@/components/photo-editor/PhotoEditorHub").then((m) => ({ default: m.PhotoEditorHub })));
-const ScenesHub = lazy(() => import("@/components/scenes/ScenesHub").then((m) => ({ default: m.ScenesHub })));
 
 type Mode = "text-to-video" | "image-to-video" | "avatar";
 type ModuleId =
-  | "generate" | "image" | "photo" | "scenes"
+  | "generate" | "image" | "photo"
   | "cast" | "voice" | "music" | "worlds" | "look" | "story" | "templates";
 
 /* shared selections every module reads/writes */
@@ -66,7 +65,6 @@ const MODULES: Module[] = [
   { id: "generate", label: "Generate", icon: Wand2, group: "create" },
   { id: "image", label: "Image", icon: ImageIcon, group: "create" },
   { id: "photo", label: "Photo edit", icon: Scissors, group: "create" },
-  { id: "scenes", label: "Scenes", icon: Clapperboard, group: "create" },
   { id: "cast", label: "Cast", icon: Users, group: "assets" },
   { id: "voice", label: "Voice", icon: Mic, group: "assets" },
   { id: "music", label: "Music", icon: MusicIcon, group: "assets" },
@@ -859,7 +857,10 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
 /* ── shared bits ─────────────────────────────────────────────── */
 function ModuleScroll({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-9">
+    // h-full (not flex-1) — the parent canvas is `h-full`, not a flex column,
+    // so flex-1 collapsed and tall modules (e.g. the 48-avatar Cast grid)
+    // couldn't scroll. h-full bounds the height so overflow-y-auto works.
+    <div className="h-full overflow-y-auto px-6 py-7 sm:px-9">
       <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-[1.5rem] font-semibold text-foreground">{title}</h2>
         <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-muted-foreground">{subtitle}</p>
@@ -959,7 +960,7 @@ export function CreationStudio({ onStartCreation, onReady, initialPrompt }: { on
               : active === "templates" ? <TemplatesModule sel={sel} onStartCreation={onStartCreation} />
               : active === "image" ? <Suspense fallback={hubFallback}><div className="h-full overflow-y-auto"><ImageStudioHub /></div></Suspense>
               : active === "photo" ? <Suspense fallback={hubFallback}><div className="h-full overflow-y-auto"><PhotoEditorHub /></div></Suspense>
-              : <Suspense fallback={hubFallback}><div className="h-full overflow-y-auto"><ScenesHub /></div></Suspense>}
+              : null}
           </motion.div>
         </AnimatePresence>
       </div>

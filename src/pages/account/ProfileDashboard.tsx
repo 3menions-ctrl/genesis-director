@@ -25,6 +25,7 @@ import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform
 import {
   Film,
   Eye,
+  Play,
   Heart,
   Wand2,
   Flame,
@@ -310,6 +311,17 @@ export default function ProfileDashboard() {
     tagline: string | null; location: string | null; overlap: number;
   }>>([]);
 
+  // The full filmography — EVERY film this creator has, for the gallery.
+  // Decoupled from `data.recentReels` (which stays capped for the highlight
+  // picker / featured logic). Works for any viewer: published_reels has a
+  // public-read RLS policy; the owner additionally sees their own completed
+  // projects that were never formally published.
+  const [allFilms, setAllFilms] = useState<Array<{
+    id: string; title: string; thumbnail_url: string | null;
+    video_url: string | null; play_count: number;
+  }>>([]);
+  const [filmsLoading, setFilmsLoading] = useState(true);
+
   // Load the viewed user's identity + public stats + reels via the
   // SECURITY DEFINER RPC. Single round-trip, anon-friendly, and we
   // also pick up `viewer_following` for the follow button so we don't
@@ -438,6 +450,68 @@ export default function ProfileDashboard() {
     })();
     return () => { cancelled = true; };
   }, [viewedUserId]);
+
+  // Full filmography for the gallery. One query path for everyone —
+  // published_reels (public RLS), newest first, generous cap. Falls back
+  // to the creator's completed movie_projects when they've shipped work
+  // without formally publishing a reel (owner sees private; visitors only
+  // public).
+  useEffect(() => {
+    if (!viewedUserId) { setAllFilms([]); setFilmsLoading(false); return; }
+    let cancelled = false;
+    setFilmsLoading(true);
+    (async () => {
+      try {
+        const { data: reels } = await supabase
+          .from("published_reels")
+          .select("id, title, thumbnail_url, video_url, play_count, created_at")
+          .eq("creator_id", viewedUserId)
+          .eq("is_taken_down", false)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        let films = ((reels ?? []) as Array<{
+          id: string; title: string | null; thumbnail_url: string | null;
+          video_url: string | null; play_count: number | null;
+        }>).map((r) => ({
+          id: r.id,
+          title: r.title ?? "Untitled",
+          thumbnail_url: r.thumbnail_url,
+          video_url: r.video_url,
+          play_count: r.play_count ?? 0,
+        }));
+
+        // Fallback to completed projects when there are no published reels.
+        if (films.length === 0) {
+          let q = supabase
+            .from("movie_projects")
+            .select("id, title, thumbnail_url, video_url, updated_at")
+            .eq("user_id", viewedUserId)
+            .eq("status", "completed")
+            .not("video_url", "is", null)
+            .order("updated_at", { ascending: false })
+            .limit(500);
+          if (!isOwner) q = q.eq("is_public", true);
+          const { data: proj } = await q;
+          films = ((proj ?? []) as Array<{
+            id: string; title: string | null; thumbnail_url: string | null; video_url: string | null;
+          }>).map((p) => ({
+            id: p.id,
+            title: p.title ?? "Untitled",
+            thumbnail_url: p.thumbnail_url,
+            video_url: p.video_url,
+            play_count: 0,
+          }));
+        }
+        if (!cancelled) setAllFilms(films);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[ProfileDashboard] all-films query failed", e);
+      } finally {
+        if (!cancelled) setFilmsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [viewedUserId, isOwner]);
 
   // Mutual-follows social proof: pull a small sample of users that BOTH
   // the viewer and the target follow. Skipped for owner-on-own and for
@@ -879,6 +953,8 @@ export default function ProfileDashboard() {
   const tagline   = viewed?.tagline ?? null;
   const location  = viewed?.location ?? null;
   const externalLinks = (viewed?.external_links ?? (isOwner ? ((profile as any)?.external_links ?? {}) : {})) as Record<string, string>;
+  // Pinned-reel ids → a "pinned" marker on those tiles in the gallery.
+  const pinnedFilmIds = useMemo(() => new Set(data.pinnedReels.map((r) => r.id)), [data.pinnedReels]);
 
   // OpenGraph + Twitter Card: shared links unfurl with the creator's name,
   // tagline, and full cover photo. Canonical to /c/@handle when set.
@@ -971,107 +1047,27 @@ export default function ProfileDashboard() {
           Bio sits immediately under the hero (smaller top spacing) so
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
-      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-10 text-center">
-        {/* ─── THE WORK LEADS ─────────────────────────────────────────
-            Research-backed creator-profile order: "show, don't tell".
-            The films/highlights sit directly under the hero — the hero
-            already carries the name + avatar, so the very next thing a
-            visitor meets is the actual work, not a bio or a stat wall.
-            Identity (bio + at-a-glance) and the proof numbers follow as
-            context below. ───────────────────────────────────────────── */}
-
-        {/* Highlight reel picker — owner pins up to 4 above the grid. */}
-        {(data.pinnedReels.length > 0 || (isOwner && data.recentReels.length > 0)) && (
-          <HighlightReelPicker
-            pinned={data.pinnedReels}
-            candidates={data.recentReels}
+      <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-14 text-left">
+        {/* ─── BIO — directly under the cover, a comfortable reading
+            column. The director's note sets the tone before the work. */}
+        <div className="space-y-6 max-w-3xl">
+          {!isOwner && mutualFollows && mutualFollows.total > 0 && (
+            <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
+          )}
+          <BioSection
+            initial={bioInitial}
+            userId={viewedUserId ?? ""}
+            onSaved={refreshProfile}
+            reducedMotion={reducedMotion ?? false}
             isOwner={isOwner}
-            settingsMode={settingsMode}
-            onChange={async (nextIds) => {
-              if (!isOwner || !viewedUserId) return;
-              const idSet = new Set(nextIds);
-              const nextPinned = data.recentReels
-                .filter((r) => idSet.has(r.id))
-                .map((r) => ({ id: r.id, title: r.title, thumbnail_url: r.thumbnail_url, video_url: null }))
-                .concat(data.pinnedReels.filter((r) => idSet.has(r.id) && !data.recentReels.find((rr) => rr.id === r.id)));
-              setData((prev) => ({ ...prev, pinnedReels: nextPinned }));
-              try {
-                const { error } = await supabase
-                  .from("profiles")
-                  .update({ pinned_reel_ids: nextIds })
-                  .eq("id", viewedUserId);
-                if (error) throw error;
-                toast.success("Highlights updated");
-              } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Couldn't update highlights");
-              }
-            }}
+            forceEditing={settingsMode}
           />
-        )}
+          <SocialLinksRow links={externalLinks} />
+        </div>
 
-        {/* ─── ROW 2 — Films section — promoted above Highlights so the
-            creator's actual work is what visitors see first under the
-            identity band. ─────────────────────────────────────────── */}
-        {(data.pinnedReels.length > 0 || data.recentReels.length > 0) && (
-          <FilmsSection
-            pinned={data.pinnedReels}
-            recent={data.recentReels}
-            isOwner={isOwner}
-            onUnpin={async (reelId) => {
-              if (!isOwner || !viewedUserId) return;
-              setData((prev) => ({ ...prev, pinnedReels: prev.pinnedReels.filter((r) => r.id !== reelId) }));
-              const remaining = data.pinnedReels.filter((r) => r.id !== reelId).map((r) => r.id);
-              try {
-                await supabase.from("profiles").update({ pinned_reel_ids: remaining }).eq("id", viewedUserId);
-                toast.success("Unpinned");
-              } catch {
-                toast.error("Couldn't unpin");
-              }
-            }}
-          />
-        )}
-
-        {/* ─── ABOUT — identity band: bio (left) + at-a-glance (right).
-            Now sits BELOW the work as supporting context rather than a
-            gate in front of it. Mutual-follows folds into the bio. ──── */}
-        <section className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-12">
-          <div className="space-y-7 min-w-0">
-            {!isOwner && mutualFollows && mutualFollows.total > 0 && (
-              <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
-            )}
-            <BioSection
-              initial={bioInitial}
-              userId={viewedUserId ?? ""}
-              onSaved={refreshProfile}
-              reducedMotion={reducedMotion ?? false}
-              isOwner={isOwner}
-              forceEditing={settingsMode}
-            />
-            <SocialLinksRow links={externalLinks} />
-          </div>
-          <aside className="lg:pt-2 w-full lg:max-w-[340px] lg:justify-self-end lg:ml-auto text-left">
-            <AtAGlanceCard
-              isOwner={isOwner}
-              joinedDate={data.joinedDate}
-              totalFilms={data.totalFilms}
-              followerCount={data.followerCount}
-              totalPlays={data.totalPlays}
-              totalLikes={data.totalLikes}
-              country={viewed?.country ?? null}
-              location={location}
-              interests={((viewed as any)?.interests ?? []) as string[]}
-              verifiedKind={viewed?.verified_kind ?? null}
-              hasPatronTiers={patronTiers.length > 0}
-              ownerHasGoal={!!patronGoal}
-              creatorName={displayName}
-            />
-          </aside>
-        </section>
-
-        {/* ─── Settings panel — owner-only inline editor (sits with the
-             About band so editing bio/name/links is in context). ───── */}
+        {/* Owner-only inline settings editor (edits bio/name/links in context). */}
         {isOwner && settingsMode && viewedUserId && (
-          <div id="profile-settings-panel" className="scroll-mt-24 text-left">
+          <div id="profile-settings-panel" className="scroll-mt-24">
             <ErrorBoundary
               fallback={
                 <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
@@ -1098,14 +1094,42 @@ export default function ProfileDashboard() {
           </div>
         )}
 
-        {/* ─── The proof — views / remixes / followers. Context after
-             the work + about, right-aligned as a side cluster. ─────── */}
-        <StatsPanel
-          plays={data.totalPlays}
-          remixes={data.totalRemixes}
-          followers={data.followerCount}
-          reducedMotion={reducedMotion ?? false}
-        />
+        {/* ─── THE WORK + ANALYTICS — the film gallery is the wide centre
+            column below the bio; the stat cards + at-a-glance analytics
+            live in a sticky, beautifully-contained rail to its right. ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14 items-start">
+          <FilmsGallery
+            films={allFilms}
+            loading={filmsLoading}
+            pinnedIds={pinnedFilmIds}
+            isOwner={isOwner}
+          />
+
+          <aside className="space-y-5 lg:sticky lg:top-6">
+            <ProofStatsCard
+              plays={data.totalPlays}
+              remixes={data.totalRemixes}
+              followers={data.followerCount}
+              films={Math.max(data.totalFilms, allFilms.length)}
+              reducedMotion={reducedMotion ?? false}
+            />
+            <AtAGlanceCard
+              isOwner={isOwner}
+              joinedDate={data.joinedDate}
+              totalFilms={Math.max(data.totalFilms, allFilms.length)}
+              followerCount={data.followerCount}
+              totalPlays={data.totalPlays}
+              totalLikes={data.totalLikes}
+              country={viewed?.country ?? null}
+              location={location}
+              interests={((viewed as any)?.interests ?? []) as string[]}
+              verifiedKind={viewed?.verified_kind ?? null}
+              hasPatronTiers={patronTiers.length > 0}
+              ownerHasGoal={!!patronGoal}
+              creatorName={displayName}
+            />
+          </aside>
+        </div>
 
         {/* ─── Highlights collections (secondary curation). ────────── */}
         <PinnedCollectionsRail
@@ -1202,7 +1226,7 @@ function AtAGlanceCard({
   }, [joined, location, totalFilms, followerCount, totalPlays, totalLikes]);
 
   return (
-    <div className="lg:sticky lg:top-6 space-y-4">
+    <div className="space-y-4">
       <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-5">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
           ◆ At a glance
@@ -1286,6 +1310,195 @@ function AtAGlanceCard({
       {/* Patron CTA intentionally removed from here. The single entry
           point is the "Patron" pill in the floating CoverHero links
           above; duplicating it here was creating visual noise. */}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FilmsGallery — the creator's FULL filmography in a beautiful poster
+// grid. Every film, newest first. Each tile is a 16:9 poster with a
+// hover-lift, a play glyph, the title, and view count. Pinned films wear
+// an accent dot. This is the lead surface of the left column.
+// ─────────────────────────────────────────────────────────────────────────────
+function FilmsGallery({
+  films, loading, pinnedIds, isOwner,
+}: {
+  films: Array<{ id: string; title: string; thumbnail_url: string | null; video_url: string | null; play_count: number }>;
+  loading: boolean;
+  pinnedIds: Set<string>;
+  isOwner: boolean;
+}) {
+  return (
+    <section>
+      <header className="flex items-baseline justify-between gap-6 mb-7 flex-wrap">
+        <div>
+          <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] inline-flex items-center gap-2")}>
+            <Film className="h-3 w-3 text-accent/85" strokeWidth={1.6} />
+            ◆ Filmography
+          </div>
+          <h3
+            className="mt-2 font-display italic text-[clamp(1.6rem,2.6vw,2.2rem)] font-light tracking-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/65 bg-clip-text text-transparent">
+              Every film.
+            </span>
+          </h3>
+        </div>
+        {films.length > 0 && (
+          <span className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.24em] tabular-nums")}>
+            {films.length} {films.length === 1 ? "film" : "films"}
+          </span>
+        )}
+      </header>
+
+      {loading ? (
+        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-video rounded-2xl bg-white/[0.03] ring-1 ring-inset ring-white/[0.05] animate-pulse" />
+          ))}
+        </div>
+      ) : films.length === 0 ? (
+        <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] py-16 px-6 text-center">
+          <Film className="h-7 w-7 mx-auto text-muted-foreground/45" strokeWidth={1.3} />
+          <div className="mt-4 font-display italic text-[20px] text-foreground/90" style={{ fontFamily: "'Fraunces', serif" }}>
+            {isOwner ? "No films yet." : "No public films yet."}
+          </div>
+          <p className="mt-2 text-[13px] text-muted-foreground/65 max-w-sm mx-auto">
+            {isOwner
+              ? "Direct your first film in the Studio and it'll line up here."
+              : "When this director publishes, their work will fill this gallery."}
+          </p>
+          {isOwner && (
+            <Link
+              to="/studio"
+              className="mt-5 inline-flex items-center gap-2 h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Direct a film
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          {films.map((f) => (
+            <GalleryTile key={f.id} film={f} pinned={pinnedIds.has(f.id)} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function GalleryTile({
+  film, pinned,
+}: {
+  film: { id: string; title: string; thumbnail_url: string | null; play_count: number };
+  pinned: boolean;
+}) {
+  return (
+    <Link
+      to={`/r/${film.id}`}
+      className="group/tile relative block aspect-video rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-24px_hsl(0_0%_0%/0.8)]"
+    >
+      {film.thumbnail_url ? (
+        <img
+          src={film.thumbnail_url}
+          alt={film.title}
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover group-hover/tile:scale-[1.05] transition-transform duration-700"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent flex items-center justify-center">
+          <Film className="h-7 w-7 text-white/25" strokeWidth={1.3} />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+
+      {/* Hover play glyph. */}
+      <div className="absolute inset-0 grid place-items-center opacity-0 group-hover/tile:opacity-100 transition-opacity duration-300">
+        <span className="grid place-items-center h-12 w-12 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30 backdrop-blur shadow-[0_8px_30px_hsl(var(--accent)/0.45)]">
+          <Play className="h-5 w-5 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
+        </span>
+      </div>
+
+      {pinned && (
+        <span
+          aria-hidden
+          title="Pinned"
+          className="absolute top-3 left-3 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent)/0.8)]"
+        />
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 p-3.5">
+        <div
+          className="text-[14px] leading-snug font-light text-white line-clamp-2"
+          style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}
+        >
+          {film.title || "Untitled"}
+        </div>
+        {film.play_count > 0 && (
+          <div className={cn(TYPE_META, "text-white/65 mt-1.5 inline-flex items-center gap-1 tracking-[0.16em]")}>
+            <Eye className="h-2.5 w-2.5" strokeWidth={1.5} />
+            {film.play_count.toLocaleString()}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProofStatsCard — a compact, beautifully-contained read of the numbers
+// that matter (films · views · remixes · followers) for the right rail.
+// Replaces the old full-width "What people did" number wall — same data,
+// now a card that sits alongside the gallery.
+// ─────────────────────────────────────────────────────────────────────────────
+function ProofStatsCard({
+  plays, remixes, followers, films, reducedMotion,
+}: {
+  plays: number; remixes: number; followers: number; films: number; reducedMotion: boolean;
+}) {
+  const rows: Array<{ key: string; label: string; value: number; Icon: typeof Eye; accent?: boolean }> = [
+    { key: "films", label: "Films", value: films, Icon: Film },
+    { key: "plays", label: "Views", value: plays, Icon: Eye, accent: true },
+    { key: "remix", label: "Remixes", value: remixes, Icon: Wand2 },
+    { key: "fol", label: "Followers", value: followers, Icon: UserCheck },
+  ];
+  return (
+    <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-5">
+      <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
+        ◆ The proof
+      </div>
+      <div className="grid grid-cols-2 gap-3.5">
+        {rows.map((r) => (
+          <ProofStatCell key={r.key} {...r} reducedMotion={reducedMotion} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProofStatCell({
+  label, value, Icon, accent, reducedMotion,
+}: {
+  label: string; value: number; Icon: typeof Eye; accent?: boolean; reducedMotion: boolean;
+}) {
+  const display = useAnimatedNumber(value, reducedMotion);
+  return (
+    <div className="rounded-xl bg-white/[0.02] ring-1 ring-inset ring-white/[0.05] px-3.5 py-3">
+      <div className={cn("inline-flex items-center gap-1.5", TYPE_META, "tracking-[0.18em]", accent ? "text-accent/85" : "text-muted-foreground/55")}>
+        <Icon className="h-3 w-3" strokeWidth={1.6} />
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1.5 font-display italic font-light tracking-tight tabular-nums leading-none text-[clamp(1.5rem,2.4vw,1.9rem)]",
+          accent ? "text-foreground" : "text-foreground/90",
+        )}
+        style={{ fontFamily: "'Fraunces', serif" }}
+      >
+        {display.toLocaleString()}
+      </div>
     </div>
   );
 }

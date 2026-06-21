@@ -971,7 +971,7 @@ export default function ProfileDashboard() {
           Bio sits immediately under the hero (smaller top spacing) so
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
-      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-5 sm:pt-7 space-y-10">
+      <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-10 text-center">
         {/* ─── ROW 1 — Identity band ──────────────────────────────────
             Bio + social on the left (8/12), at-a-glance card on the
             right (4/12). Mutual-follows folds into the bio block so
@@ -991,7 +991,7 @@ export default function ProfileDashboard() {
             />
             <SocialLinksRow links={externalLinks} />
           </div>
-          <aside className="lg:pt-2">
+          <aside className="lg:pt-2 w-full lg:max-w-[340px] lg:justify-self-end lg:ml-auto text-left">
             <AtAGlanceCard
               isOwner={isOwner}
               joinedDate={data.joinedDate}
@@ -1016,7 +1016,7 @@ export default function ProfileDashboard() {
              location, links, privacy, theme accent, default editor
              prefs, pronouns, and notifications. ─────────────────── */}
         {isOwner && settingsMode && viewedUserId && (
-          <div id="profile-settings-panel" className="scroll-mt-24">
+          <div id="profile-settings-panel" className="scroll-mt-24 text-left">
             <ErrorBoundary
               fallback={
                 <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
@@ -1504,7 +1504,7 @@ function UpNextRow({
 // ─────────────────────────────────────────────────────────────────────────────
 function DirectorToolsBand({ children }: { children: React.ReactNode }) {
   return (
-    <section className="relative">
+    <section className="relative text-left">
       <header className="mb-8">
         <div className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.34em] inline-flex items-center gap-2")}>
           ◆ Director tools
@@ -1857,11 +1857,10 @@ function CoverHero({
       transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
         "relative z-10 w-full overflow-hidden",
-        // Hero height: trimmed ~30% from the old clamp so the identity band
-        // and the films grid sit higher in the first viewport — the banner
-        // is scene-setting, not the headline. The portrait + name still
-        // anchor it without eating half the fold.
-        "h-[clamp(320px,42vh,468px)]",
+        // Hero height: a generous cinematic band so the cover image has
+        // room to breathe. Sits taller than the trimmed pass — the portrait
+        // + name anchor it while still leaving the identity band visible.
+        "h-[clamp(400px,52vh,560px)]",
       )}
     >
       {/* BACKGROUND PHOTO */}
@@ -5135,9 +5134,12 @@ function StatsPanel({
   reducedMotion: boolean;
 }) {
   return (
-    <section>
-      <header className="flex items-baseline justify-between gap-6 mb-7 flex-wrap">
-        <div>
+    // The proof block is the one surface that hugs the RIGHT edge — the
+    // numbers read as a creator's receipts pinned to the side rather than
+    // centered prose. Capped + ml-auto so it sits in the right ~half.
+    <section className="text-right">
+      <div className="lg:max-w-[640px] lg:ml-auto">
+        <header className="mb-7">
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] inline-flex items-center gap-2")}>
             <TrendingUpIcon />
             ◆ The proof
@@ -5150,12 +5152,12 @@ function StatsPanel({
               What people did.
             </span>
           </h3>
+        </header>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
+          <BigCreatorStat label="Views" value={plays} accent reducedMotion={reducedMotion} />
+          <BigCreatorStat label="Remixes" value={remixes} reducedMotion={reducedMotion} />
+          <BigCreatorStat label="Followers" value={followers} reducedMotion={reducedMotion} />
         </div>
-      </header>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
-        <BigCreatorStat label="Views" value={plays} accent reducedMotion={reducedMotion} />
-        <BigCreatorStat label="Remixes" value={remixes} reducedMotion={reducedMotion} />
-        <BigCreatorStat label="Followers" value={followers} reducedMotion={reducedMotion} />
       </div>
     </section>
   );

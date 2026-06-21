@@ -4697,43 +4697,27 @@ function RecommendedCreatorsRail({
           </span>
         </h3>
       </header>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Compact avatar chips — small, fixed-width, wrapping. Deliberately
+          tiny so the rail never dominates or pushes adjacent content. */}
+      <div className="flex flex-wrap gap-x-5 gap-y-5">
         {rows.map((r) => (
           <Link
             key={r.id}
             to={`/c/${r.username ? `@${r.username}` : r.id}`}
-            className="group relative aspect-square rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-white/30 transition-all"
+            title={r.display_name ?? undefined}
+            className="group flex w-[68px] shrink-0 flex-col items-center gap-2 text-center"
           >
-            {r.cover_url ? (
-              <img src={r.cover_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-
-            {/* Avatar — sits above the cover so every card has a face. */}
-            <div className="absolute bottom-[58px] left-2.5">
-              <div
-                className="w-11 h-11 rounded-full overflow-hidden ring-[3px] ring-[hsl(220_28%_5%)] bg-glass-hover"
-                style={{ boxShadow: "0 0 0 1px hsla(0 0% 100% / 0.10), 0 8px 16px -4px hsla(0 0% 0% / 0.6)" }}
-              >
-                {r.avatar_url ? (
-                  <img src={r.avatar_url} alt={r.display_name ?? ""} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/90 font-mono text-[12px] bg-gradient-to-br from-white/[0.10] to-white/[0.02]">
-                    {(r.display_name?.[0] ?? "?").toUpperCase()}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="absolute bottom-2.5 left-2.5 right-2.5">
-              <div className="text-[14px] text-white font-light truncate italic" style={{ fontFamily: "'Fraunces', serif" }}>
-                {(r.display_name ?? "—").trim().split(/\s+/)[0]}
-              </div>
-              {r.country && (
-                <div className={cn(TYPE_META, "text-white/65 tracking-[0.18em]")}>{r.country}</div>
+            <div className="relative w-14 h-14 rounded-full overflow-hidden ring-1 ring-inset ring-white/[0.10] group-hover:ring-accent/50 transition-all">
+              {r.avatar_url ? (
+                <img src={r.avatar_url} alt={r.display_name ?? ""} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-white/90 font-mono text-[14px] bg-gradient-to-br from-white/[0.12] to-white/[0.02]">
+                  {(r.display_name?.[0] ?? "?").toUpperCase()}
+                </div>
               )}
+            </div>
+            <div className="w-full text-[12px] leading-tight text-foreground/85 truncate group-hover:text-foreground transition-colors italic" style={{ fontFamily: "'Fraunces', serif" }}>
+              {(r.display_name ?? "—").trim().split(/\s+/)[0]}
             </div>
           </Link>
         ))}

@@ -972,91 +972,15 @@ export default function ProfileDashboard() {
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
       <div className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-10 text-center">
-        {/* ─── ROW 1 — Identity band ──────────────────────────────────
-            Bio + social on the left (8/12), at-a-glance card on the
-            right (4/12). Mutual-follows folds into the bio block so
-            it reads as a header subtitle, not a wandering line. */}
-        <section className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-12">
-          <div className="space-y-7 min-w-0">
-            {!isOwner && mutualFollows && mutualFollows.total > 0 && (
-              <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
-            )}
-            <BioSection
-              initial={bioInitial}
-              userId={viewedUserId ?? ""}
-              onSaved={refreshProfile}
-              reducedMotion={reducedMotion ?? false}
-              isOwner={isOwner}
-              forceEditing={settingsMode}
-            />
-            <SocialLinksRow links={externalLinks} />
-          </div>
-          <aside className="lg:pt-2 w-full lg:max-w-[340px] lg:justify-self-end lg:ml-auto text-left">
-            <AtAGlanceCard
-              isOwner={isOwner}
-              joinedDate={data.joinedDate}
-              totalFilms={data.totalFilms}
-              followerCount={data.followerCount}
-              totalPlays={data.totalPlays}
-              totalLikes={data.totalLikes}
-              country={viewed?.country ?? null}
-              location={location}
-              interests={((viewed as any)?.interests ?? []) as string[]}
-              verifiedKind={viewed?.verified_kind ?? null}
-              hasPatronTiers={patronTiers.length > 0}
-              ownerHasGoal={!!patronGoal}
-              creatorName={displayName}
-            />
-          </aside>
-        </section>
+        {/* ─── THE WORK LEADS ─────────────────────────────────────────
+            Research-backed creator-profile order: "show, don't tell".
+            The films/highlights sit directly under the hero — the hero
+            already carries the name + avatar, so the very next thing a
+            visitor meets is the actual work, not a bio or a stat wall.
+            Identity (bio + at-a-glance) and the proof numbers follow as
+            context below. ───────────────────────────────────────────── */}
 
-        {/* ─── Settings panel — owner-only, inline. Visible when
-             settingsMode is on. Swaps the read-only renderers above
-             for in-place inputs covering display name, bio, tagline,
-             location, links, privacy, theme accent, default editor
-             prefs, pronouns, and notifications. ─────────────────── */}
-        {isOwner && settingsMode && viewedUserId && (
-          <div id="profile-settings-panel" className="scroll-mt-24 text-left">
-            <ErrorBoundary
-              fallback={
-                <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
-                  <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
-                  <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
-                    Open full settings <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              }
-            >
-              <ProfileSettingsPanel
-                userId={viewedUserId}
-                initialProfile={{
-                  display_name: profile?.display_name ?? null,
-                  tagline: viewed?.tagline ?? null,
-                  location: viewed?.location ?? null,
-                  external_links: externalLinks,
-                  preferences: (profile as any)?.preferences ?? {},
-                }}
-                onClose={() => setSettingsMode(false)}
-                onSaved={refreshProfile}
-              />
-            </ErrorBoundary>
-          </div>
-        )}
-
-        {/* ─── HIGH-LEVERAGE ADDITION — Stats panel ─────────────────
-             A floating premium read on the three numbers that matter
-             to a creator: views, remixes, followers. Sits right under
-             the identity band so visitors see proof above the films. */}
-        <StatsPanel
-          plays={data.totalPlays}
-          remixes={data.totalRemixes}
-          followers={data.followerCount}
-          reducedMotion={reducedMotion ?? false}
-        />
-
-        {/* ─── HIGH-LEVERAGE ADDITION — Highlight reel picker ───────
-             Lets the owner pin up to 4 reels above the grid. Visible
-             to non-owners too as a read-only highlight rail. */}
+        {/* Highlight reel picker — owner pins up to 4 above the grid. */}
         {(data.pinnedReels.length > 0 || (isOwner && data.recentReels.length > 0)) && (
           <HighlightReelPicker
             pinned={data.pinnedReels}
@@ -1107,8 +1031,83 @@ export default function ProfileDashboard() {
           />
         )}
 
-        {/* ─── ROW 3 — Highlights collections (now below the films
-            grid — secondary curation rather than the lead). ────────── */}
+        {/* ─── ABOUT — identity band: bio (left) + at-a-glance (right).
+            Now sits BELOW the work as supporting context rather than a
+            gate in front of it. Mutual-follows folds into the bio. ──── */}
+        <section className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-12">
+          <div className="space-y-7 min-w-0">
+            {!isOwner && mutualFollows && mutualFollows.total > 0 && (
+              <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
+            )}
+            <BioSection
+              initial={bioInitial}
+              userId={viewedUserId ?? ""}
+              onSaved={refreshProfile}
+              reducedMotion={reducedMotion ?? false}
+              isOwner={isOwner}
+              forceEditing={settingsMode}
+            />
+            <SocialLinksRow links={externalLinks} />
+          </div>
+          <aside className="lg:pt-2 w-full lg:max-w-[340px] lg:justify-self-end lg:ml-auto text-left">
+            <AtAGlanceCard
+              isOwner={isOwner}
+              joinedDate={data.joinedDate}
+              totalFilms={data.totalFilms}
+              followerCount={data.followerCount}
+              totalPlays={data.totalPlays}
+              totalLikes={data.totalLikes}
+              country={viewed?.country ?? null}
+              location={location}
+              interests={((viewed as any)?.interests ?? []) as string[]}
+              verifiedKind={viewed?.verified_kind ?? null}
+              hasPatronTiers={patronTiers.length > 0}
+              ownerHasGoal={!!patronGoal}
+              creatorName={displayName}
+            />
+          </aside>
+        </section>
+
+        {/* ─── Settings panel — owner-only inline editor (sits with the
+             About band so editing bio/name/links is in context). ───── */}
+        {isOwner && settingsMode && viewedUserId && (
+          <div id="profile-settings-panel" className="scroll-mt-24 text-left">
+            <ErrorBoundary
+              fallback={
+                <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                  <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
+                  <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
+                    Open full settings <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              }
+            >
+              <ProfileSettingsPanel
+                userId={viewedUserId}
+                initialProfile={{
+                  display_name: profile?.display_name ?? null,
+                  tagline: viewed?.tagline ?? null,
+                  location: viewed?.location ?? null,
+                  external_links: externalLinks,
+                  preferences: (profile as any)?.preferences ?? {},
+                }}
+                onClose={() => setSettingsMode(false)}
+                onSaved={refreshProfile}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* ─── The proof — views / remixes / followers. Context after
+             the work + about, right-aligned as a side cluster. ─────── */}
+        <StatsPanel
+          plays={data.totalPlays}
+          remixes={data.totalRemixes}
+          followers={data.followerCount}
+          reducedMotion={reducedMotion ?? false}
+        />
+
+        {/* ─── Highlights collections (secondary curation). ────────── */}
         <PinnedCollectionsRail
           collections={viewed?.pinned_collections ?? []}
           isOwner={isOwner}
@@ -1857,10 +1856,10 @@ function CoverHero({
       transition={{ duration: 0.6, ease: EASE_PREMIUM }}
       className={cn(
         "relative z-10 w-full overflow-hidden",
-        // Hero height: a generous cinematic band so the cover image has
-        // room to breathe. Sits taller than the trimmed pass — the portrait
-        // + name anchor it while still leaving the identity band visible.
-        "h-[clamp(400px,52vh,560px)]",
+        // Hero height: a large cinematic cover band — the photo is the
+        // headline now that the films lead the body. Tall enough to read
+        // as a true banner while the portrait + name anchor the lower-left.
+        "h-[clamp(460px,62vh,680px)]",
       )}
     >
       {/* BACKGROUND PHOTO */}

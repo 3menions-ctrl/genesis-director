@@ -961,6 +961,16 @@ export default function ProfileDashboard() {
   const externalLinks = (viewed?.external_links ?? (isOwner ? ((profile as any)?.external_links ?? {}) : {})) as Record<string, string>;
   // Pinned-reel ids → a "pinned" marker on those tiles in the gallery.
   const pinnedFilmIds = useMemo(() => new Set(data.pinnedReels.map((r) => r.id)), [data.pinnedReels]);
+  // Highlights — the creator's hand-pinned reels, or (when none are
+  // pinned) their top-played films, shown beside the bio. Up to 4.
+  const highlights = useMemo(() => {
+    if (data.pinnedReels.length > 0) {
+      return data.pinnedReels.slice(0, 4).map((r) => ({
+        id: r.id, title: r.title, thumbnail_url: r.thumbnail_url, play_count: 0,
+      }));
+    }
+    return [...allFilms].sort((a, b) => b.play_count - a.play_count).slice(0, 4);
+  }, [data.pinnedReels, allFilms]);
 
   // OpenGraph + Twitter Card: shared links unfurl with the creator's name,
   // tagline, and full cover photo. Canonical to /c/@handle when set.
@@ -1056,21 +1066,25 @@ export default function ProfileDashboard() {
           the owner's "Write your director's note…" prompt and the
           visitor's bio quote are visible without scrolling. */}
       <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 pb-32 sm:px-8 lg:px-12 pt-10 sm:pt-14 space-y-14 text-left">
-        {/* ─── BIO — directly under the cover, a comfortable reading
-            column. The director's note sets the tone before the work. */}
-        <div className="space-y-6 max-w-3xl">
-          {!isOwner && mutualFollows && mutualFollows.total > 0 && (
-            <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
-          )}
-          <BioSection
-            initial={bioInitial}
-            userId={viewedUserId ?? ""}
-            onSaved={refreshProfile}
-            reducedMotion={reducedMotion ?? false}
-            isOwner={isOwner}
-            forceEditing={settingsMode}
-          />
-          <SocialLinksRow links={externalLinks} />
+        {/* ─── BIO + HIGHLIGHTS — the director's note on the left, a
+            highlights rail on the right (same 340px column as the stat
+            cards below, so the right rail reads as one continuous spine). */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14 items-start">
+          <div className="space-y-6 min-w-0">
+            {!isOwner && mutualFollows && mutualFollows.total > 0 && (
+              <MutualFollowsLine total={mutualFollows.total} sample={mutualFollows.sample} />
+            )}
+            <BioSection
+              initial={bioInitial}
+              userId={viewedUserId ?? ""}
+              onSaved={refreshProfile}
+              reducedMotion={reducedMotion ?? false}
+              isOwner={isOwner}
+              forceEditing={settingsMode}
+            />
+            <SocialLinksRow links={externalLinks} />
+          </div>
+          <HighlightsPanel highlights={highlights} isOwner={isOwner} />
         </div>
 
         {/* Owner-only inline settings editor (edits bio/name/links in context). */}
@@ -1332,6 +1346,81 @@ function AtAGlanceCard({
           point is the "Patron" pill in the floating CoverHero links
           above; duplicating it here was creating visual noise. */}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HighlightsPanel — a compact, contained rail of the creator's standout
+// reels, shown to the RIGHT of the bio. Uses hand-pinned reels when set,
+// otherwise the top-played films. A 2-up poster grid inside a card.
+// ─────────────────────────────────────────────────────────────────────────────
+function HighlightsPanel({
+  highlights, isOwner,
+}: {
+  highlights: Array<{ id: string; title: string; thumbnail_url: string | null; play_count: number }>;
+  isOwner: boolean;
+}) {
+  // Nothing to show + a visitor → render nothing (don't leave a hole).
+  if (highlights.length === 0 && !isOwner) return null;
+
+  return (
+    <aside className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-5">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] inline-flex items-center gap-2")}>
+          <Pin className="h-3 w-3 text-accent/85" strokeWidth={1.7} />
+          ◆ Highlights
+        </div>
+        {highlights.length > 0 && (
+          <span className={cn(TYPE_META, "text-muted-foreground/50 tracking-[0.2em] tabular-nums")}>
+            {highlights.length}
+          </span>
+        )}
+      </div>
+
+      {highlights.length === 0 ? (
+        <p className="text-[12.5px] text-muted-foreground/65 leading-relaxed">
+          Your standout reels show here. Direct a film and your top picks
+          surface automatically.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5">
+          {highlights.map((h) => (
+            <Link
+              key={h.id}
+              to={`/r/${h.id}`}
+              className="group/hl relative block aspect-video rounded-xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all"
+            >
+              {h.thumbnail_url ? (
+                <img
+                  src={h.thumbnail_url}
+                  alt={h.title}
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover group-hover/hl:scale-[1.06] transition-transform duration-500"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent grid place-items-center">
+                  <Film className="h-4 w-4 text-white/30" strokeWidth={1.3} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              <div className="absolute inset-0 grid place-items-center opacity-0 group-hover/hl:opacity-100 transition-opacity">
+                <span className="grid place-items-center h-8 w-8 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30">
+                  <Play className="h-3.5 w-3.5 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
+                </span>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-2">
+                <div
+                  className="text-[11px] leading-tight font-light text-white line-clamp-1"
+                  style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}
+                >
+                  {h.title || "Untitled"}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </aside>
   );
 }
 

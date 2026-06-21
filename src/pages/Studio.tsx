@@ -41,7 +41,7 @@ import { PageShell } from "@/components/shell";
 import { CreationHub } from "@/components/studio/CreationHub";
 import { CreationStudio } from "@/components/studio/CreationStudio";
 import { FirstTakeTour } from "@/components/onboarding/FirstTakeTour";
-import { StudioBackdrop } from "@/components/studio/StudioBackdrop";
+import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
 import { ScenesHub } from "@/components/scenes/ScenesHub";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
@@ -487,7 +487,11 @@ function StudioContentInner() {
           transition: "opacity 0.3s ease-out",
         }}
       >
-        <StudioBackdrop />
+        {/* Same atmospheric backdrop the Editor uses — a deep, subtly-hued
+            dark wash + grain. Fixed wrapper so it covers the viewport. */}
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <ProjectBackdrop thumbnailUrl={null} projectId="studio-create" mood={null} />
+        </div>
         <motion.section
           style={{ position: "relative", zIndex: 1 }}
           initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}

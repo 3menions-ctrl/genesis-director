@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useMediaLibrary, type MediaAsset } from "@/hooks/useMediaLibrary";
 import { validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { UserHueBackdrop } from "@/components/foundation/UserHueBackdrop";
 import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { toast } from "sonner";
@@ -137,7 +138,9 @@ export default function MusicHub() {
 
   return (
     <FoundationShell>
-      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+      {/* Same per-user hue gradient the profile page wears. */}
+      <UserHueBackdrop userId={user?.id} />
+      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"
           chrome={{

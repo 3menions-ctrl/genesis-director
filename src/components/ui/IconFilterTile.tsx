@@ -25,15 +25,15 @@ export function IconFilterTile({
       className={cn(
         "group/ft flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 rounded-2xl backdrop-blur-md transition-all",
         active
-          ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.18] shadow-[0_10px_28px_-14px_hsla(0,0%,100%,0.4)]"
-          : "bg-white/[0.02] hover:bg-white/[0.05]",
+          ? "bg-white/[0.20] ring-1 ring-inset ring-white/[0.45] shadow-[0_10px_30px_-12px_rgba(255,255,255,0.55)]"
+          : "bg-white/[0.02] hover:bg-white/[0.06]",
       )}
     >
       <span
         className={cn(
           "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
           active
-            ? "bg-foreground/[0.14] text-foreground"
+            ? "bg-white/[0.30] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
             : "bg-white/[0.04] text-foreground/50 group-hover/ft:text-foreground/85",
         )}
       >

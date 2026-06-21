@@ -41,6 +41,7 @@ import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
+import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
 import {
   EditorialCanvas,
   EditorialEyebrow,
@@ -265,7 +266,8 @@ export function AvatarsWorkbench() {
 
   return (
     <>
-      <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
+      <GradientBackdrop tone="violet" />
+      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-4 pb-24 pt-10 sm:px-6 lg:px-10">
         <EditorialCanvas
           maxWidth="100%"
           chrome={{

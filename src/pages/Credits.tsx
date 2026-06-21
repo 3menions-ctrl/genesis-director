@@ -107,29 +107,8 @@ export default function Credits() {
 
   return (
     <div className="text-white">
-      {/* Credits-only premium backdrop — a deep, molten orange gradient that
-          overrides the app's blue spine while you're on this page. Fixed +
-          pointer-events-none so it sits behind the content and unmounts when
-          you navigate away. */}
-      <div
-        aria-hidden
-        className="fixed inset-0 z-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(115% 85% at 18% 0%, hsla(28,95%,52%,0.28) 0%, transparent 52%)," +
-            "radial-gradient(110% 80% at 100% 12%, hsla(14,90%,48%,0.22) 0%, transparent 50%)," +
-            "radial-gradient(120% 90% at 80% 100%, hsla(36,95%,50%,0.16) 0%, transparent 55%)," +
-            "linear-gradient(160deg, hsl(22 55% 7%) 0%, hsl(20 45% 4.5%) 55%, hsl(24 35% 3%) 100%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
-      />
+      {/* The molten-orange backdrop is rendered by the Account page (non-lazy)
+          so it paints instantly on navigation — see Account.tsx. */}
       <div className="relative z-10 max-w-[1180px] mx-auto px-6 pt-16 pb-24 space-y-16">
         {/* HERO — floating typography, animated balance counter, sparkline */}
         <CreditsHero

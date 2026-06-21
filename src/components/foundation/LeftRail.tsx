@@ -268,8 +268,8 @@ function RailTile({
         <motion.span
           layoutId="rail-active-tile"
           aria-hidden
-          className="pointer-events-none absolute inset-x-1 inset-y-0.5 rounded-2xl bg-[hsl(var(--accent)/0.14)]"
-          style={{ boxShadow: "inset 0 0 0 1px hsl(var(--accent)/0.4), 0 0 32px -8px hsl(var(--accent)/0.65)" }}
+          className="pointer-events-none absolute inset-x-1 inset-y-0.5 rounded-2xl bg-white/[0.16]"
+          style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45), 0 0 34px -8px rgba(255,255,255,0.5)" }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
         />
       )}
@@ -277,14 +277,14 @@ function RailTile({
         className={cn(
           "relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200",
           active
-            ? "bg-[hsl(var(--accent)/0.18)]"
+            ? "bg-white/[0.28] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
             : "bg-white/[0.07] group-hover/tile:bg-white/[0.13] group-hover/tile:scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]",
         )}
       >
         <Icon
           className={cn(
             "h-[25px] w-[25px] transition-all duration-200",
-            active ? "text-accent scale-[1.06]" : "text-foreground/80 group-hover/tile:text-foreground",
+            active ? "text-white scale-[1.06]" : "text-foreground/80 group-hover/tile:text-foreground",
           )}
           strokeWidth={active ? 2 : 1.8}
         />

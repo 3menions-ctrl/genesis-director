@@ -914,8 +914,8 @@ export default function Lobby() {
 
   return (
     <FoundationShell>
-      <LobbyBackdrop reducedMotion={reducedMotion ?? false} />
-
+      {/* Lobby uses the app's default SpineBackdrop (same as the settings
+          page) — no custom lobby backdrop. */}
       <div className="relative z-10 mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12 pt-6 pb-32">
 
         {/* Masthead — editorial header, no chrome bars above it. */}
@@ -996,94 +996,6 @@ export default function Lobby() {
         onSwitch={(next) => setTheaterReel(next)}
       />
     </FoundationShell>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LobbyBackdrop — atmospheric layer
-// ─────────────────────────────────────────────────────────────────────────────
-function LobbyBackdrop({ reducedMotion }: { reducedMotion: boolean }) {
-  return (
-    <div aria-hidden className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-      {/* Conic aurora — 180s rotation, warm */}
-      <motion.div
-        className="absolute"
-        style={{
-          top: "-30vh", left: "-20vw",
-          width: "90vw", height: "90vw",
-          background:
-            "conic-gradient(from 0deg at 50% 50%, hsla(45,95%,60%,0.18) 0deg, hsla(285,75%,65%,0.14) 90deg, hsla(195,95%,55%,0.10) 180deg, hsla(0,85%,60%,0.12) 270deg, hsla(45,95%,60%,0.18) 360deg)",
-          filter: "blur(120px)",
-        }}
-        animate={reducedMotion ? undefined : { rotate: [0, 360] }}
-        transition={{ duration: 180, repeat: Infinity, ease: "linear" }}
-      />
-      {/* Gold bloom — upper right, drifting */}
-      <motion.div
-        className="absolute"
-        style={{
-          top: "10vh", right: "-15vw",
-          width: "55vw", height: "55vw",
-          background:
-            "radial-gradient(circle, hsla(45,95%,60%,0.20) 0%, hsla(35,90%,50%,0.06) 40%, transparent 70%)",
-          filter: "blur(110px)",
-        }}
-        animate={reducedMotion ? undefined : { x: [0, 22, -10, 0], y: [0, -16, 10, 0] }}
-        transition={{ duration: 36, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* Violet bloom — lower left, drifting */}
-      <motion.div
-        className="absolute"
-        style={{
-          bottom: "-25vh", left: "-12vw",
-          width: "60vw", height: "60vw",
-          background:
-            "radial-gradient(circle, hsla(285,75%,55%,0.20) 0%, hsla(265,80%,45%,0.07) 40%, transparent 70%)",
-          filter: "blur(120px)",
-        }}
-        animate={reducedMotion ? undefined : { x: [0, -18, 12, 0], y: [0, 20, -8, 0] }}
-        transition={{ duration: 42, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* Crimson spark */}
-      <motion.div
-        className="absolute"
-        style={{
-          top: "55vh", left: "30vw",
-          width: "30vw", height: "30vw",
-          background:
-            "radial-gradient(circle, hsla(0,85%,55%,0.14) 0%, transparent 65%)",
-          filter: "blur(90px)",
-        }}
-        animate={reducedMotion ? undefined : { opacity: [0.4, 0.85, 0.4] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* Cyan spark — mid-right, breathing */}
-      <motion.div
-        className="absolute"
-        style={{
-          top: "40vh", right: "20vw",
-          width: "25vw", height: "25vw",
-          background:
-            "radial-gradient(circle, hsla(195,95%,60%,0.16) 0%, transparent 65%)",
-          filter: "blur(80px)",
-        }}
-        animate={reducedMotion ? undefined : { opacity: [0.55, 1, 0.55] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* Vignette pull */}
-      <div
-        className="absolute inset-0"
-        style={{ background: "radial-gradient(ellipse 75% 55% at 50% 50%, transparent 0%, transparent 55%, hsl(220 32% 1.5% / 0.62) 100%)" }}
-      />
-      {/* Grain */}
-      <div
-        className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06   0 0 0 0 0.08   0 0 0 0 0.12   0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
-      />
-    </div>
   );
 }
 

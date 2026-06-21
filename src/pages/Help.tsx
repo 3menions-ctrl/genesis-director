@@ -63,15 +63,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import helpBg from "@/assets/pipeline-premium-bg.jpg";
+import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 // Heavy aurora backdrop — same atmospheric layer the Pricing page wraps in,
-// re-skinned for Help with its own premium aurora plate (helpBg).
-const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
+// Help shares the violet GradientBackdrop with the Avatars page.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static content — FAQs + docs links
@@ -255,9 +254,7 @@ export default function Help() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <Suspense fallback={null}>
-        <AbstractBackground image={helpBg} />
-      </Suspense>
+      <GradientBackdrop tone="violet" />
 
       <main className="relative z-10 mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-12 pt-16 pb-32">
         <Hero

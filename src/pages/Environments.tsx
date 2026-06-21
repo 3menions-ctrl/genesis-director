@@ -60,6 +60,7 @@ import { EnvironmentDetailDrawer } from "@/components/environments/EnvironmentDe
 import { usePageTone, TONE_PRESETS, type PageTone } from "@/lib/page-tone";
 import { AutoGallery } from "@/components/foundation/AutoGallery";
 import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop";
+import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Glow palette — tints the hero gallery's ambient halo per world.
@@ -579,27 +580,29 @@ function EnvironmentsContent() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/55 mr-2 w-16">
-              Setting
-            </span>
-            {CATEGORY_FILTERS.map((opt) => (
-              <FilterPill
-                key={opt.id}
-                active={categoryFilter === opt.id}
-                onClick={() => setCategoryFilter(opt.id)}
-                icon={opt.icon ? <opt.icon className="w-3.5 h-3.5" /> : undefined}
-              >
-                {opt.label}
-              </FilterPill>
-            ))}
-            <FilterPill
-              active={worldFilter === "favorites"}
-              onClick={() => setWorldFilter(worldFilter === "favorites" ? "all" : "favorites")}
-              icon={<Star className="w-3.5 h-3.5" fill={worldFilter === "favorites" ? "currentColor" : "none"} />}
-            >
-              Favorites {favorites.size > 0 ? `(${favorites.size})` : ""}
-            </FilterPill>
+          <div className="mt-6 space-y-4">
+            <IconFilterRow title="World">
+              {WORLD_FILTERS.map((opt) => (
+                <IconFilterTile
+                  key={opt.id}
+                  active={worldFilter === opt.id}
+                  onClick={() => setWorldFilter(opt.id)}
+                  Icon={opt.icon}
+                  label={opt.label}
+                />
+              ))}
+            </IconFilterRow>
+            <IconFilterRow title="Setting">
+              {CATEGORY_FILTERS.map((opt) => (
+                <IconFilterTile
+                  key={opt.id}
+                  active={categoryFilter === opt.id}
+                  onClick={() => setCategoryFilter(opt.id)}
+                  Icon={opt.icon ?? Sparkles}
+                  label={opt.label}
+                />
+              ))}
+            </IconFilterRow>
           </div>
         </div>
       </section>

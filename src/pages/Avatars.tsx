@@ -30,10 +30,14 @@ import {
   ArrowUpAZ,
   Loader2,
   User as UserIcon,
+  Users as UsersIcon,
+  UserRound,
+  UserCircle,
   Check,
   Plus,
   Trash2,
 } from "lucide-react";
+import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -73,11 +77,11 @@ const TYPE_TABS: { id: TypeFilter; label: string; Icon: typeof Sparkles }[] = [
   { id: "premium",   label: "Premium",   Icon: Crown },
 ];
 
-const GENDER_FILTERS: { id: GenderFilter; label: string }[] = [
-  { id: "all",     label: "Any" },
-  { id: "female",  label: "Female" },
-  { id: "male",    label: "Male" },
-  { id: "neutral", label: "Neutral" },
+const GENDER_FILTERS: { id: GenderFilter; label: string; Icon: typeof UserIcon }[] = [
+  { id: "all",     label: "Any",     Icon: UsersIcon },
+  { id: "female",  label: "Female",  Icon: UserIcon },
+  { id: "male",    label: "Male",    Icon: UserRound },
+  { id: "neutral", label: "Neutral", Icon: UserCircle },
 ];
 
 const SORT_OPTIONS: { id: SortKey; label: string; Icon: typeof TrendingUp }[] = [
@@ -339,9 +343,19 @@ export function AvatarsWorkbench() {
             </div>
           </div>
 
-          {/* ── 5. Type tabs + sort ────────────────────────────── */}
+          {/* ── 5. Type tabs (icon tiles) + sort ───────────────── */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-            <TypeTabs value={typeFilter} onChange={setTypeFilter} counts={counts} />
+            <IconFilterRow title="Type">
+              {TYPE_TABS.map((opt) => (
+                <IconFilterTile
+                  key={opt.id}
+                  active={typeFilter === opt.id}
+                  onClick={() => setTypeFilter(opt.id)}
+                  Icon={opt.Icon}
+                  label={opt.label}
+                />
+              ))}
+            </IconFilterRow>
             <SortPicker value={sort} onChange={setSort} />
           </div>
 
@@ -350,28 +364,19 @@ export function AvatarsWorkbench() {
             <CategoryChips value={categoryId} onChange={setCategoryId} />
           </div>
 
-          {/* ── 7. Gender row ──────────────────────────────────── */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className={cn(TYPE_META, "text-muted-foreground/60 mr-1")}>
-              Gender
-            </span>
-            {GENDER_FILTERS.map(({ id, label }) => {
-              const active = genderFilter === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setGenderFilter(id)}
-                  className={cn(
-                    "h-7 px-3 rounded-full text-[12px] tracking-tight transition-colors",
-                    active
-                      ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
-                      : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:border-accent/30 hover:text-foreground/90",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          {/* ── 7. Gender row (icon tiles) ─────────────────────── */}
+          <div className="mt-4">
+            <IconFilterRow title="Gender">
+              {GENDER_FILTERS.map((opt) => (
+                <IconFilterTile
+                  key={opt.id}
+                  active={genderFilter === opt.id}
+                  onClick={() => setGenderFilter(opt.id)}
+                  Icon={opt.Icon}
+                  label={opt.label}
+                />
+              ))}
+            </IconFilterRow>
           </div>
 
           {/* ── 8. Hairline + result count ─────────────────────── */}

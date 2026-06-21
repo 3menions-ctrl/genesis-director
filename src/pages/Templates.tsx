@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
+import { IconFilterTile } from "@/components/ui/IconFilterTile";
 import { AutoGallery } from "@/components/foundation/AutoGallery";
 import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
@@ -323,47 +324,7 @@ TemplateCard.displayName = "TemplateCard";
 // ─────────────────────────────────────────────────────────────────────────────
 // Filter pill — shared style
 // ─────────────────────────────────────────────────────────────────────────────
-// Top-bar filter as a beautiful icon tile with a small label underneath —
-// repeated for every engine tier and aspect option.
-function IconFilterTile({
-  active, onClick, Icon, label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  Icon: typeof Film;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group/ft flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 rounded-2xl backdrop-blur-md transition-all",
-        active
-          ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.18] shadow-[0_10px_28px_-14px_hsla(0,0%,100%,0.4)]"
-          : "bg-white/[0.02] hover:bg-white/[0.05]",
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
-          active
-            ? "bg-foreground/[0.14] text-foreground"
-            : "bg-white/[0.04] text-foreground/50 group-hover/ft:text-foreground/85",
-        )}
-      >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
-      </span>
-      <span
-        className={cn(
-          "text-[9.5px] font-mono uppercase tracking-[0.14em] transition-colors",
-          active ? "text-foreground" : "text-foreground/50 group-hover/ft:text-foreground/75",
-        )}
-      >
-        {label}
-      </span>
-    </button>
-  );
-}
+// Shared icon-tile filter — see IconFilterTile import above.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page body

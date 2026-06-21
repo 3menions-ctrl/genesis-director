@@ -21,8 +21,6 @@
  * sibling.
  */
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { useLeftRail } from "@/hooks/useLeftRail";
 
 interface Props {
   children: ReactNode;
@@ -35,17 +33,13 @@ const DEFAULT_SCRIM =
   "linear-gradient(to right, hsl(220 30% 3% / 0.78) 0%, hsl(220 30% 3% / 0.68) 32%, hsl(220 30% 3% / 0.42) 62%, hsl(220 30% 3% / 0.22) 100%)";
 
 export function HeroGalleryBackdrop({ children, scrim = DEFAULT_SCRIM }: Props) {
-  const { open: railOpen } = useLeftRail();
-
+  // The always-on LeftRail (72px mobile / 96px md+) shifts page content right,
+  // so the parent's centre sits half-a-rail right of the viewport centre. Pull
+  // the 100vw bed left by that half-rail so it spans the FULL page edge-to-edge.
   return (
     <div
       aria-hidden
-      className={cn(
-        "absolute inset-y-0 overflow-hidden",
-        railOpen
-          ? "left-[calc(50%_-_50vw)] md:left-[calc(50%_-_50vw_-_160px)]"
-          : "left-[calc(50%_-_50vw)]",
-      )}
+      className="absolute inset-y-0 overflow-hidden left-[calc(50%_-_50vw_-_36px)] md:left-[calc(50%_-_50vw_-_48px)]"
       style={{ width: "100vw" }}
     >
       {children}

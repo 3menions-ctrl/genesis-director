@@ -31,6 +31,7 @@ import {
   Download, Cpu, Clock, Camera, Sun, Moon, Wand2, Star,
   AlertCircle, Layers, Film,
 } from "lucide-react";
+import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -1244,15 +1245,22 @@ function CharacterStep({
         <p className="mt-2 text-[13px] text-foreground/55">Pick a stock presenter, upload your own, or capture with your webcam.</p>
       </header>
 
-      <div className="mb-5 inline-flex items-center gap-1 rounded-full ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-1">
-        {(["stock", "upload", "webcam"] as const).map(s => (
-          <button key={s} onClick={() => s === "webcam" ? toast.info("Webcam capture coming soon") : onSourceChange(s)}
-            className={cn(
-              "h-9 px-4 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
-              source === s ? "bg-foreground text-background" : "text-foreground/65 hover:text-foreground/95",
-            )}
-          >{s === "stock" ? "Stock library" : s === "upload" ? "Upload" : "Webcam (soon)"}</button>
-        ))}
+      <div className="mb-5">
+        <IconFilterRow title="Source">
+          {([
+            ["stock", "Stock", UserIcon],
+            ["upload", "Upload", Upload],
+            ["webcam", "Webcam", Camera],
+          ] as const).map(([s, label, Icon]) => (
+            <IconFilterTile
+              key={s}
+              active={source === s}
+              onClick={() => (s === "webcam" ? toast.info("Webcam capture coming soon") : onSourceChange(s))}
+              Icon={Icon}
+              label={label}
+            />
+          ))}
+        </IconFilterRow>
       </div>
 
       {source === "stock" && (

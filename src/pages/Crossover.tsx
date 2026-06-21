@@ -29,8 +29,18 @@ import {
   User as UserIcon,
   Loader2,
   Flame,
+  Layers,
+  Gift,
+  Gauge,
+  Gem,
+  Clapperboard,
+  Smartphone,
+  Monitor,
+  Square,
+  RectangleHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
@@ -70,21 +80,21 @@ const CATEGORY_ORDER_FOR_RAILS: CrossoverCategory[] = [
 ];
 
 type EngineFilter = "all" | "free" | "standard" | "pro" | "cinema";
-const ENGINE_FILTERS: { id: EngineFilter; label: string }[] = [
-  { id: "all",      label: "Any engine" },
-  { id: "free",     label: "Free · Wan" },
-  { id: "standard", label: "Standard" },
-  { id: "pro",      label: "Pro" },
-  { id: "cinema",   label: "Cinema" },
+const ENGINE_FILTERS: { id: EngineFilter; label: string; Icon: typeof Film }[] = [
+  { id: "all",      label: "Any",      Icon: Layers },
+  { id: "free",     label: "Free",     Icon: Gift },
+  { id: "standard", label: "Standard", Icon: Gauge },
+  { id: "pro",      label: "Pro",      Icon: Gem },
+  { id: "cinema",   label: "Cinema",   Icon: Clapperboard },
 ];
 
 type AspectFilter = "all" | "vertical" | "wide" | "square" | "cinema";
-const ASPECT_FILTERS: { id: AspectFilter; label: string }[] = [
-  { id: "all",      label: "Any aspect" },
-  { id: "vertical", label: "Vertical · 9:16" },
-  { id: "wide",     label: "Wide · 16:9 / 4:3" },
-  { id: "square",   label: "Square · 1:1" },
-  { id: "cinema",   label: "Cinema · 21:9" },
+const ASPECT_FILTERS: { id: AspectFilter; label: string; Icon: typeof Film }[] = [
+  { id: "all",      label: "Any",      Icon: Layers },
+  { id: "vertical", label: "Vertical", Icon: Smartphone },
+  { id: "wide",     label: "Wide",     Icon: Monitor },
+  { id: "square",   label: "Square",   Icon: Square },
+  { id: "cinema",   label: "21:9",     Icon: RectangleHorizontal },
 ];
 
 const TIER_HUE: Record<string, string> = {
@@ -599,38 +609,30 @@ function CrossoverContent() {
       </header>
 
       {/* ── SECONDARY FILTERS ──────────────────────────────────── */}
-      <section className="space-y-3 pb-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">
-            Engine
-          </span>
+      <section className="space-y-4 pb-6">
+        <IconFilterRow title="Engine">
           {ENGINE_FILTERS.map((opt) => (
-            <FilterPill
+            <IconFilterTile
               key={opt.id}
               active={engineFilter === opt.id}
               onClick={() => setEngineFilter(opt.id)}
-              icon={opt.id === "all" ? undefined : <Cpu className="w-3.5 h-3.5" />}
-            >
-              {opt.label}
-            </FilterPill>
+              Icon={opt.Icon}
+              label={opt.label}
+            />
           ))}
-        </div>
+        </IconFilterRow>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">
-            Aspect
-          </span>
+        <IconFilterRow title="Aspect">
           {ASPECT_FILTERS.map((opt) => (
-            <FilterPill
+            <IconFilterTile
               key={opt.id}
               active={aspectFilter === opt.id}
               onClick={() => setAspectFilter(opt.id)}
-              icon={opt.id === "all" ? undefined : <Film className="w-3.5 h-3.5" />}
-            >
-              {opt.label}
-            </FilterPill>
+              Icon={opt.Icon}
+              label={opt.label}
+            />
           ))}
-        </div>
+        </IconFilterRow>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40 mr-2 w-16">

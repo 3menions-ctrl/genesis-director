@@ -1173,8 +1173,24 @@ function StoriesRail({
   );
 }
 
+// Background imagery per story so the cards read as real content, not empty
+// gradient tiles. Cinematic stock that matches each card's theme.
+const STORY_IMAGES: Record<string, string> = {
+  spark:     "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
+  sketch:    "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",
+  sora2:     "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=600&q=80",
+  templates: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80",
+  creator:   "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=600&q=80",
+  follows:   "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80",
+  live:      "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=600&q=80",
+  lut:       "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?auto=format&fit=crop&w=600&q=80",
+  aicut:     "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?auto=format&fit=crop&w=600&q=80",
+  tip:       "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80",
+};
+
 function StoryTile({ story, index }: { story: StoryCard; index: number }) {
   const Icon = story.icon;
+  const bgImage = STORY_IMAGES[story.id];
   const cardRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [inView, setInView] = useState(false);
@@ -1267,6 +1283,24 @@ function StoryTile({ story, index }: { story: StoryCard; index: number }) {
           transition: "opacity 0.3s ease",
         }}
       />
+
+      {/* Background image — real imagery so the card isn't an empty gradient.
+          Scaled up on hover; a dark scrim keeps the title legible. */}
+      {bgImage && (
+        <>
+          <img
+            src={bgImage}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover/story:scale-110 transition-transform duration-700 ease-out"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(180deg, hsla(${story.hue} / 0.25) 0%, transparent 30%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.88) 100%)` }}
+          />
+        </>
+      )}
 
       {/* Grain */}
       <div

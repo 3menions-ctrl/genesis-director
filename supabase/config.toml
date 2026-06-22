@@ -99,6 +99,9 @@ project_id = "ywcwaumozoejierlfkgj"
     verify_jwt = false
   [functions.payments-webhook]
     verify_jwt = false
+  # Polar posts webhooks with a Standard Webhooks signature, not a Supabase JWT.
+  [functions.polar-webhook]
+    verify_jwt = false
   [functions.stylize-video]
     verify_jwt = false
   [functions.sync-music-to-scenes]

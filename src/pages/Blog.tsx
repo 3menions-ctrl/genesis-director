@@ -30,10 +30,27 @@ const NOISE =
 // grid, and faint grain. No canvas, no animation, no images.
 function BlogBackdrop() {
   return (
-    <div aria-hidden className="fixed inset-0 z-0 bg-[#050507]">
+    <div aria-hidden className="fixed inset-0 z-0 bg-[#08130c]">
+      {/* shared Hoppy-park backdrop (avatar removed) — pinned to the top band */}
       <div
-        className="absolute inset-x-0 top-0 h-[70vh]"
-        style={{ background: 'radial-gradient(120% 80% at 50% -12%, rgba(86,98,168,0.20), transparent 62%)' }}
+        className="absolute inset-x-0 top-0 h-[78vh]"
+        style={{
+          backgroundImage: 'url("/cinema-assets/footer-park.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 42%',
+          maskImage: 'linear-gradient(#000 58%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(#000 58%, transparent 100%)',
+        }}
+      />
+      {/* 60% dark blind */}
+      <div className="absolute inset-0 bg-black/60" />
+      {/* light-green → dark-green shade */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(159deg, rgba(150,205,110,0.16) 0%, rgba(20,58,34,0.40) 42%, rgba(5,16,10,0.88) 92%)',
+        }}
       />
       <div
         className="absolute inset-0"
@@ -49,7 +66,7 @@ function BlogBackdrop() {
         className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
         style={{ backgroundImage: `url("${NOISE}")`, backgroundSize: '180px 180px' }}
       />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#050507] to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#08130c] to-transparent" />
     </div>
   );
 }

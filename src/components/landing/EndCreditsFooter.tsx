@@ -149,7 +149,7 @@ export function EndCreditsFooter() {
 
         <div className="flex items-center justify-between flex-wrap gap-3 pt-6 border-t border-white/[0.04]">
           <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35">
-            © {new Date().getFullYear()} Small Bridges · Built in California
+            © {new Date().getFullYear()} Small Bridges-studio LLC · Made in Missouri, USA
           </span>
           <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35">
             Status: <span className="text-emerald-300">All systems nominal</span>

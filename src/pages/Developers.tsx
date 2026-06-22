@@ -7,10 +7,47 @@ import { toast } from 'sonner';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import { Code2, Copy, KeyRound, Trash2, Activity, Plus, Check } from 'lucide-react';
+import {
+  Code2, Copy, KeyRound, Trash2, Activity, Plus, Check,
+  Film, Image as ImageIcon, UserSquare2, Webhook, Terminal, ArrowRight, Mail,
+} from 'lucide-react';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { PageHero } from '@/components/page/PageHero';
 import { confirmAsync } from '@/components/ui/global-confirm';
+
+const CAPABILITIES = [
+  {
+    icon: Film,
+    title: 'Text-to-video',
+    body: 'Turn a prompt into a cinematic clip — control duration, aspect ratio, and motion straight from your code.',
+  },
+  {
+    icon: ImageIcon,
+    title: 'Image-to-video',
+    body: 'Animate a still into a moving shot. Feed a source image and direct the camera, pacing, and scene.',
+  },
+  {
+    icon: UserSquare2,
+    title: 'Avatars',
+    body: 'Generate consistent, expressive avatar performances for spokespeople, ads, and explainer content.',
+  },
+  {
+    icon: Webhook,
+    title: 'Webhooks',
+    body: 'Get notified the moment a render finishes or fails — no polling, no idle loops in your pipeline.',
+  },
+  {
+    icon: Terminal,
+    title: 'Programmatic access',
+    body: 'A clean REST API over the full Small Bridges pipeline. List projects, fetch clips, and check balances.',
+  },
+  {
+    icon: KeyRound,
+    title: 'Scoped API keys',
+    body: 'Issue, name, and revoke keys per environment. Usage is metered against your existing credit balance.',
+  },
+];
 interface ApiKey {
   id: string;
   name: string;
@@ -27,7 +64,11 @@ interface UsageLog {
 }
 
 export default function Developers() {
-  usePageMeta({ title: "Developers — Small Bridges API", description: "API keys, webhooks, and developer tools for embedding Small Bridges's video pipeline." });
+  usePageMeta({
+    title: "Developers — Small Bridges API",
+    description: "Build with the Small Bridges API: generate API keys, fire webhooks, and call the cinematic video pipeline — text-to-video, image-to-video, and avatars — programmatically.",
+    canonicalPath: "/developers",
+  });
 
   const { user } = useAuth();
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -53,12 +94,6 @@ export default function Developers() {
   };
 
   useEffect(() => { if (user) refresh(); }, [user]);
-  useEffect(() => {
-    document.title = 'Developers — Small Bridges API';
-    const meta = document.querySelector('meta[name="description"]');
-    const desc = "Generate API keys, monitor usage, and integrate Small Bridges's video pipeline into your stack.";
-    if (meta) meta.setAttribute('content', desc);
-  }, []);
 
   const createKey = async () => {
     if (!newKeyName.trim()) { toast.error('Name your key'); return; }
@@ -95,24 +130,41 @@ export default function Developers() {
   return (
     <>
       <div className="mx-auto w-full max-w-[1180px] px-6 py-12 space-y-16">
-        {/* Hero — floating typography */}
-        <header>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">
-            <Code2 className="w-3 h-3 text-accent/70" strokeWidth={1.5} /> ◆ Developers
+        {/* Hero */}
+        <PageHero
+          accentKey="developers"
+          eyebrow="Build with us"
+          title="Developers"
+          subtitle="Put the Small Bridges video pipeline inside your own product. Generate API keys, listen for webhooks, and create cinematic clips, avatars, and edits programmatically — pay-as-you-go from your existing credits at $0.10 per credit, no expiry."
+        />
+
+        {/* Capabilities — what you can build */}
+        <section>
+          <div className="mb-7">
+            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono flex items-center gap-2">
+              <Code2 className="w-3 h-3 text-accent/70" strokeWidth={1.5} /> ◆ Capabilities
+            </div>
+            <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+              <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                What you can build.
+              </span>
+            </h2>
           </div>
-          <h1
-            className="mt-3 font-display italic font-light tracking-tight leading-[0.95]"
-            style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(2.4rem, 4.5vw, 3.8rem)" }}
-          >
-            <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
-              Small Bridges API.
-            </span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] font-light leading-relaxed text-muted-foreground/70">
-            Generate cinematic video, avatars, and edited photos directly from your app.
-            Pay-as-you-go using your existing credits — <span className="text-foreground/85">$0.10 per credit</span>, no expiry.
-          </p>
-        </header>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CAPABILITIES.map((c) => (
+              <li
+                key={c.title}
+                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm hover:border-white/[0.12] transition-colors"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
+                  <c.icon className="w-5 h-5 text-foreground/70" strokeWidth={1.6} />
+                </div>
+                <h3 className="text-[15px] font-medium text-foreground mb-1.5">{c.title}</h3>
+                <p className="text-[13px] leading-relaxed text-muted-foreground/65">{c.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {/* Pricing — floating numbers, no cards */}
         <section>
@@ -260,6 +312,46 @@ export default function Developers() {
           <p className="mt-3 text-[12px] text-muted-foreground/65">
             Endpoints: <code className="text-foreground/75">/videos</code>, <code className="text-foreground/75">/avatars</code>, <code className="text-foreground/75">/photo-edit</code>, <code className="text-foreground/75">GET /projects</code>, <code className="text-foreground/75">GET /clips</code>, <code className="text-foreground/75">GET /me</code>.
           </p>
+          <ol className="mt-6 space-y-3 text-[13px] text-muted-foreground/70">
+            <li className="flex gap-3">
+              <span className="font-mono text-foreground/60">01</span>
+              <span>Create an API key above and store the secret — it's shown only once.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-foreground/60">02</span>
+              <span>Send it as the <code className="text-foreground/75">x-api-key</code> header on every request.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-foreground/60">03</span>
+              <span>Register a webhook URL to receive render-complete events instead of polling.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-foreground/60">04</span>
+              <span>Each successful generation is metered against your credit balance — failed jobs aren't charged.</span>
+            </li>
+          </ol>
+        </section>
+
+        {/* Contact for access */}
+        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 sm:p-10 backdrop-blur-sm">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-xl">
+              <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Get access</div>
+              <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+                <span className="bg-gradient-to-b from-foreground via-foreground/95 to-foreground/60 bg-clip-text text-transparent">
+                  Building something bigger?
+                </span>
+              </h2>
+              <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground/70">
+                Need higher rate limits, volume pricing, or early access to new endpoints? Tell us what you're building and we'll get you set up — usually within one business day.
+              </p>
+            </div>
+            <Button asChild size="lg" className="gap-2 shrink-0">
+              <a href="mailto:cole@smallbridges.co?subject=Small%20Bridges%20API%20access">
+                <Mail className="w-4 h-4" /> cole@smallbridges.co <ArrowRight className="w-4 h-4" />
+              </a>
+            </Button>
+          </div>
         </section>
       </div>
 

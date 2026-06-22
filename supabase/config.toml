@@ -99,6 +99,9 @@ project_id = "ywcwaumozoejierlfkgj"
     verify_jwt = false
   [functions.payments-webhook]
     verify_jwt = false
+  # Polar posts webhooks with a Standard Webhooks signature, not a Supabase JWT.
+  [functions.polar-webhook]
+    verify_jwt = false
   [functions.stylize-video]
     verify_jwt = false
   [functions.sync-music-to-scenes]
@@ -136,3 +139,18 @@ verify_jwt = false
 # Liveness probe — uptime monitors must hit without auth.
 [functions.health]
 verify_jwt = false
+
+# Auth "Send Email Hook" — Supabase Auth POSTs auth emails (signup/recovery/
+# magic-link/invite/email-change/reauth) to the auth-email-hook function, which
+# renders the branded React templates and enqueues them for Resend delivery.
+#
+# Production: enable in the dashboard (Authentication → Emails → Send Email Hook),
+#   URI = https://ywcwaumozoejierlfkgj.supabase.co/functions/v1/auth-email-hook,
+#   then store the generated secret as the SEND_EMAIL_HOOK_SECRET function secret.
+#
+# To also run the hook under local `supabase start`, set SEND_EMAIL_HOOK_SECRET
+# in your shell/.env (format: v1,whsec_<base64>, min 32 chars) and uncomment:
+# [auth.hook.send_email]
+# enabled = true
+# uri = "http://127.0.0.1:54321/functions/v1/auth-email-hook"
+# secrets = "env(SEND_EMAIL_HOOK_SECRET)"

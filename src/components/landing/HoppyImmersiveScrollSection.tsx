@@ -70,9 +70,24 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    // The cinematic background video is a DESKTOP-ONLY enhancement. A UHD video
+    // decoded full-viewport crashes mobile Safari (memory exhaustion). Only run
+    // it on a capable desktop; everything else keeps the lightweight ambient
+    // backdrop — no heavy decode, no crash, across all devices / connections /
+    // browsers.
+    const mm = typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
+    const reduceMotion = mm?.('(prefers-reduced-motion: reduce)').matches;
+    const coarsePointer = mm?.('(pointer: coarse)').matches;          // touch-first devices
+    const smallViewport = window.innerWidth < 1024;                   // phones / small tablets
     const saveData = (navigator as unknown as { connection?: { saveData?: boolean } }).connection?.saveData;
-    if (reduceMotion || saveData) return; // keep the static poster backdrop
+    const dm = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
+    const lowMemory = typeof dm === 'number' && dm < 4;
+    const ua = navigator.userAgent || '';
+    // iPhone/iPod, classic iPad, and iPadOS (which reports as "Macintosh" with touch).
+    const isIOS = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1);
+    if (reduceMotion || coarsePointer || smallViewport || saveData || lowMemory || isIOS) {
+      return; // keep the lightweight ambient backdrop — the heavy video never loads
+    }
 
     let ticking = false;
     let activated = false;

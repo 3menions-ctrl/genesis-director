@@ -983,6 +983,40 @@ export default function ProfileDashboard() {
     return out;
   }, [data.pinnedReels, allFilms]);
 
+  // Pin / unpin a film as a highlight. Writes profiles.pinned_reel_ids and
+  // optimistically updates local state so the Highlights rail beside the
+  // bio reflects the change immediately. Used by the Edit-profile editor.
+  const togglePinnedHighlight = useCallback(async (filmId: string) => {
+    if (!viewedUserId) return;
+    const current = data.pinnedReels.map((r) => r.id);
+    const isPinned = current.includes(filmId);
+    const nextIds = isPinned ? current.filter((id) => id !== filmId) : [...current, filmId];
+    const prevPinned = data.pinnedReels;
+    setData((prev) => {
+      let nextPinned: typeof prev.pinnedReels;
+      if (isPinned) {
+        nextPinned = prev.pinnedReels.filter((r) => r.id !== filmId);
+      } else {
+        const f = allFilms.find((x) => x.id === filmId);
+        nextPinned = f
+          ? [...prev.pinnedReels, { id: f.id, title: f.title, thumbnail_url: f.thumbnail_url, video_url: f.video_url }]
+          : prev.pinnedReels;
+      }
+      return { ...prev, pinnedReels: nextPinned };
+    });
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pinned_reel_ids: nextIds })
+        .eq("id", viewedUserId);
+      if (error) throw error;
+      toast.success(isPinned ? "Removed from highlights" : "Added to highlights");
+    } catch (e) {
+      setData((prev) => ({ ...prev, pinnedReels: prevPinned })); // revert
+      toast.error(e instanceof Error ? e.message : "Couldn't update highlights");
+    }
+  }, [viewedUserId, data.pinnedReels, allFilms]);
+
   // OpenGraph + Twitter Card: shared links unfurl with the creator's name,
   // tagline, and full cover photo. Canonical to /c/@handle when set.
   usePageMeta({
@@ -1130,6 +1164,17 @@ export default function ProfileDashboard() {
                   />
                 </ErrorBoundary>
               </div>
+            )}
+
+            {/* Highlights editor — owner-only, part of Edit profile. Pin
+                the films that lead the Highlights rail beside the bio. */}
+            {isOwner && settingsMode && (
+              <HighlightsEditor
+                films={allFilms}
+                pinnedIds={pinnedFilmIds}
+                loading={filmsLoading}
+                onToggle={togglePinnedHighlight}
+              />
             )}
 
             {similar.length > 0 && (
@@ -1430,6 +1475,96 @@ function HighlightsPanel({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HighlightsEditor — owner-only control inside Edit profile. A grid of
+// every film with a pin toggle; pinned films lead the Highlights rail
+// beside the bio. Writes profiles.pinned_reel_ids through onToggle.
+// ─────────────────────────────────────────────────────────────────────────────
+function HighlightsEditor({
+  films, pinnedIds, loading, onToggle,
+}: {
+  films: Array<{ id: string; title: string; thumbnail_url: string | null; play_count: number }>;
+  pinnedIds: Set<string>;
+  loading: boolean;
+  onToggle: (filmId: string) => void;
+}) {
+  const pinnedCount = films.filter((f) => pinnedIds.has(f.id)).length;
+  return (
+    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] inline-flex items-center gap-2")}>
+          <Pin className="h-3 w-3 text-accent/85" strokeWidth={1.7} />
+          ◆ Highlights
+        </div>
+        <span className={cn(TYPE_META, "text-muted-foreground/50 tracking-[0.2em] tabular-nums")}>
+          {pinnedCount} pinned
+        </span>
+      </div>
+      <p className="text-[12.5px] text-muted-foreground/65 mb-5">
+        Pin the films you want to feature. Pinned films lead the Highlights rail beside your bio.
+      </p>
+
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-video rounded-xl bg-white/[0.03] animate-pulse" />
+          ))}
+        </div>
+      ) : films.length === 0 ? (
+        <p className="text-[13px] text-muted-foreground/60">
+          No films yet — once you publish a film it'll show here to pin.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {films.map((f) => {
+            const isPinned = pinnedIds.has(f.id);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => onToggle(f.id)}
+                aria-pressed={isPinned}
+                title={isPinned ? "Unpin from highlights" : "Pin to highlights"}
+                className={cn(
+                  "group/pin relative block aspect-video rounded-xl overflow-hidden ring-2 transition-all text-left",
+                  isPinned ? "ring-accent" : "ring-transparent hover:ring-white/25",
+                )}
+              >
+                {f.thumbnail_url ? (
+                  <img src={f.thumbnail_url} alt={f.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent grid place-items-center">
+                    <Film className="h-5 w-5 text-white/30" strokeWidth={1.3} />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+
+                {/* Pin badge — solid accent when pinned, ghost otherwise. */}
+                <span
+                  className={cn(
+                    "absolute top-2 right-2 grid place-items-center h-7 w-7 rounded-full ring-1 ring-inset transition-colors",
+                    isPinned
+                      ? "bg-accent text-black ring-white/30"
+                      : "bg-black/45 text-white/80 ring-white/20 group-hover/pin:bg-black/65",
+                  )}
+                >
+                  <Pin className="h-3.5 w-3.5" strokeWidth={2} fill={isPinned ? "currentColor" : "none"} />
+                </span>
+
+                <div className="absolute inset-x-0 bottom-0 p-2.5">
+                  <div className="text-[12px] leading-tight font-light text-white line-clamp-1" style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}>
+                    {f.title || "Untitled"}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // FilmsGallery — the creator's FULL filmography in a beautiful poster
 // grid. Every film, newest first. Each tile is a 16:9 poster with a
 // hover-lift, a play glyph, the title, and view count. Pinned films wear
@@ -1603,7 +1738,7 @@ function ProofStatsCard({
       </div>
       <div className="grid grid-cols-2 gap-3.5">
         {rows.map((r) => (
-          <ProofStatCell key={r.key} {...r} reducedMotion={reducedMotion} />
+          <ProofStatCell key={r.key} label={r.label} value={r.value} Icon={r.Icon} accent={r.accent} reducedMotion={reducedMotion} />
         ))}
       </div>
     </div>
@@ -4611,14 +4746,13 @@ function PinnedCollectionsRail({
   collections: Array<{ id: string; name: string; cover_url: string | null; reel_ids: string[] }>;
   isOwner: boolean;
 }) {
-  // Hide for visitors when there's nothing meaningful — single empty
-  // collection reads as filler. Owners still see the empty state so
-  // they can add their first highlight.
+  // Read-only display of named highlight collections. Hidden entirely
+  // when there's nothing meaningful to show — the owner now MANAGES
+  // highlights from the Edit-profile panel, not via an inline button here.
   const meaningful = collections.filter((c) => c.reel_ids.length >= 1);
-  if (!isOwner && (meaningful.length === 0 || (meaningful.length === 1 && meaningful[0].reel_ids.length <= 1))) {
+  if (meaningful.length === 0 || (meaningful.length === 1 && meaningful[0].reel_ids.length <= 1)) {
     return null;
   }
-  if (collections.length === 0 && !isOwner) return null;
   return (
     <section>
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] mb-5 inline-flex items-center gap-2")}>
@@ -4649,15 +4783,6 @@ function PinnedCollectionsRail({
             </div>
           </div>
         ))}
-        {isOwner && (
-          <button
-            type="button"
-            onClick={() => toast.info("Highlights editor — coming next pass.")}
-            className="shrink-0 w-[240px] aspect-video rounded-2xl ring-1 ring-dashed ring-white/15 hover:ring-white/30 text-muted-foreground/60 hover:text-foreground transition-all flex items-center justify-center text-[11px] font-mono uppercase tracking-[0.22em]"
-          >
-            + New highlight
-          </button>
-        )}
       </div>
     </section>
   );

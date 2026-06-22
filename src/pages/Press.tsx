@@ -536,9 +536,9 @@ export default function Press() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button size="lg" variant="secondary" className="gap-2 h-14 px-8 text-base rounded-2xl" asChild>
-                    <a href="mailto:smallbridges.co@smallbridges.co">
+                    <a href="mailto:cole@smallbridges.co">
                       <Mail className="w-5 h-5" />
-                      smallbridges.co@smallbridges.co
+                      cole@smallbridges.co
                     </a>
                   </Button>
                 </div>

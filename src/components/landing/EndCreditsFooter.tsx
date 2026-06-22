@@ -15,6 +15,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useInView } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const CREDITS = [
   { role: 'Directed by', name: 'Small Bridges' },
@@ -115,6 +116,7 @@ export function EndCreditsFooter() {
 
       {/* Utility footer (always visible, no flash) */}
       <div className="max-w-[1280px] mx-auto pt-10 border-t border-white/[0.05]">
+        <NewsletterSignup />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
           <FooterCol title="Product">
             <FooterLink to="/create">Create</FooterLink>
@@ -132,10 +134,10 @@ export function EndCreditsFooter() {
             <FooterLink to="/help">Help center</FooterLink>
             <FooterLink to="/settings/support">Support inbox</FooterLink>
             <a
-              href="mailto:hello@smallbridges.co"
+              href="mailto:cole@smallbridges.co"
               className="text-[12px] text-white/55 hover:text-white transition-colors"
             >
-              hello@smallbridges.co
+              cole@smallbridges.co
             </a>
           </FooterCol>
           <FooterCol title="Legal">
@@ -155,6 +157,67 @@ export function EndCreditsFooter() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function NewsletterSignup() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [msg, setMsg] = useState('');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (state === 'loading') return;
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setState('error'); setMsg('Please enter a valid email.'); return;
+    }
+    setState('loading'); setMsg('');
+    try {
+      const { data, error } = await supabase.functions.invoke('newsletter-subscribe', {
+        body: { email: value, source: 'footer' },
+      });
+      if (error || (data && (data as { error?: string }).error)) {
+        throw new Error((data as { error?: string })?.error || 'Subscription failed');
+      }
+      setState('done'); setMsg("You're on the list. Check your inbox.");
+      setEmail('');
+    } catch (err) {
+      setState('error');
+      setMsg(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+    }
+  };
+
+  return (
+    <div className="mb-12 pb-10 border-b border-white/[0.05] grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35 mb-2">Newsletter</div>
+        <h3 className="text-[18px] sm:text-[20px] text-white font-semibold tracking-[-0.01em]">The best of AI filmmaking, in your inbox.</h3>
+        <p className="text-[13px] text-white/45 mt-1">New models, cinematic techniques, and product drops. No spam — unsubscribe anytime.</p>
+      </div>
+      {state === 'done' ? (
+        <div className="text-[13px] text-emerald-300 md:justify-self-end">✓ {msg}</div>
+      ) : (
+        <form onSubmit={submit} className="flex w-full md:w-auto items-stretch gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
+            placeholder="you@studio.com"
+            aria-label="Email address"
+            className="h-11 w-full md:w-[260px] rounded-full bg-white/[0.05] border border-white/[0.1] px-4 text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={state === 'loading'}
+            className="h-11 px-5 rounded-full bg-white text-black text-[13px] font-semibold whitespace-nowrap hover:bg-white/90 disabled:opacity-60 transition-colors"
+          >
+            {state === 'loading' ? 'Subscribing…' : 'Subscribe'}
+          </button>
+        </form>
+      )}
+      {state === 'error' && <div className="text-[12px] text-rose-300 md:col-span-2">{msg}</div>}
+    </div>
   );
 }
 

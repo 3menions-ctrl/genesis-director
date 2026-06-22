@@ -68,7 +68,7 @@ export default function EnterpriseComingSoon() {
       });
       if (error) {
         console.warn('[enterprise-lead]', error);
-        toast.error('Could not submit. Please email smallbridges.co@smallbridges.co directly.');
+        toast.error('Could not submit. Please email cole@smallbridges.co directly.');
         return;
       }
       setSubmitted(true);
@@ -159,8 +159,8 @@ export default function EnterpriseComingSoon() {
           <div className="mt-10 flex items-center gap-4 text-[11px] font-mono uppercase tracking-[0.28em] text-white/35">
             <span>Estimated launch · Q3 2026</span>
             <span aria-hidden>·</span>
-            <a href="mailto:smallbridges.co@smallbridges.co" className="hover:text-white/70 transition-colors">
-              smallbridges.co@smallbridges.co
+            <a href="mailto:cole@smallbridges.co" className="hover:text-white/70 transition-colors">
+              cole@smallbridges.co
             </a>
           </div>
         </div>

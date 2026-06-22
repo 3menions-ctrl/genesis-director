@@ -38,5 +38,5 @@ categoryTitle: "Account & Security"
 
 ### GDPR Compliance
 
-We're fully GDPR compliant. Contact **smallbridges.co@smallbridges.co** for data requests.
+We're fully GDPR compliant. Contact **cole@smallbridges.co** for data requests.
         

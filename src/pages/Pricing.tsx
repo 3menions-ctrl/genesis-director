@@ -624,41 +624,19 @@ export default function Pricing() {
   const meta = SEGMENT_META[segment];
   const packages = useMemo(() => SEGMENT_PACKAGES[segment], [segment]);
 
-  const handlePurchase = async (pkg: CreditPackage) => {
+  // PUBLIC MARKETING PAGE — never starts a checkout. All real purchasing
+  // (credit packs + subscriptions) happens on the signed-in Credits hub.
+  // CTAs send people there, signing them up first when needed.
+  const handlePurchase = (pkg: CreditPackage) => {
     const slug = (pkg.name || '').toLowerCase();
     if (pkg.contactSales) {
       navigate(`/contact?topic=sales&plan=${slug}`);
       return;
     }
-    // Subscription tier — route through Stripe's create-plan-checkout
-    // edge function instead of the in-page credit-buy modal.
-    if (pkg.planLookupKey) {
-      if (!user) {
-        navigate(`/auth?mode=signup&next=${encodeURIComponent('/pricing?plan=' + pkg.planLookupKey)}`);
-        return;
-      }
-      try {
-        const { payments } = await import('@/lib/payments');
-        const session = await payments.createSubscriptionCheckout({
-          priceId: pkg.planLookupKey,
-          kind: 'subscription',
-          returnUrl: `${window.location.origin}/profile?payment=success`,
-        });
-        window.location.href = session.url;
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[Pricing] subscription checkout failed:', e);
-        const { toast } = await import('sonner');
-        toast.error("Couldn't start checkout", {
-          description: e instanceof Error ? e.message : String(e),
-        });
-      }
-      return;
-    }
     if (user) {
-      setShowBuyModal(true);
+      navigate('/credits');
     } else {
-      navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + slug)}`);
+      navigate(`/auth?mode=signup&next=${encodeURIComponent('/credits')}`);
     }
   };
 

@@ -25,6 +25,16 @@ import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 import { CREDIT_PACKAGES, approxClips, startCreditCheckout, type CreditPackage } from '@/lib/payments/creditPackages';
 
+/** Recurring monthly plans — priceId is the planLookupKey the backend
+ *  resolves to POLAR_PRODUCT_<KEY>. Authoritative price lives in Polar. */
+const SUBSCRIPTION_PLANS: ReadonlyArray<{
+  key: string; name: string; price: number; credits: number; blurb: string; popular?: boolean;
+}> = [
+  { key: 'sub_creator_monthly', name: 'Indie',  price: 19,  credits: 220,  blurb: 'For solo creators shipping monthly.' },
+  { key: 'sub_pro_monthly',     name: 'Pro',    price: 49,  credits: 600,  blurb: 'For creators publishing every week.', popular: true },
+  { key: 'sub_studio_monthly',  name: 'Studio', price: 149, credits: 2000, blurb: 'For teams and studios at scale.' },
+];
+
 interface CreditTransaction {
   id: string;
   amount: number;
@@ -45,6 +55,7 @@ export default function Credits() {
   const [history, setHistory] = useState<CreditTransaction[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
+  const [subscribing, setSubscribing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -95,12 +106,30 @@ export default function Credits() {
 
   const buy = async (pkg: CreditPackage) => {
     if (!user) { navigate('/auth'); return; }
-    if (buying) return;
+    if (buying || subscribing) return;
     setBuying(pkg.id);
     try {
       await startCreditCheckout(pkg.id); // redirects on success
     } catch (e) {
       setBuying(null);
+      toast.error(e instanceof Error ? e.message : 'Could not start checkout');
+    }
+  };
+
+  const subscribe = async (planKey: string) => {
+    if (!user) { navigate('/auth'); return; }
+    if (buying || subscribing) return;
+    setSubscribing(planKey);
+    try {
+      const { payments } = await import('@/lib/payments');
+      const session = await payments.createSubscriptionCheckout({
+        priceId: planKey,
+        kind: 'subscription',
+        returnUrl: `${window.location.origin}/credits?payment=success`,
+      });
+      window.location.href = session.url; // redirect to Polar
+    } catch (e) {
+      setSubscribing(null);
       toast.error(e instanceof Error ? e.message : 'Could not start checkout');
     }
   };
@@ -127,7 +156,7 @@ export default function Credits() {
             </h2>
           </div>
           <p className="text-white/55 text-[13px] mb-6 leading-relaxed max-w-2xl">
-            One-time purchase, no subscription. Credits never expire, and refunds for failed renders land back in your balance automatically. Secure checkout via Stripe.
+            One-time top-ups — credits never expire, and refunds for failed renders land back in your balance automatically. Prefer a monthly plan? See subscriptions below. Secure checkout via Polar.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {CREDIT_PACKAGES.map((pkg) => (
@@ -155,6 +184,51 @@ export default function Credits() {
                 <div className="mt-4 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-accent/85">
                   {buying === pkg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   {pkg.credits.toLocaleString()} credits · ~{approxClips(pkg.credits)} clips
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Subscriptions — recurring monthly plans (Polar) */}
+        <section>
+          <div className="flex items-center gap-3 mb-2">
+            <Coins className="w-4 h-4 text-accent/80" />
+            <h2 className="text-[18px] text-white font-display font-light">
+              Monthly plans
+            </h2>
+          </div>
+          <p className="text-white/55 text-[13px] mb-6 leading-relaxed max-w-2xl">
+            A fresh credit grant every month — best value if you create regularly. Cancel anytime; manage your plan from the billing portal.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {SUBSCRIPTION_PLANS.map((plan) => (
+              <button
+                key={plan.key}
+                onClick={() => subscribe(plan.key)}
+                disabled={!!buying || !!subscribing}
+                className={cn(
+                  'group relative text-left rounded-2xl border p-5 transition-colors disabled:opacity-60',
+                  plan.popular
+                    ? 'border-accent/40 bg-[hsl(var(--accent)/0.06)] hover:border-accent/60'
+                    : 'border-white/[0.08] bg-white/[0.015] hover:border-white/25',
+                )}
+              >
+                {plan.popular && (
+                  <span className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-accent text-black text-[9px] font-mono uppercase tracking-[0.22em]">
+                    Popular
+                  </span>
+                )}
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[15px] text-white">{plan.name}</span>
+                  <span className="text-[20px] font-display tabular-nums text-white">
+                    ${plan.price}<span className="text-[12px] text-white/50">/mo</span>
+                  </span>
+                </div>
+                <div className="mt-1 text-[12px] text-white/55">{plan.blurb}</div>
+                <div className="mt-4 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-accent/85">
+                  {subscribing === plan.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  {plan.credits.toLocaleString()} credits / month
                 </div>
               </button>
             ))}

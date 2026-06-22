@@ -12,7 +12,7 @@
  * fully wired (DB row + in-memory store + ScriptDocument mirror). A
  * speaker button previews the track inline without adding it.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Music, ChevronUp, ChevronDown, Loader2, Plus, Play, Pause, UploadCloud } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -112,7 +112,10 @@ export function MusicPicker() {
     try {
       const doc = getDocumentState().doc;
       if (!doc) throw new Error("No project document loaded");
-      await ingestMusicUrl({
+      // ingestMusicUrl returns the durable DB clip id, or null if the
+      // video_clips insert didn't persist (the in-memory mirror still
+      // lands so the band lights up this session). Reflect that honestly.
+      const clipId = await ingestMusicUrl({
         musicUrl: t.url,
         userId: user.id,
         projectId: project.id,
@@ -121,13 +124,29 @@ export function MusicPicker() {
         durationSec: t.durationSec,
       });
       await flushNow();
-      toast.success("Added to the Music track", { description: t.title });
+      if (clipId) {
+        toast.success("Added to the Music track", { description: t.title });
+      } else {
+        toast.warning("Added for this session", {
+          description: "Couldn't save it durably — it may not persist on reload.",
+        });
+      }
     } catch (e) {
       toast.error("Couldn't add this track", { description: e instanceof Error ? e.message : undefined });
     } finally {
       setAdding(null);
     }
   }, [user, project]);
+
+  // Stop + release the preview audio when the picker unmounts so it never
+  // keeps playing after the user navigates away from the editor.
+  useEffect(() => () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+  }, []);
 
   return (
     <div className="shrink-0 border-t border-white/[0.06] bg-[hsl(220_30%_3%/0.45)]">

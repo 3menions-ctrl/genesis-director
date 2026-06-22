@@ -325,6 +325,10 @@ export default function ProfileDashboard() {
   const [allFilms, setAllFilms] = useState<Array<{
     id: string; title: string; thumbnail_url: string | null;
     video_url: string | null; play_count: number;
+    /** True when this row is a published_reels id (pinnable as a
+     *  highlight). False when it's a completed movie_projects fallback —
+     *  those can't be featured until published. */
+    published: boolean;
   }>>([]);
   const [filmsLoading, setFilmsLoading] = useState(true);
 
@@ -484,6 +488,7 @@ export default function ProfileDashboard() {
           thumbnail_url: r.thumbnail_url,
           video_url: r.video_url,
           play_count: r.play_count ?? 0,
+          published: true,
         }));
 
         // Fallback to completed projects when there are no published reels.
@@ -506,6 +511,7 @@ export default function ProfileDashboard() {
             thumbnail_url: p.thumbnail_url,
             video_url: p.video_url,
             play_count: 0,
+            published: false,
           }));
         }
         if (!cancelled) setAllFilms(films);
@@ -852,9 +858,26 @@ export default function ProfileDashboard() {
           .from("published_reels")
           .select("id, title, thumbnail_url, video_url")
           .in("id", ids);
-        next.pinnedReels = (prs ?? []).map((r: any) => ({
+        const resolved = (prs ?? []).map((r: any) => ({
           id: r.id, title: r.title, thumbnail_url: r.thumbnail_url, video_url: r.video_url,
         }));
+        // Defensive fallback: any pinned id NOT found in published_reels
+        // (legacy data, or a reel taken down) is resolved against
+        // movie_projects so a pinned highlight never silently vanishes.
+        const missing = ids.filter((id) => !resolved.some((r) => r.id === id));
+        if (missing.length > 0) {
+          const { data: projs } = await supabase
+            .from("movie_projects")
+            .select("id, title, thumbnail_url, video_url")
+            .in("id", missing);
+          for (const p of (projs ?? []) as Array<{ id: string; title: string | null; thumbnail_url: string | null; video_url: string | null }>) {
+            resolved.push({ id: p.id, title: p.title ?? "Untitled", thumbnail_url: p.thumbnail_url, video_url: p.video_url });
+          }
+        }
+        // Preserve the creator's pin order.
+        next.pinnedReels = ids
+          .map((id) => resolved.find((r) => r.id === id))
+          .filter((r): r is NonNullable<typeof r> => !!r);
       }
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -983,39 +1006,66 @@ export default function ProfileDashboard() {
     return out;
   }, [data.pinnedReels, allFilms]);
 
-  // Pin / unpin a film as a highlight. Writes profiles.pinned_reel_ids and
-  // optimistically updates local state so the Highlights rail beside the
-  // bio reflects the change immediately. Used by the Edit-profile editor.
-  const togglePinnedHighlight = useCallback(async (filmId: string) => {
+  // Pin / unpin a published reel as a highlight. Goes through the
+  // `toggle_pin_reel` RPC — which is the single source of truth: it
+  // verifies the reel is the caller's own published reel and enforces the
+  // max-3 cap server-side. Only published films are pinnable (the RPC
+  // rejects movie_projects ids), so the editor must gate on `published`.
+  // Optimistic local update with reconcile-from-result and revert-on-error.
+  const togglePinnedHighlight = useCallback(async (film: {
+    id: string; title: string; thumbnail_url: string | null; video_url: string | null; published: boolean;
+  }) => {
     if (!viewedUserId) return;
-    const current = data.pinnedReels.map((r) => r.id);
-    const isPinned = current.includes(filmId);
-    const nextIds = isPinned ? current.filter((id) => id !== filmId) : [...current, filmId];
+    if (!film.published) {
+      toast.error("Publish this film first", {
+        description: "Only published films can be featured as highlights.",
+      });
+      return;
+    }
+    const wasPinned = data.pinnedReels.some((r) => r.id === film.id);
+    if (!wasPinned && data.pinnedReels.length >= 3) {
+      toast.error("You can feature up to 3 highlights", {
+        description: "Unpin one to add another.",
+      });
+      return;
+    }
     const prevPinned = data.pinnedReels;
-    setData((prev) => {
-      let nextPinned: typeof prev.pinnedReels;
-      if (isPinned) {
-        nextPinned = prev.pinnedReels.filter((r) => r.id !== filmId);
-      } else {
-        const f = allFilms.find((x) => x.id === filmId);
-        nextPinned = f
-          ? [...prev.pinnedReels, { id: f.id, title: f.title, thumbnail_url: f.thumbnail_url, video_url: f.video_url }]
-          : prev.pinnedReels;
-      }
-      return { ...prev, pinnedReels: nextPinned };
-    });
+    // Optimistic.
+    setData((prev) => ({
+      ...prev,
+      pinnedReels: wasPinned
+        ? prev.pinnedReels.filter((r) => r.id !== film.id)
+        : [...prev.pinnedReels, { id: film.id, title: film.title, thumbnail_url: film.thumbnail_url, video_url: film.video_url }],
+    }));
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ pinned_reel_ids: nextIds })
-        .eq("id", viewedUserId);
+      const { data: res, error } = await supabase.rpc(
+        "toggle_pin_reel" as never,
+        { p_reel_id: film.id } as never,
+      );
       if (error) throw error;
-      toast.success(isPinned ? "Removed from highlights" : "Added to highlights");
+      // Reconcile to the server's truth (it owns the toggle decision).
+      const pinned = (res as { pinned?: boolean } | null)?.pinned;
+      setData((prev) => {
+        const has = prev.pinnedReels.some((r) => r.id === film.id);
+        if (pinned && !has) {
+          return { ...prev, pinnedReels: [...prev.pinnedReels, { id: film.id, title: film.title, thumbnail_url: film.thumbnail_url, video_url: film.video_url }] };
+        }
+        if (pinned === false && has) {
+          return { ...prev, pinnedReels: prev.pinnedReels.filter((r) => r.id !== film.id) };
+        }
+        return prev;
+      });
+      toast.success(pinned ? "Added to highlights" : "Removed from highlights");
     } catch (e) {
       setData((prev) => ({ ...prev, pinnedReels: prevPinned })); // revert
-      toast.error(e instanceof Error ? e.message : "Couldn't update highlights");
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(
+        /max_pinned/.test(msg) ? "You can feature up to 3 highlights"
+          : /not_your_reel/.test(msg) ? "You can only feature your own films"
+          : "Couldn't update highlights",
+      );
     }
-  }, [viewedUserId, data.pinnedReels, allFilms]);
+  }, [viewedUserId, data.pinnedReels]);
 
   // OpenGraph + Twitter Card: shared links unfurl with the creator's name,
   // tagline, and full cover photo. Canonical to /c/@handle when set.
@@ -1475,19 +1525,25 @@ function HighlightsPanel({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HighlightsEditor — owner-only control inside Edit profile. A grid of
-// every film with a pin toggle; pinned films lead the Highlights rail
-// beside the bio. Writes profiles.pinned_reel_ids through onToggle.
+// HighlightsEditor — owner-only control inside Edit profile. A grid of the
+// creator's films with a pin toggle; pinned films lead the Highlights rail
+// beside the bio. Pinning goes through the toggle_pin_reel RPC (ownership +
+// max-3 cap). Only PUBLISHED films are pinnable — unpublished completed
+// projects are shown disabled with a "publish to feature" hint.
 // ─────────────────────────────────────────────────────────────────────────────
+const MAX_PINNED_HIGHLIGHTS = 3;
+
 function HighlightsEditor({
   films, pinnedIds, loading, onToggle,
 }: {
-  films: Array<{ id: string; title: string; thumbnail_url: string | null; play_count: number }>;
+  films: Array<{ id: string; title: string; thumbnail_url: string | null; video_url: string | null; play_count: number; published: boolean }>;
   pinnedIds: Set<string>;
   loading: boolean;
-  onToggle: (filmId: string) => void;
+  onToggle: (film: { id: string; title: string; thumbnail_url: string | null; video_url: string | null; published: boolean }) => void;
 }) {
   const pinnedCount = films.filter((f) => pinnedIds.has(f.id)).length;
+  const anyPublished = films.some((f) => f.published);
+  const atCap = pinnedCount >= MAX_PINNED_HIGHLIGHTS;
   return (
     <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
       <div className="flex items-center justify-between gap-3 mb-1">
@@ -1496,11 +1552,11 @@ function HighlightsEditor({
           ◆ Highlights
         </div>
         <span className={cn(TYPE_META, "text-muted-foreground/50 tracking-[0.2em] tabular-nums")}>
-          {pinnedCount} pinned
+          {pinnedCount}/{MAX_PINNED_HIGHLIGHTS} pinned
         </span>
       </div>
       <p className="text-[12.5px] text-muted-foreground/65 mb-5">
-        Pin the films you want to feature. Pinned films lead the Highlights rail beside your bio.
+        Pin up to {MAX_PINNED_HIGHLIGHTS} films to feature. Pinned films lead the Highlights rail beside your bio.
       </p>
 
       {loading ? (
@@ -1513,20 +1569,34 @@ function HighlightsEditor({
         <p className="text-[13px] text-muted-foreground/60">
           No films yet — once you publish a film it'll show here to pin.
         </p>
+      ) : !anyPublished ? (
+        <p className="text-[13px] text-muted-foreground/60">
+          Publish a film to feature it as a highlight. Completed drafts can't be pinned until they're published.
+        </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {films.map((f) => {
             const isPinned = pinnedIds.has(f.id);
+            // Disabled when it can't be pinned: unpublished, or we're at the
+            // cap and this one isn't already pinned.
+            const disabled = !f.published || (atCap && !isPinned);
+            const hint = !f.published
+              ? "Publish to feature"
+              : (atCap && !isPinned)
+                ? `Max ${MAX_PINNED_HIGHLIGHTS} — unpin one first`
+                : isPinned ? "Unpin from highlights" : "Pin to highlights";
             return (
               <button
                 key={f.id}
                 type="button"
-                onClick={() => onToggle(f.id)}
+                onClick={() => onToggle(f)}
+                disabled={disabled}
                 aria-pressed={isPinned}
-                title={isPinned ? "Unpin from highlights" : "Pin to highlights"}
+                title={hint}
                 className={cn(
                   "group/pin relative block aspect-video rounded-xl overflow-hidden ring-2 transition-all text-left",
                   isPinned ? "ring-accent" : "ring-transparent hover:ring-white/25",
+                  disabled && !isPinned && "opacity-45 cursor-not-allowed hover:ring-transparent",
                 )}
               >
                 {f.thumbnail_url ? (
@@ -1549,6 +1619,12 @@ function HighlightsEditor({
                 >
                   <Pin className="h-3.5 w-3.5" strokeWidth={2} fill={isPinned ? "currentColor" : "none"} />
                 </span>
+
+                {!f.published && (
+                  <span className="absolute top-2 left-2 px-2 h-5 grid place-items-center rounded-full bg-black/60 text-white/80 text-[9px] font-mono uppercase tracking-[0.18em]">
+                    Draft
+                  </span>
+                )}
 
                 <div className="absolute inset-x-0 bottom-0 p-2.5">
                   <div className="text-[12px] leading-tight font-light text-white line-clamp-1" style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}>

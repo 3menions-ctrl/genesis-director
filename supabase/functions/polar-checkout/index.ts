@@ -24,10 +24,15 @@ const corsHeaders = {
 };
 
 const CREDIT_PACKAGES: Record<string, { credits: number; envKey: string }> = {
+  // Consumer one-time packs.
   mini:    { credits: 90,   envKey: "POLAR_PRODUCT_MINI" },
   starter: { credits: 370,  envKey: "POLAR_PRODUCT_STARTER" },
   growth:  { credits: 1000, envKey: "POLAR_PRODUCT_GROWTH" },
   agency:  { credits: 2500, envKey: "POLAR_PRODUCT_AGENCY" },
+  // Business one-time packs (packageId = lowercased pack name from Pricing).
+  studio:    { credits: 5500,  envKey: "POLAR_PRODUCT_STUDIO" },
+  brand:     { credits: 12000, envKey: "POLAR_PRODUCT_BRAND" },
+  "agency+": { credits: 32000, envKey: "POLAR_PRODUCT_AGENCYPLUS" },
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

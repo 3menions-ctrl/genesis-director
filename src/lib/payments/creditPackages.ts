@@ -9,20 +9,26 @@
 import { getPaymentsProvider } from "./index";
 
 export interface CreditPackage {
-  id: "mini" | "starter" | "growth" | "agency";
+  id: "mini" | "starter" | "growth" | "agency" | "studio" | "brand" | "agency+";
   name: string;
-  /** USD, display only — the authoritative charge is the Stripe price. */
+  /** USD, display only — the authoritative charge is the provider price. */
   price: number;
   credits: number;
   blurb: string;
   popular?: boolean;
+  /** "business" packs are the larger one-time tiers shown on the business
+   *  pricing surface; "personal" are the default buy-credits packs. */
+  tier?: "personal" | "business";
 }
 
 export const CREDIT_PACKAGES: readonly CreditPackage[] = [
-  { id: "mini",    name: "Mini",    price: 9,   credits: 90,   blurb: "Quick top-up — one short story." },
-  { id: "starter", name: "Starter", price: 37,  credits: 370,  blurb: "A weekend of experiments." },
-  { id: "growth",  name: "Growth",  price: 99,  credits: 1000, blurb: "Ship something every week.", popular: true },
-  { id: "agency",  name: "Agency",  price: 249, credits: 2500, blurb: "For studios and teams." },
+  { id: "mini",    name: "Mini",    price: 9,    credits: 90,    blurb: "Quick top-up — one short story.", tier: "personal" },
+  { id: "starter", name: "Starter", price: 37,   credits: 370,   blurb: "A weekend of experiments.", tier: "personal" },
+  { id: "growth",  name: "Growth",  price: 99,   credits: 1000,  blurb: "Ship something every week.", popular: true, tier: "personal" },
+  { id: "agency",  name: "Agency",  price: 249,  credits: 2500,  blurb: "For studios and teams.", tier: "personal" },
+  { id: "studio",  name: "Studio",  price: 499,  credits: 5500,  blurb: "Studio-scale production.", tier: "business" },
+  { id: "brand",   name: "Brand",   price: 999,  credits: 12000, blurb: "Always-on brand content.", tier: "business" },
+  { id: "agency+", name: "Agency+", price: 2499, credits: 32000, blurb: "Highest-volume teams.", tier: "business" },
 ];
 
 export function approxClips(credits: number): number {

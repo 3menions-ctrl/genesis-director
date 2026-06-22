@@ -7,7 +7,6 @@ import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
 
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
-import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { StudioIntro } from '@/components/intro/StudioIntro';
 import { motion } from 'framer-motion';
 
@@ -31,17 +30,11 @@ import {
 } from '@/components/landing/LandingDiagnostics';
 // Heavy below-the-fold sections — lazy split to keep first paint snappy
 const AudienceSegments = lazy(() => import('@/components/landing/AudienceSegments').then(m => ({ default: m.AudienceSegments })));
-const BeforeAfterGallery = lazy(() => import('@/components/landing/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
-const SeedanceSection = lazy(() => import('@/components/landing/SeedanceSection').then(m => ({ default: m.SeedanceSection })));
-const B2BWorkflow = lazy(() => import('@/components/landing/B2BGlassFeatures').then(m => ({ default: m.B2BWorkflow })));
-const FrameChainingSection = lazy(() => import('@/components/landing/FrameChainingSection').then(m => ({ default: m.FrameChainingSection })));
 const B2BFinalCTA = lazy(() => import('@/components/landing/B2BFinalCTA').then(m => ({ default: m.B2BFinalCTA })));
 const HoppyImmersiveScrollSection = lazy(() =>
   import('@/components/landing/HoppyImmersiveScrollSection').then(m => ({ default: m.HoppyImmersiveScrollSection })),
 );
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
-const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
-const Footer = lazy(() => import('@/components/landing/Footer'));
 const EnterStudioEpic = lazy(() =>
   import('@/components/landing/EnterStudioEpic').then(m => ({ default: m.EnterStudioEpic })),
 );
@@ -320,8 +313,6 @@ function LandingInner() {
         }}
         aria-hidden={!contentVisible}
       >
-      <HoppyImmersiveIntro />
-
       {/* Abstract Background */}
       <TrackedSection name="AbstractBackground" fallback={<BackgroundFallback />}>
         <AbstractBackground className="fixed inset-0 z-0" />

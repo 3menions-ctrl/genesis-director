@@ -45,7 +45,7 @@ const CREWS: readonly Crew[] = [
     code: 'STDIO',
     tier: 'Studio Team',
     who: 'You ship work weekly with two collaborators and you need versioning.',
-    credits: '1,200 monthly credits',
+    credits: '600 monthly credits',
     priceCurrent: '$49 / mo',
     priceFuture: 'or pay-as-you-go credits',
     includes: [
@@ -60,7 +60,7 @@ const CREWS: readonly Crew[] = [
     code: 'HOUSE',
     tier: 'Production House',
     who: 'You’re running a full production with cinematographer + AD + supervisor.',
-    credits: '6,000 monthly credits',
+    credits: '2,000 monthly credits',
     priceCurrent: '$149 / mo',
     priceFuture: 'or pay-as-you-go credits',
     includes: [

@@ -31,15 +31,7 @@ export function MarketingHeader({ showProgress = false }: { showProgress?: boole
   const { pathname } = useLocation();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 26 });
-  const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 48);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Close the mobile sheet on route change + lock body scroll while open.
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -51,14 +43,7 @@ export function MarketingHeader({ showProgress = false }: { showProgress?: boole
   return (
     <header className="fixed inset-x-0 top-0 z-[60]">
       <div className="px-4 sm:px-6 lg:px-10">
-        <div
-          className={cn(
-            "mx-auto mt-3 flex max-w-7xl items-center justify-between gap-4 rounded-2xl px-4 py-2.5 transition-all duration-500 sm:px-5",
-            solid || open
-              ? "border border-white/[0.08] bg-[#08090c]/75 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
-              : "border border-transparent bg-transparent",
-          )}
-        >
+        <div className="mx-auto mt-3 flex max-w-7xl items-center justify-between gap-4 rounded-2xl bg-transparent px-4 py-2.5 sm:px-5">
           {/* Brand */}
           <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="Small Bridges home">
             <BrandTile className="h-8 w-8" />
@@ -76,19 +61,11 @@ export function MarketingHeader({ showProgress = false }: { showProgress?: boole
                   key={l.to}
                   to={l.to}
                   className={cn(
-                    "group relative rounded-lg px-3.5 py-1.5 text-[13.5px] font-medium tracking-wide transition-colors duration-200",
+                    "rounded-lg px-3.5 py-1.5 text-[13.5px] font-medium tracking-wide transition-colors duration-200",
                     active ? "text-white" : "text-white/55 hover:text-white",
                   )}
                 >
                   {l.label}
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "absolute inset-x-3 -bottom-px h-px origin-left transition-transform duration-300 ease-out",
-                      active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100",
-                    )}
-                    style={{ background: `hsl(${ACCENT})` }}
-                  />
                 </Link>
               );
             })}
@@ -128,7 +105,7 @@ export function MarketingHeader({ showProgress = false }: { showProgress?: boole
 
       {/* Scroll-progress hairline (landing only) */}
       {showProgress && (
-        <motion.div className="mx-auto mt-2 h-px max-w-7xl origin-left" style={{ scaleX: progress, background: `hsl(${ACCENT})` }} />
+        <motion.div className="mx-auto mt-2 h-px max-w-7xl origin-left bg-white/30" style={{ scaleX: progress }} />
       )}
 
       {/* Mobile sheet */}

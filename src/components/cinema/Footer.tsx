@@ -51,9 +51,8 @@ const ENGINES = ["Wan 2.5", "Kling V3", "Seedance 2.0", "Veo 3", "Sora 2"];
 
 function FootLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
-    <Link to={to} className="group relative inline-flex w-fit py-0.5 text-[14px] font-light text-white/55 transition-colors duration-200 hover:text-white">
+    <Link to={to} className="inline-flex w-fit py-0.5 text-[14px] font-light text-white/55 transition-colors duration-200 hover:text-white">
       {children}
-      <span aria-hidden className="absolute -bottom-px left-0 h-px w-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" style={{ background: `hsl(${ACCENT})` }} />
     </Link>
   );
 }

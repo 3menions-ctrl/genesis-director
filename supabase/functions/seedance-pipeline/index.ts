@@ -33,6 +33,7 @@ import {
 } from "../_shared/auth-guard.ts";
 import { markProjectFailedAndRefund } from "../_shared/pipeline-failure.ts";
 import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
+import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,15 +44,11 @@ const corsHeaders = {
 const SEEDANCE_MODEL_URL =
   "https://api.replicate.com/v1/models/bytedance/seedance-2.0/predictions";
 
-// Seedance 2.0 pricing — must mirror src/lib/video/engines.ts baseCreditsFor:
-//   tableCost({ 5: 35, 10: 65, 12: 95 }, d)
-const SEEDANCE_CREDIT_TABLE: Record<number, number> = { 5: 35, 10: 65, 12: 95 };
+// Seedance pricing is SINGLE-SOURCED from ../_shared/engines.ts
+// (priceClipCredits → registry, parity-locked to the frontend). Duration is
+// snapped to the engine's real supported set inside the helper.
 function seedanceCreditsForClip(durationSeconds: number): number {
-  const exact = SEEDANCE_CREDIT_TABLE[durationSeconds];
-  if (exact) return exact;
-  // Linear interp fallback (clamped 2–12)
-  const d = Math.max(2, Math.min(12, durationSeconds));
-  return Math.round(35 + ((d - 5) * (95 - 35)) / (12 - 5));
+  return priceClipCredits("seedance", durationSeconds);
 }
 
 interface SeedancePipelineRequest {

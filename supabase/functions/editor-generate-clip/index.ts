@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,28 +25,21 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 type EditorEngine = 'wan' | 'kling' | 'seedance';
 
 interface QualityOptions {
-  /** 60fps RIFE interpolation surcharge (5 credits per spec). */
+  /** 60fps RIFE interpolation surcharge. */
   fps60?: boolean;
   /** 4K upscale surcharge. */
   upscale4k?: boolean;
 }
 
+// Editor clip pricing is SINGLE-SOURCED from ../_shared/engines.ts
+// (priceClipCredits → registry, parity-locked to the frontend). The helper
+// snaps duration to the engine's real set and adds the 4K/60fps surcharges.
 function creditsForEditorClip(
   engine: EditorEngine,
   duration: number,
   opts: QualityOptions = {},
 ): number {
-  // Wan = free tier; Kling and Seedance match src/lib/video/engines.ts.
-  let base: number;
-  if (engine === 'wan') base = 0;
-  else if (engine === 'kling') base = duration > 10 ? 75 : 50;
-  else base = duration > 10 ? 95 : 65; // seedance default
-  // Quality surcharges — match src/lib/video/engines.ts spec (5 credits
-  // each). These surcharges were declared but never billed because no
-  // edge function read the qualityOptions field from the request body.
-  if (opts.fps60) base += 5;
-  if (opts.upscale4k) base += 5;
-  return base;
+  return priceClipCredits(engine, duration, opts);
 }
 
 const QUALITY_SUFFIX = ", shot on ARRI Alexa 65, anamorphic lens, shallow depth of field, cinematic color grading, volumetric lighting, ultra-detailed textures, 8K master, photorealistic, film grain, HDR, masterful composition, razor-sharp focus, professional cinematography, award-winning";

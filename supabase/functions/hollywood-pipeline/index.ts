@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
+import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -370,60 +371,15 @@ const MINIMUM_QUALITY_THRESHOLD = 0;
 const MIN_CLIPS_PER_PROJECT = 1;
 
 // ✅ Engine-aware Credit Pricing
-// MUST MATCH src/lib/creditSystem.ts (SINGLE SOURCE OF TRUTH)
-// isAvatarMode is an EXPLICIT boolean flag (request.isAvatarMode), NOT derived from videoEngine
-// Kling V3 Standard (T2V/I2V): 50cr ≤10s  | 75cr >10s
-// Kling V3 Avatar (native audio): 60cr ≤10s | 90cr >10s
-// Seedance 2.0 1080p (premium): 65cr ≤10s | 95cr >10s (real cost $4.50/$5.40)
-const CREDIT_PRICING = {
-  BASE_CREDITS_PER_CLIP: 50,           // T2V / I2V ≤10s
-  EXTENDED_CREDITS_PER_CLIP: 75,        // T2V / I2V >10s
-  AVATAR_BASE_CREDITS_PER_CLIP: 60,     // Avatar + native audio ≤10s
-  AVATAR_EXTENDED_CREDITS_PER_CLIP: 90, // Avatar + native audio >10s
-  SEEDANCE_BASE_CREDITS_PER_CLIP: 65,   // Seedance 2.0 1080p ≤10s
-  SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95, // Seedance 2.0 1080p >10s
-  // Cinema-tier engines (must match src/lib/video/engines.ts baseCreditsFor)
-  RUNWAY_BASE_CREDITS_PER_CLIP: 250,        // Runway Gen-4 Turbo 5s
-  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 500,    // Runway Gen-4 Turbo 10s
-  SORA_BASE_CREDITS_PER_CLIP: 300,          // Sora 2 5s
-  SORA_EXTENDED_CREDITS_PER_CLIP: 600,      // Sora 2 10s
-  SORA_LONG_CREDITS_PER_CLIP: 900,          // Sora 2 15s
-  BASE_DURATION_THRESHOLD: 10,
-} as const;
-
+// Per-clip credit pricing is SINGLE-SOURCED from ../_shared/engines.ts
+// (priceClipCredits), which is itself parity-locked to the frontend
+// registry src/lib/video/engines.ts. The price = Replicate compute +
+// storage + ops, marked up 30%; avatar mode adds the Kling +50% premium.
+// Duration is snapped to the engine's real provider-supported set inside
+// priceClipCredits, so charged duration == delivered duration.
 function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {
-  const extended = clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
-  // Wan 2.5 is the FREE TIER — base render costs 0 credits (only optional
-  // upscale / 60fps surcharges add credit cost, applied elsewhere).
-  if (videoEngine === 'wan') {
-    return 0;
-  }
-  // Seedance overrides avatar (avatar is force-rerouted to Kling in generate-single-clip)
-  if (videoEngine === 'seedance') {
-    return extended
-      ? CREDIT_PRICING.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.SEEDANCE_BASE_CREDITS_PER_CLIP;
-  }
-  if (videoEngine === 'runway') {
-    return extended
-      ? CREDIT_PRICING.RUNWAY_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.RUNWAY_BASE_CREDITS_PER_CLIP;
-  }
-  if (videoEngine === 'sora') {
-    if (clipDuration > 12) return CREDIT_PRICING.SORA_LONG_CREDITS_PER_CLIP;
-    return extended
-      ? CREDIT_PRICING.SORA_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.SORA_BASE_CREDITS_PER_CLIP;
-  }
-  // Avatar mode (generate_audio=true, pose-chained) carries higher cost
-  if (isAvatarMode) {
-    return clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD
-      ? CREDIT_PRICING.AVATAR_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.AVATAR_BASE_CREDITS_PER_CLIP;
-  }
-  return clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD
-    ? CREDIT_PRICING.EXTENDED_CREDITS_PER_CLIP
-    : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
+  void clipIndex;
+  return priceClipCredits(videoEngine, clipDuration, { avatar: isAvatarMode });
 }
 
 function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = 'kling'): number {

@@ -7,6 +7,7 @@ import {
 } from "../_shared/network-resilience.ts";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
+import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -436,22 +437,14 @@ serve(async (req) => {
 
     // CREDIT DEDUCTION - Now happens AFTER project creation
     if (requiresLocalCreditDeduction) {
-      // Engine-aware tiered pricing (MUST mirror src/lib/creditSystem.ts)
-      // Kling V3 standard: 50/75 cr  | Avatar (Kling+audio): 60/90 cr
-      // Seedance 2.0 1080p: 65/95 cr  (real cost $4.50/$5.40 → 31-43% margin)
+      // Per-clip pricing is SINGLE-SOURCED from ../_shared/engines.ts
+      // (priceClipCredits) — parity-locked to the frontend registry so the
+      // quote the user saw == what we deduct here. Breakouts are FORCED to
+      // Seedance (guardrail), so price them as Seedance regardless of the
+      // requested engine. Avatar mode adds the Kling +50% native-audio premium.
       const isAvatar = mode === 'avatar';
-      // Breakouts are FORCED to Seedance (guardrail), so price them as Seedance
-      // even if the user left videoEngine unset.
-      const isSeedance = videoEngine === 'seedance' || isBreakout;
-      const isExtendedDuration = clipDuration > 10;
-      let creditsPerClip: number;
-      if (isSeedance) {
-        creditsPerClip = isExtendedDuration ? 95 : 65;
-      } else if (isAvatar) {
-        creditsPerClip = isExtendedDuration ? 90 : 60;
-      } else {
-        creditsPerClip = isExtendedDuration ? 75 : 50;
-      }
+      const pricingEngine = isBreakout ? 'seedance' : (videoEngine || 'kling');
+      const creditsPerClip = priceClipCredits(pricingEngine, clipDuration, { avatar: isAvatar });
 
       let totalCredits = clipCount * creditsPerClip;
 

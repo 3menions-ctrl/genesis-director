@@ -92,12 +92,9 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    // Free tier — the user-facing UI advertises 0 credits and the
-    // sign-up grant pre-loads enough credits to cover the optional
-    // 60fps surcharge. Charging here would be a billing-correctness
-    // bug; the FE/BE parity test in src/test/engines/fe-be-parity.test.ts
-    // pins this contract.
-    baseCreditsFor: (d) => tableCost({ 5: 0, 10: 0 }, d),
+    // Priced at Replicate compute (~$0.03/s) + storage + ops, marked up 30%.
+    // FE/BE parity test in src/test/engines/fe-be-parity.test.ts pins this.
+    baseCreditsFor: (d) => tableCost({ 5: 3, 10: 5 }, d),
   },
   // -------- STANDARD --------
   'kling-v3': {
@@ -117,7 +114,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 25, 10: 50, 15: 75 }, d),
+    baseCreditsFor: (d) => tableCost({ 5: 18, 10: 35, 15: 53 }, d),
   },
 
   // -------- PRO --------
@@ -138,7 +135,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 35, 10: 65, 12: 95 }, d),
+    baseCreditsFor: (d) => tableCost({ 5: 35, 10: 70, 12: 85 }, d),
   },
 
   // -------- CINEMA --------
@@ -150,8 +147,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     shortLabel: 'Veo 3',
     description:
       'Google Veo 3 Fast. Excellent physics and natural motion with native audio.',
-    durations: [5, 10, 15],
-    maxDuration: 15,
+    durations: [4, 6, 8],
+    maxDuration: 8,
     supportsImageInput: true,
     supportsAudio: true,
     supportsAvatar: true,
@@ -160,7 +157,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 200, 10: 400, 15: 600 }, d),
+    baseCreditsFor: (d) => tableCost({ 4: 25, 6: 38, 8: 50 }, d),
   },
 
   'runway-gen4': {
@@ -181,7 +178,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 250, 10: 500 }, d),
+    baseCreditsFor: (d) => tableCost({ 5: 20, 10: 39 }, d),
   },
 
   'sora-2': {
@@ -192,8 +189,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     shortLabel: 'Sora 2',
     description:
       'OpenAI Sora 2. State-of-the-art realism and complex multi-shot scenes. Long render times.',
-    durations: [5, 10, 15],
-    maxDuration: 15,
+    durations: [4, 8, 12],
+    maxDuration: 12,
     supportsImageInput: true,
     supportsAudio: true,
     supportsAvatar: true,
@@ -202,7 +199,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 300, 10: 600, 15: 900 }, d),
+    baseCreditsFor: (d) => tableCost({ 4: 31, 8: 63, 12: 94 }, d),
   },
 };
 
@@ -252,4 +249,49 @@ export function engineToBackend(id: EngineId): BackendEngine {
     case 'kling-v3':
     default:            return 'kling';
   }
+}
+
+/** Reverse of engineToBackend, plus the free-tier 'wan' token. Backend
+ *  deduction paths speak the short token; map it back to a registry spec. */
+export function backendToEngineId(token: string): EngineId {
+  switch (token) {
+    case 'wan':      return 'wan-25';
+    case 'seedance': return 'seedance-2';
+    case 'veo':      return 'veo-3';
+    case 'runway':   return 'runway-gen4';
+    case 'sora':     return 'sora-2';
+    case 'kling':
+    default:         return 'kling-v3';
+  }
+}
+
+/** Snap an arbitrary duration to the nearest provider-supported duration
+ *  for this engine, so pricing always lands on a real table key AND matches
+ *  the clip length the provider actually delivers (no charge≠deliver gap). */
+export function snapDuration(spec: EngineSpec, duration: number): number {
+  return spec.durations.reduce(
+    (best, d) => (Math.abs(d - duration) < Math.abs(best - duration) ? d : best),
+    spec.durations[0],
+  );
+}
+
+/**
+ * SINGLE SOURCE OF TRUTH for per-clip credit pricing. Both the backend
+ * deduction (hollywood-pipeline, mode-router) and the FE quote resolve
+ * through the registry, so quote == charge. Avatar mode (native-audio
+ * lip-sync on Kling) carries a +50% premium reflecting the higher
+ * Replicate audio compute cost.
+ */
+export function priceClipCredits(
+  engineToken: string,
+  duration: number,
+  opts: { avatar?: boolean } & QualityOptions = {},
+): number {
+  const spec = getEngine(backendToEngineId(engineToken));
+  const snapped = snapDuration(spec, duration);
+  let cost = creditsFor(spec, snapped, opts);
+  if (opts.avatar && spec.provider === 'kling') {
+    cost = Math.round(cost * 1.5);
+  }
+  return cost;
 }

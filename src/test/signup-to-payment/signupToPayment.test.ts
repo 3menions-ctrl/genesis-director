@@ -259,8 +259,8 @@ describe('PAYMENT: Credit system constants', () => {
   let src: string;
   beforeAll(() => { src = readFile('src/lib/creditSystem.ts'); });
 
-  it('base rate is 50 credits per clip', () => {
-    expect(src).toContain('BASE_CREDITS_PER_CLIP: 50');
+  it('base rate is derived from the engine registry (single source of truth)', () => {
+    expect(src).toContain("BASE_CREDITS_PER_CLIP: creditsForScene('kling-v3', 10)");
   });
 
   it('pricing is 1 credit = $0.10', () => {

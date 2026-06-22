@@ -12,6 +12,7 @@ import { DialogClose } from '@radix-ui/react-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { creditsForScene } from '@/lib/video/engines';
 
 type Mode = 'auto' | 'manual';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -28,9 +29,15 @@ interface Props {
   } | null;
 }
 
-const SEEDANCE_CREDIT_TABLE: Record<number, number> = { 5: 35, 10: 65, 12: 95 };
+// Seedance pricing comes from the engine registry (single source of truth).
+// Snap to the nearest supported duration so an off-table value still prices.
+const SEEDANCE_DURATIONS = [5, 10, 12];
 function seedanceCreditsForClip(d: number): number {
-  return SEEDANCE_CREDIT_TABLE[d] ?? Math.round(35 + ((d - 5) * 60) / 7);
+  const snapped = SEEDANCE_DURATIONS.reduce(
+    (best, x) => (Math.abs(x - d) < Math.abs(best - d) ? x : best),
+    SEEDANCE_DURATIONS[0],
+  );
+  return creditsForScene('seedance-2', snapped);
 }
 
 export function SeedanceAnimateDialog({ open, onOpenChange, mascot }: Props) {

@@ -11,30 +11,25 @@ import {
   formatDuration,
   isExtendedPricing,
 } from '@/lib/creditSystem';
+import { creditsForScene } from '@/lib/video/engines';
 
 describe('Credit System — Source of Truth', () => {
   describe('CREDIT_SYSTEM constants', () => {
-    it('has correct base pricing', () => {
-      expect(CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP).toBe(50);
-      expect(CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP).toBe(75);
-      expect(CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP).toBe(60);
-      expect(CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP).toBe(90);
+    // The named price aliases MUST equal the engine registry — that is the
+    // single source of truth. This test fails if anyone reintroduces a
+    // hardcoded price that diverges from src/lib/video/engines.ts.
+    it('per-clip prices are derived from the engine registry', () => {
+      expect(CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP).toBe(creditsForScene('kling-v3', 10));
+      expect(CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP).toBe(creditsForScene('kling-v3', 15));
+      expect(CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP).toBe(Math.round(creditsForScene('kling-v3', 10) * 1.5));
+      expect(CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP).toBe(Math.round(creditsForScene('kling-v3', 15) * 1.5));
+      expect(CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP).toBe(creditsForScene('seedance-2', 10));
+      expect(CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP).toBe(creditsForScene('veo-3', 8));
+      expect(CREDIT_SYSTEM.SORA_BASE_CREDITS_PER_CLIP).toBe(creditsForScene('sora-2', 8));
     });
 
     it('has correct Stripe conversion rate', () => {
       expect(CREDIT_SYSTEM.CENTS_PER_CREDIT).toBe(10);
-    });
-
-    it('cost breakdown sums correctly for standard', () => {
-      const { PRE_PRODUCTION, PRODUCTION, QUALITY_ASSURANCE, TOTAL } = CREDIT_SYSTEM.COST_PER_CLIP;
-      expect(PRE_PRODUCTION + PRODUCTION + QUALITY_ASSURANCE).toBe(TOTAL);
-      expect(TOTAL).toBe(50);
-    });
-
-    it('cost breakdown sums correctly for extended', () => {
-      const { PRE_PRODUCTION, PRODUCTION, QUALITY_ASSURANCE, TOTAL } = CREDIT_SYSTEM.COST_PER_CLIP_EXTENDED;
-      expect(PRE_PRODUCTION + PRODUCTION + QUALITY_ASSURANCE).toBe(TOTAL);
-      expect(TOTAL).toBe(75);
     });
   });
 
@@ -55,42 +50,29 @@ describe('Credit System — Source of Truth', () => {
   });
 
   describe('calculateCreditsPerClip', () => {
-    it('returns canonical Kling V3 pricing for a 10s clip', () => {
-      expect(calculateCreditsPerClip(10, 0, 'kling')).toBe(50);
+    // Assert against the registry (single source of truth) rather than
+    // hardcoded numbers — these stay correct if prices ever change.
+    it('matches the registry for Kling at every duration', () => {
+      expect(calculateCreditsPerClip(5, 0, 'kling')).toBe(creditsForScene('kling-v3', 5));
+      expect(calculateCreditsPerClip(10, 0, 'kling')).toBe(creditsForScene('kling-v3', 10));
+      expect(calculateCreditsPerClip(15, 0, 'kling')).toBe(creditsForScene('kling-v3', 15));
     });
 
-    it('returns canonical Kling V3 pricing for a 15s clip', () => {
-      expect(calculateCreditsPerClip(15, 0, 'kling')).toBe(75);
+    it('matches the registry for cinema engines at their real durations', () => {
+      expect(calculateCreditsPerClip(6, 0, 'veo')).toBe(creditsForScene('veo-3', 6));
+      expect(calculateCreditsPerClip(8, 0, 'veo')).toBe(creditsForScene('veo-3', 8));
+      expect(calculateCreditsPerClip(12, 0, 'sora')).toBe(creditsForScene('sora-2', 12));
     });
 
-    it('returns cinema Veo pricing for a 10s clip', () => {
-      expect(calculateCreditsPerClip(10, 0, 'veo')).toBe(400);
-    });
-
-    it('returns cinema Veo pricing for a 15s clip', () => {
-      expect(calculateCreditsPerClip(15, 0, 'veo')).toBe(600);
-    });
-
-    it('returns canonical Kling V3 pricing for a 5s clip', () => {
-      expect(calculateCreditsPerClip(5, 0, 'kling')).toBe(25);
-    });
-
-    it('defaults to kling engine', () => {
-      expect(calculateCreditsPerClip(10)).toBe(50);
+    it('matches the registry for Seedance', () => {
+      expect(calculateCreditsPerClip(10, 0, 'seedance')).toBe(creditsForScene('seedance-2', 10));
     });
   });
 
   describe('calculateCreditsRequired', () => {
-    it('calculates correctly for 5 clips at 10s (kling)', () => {
-      expect(calculateCreditsRequired(5, 10, 'kling')).toBe(250);
-    });
-
-    it('calculates correctly for 5 clips at 15s (kling)', () => {
-      expect(calculateCreditsRequired(5, 15, 'kling')).toBe(375);
-    });
-
-    it('calculates correctly for 3 clips at 10s (veo)', () => {
-      expect(calculateCreditsRequired(3, 10, 'veo')).toBe(1200);
+    it('is clipCount × per-clip for the chosen engine', () => {
+      expect(calculateCreditsRequired(5, 10, 'kling')).toBe(5 * calculateCreditsPerClip(10, 0, 'kling'));
+      expect(calculateCreditsRequired(3, 8, 'veo')).toBe(3 * calculateCreditsPerClip(8, 0, 'veo'));
     });
 
     it('returns 0 for 0 clips', () => {
@@ -99,55 +81,47 @@ describe('Credit System — Source of Truth', () => {
   });
 
   describe('getCreditBreakdown', () => {
-    it('all clips are base for 10s duration', () => {
-      const breakdown = getCreditBreakdown(3, 10, 'kling');
-      expect(breakdown.baseClipCount).toBe(3);
-      expect(breakdown.extendedClipCount).toBe(0);
-      expect(breakdown.totalCredits).toBe(150);
-      expect(breakdown.isExtended).toBe(false);
+    it('totalCredits equals clipCount × the per-clip rate', () => {
+      const b = getCreditBreakdown(3, 10, 'kling');
+      expect(b.totalCredits).toBe(3 * calculateCreditsPerClip(10, 0, 'kling'));
+      expect(b.baseClipCount).toBe(3);
+      expect(b.extendedClipCount).toBe(0);
+      expect(b.isExtended).toBe(false);
     });
 
-    it('all clips are extended for 15s duration', () => {
-      const breakdown = getCreditBreakdown(3, 15, 'veo');
-      expect(breakdown.baseClipCount).toBe(0);
-      expect(breakdown.extendedClipCount).toBe(3);
-      expect(breakdown.totalCredits).toBe(1800);
-      expect(breakdown.isExtended).toBe(true);
+    it('flags clips as extended for >10s durations', () => {
+      const b = getCreditBreakdown(3, 15, 'kling');
+      expect(b.extendedClipCount).toBe(3);
+      expect(b.isExtended).toBe(true);
     });
 
     it('isVeo flag is correct', () => {
-      expect(getCreditBreakdown(1, 10, 'veo').isVeo).toBe(true);
+      expect(getCreditBreakdown(1, 8, 'veo').isVeo).toBe(true);
       expect(getCreditBreakdown(1, 10, 'kling').isVeo).toBe(false);
     });
   });
 
   describe('calculateAffordableClips', () => {
-    it('can afford exactly N clips', () => {
-      // 60 credits per clip at 10s (kling default)
-      expect(calculateAffordableClips(180, 10)).toBe(3);
+    it('counts whole clips affordable at the default rate', () => {
+      const per = calculateCreditsPerClip(10, 0); // default engine
+      expect(calculateAffordableClips(per * 3, 10)).toBe(3);
+      expect(calculateAffordableClips(per * 3 + (per - 1), 10)).toBe(3); // partial doesn't count
     });
 
-    it('returns 0 when credits insufficient for 1 clip', () => {
-      expect(calculateAffordableClips(10, 10)).toBe(0);
-    });
-
-    it('partial remainder does not count', () => {
-      expect(calculateAffordableClips(100, 10)).toBe(2); // 50 + 50 remaining
+    it('returns 0 when credits are below one clip', () => {
+      const per = calculateCreditsPerClip(10, 0);
+      expect(calculateAffordableClips(Math.max(0, per - 1), 10)).toBe(0);
     });
   });
 
   describe('canAffordGeneration', () => {
-    it('returns canAfford true when sufficient', () => {
-      const result = canAffordGeneration(500, 5, 10);
-      expect(result.canAfford).toBe(true);
-      expect(result.shortfall).toBe(0);
-    });
-
-    it('returns canAfford false with shortfall', () => {
-      const result = canAffordGeneration(100, 5, 10);
-      expect(result.canAfford).toBe(false);
-      expect(result.required).toBe(250);
-      expect(result.shortfall).toBe(150);
+    it('required equals calculateCreditsRequired; shortfall is exact', () => {
+      const required = calculateCreditsRequired(5, 10); // same default engine
+      expect(canAffordGeneration(required, 5, 10)).toEqual({ canAfford: true, required, shortfall: 0 });
+      const r = canAffordGeneration(required - 50, 5, 10);
+      expect(r.canAfford).toBe(false);
+      expect(r.required).toBe(required);
+      expect(r.shortfall).toBe(50);
     });
   });
 

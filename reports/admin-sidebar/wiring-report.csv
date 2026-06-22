@@ -1,9 +1,9 @@
 sidebarPath,expectedComponent,actualComponent,redirectTo,lazyImport,status
-/admin,AdminDashboardPage,AdminDashboardPage,,./refine/pages/AdminDashboardPage,ok
-/admin/people,PeopleHubPage,PeopleHubPage,,./refine/pages/hubs/PeopleHubPage,ok
-/admin/production-hub,ProductionHubPage,ProductionHubPage,,./refine/pages/hubs/ProductionHubPage,ok
-/admin/money,MoneyHubPage,MoneyHubPage,,./refine/pages/hubs/MoneyHubPage,ok
-/admin/growth,GrowthHubPage,GrowthHubPage,,./refine/pages/hubs/GrowthHubPage,ok
-/admin/system,SystemHubPage,SystemHubPage,,./refine/pages/hubs/SystemHubPage,ok
-/admin/audit,AdminAuditLogPage,AdminAuditLogPage,,./refine/pages/ops/AdminAuditLogPage,ok
-/admin/config,AdminConfigPage,AdminConfigPage,,./refine/pages/AdminConfigPage,ok
+/admin,AdminDashboardPage,,,,missing-route
+/admin/people,PeopleHubPage,,,,missing-route
+/admin/production-hub,ProductionHubPage,,,,missing-route
+/admin/money,MoneyHubPage,,,,missing-route
+/admin/growth,GrowthHubPage,,,,missing-route
+/admin/system,SystemHubPage,,,,missing-route
+/admin/audit,AdminAuditLogPage,,,,missing-route
+/admin/config,AdminConfigPage,,,,missing-route

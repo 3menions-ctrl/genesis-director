@@ -34,30 +34,26 @@ import { creditsForScene, type EngineId } from '@/lib/video/engines';
  */
 
 export const CREDIT_SYSTEM = {
-  // ── Kling V3 — Standard (T2V / I2V) ─────────────────────────────────
-  BASE_CREDITS_PER_CLIP: 50,         // 10s clip = $5.00
-  EXTENDED_CREDITS_PER_CLIP: 75,     // 15s clip = $7.50
+  // ── Per-clip prices are DERIVED from the engine registry
+  // (src/lib/video/engines.ts) — the single source of truth, parity-locked
+  // to the backend. These named aliases exist only so display/threshold
+  // code reads one place; NEVER hardcode a price here again. Avatar mode
+  // carries the Kling +50% native-audio premium (mirrors priceClipCredits).
+  BASE_CREDITS_PER_CLIP: creditsForScene('kling-v3', 10),
+  EXTENDED_CREDITS_PER_CLIP: creditsForScene('kling-v3', 15),
 
-  // ── Kling V3 — Avatar mode (with native lip-sync audio) ─────────────
-  AVATAR_BASE_CREDITS_PER_CLIP: 60,      // 10s clip = $6.00
-  AVATAR_EXTENDED_CREDITS_PER_CLIP: 90,   // 15s clip = $9.00
+  AVATAR_BASE_CREDITS_PER_CLIP: Math.round(creditsForScene('kling-v3', 10) * 1.5),
+  AVATAR_EXTENDED_CREDITS_PER_CLIP: Math.round(creditsForScene('kling-v3', 15) * 1.5),
 
-  // ── Seedance 2.0 (ByteDance) — Premium tier (+25%) ──────────────────
-  // 10s clip = 65 credits ($6.50), 15s clip = 95 credits ($9.50)
-  SEEDANCE_BASE_CREDITS_PER_CLIP: 65,
-  SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95,
+  SEEDANCE_BASE_CREDITS_PER_CLIP: creditsForScene('seedance-2', 10),
+  SEEDANCE_EXTENDED_CREDITS_PER_CLIP: creditsForScene('seedance-2', 12),
 
-  // ── Veo 3 Fast (Google) — Native audio, 1080p, 8s max ───────────────
-  // Real cost ~$2.00–$3.20 / 8s clip; 8s base @ 55cr = $5.50 (38% margin)
-  VEO_BASE_CREDITS_PER_CLIP: 55,
-  VEO_EXTENDED_CREDITS_PER_CLIP: 55,   // Veo caps at 8s, no extended tier
-  VEO_CLIP_DURATION: 10,
+  VEO_BASE_CREDITS_PER_CLIP: creditsForScene('veo-3', 8),
+  VEO_EXTENDED_CREDITS_PER_CLIP: creditsForScene('veo-3', 8),
+  VEO_CLIP_DURATION: 8,
 
-  // ── Sora 2 (OpenAI) — Cinema-tier narrative coherence ────────────────
-  // Real cost ~$0.50/s; 8s clip = ~$4.00 → 80 credits = $8.00 (50% margin)
-  // 12s clip = $6.00 → 120 credits = $12.00 (50% margin)
-  SORA_BASE_CREDITS_PER_CLIP: 80,        // 8s clip
-  SORA_EXTENDED_CREDITS_PER_CLIP: 120,   // 12s clip
+  SORA_BASE_CREDITS_PER_CLIP: creditsForScene('sora-2', 8),
+  SORA_EXTENDED_CREDITS_PER_CLIP: creditsForScene('sora-2', 12),
 
   // Threshold for base vs extended pricing
   BASE_CLIP_COUNT_THRESHOLD: 100,  // No clip-count-based surcharge anymore
@@ -118,13 +114,14 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  * Calculate credits for a single clip based on duration and engine.
  * 'kling' = Avatar mode (native audio), 'veo' = Standard T2V/I2V
  */
-export type VideoEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+export type VideoEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 
 function toEngineId(videoEngine: VideoEngine): EngineId {
   switch (videoEngine) {
     case 'wan': return 'wan-25';
     case 'seedance': return 'seedance-2';
     case 'veo': return 'veo-3';
+    case 'runway': return 'runway-gen4';
     case 'sora': return 'sora-2';
     case 'kling':
     default: return 'kling-v3';

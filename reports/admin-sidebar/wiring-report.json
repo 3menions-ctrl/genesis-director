@@ -1,69 +1,69 @@
 {
-  "generatedAt": "2026-06-19T22:08:16.670Z",
+  "generatedAt": "2026-06-22T01:57:15.132Z",
   "rows": [
     {
       "sidebarPath": "/admin",
       "expectedComponent": "AdminDashboardPage",
-      "actualComponent": "AdminDashboardPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/AdminDashboardPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/people",
       "expectedComponent": "PeopleHubPage",
-      "actualComponent": "PeopleHubPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/hubs/PeopleHubPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/production-hub",
       "expectedComponent": "ProductionHubPage",
-      "actualComponent": "ProductionHubPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/hubs/ProductionHubPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/money",
       "expectedComponent": "MoneyHubPage",
-      "actualComponent": "MoneyHubPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/hubs/MoneyHubPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/growth",
       "expectedComponent": "GrowthHubPage",
-      "actualComponent": "GrowthHubPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/hubs/GrowthHubPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/system",
       "expectedComponent": "SystemHubPage",
-      "actualComponent": "SystemHubPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/hubs/SystemHubPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/audit",
       "expectedComponent": "AdminAuditLogPage",
-      "actualComponent": "AdminAuditLogPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/ops/AdminAuditLogPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     },
     {
       "sidebarPath": "/admin/config",
       "expectedComponent": "AdminConfigPage",
-      "actualComponent": "AdminConfigPage",
+      "actualComponent": null,
       "redirectTo": null,
-      "lazyImport": "./refine/pages/AdminConfigPage",
-      "status": "ok"
+      "lazyImport": null,
+      "status": "missing-route"
     }
   ]
 }

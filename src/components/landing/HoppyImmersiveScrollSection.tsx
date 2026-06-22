@@ -1,7 +1,12 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX, Play, Sparkles, ArrowRight } from 'lucide-react';
-import { HOPPY_MP4_URL } from './HoppyImmersiveIntro';
+
+// Web-optimized, self-hosted background video (H.264, faststart, no audio).
+// Served from Vercel's CDN. The mobile 720p (~3MB) is safe to decode on phone
+// Safari; the original UHD 2560x1440 source crashed it. Desktop gets 1080p.
+const VIDEO_DESKTOP = '/cinema-assets/hoppy-1080.mp4';
+const VIDEO_MOBILE = '/cinema-assets/hoppy-720.mp4';
 
 /**
  * HoppyImmersiveScrollSection
@@ -65,29 +70,26 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
 
   // Activate (and lazily load) the fixed video once the user scrolls past the
   // hero. Passive, rAF-throttled scroll listener — responsive under fast /
-  // momentum scrolling. Skips entirely under reduced-motion or data-saver so
-  // the heavy background never loads where it isn't wanted.
+  // momentum scrolling. Runs on ALL devices now: phones get the optimized 720p
+  // (~3MB) which decodes safely on mobile Safari; desktops get 1080p. Only the
+  // genuinely-incompatible cases bail out (reduced-motion, data-saver, very
+  // low memory) and keep the lightweight ambient backdrop.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    // The cinematic background video is a DESKTOP-ONLY enhancement. A UHD video
-    // decoded full-viewport crashes mobile Safari (memory exhaustion). Only run
-    // it on a capable desktop; everything else keeps the lightweight ambient
-    // backdrop — no heavy decode, no crash, across all devices / connections /
-    // browsers.
     const mm = typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
     const reduceMotion = mm?.('(prefers-reduced-motion: reduce)').matches;
-    const coarsePointer = mm?.('(pointer: coarse)').matches;          // touch-first devices
-    const smallViewport = window.innerWidth < 1024;                   // phones / small tablets
     const saveData = (navigator as unknown as { connection?: { saveData?: boolean } }).connection?.saveData;
     const dm = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
-    const lowMemory = typeof dm === 'number' && dm < 4;
-    const ua = navigator.userAgent || '';
-    // iPhone/iPod, classic iPad, and iPadOS (which reports as "Macintosh" with touch).
-    const isIOS = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1);
-    if (reduceMotion || coarsePointer || smallViewport || saveData || lowMemory || isIOS) {
-      return; // keep the lightweight ambient backdrop — the heavy video never loads
+    const veryLowMemory = typeof dm === 'number' && dm < 2; // genuinely low-end only
+    if (reduceMotion || saveData || veryLowMemory) {
+      return; // keep the lightweight ambient backdrop
     }
+
+    // Pick a resolution for the device: 720p on phones/tablets, 1080p elsewhere.
+    const coarsePointer = mm?.('(pointer: coarse)').matches;
+    const smallViewport = window.innerWidth < 1024;
+    const src = coarsePointer || smallViewport ? VIDEO_MOBILE : VIDEO_DESKTOP;
 
     let ticking = false;
     let activated = false;
@@ -100,7 +102,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
         activated = true;
         // Attach the source only now, then load + play.
         if (!video.getAttribute('src')) {
-          video.src = HOPPY_MP4_URL;
+          video.src = src;
           video.load();
         }
         setActive(true);

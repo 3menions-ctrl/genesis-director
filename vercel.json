@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "vite build && (npx playwright install chromium > /dev/null 2>&1 || true) && node scripts/prerender.mjs",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
   ]

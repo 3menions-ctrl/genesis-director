@@ -15,7 +15,7 @@ import { useRef } from 'react';
 const QA = [
   {
     q: 'How fast does a render really finish?',
-    a: 'Median shot takes 89 seconds. Pre-vis previews — the cheap 320p thumbnails before you commit — finish in 8. The four-minute renders you might have seen elsewhere are reserved for the longest 30-second avatar takes.',
+    a: 'Most 5-second clips land in about 30 to 90 seconds, depending on the engine and resolution you pick. Low-res pre-vis previews come back in seconds so you can lock a direction before spending credits; the longest avatar and 4K takes sit at the top of that range.',
   },
   {
     q: 'Can my characters stay consistent across projects?',

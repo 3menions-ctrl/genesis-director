@@ -176,7 +176,7 @@ export function Footer() {
         {/* ── bottom bar ── */}
         <div className="flex flex-col gap-4 border-t border-white/10 py-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-5">
-            <p className="font-mono text-[11px] tracking-wide text-white/40">© {year} Small Bridges-studio LLC · Made in Missouri, USA</p>
+            <p className="font-mono text-[11px] tracking-wide text-white/40">© {year} Small Bridges Studio LLC · Made in Missouri, USA</p>
             <a href="mailto:cole@smallbridges.co" className="font-mono text-[11px] tracking-wide text-white/35 transition-colors hover:text-white/70">cole@smallbridges.co</a>
           </div>
           <p className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-white/30 sm:flex sm:items-center sm:gap-1.5">

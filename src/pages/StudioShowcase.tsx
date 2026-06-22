@@ -382,15 +382,17 @@ const ROLE_DESC: Record<string, string> = {
  *  focused view. Auto-advances (pauses on hover), with prev/next + dots and a
  *  "build your own" call to action. */
 function CastSpotlight({ reduced }: { reduced: boolean }) {
+  // Shuffle the cast once per mount so the gallery opens on a different face each visit.
+  const [cast] = useState(() => shuffle(AVATARS));
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
     if (reduced || paused) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % AVATARS.length), 3600);
+    const id = setInterval(() => setActive((a) => (a + 1) % cast.length), 3600);
     return () => clearInterval(id);
-  }, [reduced, paused]);
-  const a = AVATARS[active];
-  const go = (d: number) => setActive((v) => (v + d + AVATARS.length) % AVATARS.length);
+  }, [reduced, paused, cast.length]);
+  const a = cast[active];
+  const go = (d: number) => setActive((v) => (v + d + cast.length) % cast.length);
   const navBtn = "flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.05] text-white/70 ring-1 ring-inset ring-white/12 transition-colors hover:bg-white/[0.12] hover:text-white";
 
   return (
@@ -427,12 +429,12 @@ function CastSpotlight({ reduced }: { reduced: boolean }) {
 
         <div className="mt-8 flex items-center justify-center gap-4 lg:justify-start">
           <button type="button" onClick={() => go(-1)} aria-label="Previous avatar" className={navBtn}><ArrowLeft className="h-4 w-4" /></button>
-          <span className="font-mono text-[12px] tabular-nums text-white/50">{String(active + 1).padStart(2, "0")} <span className="text-white/25">/ {AVATARS.length}</span></span>
+          <span className="font-mono text-[12px] tabular-nums text-white/50">{String(active + 1).padStart(2, "0")} <span className="text-white/25">/ {cast.length}</span></span>
           <button type="button" onClick={() => go(1)} aria-label="Next avatar" className={navBtn}><ArrowRight className="h-4 w-4" /></button>
         </div>
 
         <div className="mt-6 flex flex-wrap justify-center gap-1.5 lg:justify-start">
-          {AVATARS.map((_, i) => <button key={i} type="button" onClick={() => setActive(i)} aria-label={`Avatar ${i + 1}`} className="h-1.5 rounded-full transition-all duration-300" style={{ width: i === active ? 16 : 6, background: i === active ? `hsl(${ACCENT})` : "rgba(255,255,255,0.25)" }} />)}
+          {cast.map((_, i) => <button key={i} type="button" onClick={() => setActive(i)} aria-label={`Avatar ${i + 1}`} className="h-1.5 rounded-full transition-all duration-300" style={{ width: i === active ? 16 : 6, background: i === active ? `hsl(${ACCENT})` : "rgba(255,255,255,0.25)" }} />)}
         </div>
 
         <p className="mt-8 inline-flex items-center gap-2.5 text-[14px] text-white/55">
@@ -548,7 +550,7 @@ export default function StudioShowcase() {
       </Section>
 
       {/* AVATARS — casting wall */}
-      <section className="w-full py-20 sm:py-24">
+      <section id="cast" className="w-full scroll-mt-24 py-20 sm:py-24">
         <Reveal className="mb-10 px-5 text-center">
           <Eyebrow>The cast</Eyebrow>
           <h2 className="mt-3 font-display text-[clamp(2rem,5.4vw,3.7rem)] font-semibold tracking-[-0.03em]">Cast in a <span className="italic">click</span>.</h2>

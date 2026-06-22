@@ -1,5 +1,5 @@
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { sendResendEmail } from '../_shared/resend.ts'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -79,7 +79,7 @@ async function moveToDlq(
 }
 
 Deno.serve(async (req) => {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const apiKey = Deno.env.get('RESEND_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -249,25 +249,21 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendLovableEmail(
+        await sendResendEmail(
           {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
+            to: payload.to as string,
+            from: payload.from as string,
+            subject: payload.subject as string,
+            html: payload.html as string,
+            text: payload.text as string | undefined,
+            // Resend dedupes on this key for 24h, so VT-expiry re-reads of an
+            // already-sent message never produce a duplicate delivery.
+            idempotencyKey: (payload.idempotency_key ?? payload.message_id) as string | undefined,
+            unsubscribeToken: payload.unsubscribe_token as string | undefined,
+            unsubscribeBaseUrl: `${supabaseUrl}/functions/v1/handle-email-unsubscribe`,
+            label: payload.label as string | undefined,
           },
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-          { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
+          { apiKey }
         )
 
         // Log success

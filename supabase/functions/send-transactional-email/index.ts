@@ -5,15 +5,12 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
-const SITE_NAME = "genesis-director"
-// SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
-// It MUST match the subdomain delegated to Lovable's nameservers — never the root domain.
-// The email API looks up this exact domain; a mismatch causes "No email domain record found".
-const SENDER_DOMAIN = "notify.smallbridges.co"
-// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
-// When display_from_root is enabled, this can be the root domain for cleaner branding,
-// even though actual sending uses the subdomain above.
-const FROM_DOMAIN = "notify.smallbridges.co"
+const SITE_NAME = "Small Bridges"
+// SENDER_DOMAIN / FROM_DOMAIN MUST be a domain verified in Resend.
+// Using the root domain (the one added to the Resend account).
+const SENDER_DOMAIN = "smallbridges.co"
+// FROM_DOMAIN is the domain shown in the From: header.
+const FROM_DOMAIN = "smallbridges.co"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +37,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  try {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -60,6 +58,9 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  // Captured here because `body` is block-scoped to this try; the preference
+  // gate below needs the request-level category override.
+  let bodyCategory: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -68,6 +69,9 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.category === 'string') {
+      bodyCategory = body.category
     }
   } catch {
     return new Response(
@@ -169,7 +173,7 @@ Deno.serve(async (req) => {
   //     per-category toggle, and quiet hours (critical categories bypass).
   //     Look up the recipient's user_id from the profiles table.
   const category =
-    (body as { category?: string }).category ??
+    bodyCategory ??
     (template as { category?: string }).category ??
     templateName;
   const { data: profileRow } = await supabase
@@ -394,4 +398,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   )
+  } catch (error) {
+    // Catch-all so an unexpected throw returns JSON (and is logged) instead of
+    // a bare "Internal Server Error" with no detail.
+    console.error('send-transactional-email crashed', error)
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 })

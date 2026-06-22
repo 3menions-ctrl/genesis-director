@@ -1,8 +1,8 @@
 /**
- * WelcomeCheckout — post-signup landing during the free-beta period.
+ * WelcomeCheckout — post-signup landing during the launch period.
  *
  * Previously this page opened embedded Stripe checkout. While Small Bridges is
- * in beta there's nothing to pay — the user is granted a starter credit
+ * at launch the user simply lands here after signup; no free credits are granted
  * balance (by a DB trigger on profile insert) and we just welcome them
  * and route them into the studio.
  */
@@ -19,7 +19,7 @@ import { PrimaryCTA } from '@/components/ui/PrimaryCTA';
 export default function WelcomeCheckout() {
   usePageMeta({
     title: 'Welcome — Small Bridges',
-    description: 'Small Bridges is free during beta. Your starter credits are ready.',
+    description: 'Welcome to Small Bridges. Your first 5-second video is on us.',
   });
   const { profile } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -56,9 +56,9 @@ export default function WelcomeCheckout() {
           title={<>Welcome to Small Bridges.</>}
           body={
             <>
-              You&rsquo;re in. Small Bridges is free while we&rsquo;re in beta — no card needed, no surprise fees. We&rsquo;ve seeded your account with{' '}
-              <span className="text-emerald-300 font-mono">{starterCredits.toLocaleString()}</span>{' '}
-              starter credits so you can generate your first scenes immediately.
+              You&rsquo;re in. Your{' '}
+              <span className="text-emerald-300 font-mono">first 5-second video is free</span>
+              {' '}— generated on the Wan model, no card needed. Jump into the studio and make your first scene.
             </>
           }
           actions={
@@ -78,7 +78,7 @@ export default function WelcomeCheckout() {
         />
 
         <p className="mt-8 text-[11px] text-white/35 leading-relaxed text-center">
-          When paid plans launch we&rsquo;ll email you well in advance with what changes (and what stays free). Your in-beta work stays yours.
+          After your free first video, credits are pay-as-you-go — you only pay for what you successfully render, and failed renders are refunded automatically.
         </p>
       </motion.div>
     </div>

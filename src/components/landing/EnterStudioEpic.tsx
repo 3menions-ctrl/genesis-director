@@ -1354,7 +1354,7 @@ export const EnterStudioEpic = memo(function EnterStudioEpic({ onStart, onEnter 
           </motion.button>
 
           <div className="mt-5 text-[11px] font-mono uppercase tracking-[0.32em] text-white/45">
-            No card · Free credits on signup
+            No card · Your first 5-second video is free
           </div>
         </div>
       </div>

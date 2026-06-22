@@ -11,7 +11,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
  * Behavior:
  *   1. Consume any pending intent token from the /start wizard.
  *   2. Mark onboarding_completed = true unconditionally (Small Bridges is free during
- *      beta — the gating questions live in /start as a courtesy, but the
+ *      launch — the gating questions live in /start as a courtesy, but the
  *      product itself works the moment auth succeeds).
  *   3. Route brand-new users straight into /studio?welcome=1 (skipping the
  *      /welcome/checkout auto-bounce). Returning users go to /workspace or

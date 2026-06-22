@@ -1,7 +1,7 @@
 /**
- * PersonalSubscriptionCard — beta-free version.
+ * PersonalSubscriptionCard — live version.
  *
- * Subscriptions are not for sale yet. We surface "Free during beta" + a
+ * Subscriptions are not for sale yet. We surface "free to start (first 5-sec video on Wan)" + a
  * pointer to Credits where the user can request a top-up.
  */
 import { Sparkles, ArrowRight } from 'lucide-react';
@@ -21,9 +21,9 @@ export function PersonalSubscriptionCard() {
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Plan</p>
-            <p className="text-xl font-display font-light text-white">Beta · Free</p>
+            <p className="text-xl font-display font-light text-white">Free to start</p>
             <p className="text-[12px] text-white/45 mt-1">
-              Small Bridges is free during beta. Request more credits anytime.
+              Your first 5-second video is free. Request more credits anytime.
             </p>
           </div>
         </div>

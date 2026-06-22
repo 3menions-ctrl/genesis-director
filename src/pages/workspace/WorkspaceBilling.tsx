@@ -1,5 +1,5 @@
 /**
- * WorkspaceBilling — beta-free version.
+ * WorkspaceBilling — live version.
  *
  * Workspace plans are not for sale yet. This page surfaces usage stats and a
  * "talk to us about pricing" form that writes to support_messages.
@@ -101,10 +101,10 @@ export default function WorkspaceBilling() {
   return (
     <WorkspacePage
       icon={CreditCard}
-      eyebrow="Money · Beta"
+      eyebrow="Money · Plans"
       title="Billing"
-      description="Workspace plans launch later. While Small Bridges is in beta, your team runs on hand-allocated credits."
-      actions={<Pill tone="good">BETA · FREE</Pill>}
+      description="Workspace plans launch later. For now, your team runs on shared, hand-allocated credits."
+      actions={<Pill tone="good">FREE TO START</Pill>}
     >
       <Section icon={Sparkles} label="Usage at a glance" sublabel="Anchors for the conversation when paid plans go live.">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -114,7 +114,7 @@ export default function WorkspaceBilling() {
         </div>
       </Section>
 
-      <Section icon={CreditCard} label="Talk to us about pricing" sublabel="Tell us what your team needs — we'll grant beta credits or sketch a future plan that fits.">
+      <Section icon={CreditCard} label="Talk to us about pricing" sublabel="Tell us what your team needs — we'll size a plan that fits.">
         {sent ? (
           <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] p-5 flex items-start gap-3">
             <BadgeCheck className="w-5 h-5 text-emerald-300 mt-0.5" />
@@ -161,7 +161,7 @@ export default function WorkspaceBilling() {
 
       <Section icon={Sparkles} label="What happens when paid plans launch?" sublabel="Plain answers.">
         <ul className="space-y-2.5 text-[13px] text-white/65 leading-relaxed">
-          <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> Anyone who signed up during beta keeps their work and their account.</li>
+          <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> Your work and your account are always yours to keep.</li>
           <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> We&rsquo;ll email at least 30 days before any paid plan turns on, and we&rsquo;ll tell you what stays free.</li>
           <li className="flex gap-3"><span className="text-primary mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" /> Workspace-tier features (audit log export, SSO, custom roles) ship together when paid plans launch.</li>
         </ul>

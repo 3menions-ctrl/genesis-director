@@ -1,5 +1,5 @@
 /**
- * BetaHero — the editorial hero band used across beta-free surfaces.
+ * BetaHero — the editorial hero band used across go-live surfaces.
  *
  * Replaces 6+ copy-pasted instances of the same gradient card + blurred
  * radial glow + eyebrow row. Compose with `<Stat />` children for the
@@ -21,7 +21,7 @@ import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface BetaHeroProps {
-  /** Pill eyebrow text. Defaults to "BETA · FREE" for free-beta surfaces. */
+  /** Pill eyebrow text. Defaults to "NOW LIVE". */
   badge?: string;
   /** Small-caps label to the right of the divider. */
   eyebrow?: string;
@@ -39,7 +39,7 @@ export interface BetaHeroProps {
 }
 
 export function BetaHero({
-  badge = 'BETA · FREE',
+  badge = 'NOW LIVE',
   eyebrow,
   title,
   body,

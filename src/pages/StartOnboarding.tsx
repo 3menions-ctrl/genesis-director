@@ -70,7 +70,7 @@ const BUSINESS_PLANS: Plan[] = [
 // Taste/goals/channels/experience are collected later in Settings so first-run feels effortless.
 const PERSONAL_STEPS = ['account', 'verify'] as const;
 // The plan step only rendered the auto-claiming BetaFreePlanCard (no real
-// choice), so it's dropped for business too — the "free during beta" value
+// choice), so it's dropped for business too — the "free to start (first 5-sec video on Wan)" value
 // message now lives in the account step header.
 const BUSINESS_STEPS = ['company', 'team', 'account', 'verify'] as const;
 
@@ -79,7 +79,7 @@ type StepKey = typeof PERSONAL_STEPS[number] | typeof BUSINESS_STEPS[number];
 const STEP_META: Record<StepKey, { chapter: string; question: string; whisper: string }> = {
   company: { chapter: 'Chapter I', question: 'Introduce\nyour company.', whisper: 'A few firmographics so we can shape the workspace around you.' },
   team:    { chapter: 'Chapter II', question: 'Sketch out\nyour operation.', whisper: 'Team, role, monthly volume, brand voice — defaults baked in.' },
-  account: { chapter: 'Chapter III', question: 'Make it\nofficial.', whisper: 'One step to claim your 100 free credits — no card, ever.' },
+  account: { chapter: 'Chapter III', question: 'Make it\nofficial.', whisper: 'One step to start free — your first 5-second video is on us.' },
   verify:  { chapter: 'Chapter IV', question: 'Verify and\nstep inside.', whisper: 'Last step — confirm your email and your studio opens.' },
 };
 
@@ -676,11 +676,11 @@ export default function StartOnboarding() {
             {/* ACCOUNT */}
             {currentStep === 'account' && (
               <div className="space-y-5 max-w-md mx-auto">
-                {/* Beta-free value strip — folded in from the retired plan step. */}
+                {/* Free-to-start value strip — folded in from the retired plan step. */}
                 <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.06] px-4 py-3 text-center">
                   <Gem className="w-4 h-4 text-emerald-300 shrink-0" />
                   <p className="text-[12.5px] text-white/75 leading-snug">
-                    <span className="text-emerald-300 font-semibold">100 free credits</span> the moment you sign up — no card, no checkout.
+                    <span className="text-emerald-300 font-semibold">Your first 5-second video is free</span> — generated on Wan, no card, no checkout.
                   </p>
                 </div>
 
@@ -1305,7 +1305,7 @@ function SegmentScale({
 }
 
 function BetaFreePlanCard({ onContinue }: { onContinue: () => void }) {
-  // Auto-claim the beta-free "plan" the moment this step mounts so the user
+  // Auto-claim the free-to-start "plan" the moment this step mounts so the user
   // can advance without an explicit click. The visible card explains why
   // there's nothing to choose.
   useEffect(() => {
@@ -1317,19 +1317,19 @@ function BetaFreePlanCard({ onContinue }: { onContinue: () => void }) {
       <BetaHero
         size="compact"
         eyebrow="No checkout required"
-        title={<>Your starter pack is on us.</>}
+        title={<>Your first video is on us.</>}
         body={
           <>
-            Every new account gets <span className="text-emerald-300 font-mono">100 starter credits</span> the moment you finish signing up. Use them across every mode — text-to-video, avatars, motion transfer, the lot.
+            <span className="text-emerald-300 font-mono">Your first 5-second video is free</span>, generated on the Wan model — no card required to start. From there, credits are pay-as-you-go across every mode: text-to-video, avatars, motion transfer, the lot.
           </>
         }
         actions={
           <ul className="space-y-2.5">
             {[
-              'No card on file. No surprise charges.',
+              'No card on file to start. No surprise charges.',
               'Refunds for failed renders land back in your balance automatically.',
-              'Request more credits anytime from /credits — we hand-grant top-ups during beta.',
-              'Paid plans launch later. We’ll email at least 30 days in advance.',
+              'Top up credits anytime from /credits — you only pay for what you render.',
+              'Credits never expire.',
             ].map((l) => (
               <li key={l} className="flex gap-3 text-[13px] text-white/65 leading-relaxed">
                 <span className="mt-[7px] w-1 h-1 rounded-full bg-primary shrink-0" />

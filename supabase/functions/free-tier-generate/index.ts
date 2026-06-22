@@ -114,16 +114,8 @@ serve(async (req) => {
       });
     }
 
-    // Get the model version from system_config so we can change models
-    // without redeploying the edge function.
-    const { data: versionRow } = await supabase
-      .from("system_config")
-      .select("value")
-      .eq("key", "free_tier.model_version")
-      .maybeSingle();
-    const modelVersion =
-      (versionRow?.value as string | undefined)?.replace(/^"|"$/g, "") ??
-      "by3hnxsapnzj1qzsmm4qm9d4j5p1fqq1pj6q3w89mr04kdb3dpgw"; // LTX-Video default
+    // Free engine = Wan 2.5 (wan-ai/wan-2.5-t2v). Invoked via the Replicate
+    // model endpoint below (no version pin → always the latest Wan revision).
 
     // Record the attempt BEFORE firing so concurrent requests can't bypass
     // the cap (the next free_tier_status call will see this row).
@@ -138,23 +130,19 @@ serve(async (req) => {
       .select("id")
       .single();
 
-    // Fire the prediction.
-    const predRes = await fetch("https://api.replicate.com/v1/predictions", {
+    // Fire the prediction on Wan 2.5 — the free engine. 5-second preview.
+    const predRes = await fetch("https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: modelVersion,
         input: {
           prompt: `cinematic shot: ${prompt}, professional cinematography, sharp focus`,
-          num_frames: 121,         // ~5s at 24fps
-          width: 320,
-          height: 320,
-          guidance_scale: 3.5,
-          num_inference_steps: 25,
-          seed: Math.floor(Math.random() * 1_000_000),
+          duration: 5,
+          aspect_ratio: "16:9",
+          resolution: "480p",
         },
       }),
     });

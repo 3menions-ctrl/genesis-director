@@ -101,7 +101,7 @@ function WelcomeOfferModalInner() {
       >
         <DialogTitle className="sr-only">Welcome Offer</DialogTitle>
         <DialogDescription className="sr-only">
-          Welcome offer to purchase starter credits
+          Welcome offer to purchase your first credit pack
         </DialogDescription>
 
         {/* Close button */}

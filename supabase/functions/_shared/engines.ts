@@ -82,7 +82,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     tier: 'standard',
     label: 'Wan 2.5 — Free',
     shortLabel: 'Wan 2.5',
-    description: "Alibaba's Wan 2.5 — the free-tier engine. Strong baseline quality, bundled with starter credit grants.",
+    description: "Alibaba's Wan 2.5 — the free engine. Your first 5-second video is free; strong baseline quality.",
     durations: [5, 10],
     maxDuration: 10,
     supportsImageInput: true,

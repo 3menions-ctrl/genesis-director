@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { PageHero } from "@/components/page/PageHero";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 
 const FAST_FACTS = [
   { icon: Building2, label: "Company", value: "Small Bridges-studio LLC" },
@@ -84,25 +85,9 @@ export default function Press() {
 
   return (
     <div className="min-h-screen bg-black text-white antialiased">
-      {/* Header */}
-      <header className="border-b border-white/[0.06] backdrop-blur-xl bg-black/60 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <Logo size="lg" />
-            <span className="font-display font-bold text-xl tracking-[-0.01em]">Small Bridges</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-7 text-sm">
-            <Link to="/" className="text-white/55 hover:text-white transition-colors">Home</Link>
-            <Link to="/blog" className="text-white/55 hover:text-white transition-colors">Blog</Link>
-            <Link to="/contact" className="text-white/55 hover:text-white transition-colors">Contact</Link>
-            <Button onClick={() => (window.location.href = '/auth')} size="sm" className="rounded-xl">
-              Get Started <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </nav>
-        </div>
-      </header>
+      <MarketingHeader />
 
-      <main className="container mx-auto px-6 py-10 sm:py-14 max-w-6xl">
+      <main className="container mx-auto px-6 pt-28 pb-10 sm:pt-32 sm:pb-14 max-w-6xl">
         {/* Hero */}
         <PageHero
           accentKey="press"

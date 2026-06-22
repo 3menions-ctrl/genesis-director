@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHero } from "@/components/page/PageHero";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -135,12 +136,13 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
+      <MarketingHeader />
       {/* Abstract Background - same as landing */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-16">
         {/* Back Link */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}

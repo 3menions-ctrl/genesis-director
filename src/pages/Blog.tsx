@@ -17,7 +17,7 @@ import { ArrowLeft, Calendar, Clock, User, Tag, Share2, BookOpen, ArrowRight } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
-import { Logo } from '@/components/ui/Logo';
+import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { BLOG_ARTICLES, BLOG_CATEGORIES, type BlogArticle } from '@/content/blog';
 
@@ -71,30 +71,6 @@ function BlogBackdrop() {
   );
 }
 
-function TopNav({ showAuth = true }: { showAuth?: boolean }) {
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <Logo size="md" showText textClassName="text-base" />
-        </Link>
-        {showAuth && (
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => { window.location.href = '/auth'; }}
-              className="h-9 px-4 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-full">
-              Sign in
-            </Button>
-            <Button onClick={() => { window.location.href = '/auth?mode=signup'; }}
-              className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink">
-              Get Started
-            </Button>
-          </div>
-        )}
-      </div>
-    </nav>
-  );
-}
-
 function ArticleMeta({ article }: { article: BlogArticle }) {
   usePageMeta({
     title: `${article.title} — Small Bridges`,
@@ -132,7 +108,7 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
     <div className="min-h-screen bg-[#050507] overflow-hidden relative">
       <ArticleMeta article={article} />
       <BlogBackdrop />
-      <TopNav showAuth={false} />
+      <MarketingHeader />
 
       <div className="relative z-10 pt-28 pb-16">
         <div className="max-w-3xl mx-auto px-6">
@@ -219,7 +195,7 @@ function BlogIndex() {
   return (
     <div className="min-h-screen bg-[#050507] overflow-hidden relative">
       <BlogBackdrop />
-      <TopNav />
+      <MarketingHeader />
 
       <div className="relative z-10 pt-28 pb-16">
         <div className="max-w-6xl mx-auto px-6">

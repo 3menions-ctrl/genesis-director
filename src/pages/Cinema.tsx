@@ -11,7 +11,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 import Lenis from "lenis";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Nav } from "@/components/cinema/Nav";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Cover } from "@/components/cinema/Cover";
 import { Grain } from "@/components/cinema/Grain";
 import { HowItWorks, Studio, Portal, FinalCTA } from "@/components/cinema/sections";
@@ -100,7 +100,7 @@ export default function Cinema() {
         )}
       </AnimatePresence>
 
-      <Nav onStart={handleStart} />
+      <MarketingHeader showProgress />
 
       <main className="relative z-[3]">
         <Cover onEnter={handleEnter} />

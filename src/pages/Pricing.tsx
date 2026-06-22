@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
-import { BrandTile } from '@/components/cinema/Logo';
+import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { Footer } from '@/components/cinema/Footer';
 
 type Segment = 'personal' | 'business' | 'enterprise' | 'subscription';
@@ -651,22 +651,10 @@ export default function Pricing() {
       <style>{KEYFRAMES}</style>
       <PricingBackdrop reduced={reduced} />
 
-      {/* Header — cinema-styled, borderless. Standalone (no shell nav). */}
-      <header className="sticky top-0 z-50 bg-[#05060a]/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
-          <Link to="/" className="flex items-center gap-2.5">
-            <BrandTile className="h-8 w-8" />
-            <span className="font-display text-[16px] tracking-tight">Small <span className="font-semibold italic">Bridges</span></span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link to="/studio-showcase" className="hidden rounded-full bg-white/[0.05] px-4 py-2 text-[13px] font-light text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white sm:inline-flex">Inside the Studio</Link>
-            <button type="button" onClick={() => navigate('/auth?mode=signup')} className="rounded-full bg-white px-5 py-2 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90">Sign up</button>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader />
 
       {/* Hero */}
-      <section className="relative z-10 px-5 pb-2 pt-16 text-center sm:px-8">
+      <section className="relative z-10 px-5 pb-2 pt-28 text-center sm:px-8">
         <div className="mx-auto max-w-3xl">
           <motion.div key={segment} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
             <Eyebrow>{meta.kicker}</Eyebrow>

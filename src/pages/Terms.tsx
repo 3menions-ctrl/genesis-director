@@ -1,17 +1,460 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Logo } from "@/components/ui/Logo";
-import { usePageMeta } from '@/hooks/usePageMeta';
+import { PageHero } from "@/components/page/PageHero";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
-const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
+const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
+
+const EMAIL = "cole@smallbridges.co";
+
+const sections: { id: string; title: string; body: ReactNode }[] = [
+  {
+    id: "acceptance",
+    title: "Acceptance & Eligibility",
+    body: (
+      <>
+        <p>
+          These Terms of Service ("Terms") form a binding agreement between you and{" "}
+          <strong className="text-white">Small Bridges-studio LLC</strong>, a Missouri limited
+          liability company ("Small Bridges," "we," "our," or "us"), and govern your access to and
+          use of the Small Bridges website, applications, and AI cinematic video-creation services
+          (collectively, the "Service"). By creating an account, purchasing credits, or otherwise
+          using the Service, you accept these Terms and our{" "}
+          <Link to="/privacy" className="text-white underline-offset-4 hover:underline">
+            Privacy Policy
+          </Link>
+          . If you do not agree, do not use the Service.
+        </p>
+        <p>
+          You must be at least 18 years of age, or the age of majority in your jurisdiction if
+          higher, to use the Service. By using the Service you represent and warrant that you meet
+          this requirement, that you have the legal capacity to enter into these Terms, and that you
+          are not barred from using the Service under any applicable law. If you accept these Terms
+          on behalf of a company or other organization, you represent that you have authority to bind
+          that entity, and "you" refers to that entity.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "accounts",
+    title: "Accounts & Security",
+    body: (
+      <>
+        <p>
+          To use most features you must register an account and provide accurate, current, and
+          complete information. You are responsible for safeguarding your login credentials and for
+          all activity that occurs under your account. You agree to notify us promptly at{" "}
+          <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+            {EMAIL}
+          </a>{" "}
+          of any unauthorized use or suspected security breach.
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>Keep your contact and billing details up to date.</li>
+          <li>Do not share, sell, or transfer your account or credits to others.</li>
+          <li>You are responsible for any losses arising from unauthorized use of your account.</li>
+          <li>We may suspend or restrict accounts to protect the Service, our users, or our rights.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "service",
+    title: "Description of the Service",
+    body: (
+      <>
+        <p>
+          Small Bridges is a software-as-a-service platform that lets you generate short cinematic
+          video clips, images, scripts, and related media using artificial-intelligence models. The
+          Service composes your text prompts and any material you provide, sends them to
+          third-party model hosts for generation, and returns the resulting outputs ("Outputs") to
+          your account. Features, models, generation limits, and pricing may change, evolve, or be
+          discontinued over time.
+        </p>
+        <p>
+          The Service depends on third-party model providers and infrastructure. Availability,
+          generation speed, and output characteristics may vary and are not guaranteed.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "billing",
+    title: "Billing, Credits & Subscriptions",
+    body: (
+      <>
+        <p>
+          The Service uses a usage-based model. You may purchase{" "}
+          <strong className="text-white">pay-as-you-go credits</strong> and/or enroll in an optional{" "}
+          <strong className="text-white">monthly subscription plan</strong>. Generating media
+          consumes credits at the rates shown in the app at the time of generation, which depend on
+          the engine, resolution, and clip length you select.
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>
+            <strong className="text-white">Free first clip.</strong> Your first 5-second video on the
+            Wan engine is free. This one-time promotion may be modified or withdrawn at any time and
+            does not apply to other engines, lengths, or features.
+          </li>
+          <li>
+            <strong className="text-white">Credits are non-refundable.</strong> Except where a refund
+            is required by applicable law, all credit purchases are final, and credits have no cash
+            value and cannot be exchanged or transferred. Credits are consumed when a generation is
+            submitted, even if you are dissatisfied with an Output.
+          </li>
+          <li>
+            <strong className="text-white">Subscriptions renew automatically.</strong> Subscription
+            plans renew at the then-current price for successive billing periods until you cancel.
+            You may cancel at any time from your account settings; cancellation stops future renewals
+            and takes effect at the end of the current paid period. Unless required by law, fees
+            already paid are not refunded.
+          </li>
+          <li>
+            <strong className="text-white">Taxes & pricing changes.</strong> Prices are exclusive of
+            applicable taxes, which you are responsible for. We may change prices, plan features, or
+            credit costs prospectively with reasonable notice.
+          </li>
+          <li>
+            <strong className="text-white">Payment processing.</strong> Payments are processed by our
+            payment provider, Polar. We do not store full card details. You authorize us and Polar to
+            charge your selected payment method for amounts you incur.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "acceptable-use",
+    title: "Acceptable Use",
+    body: (
+      <>
+        <p>You agree not to use the Service to create, upload, or distribute content that:</p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>Is illegal, or that promotes or facilitates illegal activity;</li>
+          <li>
+            Depicts a real, identifiable person without their consent, including non-consensual
+            likenesses, deepfakes, or impersonation intended to deceive;
+          </li>
+          <li>
+            Constitutes child sexual abuse material (CSAM) or sexualizes minors in any form — such
+            content is strictly prohibited and may be reported to authorities;
+          </li>
+          <li>Infringes the intellectual-property, privacy, or publicity rights of any third party;</li>
+          <li>Harasses, threatens, defames, or incites violence or hatred against any person or group;</li>
+          <li>
+            Is intimate or sexually explicit imagery of real individuals created or shared without
+            consent;
+          </li>
+          <li>Contains malware, or is used to spam, phish, or defraud;</li>
+          <li>
+            Attempts to reverse-engineer, decompile, extract, or replicate the underlying models,
+            weights, or prompts, or to circumvent usage limits, safety systems, or rate limits.
+          </li>
+        </ul>
+        <p>
+          You are responsible for your Outputs and their downstream use. We may remove content,
+          throttle, suspend, or terminate accounts that we reasonably believe violate this section,
+          and we may cooperate with law enforcement where appropriate.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "user-content",
+    title: "User Content & Ownership",
+    body: (
+      <>
+        <p>
+          As between you and Small Bridges, and subject to the terms of the third-party model and
+          infrastructure providers that generate your media, you retain the rights you hold in the
+          prompts, reference materials, and other inputs you provide ("Inputs") and in the Outputs
+          you generate. You are solely responsible for your Inputs, including ensuring you have all
+          rights necessary to any material you upload or reference.
+        </p>
+        <p>
+          You grant Small Bridges a worldwide, non-exclusive, royalty-free license to host, store,
+          reproduce, transmit, process, and display your Inputs and Outputs solely as needed to
+          operate, secure, support, and improve the Service, to comply with law, and to enforce
+          these Terms. We may generate anonymized, aggregated, or de-identified statistics about
+          usage that do not identify you.
+        </p>
+        <p>
+          Because generative models can produce similar results for different users, we cannot grant
+          you exclusive rights in any Output, and ownership or protectability of AI-generated content
+          may be limited under applicable law.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ai-disclaimer",
+    title: "AI-Generated Content Disclaimer",
+    body: (
+      <>
+        <p>
+          The Service uses artificial intelligence, which is probabilistic by nature. Outputs may be
+          inaccurate, misleading, offensive, or contain visual artifacts, and may resemble content
+          produced for other users or existing works. We make no guarantee that any Output is unique,
+          original, non-infringing, accurate, or fit for any particular purpose.
+        </p>
+        <p>
+          You are responsible for reviewing and verifying Outputs before relying on, publishing, or
+          distributing them, including obtaining any clearances or disclosures required for
+          AI-generated or synthetic media in your jurisdiction. Do not rely on Outputs as
+          professional, legal, medical, or financial advice.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "third-parties",
+    title: "Third-Party Providers",
+    body: (
+      <>
+        <p>
+          Generation is performed by third-party model hosts, including Replicate, and payments are
+          handled by Polar. Other providers support hosting, email, authentication, and storage. Your
+          use of the Service therefore involves transmitting Inputs and Outputs to these providers,
+          whose own terms and policies apply to their processing. We are not responsible for the acts
+          or omissions of third-party providers, and their services may change or become unavailable.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ip",
+    title: "Intellectual Property",
+    body: (
+      <>
+        <p>
+          The Service itself — including its software, interface, branding, trademarks, and
+          underlying technology — is owned by Small Bridges-studio LLC or its licensors and is
+          protected by intellectual-property laws. Except for the rights expressly granted to you in
+          these Terms, we reserve all rights. You may not use our name, logo, or trademarks without
+          our prior written permission.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "dmca",
+    title: "DMCA & Copyright Complaints",
+    body: (
+      <>
+        <p>
+          We respect intellectual-property rights and respond to notices of alleged infringement that
+          comply with the Digital Millennium Copyright Act, 17 U.S.C. § 512. If you believe content on
+          the Service infringes a copyright you own or control, send a written notice to{" "}
+          <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+            {EMAIL}
+          </a>{" "}
+          that includes:
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>Identification of the copyrighted work claimed to be infringed;</li>
+          <li>Identification of the allegedly infringing material and where it is located;</li>
+          <li>Your name, address, telephone number, and email;</li>
+          <li>A statement of good-faith belief that the use is not authorized;</li>
+          <li>
+            A statement, under penalty of perjury, that the information is accurate and that you are
+            authorized to act on the rights holder's behalf;
+          </li>
+          <li>Your physical or electronic signature.</li>
+        </ul>
+        <p>
+          We may remove infringing material and terminate repeat infringers. Submitting a knowingly
+          false notice may expose you to liability under 17 U.S.C. § 512(f).
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "warranty",
+    title: "Disclaimer of Warranties",
+    body: (
+      <p>
+        THE SERVICE AND ALL OUTPUTS ARE PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF
+        ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE
+        SERVICE WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE, THAT OUTPUTS WILL BE ACCURATE, UNIQUE,
+        OR NON-INFRINGING, OR THAT DEFECTS WILL BE CORRECTED. SOME JURISDICTIONS DO NOT ALLOW CERTAIN
+        DISCLAIMERS, SO PARTS OF THIS SECTION MAY NOT APPLY TO YOU.
+      </p>
+    ),
+  },
+  {
+    id: "liability",
+    title: "Limitation of Liability",
+    body: (
+      <>
+        <p>
+          TO THE MAXIMUM EXTENT PERMITTED BY LAW, SMALL BRIDGES-STUDIO LLC AND ITS OFFICERS,
+          MEMBERS, EMPLOYEES, AND SUPPLIERS WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+          CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, REVENUE, DATA,
+          GOODWILL, OR BUSINESS, ARISING OUT OF OR RELATING TO THE SERVICE OR THESE TERMS, EVEN IF
+          ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+        </p>
+        <p>
+          OUR TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE WILL NOT EXCEED THE
+          GREATER OF (A) THE AMOUNTS YOU PAID US IN THE TWELVE (12) MONTHS IMMEDIATELY BEFORE THE
+          EVENT GIVING RISE TO THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS ($100). THESE LIMITS APPLY
+          IN THE AGGREGATE AND ARE A FUNDAMENTAL BASIS OF OUR BARGAIN.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "indemnification",
+    title: "Indemnification",
+    body: (
+      <p>
+        You agree to indemnify, defend, and hold harmless Small Bridges-studio LLC and its officers,
+        members, employees, and agents from and against any claims, damages, liabilities, losses, and
+        expenses (including reasonable attorneys' fees) arising out of or related to: (a) your Inputs
+        or Outputs; (b) your use of the Service; (c) your violation of these Terms or any law; or
+        (d) your infringement or misappropriation of any third-party right.
+      </p>
+    ),
+  },
+  {
+    id: "arbitration",
+    title: "Binding Arbitration & Class-Action Waiver",
+    body: (
+      <>
+        <p className="text-white/80">
+          PLEASE READ THIS SECTION CAREFULLY — IT AFFECTS YOUR LEGAL RIGHTS, INCLUDING YOUR RIGHT TO
+          SUE IN COURT AND TO HAVE A JURY TRIAL.
+        </p>
+        <p>
+          You and Small Bridges agree that any dispute, claim, or controversy arising out of or
+          relating to these Terms or the Service will be resolved exclusively by binding individual
+          arbitration administered by the American Arbitration Association under its applicable rules,
+          rather than in court, except that either party may bring an individual action in small-claims
+          court or seek injunctive relief to protect intellectual-property rights. The arbitration
+          will be seated in the State of Missouri, U.S., and these Terms and the arbitration are
+          governed by the Federal Arbitration Act.
+        </p>
+        <p className="text-white/80">
+          CLASS-ACTION WAIVER. YOU AND SMALL BRIDGES AGREE THAT EACH MAY BRING CLAIMS ONLY IN AN
+          INDIVIDUAL CAPACITY, AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY CLASS, COLLECTIVE,
+          CONSOLIDATED, OR REPRESENTATIVE PROCEEDING. THE ARBITRATOR MAY NOT CONSOLIDATE CLAIMS OR
+          PRESIDE OVER ANY FORM OF CLASS PROCEEDING.
+        </p>
+        <p>
+          <strong className="text-white">Opt-out.</strong> You may opt out of this arbitration
+          agreement by emailing{" "}
+          <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+            {EMAIL}
+          </a>{" "}
+          within 30 days of first accepting these Terms, stating your name and a clear intent to opt
+          out. Opting out does not affect any other part of these Terms.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "governing-law",
+    title: "Governing Law",
+    body: (
+      <p>
+        These Terms are governed by the laws of the State of Missouri, U.S., without regard to its
+        conflict-of-laws rules. Subject to the arbitration section above, any dispute not subject to
+        arbitration will be brought exclusively in the state or federal courts located in the State
+        of Missouri, and you consent to their jurisdiction.
+      </p>
+    ),
+  },
+  {
+    id: "termination",
+    title: "Termination",
+    body: (
+      <p>
+        You may stop using the Service and close your account at any time. We may suspend or terminate
+        your access, with or without notice, if you violate these Terms, if required by law, or to
+        protect the Service or its users. Upon termination, your right to use the Service ceases.
+        Sections that by their nature should survive — including ownership, disclaimers, limitation of
+        liability, indemnification, arbitration, and governing law — will survive.
+      </p>
+    ),
+  },
+  {
+    id: "changes",
+    title: "Changes to These Terms",
+    body: (
+      <p>
+        We may update these Terms from time to time. When we make material changes, we will update the
+        "Last updated" date and, where appropriate, provide additional notice. Changes are effective
+        when posted. Your continued use of the Service after changes take effect constitutes
+        acceptance of the revised Terms.
+      </p>
+    ),
+  },
+  {
+    id: "misc",
+    title: "Miscellaneous",
+    body: (
+      <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+        <li>
+          <strong className="text-white">Entire agreement.</strong> These Terms and the Privacy Policy
+          are the entire agreement between you and us regarding the Service and supersede prior
+          agreements.
+        </li>
+        <li>
+          <strong className="text-white">Severability.</strong> If any provision is held
+          unenforceable, it will be limited or removed to the minimum extent necessary, and the rest
+          remains in effect.
+        </li>
+        <li>
+          <strong className="text-white">No waiver.</strong> Our failure to enforce a provision is not
+          a waiver of it.
+        </li>
+        <li>
+          <strong className="text-white">Assignment.</strong> You may not assign these Terms without
+          our consent; we may assign them in connection with a merger, acquisition, or sale of assets.
+        </li>
+        <li>
+          <strong className="text-white">Force majeure.</strong> We are not liable for delays or
+          failures caused by events beyond our reasonable control, including provider outages.
+        </li>
+        <li>
+          <strong className="text-white">Electronic communications & export.</strong> You consent to
+          receive notices electronically, and you agree to comply with applicable export-control and
+          sanctions laws.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    body: (
+      <div className="space-y-1">
+        <p>Questions about these Terms? Reach us at:</p>
+        <p className="text-white">Small Bridges-studio LLC</p>
+        <p>State of Missouri, U.S.</p>
+        <p>
+          <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+            {EMAIL}
+          </a>
+        </p>
+      </div>
+    ),
+  },
+];
 
 const Terms = () => {
-  usePageMeta({ title: 'Terms of Service — Small Bridges', description: 'Read the terms and conditions governing your use of the Small Bridges platform.' });
+  usePageMeta({
+    title: "Terms of Service — Small Bridges | AI Cinematic Video Creation",
+    description:
+      "The Terms of Service for Small Bridges, the AI cinematic video-creation platform: accounts, pay-as-you-go credits and subscriptions, acceptable use, content ownership, AI disclaimers, arbitration, and more.",
+  });
+
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
-      {/* Abstract Background */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
@@ -26,453 +469,76 @@ const Terms = () => {
       </nav>
 
       {/* Content */}
-      <div className="relative z-10 pt-24 pb-16">
-        <div className="max-w-4xl mx-auto px-6">
+      <div className="relative z-10 pt-24 pb-24">
+        <div className="max-w-3xl mx-auto px-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8 text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-8"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Link>
-            
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Terms of Service</h1>
-            <p className="text-white/75 mb-12">Last updated: May 15, 2026</p>
+            <PageHero
+              accentKey="terms"
+              eyebrow="Legal"
+              title="Terms of Service"
+              subtitle="The agreement that governs how you create, own, and share AI cinematic video with Small Bridges."
+              meta="Last updated June 22, 2026"
+              className="mb-12"
+            />
           </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-8 text-white/60"
+
+          {/* Table of contents */}
+          <nav
+            aria-label="Table of contents"
+            className="mb-14 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
           >
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
-              <p>
-                By accessing and using Small Bridges ("Service"), operated by Small Bridges-studio LLC, a Missouri 
-                limited liability company ("Company," "we," "our," or "us"), you accept and agree to be 
-                bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must 
-                not access or use the Service.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">2. Description of Service</h2>
-              <p className="mb-4">
-                Small Bridges is a software-as-a-service (SaaS) platform that provides AI-powered video 
-                generation tools allowing users to create, edit, and produce video content using artificial 
-                intelligence technology. The Service includes script generation, scene creation, video 
-                synthesis, and related features accessible via subscription or credit-based access.
-              </p>
-              <p className="mb-4">
-                <strong className="text-white">Third-Party AI Services:</strong> Our Service utilizes 
-                third-party artificial intelligence providers, including but not limited to Kling AI 
-                (video generation), OpenAI, and other AI technology partners. These third-party services 
-                operate under their own terms and policies. By using our Service, you acknowledge that:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>AI-generated content is created by third-party systems over which we have limited control</li>
-                <li>AI outputs may contain inaccuracies, errors, artifacts, or unexpected results ("hallucinations")</li>
-                <li>Generated content should be reviewed before use, especially for commercial or public distribution</li>
-                <li>We do not guarantee the accuracy, completeness, or suitability of AI-generated outputs</li>
-                <li>Third-party AI providers may modify, update, or discontinue their services without notice</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">3. Eligibility and Age Requirements</h2>
-              <p className="mb-4">
-                You must be at least 13 years of age to use this Service. If you are between 13 and 18 
-                years of age, you may only use the Service with the consent and supervision of a parent 
-                or legal guardian who agrees to be bound by these Terms. By using the Service, you 
-                represent and warrant that:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>You are at least 13 years of age</li>
-                <li>If under 18, your parent or legal guardian has consented to your use of the Service</li>
-                <li>You have the legal capacity to enter into a binding agreement</li>
-                <li>Your use of the Service does not violate any applicable law or regulation</li>
-              </ul>
-              <p className="mt-4">
-                Parents and guardians are responsible for monitoring their minor children's use of the 
-                Service and are fully responsible for any activities conducted by minors under their care.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">4. User Accounts</h2>
-              <p className="mb-4">
-                To access certain features of the Service, you must create an account. You agree to:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Provide accurate, current, and complete registration information</li>
-                <li>Maintain and promptly update your account information</li>
-                <li>Maintain the security and confidentiality of your account credentials</li>
-                <li>Immediately notify us of any unauthorized use of your account</li>
-                <li>Accept full responsibility for all activities that occur under your account</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">5. Credits and Payments</h2>
-              <p className="mb-4">
-                The Service operates on a credit-based payment model. By purchasing credits, you expressly 
-                acknowledge and agree to the following terms:
-              </p>
-              <p className="mb-4 p-4 bg-glass rounded-xl border border-white/[0.1]">
-                <strong className="text-white">IMPORTANT - NO REFUND POLICY:</strong> ALL CREDIT PURCHASES 
-                ARE FINAL AND NON-REFUNDABLE. Credits cannot be refunded, transferred, or exchanged for cash 
-                once purchased. This policy applies regardless of whether credits have been used or remain 
-                unused in your account. By completing a purchase, you waive any right to a refund except 
-                where prohibited by applicable law.
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong className="text-white">Non-Refundable:</strong> All credit purchases are final sales. No refunds will be issued for any reason, including but not limited to: unused credits, dissatisfaction with AI-generated results, account termination, or service changes</li>
-                <li><strong className="text-white">No Expiration:</strong> Purchased credits do not expire and remain in your account indefinitely while your account is active</li>
-                <li><strong className="text-white">Credit Pricing:</strong> Each credit is valued at $0.10 USD. Video generation costs 50–90 credits per clip depending on mode and duration (standard 10s: 50 credits; standard 15s: 75 credits; avatar 10s: 60 credits; avatar 15s: 90 credits)</li>
-                <li><strong className="text-white">Account Responsibility:</strong> You are solely responsible for all charges incurred under your account</li>
-                <li><strong className="text-white">Payment Processing:</strong> All payments are processed securely by Stripe. We do not store your payment card details</li>
-                <li><strong className="text-white">Price Changes:</strong> Pricing and credit packages are subject to change with reasonable notice. Changes will not affect previously purchased credits</li>
-              </ul>
-              <p className="mt-4 text-white/80">
-                BY PURCHASING CREDITS, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO THIS 
-                NO-REFUND POLICY. IF YOU DO NOT AGREE, DO NOT PURCHASE CREDITS.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">6. User Content</h2>
-              <p className="mb-4">
-                You retain ownership of original content you create using our Service, subject to any 
-                underlying third-party rights. By using the Service, you grant us a non-exclusive, 
-                worldwide, royalty-free license to use, store, reproduce, and process your content 
-                as necessary to provide and improve the Service. You are solely responsible for:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>The legality of all content you create or upload</li>
-                <li>Ensuring you have all necessary rights to any input materials</li>
-                <li>Compliance with all applicable laws and regulations</li>
-                <li>Obtaining proper clearances for any recognizable persons, trademarks, or copyrighted material</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">7. Prohibited Uses</h2>
-              <p className="mb-4">You agree not to use the Service to:</p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Create content that is illegal, harmful, threatening, abusive, or violates third-party rights</li>
-                <li>Generate deepfakes or manipulated media intended to deceive without clear disclosure</li>
-                <li>Create non-consensual intimate imagery of real individuals</li>
-                <li>Harass, stalk, defame, or harm any person</li>
-                <li>Impersonate any person or entity without authorization</li>
-                <li>Violate any applicable laws, regulations, or third-party rights</li>
-                <li>Attempt to reverse engineer, decompile, or exploit the Service</li>
-                <li>Create content depicting minors in sexual, violent, or otherwise inappropriate contexts</li>
-                <li>Distribute malware or engage in any activity that could harm the Service or its users</li>
-                <li>Use the Service for any commercial purpose that violates these Terms</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">8. Intellectual Property</h2>
-              <p>
-                The Service, including its original content, features, functionality, AI models, algorithms, 
-                software, and technology, is owned by Small Bridges-studio LLC and is protected by United States and 
-                international copyright, trademark, patent, trade secret, and other intellectual property laws. 
-                Our trademarks and trade dress may not be used without our prior written permission.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">9. GDPR and International Users</h2>
-              <p className="mb-4">
-                If you are located in the European Economic Area (EEA), United Kingdom, or Switzerland, 
-                you have certain rights under the General Data Protection Regulation (GDPR) and applicable 
-                data protection laws. Please refer to our{' '}
-                <Link to="/privacy" className="text-white hover:underline">Privacy Policy</Link>
-                {' '}for detailed information about:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>The legal bases for processing your personal data</li>
-                <li>Your rights to access, rectify, erase, and port your data</li>
-                <li>Your right to object to or restrict processing</li>
-                <li>How to lodge a complaint with a supervisory authority</li>
-                <li>International data transfers and safeguards</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">10. Third-Party AI Technology Disclaimer</h2>
-              <p className="mb-4">
-                <strong className="text-white">IMPORTANT NOTICE REGARDING AI-GENERATED CONTENT:</strong>
-              </p>
-              <p className="mb-4">
-                Our Service relies on third-party artificial intelligence technologies, including Kling AI 
-                and other AI providers, to generate video content. You expressly acknowledge and agree that:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>AI systems may produce inaccurate, misleading, or nonsensical outputs ("hallucinations")</li>
-                <li>Generated content may not accurately represent real people, places, events, or facts</li>
-                <li>Visual artifacts, inconsistencies, or errors may appear in generated videos</li>
-                <li>AI-generated content should not be relied upon for factual accuracy without independent verification</li>
-                <li>We have no control over the internal workings of third-party AI systems</li>
-                <li>Third-party AI services may be subject to their own content policies and restrictions</li>
-                <li>Service availability depends on third-party providers and may be interrupted without notice</li>
-              </ul>
-              <p className="text-white/80">
-                YOU ARE SOLELY RESPONSIBLE FOR REVIEWING, VERIFYING, AND APPROVING ALL AI-GENERATED 
-                CONTENT BEFORE USE. WE DISCLAIM ALL LIABILITY FOR ANY DAMAGES ARISING FROM RELIANCE 
-                ON AI-GENERATED CONTENT WITHOUT PROPER VERIFICATION.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">11. Disclaimer of Warranties</h2>
-              <p className="mb-4 text-white/80">
-                THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF 
-                ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES 
-                OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. 
-                WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, SECURE, ERROR-FREE, OR THAT 
-                DEFECTS WILL BE CORRECTED.
-              </p>
-              <p className="mb-4">
-                WITHOUT LIMITING THE FOREGOING, WE MAKE NO WARRANTIES OR REPRESENTATIONS REGARDING:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>The accuracy, reliability, or quality of AI-generated content</li>
-                <li>The availability or performance of third-party AI services</li>
-                <li>The suitability of generated content for any particular purpose</li>
-                <li>The non-infringement of third-party rights by AI-generated content</li>
-                <li>The consistency or predictability of AI outputs</li>
-              </ul>
-              <p className="text-white/80">
-                AI-GENERATED CONTENT MAY CONTAIN ERRORS, INACCURACIES, HALLUCINATIONS, OR INCONSISTENCIES, 
-                AND YOU USE SUCH CONTENT ENTIRELY AT YOUR OWN RISK.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">12. Limitation of Liability</h2>
-              <p className="mb-4 text-white/80">
-                TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL Small Bridges LLC, 
-                ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, OR THIRD-PARTY AI TECHNOLOGY 
-                PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, 
-                OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>Loss of profits, revenue, goodwill, or data</li>
-                <li>Business interruption or loss of business opportunity</li>
-                <li>Inaccurate, misleading, or defective AI-generated content</li>
-                <li>Reliance on AI outputs without independent verification</li>
-                <li>Third-party claims arising from your use of generated content</li>
-                <li>Reputational harm from published AI-generated content</li>
-                <li>Interruption or unavailability of third-party AI services</li>
-                <li>Any other intangible losses</li>
-              </ul>
-              <p className="mb-4 text-white/80">
-                OUR TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS ARISING FROM OR RELATED TO THESE TERMS 
-                OR THE SERVICE SHALL NOT EXCEED THE GREATER OF ONE HUNDRED DOLLARS ($100) OR THE 
-                AMOUNTS ACTUALLY PAID BY YOU TO US IN THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING 
-                THE CLAIM.
-              </p>
-              <p>
-                SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES, SO 
-                SOME OF THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU. IN SUCH CASES, OUR LIABILITY 
-                SHALL BE LIMITED TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">13. Indemnification</h2>
-              <p>
-                You agree to indemnify, defend, and hold harmless Small Bridges-studio LLC and its officers, 
-                directors, employees, agents, and affiliates from and against any and all claims, 
-                damages, losses, costs, and expenses (including reasonable attorneys' fees) arising 
-                from or related to: (a) your use of the Service; (b) your violation of these Terms; 
-                (c) your violation of any rights of any third party; or (d) any content you create, 
-                upload, or distribute through the Service.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">14. Dispute Resolution and Arbitration</h2>
-              <p className="mb-4">
-                <strong className="text-white">PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS, 
-                INCLUDING YOUR RIGHT TO FILE A LAWSUIT IN COURT.</strong>
-              </p>
-              <p className="mb-4">
-                You and Small Bridges-studio LLC agree that any dispute, claim, or controversy arising out of or 
-                relating to these Terms or the Service shall be resolved through binding individual 
-                arbitration, rather than in court, except that either party may seek equitable relief 
-                in court for infringement or misuse of intellectual property rights.
-              </p>
-              <p className="mb-4">
-                <strong className="text-white">Class Action Waiver:</strong> YOU AND Small Bridges LLC AGREE THAT 
-                EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY 
-                AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS, COLLECTIVE, CONSOLIDATED, 
-                OR REPRESENTATIVE ACTION. YOU EXPRESSLY WAIVE ANY RIGHT TO PARTICIPATE IN A CLASS ACTION 
-                LAWSUIT OR CLASS-WIDE ARBITRATION.
-              </p>
-              <p className="mb-4">
-                Arbitration shall be administered by the American Arbitration Association (AAA) under 
-                its Consumer Arbitration Rules. The arbitration will be conducted in the State of Missouri, 
-                unless you and we agree otherwise. Each party will be responsible for its own arbitration 
-                fees, unless the arbitrator determines that you are entitled to have us pay your fees.
-              </p>
-              <p>
-                <strong className="text-white">Opt-Out Right:</strong> You may opt out of this arbitration 
-                provision by sending written notice to cole@smallbridges.co within 30 days of first 
-                accepting these Terms. Your notice must include your name, address, email, and a clear 
-                statement that you wish to opt out of arbitration.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">15. Termination</h2>
-              <p>
-                We reserve the right to suspend or terminate your account and access to the Service at 
-                any time, with or without cause or notice, including for violations of these Terms. 
-                Upon termination: (a) your right to use the Service will immediately cease; (b) you 
-                must cease all use of the Service; and (c) any provisions of these Terms that by their 
-                nature should survive termination will survive.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">16. Changes to Terms</h2>
-              <p>
-                We may update these Terms at any time. We will notify you of material changes by 
-                posting the new Terms on the Service and updating the "Last updated" date. Your 
-                continued use of the Service after any changes indicates your acceptance of the 
-                new Terms.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">17. Governing Law</h2>
-              <p>
-                These Terms shall be governed by and construed in accordance with the laws of the 
-                State of Missouri, without regard to its conflict of law provisions.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">18. DMCA Copyright Policy</h2>
-              <p className="mb-4">
-                We respect the intellectual property rights of others and comply with the Digital
-                Millennium Copyright Act, 17 U.S.C. § 512 ("DMCA"). If you believe that content
-                accessible through the Service infringes a copyright you own or control, you may
-                submit a written notice to our designated agent containing all elements required by
-                17 U.S.C. § 512(c)(3), including:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Identification of the copyrighted work claimed to have been infringed;</li>
-                <li>Identification of the allegedly infringing material and its location on the Service;</li>
-                <li>Your contact information (name, address, telephone, email);</li>
-                <li>A statement of good-faith belief that the use is not authorized;</li>
-                <li>A statement, under penalty of perjury, that the information is accurate and that you are authorized to act on behalf of the rights holder;</li>
-                <li>Your physical or electronic signature.</li>
-              </ul>
-              <p className="mt-4">
-                Send notices to our DMCA Designated Agent at{' '}
-                <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">cole@smallbridges.co</a>.
-                We may, in appropriate circumstances and at our discretion, terminate the accounts of
-                users who are repeat infringers. Knowingly submitting a materially false notice may
-                result in liability under 17 U.S.C. § 512(f).
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">19. Electronic Communications and Notices</h2>
-              <p>
-                You consent to receive communications from us electronically, including by email and
-                in-Service notices. Electronic communications satisfy any legal requirement that such
-                communications be in writing. Notices to us must be sent to{' '}
-                <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">cole@smallbridges.co</a>{' '}
-                and are effective upon our confirmed receipt.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">20. Force Majeure</h2>
-              <p>
-                We shall not be liable for any failure or delay in performance caused by events
-                beyond our reasonable control, including but not limited to acts of God, natural
-                disasters, war, terrorism, civil unrest, government action, labor disputes, internet
-                or telecommunications failures, third-party service outages (including AI providers),
-                power failures, pandemics, or cyber-attacks.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">21. Assignment</h2>
-              <p>
-                You may not assign or transfer these Terms or any rights or obligations hereunder,
-                by operation of law or otherwise, without our prior written consent. Any attempted
-                assignment in violation of this section is void. We may freely assign or transfer
-                these Terms, in whole or in part, in connection with a merger, acquisition,
-                reorganization, sale of assets, or by operation of law.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">22. Severability and Waiver</h2>
-              <p className="mb-4">
-                If any provision of these Terms is held by a court of competent jurisdiction to be
-                invalid, illegal, or unenforceable, that provision shall be modified to the minimum
-                extent necessary to make it enforceable, and the remaining provisions shall remain
-                in full force and effect.
-              </p>
-              <p>
-                Our failure to enforce any right or provision of these Terms shall not constitute a
-                waiver of such right or provision. No waiver shall be effective unless in writing
-                and signed by an authorized representative of Small Bridges-studio LLC.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">23. Export Controls and Sanctions</h2>
-              <p>
-                You represent that you are not located in, under the control of, or a national or
-                resident of any country subject to United States embargo, and that you are not on any
-                U.S. government list of prohibited or restricted parties. You agree to comply with all
-                applicable U.S. and international export control and sanctions laws.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">24. Entire Agreement</h2>
-              <p>
-                These Terms, together with our{' '}
-                <Link to="/privacy" className="text-white hover:underline">Privacy Policy</Link>{' '}
-                and any additional terms you agree to when using specific features, constitute the
-                entire agreement between you and Small Bridges-studio LLC concerning the Service and supersede
-                all prior or contemporaneous agreements, communications, and proposals, whether oral
-                or written, between the parties.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">25. Contact Information</h2>
-              <p className="mb-4">
-                For any questions about these Terms, please contact us:
-              </p>
-              <div className="space-y-2">
-                <p><strong className="text-white">Small Bridges-studio LLC</strong></p>
-                <p>State of Formation: Missouri, United States</p>
-                <p>Email:{' '}
-                  <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">
-                    cole@smallbridges.co
+            <div className="text-[11px] font-mono uppercase tracking-[0.28em] text-white/40 mb-4">
+              On this page
+            </div>
+            <ol className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              {sections.map((s, i) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    className="group flex gap-3 text-white/60 hover:text-white transition-colors"
+                  >
+                    <span className="tabular-nums text-white/30 group-hover:text-white/50">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {s.title}
                   </a>
-                </p>
-              </div>
-            </section>
-          </motion.div>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
+          {/* Sections */}
+          <div className="divide-y divide-white/[0.06]">
+            {sections.map((s, i) => (
+              <section key={s.id} id={s.id} className="scroll-mt-28 py-10 first:pt-0">
+                <h2 className="flex items-baseline gap-3 text-xl sm:text-2xl font-semibold text-white mb-5 tracking-tight">
+                  <span className="tabular-nums text-sm font-mono text-white/30 pt-1">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {s.title}
+                </h2>
+                <div className="space-y-4 text-[15px] leading-7 text-white/70 [&_strong]:font-semibold">
+                  {s.body}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <p className="mt-12 text-xs text-white/35">
+            © {new Date().getFullYear()} Small Bridges-studio LLC. All rights reserved.
+          </p>
         </div>
       </div>
     </div>

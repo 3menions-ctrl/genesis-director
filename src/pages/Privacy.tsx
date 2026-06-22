@@ -1,17 +1,333 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Logo } from "@/components/ui/Logo";
-import { usePageMeta } from '@/hooks/usePageMeta';
+import { PageHero } from "@/components/page/PageHero";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
-const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
+const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
+
+const EMAIL = "cole@smallbridges.co";
+
+const sections: { id: string; title: string; body: ReactNode }[] = [
+  {
+    id: "overview",
+    title: "Overview",
+    body: (
+      <>
+        <p>
+          <strong className="text-white">Small Bridges-studio LLC</strong>, a Missouri limited
+          liability company ("Small Bridges," "we," "our," or "us"), operates the Small Bridges AI
+          cinematic video-creation platform (the "Service"). This Privacy Policy explains what
+          personal information we collect, how and why we use it, who we share it with, and the
+          choices and rights you have. It applies to the Service and to people who visit our site,
+          create an account, or generate media with us.
+        </p>
+        <p>
+          By using the Service you agree to this Policy. If you do not agree, please do not use the
+          Service.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "data-we-collect",
+    title: "Data We Collect",
+    body: (
+      <>
+        <p>We collect the following categories of information:</p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>
+            <strong className="text-white">Account information.</strong> Your name, email address, and
+            authentication details when you register or sign in.
+          </li>
+          <li>
+            <strong className="text-white">Prompts & generated content.</strong> The text prompts,
+            reference images or files you provide ("Inputs") and the videos, images, scripts, and
+            other media you generate ("Outputs"), together with related project metadata.
+          </li>
+          <li>
+            <strong className="text-white">Usage & analytics data.</strong> How you interact with the
+            Service — features used, generations requested, pages viewed — plus device, browser, IP
+            address, approximate location, and log and diagnostic data.
+          </li>
+          <li>
+            <strong className="text-white">Payment data.</strong> When you buy credits or subscribe,
+            payment is processed by Polar. We receive limited transaction details (such as plan,
+            amount, status, and the last digits of your card) but do not store your full card number.
+          </li>
+          <li>
+            <strong className="text-white">Communications.</strong> Messages you send us for support,
+            feedback, or other inquiries.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "how-we-use",
+    title: "How We Use Your Data",
+    body: (
+      <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+        <li>Provide, operate, secure, and maintain the Service and generate your media;</li>
+        <li>Process payments, manage credits and subscriptions, and prevent fraud and abuse;</li>
+        <li>Provide customer support and respond to your requests;</li>
+        <li>Understand usage and improve the Service's quality, reliability, and features;</li>
+        <li>Send service and transactional messages, and — with your consent where required — updates and marketing;</li>
+        <li>Enforce our Terms, comply with legal obligations, and protect our rights and users.</li>
+      </ul>
+    ),
+  },
+  {
+    id: "legal-bases",
+    title: "Legal Bases (GDPR)",
+    body: (
+      <>
+        <p>
+          If you are in the European Economic Area, the United Kingdom, or Switzerland, we process
+          your personal data on these legal bases:
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>
+            <strong className="text-white">Performance of a contract</strong> — to provide the Service
+            you request and manage your account and billing;
+          </li>
+          <li>
+            <strong className="text-white">Legitimate interests</strong> — to secure, analyze, and
+            improve the Service and prevent abuse, balanced against your rights;
+          </li>
+          <li>
+            <strong className="text-white">Consent</strong> — for optional marketing and any
+            non-essential cookies, which you may withdraw at any time;
+          </li>
+          <li>
+            <strong className="text-white">Legal obligation</strong> — to comply with tax, accounting,
+            and other laws.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "processors",
+    title: "Service Providers & Sub-Processors",
+    body: (
+      <>
+        <p>
+          We share data with a small set of vetted providers who process it on our behalf, under
+          contractual confidentiality and data-protection obligations, only to deliver the Service:
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>
+            <strong className="text-white">Supabase</strong> — database, storage, and authentication;
+          </li>
+          <li>
+            <strong className="text-white">Replicate</strong> — third-party model hosting that
+            generates your video and image Outputs from your Inputs;
+          </li>
+          <li>
+            <strong className="text-white">Polar</strong> — payment processing for credits and
+            subscriptions;
+          </li>
+          <li>
+            <strong className="text-white">Resend</strong> — transactional and account email delivery;
+          </li>
+          <li>
+            <strong className="text-white">Vercel</strong> — application hosting and content delivery.
+          </li>
+        </ul>
+        <p>
+          These providers act as our processors and have their own privacy and security practices. We
+          do not sell your personal information. We may also disclose data when required by law, to
+          enforce our Terms, to protect rights and safety, or in connection with a merger,
+          acquisition, or sale of assets (with notice where required).
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ai-training",
+    title: "AI Training",
+    body: (
+      <p className="text-white/80">
+        We do <strong className="text-white">not</strong> use your prompts, Inputs, or generated
+        Outputs to train, fine-tune, or develop foundation AI models, and we do not sell or share
+        them for others to do so. Your content is processed only to deliver the Service to you. We
+        may use aggregated, de-identified usage statistics that do not identify you or reveal your
+        content to understand and improve how the Service performs.
+      </p>
+    ),
+  },
+  {
+    id: "cookies",
+    title: "Cookies & Tracking",
+    body: (
+      <>
+        <p>
+          We use cookies and similar technologies that are strictly necessary to run the Service
+          (such as keeping you signed in), and limited analytics to understand usage and improve
+          performance. We do not use cookies to sell your data or for cross-context behavioral
+          advertising.
+        </p>
+        <p>
+          You can control non-essential cookies through your browser settings; disabling some cookies
+          may affect functionality. We honor recognized Global Privacy Control (GPC) signals as a
+          valid opt-out where such a right applies.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "retention",
+    title: "Data Retention",
+    body: (
+      <>
+        <p>
+          We keep personal data only as long as needed for the purposes described here:
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li>Account information — for the life of your account, until you ask us to delete it;</li>
+          <li>Prompts and generated content — while your account is active; you can delete projects from the app;</li>
+          <li>Payment and transaction records — as required by tax and accounting laws;</li>
+          <li>Logs and analytics — for a limited period for security and diagnostics, then deleted or anonymized.</li>
+        </ul>
+        <p>When you delete your account, we delete or anonymize your personal data except where we must retain it by law.</p>
+      </>
+    ),
+  },
+  {
+    id: "security",
+    title: "Security",
+    body: (
+      <p>
+        We use industry-standard technical and organizational measures to protect your data,
+        including encryption in transit (TLS), encryption at rest, access controls, and least-privilege
+        practices through our infrastructure providers. No method of transmission or storage is
+        completely secure, so we cannot guarantee absolute security, but we work to protect your
+        information and to respond promptly to any incident.
+      </p>
+    ),
+  },
+  {
+    id: "gdpr-rights",
+    title: "Your Rights (GDPR/UK)",
+    body: (
+      <>
+        <p>
+          If you are in the EEA, UK, or Switzerland, you have the right to:
+        </p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li><strong className="text-white">Access</strong> the personal data we hold about you;</li>
+          <li><strong className="text-white">Rectify</strong> inaccurate or incomplete data;</li>
+          <li><strong className="text-white">Erase</strong> your data ("right to be forgotten");</li>
+          <li><strong className="text-white">Port</strong> your data in a structured, machine-readable format;</li>
+          <li><strong className="text-white">Object to or restrict</strong> certain processing, and withdraw consent;</li>
+          <li><strong className="text-white">Complain</strong> to your local data-protection supervisory authority.</li>
+        </ul>
+        <p>
+          We do not make decisions producing legal or similarly significant effects about you based
+          solely on automated processing. To exercise any right, contact us using the details below.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "california-rights",
+    title: "California Rights (CCPA/CPRA)",
+    body: (
+      <>
+        <p>If you are a California resident, you have the right to:</p>
+        <ul className="list-disc space-y-2 pl-5 marker:text-white/30">
+          <li><strong className="text-white">Know</strong> what personal information we collect, use, and disclose;</li>
+          <li><strong className="text-white">Delete</strong> personal information we have collected, subject to exceptions;</li>
+          <li><strong className="text-white">Correct</strong> inaccurate personal information;</li>
+          <li><strong className="text-white">Opt out</strong> of the "sale" or "sharing" of personal information; and</li>
+          <li><strong className="text-white">Non-discrimination</strong> for exercising your rights.</li>
+        </ul>
+        <p className="text-white/80">
+          Small Bridges does <strong className="text-white">not</strong> sell your personal
+          information, and we do not "share" it for cross-context behavioral advertising as those
+          terms are defined under the CCPA/CPRA. You may exercise your rights using the contact
+          details below; we will not discriminate against you for doing so.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "children",
+    title: "Children's Privacy",
+    body: (
+      <p>
+        The Service is not directed to children. We do not knowingly collect personal information
+        from anyone under 13, and where a higher age applies (for example, under 16 in parts of the
+        EEA/UK) we apply that standard. Account holders must meet the age requirements in our Terms.
+        If you believe a child has provided us personal information, contact us and we will delete it
+        promptly.
+      </p>
+    ),
+  },
+  {
+    id: "international",
+    title: "International Transfers",
+    body: (
+      <p>
+        We are based in the United States, and our providers may process data in the U.S. and other
+        countries. When we transfer personal data from the EEA, UK, or Switzerland, we rely on
+        appropriate safeguards such as the European Commission's Standard Contractual Clauses and
+        equivalent mechanisms, and we require our providers to maintain adequate protection. By using
+        the Service, you understand your data may be processed in these countries.
+      </p>
+    ),
+  },
+  {
+    id: "your-choices",
+    title: "Exercising Your Rights & Contact",
+    body: (
+      <>
+        <p>
+          To exercise any privacy right, or with questions about this Policy, email us at{" "}
+          <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+            {EMAIL}
+          </a>
+          . We will verify your request and respond within the timeframe required by applicable law.
+          You may also manage and delete much of your data directly from your account settings.
+        </p>
+        <div className="space-y-1">
+          <p className="text-white">Small Bridges-studio LLC</p>
+          <p>State of Missouri, U.S.</p>
+          <p>
+            <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
+              {EMAIL}
+            </a>
+          </p>
+        </div>
+      </>
+    ),
+  },
+  {
+    id: "updates",
+    title: "Updates to This Policy",
+    body: (
+      <p>
+        We may update this Privacy Policy from time to time. When we make material changes, we will
+        update the "Last updated" date and, where appropriate, provide additional notice. Changes take
+        effect when posted, and your continued use of the Service afterward constitutes acceptance of
+        the updated Policy.
+      </p>
+    ),
+  },
+];
 
 const Privacy = () => {
-  usePageMeta({ title: 'Privacy Policy — Small Bridges', description: 'Learn how Small Bridges collects, uses, and protects your personal information.' });
+  usePageMeta({
+    title: "Privacy Policy — Small Bridges | AI Cinematic Video Creation",
+    description:
+      "How Small Bridges collects, uses, and protects your data: account info, prompts and generated content, processors (Supabase, Polar, Replicate, Resend, Vercel), GDPR and CCPA rights, and our no-AI-training, no-sale commitments.",
+  });
+
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
-      {/* Abstract Background */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
@@ -26,369 +342,76 @@ const Privacy = () => {
       </nav>
 
       {/* Content */}
-      <div className="relative z-10 pt-24 pb-16">
-        <div className="max-w-4xl mx-auto px-6">
+      <div className="relative z-10 pt-24 pb-24">
+        <div className="max-w-3xl mx-auto px-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8 text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-8"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Link>
-            
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Privacy Policy</h1>
-            <p className="text-white/75 mb-12">Last updated: May 15, 2026</p>
+            <PageHero
+              accentKey="privacy"
+              eyebrow="Legal"
+              title="Privacy Policy"
+              subtitle="What we collect, why we collect it, and the control you keep over your data — including our promise never to train foundation models on your work."
+              meta="Last updated June 22, 2026"
+              className="mb-12"
+            />
           </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-8 text-white/60"
+
+          {/* Table of contents */}
+          <nav
+            aria-label="Table of contents"
+            className="mb-14 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
           >
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">1. Introduction</h2>
-              <p>
-                Small Bridges LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
-                is committed to protecting your privacy. This Privacy Policy explains how we collect, use, 
-                disclose, and safeguard your information when you use our AI-powered video generation 
-                software-as-a-service platform, Small Bridges (the "Service").
-              </p>
-              <p className="mt-4">
-                By accessing or using the Service, you agree to this Privacy Policy. If you do not agree 
-                with our policies and practices, please do not use the Service.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">2. Information We Collect</h2>
-              
-              <h3 className="text-lg font-medium text-white mt-4 mb-2">Personal Information</h3>
-              <p className="mb-2">We collect information that identifies you directly, including:</p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>Name and email address</li>
-                <li>Account credentials (username, password hash)</li>
-                <li>Payment and billing information (processed securely via third-party payment processors)</li>
-                <li>Profile information you choose to provide</li>
-                <li>Communications with us (support requests, feedback)</li>
-              </ul>
-
-              <h3 className="text-lg font-medium text-white mt-4 mb-2">Content and Usage Information</h3>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>Scripts, prompts, and text content you create</li>
-                <li>Generated videos, images, and audio files</li>
-                <li>Reference materials and images you upload</li>
-                <li>Usage patterns, preferences, and feature interactions</li>
-                <li>Project metadata and settings</li>
-              </ul>
-
-              <h3 className="text-lg font-medium text-white mt-4 mb-2">Technical Information</h3>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>IP address and approximate geolocation</li>
-                <li>Device identifiers and characteristics</li>
-                <li>Browser type, version, and settings</li>
-                <li>Operating system information</li>
-                <li>Access times, pages viewed, and referring URLs</li>
-                <li>Error logs and performance data</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">3. Legal Bases for Processing (GDPR)</h2>
-              <p className="mb-4">
-                If you are located in the European Economic Area (EEA), United Kingdom, or Switzerland, 
-                we process your personal data based on the following legal grounds:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong className="text-white">Contract Performance:</strong> Processing necessary to provide you the Service and fulfill our contractual obligations</li>
-                <li><strong className="text-white">Legitimate Interests:</strong> Processing for our legitimate business interests, such as improving the Service, fraud prevention, and security</li>
-                <li><strong className="text-white">Consent:</strong> Where you have given explicit consent for specific processing activities, such as marketing communications</li>
-                <li><strong className="text-white">Legal Obligation:</strong> Processing necessary to comply with applicable laws and regulations</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">4. How We Use Your Information</h2>
-              <p className="mb-4">We use collected information to:</p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Provide, maintain, and improve the Service</li>
-                <li>Process your transactions and manage your account</li>
-                <li>Generate, store, and deliver your video content</li>
-                <li>Communicate with you about the Service, updates, and support</li>
-                <li>Send marketing communications (with your consent where required)</li>
-                <li>Analyze usage patterns to improve user experience</li>
-                <li>Detect, prevent, and address fraud, abuse, and security issues</li>
-                <li>Comply with legal obligations and enforce our Terms of Service</li>
-                <li>Respond to legal requests and prevent harm</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">5. Third-Party AI Services and Data Sharing</h2>
-              <p className="mb-4">
-                Our Service utilizes third-party artificial intelligence providers to generate video content. 
-                When you use our Service, your prompts, scripts, and reference materials may be processed 
-                by these third-party AI systems:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li><strong className="text-white">Kling AI:</strong> Video generation AI service for creating cinematic video content</li>
-                <li><strong className="text-white">OpenAI:</strong> Script and text generation services, subject to OpenAI's usage policies</li>
-                <li><strong className="text-white">Other AI Providers:</strong> We may utilize additional AI services as our technology evolves</li>
-              </ul>
-              <p className="mb-4">
-                <strong className="text-white">Important Disclosures:</strong>
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li>Third-party AI providers may process your input data on their servers</li>
-                <li>We cannot control how third-party providers handle data once transmitted</li>
-                <li>Third-party providers have their own data retention and usage policies</li>
-                <li>Some providers may use anonymized data for model improvement unless opted out</li>
-                <li>AI systems may produce outputs that differ from your inputs or expectations</li>
-              </ul>
-              <p>
-                By using our Service, you consent to the transmission of your content to these third-party 
-                AI providers as necessary to deliver our video generation services.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">6. AI Model Training</h2>
-              <p className="mb-4">
-                We may use anonymized and aggregated data to improve our AI models and Service quality. 
-                Regarding your personal content:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Your personal content is not used for training our AI models without your explicit consent</li>
-                <li>You may opt out of contributing to model improvements in your account settings</li>
-                <li>Third-party AI providers we use have their own data handling policies, which we review for compliance</li>
-                <li>We implement appropriate safeguards to protect your data during any AI processing</li>
-              </ul>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">7. Data Sharing and Disclosure</h2>
-              <p className="mb-4">We may share your information with:</p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong className="text-white">Service Providers:</strong> Third parties that help us operate the Service, including cloud hosting, payment processing, analytics, and customer support providers</li>
-                <li><strong className="text-white">AI Technology Partners:</strong> Providers of video generation and AI capabilities, subject to appropriate data protection agreements</li>
-                <li><strong className="text-white">Legal Requirements:</strong> When required by law, legal process, or government request, or to protect our rights, property, or safety</li>
-                <li><strong className="text-white">Business Transfers:</strong> In connection with mergers, acquisitions, reorganizations, or asset sales, with appropriate notice</li>
-                <li><strong className="text-white">With Your Consent:</strong> In any other circumstances where you have provided explicit consent</li>
-              </ul>
-              <p className="mt-4 font-medium text-white">
-                We do not sell your personal information to third parties.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">8. International Data Transfers</h2>
-              <p className="mb-4">
-                Your information may be transferred to and processed in countries other than your own, 
-                including the United States where Small Bridges LLC is based. When we transfer data 
-                internationally, we implement appropriate safeguards, including:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Standard Contractual Clauses approved by the European Commission</li>
-                <li>Data Processing Agreements with our service providers</li>
-                <li>Verification that recipients maintain adequate data protection standards</li>
-              </ul>
-              <p className="mt-4">
-                By using the Service, you acknowledge and consent to the transfer of your information 
-                to the United States and other countries as described in this policy.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">9. Data Security</h2>
-              <p>
-                We implement industry-standard technical and organizational security measures to protect 
-                your data, including:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mt-4">
-                <li>Encryption of data in transit (TLS/SSL) and at rest</li>
-                <li>Secure authentication and access controls</li>
-                <li>Regular security assessments and audits</li>
-                <li>Employee training on data protection</li>
-                <li>Incident response procedures</li>
-              </ul>
-              <p className="mt-4">
-                While we strive to protect your personal information, no method of transmission over 
-                the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">10. Data Retention</h2>
-              <p>
-                We retain your personal information for as long as your account is active or as needed 
-                to provide you services. Specifically:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4 mt-4">
-                <li>Account information is retained until you request deletion</li>
-                <li>Generated content is stored according to your account plan and may be deleted after a period of inactivity</li>
-                <li>Transaction records are retained as required by applicable tax and financial laws</li>
-                <li>Usage logs are typically retained for 12-24 months for analytics and security purposes</li>
-              </ul>
-              <p className="mt-4">
-                You may request deletion of your data at any time by contacting us or using account settings.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">11. Your Rights Under GDPR and Other Laws</h2>
-              <p className="mb-4">
-                Depending on your location, you may have the following rights regarding your personal data:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong className="text-white">Right to Access:</strong> Request a copy of the personal information we hold about you</li>
-                <li><strong className="text-white">Right to Rectification:</strong> Request correction of inaccurate or incomplete data</li>
-                <li><strong className="text-white">Right to Erasure:</strong> Request deletion of your personal information ("right to be forgotten")</li>
-                <li><strong className="text-white">Right to Restrict Processing:</strong> Request limitation of how we use your data</li>
-                <li><strong className="text-white">Right to Data Portability:</strong> Receive your data in a structured, machine-readable format</li>
-                <li><strong className="text-white">Right to Object:</strong> Object to processing based on legitimate interests or for direct marketing</li>
-                <li><strong className="text-white">Right to Withdraw Consent:</strong> Withdraw consent where processing is based on consent</li>
-                <li><strong className="text-white">Right to Lodge a Complaint:</strong> File a complaint with a supervisory authority in your jurisdiction</li>
-              </ul>
-              <p className="mt-4">
-                To exercise these rights, please contact us at{' '}
-                <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">
-                  cole@smallbridges.co
-                </a>. We will respond to your request within 30 days (or as required by applicable law).
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">12. California Privacy Rights (CCPA)</h2>
-              <p className="mb-4">
-                If you are a California resident, you have additional rights under the California Consumer 
-                Privacy Act (CCPA):
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Right to know what personal information we collect, use, and disclose</li>
-                <li>Right to delete personal information we have collected</li>
-                <li>Right to opt-out of the sale of personal information (we do not sell personal information)</li>
-                <li>Right to non-discrimination for exercising your privacy rights</li>
-              </ul>
-              <p className="mt-4">
-                To exercise your California privacy rights, contact us at{' '}
-                <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">
-                  cole@smallbridges.co
-                </a>.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">13. Children's Privacy</h2>
-              <p>
-                Our Service is available to users 13 years of age and older. Users between 13 and 18 
-                must have parental or guardian consent to use the Service. We do not knowingly collect 
-                personal information from children under 13. If we become aware that we have collected 
-                data from a child under 13, we will take steps to delete such information promptly.
-              </p>
-              <p className="mt-4">
-                If you are a parent or guardian and believe your child under 13 has provided us with 
-                personal information, please contact us at{' '}
-                <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">
-                  cole@smallbridges.co
-                </a>.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">14. Cookies and Tracking Technologies</h2>
-              <p className="mb-4">
-                We use cookies and similar technologies to enhance your experience, analyze usage, and 
-                personalize content. Types of cookies we use include:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong className="text-white">Essential Cookies:</strong> Required for the Service to function properly</li>
-                <li><strong className="text-white">Analytics Cookies:</strong> Help us understand how users interact with the Service</li>
-                <li><strong className="text-white">Preference Cookies:</strong> Remember your settings and preferences</li>
-                <li><strong className="text-white">Marketing Cookies:</strong> Used to deliver relevant advertising (with consent where required)</li>
-              </ul>
-              <p className="mt-4">
-                You can manage cookie preferences through your browser settings. Note that disabling 
-                certain cookies may affect Service functionality.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">15. Third-Party Links</h2>
-              <p>
-                The Service may contain links to third-party websites or services that are not owned or 
-                controlled by us. We are not responsible for the privacy practices of these third parties. 
-                We encourage you to review the privacy policies of any third-party sites you visit.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">16. Do Not Track and Global Privacy Control</h2>
-              <p>
-                Some browsers transmit "Do Not Track" (DNT) or Global Privacy Control (GPC) signals.
-                Because there is no industry-wide standard for interpreting DNT signals, we do not
-                currently respond to DNT browser signals. We do honor recognized GPC signals as a
-                valid opt-out of the "sale" or "sharing" of personal information for residents of
-                jurisdictions where such a right applies (including California under the CCPA/CPRA).
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">17. Automated Decision-Making</h2>
-              <p>
-                We do not engage in solely automated decision-making, including profiling, that
-                produces legal or similarly significant effects on you within the meaning of
-                Article 22 of the GDPR. AI-generated outputs produced through the Service are
-                tools provided to you and do not constitute decisions made about you.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">18. Data Breach Notification</h2>
-              <p>
-                In the event of a personal data breach that is likely to result in a risk to your
-                rights and freedoms, we will notify the relevant supervisory authority without undue
-                delay and, where feasible, no later than 72 hours after becoming aware of it, as
-                required by applicable law (including Article 33 of the GDPR). Where the breach is
-                likely to result in a high risk to your rights, we will also notify affected users
-                without undue delay.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">19. Changes to This Policy</h2>
-              <p>
-                We may update this Privacy Policy periodically. We will notify you of material changes 
-                by posting the new policy on this page, updating the "Last updated" date, and where 
-                required by law, providing additional notice (such as email notification). Your continued 
-                use of the Service after any changes constitutes your acceptance of the updated policy.
-              </p>
-            </section>
-
-            <section className="p-6 rounded-2xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-4">20. Contact Information</h2>
-              <p className="mb-4">
-                For questions, concerns, or requests regarding this Privacy Policy or our data practices, 
-                please contact us:
-              </p>
-              <div className="space-y-2">
-                <p><strong className="text-white">Small Bridges LLC</strong></p>
-                <p>State of Formation: Missouri, United States</p>
-                <p>Email:{' '}
-                  <a href="mailto:cole@smallbridges.co" className="text-white hover:underline">
-                    cole@smallbridges.co
+            <div className="text-[11px] font-mono uppercase tracking-[0.28em] text-white/40 mb-4">
+              On this page
+            </div>
+            <ol className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              {sections.map((s, i) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    className="group flex gap-3 text-white/60 hover:text-white transition-colors"
+                  >
+                    <span className="tabular-nums text-white/30 group-hover:text-white/50">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {s.title}
                   </a>
-                </p>
-                <p className="text-white/70 text-sm mt-2">
-                  EU/UK data subjects may also lodge a complaint with their local supervisory authority.
-                </p>
-              </div>
-            </section>
-          </motion.div>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
+          {/* Sections */}
+          <div className="divide-y divide-white/[0.06]">
+            {sections.map((s, i) => (
+              <section key={s.id} id={s.id} className="scroll-mt-28 py-10 first:pt-0">
+                <h2 className="flex items-baseline gap-3 text-xl sm:text-2xl font-semibold text-white mb-5 tracking-tight">
+                  <span className="tabular-nums text-sm font-mono text-white/30 pt-1">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {s.title}
+                </h2>
+                <div className="space-y-4 text-[15px] leading-7 text-white/70 [&_strong]:font-semibold">
+                  {s.body}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <p className="mt-12 text-xs text-white/35">
+            © {new Date().getFullYear()} Small Bridges-studio LLC. All rights reserved.
+          </p>
         </div>
       </div>
     </div>

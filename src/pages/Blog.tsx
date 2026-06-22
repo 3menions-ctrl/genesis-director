@@ -96,7 +96,7 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
           </Link>
 
           <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <BlogCover variant="detail" title={article.title} hue={article.hue} className="rounded-3xl mb-8">
+            <BlogCover variant="detail" title={article.title} seed={article.slug} className="rounded-3xl mb-8">
               <div className="absolute bottom-0 left-0 p-7 md:p-9">
                 <Badge className="bg-white/10 text-white/80 border-0 backdrop-blur-sm">{article.category}</Badge>
               </div>
@@ -143,7 +143,7 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
                 {related.map((a) => (
                   <Link key={a.slug} to={`/blog/${a.slug}`} className="group">
                     <div className="rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-all">
-                      <BlogCover variant="related" title={a.title} hue={a.hue} />
+                      <BlogCover variant="related" title={a.title} seed={a.slug} />
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-white line-clamp-2 group-hover:text-white/90">{a.title}</h3>
                       </div>
@@ -216,7 +216,7 @@ function BlogIndex() {
               className="mb-12">
               <Link to={`/blog/${featured.slug}`} className="group block">
                 <div className="relative rounded-3xl overflow-hidden border border-white/[0.05] hover:border-white/[0.12] transition-all duration-300">
-                  <BlogCover variant="featured" title={featured.title} hue={featured.hue}>
+                  <BlogCover variant="featured" title={featured.title} seed={featured.slug}>
                     <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10">
                       <Badge className="mb-4 bg-white/10 text-white/80 border-0 backdrop-blur-sm">
                         <span className="text-amber-300/90 mr-1.5">★</span> Featured · {featured.category}
@@ -241,7 +241,7 @@ function BlogIndex() {
                 transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.4) }}>
                 <Link to={`/blog/${article.slug}`} className="group block h-full">
                   <div className="h-full rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.05] transition-all duration-300">
-                    <BlogCover variant="card" title={article.title} hue={article.hue} />
+                    <BlogCover variant="card" title={article.title} seed={article.slug} />
                     <div className="p-5">
                       <Badge variant="secondary" className="mb-3 bg-white/10 text-white/60 border-0 text-xs">{article.category}</Badge>
                       <h3 className="text-[16px] font-semibold text-white mb-2 leading-snug group-hover:text-white/90 transition-colors line-clamp-2">{article.title}</h3>

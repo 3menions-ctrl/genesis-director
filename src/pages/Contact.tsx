@@ -1,4 +1,4 @@
-import { ArrowLeft, Mail, Clock, Building, Send } from "lucide-react";
+import { ArrowLeft, Mail, Clock, MapPin, Send, Sparkles, LifeBuoy, Handshake, Newspaper } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,62 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { PageHero } from "@/components/page/PageHero";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
+const REACH_CARDS = [
+  {
+    icon: Mail,
+    title: "General",
+    body: "Questions about the product, your account, or anything else.",
+    email: "cole@smallbridges.co",
+  },
+  {
+    icon: LifeBuoy,
+    title: "Support",
+    body: "Trouble with a render, billing, or your credits? We'll dig in.",
+    email: "cole@smallbridges.co",
+  },
+  {
+    icon: Newspaper,
+    title: "Press",
+    body: "Interviews, story leads, and brand assets for media coverage.",
+    email: "cole@smallbridges.co",
+  },
+];
+
+const TOPICS = [
+  {
+    icon: Sparkles,
+    title: "Sales & plans",
+    body: "Compare plans, talk volume pricing, or scope a rollout for your team.",
+  },
+  {
+    icon: LifeBuoy,
+    title: "Product support",
+    body: "Hit a snag mid-project? Share the details and we'll help you ship.",
+  },
+  {
+    icon: Handshake,
+    title: "Partnerships",
+    body: "Integrations, agencies, and co-marketing — let's build something together.",
+  },
+  {
+    icon: Newspaper,
+    title: "Press & media",
+    body: "Reporting on AI video? Reach out for quotes, demos, and our press kit.",
+  },
+];
+
 const Contact = () => {
-  usePageMeta({ title: "Contact — Small Bridges", description: "Get in touch with the Small Bridges team. We respond within one business day." });
+  usePageMeta({
+    title: "Contact Small Bridges — Get in Touch",
+    description:
+      "Contact the Small Bridges team for sales, support, partnerships, or press. Email cole@smallbridges.co or send us a message — we reply within one business day. Based in Missouri, U.S.",
+    canonicalPath: "/contact",
+  });
 
   const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
@@ -27,7 +77,7 @@ const Contact = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const { error } = await supabase
         .from('support_messages')
@@ -39,7 +89,7 @@ const Contact = () => {
           source: 'contact',
           user_id: user?.id ?? null,
         });
-      
+
       if (error) throw error;
 
       // Notify admin inbox (fire-and-forget — failure must not block the user).
@@ -63,7 +113,7 @@ const Contact = () => {
         console.warn('Admin notification failed (message still saved):', notifyErr);
       }
 
-      toast.success("Message sent! We'll get back to you within 24-48 hours.", {
+      toast.success("Message sent! We'll reply within one business day.", {
         description: user ? 'Track replies under Settings → Support.' : undefined,
         action: user
           ? { label: 'Open inbox', onClick: () => (window.location.href = '/settings/support') }
@@ -97,44 +147,46 @@ const Contact = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-12 group"
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/75 hover:text-white transition-colors mb-10 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Home</span>
           </Link>
         </motion.div>
-        
-        {/* Header */}
+
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-center mb-16"
+          transition={{ duration: 0.6, delay: 0.05 }}
         >
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-            Contact Us
-          </h1>
-          <p className="text-lg text-white/75 max-w-md mx-auto">
-            Have questions? We're here to help. Reach out and we'll get back to you as soon as possible.
-          </p>
+          <PageHero
+            accentKey="contact"
+            eyebrow="Get in touch"
+            title="Contact us"
+            subtitle="Whether you're scoping a project, stuck on a render, or writing about AI filmmaking, a real person on the Small Bridges team will read your note and reply within one business day."
+          />
         </motion.div>
-        
-        <div className="grid lg:grid-cols-5 gap-8">
+
+        <div className="grid lg:grid-cols-5 gap-8 mt-12">
           {/* Contact Form */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
             className="lg:col-span-3"
           >
-            <div className="p-8 rounded-3xl bg-glass border border-white/[0.05]">
-              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+            <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+              <h2 className="text-xl font-semibold text-white mb-2 flex items-center gap-3">
                 <Send className="w-5 h-5 text-white/75" />
                 Send us a message
               </h2>
-              
+              <p className="text-white/60 text-sm mb-6">
+                Tell us what you're working on and we'll point you to the right answer.
+              </p>
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
@@ -147,10 +199,10 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Your name"
                       required
-                      className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
-                  
+
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-white/60 mb-2">
                       Email
@@ -162,11 +214,11 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="you@example.com"
                       required
-                      className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                      className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-white/60 mb-2">
                     Subject
@@ -177,10 +229,10 @@ const Contact = () => {
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="How can we help?"
                     required
-                    className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl"
+                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                   />
                 </div>
-                
+
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-white/60 mb-2">
                     Message
@@ -192,12 +244,12 @@ const Contact = () => {
                     placeholder="Tell us more about your inquiry..."
                     rows={5}
                     required
-                    className="bg-glass border-white/[0.08] text-white placeholder:text-white/65 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
+                    className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
                   />
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="w-full h-12 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]"
                   disabled={isSubmitting}
                 >
@@ -206,84 +258,92 @@ const Contact = () => {
               </form>
             </div>
           </motion.div>
-          
+
           {/* Contact Information */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
             className="lg:col-span-2 space-y-6"
           >
-            <div className="p-6 rounded-3xl bg-glass border border-white/[0.05]">
-              <h2 className="text-lg font-semibold text-white mb-6">Other ways to reach us</h2>
-              
+            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+              <h2 className="text-lg font-semibold text-white mb-5">Reach us directly</h2>
+
               <div className="space-y-5">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
-                    <Mail className="w-5 h-5 text-white/50" />
+                {REACH_CARDS.map((card) => (
+                  <div key={card.title} className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                      <card.icon className="w-5 h-5 text-white/55" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-white mb-0.5">{card.title}</h3>
+                      <p className="text-white/55 text-sm mb-1.5">{card.body}</p>
+                      <a
+                        href={`mailto:${card.email}`}
+                        className="text-white/80 hover:text-white transition-colors text-sm underline-offset-4 hover:underline"
+                      >
+                        {card.email}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-white mb-1">Email Support</h3>
-                    <p className="text-white/75 text-sm mb-2">
-                      For general inquiries and support
-                    </p>
-                    <a 
-                      href="mailto:cole@smallbridges.co" 
-                      className="text-white/70 hover:text-white transition-colors text-sm"
-                    >
-                      cole@smallbridges.co
-                    </a>
-                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <Clock className="w-5 h-5 text-white/55" />
                 </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
-                    <Building className="w-5 h-5 text-white/50" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-white mb-1">Business Inquiries</h3>
-                    <p className="text-white/75 text-sm mb-2">
-                      For partnerships and enterprise
-                    </p>
-                    <a 
-                      href="mailto:cole@smallbridges.co" 
-                      className="text-white/70 hover:text-white transition-colors text-sm"
-                    >
-                      cole@smallbridges.co
-                    </a>
-                  </div>
+                <div>
+                  <h3 className="font-medium text-white mb-0.5">Response time</h3>
+                  <p className="text-white/55 text-sm">
+                    We reply to every message within one business day, Monday through Friday.
+                  </p>
                 </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-glass-hover border border-white/[0.08]">
-                    <Clock className="w-5 h-5 text-white/50" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-white mb-1">Response Time</h3>
-                    <p className="text-white/75 text-sm">
-                      We typically respond within 24-48 hours during business days.
-                    </p>
-                  </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <MapPin className="w-5 h-5 text-white/55" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white mb-0.5">Where we are</h3>
+                  <p className="text-white/55 text-sm">
+                    Small Bridges is based in Missouri, U.S., and works with creators worldwide.
+                  </p>
                 </div>
               </div>
             </div>
-            
-            {/* FAQ Card */}
-            <div className="p-6 rounded-3xl bg-glass border border-white/[0.05]">
-              <h3 className="font-medium text-white mb-2">Frequently Asked Questions</h3>
-              <p className="text-white/75 text-sm mb-4">
-                Before reaching out, you might find your answer in our FAQ section.
-              </p>
-              <Button 
-                variant="ghost" 
-                asChild
-                className="w-full h-10 rounded-full border border-white/[0.08] bg-glass text-white/70 hover:text-white hover:bg-glass-hover"
-              >
-                <Link to="/#faq">View FAQ</Link>
-              </Button>
-            </div>
           </motion.div>
         </div>
+
+        {/* What to contact us about */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
+          className="mt-16"
+        >
+          <h2 className="text-2xl font-semibold text-white mb-2">What can we help with?</h2>
+          <p className="text-white/55 text-sm mb-8 max-w-2xl">
+            Not sure where your question fits? Here's how we sort the conversations that come our way — pick the one that's closest and we'll route it from there.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {TOPICS.map((topic) => (
+              <div
+                key={topic.title}
+                className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-colors"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
+                  <topic.icon className="w-5 h-5 text-white/70" />
+                </div>
+                <h3 className="font-medium text-white mb-1.5">{topic.title}</h3>
+                <p className="text-white/55 text-sm leading-relaxed">{topic.body}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

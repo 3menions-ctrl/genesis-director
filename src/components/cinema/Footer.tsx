@@ -23,9 +23,9 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     links: [
       { label: "How it works", to: "/how-it-works" },
       { label: "Pricing", to: "/pricing" },
-      { label: "Templates", to: "/templates" },
-      { label: "Avatars", to: "/avatars" },
-      { label: "Developers", to: "/developers" },
+      { label: "Templates", to: "/how-it-works#templates" },
+      { label: "Avatars", to: "/studio-showcase#cast" },
+      { label: "Developers", to: "/how-it-works#developers" },
     ],
   },
   {
@@ -35,7 +35,6 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Blog", to: "/blog" },
       { label: "Press", to: "/press" },
       { label: "Contact", to: "/contact" },
-      { label: "Help center", to: "/help" },
     ],
   },
   {

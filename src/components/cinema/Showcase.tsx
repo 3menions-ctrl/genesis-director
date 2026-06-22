@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, animate, useInView, useReducedMotion, type Variants } from "framer-motion";
 import {
-  Play, PenLine, LayoutGrid, Users, Film, Link2, Palette, AudioLines, Sparkles, ArrowRight,
+  PenLine, LayoutGrid, Users, Film, Link2, Palette, AudioLines, Sparkles, ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { Glass, Eyebrow, Reveal, Button, EASE, ACCENT } from "./ui";
@@ -68,12 +68,6 @@ function SceneCard({ s, active }: { s: Scene; active: boolean }) {
           </span>
           <span className="font-mono text-[9.5px] tracking-[0.12em] text-white/65">TC {s.time}</span>
         </div>
-        {active && (
-          <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/40 backdrop-blur-md">
-            <span aria-hidden className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 40px -4px hsl(${ACCENT} / 0.7)` }} />
-            <Play className="ml-1 h-5 w-5 fill-white text-white" />
-          </div>
-        )}
         <div className="absolute inset-x-5 bottom-[8%] flex items-end justify-between pb-2">
           <span className="font-display text-[25px] font-medium leading-none text-white">{s.label}</span>
           <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/50">Small Bridges</span>

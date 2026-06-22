@@ -17,6 +17,7 @@ import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer'
 import { Logo } from '@/components/ui/Logo';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { BLOG_ARTICLES, BLOG_CATEGORIES, type BlogArticle } from '@/content/blog';
+import { BlogCover } from '@/components/blog/BlogCover';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const Footer = lazy(() => import('@/components/cinema/Footer').then((m) => ({ default: m.Footer })));
@@ -95,10 +96,11 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
           </Link>
 
           <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="relative rounded-3xl overflow-hidden mb-8 aspect-video">
-              <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            </div>
+            <BlogCover variant="detail" title={article.title} hue={article.hue} className="rounded-3xl mb-8">
+              <div className="absolute bottom-0 left-0 p-7 md:p-9">
+                <Badge className="bg-white/10 text-white/80 border-0 backdrop-blur-sm">{article.category}</Badge>
+              </div>
+            </BlogCover>
 
             <div className="flex flex-wrap items-center gap-4 mb-6 text-white/75">
               <Badge variant="secondary" className="bg-white/10 text-white/70 border-0">{article.category}</Badge>
@@ -141,10 +143,7 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
                 {related.map((a) => (
                   <Link key={a.slug} to={`/blog/${a.slug}`} className="group">
                     <div className="rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-all">
-                      <div className="aspect-video relative">
-                        <img src={a.image} alt={a.title} className="w-full h-full object-cover" loading="lazy" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                      </div>
+                      <BlogCover variant="related" title={a.title} hue={a.hue} />
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-white line-clamp-2 group-hover:text-white/90">{a.title}</h3>
                       </div>
@@ -183,10 +182,17 @@ function BlogIndex() {
       <div className="relative z-10 pt-28 pb-16">
         <div className="max-w-6xl mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="text-center mb-12">
-            <div className="text-[11px] font-mono uppercase tracking-[0.32em] text-white/40 mb-4">The Cutting Room</div>
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-[-0.02em]">Field notes on AI filmmaking</h1>
-            <p className="text-lg text-white/55 max-w-2xl mx-auto">
+            className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.32em] text-white/45 mb-5">
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-white/30" />
+              The Cutting Room
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-white/30" />
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold mb-5 tracking-[-0.03em] leading-[0.95]">
+              <span className="text-white">Field notes on </span>
+              <span className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent">AI filmmaking</span>
+            </h1>
+            <p className="text-lg text-white/55 max-w-2xl mx-auto leading-relaxed">
               Tutorials, comparisons, and playbooks for turning prompts into cinema — from the Small Bridges team.
             </p>
           </motion.div>
@@ -210,18 +216,19 @@ function BlogIndex() {
               className="mb-12">
               <Link to={`/blog/${featured.slug}`} className="group block">
                 <div className="relative rounded-3xl overflow-hidden border border-white/[0.05] hover:border-white/[0.12] transition-all duration-300">
-                  <div className="aspect-[21/9] relative">
-                    <img src={featured.image} alt={featured.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-8">
-                      <Badge className="mb-4 bg-white/10 text-white/80 border-0">Featured · {featured.category}</Badge>
-                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 max-w-3xl group-hover:text-white/90 transition-colors">{featured.title}</h2>
-                      <p className="text-white/55 mb-4 max-w-2xl">{featured.excerpt}</p>
-                      <div className="flex items-center gap-4 text-white/65 text-sm">
-                        <span>{featured.date}</span><span>•</span><span>{featured.readTime}</span>
+                  <BlogCover variant="featured" title={featured.title} hue={featured.hue}>
+                    <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10">
+                      <Badge className="mb-4 bg-white/10 text-white/80 border-0 backdrop-blur-sm">
+                        <span className="text-amber-300/90 mr-1.5">★</span> Featured · {featured.category}
+                      </Badge>
+                      <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 max-w-3xl tracking-[-0.02em] group-hover:text-white/90 transition-colors">{featured.title}</h2>
+                      <p className="text-white/60 mb-4 max-w-2xl text-[15px] leading-relaxed line-clamp-2">{featured.excerpt}</p>
+                      <div className="flex items-center gap-3 text-white/55 text-sm">
+                        <span>{featured.author}</span><span className="text-white/25">•</span>
+                        <span>{featured.date}</span><span className="text-white/25">•</span><span>{featured.readTime}</span>
                       </div>
                     </div>
-                  </div>
+                  </BlogCover>
                 </div>
               </Link>
             </motion.div>
@@ -234,10 +241,7 @@ function BlogIndex() {
                 transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.4) }}>
                 <Link to={`/blog/${article.slug}`} className="group block h-full">
                   <div className="h-full rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.05] transition-all duration-300">
-                    <div className="aspect-video relative">
-                      <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                    </div>
+                    <BlogCover variant="card" title={article.title} hue={article.hue} />
                     <div className="p-5">
                       <Badge variant="secondary" className="mb-3 bg-white/10 text-white/60 border-0 text-xs">{article.category}</Badge>
                       <h3 className="text-[16px] font-semibold text-white mb-2 leading-snug group-hover:text-white/90 transition-colors line-clamp-2">{article.title}</h3>

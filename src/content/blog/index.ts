@@ -8,34 +8,20 @@
  * over this registry instead of a 5,000-line dataset.
  */
 
-import aiVideoEvolution from '@/assets/blog/ai-video-evolution.jpg';
-import smallBusinessVideo from '@/assets/blog/small-business-video.jpg';
-import videoAiPossibilities from '@/assets/blog/video-ai-possibilities.jpg';
-import futureVideoCreation from '@/assets/blog/future-of-video-creation.jpg';
-import aiAvatarGeneration from '@/assets/blog/ai-avatar-video-generation.jpg';
-import seedanceMotion from '@/assets/blog/new/rise-of-generative-video.jpg';
-import ecommerceAiVideo from '@/assets/blog/new/ecommerce-ai-video.jpg';
-import tiktokCreatorsAi from '@/assets/blog/new/tiktok-creators-ai.jpg';
-import multiSceneContinuity from '@/assets/blog/new/multi-character-dialogue.jpg';
-
-const IMAGE_REGISTRY: Record<string, string> = {
-  aiVideoEvolution,
-  smallBusinessVideo,
-  videoAiPossibilities,
-  futureVideoCreation,
-  aiAvatarGeneration,
-  seedanceMotion,
-  ecommerceAiVideo,
-  tiktokCreatorsAi,
-  multiSceneContinuity,
-};
+import { hueFromSlug } from '@/components/blog/BlogCover';
 
 export interface BlogArticle {
   id: string;
   slug: string;
   title: string;
   excerpt: string;
+  /**
+   * Raw frontmatter image key, retained for backwards compatibility. Covers are
+   * no longer rendered from photo files — see `hue` and {@link BlogCover}.
+   */
   image: string;
+  /** Deterministic base hue (0–359) for the generated cover, derived from slug. */
+  hue: number;
   author: string;
   date: string;
   readTime: string;
@@ -78,20 +64,18 @@ function parseFrontmatter(raw: string): { meta: Record<string, unknown>; body: s
   return { meta, body: m[2].trim() };
 }
 
-const FALLBACK_IMAGE = aiVideoEvolution;
-
 export const BLOG_ARTICLES: BlogArticle[] = Object.entries(RAW)
   .map(([_, raw]) => {
     const { meta, body } = parseFrontmatter(raw);
-    const imgKey = String(meta.image ?? '');
-    const image = IMAGE_REGISTRY[imgKey] ?? FALLBACK_IMAGE;
+    const slug = String(meta.slug ?? '');
     const tags = Array.isArray(meta.tags) ? (meta.tags as string[]) : [];
     return {
       id: String(meta.id ?? ''),
-      slug: String(meta.slug ?? ''),
+      slug,
       title: String(meta.title ?? ''),
       excerpt: String(meta.excerpt ?? ''),
-      image,
+      image: String(meta.image ?? ''),
+      hue: hueFromSlug(slug),
       author: String(meta.author ?? 'Small Bridges Team'),
       date: String(meta.date ?? ''),
       readTime: String(meta.readTime ?? ''),

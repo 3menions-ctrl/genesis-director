@@ -1,8 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX, Play, Sparkles, ArrowRight } from 'lucide-react';
-import Hls from 'hls.js';
-import { HOPPY_HLS_URL, HOPPY_MP4_URL } from './HoppyImmersiveIntro';
+import { HOPPY_MP4_URL } from './HoppyImmersiveIntro';
 
 /**
  * HoppyImmersiveScrollSection
@@ -28,14 +27,17 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
   const [muted, setMuted] = useState(true);
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(false);
   const [showTapHint, setShowTapHint] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  // Attach video source once on mount
+  // Lifecycle listeners only. The source is a plain MP4 (the "HLS" URL was
+  // actually an .mp4, which crashed hls.js when parsed as a manifest), so we
+  // play it directly via <video> — no hls.js, no manifest parsing. The src is
+  // attached lazily (below) so the heavy file never loads until it's needed.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -43,47 +45,34 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
     const onReady = () => setReady(true);
     const onEnded = () => setEnded(true);
     const onPlay = () => setEnded(false);
+    // Fail gracefully: a media error fades the layer back to the static
+    // poster/backdrop instead of leaving a broken or looping element.
+    const onError = () => { setFailed(true); setActive(false); };
     video.addEventListener('loadedmetadata', onReady, { once: true });
     video.addEventListener('ended', onEnded);
     video.addEventListener('play', onPlay);
-
-    const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
-    if (useNativeHls) {
-      video.src = HOPPY_HLS_URL;
-    } else if (Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
-      hlsRef.current = hls;
-      hls.loadSource(HOPPY_HLS_URL);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (data.fatal) {
-          hls.destroy();
-          hlsRef.current = null;
-          video.src = HOPPY_MP4_URL;
-          video.load();
-        }
-      });
-    } else {
-      video.src = HOPPY_MP4_URL;
-    }
+    video.addEventListener('error', onError);
 
     return () => {
       video.removeEventListener('loadedmetadata', onReady);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('play', onPlay);
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      video.removeEventListener('error', onError);
+      // Release the decoder + memory on unmount.
+      try { video.pause(); video.removeAttribute('src'); video.load(); } catch { /* noop */ }
     };
   }, []);
 
-  // Activate the fixed video the moment the user scrolls past the hero.
-  // Uses a passive, rAF-throttled scroll listener so it stays responsive
-  // even during fast / momentum scrolling. Once active it stays active.
+  // Activate (and lazily load) the fixed video once the user scrolls past the
+  // hero. Passive, rAF-throttled scroll listener — responsive under fast /
+  // momentum scrolling. Skips entirely under reduced-motion or data-saver so
+  // the heavy background never loads where it isn't wanted.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const saveData = (navigator as unknown as { connection?: { saveData?: boolean } }).connection?.saveData;
+    if (reduceMotion || saveData) return; // keep the static poster backdrop
 
     let ticking = false;
     let activated = false;
@@ -94,6 +83,11 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
       if (activated) return;
       if (window.scrollY > THRESHOLD) {
         activated = true;
+        // Attach the source only now, then load + play.
+        if (!video.getAttribute('src')) {
+          video.src = HOPPY_MP4_URL;
+          video.load();
+        }
         setActive(true);
         video.play().catch(() => setShowTapHint(true));
         window.removeEventListener('scroll', onScroll);
@@ -145,7 +139,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
         aria-hidden={!active}
         className="fixed inset-0 z-[2] pointer-events-none"
         style={{
-          opacity: active ? 1 : 0,
+          opacity: active && !failed ? 1 : 0,
           transition: 'opacity 900ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -153,7 +147,8 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
           ref={videoRef}
           playsInline
           muted={muted}
-          preload="metadata"
+          preload="none"
+          poster="/cinema-assets/hero-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover bg-black"
         />
 

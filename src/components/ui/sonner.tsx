@@ -35,7 +35,10 @@ const AnimatedIcon = forwardRef<HTMLDivElement, AnimatedIconProps>(({ children, 
 AnimatedIcon.displayName = "AnimatedIcon";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  // App is a dark surface end-to-end; pin the toaster to dark so Sonner never
+  // renders its light (white) default while a `system` theme resolves to light.
+  useTheme();
+  const theme = "dark";
 
   // Canonical Pro-Dark surface — locked tier-shared design (no purple).
   //

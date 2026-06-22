@@ -40,7 +40,6 @@ import { CursorSpotlight } from "@/components/ui/cursor-spotlight";
 const ConcentrationOverlay = lazy(() => import("@/components/focus/ConcentrationMode").then(m => ({ default: m.ConcentrationOverlay })));
 import { TimeOfDayAura } from "@/components/studio/TimeOfDayAura";
 const VoicePalette = lazy(() => import("@/components/agent/VoicePalette").then(m => ({ default: m.VoicePalette })));
-const OnThisDayNudge = lazy(() => import("@/components/nudge/OnThisDayNudge").then(m => ({ default: m.OnThisDayNudge })));
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -883,7 +882,6 @@ const App = () => {
                   <GlobalConfirmHost />
                   <ConcentrationOverlay />
                   <VoicePalette />
-                  <OnThisDayNudge />
                 </Suspense>
                 {/* Command Center (Cmd+K / "/") — primary navigation surface */}
                 <CommandCenter />

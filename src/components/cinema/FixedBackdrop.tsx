@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { HERO_VIDEO } from "./assets";
 import { CrackOverlay } from "./CrackOverlay";
 import { CoverFX } from "./CoverFX";
@@ -20,9 +20,28 @@ import { ACCENT } from "./ui";
 
 type Phase = "cover" | "playing" | "immersive" | "broken" | "rest";
 
+// Module-scoped so it survives in-app (SPA) navigation back to the landing but
+// resets on a full page refresh — "play the immersive film once for the user,
+// unless they refresh." Once true, a revisit skips straight to the calm backdrop
+// with the film paused on its last frame.
+let hasPlayedImmersive = false;
+
 function StartNowTakeover({ onStart, onDismiss }: { onStart: () => void; onDismiss: () => void }) {
   return (
     <div className="relative flex flex-col items-center">
+      {/* X — back to the landing page (dismiss the takeover; film holds its last frame) */}
+      <motion.button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Close and return to the landing page"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="fixed right-5 top-5 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white/85 ring-1 ring-white/20 backdrop-blur-md transition-colors hover:bg-black/70 hover:text-white sm:right-7 sm:top-7"
+      >
+        <X className="h-5 w-5" />
+      </motion.button>
+
       <motion.button
         type="button"
         onClick={onStart}
@@ -57,11 +76,18 @@ function StartNowTakeover({ onStart, onDismiss }: { onStart: () => void; onDismi
 
 export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: () => void; videoRef: RefObject<HTMLVideoElement>; muted: boolean; onPhase?: (p: Phase) => void }) {
   const durRef = useRef(0);
-  const [phase, setPhase] = useState<Phase>("cover");
+  // If the film already ran this session, mount straight into the calm "rest"
+  // backdrop (paused on its last frame) instead of replaying the takeover.
+  const revisit = useRef(hasPlayedImmersive);
+  const [phase, setPhase] = useState<Phase>(revisit.current ? "rest" : "cover");
   // True once the film is actually rendering frames. Until then we hold a
   // paused poster frame so there's never a dark gap while it buffers.
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(revisit.current);
   useEffect(() => { onPhase?.(phase); }, [phase, onPhase]);
+
+  // Once the film has begun, remember it for the rest of the session so an
+  // in-app revisit to the landing doesn't replay it (a refresh resets this).
+  useEffect(() => { if (phase !== "cover") hasPlayedImmersive = true; }, [phase]);
 
   // The film starts ONLY once the visitor has finished scrolling past the
   // first (cover) screen — not before, and not on load.
@@ -113,7 +139,14 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
           muted={muted}
           playsInline
           preload="auto"
-          onLoadedMetadata={(e) => { durRef.current = e.currentTarget.duration || 0; }}
+          onLoadedMetadata={(e) => {
+            durRef.current = e.currentTarget.duration || 0;
+            // Revisit within the session → hold on the last frame as the backdrop.
+            if (revisit.current && durRef.current) {
+              try { e.currentTarget.currentTime = Math.max(0, durRef.current - 0.05); } catch { /* noop */ }
+              e.currentTarget.pause();
+            }
+          }}
           onPlaying={() => setStarted(true)}
           onTimeUpdate={onTime}
           onEnded={onEnded}

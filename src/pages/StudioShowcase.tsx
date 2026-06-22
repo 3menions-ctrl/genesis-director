@@ -18,7 +18,7 @@ import { FILM_REELS } from "@/data/filmsLibrary";
 import { EXTENDED_ENVIRONMENTS } from "@/data/environment-extensions";
 import { getAllTemplateBlueprints } from "@/lib/templates/registry";
 import { Eyebrow, Reveal, ACCENT, EASE } from "@/components/cinema/ui";
-import { BrandTile } from "@/components/cinema/Logo";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { ImmersiveBreakout } from "@/components/cinema/ImmersiveBreakout";
 import { Footer } from "@/components/cinema/Footer";
 
@@ -496,16 +496,7 @@ export default function StudioShowcase() {
       <PageBackdrop reduced={reduced} />
       <ImmersiveBreakout active={breakoutInView && !intro} reduced={reduced} tileRef={detectiveTileRef} />
 
-      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-white/[0.06] bg-[#070809]/40 px-5 py-3 backdrop-blur-xl sm:px-8">
-        <button type="button" onClick={() => navigate("/")} aria-label="Small Bridges home" className="flex items-center gap-2.5">
-          <BrandTile className="h-8 w-8" />
-          <span className="hidden font-display text-[16px] tracking-tight sm:inline">Small <span className="font-semibold italic">Bridges</span></span>
-        </button>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button type="button" onClick={() => navigate("/auth")} className="px-3.5 py-2 text-[13px] font-light text-white/70 transition-colors hover:text-white">Sign in</button>
-          <button type="button" onClick={() => navigate("/auth?mode=signup")} className="rounded-full bg-white px-5 py-2 text-[13px] font-semibold text-[#0a0b0e] transition-transform hover:-translate-y-0.5" style={{ boxShadow: `0 10px 30px -12px hsl(${ACCENT})` }}>Start now</button>
-        </div>
-      </header>
+      <MarketingHeader />
 
       {/* HERO — a warm welcome over the moving wall of films */}
       <section className="relative flex h-screen items-center justify-center overflow-hidden">

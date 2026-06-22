@@ -2,8 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { lazy, Suspense, type ReactNode } from "react";
-import { Logo } from "@/components/ui/Logo";
 import { PageHero } from "@/components/page/PageHero";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
@@ -332,14 +332,7 @@ const Privacy = () => {
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo size="md" showText textClassName="text-base" />
-          </Link>
-        </div>
-      </nav>
+      <MarketingHeader />
 
       {/* Content */}
       <div className="relative z-10 pt-24 pb-24">

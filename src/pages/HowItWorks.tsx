@@ -1,13 +1,14 @@
 import { memo, useRef } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowLeft, ArrowRight, Shield, Layers, Film, Mic, Music, 
+import {
+  ArrowRight, Shield, Layers, Film, Mic, Music,
   Eye, Zap, RefreshCw, Brain, Camera, Palette, Lock,
   Sparkles, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
+import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Pipeline Layer Data ────────────────────────────────────────────
@@ -232,40 +233,13 @@ export default function HowItWorks() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
+      <MarketingHeader />
       {/* Ambient background */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(120,80,200,0.08)_0%,_transparent_60%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(50,130,220,0.06)_0%,_transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_80%,_rgba(200,100,50,0.04)_0%,_transparent_40%)]" />
       </div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <Logo size="md" showText textClassName="text-base" />
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm text-white/50 hover:text-white transition-colors flex items-center gap-1.5">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Home
-            </Link>
-            <Link to="/pricing" className="text-sm text-white/50 hover:text-white transition-colors">Pricing</Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              asChild
-              className="h-9 px-4 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-full"
-            >
-              <Link to="/auth">Sign in</Link>
-            </Button>
-            <Button asChild className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink">
-              <Link to="/auth?mode=signup">Get Started</Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
 
       {/* Hero */}
       <motion.section 

@@ -330,7 +330,7 @@ const App = () => {
                 } />
                 <Route path="/contact" element={
                   <RouteContainer>
-                    <AdaptiveShell><Contact /></AdaptiveShell>
+                    <Contact />
                   </RouteContainer>
                 } />
                 {/* Enterprise — Coming Soon + lead capture (no signup). All entry points land here. */}
@@ -370,17 +370,17 @@ const App = () => {
                 } />
                 <Route path="/blog" element={
                   <RouteContainer>
-                    <AdaptiveShell><Blog /></AdaptiveShell>
+                    <Blog />
                   </RouteContainer>
                 } />
                 <Route path="/blog/:slug" element={
                   <RouteContainer>
-                    <AdaptiveShell><Blog /></AdaptiveShell>
+                    <Blog />
                   </RouteContainer>
                 } />
                 <Route path="/press" element={
                   <RouteContainer>
-                    <AdaptiveShell><Press /></AdaptiveShell>
+                    <Press />
                   </RouteContainer>
                 } />
                 {/* Consumer gallery sunset → redirect to projects (auth) or landing */}
@@ -393,7 +393,7 @@ const App = () => {
                 } />
                 <Route path="/how-it-works" element={
                   <RouteContainer>
-                    <AdaptiveShell><HowItWorks /></AdaptiveShell>
+                    <HowItWorks />
                   </RouteContainer>
                 } />
                 <Route path="/studio" element={

@@ -4,7 +4,7 @@
  * loading takes over.
  *
  * Visual reference: Universal Studios "tail leader" — a circular sweep
- * with a number in the center, ticking from 3 → 2 → 1 → APEX. Pure SVG
+ * with a number in the center, ticking from 3 → 2 → 1, then fades. Pure SVG
  * + framer-motion; no asset weight.
  *
  * Total runtime: ~2.4 seconds. Honors prefers-reduced-motion (skipped).
@@ -43,7 +43,7 @@ export function FilmLeader({ force = false, onComplete }: Props) {
     const t1 = window.setTimeout(() => setStep(1), 100);  // 3
     const t2 = window.setTimeout(() => setStep(2), 800);  // 2
     const t3 = window.setTimeout(() => setStep(3), 1500); // 1
-    const t4 = window.setTimeout(() => setStep(4), 2100); // APEX
+    const t4 = window.setTimeout(() => setStep(4), 2100); // fade out
     const t5 = window.setTimeout(() => {
       onComplete?.();
     }, 2400);

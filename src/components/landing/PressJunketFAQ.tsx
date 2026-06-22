@@ -105,7 +105,7 @@ function JunketRow({ q, a, index }: { q: string; a: string; index: number }) {
       {/* Divider — hairline column rule on desktop only */}
       <div aria-hidden className="hidden md:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent h-full" />
 
-      {/* Answer — plain sans, monospaced "APEX:" prefix */}
+      {/* Answer — plain sans, monospaced brand prefix */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-brand-light">

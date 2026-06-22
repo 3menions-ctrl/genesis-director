@@ -98,7 +98,7 @@ export function CastingWall() {
             Who&rsquo;s been cast in Small Bridges.
           </h2>
           <p className="text-white/55 text-[14px] sm:text-[16px] max-w-xl mx-auto mt-5 leading-relaxed">
-            Characters our directors built this week. Hover to see them move.
+            Characters built by our directors. Hover any tile to see them move.
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export function CastingWall() {
         {/* Tail */}
         <div className="mt-8 flex items-center justify-center gap-3 text-[10px] font-mono uppercase tracking-[0.32em] text-white/30">
           <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-          <span>{entries.length || TILE_COUNT}+ characters cast this week</span>
+          <span>{entries.length || TILE_COUNT} characters ready to cast</span>
         </div>
       </div>
     </section>

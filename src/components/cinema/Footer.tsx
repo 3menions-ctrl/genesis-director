@@ -48,12 +48,6 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   },
 ];
 
-const STATS = [
-  { value: "534", label: "Avatars" },
-  { value: "120", label: "Worlds" },
-  { value: "5", label: "Engines" },
-];
-
 const ENGINES = ["Wan 2.5", "Kling V3", "Seedance 2.0", "Veo 3", "Sora 2"];
 
 function FootLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -152,15 +146,6 @@ export function Footer() {
               <span className="font-display text-[20px] tracking-tight text-white">Small <span className="font-semibold italic">Bridges</span></span>
             </Link>
             <p className="mt-5 max-w-xs text-[14px] font-light leading-relaxed text-white/55">The AI film studio in a sentence. Describe it — we cast, score, and cut a finished film.</p>
-
-            <div className="mt-7 flex items-center gap-7">
-              {STATS.map((s) => (
-                <div key={s.label}>
-                  <div className="font-display text-[22px] font-semibold leading-none text-white">{s.value}</div>
-                  <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</div>
-                </div>
-              ))}
-            </div>
 
             <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.24em] text-white/45">New films, features &amp; prompts — monthly</p>
             <NewsletterForm />

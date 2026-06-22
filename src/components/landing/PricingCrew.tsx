@@ -61,7 +61,7 @@ const CREWS: readonly Crew[] = [
     tier: 'Production House',
     who: 'You’re running a full production with cinematographer + AD + supervisor.',
     credits: '6,000 monthly credits',
-    priceCurrent: '$299 / mo',
+    priceCurrent: '$149 / mo',
     priceFuture: 'or pay-as-you-go credits',
     includes: [
       'Everything in Studio, plus —',

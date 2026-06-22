@@ -4,72 +4,29 @@
  * Small Bridges actually rendered. The viewer scrubs between chapters; the
  * active chapter plays muted by default with sound-on prompt.
  *
- * v2 — uses real video assets:
- *   • Marketing URL hardcoded in v1 didn't exist (HTTP 400). Replaced
- *     with verified Supabase storage URLs that DO resolve.
- *   • Each chapter is now an independent <video> swap rather than a
- *     single long reel. Click a chapter → that clip becomes the hero
- *     and starts playing. Simpler, more reliable, no 90s asset to
- *     produce up front.
- *   • Falls back to the chapter's poster image if the video URL fails.
+ * Sources are the same verified Supabase-hosted renders used by the
+ * /launch gallery (see cinema/assets.ts → GALLERY). Each chapter is an
+ * independent <video> swap: click a chapter → that clip becomes the hero
+ * and starts playing. If a URL ever fails, the player shows a graceful
+ * fallback and the viewer can tap another chapter.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { GALLERY } from '@/components/cinema/assets';
 
-// Real, verified Supabase storage URLs (HTTP 200 at time of build).
-const VIDEO_BASE =
-  'https://videos.pexels.com/video-files/3192305/3192305-uhd_2560_1440_25fps.mp4';
-
+// Eight real renders across genres, drawn from the verified gallery set.
+// Codes are short genre tags, not a claim that one scene was re-run in
+// every mode — these are distinct films, each from its own prompt.
 const CHAPTERS = [
-  {
-    code: 'T2V',
-    label: 'Text to video',
-    detail: '"the bus pulls into the rain at 2 a.m."',
-    src: `${VIDEO_BASE}_clip1_lipsync_1771086006879.mp4`,
-  },
-  {
-    code: 'I2V',
-    label: 'Image to video',
-    detail: 'A still becomes a 6-second shot',
-    src: `${VIDEO_BASE}_clip2_lipsync_1771086184096.mp4`,
-  },
-  {
-    code: 'AVA',
-    label: 'Avatar',
-    detail: 'Synced dialogue · native voice',
-    src: `${VIDEO_BASE}_clip3_lipsync_1771086363289.mp4`,
-  },
-  {
-    code: 'MOT',
-    label: 'Motion transfer',
-    detail: 'Subject performs the source',
-    src: `${VIDEO_BASE}_clip4_lipsync_1771086544128.mp4`,
-  },
-  {
-    code: 'STY',
-    label: 'Style transfer',
-    detail: 'The same scene, nine looks',
-    src: `${VIDEO_BASE}_clip5_lipsync_1771086724461.mp4`,
-  },
-  {
-    code: 'BRO',
-    label: 'B-roll',
-    detail: 'Cutaways in a single click',
-    src: `${VIDEO_BASE}_clip6_lipsync_1771086905770.mp4`,
-  },
-  {
-    code: 'CUT',
-    label: 'The cut',
-    detail: 'Beat-cut, color-matched, paced',
-    src: `${VIDEO_BASE}_clip1_lipsync_1771086006879.mp4`,
-  },
-  {
-    code: 'OUT',
-    label: 'Export',
-    detail: '16:9 · 9:16 · 1:1 ready to ship',
-    src: `${VIDEO_BASE}_clip2_lipsync_1771086184096.mp4`,
-  },
+  { code: 'TRV', label: 'Travel', detail: 'Sunset dreams on winding roads', src: GALLERY[0].src },
+  { code: 'NAT', label: 'Nature', detail: 'Whispers of the enchanted jungle', src: GALLERY[1].src },
+  { code: 'AER', label: 'Aerial', detail: 'Skyward over fiery majesty', src: GALLERY[2].src },
+  { code: 'NOI', label: 'Noir', detail: 'Haunted whispers of the past', src: GALLERY[3].src },
+  { code: 'WHM', label: 'Whimsy', detail: 'Whimsical chocolate adventures', src: GALLERY[4].src },
+  { code: 'EPC', label: 'Epic', detail: 'Silent vigil in ruined valor', src: GALLERY[5].src },
+  { code: 'WLD', label: 'Wildlife', detail: 'Shadows of the predator', src: GALLERY[6].src },
+  { code: 'CHR', label: 'Character', detail: 'Hoppy in the sunlit park', src: GALLERY[8].src },
 ] as const;
 
 export function DirectorsReel() {
@@ -131,7 +88,7 @@ export function DirectorsReel() {
             One prompt. Every kind of shot.
           </h2>
           <p className="text-white/55 text-[14px] sm:text-[16px] max-w-xl mx-auto mt-5 leading-relaxed">
-            We pointed every mode at the same scene. Tap a chapter to swap the reel.
+            Eight real renders, eight genres — each from a single prompt. Tap a chapter to swap the reel.
           </p>
         </div>
 

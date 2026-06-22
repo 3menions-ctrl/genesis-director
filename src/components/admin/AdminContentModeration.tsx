@@ -34,6 +34,7 @@ import {
   Film,
   Shield,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -331,6 +332,69 @@ interface VideoGridProps {
 }
 
 function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const toStorageDownloadUrl = (rawUrl: string, filename: string) => {
+    const sep = rawUrl.includes('?') ? '&' : '?';
+    return `${rawUrl}${sep}download=${encodeURIComponent(filename)}`;
+  };
+
+  const saveBlob = async (rawUrl: string, filename: string) => {
+    const response = await fetch(rawUrl, { mode: 'cors', cache: 'no-store' });
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+  };
+
+  const handleDownload = async (video: PublicVideo) => {
+    if (!video.video_url) return;
+    setDownloading(video.id);
+    const url = video.video_url;
+    const safeName = (video.title || 'video').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 60);
+    const downloadWindow = window.open('about:blank', '_blank');
+    if (downloadWindow) downloadWindow.opener = null;
+    try {
+      if (url.endsWith('.json')) {
+        const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+        if (!res.ok) throw new Error('manifest fetch failed');
+        const manifest = await res.json();
+        const clips: string[] = (manifest.clips || [])
+          .map((c: { videoUrl?: string }) => c.videoUrl)
+          .filter(Boolean);
+        if (!clips.length) throw new Error('no clips in manifest');
+        downloadWindow?.close();
+        toast.info(`Downloading ${clips.length} clip(s)…`);
+        for (let i = 0; i < clips.length; i++) {
+          const filename = clips.length === 1 ? `${safeName}.mp4` : `${safeName}_clip${i + 1}.mp4`;
+          await saveBlob(clips[i], filename);
+          if (i < clips.length - 1) await new Promise((r) => setTimeout(r, 400));
+        }
+        toast.success(`Started ${clips.length} download(s)`);
+      } else {
+        downloadWindow?.close();
+        await saveBlob(url, `${safeName}.mp4`);
+        toast.success('Download started');
+      }
+    } catch (err) {
+      console.error('[AdminModeration] download error:', err);
+      if (downloadWindow) {
+        downloadWindow.location.href = toStorageDownloadUrl(url, `${safeName}.mp4`);
+      } else {
+        window.open(toStorageDownloadUrl(url, `${safeName}.mp4`), '_blank');
+      }
+      toast.info('Opened video in a new tab');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   if (videos.length === 0) {
     return (
       <Card>
@@ -363,12 +427,27 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
             {/* Overlay on hover */}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               {video.video_url && (
-                <Button size="sm" variant="secondary" asChild>
-                  <a href={video.video_url} target="_blank" rel="noopener noreferrer">
-                    <Play className="w-4 h-4 mr-1" />
-                    Play
-                  </a>
-                </Button>
+                <>
+                  <Button size="sm" variant="secondary" asChild>
+                    <a href={video.video_url} target="_blank" rel="noopener noreferrer">
+                      <Play className="w-4 h-4 mr-1" />
+                      Play
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDownload(video)}
+                    disabled={downloading === video.id}
+                  >
+                    {downloading === video.id ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-1" />
+                    )}
+                    Download
+                  </Button>
+                </>
               )}
             </div>
             
@@ -435,6 +514,21 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
                   disabled={processing === video.id}
                 >
                   <EyeOff className="w-3 h-3" />
+                </Button>
+              )}
+              {video.video_url && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownload(video)}
+                  disabled={downloading === video.id}
+                  title="Download video"
+                >
+                  {downloading === video.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Download className="w-3 h-3" />
+                  )}
                 </Button>
               )}
               <Button 

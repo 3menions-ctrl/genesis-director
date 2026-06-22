@@ -269,7 +269,7 @@ export function SecurityContent() {
           ACS URL: <code className="font-mono text-[11px] text-white/70">{`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/sso/saml/acs`}</code>
         </p>
         <div className="mt-4 flex gap-2 flex-wrap">
-          <a href="mailto:smallbridges.co@smallbridges.co?subject=SAML SSO setup" target="_blank" rel="noreferrer">
+          <a href="mailto:cole@smallbridges.co?subject=SAML SSO setup" target="_blank" rel="noreferrer">
             <span className="inline-flex items-center gap-2 rounded-full px-5 h-10 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors">
               Configure SSO <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.8} />
             </span>

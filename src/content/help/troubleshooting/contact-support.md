@@ -11,7 +11,7 @@ categoryTitle: "Troubleshooting"
 
 ### Email Support
 
-**smallbridges.co@smallbridges.co**
+**cole@smallbridges.co**
 
 Include in your message:
 - Your account email

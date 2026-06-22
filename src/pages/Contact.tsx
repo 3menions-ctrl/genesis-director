@@ -47,7 +47,7 @@ const Contact = () => {
         await supabase.functions.invoke('send-transactional-email', {
           body: {
             templateName: 'admin_contact_message',
-            recipientEmail: 'smallbridges.co@smallbridges.co',
+            recipientEmail: 'cole@smallbridges.co',
             templateData: {
               fromName: formData.name,
               fromEmail: formData.email,
@@ -228,10 +228,10 @@ const Contact = () => {
                       For general inquiries and support
                     </p>
                     <a 
-                      href="mailto:smallbridges.co@smallbridges.co" 
+                      href="mailto:cole@smallbridges.co" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      smallbridges.co@smallbridges.co
+                      cole@smallbridges.co
                     </a>
                   </div>
                 </div>
@@ -246,10 +246,10 @@ const Contact = () => {
                       For partnerships and enterprise
                     </p>
                     <a 
-                      href="mailto:smallbridges.co@smallbridges.co" 
+                      href="mailto:cole@smallbridges.co" 
                       className="text-white/70 hover:text-white transition-colors text-sm"
                     >
-                      smallbridges.co@smallbridges.co
+                      cole@smallbridges.co
                     </a>
                   </div>
                 </div>

@@ -2653,3 +2653,110 @@ img, a, button {
   80% { transform: translate(3%, 2%); }
   90% { transform: translate(-3%, -3%); }
 }
+
+/* ============================================================
+   Premium toast surface (Sonner)
+   Authoritative styling via Sonner's data-attributes so the
+   premium look renders regardless of Tailwind arbitrary-value
+   compilation or theme resolution. Overrides Sonner's default
+   (white) surface; loaded after @tailwind utilities so !important
+   here wins the cascade.
+   ============================================================ */
+[data-sonner-toaster] { --width: 420px; }
+
+[data-sonner-toast] {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 22px !important;
+  border-radius: 22px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, hsl(220 30% 8% / 0.90) 0%, hsl(220 30% 4% / 0.94) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+  backdrop-filter: blur(40px) saturate(140%) !important;
+  box-shadow:
+    0 40px 100px -24px rgba(0, 0, 0, 0.92),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  color: #fff !important;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+[data-sonner-toast] [data-description] {
+  color: rgba(255, 255, 255, 0.62) !important;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* Left accent stripe (color set per type below) */
+[data-sonner-toast]::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: linear-gradient(135deg, hsl(155 45% 9% / 0.93) 0%, hsl(220 30% 4% / 0.95) 55%) !important;
+  border-color: rgba(52, 211, 153, 0.38) !important;
+  box-shadow:
+    0 0 80px rgba(16, 185, 129, 0.26),
+    0 40px 100px -24px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(16, 185, 129, 0.18) !important;
+}
+[data-sonner-toast][data-type="success"]::before {
+  background: linear-gradient(to bottom, #6ee7b7, #34d399 55%, rgba(16, 185, 129, 0.55));
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: linear-gradient(135deg, hsl(0 60% 11% / 0.93) 0%, hsl(220 30% 4% / 0.95) 55%) !important;
+  border-color: rgba(251, 113, 133, 0.40) !important;
+  box-shadow:
+    0 0 80px rgba(244, 63, 94, 0.26),
+    0 40px 100px -24px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(244, 63, 94, 0.18) !important;
+}
+[data-sonner-toast][data-type="error"]::before {
+  background: linear-gradient(to bottom, #fda4af, #fb7185 55%, rgba(244, 63, 94, 0.55));
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background: linear-gradient(135deg, hsl(35 60% 11% / 0.93) 0%, hsl(220 30% 4% / 0.95) 55%) !important;
+  border-color: rgba(251, 191, 36, 0.40) !important;
+  box-shadow:
+    0 0 80px rgba(245, 158, 11, 0.24),
+    0 40px 100px -24px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(245, 158, 11, 0.16) !important;
+}
+[data-sonner-toast][data-type="warning"]::before {
+  background: linear-gradient(to bottom, #fcd34d, #fbbf24 55%, rgba(245, 158, 11, 0.55));
+}
+
+[data-sonner-toast][data-type="info"] {
+  background: linear-gradient(135deg, hsl(215 55% 13% / 0.93) 0%, hsl(220 30% 4% / 0.95) 55%) !important;
+  border-color: rgba(56, 135, 255, 0.42) !important;
+  box-shadow:
+    0 0 80px rgba(10, 132, 255, 0.24),
+    0 40px 100px -24px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(10, 132, 255, 0.16) !important;
+}
+[data-sonner-toast][data-type="info"]::before {
+  background: linear-gradient(to bottom, #7dd3fc, #38bdf8 55%, rgba(10, 132, 255, 0.55));
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+[data-sonner-toast] [data-close-button]:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}

@@ -21,7 +21,7 @@ import { InlineSandbox } from '@/components/landing/InlineSandbox';
 import { CastingWall } from '@/components/landing/CastingWall';
 import { PressJunketFAQ } from '@/components/landing/PressJunketFAQ';
 import { PricingCrew } from '@/components/landing/PricingCrew';
-import { EndCreditsFooter } from '@/components/landing/EndCreditsFooter';
+import { Footer as SiteFooter } from '@/components/cinema/Footer';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
@@ -471,9 +471,9 @@ function LandingInner() {
         </TrackedSection>
       </Spaced>
 
-      {/* End-credits footer — replaces standard footer */}
-      <TrackedSection name="EndCreditsFooter" fallback={<SectionLoader />}>
-        <EndCreditsFooter />
+      {/* Premium site footer (shared across landing + all marketing pages) */}
+      <TrackedSection name="SiteFooter" fallback={<SectionLoader />}>
+        <SiteFooter />
       </TrackedSection>
       </div>
       </div>

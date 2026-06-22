@@ -92,11 +92,19 @@ Deno.serve(async (req) => {
         ? priceId
         : (Deno.env.get(`POLAR_PRODUCT_${priceId.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`) ?? "");
       if (!productId) return json({ error: `Polar product not configured for plan ${priceId}` }, 503);
+      // Credits granted per billing cycle. order.paid (initial + each renewal)
+      // reads metadata.credits and posts to the ledger via add_credits.
+      const SUB_CREDITS: Record<string, number> = {
+        sub_creator_monthly: 220,
+        sub_pro_monthly: 600,
+        sub_studio_monthly: 2000,
+      };
       metadata = {
         userId: user.id,
         user_id: user.id,
         kind,
         price_id: priceId,
+        credits: String(SUB_CREDITS[priceId] ?? 0),
         ...(orgId ? { org_id: orgId } : {}),
       };
       fallbackReturn = `${origin}/account?subscription=success&checkout_id={CHECKOUT_ID}`;

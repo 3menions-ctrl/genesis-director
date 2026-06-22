@@ -373,6 +373,11 @@ const App = () => {
                     <AdaptiveShell><Blog /></AdaptiveShell>
                   </RouteContainer>
                 } />
+                <Route path="/blog/:slug" element={
+                  <RouteContainer>
+                    <AdaptiveShell><Blog /></AdaptiveShell>
+                  </RouteContainer>
+                } />
                 <Route path="/press" element={
                   <RouteContainer>
                     <AdaptiveShell><Press /></AdaptiveShell>

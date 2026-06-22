@@ -7,7 +7,7 @@
  * "who-this-is-for" line. No "Most Popular" badge. No comparison
  * checkmarks. No price psychology games.
  *
- * During beta the entire row reads BETA · FREE.
+ * Solo is free to start; paid tiers are live.
  */
 
 import { useSafeNavigation } from '@/lib/navigation';
@@ -30,9 +30,9 @@ const CREWS: readonly Crew[] = [
     code: 'SOLO',
     tier: 'Solo Director',
     who: 'You have a story you want to test before risking budget.',
-    credits: '100 starter credits',
-    priceCurrent: 'Free during beta',
-    priceFuture: 'will be ~$0 / mo',
+    credits: 'Your first 5-sec video free',
+    priceCurrent: 'Free',
+    priceFuture: 'then pay-as-you-go credits',
     includes: [
       'Full studio access',
       'Cast + Locations + Looks library',
@@ -46,8 +46,8 @@ const CREWS: readonly Crew[] = [
     tier: 'Studio Team',
     who: 'You ship work weekly with two collaborators and you need versioning.',
     credits: '1,200 monthly credits',
-    priceCurrent: 'Free during beta',
-    priceFuture: 'will be $49 / mo',
+    priceCurrent: '$49 / mo',
+    priceFuture: 'or pay-as-you-go credits',
     includes: [
       'Everything in Solo, plus —',
       'Up to 3 seats',
@@ -61,8 +61,8 @@ const CREWS: readonly Crew[] = [
     tier: 'Production House',
     who: 'You’re running a full production with cinematographer + AD + supervisor.',
     credits: '6,000 monthly credits',
-    priceCurrent: 'Free during beta',
-    priceFuture: 'will be $299 / mo',
+    priceCurrent: '$299 / mo',
+    priceFuture: 'or pay-as-you-go credits',
     includes: [
       'Everything in Studio, plus —',
       'Up to 12 seats',
@@ -89,7 +89,7 @@ export function PricingCrew() {
             Pick the crew that fits the scene.
           </h2>
           <p className="text-white/55 text-[14px] sm:text-[16px] max-w-xl mx-auto mt-5 leading-relaxed">
-            Small Bridges is free during beta. The crew you join now is the crew you scale into.
+            Start free — your first 5-second video is on us. The crew you join now is the crew you scale into.
           </p>
         </div>
 
@@ -106,7 +106,7 @@ export function PricingCrew() {
             Small Bridges grows with you. No re-signing. No data migrations.
           </div>
           <PrimaryCTA size="lg" onClick={() => navigate('/auth?mode=signup')}>
-            Join the crew — free
+            Start creating
           </PrimaryCTA>
         </div>
       </div>

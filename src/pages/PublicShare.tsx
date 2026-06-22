@@ -282,7 +282,7 @@ export default function PublicShare() {
               Small Bridges made this — Small Bridges can make yours.
             </h2>
             <p className="text-white/65 text-[14px] max-w-xl mx-auto mb-8 leading-relaxed">
-              Free during beta. 100 starter credits the moment you sign up. No card needed.
+              Start free — your first 5-second video is on us. No card needed.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <PrimaryCTA size="lg" onClick={() => navigate('/auth?mode=signup')} trailingIcon={ArrowUpRight}>

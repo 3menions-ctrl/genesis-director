@@ -27,7 +27,7 @@ const QA = [
   },
   {
     q: 'Do I need a card to start?',
-    a: 'No. Small Bridges is free during beta. New accounts receive 100 starter credits the moment they sign up. When paid plans go live we’ll email you 30 days in advance.',
+    a: 'No. Getting started is free — your first 5-second video is on us, generated on the Wan model, with no card required. After that, credits are pay-as-you-go and you only pay for what you render.',
   },
   {
     q: 'What about my prompts and footage — who owns them?',

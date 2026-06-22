@@ -822,7 +822,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   key={k}
                   onClick={() => {
                     if (freeLocked) {
-                      toast.error(`${caps.label} unlocks once you've purchased credits. Free credits run on Kling V3.`);
+                      toast.error(`${caps.label} unlocks once you've purchased credits. Your free 5-second video runs on Wan.`);
                       return;
                     }
                     if (compatible) setVideoEngine(k);
@@ -830,7 +830,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   disabled={!available}
                   title={
                     freeLocked
-                      ? `${caps.label} requires purchased credits. Free credits use Kling V3.`
+                      ? `${caps.label} requires purchased credits. Your free 5-second video runs on Wan.`
                       : !compatible
                         ? selectedMode === 'avatar'
                           ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`

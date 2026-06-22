@@ -1,11 +1,11 @@
 /**
- * Credits — beta-free experience.
+ * Credits — live experience.
  *
- * Small Bridges is free during beta. There is no paid checkout flow today.
+ * Small Bridges is free to start (first 5-sec video on Wan). There is no paid checkout flow today.
  * This page surfaces:
  *   1) The user's current credit balance + lifetime usage
  *   2) A "Request additional credits" form (writes to support_messages so
- *      we can manually top up power users while we're in beta)
+ *      we can manually top up power users at launch)
  *   3) Recent credit transactions (uses existing credit_transactions table)
  *
  * The Stripe-driven version of this page is preserved in version control;
@@ -46,7 +46,7 @@ interface CreditTransaction {
 export default function Credits() {
   usePageMeta({
     title: 'Credits — Small Bridges',
-    description: 'See your current Small Bridges credit balance and request more during beta.',
+    description: 'See your current Small Bridges credit balance and top up anytime.',
   });
 
   const { user, profile, refreshProfile } = useAuth();

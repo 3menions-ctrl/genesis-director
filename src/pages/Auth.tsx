@@ -352,7 +352,7 @@ export default function Auth() {
                   <p className="text-[14px] text-white/55 mt-3">
                     {mode === "signin"
                       ? "Pick up where you left off."
-                      : "Free during beta — 100 starter credits when you confirm."}
+                      : "Start free — your first 5-second video is on us."}
                   </p>
 
                   {/* Underline tab toggle */}

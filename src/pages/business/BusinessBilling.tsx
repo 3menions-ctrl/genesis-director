@@ -7,7 +7,7 @@
  * at $0.10/credit. Spend is sourced from credit_transactions scoped to the
  * workspace's member user_ids; project/member counts are head-counts. The
  * pricing-inquiry form (writes to support_messages) is preserved intact.
- * Plans are still in beta — everything runs on hand-allocated credits.
+ * Plans are now live — everything runs on hand-allocated credits.
  */
 import { useEffect, useMemo, useState } from "react";
 import { Send, Loader2, BadgeCheck, Receipt } from "lucide-react";
@@ -229,10 +229,10 @@ export default function BusinessBilling() {
         </>
       }
       title="Billing."
-      subtitle="Workspace plans launch later. While Small Bridges is in beta, your team runs on hand-allocated credits — here's your spend, broken down so you can shape the plan that fits."
+      subtitle="Workspace plans launch later. For now, your team runs on shared, hand-allocated credits — here's your spend, broken down so you can shape the plan that fits."
       actions={
         <span className="inline-flex items-center px-3 h-8 rounded-full text-[10px] font-mono uppercase tracking-[0.16em] text-emerald-300/90 ring-1 ring-emerald-400/30 bg-emerald-400/10">
-          Beta · Free
+          Free to start
         </span>
       }
     >
@@ -320,7 +320,7 @@ export default function BusinessBilling() {
       ) : (
         <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-6">
           <p className="text-[13px] text-white/55 leading-relaxed mb-5">
-            Tell us what your team needs — we&rsquo;ll grant beta credits or sketch a future plan that fits.
+            Tell us what your team needs — we&rsquo;ll size a plan that fits.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4">
             <label className="block">
@@ -364,7 +364,7 @@ export default function BusinessBilling() {
       <ul className="space-y-3 text-[14px] text-white/65 leading-relaxed">
         <li className="flex gap-3">
           <span className="mt-[9px] w-1 h-1 rounded-full bg-[hsl(215,100%,72%)] shrink-0" />
-          Anyone who signed up during beta keeps their work and their account.
+          Your work and your account are always yours to keep.
         </li>
         <li className="flex gap-3">
           <span className="mt-[9px] w-1 h-1 rounded-full bg-[hsl(215,100%,72%)] shrink-0" />

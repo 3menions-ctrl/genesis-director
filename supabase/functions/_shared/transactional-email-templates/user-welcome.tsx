@@ -5,29 +5,28 @@ import type { TemplateEntry } from './registry.ts'
 
 interface Props {
   displayName?: string
-  starterCredits?: number
 }
 
-function UserWelcome({ displayName = 'there', starterCredits = 100 }: Props) {
+function UserWelcome({ displayName = 'there' }: Props) {
   return (
-    <EmailLayout preview="Welcome to Small Bridges — your starter credits are ready">
+    <EmailLayout preview="Welcome to Small Bridges — your first video is on us">
       <Text style={styles.h1}>Welcome to Small Bridges, {displayName}.</Text>
       <Text style={styles.body}>
-        Small Bridges is free during beta — we've credited your account with{' '}
-        <strong style={{ color: '#fff' }}>{starterCredits.toLocaleString()}</strong> starter credits so you can build something the moment you sign in.
+        Your <strong style={{ color: '#fff' }}>first 5-second video is free</strong> — generated on Wan. Drop in a prompt
+        and watch your idea move, no card required.
       </Text>
       <Text style={styles.body}>
-        Try a sample prompt, drop in your own concept, or browse the templates to find your starting point.
+        Try a sample prompt, paste in your own concept, or browse the templates to find your starting point.
       </Text>
-      <Link href="https://smallbridges.co/create" style={styles.button}>
+      <Link href="https://smallbridges.co/studio" style={styles.button}>
         Open the studio
       </Link>
       <Text style={styles.muted}>
-        Need more credits? Ask us anytime from your{' '}
+        Ready to make more? Top up credits anytime from your{' '}
         <Link href="https://smallbridges.co/credits" style={{ color: '#6FB6FF' }}>
           Credits page
-        </Link>{' '}
-        — we hand-allocate top-ups during beta.
+        </Link>
+        .
       </Text>
     </EmailLayout>
   )
@@ -35,10 +34,9 @@ function UserWelcome({ displayName = 'there', starterCredits = 100 }: Props) {
 
 export const template: TemplateEntry = {
   component: UserWelcome,
-  subject: (data: Props) => `Welcome to Small Bridges, ${data.displayName || 'there'} — your starter credits are ready`,
+  subject: (data: Props) => `Welcome to Small Bridges, ${data.displayName || 'there'} — your first video is on us`,
   displayName: 'User Welcome',
   previewData: {
     displayName: 'Jordan',
-    starterCredits: 100,
   },
 }

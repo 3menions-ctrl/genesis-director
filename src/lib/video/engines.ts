@@ -92,6 +92,22 @@ export function creditsFor(
   return cost;
 }
 
+/**
+ * Per-RENDER quality surcharge for the chosen cores. 4K upscale (Topaz) and
+ * 60fps interpolation (RIFE) are POST-PROCESSING on the final stitched film,
+ * so they're charged ONCE per render — not per clip. Mirrors the backend
+ * finalizer's charge-on-delivery (seamless-stitcher).
+ */
+export function renderSurchargeCredits(
+  spec: EngineSpec,
+  opts: QualityOptions = {},
+): number {
+  let c = 0;
+  if (opts.upscale4k) c += spec.upscale4kCredits;
+  if (opts.fps60) c += spec.fps60Credits;
+  return c;
+}
+
 function tableCost(table: Record<number, number>, duration: number): number {
   const v = table[duration];
   if (v == null) {

@@ -34,6 +34,7 @@ import {
 import { markProjectFailedAndRefund } from "../_shared/pipeline-failure.ts";
 import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
+import { persistQualityIntent } from "../_shared/quality-post.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,6 +72,12 @@ interface SeedancePipelineRequest {
   skipCreditDeduction?: boolean;
   resumeFrom?: string;
   isAvatarMode?: boolean;
+
+  // ─── Quality cores (4K upscale / 60fps interpolation) ────────────────
+  // Read here and persisted to pending_video_tasks so the finalizer
+  // (seamless-stitcher) can honor them and charge ON DELIVERY. The
+  // surcharge is NOT charged here — only when the core is delivered.
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
 
   // ─── Avatars / Mascots / Reference identity ──────────────────────────
   referenceImageUrl?: string;        // avatar/mascot/character ref
@@ -512,6 +519,10 @@ serve(async (req) => {
         })
         .eq("id", projectId);
     }
+
+    // Persist quality intent (4K / 60fps) so the finalizer can honor it and
+    // charge ON DELIVERY. No-op when no quality core was requested.
+    await persistQualityIntent(supabase, projectId, request.qualityOptions, "[Seedance]");
 
     // ═══ SCRIPT ═══
     let shots: Array<Record<string, any>>;

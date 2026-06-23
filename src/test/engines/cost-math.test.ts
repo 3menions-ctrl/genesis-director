@@ -17,7 +17,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { ENGINES, creditsFor, type EngineId, type EngineSpec } from "@/lib/video/engines";
+import {
+  ENGINES,
+  creditsFor,
+  renderSurchargeCredits,
+  type EngineId,
+  type EngineSpec,
+} from "@/lib/video/engines";
 
 const engineIds = Object.keys(ENGINES) as EngineId[];
 
@@ -121,6 +127,36 @@ describe("creditsFor — registry shape sanity", () => {
       if (profilesWith60.length > 0) {
         expect(spec.fps60Credits).toBeGreaterThan(0);
       }
+    });
+  }
+});
+
+// ── renderSurchargeCredits — the once-per-render quality charge ─────────────
+// 4K/60fps are post-processing on the FINAL film (Topaz/RIFE), so the quote
+// adds the surcharge ONCE — not per clip. This mirrors the backend finalizer's
+// charge-on-delivery. It must NOT include any per-second base cost.
+describe("renderSurchargeCredits — once-per-render quality surcharge", () => {
+  for (const id of engineIds) {
+    const spec = ENGINES[id];
+    it(`${id}: no quality cores → 0 surcharge`, () => {
+      expect(renderSurchargeCredits(spec, {})).toBe(0);
+      expect(renderSurchargeCredits(spec)).toBe(0);
+    });
+    it(`${id}: 4K-only surcharge === spec.upscale4kCredits`, () => {
+      expect(renderSurchargeCredits(spec, { upscale4k: true })).toBe(spec.upscale4kCredits);
+    });
+    it(`${id}: 60fps-only surcharge === spec.fps60Credits`, () => {
+      expect(renderSurchargeCredits(spec, { fps60: true })).toBe(spec.fps60Credits);
+    });
+    it(`${id}: 4K + 60fps stacks to the sum (charged once, not per clip)`, () => {
+      expect(renderSurchargeCredits(spec, { upscale4k: true, fps60: true })).toBe(
+        spec.upscale4kCredits + spec.fps60Credits,
+      );
+    });
+    it(`${id}: surcharge is independent of duration (it's final-film post, not per-second)`, () => {
+      const a = renderSurchargeCredits(spec, { upscale4k: true, fps60: true });
+      expect(a).toBe(spec.upscale4kCredits + spec.fps60Credits);
+      // Same regardless of how long the render is — no duration arg at all.
     });
   }
 });

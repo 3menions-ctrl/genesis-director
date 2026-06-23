@@ -40,7 +40,7 @@ import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { PageShell } from "@/components/shell";
 import { CreationHub } from "@/components/studio/CreationHub";
 import { CreationStudio } from "@/components/studio/CreationStudio";
-import { FirstTakeTour } from "@/components/onboarding/FirstTakeTour";
+import { StudioEntranceIntro } from "@/components/intro/StudioEntranceIntro";
 import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
@@ -549,7 +549,7 @@ function StudioContentInner() {
       </div>
 
       {isCreating && <LoadingOverlay status={creationStatus} />}
-      <FirstTakeTour />
+      <StudioEntranceIntro />
     </>
   );
 }

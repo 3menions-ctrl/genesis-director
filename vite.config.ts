@@ -4,6 +4,13 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
+// When ADMIN_BUILD=1, build the STANDALONE admin console instead of the public
+// app: a separate entry (admin.html → src/admin/main-admin.tsx) emitted to
+// dist-admin/. Run via `npm run build:admin` (which also sets VITE_ADMIN=true so
+// the admin module is compiled in). The public build is unaffected — admin
+// stays tree-shaken out of it.
+const IS_ADMIN_BUILD = process.env.ADMIN_BUILD === "1";
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   logLevel: mode === "development" ? "warn" : "info",
@@ -110,12 +117,19 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
+    // Standalone admin build → its own entry + output dir.
+    ...(IS_ADMIN_BUILD
+      ? { outDir: "dist-admin" }
+      : {}),
     // Suppress chunk size warnings that get misinterpreted as errors
     chunkSizeWarningLimit: 1500,
     // Skip gzip size computation to reduce build output volume
     reportCompressedSize: false,
     // Optimize chunk splitting
     rollupOptions: {
+      input: IS_ADMIN_BUILD
+        ? { admin: path.resolve(__dirname, "admin.html") }
+        : undefined,
       output: {
         manualChunks: {
           // Vendor chunks for better caching

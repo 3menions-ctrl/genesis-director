@@ -25,6 +25,7 @@ import { StudioHero } from "@/components/studio/StudioHero";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { useMediaLibrary, type MediaAsset } from "@/hooks/useMediaLibrary";
+import { MUSIC_LIBRARY, MUSIC_CATEGORY_LABELS } from "@/lib/editor/music-library";
 import { validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { UserHueBackdrop } from "@/components/foundation/UserHueBackdrop";
@@ -179,6 +180,29 @@ export default function MusicHub() {
                   <PresetCard key={p.composer} preset={p} onPick={() => openScore(p)} />
                 ))}
               </div>
+            </section>
+
+            {/* Free library — license-clear beds, ready to play + use. */}
+            <section className="mb-14">
+              <SectionLabel label="Free library · ready to use" icon={FileMusic} meta={`${MUSIC_LIBRARY.length} tracks`} />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {MUSIC_LIBRARY.map((t) => (
+                  <div key={t.id} className="rounded-2xl bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-[15px] font-light text-white" style={{ fontFamily: "'Fraunces', serif" }}>{t.title}</div>
+                        <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                          {MUSIC_CATEGORY_LABELS[t.category]} · {Math.floor(t.durationSec / 60)}:{String(t.durationSec % 60).padStart(2, "0")}
+                        </div>
+                      </div>
+                      <a href={t.url} download className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-full bg-white/[0.06] px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70 transition-colors hover:bg-white/[0.12] hover:text-white">↓ Save</a>
+                    </div>
+                    <audio src={t.url} controls preload="none" className="h-9 w-full" />
+                    <div className="mt-2 text-[10.5px] text-white/35">{t.license}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[12px] text-white/40">Also available in the editor's Music panel — one click to score your timeline.</p>
             </section>
 
             {/* My Tracks — generated + uploaded audio. */}

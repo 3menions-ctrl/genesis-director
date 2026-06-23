@@ -19,7 +19,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Play, Sparkles, ArrowRight, Flame, Trophy, Aperture, Search, Plus, Shuffle, Eye,
 } from "lucide-react";
@@ -231,6 +231,24 @@ export default function Lobby() {
     [feed, activeWorld],
   );
   const featured = useMemo(() => filtered.find((r) => r.is_featured) ?? filtered[0] ?? null, [filtered]);
+
+  // Hero shuffle — the header film rotates through a small pool over time
+  // (featured films first, else the top of the feed). Soft fade per swap;
+  // frozen under reduced-motion.
+  const heroPool = useMemo(() => {
+    const feat = filtered.filter((r) => r.is_featured);
+    const base = (feat.length >= 2 ? feat : filtered).slice(0, 6);
+    return base.length ? base : (featured ? [featured] : []);
+  }, [filtered, featured]);
+  const [heroIdx, setHeroIdx] = useState(0);
+  useEffect(() => { setHeroIdx(0); }, [activeWorld]);
+  useEffect(() => {
+    if (reduced || heroPool.length < 2) return;
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroPool.length), 9000);
+    return () => clearInterval(t);
+  }, [reduced, heroPool.length]);
+  const heroReel = heroPool[heroIdx % Math.max(1, heroPool.length)] ?? featured;
+
   const featuredRail = useMemo(() => filtered.filter((r) => r.id !== featured?.id).slice(0, 6), [filtered, featured]);
   const newThisWeek = useMemo(
     () => [...feed].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 6),
@@ -271,50 +289,73 @@ export default function Lobby() {
   return (
     <FoundationShell>
       <div className="relative z-10">
-        {/* ── HERO TAKEOVER ─────────────────────────────────────────── */}
-        {featured && (
+        {/* ── HERO TAKEOVER (shuffles over time) ─────────────────────── */}
+        {heroReel && (
           <section className="relative w-full">
             <div className="relative h-[clamp(420px,56vh,600px)] w-full overflow-hidden">
-              {featured.thumbnail_url && (
-                /* Hero media in a full-bleed frame — object-cover never distorts. */
-                <img src={featured.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              {heroReel.thumbnail_url && (
+                /* Full-bleed cover frame; soft cross-fade on each shuffle. */
+                <motion.img
+                  key={heroReel.id}
+                  src={heroReel.thumbnail_url}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  initial={reduced ? false : { opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: reduced ? 0 : 1.1, ease: "easeOut" }}
+                />
               )}
               <div
                 className="absolute inset-0"
                 style={{ background: "linear-gradient(90deg, hsl(220 14% 2% / .95) 18%, hsl(220 14% 2% / .5) 52%, hsl(220 14% 2% / .12) 82%), linear-gradient(0deg, hsl(220 14% 2%), hsl(220 14% 2% / .08) 46%)" }}
               />
               <div className="absolute inset-x-0 bottom-0">
-                <div className="mx-auto w-full max-w-[1440px] px-4 pb-9 sm:px-8 lg:px-12">
+                <motion.div
+                  key={`${heroReel.id}-meta`}
+                  className="mx-auto w-full max-w-[1440px] px-4 pb-9 sm:px-8 lg:px-12"
+                  initial={reduced ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
+                >
                   <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
-                    style={{ borderColor: featured.world_accent ? `hsl(${featured.world_accent} / .4)` : "hsl(var(--border))" }}>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={accentStyle(featured.world_accent)}>
-                      {featured.world_glyph} {featured.world_name ?? "Premiere"} · premiere of the night
+                    style={{ borderColor: heroReel.world_accent ? `hsl(${heroReel.world_accent} / .4)` : "hsl(var(--border))" }}>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={accentStyle(heroReel.world_accent)}>
+                      {heroReel.world_glyph} {heroReel.world_name ?? "Premiere"} · premiere of the night
                     </span>
                   </div>
                   {/* No oversized headline — a restrained title + synopsis carry it. */}
                   <h2 className="mt-3 max-w-2xl font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[26px]">
-                    {featured.title}
+                    {heroReel.title}
                   </h2>
-                  {featured.synopsis && (
-                    <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-foreground/60">{featured.synopsis}</p>
+                  {heroReel.synopsis && (
+                    <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-foreground/60">{heroReel.synopsis}</p>
                   )}
                   <div className="mt-5 flex flex-wrap items-center gap-2.5">
-                    <button type="button" onClick={() => openTheater(featured)}
+                    <button type="button" onClick={() => openTheater(heroReel)}
                       className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
                       <Play className="h-4 w-4 fill-current" /> Watch now
                     </button>
-                    <button type="button" onClick={() => startWithSeed(featured.synopsis || featured.title)}
+                    <button type="button" onClick={() => startWithSeed(heroReel.synopsis || heroReel.title)}
                       className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-white/5">
                       <Shuffle className="h-3.5 w-3.5" /> Remix this look
                     </button>
                   </div>
                   <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[11px] text-muted-foreground">
-                    <span>◆ {compact(featured.play_count)} plays</span>
-                    <span>{compact(featured.like_count)} likes</span>
-                    <span>{featured.remix_count} remixes</span>
-                    {featured.creator_name && <span>directed by {featured.creator_name}</span>}
+                    <span>◆ {compact(heroReel.play_count)} plays</span>
+                    <span>{compact(heroReel.like_count)} likes</span>
+                    <span>{heroReel.remix_count} remixes</span>
+                    {heroReel.creator_name && <span>directed by {heroReel.creator_name}</span>}
                   </div>
-                </div>
+                  {/* shuffle position dots */}
+                  {heroPool.length > 1 && (
+                    <div className="mt-5 flex items-center gap-1.5">
+                      {heroPool.map((r, i) => (
+                        <button key={r.id} type="button" aria-label={`Show ${r.title}`} onClick={() => setHeroIdx(i)}
+                          className={cn("h-1.5 rounded-full transition-all", i === heroIdx ? "w-6 bg-white/90" : "w-1.5 bg-white/30 hover:bg-white/50")} />
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               </div>
             </div>
 
@@ -459,24 +500,32 @@ function Rail({ title, sub, onSeeAll, seeAllLabel = "See all →", last, childre
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:gap-5">{children}</div>
+      {/* Masonry — cards keep each video's OWN aspect ratio, so a vertical
+          reel sits tall and a landscape film sits wide; no forced crop. */}
+      <div className="columns-2 gap-4 sm:columns-3 lg:gap-5">{children}</div>
     </section>
   );
 }
 
 function VideoCard({ reel, demo, onOpen, reduced }: { reel: FeedRow; demo: boolean; onOpen: (r: FeedRow) => void; reduced: boolean }) {
+  // The frame adopts the media's OWN aspect ratio (read from the thumbnail).
+  // Until it loads we hold a 16:9 placeholder so the masonry doesn't jump.
+  const [ratio, setRatio] = useState<number | null>(null);
   return (
-    <article className="group">
+    <article className="group mb-4 break-inside-avoid lg:mb-5">
       <button
         type="button"
         onClick={() => onOpen(reel)}
         title={demo ? "Sample film" : reel.title}
-        className="relative block w-full overflow-hidden rounded-2xl bg-[#111] ring-1 ring-inset ring-white/[0.07]"
-        /* FIXED 16:9 frame — the video never stretches the layout. */
-        style={{ aspectRatio: "16 / 9" }}
+        /* Transparent frame sized to the video's true ratio — never cropped,
+           never letterboxed. object-cover fills exactly because they match. */
+        className="relative block w-full overflow-hidden rounded-2xl bg-transparent ring-1 ring-inset ring-white/[0.07]"
+        style={{ aspectRatio: ratio ? `${ratio}` : "16 / 9" }}
       >
         {reel.thumbnail_url
-          ? <img src={reel.thumbnail_url} alt="" loading="lazy" className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-500 group-hover:scale-[1.04]")} />
+          ? <img src={reel.thumbnail_url} alt="" loading="lazy"
+              onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
+              className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-500 group-hover:scale-[1.04]")} />
           : <span className="flex h-full w-full items-center justify-center text-muted-foreground/40"><Eye className="h-6 w-6" /></span>}
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
         <span className="absolute bottom-2.5 left-2.5 grid h-8 w-8 place-items-center rounded-full bg-white/90 opacity-0 transition-opacity group-hover:opacity-100">

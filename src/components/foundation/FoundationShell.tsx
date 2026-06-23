@@ -248,14 +248,17 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
           page chrome but under modals (z-100) and the LeftRail handle. */}
       {user && (
         <div className="fixed top-3 right-4 z-50 flex items-center gap-2">
-          {/* Credit balance — taps straight through to the credits ledger. */}
+          {/* Credit balance — highlighted, accent-glow pill; taps to the ledger. */}
           <Link
             to="/account?tab=credits"
             aria-label={`Credits: ${balance ?? 0}`}
-            className="flex h-9 items-center gap-1.5 rounded-full border border-white/[0.10] bg-[hsl(220_30%_6%/0.55)] backdrop-blur-xl px-3 text-foreground/85 transition-colors hover:border-accent/40 hover:text-foreground"
+            className="group relative flex h-9 items-center gap-1.5 rounded-full px-3.5 text-white backdrop-blur-xl transition-transform duration-200 hover:-translate-y-px"
+            style={{ background: 'hsl(var(--accent) / 0.14)', boxShadow: 'inset 0 0 0 1px hsl(var(--accent) / 0.5), 0 10px 28px -12px hsl(var(--accent) / 0.85)' }}
           >
-            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
-            <span className="font-mono text-[12.5px] tabular-nums">{(balance ?? 0).toLocaleString()}</span>
+            <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-full opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'hsl(var(--accent) / 0.3)' }} />
+            <Sparkles className="relative h-3.5 w-3.5" style={{ color: 'hsl(var(--accent))' }} strokeWidth={1.9} />
+            <span className="relative font-mono text-[12.5px] font-semibold tabular-nums">{(balance ?? 0).toLocaleString()}</span>
+            <span className="relative ml-0.5 font-mono text-[8.5px] uppercase tracking-[0.18em] text-white/55">credits</span>
           </Link>
           <Link
             to="/search"

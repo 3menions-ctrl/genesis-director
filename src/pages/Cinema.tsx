@@ -50,7 +50,6 @@ export default function Cinema() {
   // finale exactly as the film breaks into the "Start now" takeover.
   const musicRef = useRef<HTMLAudioElement>(null);
   const musicFadeRef = useRef(0);
-  const climaxRef = useRef(false);
 
   const fadeMusic = useCallback((to: number, ms: number, then?: () => void) => {
     const a = musicRef.current;
@@ -69,18 +68,16 @@ export default function Cinema() {
   useEffect(() => {
     const a = musicRef.current;
     if (!a) return;
-    const wantSound = !muted && vphase !== "cover";
-    if (wantSound) {
+    // Whisper-quiet score, only while the film is actually playing. It fades
+    // out as the film reaches its final beat (immersive) so it ENDS with the
+    // video — no carry-over into the takeover. Already in the voice's key (B
+    // minor), so no pitch shift.
+    const playingNow = !muted && vphase === "playing";
+    if (playingNow) {
       if (a.paused) { a.volume = 0; a.play().catch(() => {}); }
-      // Jump to the finale as the film goes immersive / takes over.
-      if ((vphase === "broken" || vphase === "immersive") && !climaxRef.current && a.duration) {
-        climaxRef.current = true;
-        try { a.currentTime = Math.max(0, a.duration - 26); } catch { /* noop */ }
-      }
-      // Faint throughout; a small swell for the climax.
-      fadeMusic(vphase === "broken" ? 0.18 : 0.12, vphase === "broken" ? 2600 : 4500);
+      fadeMusic(0.035, 4500);
     } else {
-      fadeMusic(0, 650, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
+      fadeMusic(0, vphase === "immersive" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
   }, [muted, vphase, fadeMusic]);
 

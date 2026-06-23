@@ -34,7 +34,8 @@ describe('Round 1: Core stability fixes', () => {
 
   // ─── FIX 1: Phantom Credits ─────────────────────────────────────────────
   describe('Fix #1 — Phantom credits fallback set to 0', () => {
-    const source = readSrc('contexts/AuthContext.tsx');
+    // The fallback profile builder was extracted from AuthContext.tsx into authProfile.ts
+    const source = readSrc('contexts/authProfile.ts');
 
     it('fallback profile uses credits_balance: 0, not 60', () => {
       // Find all credits_balance assignments in the file

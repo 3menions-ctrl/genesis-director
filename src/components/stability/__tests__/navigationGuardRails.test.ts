@@ -41,10 +41,12 @@ describe('Navigation Loading Coordination', () => {
   });
 
   describe('Create Page Pattern Compliance', () => {
+    // /create now redirects to /studio — Studio.tsx is the workshop/create
+    // surface and owns the gatekeeper + hub-ready coordination.
     it('should use centralized gatekeeper hook', () => {
-      const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+      const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
-      
+
       // Create page should use centralized gatekeeper hook
       expect(content.includes('useGatekeeperLoading')).toBe(true);
       expect(content.includes('GATEKEEPER_PRESETS.create')).toBe(true);
@@ -52,20 +54,20 @@ describe('Navigation Loading Coordination', () => {
     });
 
     it('should track hub ready state for coordinated loading', () => {
-      const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+      const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
-      
+
       // Should have isHubReady state
       expect(content.includes('isHubReady')).toBe(true);
-      
+
       // Should pass isHubReady to gatekeeper as dataSuccess
       expect(content.includes('dataSuccess: isHubReady')).toBe(true);
     });
 
     it('should pass onReady callback to CreationHub', () => {
-      const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+      const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
-      
+
       // Should pass onReady prop
       expect(content.includes('onReady={handleHubReady}')).toBe(true);
     });
@@ -95,14 +97,17 @@ describe('Navigation Loading Coordination', () => {
 });
 
 describe('Heavy Route Configuration', () => {
-  it('should have proper min duration for Create route', () => {
+  it('should have a min duration entry for Create route', () => {
     // Route config is now centralized in routeConfig.ts
     const contextPath = path.join(process.cwd(), 'src/lib/navigation/routeConfig.ts');
     const content = fs.readFileSync(contextPath, 'utf-8');
-    
-    // Create route should have substantial min duration
+
+    // Create route must still be configured as a heavy route.
     expect(content.includes("'/create'")).toBe(true);
-    expect(content.includes('minDuration: 800')).toBe(true);
+    // minDuration was intentionally dropped from 800ms to 0 — forcing a hard
+    // wait on every heavy-route nav killed perceived responsiveness; the page
+    // now completes on route change and relies on the 6s safety net instead.
+    expect(content.includes('minDuration: 0')).toBe(true);
   });
 
   it('should have progressive loading messages', () => {

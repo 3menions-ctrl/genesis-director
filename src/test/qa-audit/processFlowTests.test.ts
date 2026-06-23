@@ -63,28 +63,32 @@ describe('P002/P003: Authentication Flows', () => {
 // ============= P007: Project List =============
 describe('P007: Project List Flow', () => {
   it('should have Projects page with proper data fetching', () => {
-    const projectsPath = path.join(process.cwd(), 'src/pages/Projects.tsx');
+    // Projects.tsx was removed; /projects now redirects to /library and the
+    // project list lives in Library.tsx.
+    const projectsPath = path.join(process.cwd(), 'src/pages/Library.tsx');
     const content = fs.readFileSync(projectsPath, 'utf-8');
-    
+
     expect(content.includes('movie_projects')).toBe(true);
   });
 
   it('should handle empty state correctly', () => {
-    const projectsPath = path.join(process.cwd(), 'src/pages/Projects.tsx');
+    const projectsPath = path.join(process.cwd(), 'src/pages/Library.tsx');
     const content = fs.readFileSync(projectsPath, 'utf-8');
-    
-    // Should show empty state when stats.total === 0
-    expect(content.includes('stats.total === 0') || content.includes('filteredProjects.length === 0')).toBe(true);
+
+    // Should show empty state when the filtered project list is empty
+    expect(content.includes('filtered.length === 0') || content.includes('filteredProjects.length === 0')).toBe(true);
   });
 });
 
 // ============= P008-P009: Create Project Flow =============
 describe('P008-P009: Create Project Flow', () => {
   it('should invoke mode-router for all creation modes', () => {
-    const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+    // Create.tsx was removed; /create now redirects to /studio and the
+    // creation flow lives in Studio.tsx.
+    const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
     const content = fs.readFileSync(createPath, 'utf-8');
-    
-    expect(content.includes("'mode-router'")).toBe(true);
+
+    expect(content.includes('mode-router')).toBe(true);
     expect(content.includes('handleStartCreation')).toBe(true);
   });
 
@@ -94,13 +98,13 @@ describe('P008-P009: Create Project Flow', () => {
     const content = fs.readFileSync(errorHandlerPath, 'utf-8');
     
     expect(content.includes('402') || content.includes('credits') || content.includes('Credits')).toBe(true);
-    // Create.tsx delegates to handleEdgeFunctionError / showUserFriendlyError
-    const createContent = fs.readFileSync(path.join(process.cwd(), 'src/pages/Create.tsx'), 'utf-8');
+    // Studio.tsx delegates to handleEdgeFunctionError / showUserFriendlyError
+    const createContent = fs.readFileSync(path.join(process.cwd(), 'src/pages/Studio.tsx'), 'utf-8');
     expect(createContent.includes('handleEdgeFunctionError') || createContent.includes('showUserFriendlyError')).toBe(true);
   });
 
   it('should navigate to production after creation', () => {
-    const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+    const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
     const content = fs.readFileSync(createPath, 'utf-8');
     
     expect(content.includes('/production/')).toBe(true);
@@ -108,7 +112,7 @@ describe('P008-P009: Create Project Flow', () => {
   });
 
   it('should use centralized gatekeeper loading to prevent infinite loading', () => {
-    const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
+    const createPath = path.join(process.cwd(), 'src/pages/Studio.tsx');
     const content = fs.readFileSync(createPath, 'utf-8');
     
     // Gatekeeper is now centralized via useGatekeeperLoading hook + GATEKEEPER_PRESETS
@@ -168,7 +172,8 @@ describe('P018: Credit Purchase Flow', () => {
 // ============= P019: Admin Dashboard =============
 describe('P019: Admin Dashboard Flow', () => {
   it('should have Admin page', () => {
-    const adminPath = path.join(process.cwd(), 'src/pages/Admin.tsx');
+    // Admin.tsx moved into the standalone admin app at src/admin/AdminApp.tsx.
+    const adminPath = path.join(process.cwd(), 'src/admin/AdminApp.tsx');
     expect(fs.existsSync(adminPath)).toBe(true);
   });
 

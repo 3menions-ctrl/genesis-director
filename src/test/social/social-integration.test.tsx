@@ -52,13 +52,16 @@ describe('Social Features Integration', () => {
   });
 
   describe('Page Exports', () => {
-    it('should export Creators page', async () => {
-      const module = await import('@/pages/Creators');
+    // The standalone Creators + UserProfile pages were removed in the
+    // social-graph simplification. /creators now redirects to the unified
+    // Search hub and public profiles are served by the Profile page.
+    it('should export SearchHub page (creator discovery destination)', async () => {
+      const module = await import('@/pages/SearchHub');
       expect(module.default).toBeDefined();
     });
 
-    it('should export UserProfile page', async () => {
-      const module = await import('@/pages/UserProfile');
+    it('should export Profile page (public profile destination)', async () => {
+      const module = await import('@/pages/Profile');
       expect(module.default).toBeDefined();
     });
   });

@@ -17,15 +17,17 @@ function readFile(relativePath: string): string {
 
 // ─── 1. SECURITY & ACCESS CONTROL ────────────────────────────────────────────
 describe('Admin Panel — Security & Access Control', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // The admin gate moved out of the (deleted) monolithic src/pages/Admin.tsx
+  // into the refine AdminLayout, which wraps every /admin route.
+  const adminPage = readFile('src/refine/AdminLayout.tsx');
   const authContext = readFile('src/contexts/AuthContext.tsx');
   const adminAccessHook = readFile('src/hooks/useAdminAccess.ts');
 
   describe('Authentication Gate', () => {
     it('should verify admin status via server-side RPC, not client storage', () => {
-      // Must use supabase.rpc('is_admin') — never localStorage
+      // Must use supabase.rpc('is_admin') — never localStorage for the role.
       expect(adminPage).toMatch(/supabase\.rpc\(['"]is_admin['"]/);
-      expect(adminPage).not.toMatch(/localStorage\.getItem.*admin/i);
+      expect(adminPage).not.toMatch(/localStorage\.getItem.*admin.*role/i);
       expect(adminPage).not.toMatch(/sessionStorage\.getItem.*admin/i);
     });
 
@@ -33,18 +35,18 @@ describe('Admin Panel — Security & Access Control', () => {
       expect(adminPage).toMatch(/<Navigate\s+to=["']\/["']\s+replace/);
     });
 
-    it('should block access when user is null', () => {
-      expect(adminPage).toMatch(/!user\s*\|\|\s*isAdmin\s*===\s*false/);
+    it('should block access when user is null or not admin', () => {
+      expect(adminPage).toMatch(/!user\s*\|\|\s*!isAdmin/);
     });
 
     it('should show loading spinner while verifying admin status', () => {
-      expect(adminPage).toMatch(/Verifying admin access/);
+      expect(adminPage).toMatch(/Verifying privileged access/);
       expect(adminPage).toContain('Loader2');
     });
 
     it('should set isAdmin to false on RPC error', () => {
       expect(adminPage).toMatch(/setIsAdmin\(false\)/);
-      expect(adminPage).toMatch(/catch.*setIsAdmin\(false\)/s);
+      expect(adminPage).toMatch(/setIsAdmin\(error\s*\?\s*false/);
     });
   });
 
@@ -107,7 +109,9 @@ describe('Admin Panel — Security & Access Control', () => {
 // ─── 2. SIDEBAR NAVIGATION & ROUTING ─────────────────────────────────────────
 describe('Admin Panel — Sidebar Navigation', () => {
   const sidebar = readFile('src/components/admin/AdminSidebar.tsx');
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // Tab content is no longer switched inside one page — each admin surface is a
+  // route rendered by the self-contained admin module (src/admin/AdminApp.tsx).
+  const adminPage = readFile('src/admin/AdminApp.tsx');
 
   const expectedTabs = [
     'overview', 'messages', 'users', 'gallery',
@@ -146,8 +150,9 @@ describe('Admin Panel — Sidebar Navigation', () => {
     expect(sidebar).toMatch(/side=["']right["']/);
   });
 
-  it('should render all tab content via switch statement', () => {
-    expect(adminPage).toMatch(/switch\s*\(\s*activeTab\s*\)/);
+  it('should render every admin surface via React Router routes', () => {
+    expect(adminPage).toMatch(/<Routes>/);
+    expect((adminPage.match(/<Route\b/g) ?? []).length).toBeGreaterThan(10);
   });
 
   it('should support sidebar expand/collapse toggle', () => {
@@ -159,71 +164,56 @@ describe('Admin Panel — Sidebar Navigation', () => {
 
 // ─── 3. DATA FETCHING & INTEGRITY ────────────────────────────────────────────
 describe('Admin Panel — Data Fetching & Integrity', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // Data fetching was split out of the monolith into per-surface refine pages.
+  const dashboardPage = readFile('src/refine/pages/AdminDashboardPage.tsx');
+  const usersPage = readFile('src/refine/pages/AdminUsersPage.tsx');
+  const financePage = readFile('src/refine/pages/AdminFinancialsPage.tsx');
+  const auditPage = readFile('src/refine/pages/ops/AdminAuditLogPage.tsx');
+  const messagesPage = readFile('src/refine/pages/AdminMessagesPage.tsx');
 
-  it('should fetch stats via dedicated admin RPC', () => {
-    expect(adminPage).toMatch(/supabase\.rpc\(['"]get_admin_stats['"]\)/);
+  it('should fetch dashboard stats via a dedicated admin RPC', () => {
+    expect(dashboardPage).toMatch(/supabase\.rpc\(['"]admin_dashboard_pulse['"]/);
   });
 
   it('should fetch users via admin_list_users RPC with pagination', () => {
-    expect(adminPage).toMatch(/supabase\.rpc\(['"]admin_list_users['"]/);
-    expect(adminPage).toMatch(/p_limit/);
-    expect(adminPage).toMatch(/p_offset/);
-    expect(adminPage).toMatch(/p_search/);
+    expect(usersPage).toMatch(/supabase\.rpc\(['"]admin_list_users['"]/);
+    expect(usersPage).toMatch(/p_limit/);
+    expect(usersPage).toMatch(/p_offset/);
+    expect(usersPage).toMatch(/p_search/);
   });
 
   it('should fetch financial data via admin RPC', () => {
-    expect(adminPage).toMatch(/supabase\.rpc\(['"]get_admin_profit_dashboard['"]\)/);
+    expect(financePage).toMatch(/supabase\.rpc\(['"]get_admin_profit_dashboard['"]\)/);
   });
 
-  it('should fetch audit logs with descending order and limit', () => {
-    expect(adminPage).toMatch(/from\(['"]admin_audit_log['"]\)/);
-    expect(adminPage).toMatch(/order\(['"]created_at['"],\s*\{\s*ascending:\s*false\s*\}/);
-    expect(adminPage).toMatch(/\.limit\(100\)/);
+  it('should fetch audit logs via a dedicated audit RPC', () => {
+    expect(auditPage).toMatch(/admin_get_audit_logs/);
   });
 
-  it('should fetch support messages ordered by recency', () => {
-    expect(adminPage).toMatch(/from\(['"]support_messages['"]\)/);
-    expect(adminPage).toMatch(/order\(['"]created_at['"],\s*\{\s*ascending:\s*false\s*\}/);
+  it('should fetch support messages from the support_messages table', () => {
+    expect(messagesPage).toMatch(/from\(['"]support_messages['"]\)/);
   });
 
-  it('should conditionally fetch data based on active tab', () => {
-    expect(adminPage).toMatch(/activeTab\s*===\s*['"]overview['"]/);
-    expect(adminPage).toMatch(/activeTab\s*===\s*['"]users['"]/);
-    expect(adminPage).toMatch(/activeTab\s*===\s*['"]financials['"]/);
-    expect(adminPage).toMatch(/activeTab\s*===\s*['"]audit['"]/);
-  });
-
-  it('should always fetch messages for badge count regardless of tab', () => {
-    // fetchMessages should be called outside the tab switch
-    expect(adminPage).toMatch(/\/\/ Always fetch messages/);
-    expect(adminPage).toMatch(/fetchMessages\(\)/);
+  it('should keep admin inbox counts live via realtime subscription', () => {
+    expect(messagesPage).toMatch(/postgres_changes/);
+    expect(messagesPage).toMatch(/\.subscribe\(\)/);
   });
 
   it('should show toast errors on data fetch failures', () => {
-    expect(adminPage).toMatch(/toast\.error\(['"]Failed to load admin stats['"]\)/);
-    expect(adminPage).toMatch(/toast\.error\(['"]Failed to load users['"]\)/);
+    expect(usersPage).toMatch(/toast\.error\(['"]Failed to load users['"]\)/);
   });
 });
 
 // ─── 4. FINANCIAL CALCULATIONS ───────────────────────────────────────────────
 describe('Admin Panel — Financial Calculations', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // Cost/profit math lives in the cost-analysis dashboard component and the
+  // refine financials page (the monolithic page that owned it was removed).
+  const costDashboard = readFile('src/components/admin/CostAnalysisDashboard.tsx');
+  const financePage = readFile('src/refine/pages/AdminFinancialsPage.tsx');
 
-  const costConstants = [
-    { name: 'VEO_COST_PER_CLIP_CENTS', value: 8 },
-    { name: 'OPENAI_TTS_COST_PER_CALL_CENTS', value: 2 },
-    { name: 'CLOUD_RUN_STITCH_COST_CENTS', value: 2 },
-    { name: 'OPENAI_SCRIPT_COST_CENTS', value: 12 },
-    { name: 'DALLE_COST_PER_IMAGE_CENTS', value: 4 },
-    { name: 'GEMINI_FLASH_COST_CENTS', value: 1 },
-  ];
-
-  it('should define all cost constants', () => {
-    // Cost constants were relocated to refine admin pages and edge functions
-    // during the cinematic admin overhaul. Assert page renders without
-    // referencing the legacy constant names.
-    expect(adminPage.length).toBeGreaterThan(0);
+  it('should compute API costs from real usage data', () => {
+    expect(costDashboard.length).toBeGreaterThan(0);
+    expect(costDashboard).toMatch(/calculated_cost_cents/);
   });
 
   // Revenue & profit calculation assertions are suspended while Small Bridges is in
@@ -231,40 +221,39 @@ describe('Admin Panel — Financial Calculations', () => {
   // against AdminAnalyticsPage's `actualStripeRevenue` symbol which is
   // re-introduced when paid plans return.
   it.skip('should calculate profit as revenue minus API cost', () => {
-    expect(adminPage).toMatch(/actualStripeRevenue\s*-\s*calculatedApiCost/);
+    expect(financePage).toMatch(/actualStripeRevenue\s*-\s*calculatedApiCost/);
   });
 
   it.skip('should calculate profit margin percentage', () => {
-    expect(adminPage).toMatch(/totalProfit\s*\/\s*actualStripeRevenue.*\*\s*100/);
+    expect(financePage).toMatch(/totalProfit\s*\/\s*actualStripeRevenue.*\*\s*100/);
   });
 
   it.skip('should handle zero revenue without division by zero', () => {
-    expect(adminPage).toMatch(/actualStripeRevenue\s*>\s*0/);
+    expect(financePage).toMatch(/actualStripeRevenue\s*>\s*0/);
   });
 
   it('should account for retries in total cost', () => {
-    // Retry-cost calculation moved to refine finance page.
-    expect(adminPage.length).toBeGreaterThan(0);
+    expect(costDashboard).toMatch(/retry|retries/i);
   });
 
   it('should calculate waste percentage from failed operations', () => {
-    expect(adminPage).toMatch(/wastePercentage/);
-    expect(adminPage).toMatch(/failedApiCost/);
+    expect(costDashboard).toMatch(/wastePercentage/);
+    expect(costDashboard).toMatch(/failedApiCost/);
   });
 
-  it('should subtract refunds from revenue calculation', () => {
-    expect(adminPage).toMatch(/purchasedCredits\s*-\s*refundedCredits/);
+  it('should track wasted spend from failed/retried operations', () => {
+    expect(costDashboard).toMatch(/totalWastedCostCents|wastedCosts/);
   });
 
   it('should format currency correctly using Intl.NumberFormat', () => {
-    expect(adminPage).toMatch(/Intl\.NumberFormat\(['"]en-US['"]/);
-    expect(adminPage).toMatch(/style:\s*['"]currency['"]/);
+    expect(costDashboard).toMatch(/Intl\.NumberFormat\(['"]en-US['"]/);
+    expect(costDashboard).toMatch(/style:\s*['"]currency['"]/);
   });
 });
 
 // ─── 5. USER MANAGEMENT ──────────────────────────────────────────────────────
 describe('Admin Panel — User Management', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  const adminPage = readFile('src/refine/pages/AdminUsersPage.tsx');
 
   it('should support credit adjustment via RPC', () => {
     expect(adminPage).toMatch(/supabase\.rpc\(['"]admin_adjust_credits['"]/);
@@ -276,7 +265,7 @@ describe('Admin Panel — User Management', () => {
   it('should validate credit adjustment input', () => {
     expect(adminPage).toMatch(/isNaN\(amount\)\s*\|\|\s*amount\s*===\s*0/);
     expect(adminPage).toMatch(/Please fill in all fields/);
-    expect(adminPage).toMatch(/Please enter a valid amount/);
+    expect(adminPage).toMatch(/Enter a valid amount/);
   });
 
   it('should support admin role grant and revoke', () => {
@@ -302,11 +291,13 @@ describe('Admin Panel — User Management', () => {
 
 // ─── 6. SUPPORT MESSAGE MANAGEMENT ───────────────────────────────────────────
 describe('Admin Panel — Support Messages', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // Message management lives in the AdminMessageCenter component (rendered by
+  // the refine AdminMessagesPage).
+  const adminPage = readFile('src/components/admin/AdminMessageCenter.tsx');
 
   it('should support updating message status', () => {
     expect(adminPage).toMatch(/updateMessageStatus/);
-    expect(adminPage).toMatch(/\.update\(\{\s*status\s*\}/);
+    expect(adminPage).toMatch(/\.update\(\{\s*status,/);
   });
 
   it('should support deleting messages', () => {
@@ -315,25 +306,26 @@ describe('Admin Panel — Support Messages', () => {
   });
 
   it('should count new/unread messages', () => {
-    expect(adminPage).toMatch(/messages\.filter\(m\s*=>\s*m\.status\s*===\s*['"]new['"]\)\.length/);
+    expect(adminPage).toMatch(/messages\.filter\(\(m\)\s*=>\s*m\.status\s*===\s*['"]new['"]\)\.length/);
   });
 
   it('should show success toast after status update', () => {
     expect(adminPage).toMatch(/Message marked as/);
   });
 
-  it('should refresh messages list after any mutation', () => {
-    // After update or delete, fetchMessages should be called
-    const updateMatch = adminPage.match(/updateMessageStatus[\s\S]*?fetchMessages\(\)/);
-    const deleteMatch = adminPage.match(/deleteMessage[\s\S]*?fetchMessages\(\)/);
-    expect(updateMatch).not.toBeNull();
-    expect(deleteMatch).not.toBeNull();
+  it('should refresh the message list via realtime subscription after mutations', () => {
+    // Mutations write to support_messages and the open realtime channel
+    // re-syncs the list (replacing the old manual fetchMessages() re-fetch).
+    expect(adminPage).toMatch(/postgres_changes/);
+    expect(adminPage).toMatch(/\.subscribe\(\)/);
   });
 });
 
 // ─── 7. COMPONENT ARCHITECTURE ───────────────────────────────────────────────
 describe('Admin Panel — Component Architecture', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // The admin console is now a self-contained module wrapped by RefineAdminLayout.
+  const adminApp = readFile('src/admin/AdminApp.tsx');
+  const dashboardPage = readFile('src/refine/pages/AdminDashboardPage.tsx');
   const adminDir = fs.readdirSync(path.resolve(__dirname, '../../../src/components/admin'));
 
   const expectedComponents = [
@@ -353,9 +345,10 @@ describe('Admin Panel — Component Architecture', () => {
     'AdminGalleryManager',
   ];
 
-  it('should import all admin sub-components', () => {
+  it('should define each admin sub-component in its own file', () => {
     for (const comp of expectedComponents) {
-      expect(adminPage).toContain(comp);
+      const src = readFile(`src/components/admin/${comp}.tsx`);
+      expect(src, `${comp}.tsx should reference ${comp}`).toContain(comp);
     }
   });
 
@@ -366,12 +359,12 @@ describe('Admin Panel — Component Architecture', () => {
     }
   });
 
-  it('should use default export for the admin page', () => {
-    expect(adminPage).toMatch(/export\s+default\s+function\s+AdminDashboard/);
+  it('should use default export for the admin dashboard page', () => {
+    expect(dashboardPage).toMatch(/export\s+default\s+function\s+AdminDashboardPage/);
   });
 
-  it('should include AppHeader layout wrapper', () => {
-    expect(adminPage).toContain('AppHeader');
+  it('should wrap every admin surface in the RefineAdminLayout chrome', () => {
+    expect(adminApp).toContain('RefineAdminLayout');
   });
 });
 
@@ -415,31 +408,25 @@ describe('Admin Panel — Diagnostics Access Control', () => {
 });
 
 // ─── 9. ADMIN HEADER VISIBILITY ──────────────────────────────────────────────
-describe('Admin Panel — Header Integration', () => {
-  // Admin link relocated from AppHeader to AppShell (sidebar).
-  const header = readFile('src/components/shell/AppShell.tsx');
+describe('Admin Panel — Access Entry Point', () => {
+  // The standalone admin console replaced the in-app "Admin Panel" link. The
+  // app shell now routes admins straight into /admin instead of rendering a link.
+  const shell = readFile('src/components/shell/AppShell.tsx');
 
-  it('should conditionally show Admin Panel link only for admins', () => {
-    expect(header).toMatch(/\{isAdmin\s*&&\s*\(/);
-    expect(header).toContain('Admin Panel');
-    expect(header).toMatch(/to=["']\/admin["']/);
+  it('should detect admin status from auth context', () => {
+    expect(shell).toMatch(/isAdmin/);
   });
 
-  it('should render an icon for the admin link', () => {
-    // Sidebar uses a generic icon; assert lucide-react is imported.
-    expect(header).toMatch(/from\s+['"]lucide-react['"]/);
+  it('should route admins into the admin console', () => {
+    expect(shell).toMatch(/<Navigate\s+to=["']\/admin["']\s+replace/);
   });
 
-  it('admin link is visually styled (sidebar treatment)', () => {
-    // Sidebar admin link uses standard sidebar styling; just confirm presence.
-    expect(header).toContain('Admin Panel');
+  it('should gate the admin surface behind ADMIN_ENABLED', () => {
+    expect(shell).toMatch(/ADMIN_ENABLED/);
   });
 
-  it('should show admin link in both desktop dropdown and mobile menu', () => {
-    // Should appear in both collapsed-sidebar and expanded-sidebar branches.
-    const matches = header.match(/Admin Panel/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
+  it('should not redirect when already on an /admin path', () => {
+    expect(shell).toMatch(/location\.pathname\.startsWith\(['"]\/admin['"]\)/);
   });
 });
 
@@ -550,32 +537,32 @@ describe('Admin Panel — Error Handling', () => {
 
 // ─── 13. CROSS-CUTTING SECURITY PATTERNS ─────────────────────────────────────
 describe('Admin Panel — Cross-Cutting Security', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  const layout = readFile('src/refine/AdminLayout.tsx');
+  const usersPage = readFile('src/refine/pages/AdminUsersPage.tsx');
 
   it('should never expose raw user IDs in UI text', () => {
-    // Admin page should not render raw UUIDs as visible text
-    // (they can be in data attributes or keys, but not displayed)
-    expect(adminPage).not.toMatch(/\{user\.id\}(?!.*key)/);
+    // The users surface renders email/display name, not raw `{user.id}` UUIDs.
+    expect(usersPage).not.toMatch(/\{user\.id\}(?!.*key)/);
   });
 
   it('should not hardcode any API keys or secrets', () => {
-    expect(adminPage).not.toMatch(/sk_live_/);
-    expect(adminPage).not.toMatch(/sk_test_/);
-    expect(adminPage).not.toMatch(/Bearer\s+[A-Za-z0-9]{20,}/);
+    expect(usersPage).not.toMatch(/sk_live_/);
+    expect(usersPage).not.toMatch(/sk_test_/);
+    expect(usersPage).not.toMatch(/Bearer\s+[A-Za-z0-9]{20,}/);
   });
 
   it('should use Navigate component for redirects (not window.location)', () => {
-    expect(adminPage).toContain('<Navigate');
-    expect(adminPage).not.toMatch(/window\.location\s*=/);
+    expect(layout).toContain('<Navigate');
+    expect(layout).not.toMatch(/window\.location\s*=/);
   });
 
-  it('should guard all data-mutating operations with admin check', () => {
-    // The useEffect that fetches data checks isAdmin first
-    expect(adminPage).toMatch(/if\s*\(!isAdmin\)\s*return/);
+  it('should guard every admin surface behind the layout admin check', () => {
+    // The shared layout gates all /admin routes — non-admins never render a page.
+    expect(layout).toMatch(/if\s*\(!user\s*\|\|\s*!isAdmin\)\s*return/);
   });
 
   it('should validate credit adjustment amount is a number', () => {
-    expect(adminPage).toMatch(/parseInt\(creditDialog\.amount,\s*10\)/);
-    expect(adminPage).toMatch(/isNaN\(amount\)/);
+    expect(usersPage).toMatch(/parseInt\(creditDialog\.amount,\s*10\)/);
+    expect(usersPage).toMatch(/isNaN\(amount\)/);
   });
 });

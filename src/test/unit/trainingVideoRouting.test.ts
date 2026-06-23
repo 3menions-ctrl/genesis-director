@@ -63,8 +63,10 @@ describe('mode-router — avatar engine routing (Seedance Lock)', () => {
   });
 
   it('handleAvatarCinematicMode accepts videoEngine for engine-aware dispatch', () => {
+    // The videoEngine param is a union ('wan' | 'kling' | 'veo' | …); assert
+    // the optional field is declared and that 'kling' is one of its members.
     expect(modeRouter).toMatch(
-      /handleAvatarCinematicMode[\s\S]{0,2000}videoEngine\?:\s*['"]kling['"]/,
+      /handleAvatarCinematicMode[\s\S]{0,2000}videoEngine\?:[\s\S]{0,120}['"]kling['"]/,
     );
   });
 

@@ -45,6 +45,47 @@ export default function Cinema() {
     }
   }, []);
 
+  // ── Faint background score: "In the Hall of the Mountain King" (Grieg, PD) ──
+  // Rides in with the film's sound, stays very soft, and seeks to its frantic
+  // finale exactly as the film breaks into the "Start now" takeover.
+  const musicRef = useRef<HTMLAudioElement>(null);
+  const musicFadeRef = useRef(0);
+  const climaxRef = useRef(false);
+
+  const fadeMusic = useCallback((to: number, ms: number, then?: () => void) => {
+    const a = musicRef.current;
+    if (!a) return;
+    cancelAnimationFrame(musicFadeRef.current);
+    const from = a.volume, t0 = performance.now();
+    const tick = (t: number) => {
+      const k = ms <= 0 ? 1 : Math.min(1, (t - t0) / ms);
+      a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) musicFadeRef.current = requestAnimationFrame(tick);
+      else then?.();
+    };
+    musicFadeRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(() => {
+    const a = musicRef.current;
+    if (!a) return;
+    const wantSound = !muted && vphase !== "cover";
+    if (wantSound) {
+      if (a.paused) { a.volume = 0; a.play().catch(() => {}); }
+      // Jump to the finale as the film goes immersive / takes over.
+      if ((vphase === "broken" || vphase === "immersive") && !climaxRef.current && a.duration) {
+        climaxRef.current = true;
+        try { a.currentTime = Math.max(0, a.duration - 26); } catch { /* noop */ }
+      }
+      // Faint throughout; a small swell for the climax.
+      fadeMusic(vphase === "broken" ? 0.18 : 0.12, vphase === "broken" ? 2600 : 4500);
+    } else {
+      fadeMusic(0, 650, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
+    }
+  }, [muted, vphase, fadeMusic]);
+
+  useEffect(() => () => { cancelAnimationFrame(musicFadeRef.current); try { musicRef.current?.pause(); } catch { /* noop */ } }, []);
+
   // Every "start" CTA on the landing leads to the auth page (sign up). Only the
   // content-page links (Tour → /studio-showcase, Blog, Pricing…) stay as-is.
   const handleStart = useCallback(() => {
@@ -66,6 +107,10 @@ export default function Cinema() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#08090c] text-white antialiased">
       <FixedBackdrop onStart={handleStart} videoRef={videoRef} muted={muted} onPhase={setVphase} />
+
+      {/* Faint background score, controlled by the effect above. */}
+      <audio ref={musicRef} src="/cinema-assets/mountainking.mp3" preload="auto" />
+
 
       {/* Speaker / mute control for the immersive film — page-level so it sits above content */}
       <AnimatePresence>

@@ -7,7 +7,7 @@
  * accent. The full storyboard grid view is now a focus mode reached
  * via the toolbar; the rail keeps the user oriented while editing.
  */
-import { Film, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { Film, GripVertical, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence, Reorder, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ const STORAGE_KEY = "smallbridges.editor.leftRail.v1";
 interface Props {
   project: EditorProject;
   selectedSceneId: string | null;
+  /** Opens the one-click timeline templates picker. */
+  onOpenTemplates?: () => void;
 }
 
 function readCollapsed(): boolean {
@@ -34,7 +36,7 @@ function writeCollapsed(v: boolean): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ collapsed: v })); } catch { /* quota */ }
 }
 
-export function LeftScenes({ project, selectedSceneId }: Props) {
+export function LeftScenes({ project, selectedSceneId, onOpenTemplates }: Props) {
   const reducedMotion = useReducedMotion();
   const scenes = project.scenes;
 
@@ -173,6 +175,21 @@ export function LeftScenes({ project, selectedSceneId }: Props) {
           </Reorder.Group>
         )}
       </div>
+
+      {/* Templates — one-click looks (video + audio) straight from the rail. */}
+      {onOpenTemplates && (
+        <button
+          type="button"
+          onClick={onOpenTemplates}
+          className="mx-3 mb-2 flex items-center gap-2.5 rounded-xl bg-[hsl(var(--accent)/0.10)] px-3 py-2.5 text-left ring-1 ring-inset ring-[hsl(var(--accent)/0.30)] transition-colors hover:bg-[hsl(var(--accent)/0.16)]"
+        >
+          <Sparkles className="h-4 w-4 shrink-0 text-accent" strokeWidth={1.7} />
+          <span className="min-w-0">
+            <span className="block truncate text-[12.5px] font-medium text-foreground">Templates</span>
+            <span className={cn(TYPE_META, "text-muted-foreground/60")}>50 one-click looks</span>
+          </span>
+        </button>
+      )}
 
       {/* Music — score the timeline straight from the rail. */}
       <MusicPicker />

@@ -11,7 +11,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Zap, Crown, Building2,
-  Star, Infinity as InfinityIcon, Film, Wand2, Gem, User, Briefcase,
+  Star, Infinity as InfinityIcon, Film, Gem, User, Briefcase,
   Repeat, Headphones, Globe, FileCheck2,
   ChevronDown,
 } from 'lucide-react';
@@ -333,160 +333,110 @@ function PricingBackdrop() {
 }
 
 /**
- * CreditDial — animated luminous ring showing credit volume.
- * Single blue accent, conic-gradient progress against deep glass core.
+ * PricingOrb — each tier rendered as a large, glassy circular "orb" with a
+ * conic credit-ring rim, arranged in an artsy orbital wave (popular = the big,
+ * bright centre). Detailed feature comparison lives in the matrix below.
  */
-function CreditDial({ credits, clips, popular }: { credits: number; clips: string; popular?: boolean }) {
-  const min = Math.log(90), max = Math.log(75000);
-  const safe = Math.max(credits, 90);
-  const ratio = Math.min(1, Math.max(0.18, (Math.log(safe) - min) / (max - min)));
-  const deg = Math.round(ratio * 360);
-
-  return (
-    <div className="relative mx-auto h-[150px] w-[150px]">
-      <div
-        aria-hidden
-        className={cn('absolute -inset-3 rounded-full blur-2xl transition-opacity duration-700', popular ? 'opacity-90' : 'opacity-40 group-hover:opacity-80')}
-        style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / ${popular ? 0.5 : 0.22}), transparent 70%)` }}
-      />
-      <div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `conic-gradient(from -90deg, hsl(${ACCENT}) 0deg, hsl(${ACCENT} / 0.85) ${deg * 0.5}deg, hsl(${ACCENT} / 0.55) ${deg}deg, hsl(0 0% 100% / 0.04) ${deg}deg 360deg)`,
-          padding: '2px',
-          WebkitMask: 'radial-gradient(circle, transparent 64%, #000 65%)',
-          mask: 'radial-gradient(circle, transparent 64%, #000 65%)',
-        }}
-      />
-      <div className="absolute inset-[6px] rounded-full border border-white/[0.06] bg-[radial-gradient(closest-side,#0a0d14,#05070c)] backdrop-blur-xl" />
-      <div aria-hidden className="pointer-events-none absolute inset-[6px] rounded-full opacity-60" style={{ background: 'linear-gradient(160deg, hsl(0 0% 100% / 0.06) 0%, transparent 38%)' }} />
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-[28px] font-semibold leading-none tracking-tight tabular-nums text-white">
-          {credits === 0 ? '∞' : credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
-        </span>
-        <span className="mt-1 text-[9px] font-medium uppercase tracking-[0.28em] text-white/70">credits</span>
-        <div className="my-2 h-px w-7 bg-white/15" />
-        <span className="text-[10px] tabular-nums text-white/45">{clips} clips</span>
-      </div>
-    </div>
-  );
-}
-
-function PricingCard({ pkg, index, onPurchase }: { pkg: CreditPackage; index: number; onPurchase: (pkg: CreditPackage) => void }) {
+function PricingOrb({ pkg, index, onPurchase }: { pkg: CreditPackage; index: number; onPurchase: (pkg: CreditPackage) => void }) {
   const isContact = !!pkg.contactSales;
   const isCustom = pkg.price === 0;
+  const popular = !!pkg.popular;
+
+  // Credit-volume arc (log-scaled) drawn around the orb's rim.
+  const min = Math.log(90), max = Math.log(75000);
+  const safe = Math.max(pkg.credits || 90, 90);
+  const ratio = Math.min(1, Math.max(0.2, (Math.log(safe) - min) / (max - min)));
+  const deg = Math.round(ratio * 360);
+
+  // Desktop (lg) vertical wave — popular stays centred, others alternate.
+  const wave = popular ? '' : index % 2 === 0 ? 'lg:translate-y-14' : 'lg:-translate-y-10';
+  const size = popular
+    ? 'h-[clamp(16.5rem,26vw,26rem)] w-[clamp(16.5rem,26vw,26rem)]'
+    : 'h-[clamp(13.5rem,19vw,19rem)] w-[clamp(13.5rem,19vw,19rem)]';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-8%' }}
-      transition={{ duration: 0.6, delay: 0.05 + index * 0.07, ease: EASE }}
-      className={cn('group relative h-full', pkg.popular && 'lg:-mt-3')}
-    >
-      {/* Popular badge */}
-      {pkg.popular && (
-        <div className="absolute -top-3.5 left-1/2 z-20 -translate-x-1/2">
-          <div className="relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white" style={{ background: `hsl(${ACCENT} / 0.18)`, boxShadow: `inset 0 0 0 1px hsl(${ACCENT} / 0.55), 0 8px 30px -8px hsl(${ACCENT} / 0.8)` }}>
+    <div className={cn('flex shrink-0 flex-col items-center', wave)}>
+      <motion.div
+        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: '-8%' }}
+        transition={{ duration: 0.7, delay: 0.05 + index * 0.08, ease: EASE }}
+        className="group relative flex flex-col items-center"
+      >
+        {/* Most-loved badge */}
+        {popular && (
+          <div className="absolute -top-3 z-30 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white" style={{ background: `hsl(${ACCENT} / 0.22)`, boxShadow: `inset 0 0 0 1px hsl(${ACCENT} / 0.6), 0 10px 30px -8px hsl(${ACCENT} / 0.9)` }}>
             <Gem className="h-3 w-3" style={{ color: `hsl(${ACCENT})` }} />
             Most loved
           </div>
-        </div>
-      )}
-
-      {/* Soft accent halo (popular only) — borderless emphasis */}
-      {pkg.popular && (
-        <div aria-hidden className="pointer-events-none absolute -inset-6 rounded-[40px] opacity-70 blur-3xl" style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.22), transparent 70%)` }} />
-      )}
-
-      <div
-        className={cn(
-          'relative h-full overflow-hidden rounded-[28px] p-7 pt-9 backdrop-blur-xl transition-colors duration-500 shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)]',
-          pkg.popular ? 'bg-white/[0.07]' : 'bg-white/[0.04] hover:bg-white/[0.065]',
-        )}
-        style={pkg.popular ? { boxShadow: `0 44px 120px -44px hsl(${ACCENT} / 0.55)` } : undefined}
-      >
-        {/* Top-edge specular highlight */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }} />
-        {/* Corner aurora glow */}
-        <div aria-hidden className={cn('pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full blur-3xl transition-opacity duration-700', pkg.popular ? 'opacity-80' : 'opacity-0 group-hover:opacity-50')} style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.32), transparent 70%)` }} />
-
-        {/* Header row: icon + badge */}
-        <div className="relative mb-5 flex items-center justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={pkg.popular ? { background: `hsl(${ACCENT} / 0.18)`, color: `hsl(${ACCENT})` } : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)' }}>
-            {pkg.icon}
-          </div>
-          {isContact ? (
-            <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/55">Custom contract</div>
-          ) : pkg.interval ? (
-            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]" style={{ background: `hsl(${ACCENT} / 0.14)`, color: `hsl(${ACCENT})` }}>Monthly</div>
-          ) : pkg.savingsPct && pkg.savingsPct > 0 ? (
-            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]" style={{ background: `hsl(${ACCENT} / 0.14)`, color: `hsl(${ACCENT})` }}>Save {pkg.savingsPct}%</div>
-          ) : (
-            <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">Pay-as-you-go</div>
-          )}
-        </div>
-
-        {/* Title + tagline */}
-        <h3 className="mb-2 font-display text-[22px] font-semibold leading-none tracking-tight text-white">{pkg.name}</h3>
-        <p className="mb-6 text-[12px] leading-relaxed text-white/50">{pkg.tagline}</p>
-
-        {/* Price */}
-        <div className="mb-7 flex items-baseline gap-2">
-          {isCustom ? (
-            <span className="font-display text-[42px] font-semibold leading-none tracking-[-0.03em] text-white">Custom</span>
-          ) : (
-            <>
-              <span className="text-[11px] font-medium text-white/45">$</span>
-              <span className="font-display text-[52px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">{pkg.price.toLocaleString()}</span>
-              <span className="ml-1 text-[11px] text-white/45">{pkg.interval ? `/ ${pkg.interval}` : 'one-time'}</span>
-            </>
-          )}
-        </div>
-
-        {/* Credit Dial */}
-        {!isCustom && <div className="mb-7"><CreditDial credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} /></div>}
-
-        {/* Per-credit micro-rate */}
-        {!isCustom && pkg.credits > 0 && (
-          <div className="mb-6 flex items-center justify-center gap-1.5 text-[10px] text-white/45">
-            <Wand2 className="h-3 w-3" />
-            <span className="tabular-nums">${(pkg.price / pkg.credits).toFixed(3)}</span>
-            <span>/ credit{pkg.interval ? ` · ${pkg.clips}` : ''}</span>
-          </div>
         )}
 
-        {/* Divider */}
-        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
+        {/* Outer glow */}
+        <div aria-hidden className={cn('pointer-events-none absolute -inset-6 rounded-full blur-3xl transition-opacity duration-700', popular ? 'opacity-90' : 'opacity-40 group-hover:opacity-75')} style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / ${popular ? 0.5 : 0.28}), transparent 70%)` }} />
 
-        {/* Features */}
-        <ul className="mb-7 min-h-[148px] space-y-2.5">
-          {pkg.features.map((f) => (
-            <li key={f} className="flex items-start gap-2.5 text-[12.5px] leading-snug text-white/60">
-              <Check className="mt-[3px] h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${ACCENT})` }} />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* CTA */}
-        <button
-          type="button"
-          onClick={() => onPurchase(pkg)}
-          className={cn(
-            'group/btn relative inline-flex h-11 w-full items-center justify-center overflow-hidden rounded-2xl text-[13px] font-semibold transition-colors duration-300',
-            pkg.popular ? 'bg-white text-[#0a0b0e] hover:bg-white/90' : 'bg-white/[0.07] text-white hover:bg-white/[0.12]',
-          )}
-          style={pkg.popular ? { boxShadow: `0 14px 44px -14px hsl(${ACCENT} / 0.9)` } : undefined}
+        {/* The orb */}
+        <div
+          className={cn('relative flex flex-col items-center justify-center rounded-full text-center transition-transform duration-500 group-hover:-translate-y-1', size)}
+          style={{
+            background: 'radial-gradient(120% 120% at 50% 20%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 55%, rgba(10,6,24,0.55))',
+            boxShadow: popular
+              ? `0 50px 150px -30px hsl(${ACCENT} / 0.7), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -42px 80px -32px hsl(${ACCENT} / 0.6)`
+              : `0 40px 110px -42px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -32px 60px -32px hsl(${ACCENT} / 0.42)`,
+          }}
         >
-          <span aria-hidden className="absolute inset-0 -translate-x-full transition-transform duration-700 group-hover/btn:translate-x-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }} />
-          <span className="relative inline-flex items-center justify-center gap-1.5">
-            {pkg.ctaLabel ?? `Get ${pkg.credits >= 1000 ? pkg.credits.toLocaleString() : pkg.credits} credits`}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
-          </span>
-        </button>
-      </div>
-    </motion.div>
+          {/* conic credit-ring rim */}
+          <div
+            aria-hidden
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: `conic-gradient(from -90deg, hsl(${ACCENT}) 0deg, hsl(${ACCENT} / 0.85) ${deg * 0.5}deg, hsl(${ACCENT} / 0.5) ${deg}deg, hsl(0 0% 100% / 0.06) ${deg}deg 360deg)`,
+              padding: '3px',
+              WebkitMask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))',
+              mask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))',
+            }}
+          />
+          <div aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-[rgba(216,180,254,0.2)]" />
+
+          {/* content */}
+          <div className="relative z-10 flex flex-col items-center px-6">
+            <span className="font-mono text-[11px] uppercase tracking-[0.3em]" style={{ color: `hsl(${ACCENT})` }}>{pkg.name}</span>
+            {isCustom ? (
+              <span className="mt-2 font-display text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.03em] text-white">Custom</span>
+            ) : (
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-[14px] font-medium text-white/50">$</span>
+                <span className={cn('font-display font-semibold leading-none tracking-[-0.03em] tabular-nums text-white', popular ? 'text-[clamp(3.4rem,7vw,5.2rem)]' : 'text-[clamp(2.6rem,5vw,3.6rem)]')}>{pkg.price.toLocaleString()}</span>
+                {pkg.interval && <span className="text-[12px] text-white/45">/{pkg.interval === 'month' ? 'mo' : pkg.interval}</span>}
+              </div>
+            )}
+            {!isCustom && (
+              <span className="mt-1.5 text-[13px] tabular-nums text-white/70">{pkg.credits >= 1000 ? pkg.credits.toLocaleString() : pkg.credits} credits</span>
+            )}
+            {!isCustom && pkg.credits > 0 && (
+              <span className="mt-0.5 font-mono text-[10px] tracking-[0.12em] text-white/40">${(pkg.price / pkg.credits).toFixed(3)} / credit</span>
+            )}
+            {pkg.interval && (
+              <span className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.22em] text-white/35">{pkg.clips} · monthly</span>
+            )}
+            <button
+              type="button"
+              onClick={() => onPurchase(pkg)}
+              className={cn(
+                'mt-4 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-semibold transition-colors',
+                popular ? 'bg-white text-[#160a33] hover:bg-white/90' : 'bg-white/[0.08] text-white ring-1 ring-inset ring-white/15 hover:bg-white/[0.14]',
+              )}
+              style={popular ? { boxShadow: `0 14px 40px -14px hsl(${ACCENT} / 0.9)` } : undefined}
+            >
+              {isContact ? 'Contact sales' : isCustom ? 'Get in touch' : popular ? `Buy ${pkg.name}` : 'Buy'}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* tagline under the orb */}
+        <p className="mt-5 max-w-[15rem] text-center text-[12.5px] leading-relaxed text-white/45">{pkg.tagline}</p>
+      </motion.div>
+    </div>
   );
 }
 
@@ -617,14 +567,15 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Cards */}
-      <section className="relative z-10 px-5 pb-10 pt-14 sm:px-8">
-        <div className={cn('mx-auto grid max-w-6xl grid-cols-1 items-start gap-6', packages.length === 4 && 'sm:grid-cols-2 lg:grid-cols-4', packages.length === 3 && 'sm:grid-cols-2 lg:grid-cols-3')}>
-          <AnimatePresence mode="wait">
-            {packages.map((pkg, i) => (
-              <PricingCard key={`${segment}-${pkg.name}`} pkg={pkg} index={i} onPurchase={handlePurchase} />
-            ))}
-          </AnimatePresence>
+      {/* Cards — large circular orbs in an artsy orbital wave */}
+      <section className="relative z-10 px-5 pb-10 pt-24 sm:px-8 lg:pt-28">
+        <div
+          key={segment}
+          className="mx-auto flex max-w-[84rem] flex-col items-center gap-y-16 md:flex-row md:flex-wrap md:justify-center md:gap-x-8 md:gap-y-24 lg:flex-nowrap lg:gap-x-2"
+        >
+          {packages.map((pkg, i) => (
+            <PricingOrb key={`${segment}-${pkg.name}`} pkg={pkg} index={i} onPurchase={handlePurchase} />
+          ))}
         </div>
       </section>
 

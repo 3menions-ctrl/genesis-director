@@ -68,14 +68,14 @@ export default function Cinema() {
   useEffect(() => {
     const a = musicRef.current;
     if (!a) return;
-    // Whisper-quiet score, only while the film is actually playing. It fades
-    // out as the film reaches its final beat (immersive) so it ENDS with the
-    // video — no carry-over into the takeover. Already in the voice's key (B
-    // minor), so no pitch shift.
+    // Whisper-quiet music-box score (Grieg, Mountain King — music-box arrangement),
+    // EQ-softened to blend, only while the film is actually playing. It fades out
+    // as the film reaches its final beat (immersive) so it ENDS with the video —
+    // no carry-over into the takeover.
     const playingNow = !muted && vphase === "playing";
     if (playingNow) {
       if (a.paused) { a.volume = 0; a.play().catch(() => {}); }
-      fadeMusic(0.035, 4500);
+      fadeMusic(0.03, 4500);
     } else {
       fadeMusic(0, vphase === "immersive" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }

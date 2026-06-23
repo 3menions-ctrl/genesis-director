@@ -54,12 +54,14 @@ export default function AdminStandalone() {
                           }
                         >
                           <Routes>
-                            {/* Login — ProtectedRoute redirects here when there's
-                                no session; after sign-in it funnels to /admin. */}
+                            {/* Login — both ProtectedRoute (→/auth) AND
+                                AdminLayout (→"/") send unauthenticated users out;
+                                routing every non-admin path to /auth makes the
+                                bounce LAND on sign-in instead of ping-ponging
+                                /admin ↔ / forever (the blank-screen loop). */}
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/admin/*" element={<AdminApp />} />
-                            {/* Anything else → the console (post-login lands here). */}
-                            <Route path="*" element={<Navigate to="/admin" replace />} />
+                            <Route path="*" element={<Navigate to="/auth" replace />} />
                           </Routes>
                         </Suspense>
                       </PageToneProvider>

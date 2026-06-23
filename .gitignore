@@ -35,3 +35,6 @@ coverage/
 *.sln
 *.sw?
 .vercel
+
+# Local audio staging for scripts/upload-music.mjs (never commit raw tracks)
+music-drop/

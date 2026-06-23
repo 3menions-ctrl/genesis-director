@@ -71,6 +71,7 @@ const AdminTemplatesAdminPage = lazy(() => import("../refine/pages/ops/AdminTemp
 const AdminStoragePage = lazy(() => import("../refine/pages/ops/AdminStoragePage"));
 const AdminContentSafetyPage = lazy(() => import("../refine/pages/ops/AdminContentSafetyPage"));
 const AdminAnalyticsPage = lazy(() => import("../refine/pages/ops/AdminAnalyticsPage"));
+const AdminProjectionsPage = lazy(() => import("../refine/pages/ops/AdminProjectionsPage"));
 const AdminOnboardingAnalyticsPage = lazy(() => import("../refine/pages/ops/AdminOnboardingAnalyticsPage"));
 const AdminExperimentsPage = lazy(() => import("../refine/pages/ops/AdminExperimentsPage"));
 const AdminCohortsPage = lazy(() => import("../refine/pages/ops/AdminCohortsPage"));
@@ -158,6 +159,7 @@ export default function AdminApp() {
         <Route path="storage-billing" element={<AdminStorageBillingPage />} />
         <Route path="db-diagnostics" element={<AdminDbDiagnosticsPage />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
+        <Route path="projections" element={<AdminProjectionsPage />} />
         <Route path="onboarding-analytics" element={<AdminOnboardingAnalyticsPage />} />
         <Route path="experiments" element={<AdminExperimentsPage />} />
         <Route path="cohorts" element={<AdminCohortsPage />} />

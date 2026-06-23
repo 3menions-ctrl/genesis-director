@@ -105,6 +105,13 @@ async function createWindow() {
     return { action: "deny" };
   });
 
+  // Crash diagnostics — fire only on real failures.
+  const wc = mainWindow.webContents;
+  wc.on("did-fail-load", (_e, code, desc, url) =>
+    console.error(`[admin] did-fail-load ${code} ${desc} ${url}`));
+  wc.on("render-process-gone", (_e, d) =>
+    console.error(`[admin] render-process-gone ${JSON.stringify(d)}`));
+
   mainWindow.loadURL(`http://127.0.0.1:${port}/admin`);
   mainWindow.on("closed", () => { mainWindow = null; });
 }

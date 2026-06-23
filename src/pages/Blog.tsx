@@ -27,6 +27,53 @@ const Footer = lazy(() => import('@/components/cinema/Footer').then((m) => ({ de
 const MASTHEAD = 'The Cutting Room';
 
 /**
+ * Article → visual theme map (slug → theme). Real, royalty-free stock photos
+ * (Pexels License — free for commercial use, no attribution) are self-hosted
+ * under /public/blog as `{theme}-hero.jpg` + `{theme}-1..3.jpg`.
+ */
+const ARTICLE_THEME: Record<string, string> = {
+  // cinema
+  'best-ai-video-prompts-cinematic': 'cinema',
+  'multi-scene-films-character-consistency': 'cinema',
+  'what-can-you-do-with-video-ai': 'cinema',
+  // presenter
+  'ai-avatar-video-generation-complete-guide': 'presenter',
+  'ai-video-for-course-creators': 'presenter',
+  'ai-video-for-language-learning': 'presenter',
+  // music
+  'ai-music-video-generator': 'music',
+  // tech
+  'ai-video-creation-getting-better': 'tech',
+  'text-to-video-vs-image-to-video': 'tech',
+  'seedance-2-hyperreal-motion': 'tech',
+  // realestate
+  'ai-video-for-real-estate-listings': 'realestate',
+  // product
+  'ai-video-for-ecommerce-product-ads': 'product',
+  'product-demo-videos-with-ai': 'product',
+  // creator
+  'faceless-youtube-channel-ai-video': 'creator',
+  'how-to-create-ugc-ads-without-filming': 'creator',
+  'tiktok-creators-post-daily-with-ai': 'creator',
+  // business
+  'ai-video-pricing-explained': 'business',
+  'small-bridges-small-business-solution': 'business',
+  'small-bridges-vs-heygen-comparison': 'business',
+  'small-bridges-vs-runway': 'business',
+  'small-bridges-vs-synthesia': 'business',
+};
+
+const THEME_IMG = (theme: string) => ({
+  hero: `/blog/${theme}-hero.jpg`,
+  gallery: [`/blog/${theme}-1.jpg`, `/blog/${theme}-2.jpg`, `/blog/${theme}-3.jpg`],
+});
+
+/** Images for a slug — defaults to the `cinema` theme for any unmapped slug. */
+function imagesFor(slug: string) {
+  return THEME_IMG(ARTICLE_THEME[slug] ?? 'cinema');
+}
+
+/**
  * Derive the "issue" framing from the most-recent article's date string — never
  * from Date.now(). Issue number counts months since the Jan 2026 launch; the
  * cover line reads e.g. "ISSUE 06 · June 2026 · 21 stories".
@@ -164,7 +211,7 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
       <MarketingHeader />
 
       <div className="relative z-10 pt-28 pb-16">
-        <div className="max-w-3xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-6">
           <Link to="/blog" className="inline-flex items-center gap-2 mb-10 text-white/60 hover:text-white transition-colors text-sm">
             <ArrowLeft className="w-4 h-4" /> Back to Blog
           </Link>
@@ -184,6 +231,16 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
               </div>
               <div className="mt-8 h-px w-full bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
             </header>
+
+            {/* Hero image — real royalty-free stock (Pexels), self-hosted */}
+            <figure className="mb-12 -mt-2">
+              <img
+                src={imagesFor(article.slug).hero}
+                alt={`${article.title} — editorial hero image`}
+                loading="lazy"
+                className="w-full max-h-[60vh] object-cover rounded-2xl border border-white/10"
+              />
+            </figure>
 
             <style>{ARTICLE_BODY_CSS}</style>
             <div className="prose prose-invert prose-lg max-w-none">
@@ -210,6 +267,28 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
               </Button>
             </div>
           </motion.article>
+
+          {/* ── In focus — subject gallery (real royalty-free stock) ────── */}
+          <section className="mt-16">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45 whitespace-nowrap">
+                In focus
+              </span>
+              <span className="h-px flex-1 bg-white/12" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {imagesFor(article.slug).gallery.map((src, i) => (
+                <div key={src} className="overflow-hidden rounded-xl border border-white/10">
+                  <img
+                    src={src}
+                    alt={`${article.title} — visual reference ${i + 1}`}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
 
           {related.length > 0 && (
             <div className="mt-16 pt-8">
@@ -318,6 +397,14 @@ function BlogIndex() {
                   <span className="text-white/25 mx-2">·</span>
                   {featured.category}
                 </div>
+                <div className="mb-7 overflow-hidden rounded-2xl border border-white/12">
+                  <img
+                    src={imagesFor(featured.slug).hero}
+                    alt={`${featured.title} — cover image`}
+                    loading="lazy"
+                    className="w-full aspect-[16/9] md:aspect-[21/9] object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  />
+                </div>
                 <h2 className="font-display font-semibold text-white tracking-[-0.025em] leading-[0.96] max-w-4xl text-[clamp(2.2rem,6vw,5rem)]">
                   <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
                     {featured.title}
@@ -374,6 +461,14 @@ function BlogIndex() {
               <Link to={`/blog/${lead.slug}`} className="group grid md:grid-cols-[auto,1fr] gap-x-8 gap-y-4">
                 <span className="font-mono text-xs text-white/35 tabular-nums pt-2">01</span>
                 <div>
+                  <div className="mb-5 overflow-hidden rounded-xl border border-white/10">
+                    <img
+                      src={imagesFor(lead.slug).hero}
+                      alt={`${lead.title} — lead image`}
+                      loading="lazy"
+                      className="w-full aspect-[16/9] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  </div>
                   <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45 mb-3">{lead.category}</div>
                   <h3 className="font-display font-semibold text-white tracking-[-0.02em] leading-[1.02] max-w-3xl text-[clamp(1.8rem,4.2vw,3.2rem)]">
                     <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1.5px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_1.5px]">
@@ -404,6 +499,12 @@ function BlogIndex() {
                   <span className="font-mono text-xs text-white/35 tabular-nums pt-1.5 w-7 shrink-0">
                     {String(i + 2).padStart(2, '0')}
                   </span>
+                  <img
+                    src={imagesFor(article.slug).hero}
+                    alt={`${article.title} — thumbnail`}
+                    loading="lazy"
+                    className="hidden sm:block w-20 h-20 shrink-0 rounded-lg border border-white/10 object-cover"
+                  />
                   <div className="min-w-0">
                     <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40 mb-2.5">{article.category}</div>
                     <h3 className="font-display font-semibold text-white tracking-[-0.01em] leading-[1.1] text-[clamp(1.25rem,2.4vw,1.7rem)]">

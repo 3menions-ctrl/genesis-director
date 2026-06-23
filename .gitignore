@@ -38,3 +38,6 @@ coverage/
 
 # Local audio staging for scripts/upload-music.mjs (never commit raw tracks)
 music-drop/
+
+# Standalone admin build output
+dist-admin/

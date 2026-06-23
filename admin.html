@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>document.documentElement.classList.remove('no-js');document.documentElement.classList.add('js');</script>
+    <title>Small Bridges · Admin Console</title>
+    <meta name="description" content="Small Bridges internal admin console." />
+    <!-- Internal tool — never index, never follow. -->
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.replicate.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+    <link rel="icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>This console requires JavaScript.</noscript>
+    <script type="module" src="/src/admin/main-admin.tsx"></script>
+  </body>
+</html>

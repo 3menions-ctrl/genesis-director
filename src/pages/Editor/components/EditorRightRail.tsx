@@ -114,12 +114,13 @@ interface Props {
   onOpenCrossover?: () => void;
   onOpenDirector?: () => void;
   onOpenExport?: () => void;
+  onOpenTemplates?: () => void;
 }
 
 export function EditorRightRail({
   project, selectedClipId,
   onOpenEffectsPalette, onOpenAudioMixer, onOpenCrossover,
-  onOpenDirector, onOpenExport,
+  onOpenDirector, onOpenExport, onOpenTemplates,
 }: Props) {
   const [{ collapsed, tab }, setPersist] = useState<PersistedState>(() => readState());
 
@@ -285,6 +286,7 @@ export function EditorRightRail({
             onOpenAudioMixer={onOpenAudioMixer}
             onOpenCrossover={onOpenCrossover}
             onOpenDirector={onOpenDirector}
+            onOpenTemplates={onOpenTemplates}
           />
         )}
         {tab === "text" && (
@@ -365,7 +367,7 @@ function RailIconButton({
 // ─────────────────────────────────────────────────────────────────────────────
 function ToolsPanel({
   project, selectedClipId,
-  onOpenEffectsPalette, onOpenAudioMixer, onOpenCrossover, onOpenDirector,
+  onOpenEffectsPalette, onOpenAudioMixer, onOpenCrossover, onOpenDirector, onOpenTemplates,
 }: {
   project: EditorProject;
   selectedClipId: string | null;
@@ -373,6 +375,7 @@ function ToolsPanel({
   onOpenAudioMixer?: () => void;
   onOpenCrossover?: () => void;
   onOpenDirector?: () => void;
+  onOpenTemplates?: () => void;
 }) {
   const allClips = useMemo(
     () => project.scenes.flatMap((s) => s.clips).filter((c) => c.kind === "video"),
@@ -591,6 +594,14 @@ function ToolsPanel({
 
         {/* — Open palettes / panels — */}
         <Group label="Open">
+          {onOpenTemplates && (
+            <ToolTile
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              title="Templates"
+              hint="50 one-click looks · video + audio"
+              onClick={onOpenTemplates}
+            />
+          )}
           {onOpenCrossover && (
             <ToolTile
               icon={<Layers className="h-3.5 w-3.5" />}

@@ -27,7 +27,7 @@ import {
   Cpu, Film, Search, UserPlus, Loader2, type LucideIcon,
 } from "lucide-react";
 import {
-  ENGINES, listEngines, creditsFor, engineToBackend, clampDurationForEngine,
+  ENGINES, listEngines, renderSurchargeCredits, engineToBackend, clampDurationForEngine,
   TIER_LABEL, DEFAULT_ENGINE_ID, type EngineId, type EngineSpec,
 } from "@/lib/video/engines";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
@@ -209,9 +209,12 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   const costFor = (s: EngineSpec) => {
     const d = clampDurationForEngine(s.id, duration);
     const prof = s.qualityProfiles.find((q) => q.recommended) ?? s.qualityProfiles[0];
-    return creditsFor(s, d, prof.options) * scenes;
+    // Base × scenes + quality surcharge ONCE (4K/60fps are final-film post).
+    return s.baseCreditsFor(d) * scenes + renderSurchargeCredits(s, prof.options);
   };
-  const totalCost = creditsFor(spec, duration, profile.options) * scenes;
+  // Quality cores (4K upscale / 60fps) are post-processing on the FINAL film,
+  // billed once per render — not per clip. So: base × scenes + surcharge once.
+  const totalCost = spec.baseCreditsFor(duration) * scenes + renderSurchargeCredits(spec, profile.options);
   const runtime = duration * scenes;
 
   const canCreate =
@@ -234,6 +237,11 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
       mood: sel.music.enable ? sel.music.mood : mood,
       videoEngine: engineToBackend(engineId),
       voiceId: sel.voiceId ?? undefined,
+      // Quality cores (4K / 60fps) — honored on the final film, billed once.
+      qualityOptions: {
+        upscale4k: !!profile.options.upscale4k,
+        fps60: !!profile.options.fps60,
+      },
     };
     if (mode === "image-to-video") cfg.imageUrl = sel.referenceImage;
     if (mode === "avatar" && sel.avatar) {

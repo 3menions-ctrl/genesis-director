@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
+import { persistQualityIntent } from "../_shared/quality-post.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,9 @@ interface PipelineRequest {
   clipDuration?: number;
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
+  /** Quality cores (4K upscale / 60fps interpolation). Read here and persisted
+   *  for the finalizer (seamless-stitcher) to honor + charge ON DELIVERY. */
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
   // Resume support
@@ -6747,6 +6751,10 @@ serve(async (req) => {
         })
         .eq('id', projectId);
     }
+
+    // Persist quality intent (4K / 60fps) so the finalizer (seamless-stitcher)
+    // can honor it and charge ON DELIVERY. No-op when no core was requested.
+    await persistQualityIntent(supabase, projectId, request.qualityOptions, "[Hollywood]");
 
     console.log(`[Hollywood] Starting background pipeline for project ${projectId}`);
 

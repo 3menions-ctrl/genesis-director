@@ -91,6 +91,13 @@ import {
   type StitchInput,
 } from "../_shared/seamless-command.ts";
 import { classifyFailure } from "../_shared/failure-classify.ts";
+import {
+  applyQualityPost,
+  readQualityIntent,
+  deliveredSurchargeCredits,
+  type QualityPostOpts,
+} from "../_shared/quality-post.ts";
+import { getEngine, backendToEngineId } from "../_shared/engines.ts";
 
 // ── Constants ──────────────────────────────────────────────────────────
 const FFMPEG_MODEL_VERSION =
@@ -254,11 +261,16 @@ serve(async (req) => {
       kind: string;
       durationSec: number;
     }> = [];
+    // Hoisted for the final-film quality pass (4K / 60fps honoring +
+    // charge-on-delivery) which runs after the stitch below.
+    let projectUserId: string | null = null;
+    let projectVideoEngine: string | null = null;
+    let projectQualityOptions: QualityPostOpts = { upscale4k: false, fps60: false };
 
     if (isProjectMode) {
       const { data: project, error: projectErr } = await supabase
         .from("movie_projects")
-        .select("id, user_id, title, video_url, editor_state")
+        .select("id, user_id, title, video_url, editor_state, video_engine")
         .eq("id", body.projectId)
         .maybeSingle();
       if (projectErr || !project) {
@@ -295,6 +307,10 @@ serve(async (req) => {
       projectEditorTransitions = Array.isArray(editorState.transitions)
         ? editorState.transitions
         : [];
+      // Capture identity + quality intent for the post-stitch quality pass.
+      projectUserId = (project as { user_id?: string }).user_id ?? null;
+      projectVideoEngine = (project as { video_engine?: string }).video_engine ?? null;
+      projectQualityOptions = readQualityIntent(editorState);
       const projectTracks: Array<{
         id: string;
         kind: "video" | "audio";
@@ -898,7 +914,85 @@ serve(async (req) => {
       outputName: `stitch_${namespaceId}.mp4`,
     });
 
-    const signed = await persistOutput(supabase, outputUrl, outputKey);
+    let signed = await persistOutput(supabase, outputUrl, outputKey);
+
+    // ── 7b. Quality cores (4K upscale / 60fps interpolation) ─────────
+    // Honor the persisted quality intent on the FINAL stitched film, then
+    // charge ONLY for the cores actually delivered (charge-on-delivery).
+    // Best-effort: a provider failure leaves the base render intact and
+    // bills nothing extra — we never charge for a core we didn't deliver.
+    if (isProjectMode && (projectQualityOptions.upscale4k || projectQualityOptions.fps60)) {
+      try {
+        const surcharge = (() => {
+          try {
+            const spec = getEngine(backendToEngineId(projectVideoEngine ?? "kling"));
+            return { upscale4kCredits: spec.upscale4kCredits, fps60Credits: spec.fps60Credits };
+          } catch {
+            return { upscale4kCredits: 10, fps60Credits: 5 }; // canonical fallback
+          }
+        })();
+        // Max the user could owe if BOTH requested cores land. Pre-check the
+        // balance so we never spend Replicate compute on a core we can't bill.
+        const maxCharge = deliveredSurchargeCredits(
+          { upscale4k: !!projectQualityOptions.upscale4k, fps60: !!projectQualityOptions.fps60 },
+          surcharge,
+        );
+        let canAfford = true;
+        if (maxCharge > 0 && projectUserId) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("credits_balance")
+            .eq("id", projectUserId)
+            .maybeSingle();
+          canAfford = (prof?.credits_balance ?? 0) >= maxCharge;
+          if (!canAfford) {
+            console.warn(
+              `[seamless-stitcher] skipping quality pass — balance ${prof?.credits_balance ?? 0} < ${maxCharge}cr (base render delivered)`,
+            );
+          }
+        }
+        if (!canAfford) throw new Error("insufficient_balance_for_quality");
+
+        const post = await applyQualityPost(
+          signed,
+          projectQualityOptions,
+          `[seamless-stitcher:quality:${body.projectId}]`,
+        );
+        // applyQualityPost returns an EXPIRING Replicate URL — download it to
+        // durable storage (distinct key) before it becomes the canonical url.
+        if (post.url !== signed && (post.applied.upscale4k || post.applied.fps60)) {
+          const suffix = [post.applied.upscale4k && "4k", post.applied.fps60 && "60fps"]
+            .filter(Boolean).join("-");
+          signed = await persistOutput(supabase, post.url, `${namespaceId}/${contentHash}_${suffix}.mp4`);
+        }
+
+        const charge = deliveredSurchargeCredits(post.applied, surcharge);
+
+        if (charge > 0 && projectUserId) {
+          const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
+            p_user_id: projectUserId,
+            p_amount: charge,
+            p_description:
+              `Quality cores: ${[post.applied.upscale4k && "4K", post.applied.fps60 && "60fps"]
+                .filter(Boolean).join(" + ")}`,
+            p_project_id: body.projectId,
+            p_clip_duration: null,
+            // Idempotent per project: a re-stitch never double-charges.
+            p_idempotency_key: `quality:${body.projectId}`,
+          });
+          if (deductErr || deductOk !== true) {
+            console.warn(
+              `[seamless-stitcher] quality charge of ${charge}cr did not apply (ok=${deductOk})`,
+              deductErr,
+            );
+          } else {
+            console.log(`[seamless-stitcher] ✅ charged ${charge}cr for delivered quality cores`);
+          }
+        }
+      } catch (e) {
+        console.warn("[seamless-stitcher] quality pass failed (non-fatal, base render kept):", e);
+      }
+    }
 
     // ── 8. Update the project's canonical video_url ──────────────────
     // Only do this in project-mode when no intro was burned in — that

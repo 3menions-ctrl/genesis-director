@@ -74,6 +74,7 @@ import {
   calculateCreditsForDurations,
   type VideoEngine,
 } from "@/lib/creditSystem";
+import { ENGINES, renderSurchargeCredits, type EngineId } from "@/lib/video/engines";
 import { getAuthoritativeCreditState } from "@/lib/credits/authoritativeCreditState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
@@ -320,6 +321,7 @@ function StudioContentInner() {
       templateCharacters?: unknown[];
       templateEnvironmentLock?: unknown;
       videoEngine?: "wan" | "kling" | "veo" | "seedance" | "sora";
+      qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
     }) => {
       if (!user) {
         toast.error("Please sign in to create videos");
@@ -353,10 +355,22 @@ function StudioContentInner() {
               { length: config.clipCount },
               () => config.clipDuration,
             );
-        const requiredCredits = calculateCreditsForDurations(
+        const baseCredits = calculateCreditsForDurations(
           durations,
           (config.videoEngine || "kling") as VideoEngine,
         );
+        // Quality cores (4K / 60fps) are charged ONCE on the final film
+        // (charge-on-delivery at the finalizer). Include them in the gate so
+        // the user holds enough for the surcharge they'll be billed.
+        const BACKEND_TO_ENGINE_ID: Record<string, EngineId> = {
+          wan: "wan-25", kling: "kling-v3", seedance: "seedance-2",
+          veo: "veo-3", runway: "runway-gen4", sora: "sora-2",
+        };
+        const qualitySpec = ENGINES[BACKEND_TO_ENGINE_ID[config.videoEngine || "kling"] ?? "kling-v3"];
+        const qualitySurcharge = qualitySpec
+          ? renderSurchargeCredits(qualitySpec, config.qualityOptions ?? {})
+          : 0;
+        const requiredCredits = baseCredits + qualitySurcharge;
         if (creditState.available < requiredCredits) {
           toast.error(
             `Insufficient credits. Need ${requiredCredits}, available ${creditState.available}.`,
@@ -384,6 +398,7 @@ function StudioContentInner() {
           genre: config.genre,
           mood: config.mood,
           videoEngine: config.videoEngine,
+          qualityOptions: config.qualityOptions,
           isBreakout: config.isBreakout,
           breakoutStartImageUrl: config.breakoutStartImageUrl,
           breakoutPlatform: config.breakoutPlatform,

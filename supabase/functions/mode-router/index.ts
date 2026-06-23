@@ -234,6 +234,9 @@ interface ModeRouterRequest {
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  // Quality cores (4K upscale / 60fps interpolation). Forwarded to the
+  // entry pipeline, which persists the intent for the finalizer to honor.
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
 }
 
 serve(async (req) => {
@@ -268,7 +271,7 @@ serve(async (req) => {
     }
 
     const request: ModeRouterRequest = await req.json();
-    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine } = request;
+    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine, qualityOptions } = request;
     const referenceImageUrl = request.referenceImageUrl || request.avatarImageUrl || imageUrl;
     
     // SECURITY: end-user calls MUST use JWT identity; service-role internal calls may pass request.userId
@@ -611,6 +614,7 @@ serve(async (req) => {
           genre,
           mood,
           videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline
+          qualityOptions, // 4K / 60fps intent → persisted for the finalizer
           // Breakout template parameters - for platform UI shattering effect
           isBreakout,
           breakoutStartImageUrl,
@@ -1157,6 +1161,7 @@ async function handleCinematicMode(params: {
   genre?: string;
   mood?: string;
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
   // Breakout template parameters
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
@@ -1172,7 +1177,7 @@ async function handleCinematicMode(params: {
   templateEnvironmentLock?: any;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1225,6 +1230,7 @@ async function handleCinematicMode(params: {
       genre,
       mood,
       videoEngine: effectiveEngine, // CRITICAL: Forward engine selection (breakouts forced to seedance)
+      qualityOptions, // 4K / 60fps intent → entry pipeline persists for the finalizer
       // CRITICAL: Avatar mode flag survives the hop so generate-single-clip
       // applies avatar-specific routing (start image, dialogue, audio overlay).
       isAvatarMode: mode === 'avatar',

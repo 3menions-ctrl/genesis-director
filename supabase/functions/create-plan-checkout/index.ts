@@ -17,10 +17,11 @@ const PLAN_CATALOG: Record<
   string,
   { kind: "subscription" | "credits"; credits: number; label: string }
 > = {
-  // Subscriptions
-  sub_creator_monthly:  { kind: "subscription", credits: 1000,  label: "Creator" },
-  sub_pro_monthly:      { kind: "subscription", credits: 3000,  label: "Pro" },
-  sub_studio_monthly:   { kind: "subscription", credits: 10000, label: "Studio" },
+  // Subscriptions — must match the canonical grants in polar-checkout
+  // (SUB_CREDITS) and the pricing page (Indie/Pro/Studio = 220/600/2000).
+  sub_creator_monthly:  { kind: "subscription", credits: 220,  label: "Indie" },
+  sub_pro_monthly:      { kind: "subscription", credits: 600,  label: "Pro" },
+  sub_studio_monthly:   { kind: "subscription", credits: 2000, label: "Studio" },
   sub_business_monthly: { kind: "subscription", credits: 35000, label: "Business" },
   // Business one-time volume packs
   biz_studio_pack:      { kind: "credits", credits: 5500,  label: "Business Studio" },

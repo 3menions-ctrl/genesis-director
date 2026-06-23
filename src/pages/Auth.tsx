@@ -90,7 +90,7 @@ function passwordStrength(value: string): { score: 0 | 1 | 2 | 3 | 4; label: str
 export default function Auth() {
   usePageMeta({ title: "Sign in — Small Bridges", description: "Step onto the set. Cinematic AI video from one prompt." });
 
-  const { user, profile, loading: authLoading, isAdmin, signIn, signUp } = useAuth();
+  const { user, profile, loading: authLoading, isAdmin, adminChecked, signIn, signUp } = useAuth();
   const { navigate } = useSafeNavigation();
   const reducedMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
@@ -125,6 +125,10 @@ export default function Auth() {
   // straight to their destination with no pre-roll animation.
   useEffect(() => {
     if (authLoading || !user || !profile) return;
+    // When the admin console is in this build, wait for the admin-role check to
+    // resolve before choosing a destination — otherwise an admin is briefly
+    // routed to /library and then bounced to /admin (the glitch).
+    if (ADMIN_ENABLED && !adminChecked) return;
 
     // Business/enterprise accounts land in the business module; everyone
     // else in the consumer library.
@@ -140,7 +144,7 @@ export default function Auth() {
     try { window.sessionStorage.removeItem(INTRO_FLAG); } catch { /* ignore */ }
 
     navigate(dest, { replace: true });
-  }, [authLoading, user, profile, isAdmin, nextParam, navigate]);
+  }, [authLoading, user, profile, isAdmin, adminChecked, nextParam, navigate]);
 
   // ── Submit ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(

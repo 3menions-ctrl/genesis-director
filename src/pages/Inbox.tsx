@@ -1528,6 +1528,8 @@ function NotificationIcon({ type }: { type: string }) {
     level_up:        { Icon: Sparkles,     tone: "text-amber-300" },
     streak_milestone:{ Icon: Sparkles,     tone: "text-amber-300" },
     low_credits:     { Icon: Coins,        tone: "text-rose-300" },
+    credits_purchased: { Icon: Coins,      tone: "text-emerald-300" },
+    subscription_renewed: { Icon: Coins,   tone: "text-emerald-300" },
     message:         { Icon: MessageSquare, tone: "text-accent" },
   };
   const meta = map[type] ?? { Icon: Bell, tone: "text-muted-foreground/70" };

@@ -27,6 +27,37 @@ const sb = () => createClient(
 
 const ENV_TAG = (Deno.env.get("POLAR_SERVER") || "sandbox").toLowerCase();
 
+/**
+ * Insert a bell notification for the user, idempotently. `dedupeKey` prevents a
+ * webhook retry (or duplicate event) from posting the same notification twice.
+ */
+async function notifyUser(opts: {
+  userId: string;
+  type: string;
+  title: string;
+  body?: string;
+  data?: Record<string, unknown>;
+  dedupeKey: string;
+  severity?: string;
+}) {
+  if (!/^[0-9a-f-]{36}$/i.test(opts.userId)) return;
+  const { error } = await sb().from("notifications").upsert(
+    {
+      user_id: opts.userId,
+      type: opts.type,
+      title: opts.title,
+      body: opts.body ?? null,
+      data: opts.data ?? {},
+      dedupe_key: opts.dedupeKey,
+      severity: opts.severity ?? "info",
+      read: false,
+    },
+    { onConflict: "dedupe_key", ignoreDuplicates: true },
+  );
+  if (error) log("notification insert failed", { error: error.message, type: opts.type });
+  else log("notification sent", { userId: opts.userId, type: opts.type });
+}
+
 async function grantCredits(order: any) {
   const md = order?.metadata ?? {};
   const userId = String(md.user_id || md.userId || "");
@@ -42,8 +73,21 @@ async function grantCredits(order: any) {
     p_description: `Purchased ${credits} credits (${packageId} via Polar)`,
     p_stripe_payment_id: ref,
   });
-  if (error) log("add_credits error", { error: error.message });
-  else log("credits granted", { userId, credits, packageId, ref });
+  if (error) { log("add_credits error", { error: error.message }); return; }
+  log("credits granted", { userId, credits, packageId, ref });
+
+  // Bell notification — a renewal (subscription order) reads as "added", a
+  // one-time pack as "purchased".
+  const isRenewal = String(md.kind ?? "") !== "credits" && !!md.price_id;
+  await notifyUser({
+    userId,
+    type: isRenewal ? "subscription_renewed" : "credits_purchased",
+    title: isRenewal ? "Monthly credits added" : "Credits added to your balance",
+    body: `${credits.toLocaleString()} credits are now ready to spend.`,
+    data: { credits, package_id: packageId, order_id: String(order.id), link: "/account?tab=credits" },
+    dedupeKey: `notif_order_${order.id}`,
+    severity: "success",
+  });
 }
 
 async function upsertSubscription(sub: any, statusOverride?: string) {

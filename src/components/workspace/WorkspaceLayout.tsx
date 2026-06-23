@@ -6,8 +6,9 @@ import {
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
   Film, UserSquare2, LayoutTemplate, CheckCircle2, ShieldCheck,
   ScrollText, FileSpreadsheet, Plug, KeyRound, Bell, Settings,
-  Shield, AlertOctagon, Sparkles, Menu, X, Scissors,
+  Shield, AlertOctagon, Sparkles, Menu, X, Scissors, LogOut,
 } from 'lucide-react';
+import { SignOutDialog } from '@/components/auth/SignOutDialog';
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import {
@@ -436,7 +437,20 @@ export function WorkspaceLayout({ children, fullBleed = false }: { children: Rea
                 : <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />}
             </button>
           </div>
-          {/* No per-tier chrome — canonical shell is identical across tiers. */}
+          {/* Sign out — the business shell needs its own exit (the personal
+              top-right cluster isn't present here). */}
+          <SignOutDialog>
+            <button
+              title="Sign out"
+              className={cn(
+                'flex w-full items-center gap-2 h-9 rounded-full border border-white/[0.06] bg-glass hover:bg-glass-active transition-colors font-light text-[11px] tracking-[-0.005em] text-white/55 hover:text-white/95',
+                collapsed ? 'justify-center px-0' : 'justify-center px-3',
+              )}
+            >
+              <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+              {!collapsed && 'Sign out'}
+            </button>
+          </SignOutDialog>
         </div>
         </div>
       </aside>

@@ -41,3 +41,6 @@ music-drop/
 
 # Standalone admin build output
 dist-admin/
+
+# Electron desktop build output (.dmg/.app)
+dist-desktop/

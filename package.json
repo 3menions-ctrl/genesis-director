@@ -3,12 +3,37 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "co.smallbridges.admin",
+    "productName": "Small Bridges Admin",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-admin",
+        "to": "dist-admin"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools",
+      "identity": null
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:admin": "ADMIN_BUILD=1 VITE_ADMIN=true vite build",
     "preview:admin": "vite preview --outDir dist-admin",
+    "desktop": "npm run build:admin && electron .",
+    "build:desktop": "npm run build:admin && electron-builder --mac dmg",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -109,6 +134,8 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

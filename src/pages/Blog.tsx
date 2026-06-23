@@ -13,7 +13,7 @@
 import { useMemo, useState, lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, Clock, User, Tag, Share2, BookOpen, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Tag, Share2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
@@ -22,6 +22,59 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { BLOG_ARTICLES, BLOG_CATEGORIES, type BlogArticle } from '@/content/blog';
 
 const Footer = lazy(() => import('@/components/cinema/Footer').then((m) => ({ default: m.Footer })));
+
+/** The magazine nameplate — a film term for where the edit happens. */
+const MASTHEAD = 'The Cutting Room';
+
+/**
+ * Derive the "issue" framing from the most-recent article's date string — never
+ * from Date.now(). Issue number counts months since the Jan 2026 launch; the
+ * cover line reads e.g. "ISSUE 06 · June 2026 · 21 stories".
+ */
+function issueInfo(dateStr: string, count: number) {
+  const d = new Date(dateStr);
+  const valid = !Number.isNaN(d.getTime());
+  const base = new Date('January 1, 2026');
+  const monthsSince = valid
+    ? (d.getFullYear() - base.getFullYear()) * 12 + (d.getMonth() - base.getMonth())
+    : 0;
+  const issueNo = String(Math.max(1, monthsSince + 1)).padStart(2, '0');
+  const monthYear = valid ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+  return { issueNo, monthYear, count };
+}
+
+/**
+ * Scoped editorial typography for the article body — a Fraunces drop cap on the
+ * first paragraph and magazine pull-quotes from blockquotes. The body renders as
+ * real <p>/<blockquote> nodes inside `.article-body`, so a single first-of-type
+ * rule wins on specificity without touching the renderer's logic.
+ */
+const ARTICLE_BODY_CSS = `
+.article-body p:first-of-type::first-letter {
+  float: left;
+  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: 4.6rem;
+  line-height: 0.74;
+  padding: 0.36rem 0.7rem 0 0;
+  margin-top: 0.12rem;
+  color: #fff;
+}
+.article-body blockquote {
+  border-left: 2px solid rgba(167, 139, 250, 0.75);
+  background: transparent;
+  border-radius: 0;
+  margin: 2.75rem 0;
+  padding: 0.1rem 0 0.1rem 1.75rem;
+  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.86);
+}
+`;
 
 const NOISE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
@@ -132,8 +185,9 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
               <div className="mt-8 h-px w-full bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
             </header>
 
+            <style>{ARTICLE_BODY_CSS}</style>
             <div className="prose prose-invert prose-lg max-w-none">
-              <SafeMarkdownRenderer content={article.content} variant="blog" className="text-white/70 leading-relaxed" />
+              <SafeMarkdownRenderer content={article.content} variant="blog" className="article-body text-white/70 leading-relaxed" />
             </div>
 
             {article.tags.length > 0 && (
@@ -158,19 +212,35 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
           </motion.article>
 
           {related.length > 0 && (
-            <div className="mt-16 pt-10 border-t border-white/10">
-              <h2 className="text-lg font-semibold text-white mb-6">More in {article.category}</h2>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {related.map((a) => (
-                  <Link key={a.slug} to={`/blog/${a.slug}`} className="group">
-                    <div className="h-full rounded-2xl bg-white/[0.025] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.05] transition-all p-5">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/40 mb-2">{a.category}</div>
-                      <h3 className="text-sm font-semibold text-white leading-snug line-clamp-3 group-hover:text-white/90">{a.title}</h3>
-                      <div className="mt-3 text-[11px] text-white/40">{a.readTime}</div>
-                    </div>
-                  </Link>
-                ))}
+            <div className="mt-16 pt-8">
+              <div className="flex items-center gap-4 mb-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45 whitespace-nowrap">
+                  Also in {article.category}
+                </span>
+                <span className="h-px flex-1 bg-white/12" />
               </div>
+              <ol className="mt-2">
+                {related.map((a, i) => (
+                  <li key={a.slug} className="border-t border-white/[0.09]">
+                    <Link to={`/blog/${a.slug}`} className="group flex items-baseline gap-5 py-5">
+                      <span className="font-mono text-[11px] text-white/35 tabular-nums pt-1 w-6 shrink-0">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-display text-lg md:text-xl text-white leading-snug tracking-[-0.01em]">
+                          <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-no-repeat bg-left-bottom transition-[background-size] duration-300 group-hover:bg-[length:100%_1px]">
+                            {a.title}
+                          </span>
+                        </span>
+                        <span className="mt-1 block text-[11px] font-mono uppercase tracking-[0.22em] text-white/35">
+                          {a.readTime}
+                        </span>
+                      </span>
+                      <ArrowRight className="ml-auto w-4 h-4 self-center text-white/30 shrink-0 transition-all group-hover:text-white/70 group-hover:translate-x-0.5" />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
         </div>
@@ -192,86 +262,170 @@ function BlogIndex() {
   const [featured, ...rest] = BLOG_ARTICLES;
   const filtered = active === 'All' ? rest : BLOG_ARTICLES.filter((a) => a.category === active && a.slug !== featured?.slug);
 
+  // Issue framing, derived from the most-recent article's date (BLOG_ARTICLES
+  // is sorted newest-first, so featured.date is the freshest dateline).
+  const issue = issueInfo(featured?.date ?? '', BLOG_ARTICLES.length);
+
+  // Editorial grid: the first filtered story runs LARGE as the section lead,
+  // the rest flow as a numbered, hairline-ruled index.
+  const [lead, ...entries] = filtered;
+
   return (
     <div className="min-h-screen bg-[#050507] overflow-hidden relative">
       <BlogBackdrop />
       <MarketingHeader />
 
-      <div className="relative z-10 pt-28 pb-16">
+      <div className="relative z-10 pt-28 pb-20">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.32em] text-white/45 mb-5">
-              <span className="h-px w-8 bg-gradient-to-r from-transparent to-white/30" />
-              The Cutting Room
-              <span className="h-px w-8 bg-gradient-to-l from-transparent to-white/30" />
+          {/* ── Issue masthead ─────────────────────────────────────────── */}
+          <motion.header
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            className="border-y border-white/12 py-7 mb-14"
+          >
+            <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-[0.42em] text-white/45 mb-2">
+                  Small Bridges presents
+                </div>
+                <h1 className="font-display text-white font-semibold leading-[0.9] tracking-[-0.02em] text-[clamp(2.6rem,8vw,5.5rem)]">
+                  {MASTHEAD}
+                </h1>
+              </div>
+              <div className="text-[11px] font-mono uppercase tracking-[0.26em] text-white/45 pb-1">
+                Issue {issue.issueNo}
+                {issue.monthYear && <> · {issue.monthYear}</>} · {issue.count} stories
+              </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold mb-5 tracking-[-0.03em] leading-[0.95]">
-              <span className="text-white">Field notes on </span>
-              <span className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent">AI filmmaking</span>
-            </h1>
-            <p className="text-lg text-white/55 max-w-2xl mx-auto leading-relaxed">
-              Tutorials, comparisons, and playbooks for turning prompts into cinema — from the Small Bridges team.
+            <p className="mt-5 max-w-2xl font-display italic text-white/55 text-base md:text-lg leading-relaxed">
+              Editor's note — tutorials, comparisons, and playbooks for turning a line of text into
+              cinema. No cover art here; the pictures are in the prompts.
             </p>
-          </motion.div>
+          </motion.header>
 
-          {/* Category filter */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
-            {categories.map((c) => (
-              <button key={c} onClick={() => setActive(c)}
-                className={
-                  'h-9 px-4 rounded-full text-[12px] font-medium transition-colors ' +
-                  (active === c ? 'bg-white text-black' : 'bg-white/[0.05] text-white/65 hover:bg-white/[0.1] hover:text-white')
-                }>
-                {c}
-              </button>
-            ))}
+          {/* ── Cover story (only on All) ──────────────────────────────── */}
+          {active === 'All' && featured && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.08 }}
+              className="mb-16"
+            >
+              <Link to={`/blog/${featured.slug}`} className="group block">
+                <div className="text-[11px] font-mono uppercase tracking-[0.34em] text-white/55 mb-5">
+                  <span className="text-violet-300/90">Cover story</span>
+                  <span className="text-white/25 mx-2">·</span>
+                  {featured.category}
+                </div>
+                <h2 className="font-display font-semibold text-white tracking-[-0.025em] leading-[0.96] max-w-4xl text-[clamp(2.2rem,6vw,5rem)]">
+                  <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
+                    {featured.title}
+                  </span>
+                </h2>
+                <p className="mt-6 max-w-2xl text-white/60 text-lg leading-relaxed">{featured.excerpt}</p>
+                <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] font-mono uppercase tracking-[0.16em] text-white/45">
+                  <span>{featured.author}</span><span className="text-white/20">·</span>
+                  <span>{featured.date}</span><span className="text-white/20">·</span>
+                  <span>{featured.readTime}</span>
+                </div>
+                <span className="mt-6 inline-flex items-center gap-2 text-sm text-white/85 group-hover:gap-3 transition-all">
+                  Read the story <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+            </motion.section>
+          )}
+
+          {/* ── Departments (category filter) ──────────────────────────── */}
+          <div className="mb-12">
+            <div className="flex items-center gap-4 mb-5">
+              <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/45 whitespace-nowrap">
+                Departments
+              </span>
+              <span className="h-px flex-1 bg-white/12" />
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setActive(c)}
+                  className={
+                    'pb-1 text-[12px] font-mono uppercase tracking-[0.22em] transition-colors border-b ' +
+                    (active === c
+                      ? 'text-white border-white'
+                      : 'text-white/45 border-transparent hover:text-white/85 hover:border-white/30')
+                  }
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Featured (only on All) — typographic, no cover art */}
-          {active === 'All' && featured && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-              className="mb-12">
-              <Link to={`/blog/${featured.slug}`} className="group block">
-                <article className="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/[0.14] transition-all duration-300 p-8 md:p-12">
-                  <div aria-hidden className="absolute -top-24 -right-16 w-[420px] h-[420px] rounded-full pointer-events-none"
-                    style={{ background: 'radial-gradient(circle, rgba(96,108,180,0.18), transparent 62%)', filter: 'blur(40px)' }} />
-                  <div className="relative">
-                    <Badge className="mb-5 bg-white/10 text-white/80 border-0">
-                      <span className="text-amber-300/90 mr-1.5">★</span> Featured · {featured.category}
-                    </Badge>
-                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 max-w-3xl tracking-[-0.02em] leading-[1.04] group-hover:text-white/90 transition-colors">{featured.title}</h2>
-                    <p className="text-white/60 mb-6 max-w-2xl text-[15px] md:text-base leading-relaxed line-clamp-2">{featured.excerpt}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-white/50 text-sm">
-                      <span>{featured.author}</span><span className="text-white/25">•</span>
-                      <span>{featured.date}</span><span className="text-white/25">•</span><span>{featured.readTime}</span>
-                      <span className="ml-auto inline-flex items-center gap-1.5 text-white/80 group-hover:gap-2.5 transition-all">Read article <ArrowRight className="w-4 h-4" /></span>
-                    </div>
+          {/* ── Lead of the department (asymmetric emphasis) ───────────── */}
+          {lead && (
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.5 }}
+              className="mb-12 pb-12 border-b border-white/12"
+            >
+              <Link to={`/blog/${lead.slug}`} className="group grid md:grid-cols-[auto,1fr] gap-x-8 gap-y-4">
+                <span className="font-mono text-xs text-white/35 tabular-nums pt-2">01</span>
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45 mb-3">{lead.category}</div>
+                  <h3 className="font-display font-semibold text-white tracking-[-0.02em] leading-[1.02] max-w-3xl text-[clamp(1.8rem,4.2vw,3.2rem)]">
+                    <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1.5px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_1.5px]">
+                      {lead.title}
+                    </span>
+                  </h3>
+                  <p className="mt-4 max-w-2xl text-white/55 leading-relaxed line-clamp-2">{lead.excerpt}</p>
+                  <div className="mt-4 text-[11px] font-mono uppercase tracking-[0.18em] text-white/40">
+                    {lead.date} · {lead.readTime}
                   </div>
-                </article>
+                </div>
               </Link>
             </motion.div>
           )}
 
-          {/* Grid — typographic cards, no cover art */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((article, i) => (
-              <motion.div key={article.slug} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.4) }}>
-                <Link to={`/blog/${article.slug}`} className="group block h-full">
-                  <article className="h-full flex flex-col rounded-2xl bg-white/[0.025] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.05] transition-all duration-300 p-6">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/40 mb-3">{article.category}</div>
-                    <h3 className="text-[17px] font-semibold text-white mb-2.5 leading-snug tracking-[-0.01em] group-hover:text-white/90 transition-colors line-clamp-3">{article.title}</h3>
-                    <p className="text-white/55 text-sm leading-relaxed mb-5 line-clamp-3">{article.excerpt}</p>
-                    <div className="mt-auto flex items-center justify-between text-white/40 text-xs pt-4 border-t border-white/[0.06]">
-                      <span>{article.date}</span>
-                      <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{article.readTime}</span>
+          {/* ── Editorial index — numbered, hairline-ruled, no cards ───── */}
+          <div className="grid md:grid-cols-2 gap-x-12">
+            {entries.map((article, i) => (
+              <motion.div
+                key={article.slug}
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.4, delay: Math.min((i % 2) * 0.05, 0.1) }}
+                className="border-t border-white/[0.09]"
+              >
+                <Link to={`/blog/${article.slug}`} className="group flex gap-5 py-7">
+                  <span className="font-mono text-xs text-white/35 tabular-nums pt-1.5 w-7 shrink-0">
+                    {String(i + 2).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40 mb-2.5">{article.category}</div>
+                    <h3 className="font-display font-semibold text-white tracking-[-0.01em] leading-[1.1] text-[clamp(1.25rem,2.4vw,1.7rem)]">
+                      <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-no-repeat bg-left-bottom transition-[background-size] duration-300 group-hover:bg-[length:100%_1px]">
+                        {article.title}
+                      </span>
+                    </h3>
+                    <p className="mt-2.5 text-white/50 text-sm leading-relaxed line-clamp-2">{article.excerpt}</p>
+                    <div className="mt-3.5 text-[10px] font-mono uppercase tracking-[0.2em] text-white/35">
+                      {article.date} · {article.readTime}
                     </div>
-                  </article>
+                  </div>
                 </Link>
               </motion.div>
             ))}
           </div>
+
+          {filtered.length === 0 && (
+            <p className="text-white/45 font-mono text-sm uppercase tracking-[0.2em] py-12 text-center">
+              No stories filed under this department yet.
+            </p>
+          )}
         </div>
       </div>
 

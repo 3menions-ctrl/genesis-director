@@ -578,13 +578,20 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-display italic text-[26px] text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>
+      <DialogContent className="w-[96vw] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-[24px] border-0 bg-[#0a0b10]/95 p-6 backdrop-blur-2xl shadow-[0_60px_160px_-40px_rgba(0,0,0,0.95)] sm:p-8">
+        {/* ambient cinematics — premium, borderless */}
+        <div aria-hidden className="pointer-events-none absolute -top-24 right-0 h-56 w-56 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.3), transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+        <DialogHeader className="relative space-y-2 text-left">
+          <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.05] ring-1 ring-inset ring-white/10">
+            <span aria-hidden className="absolute inset-0 rounded-2xl" style={{ boxShadow: '0 0 34px -8px hsl(var(--accent) / 0.7)' }} />
+            <Music2 className="relative h-5 w-5" style={{ color: 'hsl(var(--accent))' }} strokeWidth={1.7} />
+          </div>
+          <DialogTitle className="font-display text-[28px] font-semibold tracking-[-0.02em] text-white" style={{ fontFamily: "'Fraunces', serif" }}>
             Score Studio
           </DialogTitle>
-          <DialogDescription className="text-[12px] text-muted-foreground/85 mt-1">
-            Describe the soundtrack. Pick a composer voice. We render via MusicGen Stereo Large.
+          <DialogDescription className="text-[13px] leading-relaxed text-white/55">
+            Describe the soundtrack, pick a composer voice, and we render a cinematic score.
           </DialogDescription>
         </DialogHeader>
 
@@ -700,11 +707,11 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
           )}
         </div>
 
-        <DialogFooter className="mt-6">
+        <DialogFooter className="relative mt-7 flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground transition-colors"
+            className="h-11 rounded-2xl px-5 text-[12px] font-mono uppercase tracking-[0.2em] text-white/55 transition-colors hover:text-white sm:h-10"
           >
             Close
           </button>
@@ -712,9 +719,10 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
             type="button"
             onClick={generate}
             disabled={generating}
-            className="h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] disabled:opacity-50 inline-flex items-center gap-2"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-6 text-[13px] font-semibold text-[#0a0b10] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 sm:h-11"
+            style={{ boxShadow: '0 18px 50px -18px hsl(var(--accent) / 0.9)' }}
           >
-            {generating ? <><Spinner size="sm" tone="inherit" />Composing…</> : "Generate score"}
+            {generating ? <><Spinner size="sm" tone="inherit" />Composing…</> : <><Sparkles className="h-4 w-4" /> Generate score</>}
           </button>
         </DialogFooter>
       </DialogContent>

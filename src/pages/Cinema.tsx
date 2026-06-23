@@ -45,7 +45,7 @@ export default function Cinema() {
   const [muted, setMuted] = useState(true);
   const [vphase, setVphase] = useState("cover");
   const [videoFailed, setVideoFailed] = useState(false);
-  const showSpeaker = !videoFailed && (vphase === "playing" || vphase === "immersive" || vphase === "rest");
+  const showSpeaker = !videoFailed && (vphase === "playing" || vphase === "climax");
   const toggleMute = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -83,8 +83,9 @@ export default function Cinema() {
     if (!a) return;
     // Whisper-quiet music-box score (Grieg, Mountain King — music-box arrangement),
     // EQ-softened to blend, only while the film is actually playing. It fades out
-    // as the film reaches its final beat (immersive) so it ENDS with the video —
-    // no carry-over into the takeover.
+    // as the film reaches its climax so it ENDS with the video — no carry-over
+    // into the takeover. Only "playing" means genuine playback, so the score
+    // can never play without the film.
     const playingNow = !muted && vphase === "playing";
     if (playingNow) {
       if (a.paused) {
@@ -96,7 +97,7 @@ export default function Cinema() {
       }
       fadeMusic(0.03, 4500);
     } else {
-      fadeMusic(0, vphase === "immersive" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
+      fadeMusic(0, vphase === "climax" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
   }, [muted, vphase, fadeMusic]);
 

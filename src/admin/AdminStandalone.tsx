@@ -15,7 +15,7 @@
  * Providers mirror src/App.tsx's nest so every admin page (and any shared
  * component) sees the exact same context it does inside the public app.
  */
-import { Suspense } from "react";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -30,6 +30,9 @@ import { StudioProvider } from "@/contexts/StudioContext";
 import { PageToneProvider } from "@/lib/page-tone";
 import { Spinner } from "@/components/ui/Spinner";
 import AdminApp from "./AdminApp";
+// The login page — without it, ProtectedRoute's redirect to /auth has nowhere
+// to land and the app loops to a blank screen. Lazy so it's its own chunk.
+const Auth = lazy(() => import("@/pages/Auth"));
 
 export default function AdminStandalone() {
   return (
@@ -51,8 +54,11 @@ export default function AdminStandalone() {
                           }
                         >
                           <Routes>
+                            {/* Login — ProtectedRoute redirects here when there's
+                                no session; after sign-in it funnels to /admin. */}
+                            <Route path="/auth" element={<Auth />} />
                             <Route path="/admin/*" element={<AdminApp />} />
-                            {/* The subdomain root is the console — send it in. */}
+                            {/* Anything else → the console (post-login lands here). */}
                             <Route path="*" element={<Navigate to="/admin" replace />} />
                           </Routes>
                         </Suspense>

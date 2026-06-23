@@ -398,9 +398,11 @@ const App = () => {
                 } />
                 <Route path="/studio" element={
                   <RouteContainer fallbackMessage="Entering the studio…">
-                    <RedirectBusinessToModule base="/studio" target="/business/create">
-                      <Studio />
-                    </RedirectBusinessToModule>
+                    <ProtectedRoute>
+                      <RedirectBusinessToModule base="/studio" target="/business/create">
+                        <Studio />
+                      </RedirectBusinessToModule>
+                    </ProtectedRoute>
                   </RouteContainer>
                 } />
                 

@@ -125,7 +125,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     upscale4kCredits: 10,
     fps60Credits: 5,
     pipelineId: 'pipe.wan.v25',
-    pipelineFunction: 'wan-pipeline',
+    pipelineFunction: 'generate-video',
     maxScenesPerProject: 8,
     recommendedScenes: 5,
     defaultDuration: 5,

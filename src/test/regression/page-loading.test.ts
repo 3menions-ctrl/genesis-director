@@ -65,7 +65,7 @@ describe('CinemaLoader — Core Component', () => {
 
   it('should use inline CSS keyframes (not external animation lib)', () => {
     expect(loader).toContain('@keyframes loaderSpin');
-    expect(loader).toContain('@keyframes loaderPulse');
+    expect(loader).toContain('@keyframes loaderCorePulse');
   });
 });
 
@@ -169,8 +169,10 @@ describe('GATEKEEPER_PRESETS — Coverage', () => {
 describe('Page Loading Integration — Gatekeeper Adoption', () => {
   // Landing was redesigned away from the gatekeeper pattern (cinematic
   // hero handles its own ready-state), so it is intentionally excluded.
+  // The standalone Projects page was removed; Studio.tsx is now the primary
+  // creation surface adopting the gatekeeper pattern (uses the 'create' preset).
   const gatekeeperPages = [
-    { name: 'Projects', path: 'src/pages/Projects.tsx', preset: 'projects' },
+    { name: 'Studio', path: 'src/pages/Studio.tsx', preset: 'create' },
     { name: 'Production', path: 'src/pages/Production.tsx', preset: 'production' },
   ];
 
@@ -223,7 +225,7 @@ describe('No Rogue Loading Patterns', () => {
   // Pages that should NOT have raw spinners outside CinemaLoader
   const criticalPages = [
     'src/pages/Landing.tsx',
-    'src/pages/Projects.tsx',
+    'src/pages/Studio.tsx',
     'src/pages/Production.tsx',
   ];
 

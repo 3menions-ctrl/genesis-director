@@ -103,9 +103,15 @@ describe('creditsForScene — pricing sanity', () => {
     expect(Number.isFinite(cost)).toBe(true);
   });
 
-  it('cinema engines are strictly more expensive than standard kling at 10s', () => {
-    const klingCost = creditsForScene('kling-v3', 10);
-    expect(creditsForScene('runway-gen4', 10)).toBeGreaterThan(klingCost);
-    expect(creditsForScene('sora-2', 10)).toBeGreaterThan(klingCost);
+  it('cinema engines are strictly more expensive than standard kling at each default duration', () => {
+    // Engines support different duration tables (sora: 4/8/12, runway: 5/10,
+    // kling: 5/10/15), so compare each at its own recommended duration.
+    const klingCost = creditsForScene('kling-v3', ENGINES['kling-v3'].defaultDuration);
+    expect(
+      creditsForScene('runway-gen4', ENGINES['runway-gen4'].defaultDuration),
+    ).toBeGreaterThan(klingCost);
+    expect(
+      creditsForScene('sora-2', ENGINES['sora-2'].defaultDuration),
+    ).toBeGreaterThan(klingCost);
   });
 });

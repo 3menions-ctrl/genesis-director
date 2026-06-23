@@ -26,10 +26,52 @@ vi.mock("@/contexts/AuthContext", () => ({
   }),
 }));
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
-  },
+vi.mock("@/integrations/supabase/client", () => {
+  // Chainable query-builder stub. Every builder method returns the same object;
+  // the object resolves (when awaited) to an empty result. Covers the layout's
+  // notification bell (.from().select().eq().in().order().limit() /
+  // .update().in() …) without any network.
+  const chain: any = {};
+  const methods = [
+    "select", "eq", "in", "order", "limit", "update", "delete", "insert",
+    "single", "maybeSingle", "neq", "gte", "lte", "is", "not", "filter", "range",
+  ];
+  for (const m of methods) chain[m] = () => chain;
+  chain.then = (resolve: any) => resolve({ data: [], error: null });
+  const channel: any = { on: () => channel, subscribe: () => channel };
+  return {
+    supabase: {
+      rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+      from: vi.fn(() => chain),
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    },
+  };
+});
+
+// The sidebar now scope-gates every NavLink — disallowed links call
+// e.preventDefault() on click. This test models an authorized super-admin, so
+// grant every scope; otherwise clicks would be swallowed and navigation
+// blocked (a deliberate prod behaviour, not what this contract is asserting).
+vi.mock("@/refine/rbac/OpsAccessProvider", () => ({
+  OpsAccessProvider: ({ children }: { children: React.ReactNode }) => children,
+  useOpsAccess: () => ({
+    loading: false,
+    scopes: new Set(),
+    hasScope: () => true,
+    isSuperAdmin: true,
+  }),
+}));
+
+// Heavy leaf widgets unrelated to the sidebar-navigation contract — stub them
+// so the test renders the sidebar + routed Outlet deterministically (the real
+// versions open realtime channels / global key listeners / 1s tickers).
+vi.mock("@/refine/components/AdminNotificationBell", () => ({
+  AdminNotificationBell: () => null,
+}));
+vi.mock("@/refine/components/AdminPalette", () => ({
+  AdminPalette: () => null,
 }));
 
 import { RefineAdminLayout } from "@/refine/AdminLayout";
@@ -86,7 +128,8 @@ async function flushAdminGate() {
 // ── Tests ────────────────────────────────────────────────────────────────
 describe("AdminLayout sidebar — UI navigation", () => {
   beforeAll(() => {
-    expect(NAV_PATHS.length, "NAV path extraction failed").toBeGreaterThan(10);
+    // Hub-model sidebar: dashboard + 5 section hubs + Audit + Config.
+    expect(NAV_PATHS.length, "NAV path extraction failed").toBeGreaterThanOrEqual(6);
   });
 
   it("sidebar renders one <a> per NAV path with the expected href", async () => {

@@ -479,10 +479,12 @@ describe('10. Database Query Safety', () => {
 // ============= 11. PAGE EXPORTS VALIDATION =============
 
 describe('11. All Remaining Pages Export Correctly', () => {
+  // Projects/Create/Creators/Gallery pages were removed/renamed during the
+  // studio overhaul; their current equivalents are Studio, Cast, FilmsGallery.
   const CORE_PAGES = [
-    'Landing', 'Projects', 'Auth', 'Profile', 'Settings',
-    'Create', 'Production', 'Templates',
-    'Avatars', 'Creators', 'Gallery', 'Pricing', 'VideoEditor',
+    'Landing', 'Studio', 'Auth', 'Profile', 'Settings',
+    'Library', 'Production', 'Templates',
+    'Avatars', 'Cast', 'FilmsGallery', 'Pricing', 'VideoEditor',
   ];
 
   CORE_PAGES.forEach(page => {

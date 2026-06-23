@@ -1,163 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode } from 'react';
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-// Mock react-router-dom's useParams
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useParams: () => ({ userId: 'test-user-123' }),
-  };
-});
-
-// Mock the hooks
-vi.mock('@/hooks/usePublicProfile', () => ({
-  usePublicProfile: vi.fn(() => ({
-    profile: {
-      id: 'test-user-123',
-      display_name: 'Test Creator',
-      avatar_url: null,
-      followers_count: 42,
-      following_count: 10,
-      videos_count: 5,
-      is_following: false,
-    },
-    isLoading: false,
-    videos: [
-      {
-        id: 'video-1',
-        title: 'Amazing Video',
-        thumbnail_url: 'https://example.com/thumb.jpg',
-        video_url: 'https://example.com/video.mp4',
-        created_at: '2024-01-15T10:00:00Z',
-        likes_count: 25,
-      },
-    ],
-    videosLoading: false,
-    followUser: { mutateAsync: vi.fn(), isPending: false },
-    unfollowUser: { mutateAsync: vi.fn(), isPending: false },
-  })),
-}));
-
-vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: 'current-user-456' },
-    profile: { display_name: 'Current User' },
-    loading: false,
-  }),
-}));
-
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    section: ({ children, ...props }: any) => <section {...props}>{children}</section>,
-  },
-  AnimatePresence: ({ children }: any) => children,
-}));
-
-// Mock ProfileBackground
-vi.mock('@/components/profile/ProfileBackground', () => ({
-  default: () => <div data-testid="profile-background" />,
-}));
-
-// Mock AppHeader
-vi.mock('@/components/layout/AppHeader', () => ({
-  AppHeader: () => <nav data-testid="app-header" />,
-}));
-
-// Mock PausedFrameVideo
-vi.mock('@/components/ui/PausedFrameVideo', () => ({
-  PausedFrameVideo: ({ src }: { src: string }) => (
-    <video data-testid="paused-frame-video" src={src} />
-  ),
-}));
-
-describe('UserProfile Page', () => {
-  let queryClient: QueryClient;
-
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
-  );
-
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
-    vi.clearAllMocks();
+/**
+ * The standalone public UserProfile page was removed in the social-graph
+ * simplification. Public profiles are now served by the comprehensive Profile
+ * page (reachable at /c/:id), and the legacy /user/:userId route redirects back
+ * into the app. The usePublicProfile hook still backs public profile data.
+ *
+ * These tests guard that consolidation instead of the deleted page component.
+ */
+describe('User profile route consolidation', () => {
+  it('redirects the legacy /user/:userId route', () => {
+    const appSrc = fs.readFileSync(path.join(process.cwd(), 'src/App.tsx'), 'utf-8');
+    expect(appSrc).toMatch(/path="\/user\/:userId"\s+element=\{<Navigate to="\/projects"/);
   });
 
-  it('renders the creator profile with display name', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    
-    const { getByText } = render(<UserProfile />, { wrapper });
-
-    expect(getByText('Test Creator')).toBeInTheDocument();
+  it('serves public profiles via the Profile page default export', async () => {
+    const mod = await import('@/pages/Profile');
+    expect(typeof mod.default).toBe('function');
   });
 
-  it('displays follower and video counts', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    
-    const { getByText } = render(<UserProfile />, { wrapper });
-
-    expect(getByText('42')).toBeInTheDocument(); // followers
-    expect(getByText('5')).toBeInTheDocument(); // videos
-  });
-
-  it('shows Follow button when not following and not own profile', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    
-    const { getByRole } = render(<UserProfile />, { wrapper });
-
-    expect(getByRole('button', { name: /follow/i })).toBeInTheDocument();
-  });
-
-  it('renders the public videos section', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    const { getByText } = render(<UserProfile />, { wrapper });
-    // Section heading was renamed to "Showcase"
-    expect(getByText('Showcase')).toBeInTheDocument();
-  });
-
-  it('displays video titles in the grid', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    
-    const { getByText } = render(<UserProfile />, { wrapper });
-
-    expect(getByText('Amazing Video')).toBeInTheDocument();
-  });
-
-  it('includes AppHeader component', async () => {
-    const UserProfile = (await import('@/pages/UserProfile')).default;
-    
-    const { getByTestId } = render(<UserProfile />, { wrapper });
-
-    expect(getByTestId('app-header')).toBeInTheDocument();
-  });
-});
-
-describe('UserProfile Page Edge Cases', () => {
-  let queryClient: QueryClient;
-
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
-    vi.clearAllMocks();
-  });
-
-  it('exports the UserProfile component', async () => {
-    const module = await import('@/pages/UserProfile');
-    expect(module.default).toBeDefined();
-    expect(typeof module.default).toBe('function');
+  it('still exposes the public profile hook', async () => {
+    const mod = await import('@/hooks/usePublicProfile');
+    expect(typeof mod.usePublicProfile).toBe('function');
   });
 });

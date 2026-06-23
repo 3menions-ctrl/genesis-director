@@ -1,10 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { OPS_PAGES } from "@/refine/pages/ops/_registry";
 
+/**
+ * The admin sidebar moved from a flat "one NavLink per ops page" list to a
+ * HUB model: the sidebar NAV exposes the dashboard + section hubs (People,
+ * Production, Money, Growth, System) + a couple of direct tools (Audit,
+ * Config). Individual ops pages (src/refine/pages/ops/_registry.ts) are now
+ * reached as tabs inside their hub, while still remaining deep-linkable via
+ * their own <Route> in AdminApp.tsx.
+ *
+ * So the invariant worth guarding is no longer "every ops page is in the
+ * sidebar" — it's "every sidebar link resolves to a real admin route" (i.e.
+ * the sidebar never renders a dead link) and the NAV has no duplicates.
+ */
 const layoutSource = readFileSync(
   resolve(__dirname, "../../refine/AdminLayout.tsx"),
+  "utf8",
+);
+const appSource = readFileSync(
+  resolve(__dirname, "../../admin/AdminApp.tsx"),
   "utf8",
 );
 
@@ -21,28 +36,34 @@ function extractNavPaths(source: string): string[] {
   return Array.from(matches, (m) => m[1]);
 }
 
+/** Normalise AdminApp.tsx's relative child routes back to absolute /admin/... */
+function extractAdminRoutes(source: string): Set<string> {
+  const routes = new Set<string>(["/admin"]);
+  for (const m of source.matchAll(/<Route\s+path="([^"]+)"/g)) {
+    const p = m[1];
+    routes.add(p.startsWith("/admin") ? p : "/admin/" + p.replace(/^\//, ""));
+  }
+  return routes;
+}
+
 describe("AdminLayout sidebar registry coverage", () => {
   const navPaths = extractNavPaths(layoutSource);
-  const navSet = new Set(navPaths);
+  const routeSet = extractAdminRoutes(appSource);
 
-  it("registers every ops page path in the sidebar NAV", () => {
-    const missing = OPS_PAGES.filter((p) => !navSet.has(p.path)).map(
-      (p) => `${p.section}/${p.label} → ${p.path}`,
-    );
-    expect(missing, `Missing sidebar entries:\n${missing.join("\n")}`).toEqual([]);
+  it("extracts the hub-model NAV paths", () => {
+    // Sanity check the source extraction (dashboard + 5 hubs + audit + config).
+    expect(navPaths.length).toBeGreaterThanOrEqual(6);
   });
 
-  it("renders each ops path inside a NavLink (clickable)", () => {
-    // NavLink components inside AdminLayout map every NAV item to <NavLink to={path}>.
-    // We assert the source uses `to={path}` for all NAV items by checking the
-    // NavLink JSX block exists and references the `path` prop from the iterator.
+  it("every sidebar NAV path resolves to a registered admin route", () => {
+    const dead = navPaths.filter((p) => !routeSet.has(p));
+    expect(dead, `Sidebar links with no matching <Route>: ${dead.join(", ")}`).toEqual([]);
+  });
+
+  it("renders each NAV path inside a NavLink (clickable)", () => {
+    // AdminLayout maps every NAV item to <NavLink to={path}>.
     expect(layoutSource).toMatch(/<NavLink[\s\S]*?to=\{path\}/);
-    for (const page of OPS_PAGES) {
-      expect(
-        navSet.has(page.path),
-        `Sidebar is missing a clickable NavLink for ${page.path}`,
-      ).toBe(true);
-    }
+    expect(navPaths.length).toBeGreaterThan(0);
   });
 
   it("does not duplicate any sidebar path", () => {

@@ -265,7 +265,9 @@ describe('Security — Auth Architecture', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('Security — Admin Role Isolation', () => {
-  const adminPage = readFile('src/pages/Admin.tsx');
+  // The standalone src/pages/Admin.tsx was removed; the entire /admin surface
+  // is now gated by src/refine/AdminLayout.tsx.
+  const adminPage = readFile('src/refine/AdminLayout.tsx');
 
   it('Admin page must NOT check profiles.role for admin status', () => {
     // Should not contain direct role check from profile object

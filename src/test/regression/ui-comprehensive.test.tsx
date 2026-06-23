@@ -40,25 +40,27 @@ function readFile(p: string): string {
 import { Logo } from '@/components/ui/Logo';
 
 describe('Logo', () => {
-  it('renders img with alt text', () => {
-    render(<Logo />);
-    expect(screen.getByAltText('Small Bridges')).toBeInTheDocument();
+  // The Logo was redesigned from an <img> to an SVG BrandTile/Brandmark, and the
+  // wordmark is now split across spans ("Small" + italic "Bridges").
+  it('renders the brandmark svg', () => {
+    const { container } = render(<Logo />);
+    expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('shows text when showText=true', () => {
+  it('shows wordmark text when showText=true', () => {
     render(<Logo showText />);
-    expect(screen.getByText('Small Bridges')).toBeInTheDocument();
+    expect(screen.getByText('Bridges')).toBeInTheDocument();
   });
 
   it('hides text when showText=false (default)', () => {
     render(<Logo />);
-    expect(screen.queryByText('Small Bridges')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bridges')).not.toBeInTheDocument();
   });
 
   it('applies size class', () => {
     const { container } = render(<Logo size="xl" />);
-    const img = container.querySelector('img');
-    expect(img?.className).toContain('w-14');
+    // xl maps to h-14 w-14 on the brand tile
+    expect(container.querySelector('.w-14')).toBeInTheDocument();
   });
 });
 
@@ -270,7 +272,7 @@ describe('LandingNav', () => {
 
   it('renders Logo with text', () => {
     render(withRouter(<LandingNav onScrollToSection={mockScroll} onNavigate={mockNav} />));
-    expect(screen.getByAltText('Small Bridges')).toBeInTheDocument();
+    expect(screen.getByText('Bridges')).toBeInTheDocument();
   });
 });
 
@@ -519,7 +521,8 @@ describe('Component Architecture Audit', () => {
 
   describe('Landing component file existence', () => {
     const files = [
-      'src/components/landing/HeroSection.tsx',
+      // HeroSection was replaced by B2BHero in the landing redesign.
+      'src/components/landing/B2BHero.tsx',
       'src/components/landing/LandingNav.tsx',
       'src/components/landing/Footer.tsx',
       'src/components/landing/FAQSection.tsx',
@@ -631,10 +634,9 @@ describe('Component Architecture Audit', () => {
       const content = readFile('src/components/credits/BuyCreditsModal.tsx');
       expect(content).toContain('Dialog');
       expect(content).toContain('DialogContent');
-      // During beta this modal opens a "Request more credits" form (writes
-      // to support_messages). The Stripe-checkout `CreditPackage` selector
-      // returns alongside paid plans — assert on the beta surface for now.
-      expect(content).toMatch(/support_messages|credits_request/);
+      // Purchasing is now live: the modal lets users pick a CreditPackage and
+      // checks out via Stripe (the old beta support_messages form is gone).
+      expect(content).toMatch(/CREDIT_PACKAGES|startCreditCheckout/);
     });
   });
 });
@@ -650,10 +652,10 @@ describe('Component Contracts', () => {
     expect(content).not.toContain('from "framer-motion"');
   });
 
-  it('CinemaLoader has keyframe animations (loaderSpin, loaderPulse)', () => {
+  it('CinemaLoader has keyframe animations (loaderSpin, loaderCorePulse)', () => {
     const content = readFile('src/components/ui/CinemaLoader.tsx');
     expect(content).toContain('@keyframes loaderSpin');
-    expect(content).toContain('@keyframes loaderPulse');
+    expect(content).toContain('@keyframes loaderCorePulse');
   });
 
   it('AppLoader wraps CinemaLoader', () => {
@@ -697,9 +699,11 @@ describe('Component Contracts', () => {
   });
 
   it('HeroSection has Enter Studio CTA', () => {
-    const content = readFile('src/components/landing/HeroSection.tsx');
+    // The landing hero was refactored into B2BHero; the "Enter Studio" CTA is
+    // wired to the onSecondary handler (Landing passes handleEnterStudio).
+    const content = readFile('src/components/landing/B2BHero.tsx');
     expect(content).toContain('Enter Studio');
-    expect(content).toContain('onEnterStudio');
+    expect(content).toContain('onSecondary');
   });
 
   it('Footer has all 3 link sections: Product, Company, Legal', () => {

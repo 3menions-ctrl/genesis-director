@@ -36,6 +36,23 @@ if (typeof (globalThis as any).CSS === 'undefined') {
   (globalThis as any).CSS.supports = () => false;
 }
 
+// This jsdom build exposes sessionStorage but NOT localStorage (it needs a
+// non-opaque origin / --localstorage-file that the test runner doesn't set).
+// Shim an in-memory localStorage so the session-persistence + storage-exhaustion
+// suites can exercise the real modules. Methods are plain writable own
+// properties so tests can swap them (e.g. setItem = vi.fn()) and restore.
+if (typeof (globalThis as any).localStorage === 'undefined') {
+  const __ls = new Map<string, string>();
+  (globalThis as any).localStorage = {
+    getItem: (k: string) => (__ls.has(k) ? __ls.get(k)! : null),
+    setItem: (k: string, v: string) => { __ls.set(k, String(v)); },
+    removeItem: (k: string) => { __ls.delete(k); },
+    clear: () => { __ls.clear(); },
+    key: (i: number) => Array.from(__ls.keys())[i] ?? null,
+    get length() { return __ls.size; },
+  };
+}
+
 // ESM/Vitest doesn't expose CommonJS `require()`. The legacy require('@/...')
 // pattern below is shimmed by importing every module up-front and routing
 // require() calls through a synchronous module map.

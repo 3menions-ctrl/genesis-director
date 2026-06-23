@@ -27,8 +27,12 @@ const project = new Project({
   skipAddingFilesFromTsConfig: true,
   compilerOptions: { allowJs: false, jsx: 4 /* Preserve */ },
 });
+// The admin console was extracted from App.tsx into a self-contained module
+// (src/admin/AdminApp.tsx) mounted at /admin/*. Its lazy imports and <Route>
+// wiring now live there, with RELATIVE child paths under one pathless layout.
+const ADMIN_DIR = resolve(SRC_DIR, "admin");
 const layoutSf = project.addSourceFileAtPath(resolve(SRC_DIR, "refine/AdminLayout.tsx"));
-const appSf = project.addSourceFileAtPath(resolve(SRC_DIR, "App.tsx"));
+const appSf = project.addSourceFileAtPath(resolve(ADMIN_DIR, "AdminApp.tsx"));
 
 /** Read a string-literal property from an object literal (any quote style). */
 function readStringProp(obj: ObjectLiteralExpression, name: string): string | undefined {
@@ -133,26 +137,18 @@ const { adminRoutes, pathToRoute } = (() => {
   // React Router uses the first matching route — first-write-wins.
   const setOnce = (k: string, v: RouteKind) => { if (!map.has(k)) map.set(k, v); };
 
-  // Locate the parent <Route path="/admin" …> JSX node.
+  // AdminApp.tsx renders a single <Routes> tree: one pathless layout <Route>
+  // (RefineAdminLayout) wrapping children whose paths are RELATIVE (e.g.
+  // path="audit", or an index route for /admin). Collect every <Route> in the
+  // file and normalise relative paths back to absolute /admin/... ones.
   const allRoutes = [
     ...appSf.getDescendantsOfKind(SyntaxKind.JsxElement),
     ...appSf.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement),
   ].filter((el) => jsxTagName(el as JsxElement | JsxSelfClosingElement) === "Route") as Array<
     JsxElement | JsxSelfClosingElement
   >;
-  const adminParent = allRoutes.find(
-    (el) => jsxStringAttr(el, "path") === "/admin" && el.getKind() === SyntaxKind.JsxElement,
-  ) as JsxElement | undefined;
-  if (!adminParent) return { adminRoutes: routes, pathToRoute: map };
 
-  // Collect every <Route> nested directly inside the /admin parent (in source order).
-  const children = adminParent.getDescendants().filter((d) => {
-    if (d.getKind() !== SyntaxKind.JsxElement && d.getKind() !== SyntaxKind.JsxSelfClosingElement) return false;
-    return jsxTagName(d as JsxElement | JsxSelfClosingElement) === "Route";
-  }) as Array<JsxElement | JsxSelfClosingElement>;
-
-  for (const r of children) {
-    if (r === adminParent) continue;
+  for (const r of allRoutes) {
     const path = jsxStringAttr(r, "path");
     const isIndex = !!jsxAttr(r, "index");
     const full = isIndex
@@ -160,7 +156,7 @@ const { adminRoutes, pathToRoute } = (() => {
       : path
         ? path.startsWith("/admin") ? path : "/admin/" + path.replace(/^\//, "")
         : undefined;
-    if (!full) continue;
+    if (!full) continue; // pathless layout route — no own URL
     routes.add(full);
     const el = elementOfRoute(r);
     if (!el) continue;
@@ -285,13 +281,14 @@ describe("AdminLayout sidebar ↔ App routes", () => {
         problems.push(`${expected} (${path}) — no lazy(() => import(...)) declaration`);
         continue;
       }
-      // App.tsx lives in src/, so relative imports resolve against src/.
-      // "@/foo" also resolves to src/foo via the project's path alias.
-      const rel = importPath.startsWith("@/")
-        ? importPath.slice(2)
-        : importPath.replace(/^\.\//, "");
+      // AdminApp.tsx lives in src/admin/, so its relative imports (e.g.
+      // "../refine/pages/Foo") resolve against src/admin/. "@/foo" aliases
+      // resolve against src/.
+      const isAlias = importPath.startsWith("@/");
+      const baseDir = isAlias ? SRC_DIR : ADMIN_DIR;
+      const rel = isAlias ? importPath.slice(2) : importPath;
       const candidates = [rel, `${rel}.tsx`, `${rel}.ts`, `${rel}/index.tsx`, `${rel}/index.ts`];
-      const found = candidates.some((c) => existsSync(resolve(SRC_DIR, c)));
+      const found = candidates.some((c) => existsSync(resolve(baseDir, c)));
       if (!found) {
         problems.push(`${expected} (${path}) — import "${importPath}" does not resolve to a file`);
       }

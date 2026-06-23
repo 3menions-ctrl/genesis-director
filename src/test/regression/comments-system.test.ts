@@ -69,14 +69,20 @@ describe('Comments Hook — useProjectComments', () => {
   });
 
   // ─── Notifications ────────────────────────────────────────────────────────
+  // The comment-owner notification moved from a client insert into a server-side
+  // trigger (trg_notify_project_comment) to avoid RLS rejection + duplication.
 
   it('should create notification for project owner on new comment', () => {
-    expect(hook).toContain("type: 'comment'");
-    expect(hook).toContain('New comment on your video');
+    const migration = readFile('supabase/migrations/20260625000000_notifications.sql');
+    expect(migration).toContain('fn_notify_project_comment');
+    expect(migration).toContain("'comment'");
+    expect(migration).toContain('trg_notify_project_comment');
   });
 
   it('should NOT notify project owner for own comments', () => {
-    expect(hook).toContain('project.user_id !== user.id');
+    const migration = readFile('supabase/migrations/20260625000000_notifications.sql');
+    // The trigger short-circuits when the commenter is the project owner.
+    expect(migration).toMatch(/v_owner = NEW\.user_id THEN RETURN NEW/);
   });
 
   // ─── Realtime ──────────────────────────────────────────────────────────────
@@ -273,16 +279,17 @@ describe('Comments — Database Schema Alignment', () => {
   });
 });
 
-// ─── VideoDetail Page Integration ────────────────────────────────────────────
+// ─── Reel Page Integration ───────────────────────────────────────────────────
+// The standalone VideoDetail page was removed; comments now render on the Reel page.
 
-describe('VideoDetail — Comments Integration', () => {
-  const videoDetail = readFile('src/pages/VideoDetail.tsx');
+describe('Reel — Comments Integration', () => {
+  const reel = readFile('src/pages/Reel.tsx');
 
   it('should import VideoCommentsSection', () => {
-    expect(videoDetail).toContain('VideoCommentsSection');
+    expect(reel).toContain('VideoCommentsSection');
   });
 
   it('should pass projectId to VideoCommentsSection', () => {
-    expect(videoDetail).toContain('projectId={video.id}');
+    expect(reel).toContain('projectId={reel.id}');
   });
 });

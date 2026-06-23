@@ -9,14 +9,19 @@ import { CREDIT_PACKAGES, approxClips } from "@/lib/payments/creditPackages";
  * server resolved. If you change a pack here, change it there too.
  */
 const EXPECTED = {
+  // personal-tier packs
   mini: 90,
   starter: 370,
   growth: 1000,
   agency: 2500,
+  // business-tier packs
+  studio: 5500,
+  brand: 12000,
+  "agency+": 32000,
 } as const;
 
 describe("credit packages", () => {
-  it("exposes exactly the four server-backed packs with matching credits", () => {
+  it("exposes exactly the server-backed packs with matching credits", () => {
     const byId = Object.fromEntries(CREDIT_PACKAGES.map((p) => [p.id, p.credits]));
     expect(byId).toEqual(EXPECTED);
   });

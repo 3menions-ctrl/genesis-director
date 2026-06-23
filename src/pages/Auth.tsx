@@ -289,7 +289,7 @@ export default function Auth() {
                     Verify your email
                   </div>
                   <h2 className="font-display text-xl text-white font-light leading-snug mb-4">
-                    We sent a 6-digit code to{" "}
+                    We sent a verification code to{" "}
                     <span className="text-primary">{pendingEmail}</span>.
                   </h2>
 
@@ -301,6 +301,7 @@ export default function Auth() {
                       onChange={setOtp}
                       onComplete={() => { void submitOtp(); }}
                       disabled={verifying}
+                      length={8}
                     />
                   </div>
 

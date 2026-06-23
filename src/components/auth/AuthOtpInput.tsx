@@ -71,7 +71,7 @@ export function AuthOtpInput({
   };
 
   return (
-    <div className="flex items-center justify-center gap-2" role="group" aria-label="One-time code">
+    <div className="flex w-full items-center justify-center gap-1.5 sm:gap-2" role="group" aria-label="One-time code">
       {Array.from({ length }).map((_, i) => {
         const filled = !!value[i];
         return (
@@ -89,7 +89,7 @@ export function AuthOtpInput({
             onPaste={handlePaste}
             aria-label={`Digit ${i + 1}`}
             className={cn(
-              "w-12 h-14 text-center text-xl font-mono tabular-nums rounded-2xl",
+              "h-12 sm:h-14 min-w-0 flex-1 max-w-[3rem] text-center text-lg sm:text-xl font-mono tabular-nums rounded-2xl",
               "bg-white/[0.025] border text-white outline-none transition-all duration-200",
               "border-white/[0.08]",
               "focus-visible:border-primary/60 focus-visible:bg-primary/[0.06] focus-visible:shadow-[0_0_0_4px_hsla(215,100%,55%,0.12)]",

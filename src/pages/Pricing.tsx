@@ -284,17 +284,16 @@ const SEGMENT_META: Record<Segment, {
 };
 
 /** Feature matrix — what's included across the four tracks */
+// Accurate, side-by-side comparison — only facts that are actually true today.
 const MATRIX_ROWS: { label: string; values: Record<Segment, string | boolean> }[] = [
-  { label: 'Pricing model', values: { personal: 'Pay-as-you-go', business: 'Volume packs', subscription: 'Monthly billing' } },
-  { label: 'Resolution', values: { personal: 'Up to 4K', business: 'Up to 4K HDR + ProRes', subscription: 'Up to 4K' } },
-  { label: 'Render priority', values: { personal: 'Standard', business: 'Top-tier', subscription: 'Priority' } },
-  { label: 'Seats', values: { personal: '1', business: 'Up to unlimited', subscription: 'Up to 5' } },
-  { label: 'API access', values: { personal: false, business: true, subscription: true } },
-  { label: 'Brand kit', values: { personal: false, business: true, subscription: true } },
-  { label: 'SAML SSO', values: { personal: false, business: 'Optional', subscription: false } },
-  { label: 'SOC 2 evidence', values: { personal: false, business: 'On request', subscription: false } },
-  { label: 'Account manager', values: { personal: false, business: true, subscription: 'Pro & up' } },
-  { label: 'Support SLA', values: { personal: 'Email', business: 'Priority Slack', subscription: 'Priority email' } },
+  { label: 'Billing', values: { personal: 'Pay-as-you-go', business: 'Volume packs', subscription: 'Monthly' } },
+  { label: 'Credits', values: { personal: '90–2,500 / pack', business: '5,500–32,000 / pack', subscription: '220–2,000 / mo' } },
+  { label: 'Per-credit price', values: { personal: 'from $0.099', business: 'from $0.078', subscription: 'from $0.075' } },
+  { label: 'Credits expiry', values: { personal: 'Never expire', business: 'Never expire', subscription: 'Roll over 1 cycle' } },
+  { label: 'Output resolution', values: { personal: 'Up to 4K', business: 'Up to 4K', subscription: 'Up to 4K' } },
+  { label: 'Seats', values: { personal: '1', business: 'Team seats', subscription: 'Up to 5' } },
+  { label: 'Commitment', values: { personal: 'None · one-time', business: 'None · one-time', subscription: 'Cancel anytime' } },
+  { label: 'Best for', values: { personal: 'Solo creators', business: 'Teams & agencies', subscription: 'Weekly shippers' } },
 ];
 
 const FAQS: { q: string; a: string }[] = [

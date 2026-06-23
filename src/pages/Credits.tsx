@@ -43,6 +43,53 @@ interface CreditTransaction {
   created_at: string;
 }
 
+/** CreditOrb — a credit pack as a glossy glass circle (pricing-page language):
+ *  a credit-volume ring around a translucent sphere, price + credits inside,
+ *  the whole orb buys the pack. */
+function CreditOrb({ pkg, busy, disabled, onBuy }: { pkg: CreditPackage; busy: boolean; disabled: boolean; onBuy: () => void }) {
+  const popular = !!pkg.popular;
+  const min = Math.log(90), max = Math.log(75000);
+  const ratio = Math.min(1, Math.max(0.2, (Math.log(Math.max(pkg.credits, 90)) - min) / (max - min)));
+  const deg = Math.round(ratio * 360);
+  const size = popular
+    ? 'h-[clamp(13rem,21vw,15.5rem)] w-[clamp(13rem,21vw,15.5rem)]'
+    : 'h-[clamp(11rem,17vw,13rem)] w-[clamp(11rem,17vw,13rem)]';
+  return (
+    <button type="button" onClick={onBuy} disabled={disabled} className="group relative flex flex-col items-center outline-none disabled:opacity-60">
+      {popular && (
+        <span className="absolute -top-2 z-30 inline-flex items-center rounded-full px-3 py-0.5 text-[9px] font-mono uppercase tracking-[0.2em] text-white" style={{ background: 'hsl(var(--accent) / 0.22)', boxShadow: 'inset 0 0 0 1px hsl(var(--accent) / 0.6), 0 8px 24px -8px hsl(var(--accent) / 0.9)' }}>
+          Most popular
+        </span>
+      )}
+      <div aria-hidden className={cn('pointer-events-none absolute -inset-5 rounded-full blur-3xl transition-opacity duration-500', popular ? 'opacity-80' : 'opacity-40 group-hover:opacity-70')} style={{ background: 'radial-gradient(closest-side, hsl(var(--accent) / 0.4), transparent 70%)' }} />
+      <div
+        className={cn('relative flex flex-col items-center justify-center rounded-full text-center transition-transform duration-300 group-hover:-translate-y-1', size)}
+        style={{
+          background: 'radial-gradient(120% 120% at 50% 20%, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 55%, rgba(8,10,18,0.55))',
+          boxShadow: popular
+            ? '0 40px 110px -30px hsl(var(--accent) / 0.6), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -34px 64px -30px hsl(var(--accent) / 0.5)'
+            : '0 30px 90px -40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -28px 54px -30px hsl(var(--accent) / 0.38)',
+        }}
+      >
+        <div aria-hidden className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(from -90deg, hsl(var(--accent)) 0deg, hsl(var(--accent) / 0.85) ${deg * 0.5}deg, hsl(var(--accent) / 0.5) ${deg}deg, rgba(255,255,255,0.06) ${deg}deg 360deg)`, padding: '3px', WebkitMask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))', mask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))' }} />
+        <div aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10" />
+        <div className="relative z-10 flex flex-col items-center px-5">
+          <span className="font-mono text-[10px] uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>{pkg.name}</span>
+          <div className="mt-1.5 flex items-baseline gap-0.5">
+            <span className="text-[13px] text-white/50">$</span>
+            <span className={cn('font-display font-semibold leading-none tracking-[-0.02em] tabular-nums text-white', popular ? 'text-[clamp(2.6rem,5vw,3.4rem)]' : 'text-[clamp(2.1rem,4vw,2.7rem)]')}>{pkg.price.toLocaleString()}</span>
+          </div>
+          <span className="mt-1.5 text-[12px] tabular-nums text-white/70">{pkg.credits.toLocaleString()} credits</span>
+          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">~{approxClips(pkg.credits)} clips</span>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-1.5 text-[12px] font-semibold text-white ring-1 ring-inset ring-white/15 transition-colors group-hover:bg-white/[0.14]">
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Buy
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function Credits() {
   usePageMeta({
     title: 'Credits — Small Bridges',
@@ -158,34 +205,9 @@ export default function Credits() {
           <p className="text-white/55 text-[13px] mb-6 leading-relaxed max-w-2xl">
             One-time top-ups — credits never expire, and refunds for failed renders land back in your balance automatically. Prefer a monthly plan? See subscriptions below. Secure checkout via Polar.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-12 py-6">
             {CREDIT_PACKAGES.map((pkg) => (
-              <button
-                key={pkg.id}
-                onClick={() => buy(pkg)}
-                disabled={!!buying}
-                className={cn(
-                  'group relative text-left rounded-2xl border p-5 transition-colors disabled:opacity-60',
-                  pkg.popular
-                    ? 'border-accent/40 bg-[hsl(var(--accent)/0.06)] hover:border-accent/60'
-                    : 'border-white/[0.08] bg-white/[0.015] hover:border-white/25',
-                )}
-              >
-                {pkg.popular && (
-                  <span className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-accent text-black text-[9px] font-mono uppercase tracking-[0.22em]">
-                    Popular
-                  </span>
-                )}
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[15px] text-white">{pkg.name}</span>
-                  <span className="text-[20px] font-display tabular-nums text-white">${pkg.price}</span>
-                </div>
-                <div className="mt-1 text-[12px] text-white/55">{pkg.blurb}</div>
-                <div className="mt-4 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-accent/85">
-                  {buying === pkg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  {pkg.credits.toLocaleString()} credits · ~{approxClips(pkg.credits)} clips
-                </div>
-              </button>
+              <CreditOrb key={pkg.id} pkg={pkg} busy={buying === pkg.id} disabled={!!buying} onBuy={() => buy(pkg)} />
             ))}
           </div>
         </section>

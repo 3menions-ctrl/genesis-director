@@ -614,6 +614,7 @@ export function EditorShell() {
                 <LeftScenes
                   project={displayProject}
                   selectedSceneId={selectedSceneId}
+                  onOpenTemplates={() => setTemplatesOpen(true)}
                 />
               )}
 

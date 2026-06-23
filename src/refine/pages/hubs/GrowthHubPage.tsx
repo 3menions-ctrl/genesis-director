@@ -17,6 +17,7 @@ const Events                = lazy(() => import("../ops/AdminEventsPage"));
 const Traffic               = lazy(() => import("../ops/AdminTrafficPage"));
 const Insights              = lazy(() => import("../ops/AdminInsightsPage"));
 const Analytics             = lazy(() => import("../ops/AdminAnalyticsPage"));
+const Projections           = lazy(() => import("../ops/AdminProjectionsPage"));
 const OnboardingAnalytics   = lazy(() => import("../ops/AdminOnboardingAnalyticsPage"));
 const Experiments           = lazy(() => import("../ops/AdminExperimentsPage"));
 const Cohorts               = lazy(() => import("../ops/AdminCohortsPage"));
@@ -49,6 +50,7 @@ export default function GrowthHubPage() {
     { id: "traffic",         label: "Traffic",         render: () => wrap(Traffic) },
     { id: "insights",        label: "Insights",        render: () => wrap(Insights) },
     { id: "analytics",       label: "Analytics",       render: () => wrap(Analytics) },
+    { id: "projections",     label: "Projections",     render: () => wrap(Projections) },
     { id: "onboarding",      label: "Onboarding",      render: () => wrap(OnboardingAnalytics) },
     { id: "experiments",     label: "A/B Tests",       render: () => wrap(Experiments) },
     { id: "cohorts",         label: "Cohorts",         render: () => wrap(Cohorts) },

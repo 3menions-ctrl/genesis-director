@@ -200,6 +200,13 @@ export const OPS_PAGES = [
     "code": "ANL"
   },
   {
+    "file": "AdminProjectionsPage",
+    "path": "/admin/projections",
+    "section": "Growth",
+    "label": "Projections",
+    "code": "PRJ"
+  },
+  {
     "file": "AdminOnboardingAnalyticsPage",
     "path": "/admin/onboarding-analytics",
     "section": "Growth",

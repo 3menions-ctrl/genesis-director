@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HERO_VIDEO } from "./assets";
 import { CrackOverlay } from "./CrackOverlay";
 import { CoverFX } from "./CoverFX";
@@ -29,18 +29,6 @@ let hasPlayedImmersive = false;
 function StartNowTakeover({ onStart, onDismiss }: { onStart: () => void; onDismiss: () => void }) {
   return (
     <div className="relative flex flex-col items-center">
-      {/* X — back to the landing page (dismiss the takeover; film holds its last frame) */}
-      <motion.button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Close and return to the landing page"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
-        className="fixed right-5 top-5 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white/85 ring-1 ring-white/20 backdrop-blur-md transition-colors hover:bg-black/70 hover:text-white sm:right-7 sm:top-7"
-      >
-        <X className="h-5 w-5" />
-      </motion.button>
 
       <motion.button
         type="button"
@@ -83,7 +71,18 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
   // True once the film is actually rendering frames. Until then we hold a
   // paused poster frame so there's never a dark gap while it buffers.
   const [started, setStarted] = useState(revisit.current);
+  // On a revisit the <video> mounts at frame 0 and has to seek to the end;
+  // we keep it fully hidden until that seek lands so the ONLY frame ever shown
+  // is the last one — no flash from an intermediate frame.
+  const [revealRevisit, setRevealRevisit] = useState(!revisit.current);
   useEffect(() => { onPhase?.(phase); }, [phase, onPhase]);
+
+  // Fallback: reveal anyway if the `seeked` event never fires.
+  useEffect(() => {
+    if (!revisit.current || revealRevisit) return;
+    const t = setTimeout(() => setRevealRevisit(true), 1600);
+    return () => clearTimeout(t);
+  }, [revealRevisit]);
 
   // Once the film has begun, remember it for the rest of the session so an
   // in-app revisit to the landing doesn't replay it (a refresh resets this).
@@ -134,8 +133,8 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
           ref={videoRef}
           src={HERO_VIDEO}
           poster="/cinema-assets/hero-poster.jpg"
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
-          style={{ opacity: phase === "cover" ? 0 : 1 }}
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+          style={{ opacity: phase === "cover" ? 0 : revealRevisit ? 1 : 0 }}
           muted={muted}
           playsInline
           preload="auto"
@@ -147,6 +146,7 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
               e.currentTarget.pause();
             }
           }}
+          onSeeked={() => { if (revisit.current) setRevealRevisit(true); }}
           onPlaying={() => setStarted(true)}
           onTimeUpdate={onTime}
           onEnded={onEnded}

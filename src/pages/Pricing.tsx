@@ -24,6 +24,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
+import { PhotoBand } from '@/components/marketing/PhotoBand';
 import { Footer } from '@/components/cinema/Footer';
 
 type Segment = 'personal' | 'business' | 'subscription';
@@ -577,6 +578,15 @@ export default function Pricing() {
           ))}
         </div>
       </section>
+
+      {/* Editorial photo band */}
+      <PhotoBand
+        src="/blog/business-hero.jpg"
+        alt="A creative team working in a studio"
+        eyebrow="For every creator"
+        caption="From a first short film to a studio shipping every week."
+        className="py-10"
+      />
 
       {/* Trust */}
       <section className="relative z-10 px-5 py-10 sm:px-8">

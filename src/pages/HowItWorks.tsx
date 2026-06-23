@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
 import { Footer as SiteFooter } from '@/components/cinema/Footer';
+import { PhotoBand } from '@/components/marketing/PhotoBand';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Pipeline Layer Data ────────────────────────────────────────────
@@ -321,6 +322,15 @@ export default function HowItWorks() {
           <ChevronDown className="w-6 h-6 text-white/55 animate-bounce" style={{ animationDuration: '2s' }} />
         </motion.div>
       </motion.section>
+
+      {/* Editorial photo band */}
+      <PhotoBand
+        src="/blog/cinema-hero.jpg"
+        alt="A film crew on a production set"
+        eyebrow="The old way"
+        caption="Crews, cameras, edit bays, weeks of work — replaced by a sentence."
+        className="py-12 md:py-16"
+      />
 
       {/* Pipeline Layers */}
       <section className="relative z-10 py-20 md:py-32 px-6">

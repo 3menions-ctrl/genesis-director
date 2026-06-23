@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
 
 const FAST_FACTS = [
@@ -110,6 +111,15 @@ export default function Press() {
               </Button>
             </>
           }
+        />
+
+        {/* Editorial photo band */}
+        <PhotoBand
+          src="/blog/business-1.jpg"
+          alt="A modern workspace"
+          eyebrow="Press & media"
+          caption="Covering the studio that turns a sentence into a finished film."
+          className="mt-16 px-0 sm:px-0"
         />
 
         {/* ── 1. Press release (featured) ───────────────────────────── */}

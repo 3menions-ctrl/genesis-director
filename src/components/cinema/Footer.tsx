@@ -121,9 +121,9 @@ export function Footer({ showClosingCta = true }: { showClosingCta?: boolean }) 
             <div className="max-w-xl">
               <span className="font-mono text-[11px] uppercase tracking-[0.34em]" style={{ color: `hsl(${ACCENT})` }}>Ready when you are</span>
               <h2 className="mt-3 font-display text-[clamp(2rem,4.6vw,3.2rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white">
-                It starts with a <span className="italic">sentence</span>.
+                You were never meant to build <span className="italic">alone</span>.
               </h2>
-              <p className="mt-3 text-[14px] font-light text-white/50">Your first 5-second video is free.</p>
+              <p className="mt-3 text-[15px] font-light text-white/55">Build here. Belong here.</p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Link to="/auth?mode=signup" className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#0a0b0e] transition-transform duration-200 hover:-translate-y-0.5" style={{ boxShadow: `0 18px 50px -18px hsl(${ACCENT} / 0.9)` }}>

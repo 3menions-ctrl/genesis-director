@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { lazy, Suspense, type ReactNode } from "react";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -487,6 +488,15 @@ const Terms = () => {
               className="mb-12"
             />
           </motion.div>
+
+          {/* Editorial photo band */}
+          <PhotoBand
+            src="/blog/tech-hero.jpg"
+            alt="Abstract technology texture"
+            eyebrow="In plain language"
+            caption="Clear terms for a studio you can build a business on."
+            className="mb-14 px-0 sm:px-0"
+          />
 
           {/* Table of contents */}
           <nav

@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -172,6 +173,15 @@ const Contact = () => {
             subtitle="Whether you're scoping a project, stuck on a render, or writing about AI filmmaking, a real person on the Small Bridges team will read your note and reply within one business day."
           />
         </motion.div>
+
+        {/* Editorial photo band */}
+        <PhotoBand
+          src="/blog/presenter-hero.jpg"
+          alt="A creator at a desk on camera"
+          eyebrow="We’re listening"
+          caption="Real people, fast answers — tell us what you’re building."
+          className="mt-12 px-0 sm:px-0"
+        />
 
         <div className="grid lg:grid-cols-5 gap-8 mt-12">
           {/* Contact Form */}

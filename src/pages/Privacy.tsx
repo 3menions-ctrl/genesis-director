@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { lazy, Suspense, type ReactNode } from "react";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -360,6 +361,15 @@ const Privacy = () => {
               className="mb-12"
             />
           </motion.div>
+
+          {/* Editorial photo band */}
+          <PhotoBand
+            src="/blog/tech-1.jpg"
+            alt="Abstract data texture"
+            eyebrow="Your work is yours"
+            caption="What we collect, why, and the controls you have."
+            className="mb-14 px-0 sm:px-0"
+          />
 
           {/* Table of contents */}
           <nav

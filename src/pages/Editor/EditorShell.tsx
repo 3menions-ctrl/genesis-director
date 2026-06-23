@@ -74,6 +74,7 @@ import { StatusBar } from "./components/StatusBar";
 import { MarkersPanel } from "./components/MarkersPanel";
 import { EffectsPalette } from "./components/EffectsPalette";
 import { AudioMixer } from "./components/AudioMixer";
+import { TimelineTemplatesDrawer } from "./components/TimelineTemplatesDrawer";
 import { switchActiveTake, overwriteAtPlayhead, getEditorState } from "@/lib/editor/store";
 import { Timeline } from "./views/Timeline";
 import { Script } from "./views/Script";
@@ -130,6 +131,7 @@ export function EditorShell() {
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [vfxOpen, setVfxOpen] = useState(false);
   const [castOpen, setCastOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("edit");
   const presence = usePresence(project?.id);
 
@@ -685,6 +687,7 @@ export function EditorShell() {
                   onOpenEffectsPalette={() => setEffectsOpen(true)}
                   onOpenAudioMixer={() => setMixerOpen(true)}
                   onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenTemplates={() => setTemplatesOpen(true)}
                   onOpenDirector={() => setDirectorOpen(true)}
                   onOpenExport={() => setExportOpen(true)}
                 />
@@ -732,6 +735,7 @@ export function EditorShell() {
                   onOpenEffectsPalette={() => setEffectsOpen(true)}
                   onOpenAudioMixer={() => setMixerOpen(true)}
                   onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenTemplates={() => setTemplatesOpen(true)}
                   onOpenDirector={() => setDirectorOpen(true)}
                   onOpenExport={() => setExportOpen(true)}
                 />
@@ -751,6 +755,7 @@ export function EditorShell() {
                   onOpenEffectsPalette={() => setEffectsOpen(true)}
                   onOpenAudioMixer={() => setMixerOpen(true)}
                   onOpenCrossover={() => setVfxOpen(true)}
+                  onOpenTemplates={() => setTemplatesOpen(true)}
                   onOpenDirector={() => setDirectorOpen(true)}
                   onOpenExport={() => setExportOpen(true)}
                 />
@@ -829,6 +834,16 @@ export function EditorShell() {
             setPaletteOpen(false);
             setHelpOpen(true);
           }}
+          onOpenTemplates={() => {
+            setPaletteOpen(false);
+            setTemplatesOpen(true);
+          }}
+        />
+      )}
+      {templatesOpen && (
+        <TimelineTemplatesDrawer
+          open={templatesOpen}
+          onClose={() => setTemplatesOpen(false)}
         />
       )}
       {/* CRITICAL: every modal/panel is mounted CONDITIONALLY on its

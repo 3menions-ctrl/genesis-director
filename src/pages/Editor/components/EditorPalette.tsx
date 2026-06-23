@@ -47,6 +47,7 @@ interface Props {
   onOpenExport: () => void;
   onOpenComments: () => void;
   onOpenHelp: () => void;
+  onOpenTemplates?: () => void;
 }
 
 export function EditorPalette({
@@ -56,6 +57,7 @@ export function EditorPalette({
   onOpenExport,
   onOpenComments,
   onOpenHelp,
+  onOpenTemplates,
 }: Props) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -77,6 +79,16 @@ export function EditorPalette({
       { kind: "view", id: "timeline", label: "Go to Timeline", sub: "Magnetic editor", Icon: Scissors },
       { kind: "view", id: "script", label: "Go to Script", sub: "Screenplay editor", Icon: Layers },
       { kind: "view", id: "storyboard", label: "Go to Storyboard", sub: "Scene cards", Icon: Sparkles },
+      ...(onOpenTemplates
+        ? [{
+            kind: "action" as const,
+            id: "templates",
+            label: "Apply a template",
+            sub: "50 one-click looks · video + audio",
+            Icon: Sparkles,
+            run: onOpenTemplates,
+          }]
+        : []),
       {
         kind: "action",
         id: "export",
@@ -130,7 +142,7 @@ export function EditorPalette({
       }
     }
     return list;
-  }, [project, onOpenExport, onOpenComments, onOpenHelp, navigate]);
+  }, [project, onOpenExport, onOpenComments, onOpenHelp, onOpenTemplates, navigate]);
 
   // Tiny fuzzy filter — substring match across label + sub
   const filtered: Cmd[] = useMemo(() => {

@@ -122,11 +122,11 @@ const PIPELINE_LAYERS = [
   },
   {
     number: '08',
-    title: 'Kling V3 Engine',
-    subtitle: 'kwaivgi/kling-v3-video · Unified Pipeline',
-    description: 'Every mode — Text-to-Video, Image-to-Video, and Avatar — runs on Kling V3, the latest generation model with native lip-sync audio, 3–15s clips, and 1080p pro quality.',
+    title: 'Multi-Engine Routing',
+    subtitle: 'Wan · Kling · Seedance · Veo · Runway · Sora',
+    description: 'No single model is best at everything. Every shot is routed to the right engine — by mode, duration and the look you want — through one unified prompt and post-processing pipeline.',
     details: [
-      'Automatic model selection per shot type',
+      'Automatic engine selection per shot',
       'Unified prompt engineering across engines',
       'Consistent post-processing pipeline',
       'Quality-optimized routing',
@@ -308,7 +308,7 @@ export default function HowItWorks() {
           </p>
 
           <p className="text-sm text-white/55 mb-12">
-            Powered by <span className="text-white/75 font-medium">Kling V3</span> — orchestrated by Small Bridges
+            Six frontier engines render the frames — <span className="text-white/75 font-medium">the film is everything between them</span>.
           </p>
         </motion.div>
 
@@ -770,7 +770,7 @@ export default function HowItWorks() {
               Raw AI vs. Small Bridges Pipeline
             </h2>
             <p className="text-base text-white/35">
-              The difference between prompting Kling V3 directly and using our full production system.
+              The difference between prompting a raw model directly and using our full production system.
             </p>
           </motion.div>
 

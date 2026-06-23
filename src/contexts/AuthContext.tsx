@@ -26,6 +26,10 @@ interface AuthContextType {
   isSessionVerified: boolean;
   profileError: string | null;
   isAdmin: boolean;
+  /** True once the admin-role check for the current user has resolved (or there
+   *  is no user). Lets post-login routing wait for admin status before picking a
+   *  destination, so an admin isn't briefly sent to /library then bounced. */
+  adminChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
@@ -49,7 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSessionVerified, setIsSessionVerified] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const [adminChecked, setAdminChecked] = useState(false);
+
   // Ref to track current session for synchronous access
   const sessionRef = useRef<Session | null>(null);
   // Mirror of the latest committed profile, read synchronously by fetch
@@ -249,6 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (mounted) {
                 setProfile(null);
                 setIsAdmin(false);
+                setAdminChecked(true);
                 setLoading(false);
               }
               return;
@@ -262,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
         setIsAdmin(adminStatus);
+        setAdminChecked(true);
         // Tie product analytics to this user (no-op until VITE_POSTHOG_KEY is set).
         identifyPostHog(userId, { account_type: profileData?.account_type, is_admin: adminStatus });
         trackIdentify(userId, { account_type: profileData?.account_type, is_admin: adminStatus });
@@ -273,6 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setProfile(prev => prev ?? buildFallbackProfile(userId, sessionRef.current?.user?.email ?? null));
           setIsAdmin(false);
+          setAdminChecked(true);
         }
       } finally {
         if (mounted) {
@@ -344,13 +352,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // refetch, reconcileProfile prevents a fallback from downgrading.
           const identityChanged = previousUserId !== incomingUserId;
           if (identityChanged || !profileRef.current) {
+            // A new admin check is in flight — gate post-login routing until it
+            // resolves so an admin isn't briefly sent to /library then bounced.
+            setAdminChecked(false);
             fetchProfile(newSession.user.id).then(({ profile: profileData, authoritative }) => {
               if (mounted) setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
             }).catch(console.error);
 
             checkAdminRole(newSession.user.id).then(isAdminResult => {
-              if (mounted) setIsAdmin(isAdminResult);
-            }).catch(console.error);
+              if (mounted) { setIsAdmin(isAdminResult); setAdminChecked(true); }
+            }).catch(() => { if (mounted) setAdminChecked(true); });
           }
         } else {
           // Logged out — clear identity in observability tools.
@@ -358,6 +369,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           setProfileError(null);
           setIsAdmin(false);
+          setAdminChecked(true);
         }
       }
     );
@@ -370,6 +382,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       console.warn('[AuthContext] Init ceiling hit — forcing loading=false');
       setIsSessionVerified(true);
+      setAdminChecked(true);
       setLoading(false);
     }, AUTH_INIT_CEILING_MS);
 
@@ -377,16 +390,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initSession = async () => {
       try {
         // Race getSession against a timeout so a stalled refresh can't hang init.
+        // Clear the timer once the race settles — otherwise it fires its warning
+        // ~5s later even when getSession already won (a misleading false alarm).
+        let sessionTimer: ReturnType<typeof setTimeout> | undefined;
         const getSessionWithTimeout = Promise.race([
           supabase.auth.getSession(),
-          new Promise<{ data: { session: null } }>((resolve) =>
-            setTimeout(() => {
+          new Promise<{ data: { session: null } }>((resolve) => {
+            sessionTimer = setTimeout(() => {
               console.warn('[AuthContext] getSession() timed out — proceeding unauthenticated');
               resolve({ data: { session: null } });
-            }, 5000),
-          ),
+            }, 5000);
+          }),
         ]);
         const { data: { session: existingSession } } = await getSessionWithTimeout;
+        if (sessionTimer) clearTimeout(sessionTimer);
 
         if (!mounted) return;
         
@@ -410,6 +427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await completeAuthInit(existingSession.user.id);
         } else {
           setIsAdmin(false);
+          setAdminChecked(true);
           setLoading(false);
         }
         
@@ -677,6 +695,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setProfileError(null);
     setIsAdmin(false);
+    setAdminChecked(true);
     resetAnalytics();
     resetTracking();
 
@@ -744,6 +763,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSessionVerified,
       profileError,
       isAdmin,
+      adminChecked,
       signIn,
       signUp,
       signInWithMagicLink,
@@ -772,6 +792,7 @@ export function useAuth() {
       isSessionVerified: false,
       profileError: null,
       isAdmin: false,
+      adminChecked: true,
       signIn: async () => ({ error: new Error('Auth not initialized') }),
       signUp: async () => ({ error: new Error('Auth not initialized') }),
       signInWithMagicLink: async () => ({ error: new Error('Auth not initialized') }),

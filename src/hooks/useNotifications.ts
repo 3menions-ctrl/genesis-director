@@ -19,6 +19,8 @@ export type NotificationType =
   | 'video_started'
   | 'video_failed'
   | 'low_credits'
+  | 'credits_purchased'
+  | 'subscription_renewed'
   | 'mention'
   | 'system';
 
@@ -46,6 +48,8 @@ const URGENT_TYPES = new Set<NotificationType>([
   'video_complete',
   'video_failed',
   'message',
+  'credits_purchased',
+  'subscription_renewed',
 ]);
 
 function isUrgent(n: Partial<Notification> | undefined): boolean {

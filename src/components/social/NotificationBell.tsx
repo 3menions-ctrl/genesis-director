@@ -56,6 +56,8 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
   video_started: Play,
   video_failed: AlertTriangle,
   low_credits: Coins,
+  credits_purchased: Coins,
+  subscription_renewed: Coins,
   mention: MessageCircle,
   system: Sparkles,
 };
@@ -75,6 +77,8 @@ const notificationColors: Record<NotificationType, string> = {
   video_started: 'text-sky-300/80',
   video_failed: 'text-rose-300',
   low_credits: 'text-amber-300',
+  credits_purchased: 'text-emerald-300',
+  subscription_renewed: 'text-emerald-300',
   mention: 'text-sky-300/80',
   system: 'text-accent',
 };

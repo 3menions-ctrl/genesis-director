@@ -19,9 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { Footer } from "@/components/cinema/Footer";
 
 const FAST_FACTS = [
-  { icon: Building2, label: "Company", value: "Small Bridges-studio LLC" },
+  { icon: Building2, label: "Company", value: "Small Bridges Studio LLC" },
   { icon: MapPin, label: "Headquarters", value: "Missouri, U.S." },
   { icon: Calendar, label: "Studio launch", value: "June 2026" },
   { icon: Cpu, label: "Engines", value: "Kling V3 · Seedance · Wan" },
@@ -191,7 +192,7 @@ export default function Press() {
                   avatars, AI music scoring, and multi-scene stories with consistent characters — powered by leading
                   models including Kling V3, Seedance, and Wan. By starting every filmmaker with a free clip and
                   transparent pay-as-you-go pricing, the company is building a world where anyone can direct. Small
-                  Bridges is built by Small Bridges-studio LLC, a Missouri company.
+                  Bridges is built by Small Bridges Studio LLC, a Missouri company.
                 </p>
                 <p className="mt-5 text-[13px] text-white/45">
                   Media contact:{" "}
@@ -330,23 +331,7 @@ export default function Press() {
         </motion.section>
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 border-t border-white/[0.06]">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Logo size="sm" />
-              <span className="text-sm text-white/45">© 2026 Small Bridges-studio LLC. All rights reserved.</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm">
-              <Link to="/privacy" className="text-white/45 hover:text-white transition-colors">Privacy</Link>
-              <Link to="/terms" className="text-white/45 hover:text-white transition-colors">Terms</Link>
-              <Link to="/blog" className="text-white/45 hover:text-white transition-colors">Blog</Link>
-              <Link to="/contact" className="text-white/45 hover:text-white transition-colors">Contact</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

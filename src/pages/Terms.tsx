@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { lazy, Suspense, type ReactNode } from "react";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { Footer } from "@/components/cinema/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
@@ -18,7 +19,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
       <>
         <p>
           These Terms of Service ("Terms") form a binding agreement between you and{" "}
-          <strong className="text-white">Small Bridges-studio LLC</strong>, a Missouri limited
+          <strong className="text-white">Small Bridges Studio LLC</strong>, a Missouri limited
           liability company ("Small Bridges," "we," "our," or "us"), and govern your access to and
           use of the Small Bridges website, applications, and AI cinematic video-creation services
           (collectively, the "Service"). By creating an account, purchasing credits, or otherwise
@@ -232,7 +233,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
       <>
         <p>
           The Service itself — including its software, interface, branding, trademarks, and
-          underlying technology — is owned by Small Bridges-studio LLC or its licensors and is
+          underlying technology — is owned by Small Bridges Studio LLC or its licensors and is
           protected by intellectual-property laws. Except for the rights expressly granted to you in
           these Terms, we reserve all rights. You may not use our name, logo, or trademarks without
           our prior written permission.
@@ -312,7 +313,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
     title: "Indemnification",
     body: (
       <p>
-        You agree to indemnify, defend, and hold harmless Small Bridges-studio LLC and its officers,
+        You agree to indemnify, defend, and hold harmless Small Bridges Studio LLC and its officers,
         members, employees, and agents from and against any claims, damages, liabilities, losses, and
         expenses (including reasonable attorneys' fees) arising out of or related to: (a) your Inputs
         or Outputs; (b) your use of the Service; (c) your violation of these Terms or any law; or
@@ -434,7 +435,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <div className="space-y-1">
         <p>Questions about these Terms? Reach us at:</p>
-        <p className="text-white">Small Bridges-studio LLC</p>
+        <p className="text-white">Small Bridges Studio LLC</p>
         <p>State of Missouri, U.S.</p>
         <p>
           <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
@@ -530,10 +531,12 @@ const Terms = () => {
           </div>
 
           <p className="mt-12 text-xs text-white/35">
-            © {new Date().getFullYear()} Small Bridges-studio LLC. All rights reserved.
+            © {new Date().getFullYear()} Small Bridges Studio LLC. All rights reserved.
           </p>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

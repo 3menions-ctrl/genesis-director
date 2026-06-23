@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { lazy, Suspense, type ReactNode } from "react";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { Footer } from "@/components/cinema/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
@@ -17,7 +18,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>
-          <strong className="text-white">Small Bridges-studio LLC</strong>, a Missouri limited
+          <strong className="text-white">Small Bridges Studio LLC</strong>, a Missouri limited
           liability company ("Small Bridges," "we," "our," or "us"), operates the Small Bridges AI
           cinematic video-creation platform (the "Service"). This Privacy Policy explains what
           personal information we collect, how and why we use it, who we share it with, and the
@@ -294,7 +295,7 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
           You may also manage and delete much of your data directly from your account settings.
         </p>
         <div className="space-y-1">
-          <p className="text-white">Small Bridges-studio LLC</p>
+          <p className="text-white">Small Bridges Studio LLC</p>
           <p>State of Missouri, U.S.</p>
           <p>
             <a href={`mailto:${EMAIL}`} className="text-white underline-offset-4 hover:underline">
@@ -403,10 +404,12 @@ const Privacy = () => {
           </div>
 
           <p className="mt-12 text-xs text-white/35">
-            © {new Date().getFullYear()} Small Bridges-studio LLC. All rights reserved.
+            © {new Date().getFullYear()} Small Bridges Studio LLC. All rights reserved.
           </p>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { Footer } from "@/components/cinema/Footer";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -347,6 +348,8 @@ const Contact = () => {
           </div>
         </motion.div>
       </div>
+
+      <Footer />
     </div>
   );
 };

@@ -2,13 +2,15 @@ import { memo, useRef } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, Shield, Layers, Film, Mic, Music,
-  Eye, Zap, RefreshCw, Brain, Camera, Palette, Lock,
-  Sparkles, ChevronDown
+  ArrowRight, Shield, Layers, Film, Music,
+  Eye, Zap, Brain, Camera, Palette, Lock,
+  Sparkles, ChevronDown, Image as ImageIcon, Users, LayoutTemplate,
+  Globe, AudioLines, Type, Wand2, Cpu, Share2, Code2, Scissors
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/ui/Logo';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
+import { Footer as SiteFooter } from '@/components/cinema/Footer';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Pipeline Layer Data ────────────────────────────────────────────
@@ -144,6 +146,47 @@ const COMPARISON_POINTS = [
   { raw: 'Silent video output', us: 'TTS, music, dialogue ducking' },
 ];
 
+// ─── Studio overview tiles ──────────────────────────────────────────
+const OVERVIEW_TILES = [
+  { icon: <Film className="w-5 h-5" />, title: 'Non-linear editor', line: 'Stage, timeline, script & storyboard in sync.' },
+  { icon: <ImageIcon className="w-5 h-5" />, title: 'Photo & image studio', line: 'Generate stills, then brush-edit and inpaint.' },
+  { icon: <Users className="w-5 h-5" />, title: 'A cast that stays itself', line: '461 characters with identity bibles & voices.' },
+  { icon: <LayoutTemplate className="w-5 h-5" />, title: 'Templates that ship a look', line: '40+ looks across 7 categories.' },
+  { icon: <Globe className="w-5 h-5" />, title: '120 worlds to shoot in', line: 'Lighting, palette & lens, baked into the render.' },
+  { icon: <Music className="w-5 h-5" />, title: 'Sound, scored & mixed', line: 'Composer presets, per-clip EQ & loudness.' },
+  { icon: <Palette className="w-5 h-5" />, title: 'Finish like film', line: 'Color grade, chyrons & motion VFX.' },
+  { icon: <Cpu className="w-5 h-5" />, title: 'Six engines, one pipeline', line: 'The studio routes each shot to the right model.' },
+  { icon: <Share2 className="w-5 h-5" />, title: 'Ship it, together', line: 'Render queue, publishing & live collaboration.' },
+  { icon: <Code2 className="w-5 h-5" />, title: 'Built for developers', line: 'API keys & webhooks from your account.' },
+];
+
+// ─── Engine catalog ─────────────────────────────────────────────────
+const ENGINE_CATALOG = [
+  { name: 'Wan 2.5', maker: 'Alibaba' },
+  { name: 'Kling V3', maker: 'Kuaishou' },
+  { name: 'Seedance 2.0', maker: 'ByteDance' },
+  { name: 'Veo 3 Fast', maker: 'Google DeepMind' },
+  { name: 'Runway Gen-4', maker: 'Runway' },
+  { name: 'Sora 2', maker: 'OpenAI' },
+];
+
+// ─── Section heading helper ─────────────────────────────────────────
+function SectionHeading({ eyebrow, title, intro }: { eyebrow: string; title: string; intro: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="mb-12 md:mb-16 max-w-3xl"
+    >
+      <span className="font-mono text-[11px] uppercase tracking-[0.34em] text-violet-300">{eyebrow}</span>
+      <h2 className="mt-4 font-display text-3xl md:text-5xl font-semibold tracking-[-0.03em] text-white">{title}</h2>
+      <p className="mt-4 text-base md:text-lg text-white/55 leading-relaxed">{intro}</p>
+    </motion.div>
+  );
+}
+
 // ─── Animated Layer Card ────────────────────────────────────────────
 const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPELINE_LAYERS[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -224,7 +267,7 @@ const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPE
 
 // ─── Main Page ──────────────────────────────────────────────────────
 export default function HowItWorks() {
-  usePageMeta({ title: "How It Works — Small Bridges", description: "From script to screen in minutes. See how Small Bridges's pipeline turns ideas into cinematic video." });
+  usePageMeta({ title: "How It Works — Small Bridges", description: "The whole studio in one tab: a non-linear editor, photo editor, 461 avatars, scored music, 6 video engines, film-grade color and one-click export — all from a sentence." });
 
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -232,14 +275,10 @@ export default function HowItWorks() {
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div className="relative min-h-screen text-white overflow-hidden">
       <MarketingHeader />
       {/* Ambient background */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(120,80,200,0.08)_0%,_transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(50,130,220,0.06)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_80%,_rgba(200,100,50,0.04)_0%,_transparent_40%)]" />
-      </div>
+      <VioletBackdrop />
 
       {/* Hero */}
       <motion.section 
@@ -306,6 +345,415 @@ export default function HowItWorks() {
               <LayerCard key={layer.number} layer={layer} index={i} />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Studio overview ─────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="The studio"
+            title="The whole studio in one tab"
+            intro="Generation is one step. Everything a film needs — written, cast, scored, cut, graded and shipped — happens in the same browser tab."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {OVERVIEW_TILES.map((tile, i) => (
+              <motion.div
+                key={tile.title}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ delay: (i % 3) * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                className="group flex items-start gap-4 rounded-2xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.12)] p-5 transition-colors hover:border-[rgba(216,180,254,0.28)]"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 transition-colors group-hover:text-violet-200">
+                  {tile.icon}
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-white tracking-tight">{tile.title}</h3>
+                  <p className="mt-1 text-sm text-white/55 leading-relaxed">{tile.line}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── The editor (annotated screenshot) ───────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="The cut"
+            title="A real non-linear editor"
+            intro="Not a render-and-pray box. A frame-accurate timeline with four synchronized views, default tracks and per-clip audio — the kind of room you actually finish a film in."
+          />
+          <motion.figure
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="relative"
+          >
+            <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
+            <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+              <img
+                src="/cinema-assets/editor-annotated.jpg"
+                alt="The Small Bridges editor — four views, a frame-accurate timeline, the cast/voice inspector and per-clip audio mixing, with callouts"
+                className="w-full rounded-2xl border border-white/10"
+              />
+            </div>
+          </motion.figure>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
+            {[
+              'Four synchronized views — Stage (real-time preview), Timeline, Script, Storyboard.',
+              'Five default tracks (V3 titles, V2 overlay/VFX, V1 video, A1 dialogue, A2 music) — add, rename, reorder, lock, mute, solo.',
+              'Frame-accurate clip ops — trim, split, slip, duplicate, copy/paste, undo/redo, markers, in/out loop.',
+              'Playback 0.25×–4×, theater mode.',
+            ].map((b, i) => (
+              <motion.div
+                key={b}
+                initial={{ opacity: 0, x: -12 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="flex items-start gap-3"
+              >
+                <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(216,180,254,0.6)]" />
+                <span className="text-sm text-white/65 leading-relaxed">{b}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Photo & image studio ────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="Stills"
+            title="Photo & image studio"
+            intro="Every film needs key art, plates and inserts. Make them here, then take them to a real editor."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6 }}
+              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <ImageIcon className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Generate</h3>
+              <p className="text-[15px] text-white/65 leading-relaxed">
+                Stills from a prompt in <span className="text-violet-300">8 looks</span> — cinematic, editorial, brutalist, dreamlike, product, illustration, noir and poster — across <span className="text-violet-300">6 aspect ratios</span>, 1, 2 or 4 at a time, with reference-image anchoring.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6, delay: 0.08 }}
+              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <Wand2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Refine</h3>
+              <p className="text-[15px] text-white/65 leading-relaxed">
+                A brush-based photo editor to <span className="text-violet-300">mask</span> and <span className="text-violet-300">inpaint</span> exactly what you want changed, with before/after and full undo.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Avatars ─────────────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="Casting"
+            title="A cast that stays itself"
+            intro="The hardest part of AI film is a face that survives the cut. Ours is anchored to an identity bible, so it holds."
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <motion.figure
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+            >
+              <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
+              <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+                <img
+                  src="/cinema-assets/surface-avatars.jpg"
+                  alt="The Small Bridges avatar library — characters across categories, each with multi-angle reference images"
+                  className="w-full rounded-2xl border border-white/10"
+                />
+              </div>
+            </motion.figure>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="text-lg text-white/70 leading-relaxed">
+                <span className="text-white font-semibold">461 characters</span> across <span className="text-violet-300">17+ categories</span>. Each has an identity bible — multi-angle reference images, wardrobe and distinguishing features — so the same face holds shot after shot.
+              </p>
+              <p className="mt-5 text-[15px] text-white/55 leading-relaxed">
+                Assign a voice (ElevenLabs, voice-clone, or OpenAI-TTS) and a role, and they're ready to direct.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Templates ───────────────────────────────────────────── */}
+      <section id="templates" className="relative z-10 scroll-mt-24 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="Starting points"
+            title="Templates that ship a look"
+            intro="Don't start from a blank timeline. Start from a finished aesthetic and make it yours."
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.6 }}
+            className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-9"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+              <LayoutTemplate className="w-6 h-6" />
+            </div>
+            <p className="text-lg text-white/70 leading-relaxed max-w-3xl">
+              <span className="text-white font-semibold">40+ built-in templates</span> across <span className="text-violet-300">7 categories</span> — trending, cinematic, commercial, educational, entertainment, corporate and VFX — including <span className="text-violet-300">10 premium "Breakout" 4th-wall VFX templates</span>.
+            </p>
+            <p className="mt-4 text-[15px] text-white/55 leading-relaxed max-w-3xl">
+              Each carries its own clips, durations, transitions, color grade and music mood, with an engine recommended per template and multiple aspect variants.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Environments ────────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="Locations"
+            title="120 worlds to shoot in"
+            intro="Pick a world and the studio dresses the shot for you — light, color and lens included."
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6 }}
+              className="order-2 lg:order-1"
+            >
+              <p className="text-lg text-white/70 leading-relaxed">
+                <span className="text-white font-semibold">120+ environments</span> across <span className="text-violet-300">9 worlds</span> — golden-hour, blue-hour, night-neon, storm, wilderness, urban, interiors, surreal and cosmic.
+              </p>
+              <p className="mt-5 text-[15px] text-white/55 leading-relaxed">
+                Each injects lighting, a 4-stop color palette, camera/lens hints and matched VFX into the render.
+              </p>
+            </motion.div>
+            <motion.figure
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative order-1 lg:order-2"
+            >
+              <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
+              <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+                <img
+                  src="/cinema-assets/surface-environments.jpg"
+                  alt="The Small Bridges environment library — worlds with their own lighting and color palettes"
+                  className="w-full rounded-2xl border border-white/10"
+                />
+              </div>
+            </motion.figure>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sound ───────────────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="The score"
+            title="Sound, scored and mixed"
+            intro="A film is half sound. The studio composes it, mixes it per clip, and masters it to spec."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { icon: <Music className="w-6 h-6" />, title: 'Compose', body: '6 cinematic composer presets — Hans Zimmer, Ramin Djawadi, Steve Jablonsky, Ludwig Göransson, John Williams and Howard Shore.' },
+              { icon: <AudioLines className="w-6 h-6" />, title: 'Mix', body: 'Per-clip audio: 3-band EQ, compressor (5 presets), noise reduction and reverb. Voices via ElevenLabs + clones with lip-sync.' },
+              { icon: <Zap className="w-6 h-6" />, title: 'Master', body: 'Loudness presets for streaming (-14 LUFS), podcast (-16), broadcast/EBU-R128 (-23) and cinema (-27).' },
+            ].map((c, i) => (
+              <motion.div
+                key={c.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.55, delay: i * 0.07 }}
+                className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                  {c.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2.5">{c.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{c.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Finish like film ────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="The finish"
+            title="Finish like film"
+            intro="The last 10% is what separates a clip from a film. Grade it, title it, and add the motion."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { icon: <Palette className="w-6 h-6" />, title: 'Color grading', body: 'LUT looks (film-stock, era, mood, director), lift/gamma/gain wheels, curves (master + RGB), HSL per hue, grain, halation and vignette.' },
+              { icon: <Type className="w-6 h-6" />, title: 'Text & chyrons', body: '7 fonts, 17 animations, gradient/stroke/shadow/glow, 9 anchor positions and animated counters.' },
+              { icon: <Scissors className="w-6 h-6" />, title: 'Motion VFX', body: '20 effects across light, particle, pigment, geometric, optical and atmospheric, plus 17 timeline transitions.' },
+            ].map((c, i) => (
+              <motion.div
+                key={c.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.55, delay: i * 0.07 }}
+                className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                  {c.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2.5">{c.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{c.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Engines ─────────────────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="The engine room"
+            title="Six engines, one pipeline"
+            intro="No single model is best at everything. The studio routes each shot to the right one."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ENGINE_CATALOG.map((e, i) => (
+              <motion.div
+                key={e.name}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.5, delay: (i % 3) * 0.06 }}
+                className="group flex items-center gap-4 rounded-2xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.12)] p-5 transition-colors hover:border-[rgba(216,180,254,0.28)]"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-white tracking-tight">{e.name}</h3>
+                  <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">{e.maker}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="mt-8 text-[15px] text-white/55 leading-relaxed max-w-3xl"
+          >
+            Text-to-video, image-to-video and avatar modes; the studio routes each shot to the right model. <span className="text-violet-300">Veo 3 and Sora 2 reach 60-second takes with native audio.</span>
+          </motion.p>
+        </div>
+      </section>
+
+      {/* ── Ship it, together ───────────────────────────────────── */}
+      <section className="relative z-10 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            eyebrow="Delivery"
+            title="Ship it, together"
+            intro="Finishing is a team sport. Render, publish and collaborate without leaving the tab."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6 }}
+              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <Share2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Export</h3>
+              <p className="text-[15px] text-white/65 leading-relaxed">
+                Export in <span className="text-violet-300">6 aspect ratios</span> (16:9, 9:16, 1:1, 21:9, 4:5, 4:3) through a persistent render queue, then publish to your channel.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6, delay: 0.08 }}
+              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <Users className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Collaborate</h3>
+              <p className="text-[15px] text-white/65 leading-relaxed">
+                Comments, presence, version snapshots and a <span className="text-violet-300">Director Chat</span> that can rewrite scenes.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Developers ──────────────────────────────────────────── */}
+      <section id="developers" className="relative z-10 scroll-mt-24 py-20 md:py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="relative overflow-hidden rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-8 md:p-12"
+          >
+            <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[radial-gradient(circle,_rgba(168,85,247,0.25),_transparent_70%)] blur-2xl pointer-events-none" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.34em] text-violet-300">For builders</span>
+            <h2 className="mt-4 font-display text-3xl md:text-4xl font-semibold tracking-[-0.03em] text-white">Built for developers</h2>
+            <p className="mt-4 max-w-2xl text-base md:text-lg text-white/60 leading-relaxed">
+              Programmatic access via <span className="text-violet-300">API keys and webhooks</span> from your account's Developer settings — automate generation and wire Small Bridges into your own pipeline.
+            </p>
+            <Button asChild size="lg" className="mt-8 h-12 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90">
+              <Link to="/auth?mode=signup">
+                Get an API key
+                <ArrowRight className="w-4 h-4 ml-2.5" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </section>
 
@@ -376,16 +824,9 @@ export default function HowItWorks() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/[0.05] py-12 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <Logo size="sm" showText textClassName="text-sm" />
-          <div className="flex items-center gap-6 text-sm text-white/65">
-            <Link to="/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-white/60 transition-colors">Terms</Link>
-            <Link to="/contact" className="hover:text-white/60 transition-colors">Contact</Link>
-          </div>
-        </div>
-      </footer>
+      <div className="relative z-10">
+        <SiteFooter />
+      </div>
     </div>
   );
 }

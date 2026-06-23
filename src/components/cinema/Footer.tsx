@@ -47,7 +47,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   },
 ];
 
-const ENGINES = ["Wan 2.5", "Kling V3", "Seedance 2.0", "Veo 3", "Sora 2"];
+const ENGINES = ["Wan 2.5", "Kling V3", "Seedance 2.0", "Veo 3", "Runway Gen-4", "Sora 2"];
 
 function FootLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
@@ -109,11 +109,10 @@ function NewsletterForm() {
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#06070a] text-white">
-      {/* ── ambient cinematics ── */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, hsl(${ACCENT} / 0.55), transparent)` }} />
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ background: `radial-gradient(80% 120% at 50% 118%, hsl(${ACCENT} / 0.16), transparent 60%)` }} />
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-[0.5]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "60px 60px", maskImage: "radial-gradient(120% 100% at 50% 100%, #000 30%, transparent 75%)", WebkitMaskImage: "radial-gradient(120% 100% at 50% 100%, #000 30%, transparent 75%)" }} />
+    <footer className="relative isolate overflow-hidden border-t border-white/10 text-white">
+      {/* Transparent so the footer adopts the backdrop of whatever page it sits
+          on — with only an 80% dark blind on top for legibility. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-black/80" />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8">
         {/* ── closing CTA band ── */}

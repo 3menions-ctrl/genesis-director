@@ -12,7 +12,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Zap, Crown, Building2,
   Star, Infinity as InfinityIcon, Film, Wand2, Gem, User, Briefcase,
-  Repeat, Headphones, Lock, Users, Globe, Cpu, FileCheck2, Phone,
+  Repeat, Headphones, Globe, FileCheck2,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,9 +23,10 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
 import { Footer } from '@/components/cinema/Footer';
 
-type Segment = 'personal' | 'business' | 'enterprise' | 'subscription';
+type Segment = 'personal' | 'business' | 'subscription';
 
 interface CreditPackage {
   name: string;
@@ -235,74 +236,10 @@ function buildSubscription(): CreditPackage[] {
   });
 }
 
-/** Enterprise — single tier + custom contracts */
-function buildEnterprise(): CreditPackage[] {
-  return [
-    {
-      name: 'Scale',
-      icon: <Users className="w-4 h-4" />,
-      tagline: 'Volume contracts for content teams',
-      price: 4999,
-      credits: 75000,
-      clips: '~7.5k',
-      features: [
-        'Custom credit volume',
-        'Unlimited seats · SAML SSO',
-        'Dedicated infra & render lanes',
-        'Custom data retention',
-        'Uptime SLA on request',
-        'Named CSM · 24/7 priority',
-      ],
-      segment: 'enterprise',
-      contactSales: true,
-      ctaLabel: 'Talk to sales',
-    },
-    {
-      name: 'Custom',
-      icon: <Cpu className="w-4 h-4" />,
-      tagline: 'Bespoke pipelines & private models',
-      price: 0,
-      credits: 0,
-      clips: 'Unlimited',
-      features: [
-        'Private model fine-tuning',
-        'On-prem / VPC deployment',
-        'Bespoke production pipelines',
-        'MSA · DPA · custom SLAs',
-        'Solutions architect included',
-        'Quarterly business reviews',
-      ],
-      segment: 'enterprise',
-      contactSales: true,
-      popular: true,
-      ctaLabel: 'Request a quote',
-    },
-    {
-      name: 'Government',
-      icon: <Lock className="w-4 h-4" />,
-      tagline: 'Compliance-grade deployments',
-      price: 0,
-      credits: 0,
-      clips: 'On request',
-      features: [
-        'Region-locked data residency',
-        'SOC 2 · ISO 27001 evidence',
-        'PII redaction & audit logs',
-        'Air-gapped deployments',
-        'Dedicated security review',
-      ],
-      segment: 'enterprise',
-      contactSales: true,
-      ctaLabel: 'Contact us',
-    },
-  ];
-}
-
 const SEGMENT_PACKAGES: Record<Segment, CreditPackage[]> = {
   personal: buildPersonal(),
   business: buildBusiness(),
   subscription: buildSubscription(),
-  enterprise: buildEnterprise(),
 };
 
 const TRUST_POINTS = [
@@ -344,28 +281,20 @@ const SEGMENT_META: Record<Segment, {
     highlight: 'every month.',
     blurb: 'Lock in monthly volume and save versus pay-as-you-go. Cancel or change tier anytime.',
   },
-  enterprise: {
-    label: 'Enterprise',
-    icon: <Building2 className="w-3.5 h-3.5" />,
-    kicker: 'For Organizations',
-    headline: 'Built for security,',
-    highlight: 'scale, and SLAs.',
-    blurb: 'Custom contracts, SSO, dedicated infrastructure and white-glove onboarding for global teams.',
-  },
 };
 
 /** Feature matrix — what's included across the four tracks */
 const MATRIX_ROWS: { label: string; values: Record<Segment, string | boolean> }[] = [
-  { label: 'Pricing model', values: { personal: 'Pay-as-you-go', business: 'Volume packs', subscription: 'Monthly billing', enterprise: 'Custom contract' } },
-  { label: 'Resolution', values: { personal: 'Up to 4K', business: 'Up to 4K HDR + ProRes', subscription: 'Up to 4K', enterprise: 'Custom · Master files' } },
-  { label: 'Render priority', values: { personal: 'Standard', business: 'Top-tier', subscription: 'Priority', enterprise: 'Dedicated lane' } },
-  { label: 'Seats', values: { personal: '1', business: 'Up to unlimited', subscription: 'Up to 5', enterprise: 'Unlimited + SSO' } },
-  { label: 'API access', values: { personal: false, business: true, subscription: true, enterprise: true } },
-  { label: 'Brand kit', values: { personal: false, business: true, subscription: true, enterprise: true } },
-  { label: 'SAML SSO', values: { personal: false, business: 'Optional', subscription: false, enterprise: true } },
-  { label: 'SOC 2 evidence', values: { personal: false, business: 'On request', subscription: false, enterprise: true } },
-  { label: 'Account manager', values: { personal: false, business: true, subscription: 'Pro & up', enterprise: 'Named CSM' } },
-  { label: 'Support SLA', values: { personal: 'Email', business: 'Priority Slack', subscription: 'Priority email', enterprise: '24/7 · 99.9%' } },
+  { label: 'Pricing model', values: { personal: 'Pay-as-you-go', business: 'Volume packs', subscription: 'Monthly billing' } },
+  { label: 'Resolution', values: { personal: 'Up to 4K', business: 'Up to 4K HDR + ProRes', subscription: 'Up to 4K' } },
+  { label: 'Render priority', values: { personal: 'Standard', business: 'Top-tier', subscription: 'Priority' } },
+  { label: 'Seats', values: { personal: '1', business: 'Up to unlimited', subscription: 'Up to 5' } },
+  { label: 'API access', values: { personal: false, business: true, subscription: true } },
+  { label: 'Brand kit', values: { personal: false, business: true, subscription: true } },
+  { label: 'SAML SSO', values: { personal: false, business: 'Optional', subscription: false } },
+  { label: 'SOC 2 evidence', values: { personal: false, business: 'On request', subscription: false } },
+  { label: 'Account manager', values: { personal: false, business: true, subscription: 'Pro & up' } },
+  { label: 'Support SLA', values: { personal: 'Email', business: 'Priority Slack', subscription: 'Priority email' } },
 ];
 
 const FAQS: { q: string; a: string }[] = [
@@ -383,11 +312,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Do you offer team seats?',
-    a: 'Business plans include 5–unlimited seats with brand kits and shared assets. Enterprise adds SAML SSO and granular role management.',
-  },
-  {
-    q: 'How does Enterprise pricing work?',
-    a: 'Enterprise contracts are custom — talk to sales for volume discounts, dedicated infrastructure, on-prem / VPC deployment, and bespoke SLAs.',
+    a: 'Business plans include 5–unlimited seats with brand kits and shared assets.',
   },
   {
     q: 'Is my payment secure?',
@@ -401,22 +326,10 @@ const KEYFRAMES = `
 @media (prefers-reduced-motion: reduce) { .pr-anim { animation: none !important; } }
 `;
 
-/** Deep gradient + light-ray page backdrop — matches the Enter Studio page. */
-function PricingBackdrop({ reduced }: { reduced: boolean }) {
-  return (
-    <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-[#05060a]">
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(125% 80% at 50% -12%, #0c1430 0%, #070b1a 40%, #05060a 74%)' }} />
-      <div className="absolute inset-0" style={{ background: `radial-gradient(90% 60% at 50% 116%, hsl(${ACCENT} / 0.18), transparent 60%)` }} />
-      {!reduced && (
-        <div
-          className="pr-anim absolute left-1/2 top-[-34%] h-[150%] w-[150%]"
-          style={{ transformOrigin: '50% 0%', filter: 'blur(24px)', animation: 'pr-rays 28s ease-in-out infinite', background: `conic-gradient(from 180deg at 50% 0%, transparent 0deg, hsl(${ACCENT} / 0.10) 7deg, transparent 16deg, transparent 30deg, hsl(${ACCENT} / 0.06) 40deg, transparent 52deg, transparent 66deg, hsl(${ACCENT} / 0.07) 74deg, transparent 84deg)` }}
-        />
-      )}
-      <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(120,170,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(120,170,255,0.06) 1px, transparent 1px)', backgroundSize: '64px 64px', maskImage: 'radial-gradient(120% 95% at 50% 0%, #000 28%, transparent 72%)', WebkitMaskImage: 'radial-gradient(120% 95% at 50% 0%, #000 28%, transparent 72%)' }} />
-      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, hsl(${ACCENT} / 0.5), transparent)` }} />
-    </div>
-  );
+/** Premium glossy violet page backdrop (shared with How It Works). The focal
+ *  bloom sits behind the recommended plan row to guide the eye. */
+function PricingBackdrop() {
+  return <VioletBackdrop focal={0.34} />;
 }
 
 /**
@@ -649,7 +562,7 @@ export default function Pricing() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-transparent text-white antialiased">
       <style>{KEYFRAMES}</style>
-      <PricingBackdrop reduced={reduced} />
+      <PricingBackdrop />
 
       <MarketingHeader />
 
@@ -739,7 +652,7 @@ export default function Pricing() {
           </div>
 
           <div className="overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-md">
-            <div className="grid grid-cols-5 bg-white/[0.04] px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-white/45">
+            <div className="grid grid-cols-4 bg-white/[0.04] px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-white/45">
               <div className="font-medium">Feature</div>
               {segmentKeys.map((seg) => (
                 <div key={seg} className="text-center font-medium">{SEGMENT_META[seg].label}</div>
@@ -747,33 +660,13 @@ export default function Pricing() {
             </div>
             <div className="divide-y divide-white/[0.04]">
               {MATRIX_ROWS.map((row) => (
-                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
+                <div key={row.label} className="grid grid-cols-4 items-center px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
                   <div className="text-[13px] font-medium text-white/60">{row.label}</div>
                   {segmentKeys.map((seg) => (
                     <div key={seg} className="text-center"><MatrixCell value={row.values[seg]} /></div>
                   ))}
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Enterprise contact strip */}
-      <section className="relative z-10 px-5 py-14 sm:px-8">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-white/[0.04] px-8 py-10 backdrop-blur-2xl md:px-12 md:py-12" style={{ boxShadow: `0 40px 120px -50px hsl(${ACCENT} / 0.45)` }}>
-          <div aria-hidden className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full opacity-60 blur-3xl" style={{ background: `radial-gradient(closest-side, hsl(${ACCENT} / 0.28), transparent 70%)` }} />
-          <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
-            <div className="max-w-xl">
-              <Eyebrow>Enterprise</Eyebrow>
-              <h3 className="mt-3 font-display text-[clamp(1.7rem,4vw,2.2rem)] font-semibold leading-tight tracking-[-0.025em]">Need volume, SSO and a contract?</h3>
-              <p className="mt-3 text-[14px] leading-relaxed text-white/55">Talk to sales for custom credit volumes, dedicated infrastructure, security review, MSAs and DPAs — typically priced from $50k/year.</p>
-            </div>
-            <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row">
-              <button type="button" onClick={() => navigate('/contact?topic=sales')} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90" style={{ boxShadow: `0 14px 44px -14px hsl(${ACCENT} / 0.9)` }}>
-                <Phone className="h-4 w-4" /> Talk to sales
-              </button>
-              <button type="button" onClick={() => setSegment('enterprise')} className="inline-flex h-12 items-center justify-center rounded-full bg-white/[0.07] px-6 text-[13px] font-medium text-white transition-colors hover:bg-white/[0.12]">See enterprise tiers</button>
             </div>
           </div>
         </div>

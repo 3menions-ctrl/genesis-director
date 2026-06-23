@@ -21,6 +21,18 @@ import { BeforeAfter } from "@/components/cinema/BeforeAfter";
 import { FixedBackdrop } from "@/components/cinema/FixedBackdrop";
 import { Footer } from "@/components/cinema/Footer";
 import { ACCENT } from "@/components/cinema/ui";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+/** Static cover backdrop — the guaranteed fallback if the film ever fails. */
+function CoverFallback() {
+  return (
+    <div aria-hidden className="fixed inset-0 z-0 bg-[#08090c]">
+      <img src="/cinema-assets/cover.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+      <div className="absolute inset-0 bg-[#06070a]/45" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#06070a]/20 via-[#06070a]/35 to-[#06070a]/85" />
+    </div>
+  );
+}
 
 export default function Cinema() {
   usePageMeta({ title: "Small Bridges — the AI film studio in a sentence" });
@@ -32,7 +44,8 @@ export default function Cinema() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [vphase, setVphase] = useState("cover");
-  const showSpeaker = vphase === "playing" || vphase === "immersive" || vphase === "rest";
+  const [videoFailed, setVideoFailed] = useState(false);
+  const showSpeaker = !videoFailed && (vphase === "playing" || vphase === "immersive" || vphase === "rest");
   const toggleMute = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -45,9 +58,9 @@ export default function Cinema() {
     }
   }, []);
 
-  // ── Faint background score: "In the Hall of the Mountain King" (Grieg, PD) ──
-  // Rides in with the film's sound, stays very soft, and seeks to its frantic
-  // finale exactly as the film breaks into the "Start now" takeover.
+  // ── Faint background score: "In the Hall of the Mountain King" (music box) ──
+  // Rides in with the film's sound, stays whisper-soft, and is time-locked to
+  // the film so it's always in sync with the speech.
   const musicRef = useRef<HTMLAudioElement>(null);
   const musicFadeRef = useRef(0);
 
@@ -74,12 +87,32 @@ export default function Cinema() {
     // no carry-over into the takeover.
     const playingNow = !muted && vphase === "playing";
     if (playingNow) {
-      if (a.paused) { a.volume = 0; a.play().catch(() => {}); }
+      if (a.paused) {
+        // Start the score from the film's CURRENT position so it's in sync no
+        // matter when the viewer turns sound on.
+        const v = videoRef.current;
+        if (v && Number.isFinite(v.currentTime)) { try { a.currentTime = v.currentTime; } catch { /* noop */ } }
+        a.volume = 0; a.play().catch(() => {});
+      }
       fadeMusic(0.03, 4500);
     } else {
       fadeMusic(0, vphase === "immersive" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
   }, [muted, vphase, fadeMusic]);
+
+  // Keep the score time-locked to the film so it stays in sync with the speech,
+  // correcting any drift from buffering.
+  useEffect(() => {
+    if (muted || vphase !== "playing") return;
+    const id = window.setInterval(() => {
+      const m = musicRef.current, v = videoRef.current;
+      if (!m || !v || v.paused || m.paused) return;
+      if (Math.abs(m.currentTime - v.currentTime) > 0.22) {
+        try { m.currentTime = v.currentTime; } catch { /* noop */ }
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [muted, vphase]);
 
   useEffect(() => () => { cancelAnimationFrame(musicFadeRef.current); try { musicRef.current?.pause(); } catch { /* noop */ } }, []);
 
@@ -91,19 +124,25 @@ export default function Cinema() {
   }, [navigate]);
   const handleEnter = useCallback(() => navigate("/studio-showcase"), [navigate]);
 
-  // Lenis smooth scroll (standalone rAF). Off under reduced-motion.
+  // Lenis smooth scroll (standalone rAF). Off under reduced-motion. Guarded so a
+  // Lenis failure can never break the page — native scroll just takes over.
   useEffect(() => {
     if (reduced) return;
-    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
+    let lenis: Lenis | null = null;
     let raf = 0;
-    const loop = (t: number) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
-    raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); lenis.destroy(); };
+    try {
+      lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
+      const loop = (t: number) => { lenis?.raf(t); raf = requestAnimationFrame(loop); };
+      raf = requestAnimationFrame(loop);
+    } catch { /* native scroll fallback */ }
+    return () => { cancelAnimationFrame(raf); try { lenis?.destroy(); } catch { /* noop */ } };
   }, [reduced]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#08090c] text-white antialiased">
-      <FixedBackdrop onStart={handleStart} videoRef={videoRef} muted={muted} onPhase={setVphase} />
+      <ErrorBoundary fallback={<CoverFallback />}>
+        <FixedBackdrop onStart={handleStart} videoRef={videoRef} muted={muted} onPhase={setVphase} onFail={() => setVideoFailed(true)} />
+      </ErrorBoundary>
 
       {/* Faint background score, controlled by the effect above. */}
       <audio ref={musicRef} src="/cinema-assets/mountainking.mp3" preload="auto" />

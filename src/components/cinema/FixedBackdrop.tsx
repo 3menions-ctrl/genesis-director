@@ -10,7 +10,7 @@
  * The cinematic takeover only fires while the viewer is still near the top, so
  * it never hijacks deep-scroll reading.
  */
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { HERO_VIDEO } from "./assets";
@@ -62,7 +62,7 @@ function StartNowTakeover({ onStart, onDismiss }: { onStart: () => void; onDismi
   );
 }
 
-export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: () => void; videoRef: RefObject<HTMLVideoElement>; muted: boolean; onPhase?: (p: Phase) => void }) {
+export function FixedBackdrop({ onStart, videoRef, muted, onPhase, onFail }: { onStart: () => void; videoRef: RefObject<HTMLVideoElement>; muted: boolean; onPhase?: (p: Phase) => void; onFail?: () => void }) {
   const durRef = useRef(0);
   // If the film already ran this session, mount straight into the calm "rest"
   // backdrop (paused on its last frame) instead of replaying the takeover.
@@ -75,7 +75,15 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
   // we keep it fully hidden until that seek lands so the ONLY frame ever shown
   // is the last one — no flash from an intermediate frame.
   const [revealRevisit, setRevealRevisit] = useState(!revisit.current);
+  // Never-fail: if the film can't load / decode / play, we fall back to the
+  // static cover image and settle the state machine. Set once, sticky.
+  const [failed, setFailed] = useState(false);
+  const failGuard = useRef(false);
   useEffect(() => { onPhase?.(phase); }, [phase, onPhase]);
+
+  // Once the film has begun, remember it for the rest of the session so an
+  // in-app revisit to the landing doesn't replay it (a refresh resets this).
+  useEffect(() => { if (phase !== "cover") hasPlayedImmersive = true; }, [phase]);
 
   // Fallback: reveal anyway if the `seeked` event never fires.
   useEffect(() => {
@@ -84,9 +92,38 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
     return () => clearTimeout(t);
   }, [revealRevisit]);
 
-  // Once the film has begun, remember it for the rest of the session so an
-  // in-app revisit to the landing doesn't replay it (a refresh resets this).
-  useEffect(() => { if (phase !== "cover") hasPlayedImmersive = true; }, [phase]);
+  const markFailed = useCallback(() => {
+    if (failGuard.current) return;
+    failGuard.current = true;
+    setFailed(true);
+    setRevealRevisit(true);
+    setStarted(true);
+    setPhase((p) => (p === "broken" ? p : "rest"));
+    onFail?.();
+  }, [onFail]);
+
+  // Watchdog 1 — entered "playing" but the film never renders a frame: after a
+  // grace period, if it still has no decodable data, give up and show the cover.
+  useEffect(() => {
+    if (failed || phase !== "playing" || started) return;
+    const t = setTimeout(() => {
+      const v = videoRef.current;
+      if (!v || v.readyState < 2) markFailed();
+    }, 9000);
+    return () => clearTimeout(t);
+  }, [phase, started, failed, markFailed, videoRef]);
+
+  // Watchdog 2 — film is playing but `ended` never fires (stall near the end):
+  // force the takeover after the expected remaining time so it never hangs.
+  useEffect(() => {
+    if (failed || !started) return;
+    if (phase !== "playing" && phase !== "immersive") return;
+    const v = videoRef.current;
+    if (!v || !durRef.current) return;
+    const ms = Math.max(0, (durRef.current - v.currentTime) * 1000) + 4000;
+    const t = setTimeout(() => setPhase((p) => (p === "playing" || p === "immersive" ? "broken" : p)), ms);
+    return () => clearTimeout(t);
+  }, [phase, started, failed, videoRef]);
 
   // The film starts ONLY once the visitor has finished scrolling past the
   // first (cover) screen — not before, and not on load.
@@ -103,7 +140,8 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
   }, [phase, videoRef]);
 
   // takeover = the film leaves the background and fills the whole screen
-  const takeover = phase === "immersive" || phase === "broken";
+  // (never while in the failed/cover-fallback state).
+  const takeover = !failed && (phase === "immersive" || phase === "broken");
 
   const onTime = () => {
     const v = videoRef.current;
@@ -124,7 +162,7 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
         alt=""
         aria-hidden
         className="absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000"
-        style={{ opacity: phase === "cover" ? 1 : 0, animation: "cfx-kenburns 34s ease-in-out infinite alternate", transformOrigin: "50% 46%" }}
+        style={{ opacity: phase === "cover" || failed ? 1 : 0, animation: "cfx-kenburns 34s ease-in-out infinite alternate", transformOrigin: "50% 46%" }}
       />
 
       {/* the film — always full-bleed; on finish it takes over the whole screen */}
@@ -134,10 +172,12 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
           src={HERO_VIDEO}
           poster="/cinema-assets/hero-poster.jpg"
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ opacity: phase === "cover" ? 0 : revealRevisit ? 1 : 0 }}
+          style={{ opacity: failed ? 0 : phase === "cover" ? 0 : revealRevisit ? 1 : 0 }}
           muted={muted}
           playsInline
           preload="auto"
+          onError={markFailed}
+          onStalled={() => { const v = videoRef.current; if (v && v.readyState < 1 && !started) markFailed(); }}
           onLoadedMetadata={(e) => {
             durRef.current = e.currentTarget.duration || 0;
             // Revisit within the session → hold on the last frame as the backdrop.
@@ -159,9 +199,9 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
           alt=""
           aria-hidden
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ opacity: phase !== "cover" && !started ? 1 : 0 }}
+          style={{ opacity: !failed && phase !== "cover" && !started ? 1 : 0 }}
         />
-        {phase === "broken" && <CrackOverlay />}
+        {!failed && phase === "broken" && <CrackOverlay />}
       </div>
 
       {/* legibility scrims — fade away as the film goes fully immersive */}
@@ -180,7 +220,7 @@ export function FixedBackdrop({ onStart, videoRef, muted, onPhase }: { onStart: 
 
       {/* START NOW takeover */}
       <AnimatePresence>
-        {phase === "broken" && (
+        {!failed && phase === "broken" && (
           <motion.div className="absolute inset-0 z-[70] grid place-items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <StartNowTakeover onStart={onStart} onDismiss={() => setPhase("rest")} />
           </motion.div>

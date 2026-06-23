@@ -81,38 +81,47 @@ export default function Cinema() {
   useEffect(() => {
     const a = musicRef.current;
     if (!a) return;
-    // Whisper-quiet music-box score (Grieg, Mountain King — music-box arrangement),
-    // EQ-softened to blend, only while the film is actually playing. It fades out
-    // as the film reaches its climax so it ENDS with the video — no carry-over
-    // into the takeover. Only "playing" means genuine playback, so the score
-    // can never play without the film.
-    const playingNow = !muted && vphase === "playing";
-    if (playingNow) {
+    // Whisper-quiet music-box score. It plays through the film and SWELLS as the
+    // film ends (climax), then stops at the takeover. Only "playing"/"climax"
+    // mean genuine playback, so the score can never play without the film.
+    const active = !muted && (vphase === "playing" || vphase === "climax");
+    if (active) {
       if (a.paused) {
-        // Start the score from the film's CURRENT position so it's in sync no
-        // matter when the viewer turns sound on.
+        // Start from the film's CURRENT position so it's in sync no matter when
+        // the viewer turns sound on.
         const v = videoRef.current;
         if (v && Number.isFinite(v.currentTime)) { try { a.currentTime = v.currentTime; } catch { /* noop */ } }
         a.volume = 0; a.play().catch(() => {});
       }
-      fadeMusic(0.03, 4500);
+      fadeMusic(vphase === "climax" ? 0.13 : 0.03, vphase === "climax" ? 1800 : 4500);
     } else {
-      fadeMusic(0, vphase === "climax" ? 1400 : 500, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
+      fadeMusic(0, 600, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
   }, [muted, vphase, fadeMusic]);
 
-  // Keep the score time-locked to the film so it stays in sync with the speech,
-  // correcting any drift from buffering.
+  // Keep the score in sync with the film WITHOUT seeking (seeking clicks/glitches).
+  // We gently nudge playbackRate to converge on the film's clock; only a large
+  // desync from a real stall triggers a single hard resync.
   useEffect(() => {
-    if (muted || vphase !== "playing") return;
+    if (muted || (vphase !== "playing" && vphase !== "climax")) return;
     const id = window.setInterval(() => {
       const m = musicRef.current, v = videoRef.current;
       if (!m || !v || v.paused || m.paused) return;
-      if (Math.abs(m.currentTime - v.currentTime) > 0.22) {
+      const drift = m.currentTime - v.currentTime;
+      if (Math.abs(drift) > 1.5) {
         try { m.currentTime = v.currentTime; } catch { /* noop */ }
+        m.playbackRate = 1;
+      } else if (Math.abs(drift) > 0.2) {
+        m.playbackRate = drift > 0 ? 0.97 : 1.03; // ease toward the film, no seek
+      } else if (m.playbackRate !== 1) {
+        m.playbackRate = 1;
       }
-    }, 1000);
-    return () => window.clearInterval(id);
+    }, 500);
+    return () => {
+      window.clearInterval(id);
+      const m = musicRef.current;
+      if (m) m.playbackRate = 1;
+    };
   }, [muted, vphase]);
 
   useEffect(() => () => { cancelAnimationFrame(musicFadeRef.current); try { musicRef.current?.pause(); } catch { /* noop */ } }, []);

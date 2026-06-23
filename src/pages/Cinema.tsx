@@ -111,7 +111,7 @@ export default function Cinema() {
         <Studio onStart={handleStart} />
         <Portal onEnter={handleEnter} onStart={handleStart} />
         <FinalCTA />
-        <Footer />
+        <Footer showClosingCta={false} />
       </main>
 
     </div>

@@ -23,6 +23,10 @@ import { useMediaLibrary } from "@/hooks/useMediaLibrary";
 import { ingestMusicUrl } from "@/lib/editor/upload-ingest";
 import { getDocumentState, flushNow } from "@/lib/editor/document-store";
 import { toast } from "sonner";
+import {
+  MUSIC_LIBRARY, filterMusic, musicCategories, MUSIC_CATEGORY_LABELS,
+  type MusicCategory,
+} from "@/lib/editor/music-library";
 
 const STORAGE_KEY = "smallbridges.editor.musicPicker.v1";
 
@@ -34,18 +38,12 @@ interface Track {
   durationSec: number;
 }
 
-// Curated app beds — real, public, royalty-free scores stored in the
-// platform's video-clips bucket. These give every project something to
-// score with on day one, before a user uploads their own music.
-const MUSIC_BASE =
-  "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1/object/public/video-clips/8be6d9c9-776e-46af-9ad8-23ad41f0f99c/music";
-const APP_TRACKS: Track[] = [
-  { id: "app-strings", title: "Dramatic Strings", mood: "Tension",    url: `${MUSIC_BASE}/66793761-9fb0-40ce-91a9-7f74d7c184c3.mp3`, durationSec: 56 },
-  { id: "app-mountain", title: "Elegant Mountain", mood: "Cinematic", url: `${MUSIC_BASE}/c518f90c-d4e0-4862-9ec5-c464f51d227d.mp3`, durationSec: 142 },
-  { id: "app-swell",    title: "Ambient Swell",    mood: "Atmosphere", url: `${MUSIC_BASE}/27eac7fc-de97-45ce-8346-104b81dc0a01.mp3`, durationSec: 178 },
-];
+// The curated app beds now live in the shared, license-documented registry
+// (src/lib/editor/music-library.ts) so the editor MusicPicker and the one-click
+// timeline templates score from the SAME source of truth.
 
 type Tab = "mine" | "app";
+type AppFilter = "all" | MusicCategory;
 
 function readOpen(): boolean {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}").open === true; }
@@ -66,6 +64,8 @@ export function MusicPicker() {
   const [open, setOpenState] = useState<boolean>(() => readOpen());
   const setOpen = useCallback((v: boolean) => { setOpenState(v); writeOpen(v); }, []);
   const [tab, setTab] = useState<Tab>("app");
+  const [appFilter, setAppFilter] = useState<AppFilter>("all");
+  const [appQuery, setAppQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -79,7 +79,8 @@ export function MusicPicker() {
     durationSec: a.duration_seconds ?? 30,
   }));
 
-  const tracks = tab === "mine" ? mineTracks : APP_TRACKS;
+  const appTracks: Track[] = filterMusic(appFilter, appQuery);
+  const tracks = tab === "mine" ? mineTracks : appTracks;
 
   const togglePreview = useCallback((t: Track) => {
     // One shared <audio>: clicking the playing track stops it, any other
@@ -167,9 +168,27 @@ export function MusicPicker() {
         <div className="px-2 pb-3">
           {/* Tabs */}
           <div className="mx-2 mb-2 inline-flex items-center gap-1 rounded-full bg-white/[0.03] ring-1 ring-inset ring-white/[0.06] p-0.5">
-            <TabPill active={tab === "app"}  onClick={() => setTab("app")}  label="App"  count={APP_TRACKS.length} />
+            <TabPill active={tab === "app"}  onClick={() => setTab("app")}  label="Library" count={MUSIC_LIBRARY.length} />
             <TabPill active={tab === "mine"} onClick={() => setTab("mine")} label="Mine" count={mineTracks.length} />
           </div>
+
+          {/* App library — category filter + search */}
+          {tab === "app" && (
+            <div className="mx-2 mb-2 space-y-2">
+              <input
+                value={appQuery}
+                onChange={(e) => setAppQuery(e.target.value)}
+                placeholder="Search the library…"
+                className="w-full rounded-lg bg-white/[0.04] px-3 py-1.5 text-[12px] text-foreground/90 outline-none ring-1 ring-inset ring-white/[0.07] placeholder:text-muted-foreground/45 focus:ring-accent/40"
+              />
+              <div className="flex flex-wrap gap-1">
+                <FilterPill active={appFilter === "all"} onClick={() => setAppFilter("all")} label="All" />
+                {musicCategories().map((c) => (
+                  <FilterPill key={c} active={appFilter === c} onClick={() => setAppFilter(c)} label={MUSIC_CATEGORY_LABELS[c]} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="max-h-[34vh] overflow-y-auto scrollbar-hide space-y-1 px-1">
             {tab === "mine" && loading ? (
@@ -180,7 +199,7 @@ export function MusicPicker() {
             ) : tracks.length === 0 ? (
               <div className="px-2 py-4 text-center">
                 <p className="text-[12px] text-muted-foreground/65 leading-relaxed">
-                  {tab === "mine" ? "No tracks yet." : "No app music available."}
+                  {tab === "mine" ? "No tracks yet." : "No tracks match your search."}
                 </p>
                 {tab === "mine" && (
                   <Link
@@ -222,6 +241,23 @@ function TabPill({ active, onClick, label, count }: { active: boolean; onClick: 
     >
       {label}
       <span className="text-[9px] tabular-nums text-muted-foreground/60">{count}</span>
+    </button>
+  );
+}
+
+function FilterPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] transition-colors",
+        active
+          ? "bg-accent/15 text-foreground ring-1 ring-inset ring-accent/35"
+          : "bg-white/[0.03] text-muted-foreground/65 ring-1 ring-inset ring-white/[0.06] hover:text-foreground/85",
+      )}
+    >
+      {label}
     </button>
   );
 }

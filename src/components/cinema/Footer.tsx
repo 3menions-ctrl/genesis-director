@@ -106,7 +106,7 @@ function NewsletterForm() {
   );
 }
 
-export function Footer({ showClosingCta = true }: { showClosingCta?: boolean }) {
+export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="relative isolate overflow-hidden border-t border-white/10 text-white">
@@ -115,27 +115,14 @@ export function Footer({ showClosingCta = true }: { showClosingCta?: boolean }) 
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-black/70" />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8">
-        {/* ── closing CTA band (hidden on the landing, which has its own CTAs) ── */}
-        {showClosingCta && (
-          <div className="flex flex-col items-start gap-8 border-b border-white/10 py-14 md:flex-row md:items-center md:justify-between md:py-16">
-            <div className="max-w-xl">
-              <span className="font-mono text-[11px] uppercase tracking-[0.34em]" style={{ color: `hsl(${ACCENT})` }}>Ready when you are</span>
-              <h2 className="mt-3 font-display text-[clamp(2rem,4.6vw,3.2rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white">
-                You were never meant to build <span className="italic">alone</span>.
-              </h2>
-              <p className="mt-3 text-[15px] font-light text-white/55">Build here. Belong here.</p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
-              <Link to="/auth?mode=signup" className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[14.5px] font-semibold text-[#0a0b0e] transition-transform duration-200 hover:-translate-y-0.5" style={{ boxShadow: `0 18px 50px -18px hsl(${ACCENT} / 0.9)` }}>
-                Start creating
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Link>
-              <Link to="/pricing" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[14.5px] font-medium text-white ring-1 ring-white/15 backdrop-blur-md transition-colors hover:bg-white/[0.06]">
-                View pricing
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* ── closing message — standardized on every page ── */}
+        <div className="border-b border-white/10 py-16 text-center md:py-20">
+          <span className="font-mono text-[11px] uppercase tracking-[0.34em]" style={{ color: `hsl(${ACCENT})` }}>Ready when you are</span>
+          <h2 className="mx-auto mt-3 max-w-2xl font-display text-[clamp(2rem,4.6vw,3.2rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white">
+            You were never meant to build <span className="italic">alone</span>.
+          </h2>
+          <p className="mt-3 text-[15px] font-light text-white/55">Build here. Belong here.</p>
+        </div>
 
         {/* ── brand + columns ── */}
         <div className="grid gap-x-10 gap-y-12 py-14 md:py-16 lg:grid-cols-[1.35fr_2fr]">

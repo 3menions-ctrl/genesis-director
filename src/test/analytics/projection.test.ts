@@ -101,6 +101,28 @@ describe("bucketByWeek / bucketByMonth", () => {
       { day: "2026-02", value: 10 },
     ]);
   });
+
+  it("skips malformed rows instead of throwing (regression: s.day.slice crash)", () => {
+    // A null/undefined/non-string `day` (or unparseable date) must not crash the
+    // rollup — it should be dropped and the good points still summed.
+    const dirty = [
+      { day: "2026-03-01", value: 4 },
+      { day: undefined as unknown as string, value: 9 },
+      { day: null as unknown as string, value: 9 },
+      { day: "", value: 9 },
+      { day: 20260315 as unknown as string, value: 9 },
+      { day: "not-a-date", value: 1 },
+      { day: "2026-03-20", value: 6 },
+    ];
+    expect(() => bucketByMonth(dirty)).not.toThrow();
+    expect(() => bucketByWeek(dirty)).not.toThrow();
+
+    // Month rollup keeps the two valid March points (4 + 6 = 10). "not-a-date"
+    // slices to "not-a-d" and survives month bucketing (harmless label), but is
+    // dropped by week bucketing where it fails to parse as a date.
+    expect(bucketByMonth(dirty)).toContainEqual({ day: "2026-03", value: 10 });
+    expect(bucketByWeek(dirty).reduce((a, b) => a + b.value, 0)).toBe(10);
+  });
 });
 
 describe("trendPct", () => {

@@ -111,12 +111,16 @@ export interface DailyPoint {
 export function bucketByWeek(points: DailyPoint[]): DailyPoint[] {
   const buckets = new Map<string, number>();
   for (const p of points) {
+    // Skip malformed rows (missing/non-string `day`, or an unparseable date)
+    // rather than throwing — one bad point shouldn't blank the whole chart.
+    if (typeof p.day !== "string" || !p.day) continue;
     const d = new Date(`${p.day}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) continue;
     // Roll back to Monday (UTC).
     const dow = (d.getUTCDay() + 6) % 7;
     d.setUTCDate(d.getUTCDate() - dow);
     const key = d.toISOString().slice(0, 10);
-    buckets.set(key, (buckets.get(key) ?? 0) + p.value);
+    buckets.set(key, (buckets.get(key) ?? 0) + (Number(p.value) || 0));
   }
   return [...buckets.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -127,8 +131,11 @@ export function bucketByWeek(points: DailyPoint[]): DailyPoint[] {
 export function bucketByMonth(points: DailyPoint[]): DailyPoint[] {
   const buckets = new Map<string, number>();
   for (const p of points) {
+    // Guard against missing/non-string `day` — the source of a "s.day.slice"
+    // crash when a malformed analytics row reaches this rollup.
+    if (typeof p.day !== "string" || !p.day) continue;
     const key = p.day.slice(0, 7); // yyyy-mm
-    buckets.set(key, (buckets.get(key) ?? 0) + p.value);
+    buckets.set(key, (buckets.get(key) ?? 0) + (Number(p.value) || 0));
   }
   return [...buckets.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))

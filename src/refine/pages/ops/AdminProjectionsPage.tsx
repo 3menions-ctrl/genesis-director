@@ -55,6 +55,9 @@ export default function AdminProjectionsPage() {
         { _since: since.toISOString() } as never,
       );
       const rows = ((data as Daily[]) ?? [])
+        // Keep only rows with a usable date; normalize to yyyy-mm-dd. Drops any
+        // null/blank `day` before it can reach the rollups (see projection.ts).
+        .filter((d) => String(d?.day ?? "").trim() !== "")
         .map((d) => ({ ...d, day: String(d.day).slice(0, 10) }))
         .sort((a, b) => a.day.localeCompare(b.day));
       setDaily(rows);

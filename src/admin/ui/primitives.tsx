@@ -147,6 +147,154 @@ export function StatusPill({ children, tone = "neutral" }: { children: ReactNode
   return <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em]" style={{ color: t.fg, background: t.bg }}>{children}</span>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+//  FLOATING layer — "Direction A · Command Deck".
+//  Completely borderless: no card surfaces. Figures and numbers float on the
+//  page; lists are separated only by a thin hairline below each row; spacious.
+//  These are the canonical primitives for the admin landing decks.
+// ─────────────────────────────────────────────────────────────────────────
+
+const HAIR = "rgba(255,255,255,0.07)";
+const HAIR_SOFT = "rgba(255,255,255,0.05)";
+
+/** A figure that floats on the page — big Fraunces number, mono label, no box. */
+export function FloatStat({ label, value, delta, deltaLabel, icon: Icon, accentNumber, sub, index = 0 }: {
+  label: string; value: string | number; delta?: number; deltaLabel?: string;
+  icon?: LucideIcon; accentNumber?: boolean; sub?: string; index?: number;
+}) {
+  const up = (delta ?? 0) >= 0;
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.05, ease: EASE }}>
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.8} style={{ color: accent(0.85) }} />}
+        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/45">{label}</span>
+      </div>
+      <CountUp
+        value={value}
+        className="mt-3.5 block font-display font-semibold leading-[0.95] tracking-tight tabular-nums"
+        style={{ fontSize: "clamp(2rem, 2.7vw, 3rem)", color: accentNumber ? ACCENT_HSL : "#fff", textShadow: accentNumber ? `0 0 32px ${accent(0.55)}` : undefined }}
+      />
+      {(delta !== undefined || sub) && (
+        <div className="mt-3 flex items-center gap-2 text-[11px]">
+          {delta !== undefined ? (
+            <span className="inline-flex items-center gap-1 font-medium" style={{ color: up ? CYAN : "rgba(255,255,255,0.5)" }}>
+              {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {Math.abs(delta).toLocaleString()}{deltaLabel ? ` ${deltaLabel}` : ""}
+            </span>
+          ) : <span className="text-white/35">{sub}</span>}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/** Section heading for a floating block (chart / list) — accent tick + Fraunces. */
+export function FloatSection({ title, meta, actions, children, className }: {
+  title: ReactNode; meta?: string; actions?: ReactNode; children: ReactNode; className?: string;
+}) {
+  return (
+    <section className={className}>
+      <div className="mb-5 flex items-end justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden className="h-4 w-1 rounded-full" style={{ background: `linear-gradient(${ACCENT_HSL}, ${CYAN})` }} />
+          <h2 className="font-display text-[17px] font-semibold tracking-tight text-white">{title}</h2>
+          {meta && <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">{meta}</span>}
+        </div>
+        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export interface FloatColumn {
+  key: string;
+  label: string;
+  align?: "left" | "right";
+  /** Optional fixed/auto width hint, e.g. "1px" to shrink, or a class. */
+  className?: string;
+}
+
+/** Borderless data table — no surface, just a thin hairline below each row. */
+export function FloatTable({ columns, rows, empty = "Nothing here yet." }: {
+  columns: FloatColumn[];
+  rows: Array<Record<string, ReactNode> & { _key?: string | number }>;
+  empty?: ReactNode;
+}) {
+  if (rows.length === 0) {
+    return <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">{empty}</div>;
+  }
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr>
+          {columns.map((c) => (
+            <th key={c.key} style={{ borderBottom: `1px solid ${HAIR}` }}
+              className={cn("pb-3 font-mono text-[9.5px] font-medium uppercase tracking-[0.2em] text-white/38", c.align === "right" ? "text-right" : "text-left", c.className)}>
+              {c.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={r._key ?? i} className="transition-colors hover:bg-white/[0.015]">
+            {columns.map((c) => (
+              <td key={c.key} style={{ borderBottom: `1px solid ${HAIR_SOFT}` }}
+                className={cn("py-3.5 text-[13px] text-white/80", c.align === "right" ? "text-right tabular-nums" : "text-left", c.className)}>
+                {r[c.key]}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Compact floating list row — label left, value right, thin hairline below. */
+export function FloatRow({ left, right, onClick, last }: { left: ReactNode; right?: ReactNode; onClick?: () => void; last?: boolean }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{ borderBottom: last ? undefined : `1px solid ${HAIR_SOFT}` }}
+      className={cn("flex items-center justify-between gap-3 py-3.5", onClick && "cursor-pointer transition-colors hover:bg-white/[0.015]")}
+    >
+      <div className="min-w-0">{left}</div>
+      {right !== undefined && <div className="shrink-0 text-right">{right}</div>}
+    </div>
+  );
+}
+
+/** Round monogram avatar (matches the sidebar operator chip). */
+export function Avatar({ name, size = 26 }: { name: string; size?: number }) {
+  const initials = name.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+  return (
+    <span className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white"
+      style={{ width: size, height: size, fontSize: size * 0.42, background: `linear-gradient(135deg, ${accent(0.4)}, ${accent(0.08)})` }}>
+      {initials || "?"}
+    </span>
+  );
+}
+
+/** Pill-style header action button (floating, borderless). */
+export function DeckButton({ children, onClick, primary, accent: isAccent, disabled }: {
+  children: ReactNode; onClick?: () => void; primary?: boolean; accent?: boolean; disabled?: boolean;
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] transition-colors disabled:opacity-40",
+        primary ? "bg-white text-[#06070a] hover:bg-white/90"
+        : isAccent ? "text-[hsl(214_90%_62%)] hover:bg-[hsl(214_90%_62%/0.16)]"
+        : "bg-white/[0.06] text-white/60 hover:bg-white/[0.1] hover:text-white",
+      )}
+      style={isAccent ? { background: accent(0.12) } : undefined}>
+      {children}
+    </button>
+  );
+}
+
 export function AttentionCard({ priority, icon: Icon, title, body, ctaLabel, ctaTo, index = 0 }: {
   priority: "high" | "medium" | "low"; icon: LucideIcon; title: string; body: string; ctaLabel: string; ctaTo: string; index?: number;
 }) {

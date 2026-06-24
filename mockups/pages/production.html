@@ -1,0 +1,370 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../skin.css">
+<title>Production hub — mockups</title></head>
+<body>
+<div class="atmos"><div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div></div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIR A — Command Deck
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="A" class="page">
+  <div class="vlabel"><span class="tag">DIR A</span><b>Command Deck</b><span class="desc">full-bleed KPI rail · one dominant chart · dense action list</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">03 · Production</div>
+      <h1 class="title">Production <i>floor</i>.</h1>
+      <p class="sub">Every render, provider and pipeline signal — from queue to finished film.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- KPI rail -->
+  <div class="grid g6">
+    <div class="glass kpi">
+      <div class="top"><span class="label">In flight</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-9 7 9-7 9z"/></svg></span></div>
+      <span class="val num">42</span>
+      <div class="foot"><span class="label">renders active</span><span class="pill accent"><i class="dot"></i>live</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Completed · 24h</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+      <span class="val num">318</span>
+      <div class="foot"><span class="label">finished films</span><span class="delta up">▲ +28</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Failed</span>
+        <span class="chip" style="background:linear-gradient(135deg,hsl(350 90% 70%/.22),hsl(350 90% 70%/.06));color:var(--rose)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg></span></div>
+      <span class="val num" style="color:var(--rose)">7</span>
+      <div class="foot"><span class="label">needs attention</span><span class="pill danger"><i class="dot"></i>errors</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Queue depth</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg></span></div>
+      <span class="val num">15</span>
+      <div class="foot"><span class="label">waiting</span><span class="delta down">~6m wait</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Avg render</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
+      <span class="val num acc">2m14s</span>
+      <div class="foot"><span class="label">per film</span><span class="delta up">▼ −9s</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Provider spend · 24h</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+      <span class="val num">$1,284</span>
+      <div class="foot"><span class="label">compute cost</span><span class="delta up">▲ +6%</span></div>
+    </div>
+  </div>
+
+  <!-- Dominant chart + companion -->
+  <div class="grid mt-lg" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead">
+        <div class="t">Renders by hour — last 24h</div>
+        <div class="meta">peak 02:00 · 38 / hr</div>
+      </div>
+      <div class="bars">
+        <i style="height:34%"></i><i style="height:42%"></i><i style="height:30%"></i><i style="height:55%"></i>
+        <i style="height:68%"></i><i style="height:90%"></i><i style="height:76%"></i><i style="height:52%"></i>
+        <i style="height:60%"></i><i style="height:80%"></i><i style="height:46%"></i><i style="height:38%"></i>
+      </div>
+      <div class="between" style="margin-top:14px">
+        <span class="label">00h</span><span class="label">06h</span><span class="label">12h</span><span class="label">18h</span><span class="label">now</span>
+      </div>
+    </div>
+    <div class="glass pad-lg">
+      <div class="cardhead">
+        <div class="t">Engine mix</div>
+        <div class="meta">share of renders</div>
+      </div>
+      <div class="row" style="align-items:center;gap:24px">
+        <div class="donut" style="background:conic-gradient(var(--accent-hsl) 0 38%,var(--cyan) 38% 62%,var(--violet) 62% 82%,var(--amber) 82% 94%,var(--rose) 94% 100%)"></div>
+        <div class="stack" style="flex:1">
+          <div class="between"><span class="label" style="color:var(--accent-hsl)">● Wan</span><span class="num" style="font-size:14px">38%</span></div>
+          <div class="between"><span class="label" style="color:var(--cyan)">● Kling</span><span class="num" style="font-size:14px">24%</span></div>
+          <div class="between"><span class="label" style="color:var(--violet)">● Seedance</span><span class="num" style="font-size:14px">20%</span></div>
+          <div class="between"><span class="label" style="color:var(--amber)">● Veo</span><span class="num" style="font-size:14px">12%</span></div>
+          <div class="between"><span class="label" style="color:var(--rose)">● Sora</span><span class="num" style="font-size:14px">6%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action queue + secondary list -->
+  <div class="grid mt-lg" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead">
+        <div class="t">Render queue</div>
+        <div class="meta">6 of 57 jobs</div>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Job</th><th>Project</th><th>Engine</th><th>Stage</th><th>ETA</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td class="id">#R-8842</td><td class="strong">Neon Harbor</td><td>Kling</td><td>rendering</td><td class="mono">0:48</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8841</td><td class="strong">Coastline Dawn</td><td>Wan</td><td>queued</td><td class="mono">1:30</td><td style="text-align:right"><span class="pill neutral">queued</span></td></tr>
+          <tr><td class="id">#R-8839</td><td class="strong">Studio Reel 12</td><td>Seedance</td><td>stitching</td><td class="mono">0:20</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8836</td><td class="strong">Brand Promo</td><td>Veo</td><td>rendering</td><td class="mono">1:05</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8833</td><td class="strong">Hidden Room</td><td>Sora</td><td>failed</td><td class="mono">—</td><td style="text-align:right"><span class="pill danger"><i class="dot"></i>failed</span></td></tr>
+          <tr><td class="id">#R-8830</td><td class="strong">Patron Cut</td><td>Wan</td><td>completed</td><td class="mono">—</td><td style="text-align:right"><span class="pill pos">done</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      <div class="glass pad-lg">
+        <div class="cardhead"><div class="t">Provider health</div><div class="meta">live</div></div>
+        <div class="stack">
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> &nbsp;Wan</span><span class="label" style="color:var(--emerald)">ok · 99.9%</span></div>
+          <div class="between"><span><span style="color:var(--amber)">⚠</span> &nbsp;Kling</span><span class="label" style="color:var(--amber)">degraded · 240ms</span></div>
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> &nbsp;Seedance</span><span class="label" style="color:var(--emerald)">ok</span></div>
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> &nbsp;Veo</span><span class="label" style="color:var(--emerald)">ok</span></div>
+          <div class="between"><span><span style="color:var(--amber)">⚠</span> &nbsp;Sora</span><span class="label" style="color:var(--amber)">rate-limited</span></div>
+        </div>
+      </div>
+      <div class="glass pad-lg">
+        <div class="cardhead"><div class="t">Failed renders</div><div class="meta">last hour</div></div>
+        <div class="stack">
+          <div class="between"><span class="id">#R-8833 · Hidden Room</span><span class="pill danger">OOM</span></div>
+          <div class="between"><span class="id">#R-8821 · Vault Teaser</span><span class="pill danger">timeout</span></div>
+          <div class="between"><span class="id">#R-8814 · Night Market</span><span class="pill danger">provider 5xx</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIR B — Control Grid
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="B" class="page">
+  <div class="vlabel"><span class="tag">DIR B</span><b>Control Grid</b><span class="desc">edge-to-edge bento of glass tiles, packed for density</span></div>
+
+  <div class="between" style="margin-bottom:24px">
+    <div class="row" style="align-items:baseline;gap:16px">
+      <span class="eyebrow">03 · Production</span>
+      <h1 class="title" style="font-size:1.7rem;margin-top:0">Production <i>floor</i>.</h1>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <!-- KPI row -->
+    <div class="glass kpi">
+      <div class="top"><span class="label">In flight</span><span class="pill accent"><i class="dot"></i>live</span></div>
+      <span class="val num">42</span>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Completed · 24h</span><span class="delta up">▲ +28</span></div>
+      <span class="val num">318</span>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Failed</span><span class="pill danger">errors</span></div>
+      <span class="val num" style="color:var(--rose)">7</span>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Queue depth</span><span class="label">~6m</span></div>
+      <span class="val num">15</span>
+    </div>
+
+    <!-- Wide chart spanning 3 -->
+    <div class="glass pad-lg span3" style="grid-row:span 2">
+      <div class="cardhead">
+        <div class="t">Renders by hour — last 24h</div>
+        <div class="meta">peak 02:00 · 38 / hr</div>
+      </div>
+      <div class="bars" style="height:180px">
+        <i style="height:34%"></i><i style="height:42%"></i><i style="height:30%"></i><i style="height:55%"></i>
+        <i style="height:68%"></i><i style="height:90%"></i><i style="height:76%"></i><i style="height:52%"></i>
+        <i style="height:60%"></i><i style="height:80%"></i><i style="height:46%"></i><i style="height:38%"></i>
+      </div>
+      <div class="between" style="margin-top:14px">
+        <span class="label">00h</span><span class="label">04h</span><span class="label">08h</span><span class="label">12h</span><span class="label">16h</span><span class="label">20h</span><span class="label">now</span>
+      </div>
+    </div>
+
+    <!-- Two stacked stat tiles in 4th column -->
+    <div class="glass kpi">
+      <div class="top"><span class="label">Avg render</span></div>
+      <span class="val num acc">2m14s</span>
+      <div class="foot"><span class="label">per film</span><span class="delta up">▼ −9s</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Spend · 24h</span></div>
+      <span class="val num">$1,284</span>
+      <div class="foot"><span class="label">compute</span><span class="delta up">▲ +6%</span></div>
+    </div>
+
+    <!-- Queue table spanning 2, 2 rows -->
+    <div class="glass pad-lg span2" style="grid-row:span 2">
+      <div class="cardhead"><div class="t">Render queue</div><div class="meta">6 of 57</div></div>
+      <table class="tbl">
+        <thead><tr><th>Job</th><th>Project</th><th>Engine</th><th>ETA</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td class="id">#R-8842</td><td class="strong">Neon Harbor</td><td>Kling</td><td class="mono">0:48</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8841</td><td class="strong">Coastline Dawn</td><td>Wan</td><td class="mono">1:30</td><td style="text-align:right"><span class="pill neutral">queued</span></td></tr>
+          <tr><td class="id">#R-8839</td><td class="strong">Studio Reel 12</td><td>Seedance</td><td class="mono">0:20</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8836</td><td class="strong">Brand Promo</td><td>Veo</td><td class="mono">1:05</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+          <tr><td class="id">#R-8833</td><td class="strong">Hidden Room</td><td>Sora</td><td class="mono">—</td><td style="text-align:right"><span class="pill danger"><i class="dot"></i>failed</span></td></tr>
+          <tr><td class="id">#R-8830</td><td class="strong">Patron Cut</td><td>Wan</td><td class="mono">—</td><td style="text-align:right"><span class="pill pos">done</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Engine mix donut -->
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Engine mix</div></div>
+      <div class="row" style="justify-content:center"><div class="donut" style="width:120px;height:120px;background:conic-gradient(var(--accent-hsl) 0 38%,var(--cyan) 38% 62%,var(--violet) 62% 82%,var(--amber) 82% 94%,var(--rose) 94% 100%)"></div></div>
+      <div class="between" style="margin-top:14px"><span class="label" style="color:var(--accent-hsl)">● Wan 38%</span><span class="label" style="color:var(--cyan)">● Kling 24%</span></div>
+      <div class="between" style="margin-top:6px"><span class="label" style="color:var(--violet)">● Seedance 20%</span><span class="label" style="color:var(--amber)">● Veo 12%</span></div>
+    </div>
+
+    <!-- Provider health -->
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Provider health</div></div>
+      <div class="stack">
+        <div class="between"><span><span style="color:var(--emerald)">✓</span> Wan</span><span class="label" style="color:var(--emerald)">99.9%</span></div>
+        <div class="between"><span><span style="color:var(--amber)">⚠</span> Kling</span><span class="label" style="color:var(--amber)">240ms</span></div>
+        <div class="between"><span><span style="color:var(--emerald)">✓</span> Seedance</span><span class="label" style="color:var(--emerald)">ok</span></div>
+        <div class="between"><span><span style="color:var(--emerald)">✓</span> Veo</span><span class="label" style="color:var(--emerald)">ok</span></div>
+        <div class="between"><span><span style="color:var(--amber)">⚠</span> Sora</span><span class="label" style="color:var(--amber)">rate-limited</span></div>
+      </div>
+    </div>
+
+    <!-- Failed renders -->
+    <div class="glass pad-lg span2">
+      <div class="cardhead"><div class="t">Failed renders</div><div class="meta">last hour · 3</div></div>
+      <div class="grid g3">
+        <div class="stack"><span class="id">#R-8833</span><span class="strong">Hidden Room</span><span class="pill danger">OOM</span></div>
+        <div class="stack"><span class="id">#R-8821</span><span class="strong">Vault Teaser</span><span class="pill danger">timeout</span></div>
+        <div class="stack"><span class="id">#R-8814</span><span class="strong">Night Market</span><span class="pill danger">provider 5xx</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIR C — Split Console
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="C" class="page">
+  <div class="vlabel"><span class="tag">DIR C</span><b>Split Console</b><span class="desc">left summary rail + large right data canvas</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">03 · Production</div>
+      <h1 class="title">Production <i>floor</i>.</h1>
+      <p class="sub">Every render, provider and pipeline signal — from queue to finished film.</p>
+    </div>
+    <button class="btn accentbtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"/><path d="M10.5 6.5 12 5l8 8-1.5 1.5"/><path d="M5 13 9 9"/></svg>
+      Flush stuck jobs
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- Left rail -->
+    <div class="rail col">
+      <div class="glass kpi">
+        <div class="top"><span class="label">In flight</span><span class="pill accent"><i class="dot"></i>live</span></div>
+        <span class="val num">42</span>
+        <div class="foot"><span class="label">renders active</span></div>
+      </div>
+      <div class="glass pad">
+        <div class="stack">
+          <div class="between"><span class="label">Completed · 24h</span><span class="num" style="font-size:18px">318</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between"><span class="label">Failed</span><span class="num" style="font-size:18px;color:var(--rose)">7</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between"><span class="label">Queue depth</span><span class="num" style="font-size:18px">15</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between"><span class="label">Avg render</span><span class="num accent" style="font-size:18px">2m14s</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between"><span class="label">Spend · 24h</span><span class="num" style="font-size:18px">$1,284</span></div>
+        </div>
+      </div>
+      <div class="glass pad">
+        <span class="label">Filter stage</span>
+        <div class="segwrap" style="margin-top:12px;display:flex;flex-wrap:wrap">
+          <span class="seg on">All</span><span class="seg">Running</span><span class="seg">Queued</span><span class="seg">Failed</span>
+        </div>
+      </div>
+      <div class="glass pad">
+        <div class="cardhead" style="margin-bottom:12px"><div class="t" style="font-size:14px">Provider health</div></div>
+        <div class="stack">
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> Wan</span><span class="label" style="color:var(--emerald)">99.9%</span></div>
+          <div class="between"><span><span style="color:var(--amber)">⚠</span> Kling</span><span class="label" style="color:var(--amber)">240ms</span></div>
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> Seedance</span><span class="label" style="color:var(--emerald)">ok</span></div>
+          <div class="between"><span><span style="color:var(--emerald)">✓</span> Veo</span><span class="label" style="color:var(--emerald)">ok</span></div>
+          <div class="between"><span><span style="color:var(--amber)">⚠</span> Sora</span><span class="label" style="color:var(--amber)">rate-limited</span></div>
+        </div>
+      </div>
+      <div class="glass pad" style="display:flex;align-items:center;gap:18px">
+        <div class="donut" style="width:96px;height:96px;background:conic-gradient(var(--accent-hsl) 0 38%,var(--cyan) 38% 62%,var(--violet) 62% 82%,var(--amber) 82% 94%,var(--rose) 94% 100%)"></div>
+        <div class="stack" style="flex:1">
+          <span class="label">Engine mix</span>
+          <span class="label" style="color:var(--accent-hsl)">● Wan 38%</span>
+          <span class="label" style="color:var(--cyan)">● Kling 24%</span>
+          <span class="label" style="color:var(--violet)">● Seedance 20%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right canvas -->
+    <div class="canvas col">
+      <div class="glass pad-lg">
+        <div class="cardhead">
+          <div class="t">Renders by hour — last 24h</div>
+          <div class="meta">peak 02:00 · 38 / hr</div>
+        </div>
+        <div class="bars" style="height:130px">
+          <i style="height:34%"></i><i style="height:42%"></i><i style="height:30%"></i><i style="height:55%"></i>
+          <i style="height:68%"></i><i style="height:90%"></i><i style="height:76%"></i><i style="height:52%"></i>
+          <i style="height:60%"></i><i style="height:80%"></i><i style="height:46%"></i><i style="height:38%"></i>
+        </div>
+      </div>
+
+      <div class="glass pad-lg">
+        <div class="between" style="margin-bottom:18px">
+          <div class="t" style="font-family:'Fraunces',serif;font-weight:600;font-size:16px;color:#fff;display:flex;align-items:center;gap:10px">Render queue</div>
+          <div class="row" style="align-items:center;gap:10px">
+            <span class="pill accent">running 22</span>
+            <span class="pill neutral">queued 15</span>
+            <span class="pill danger">failed 7</span>
+            <span class="pill neutral"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> search</span>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Job</th><th>Project</th><th>Engine</th><th>Stage</th><th>ETA</th><th style="text-align:right">Status</th></tr></thead>
+          <tbody>
+            <tr><td class="id">#R-8842</td><td class="strong">Neon Harbor</td><td>Kling</td><td>rendering</td><td class="mono">0:48</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+            <tr><td class="id">#R-8841</td><td class="strong">Coastline Dawn</td><td>Wan</td><td>queued</td><td class="mono">1:30</td><td style="text-align:right"><span class="pill neutral">queued</span></td></tr>
+            <tr><td class="id">#R-8839</td><td class="strong">Studio Reel 12</td><td>Seedance</td><td>stitching</td><td class="mono">0:20</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+            <tr><td class="id">#R-8836</td><td class="strong">Brand Promo</td><td>Veo</td><td>rendering</td><td class="mono">1:05</td><td style="text-align:right"><span class="pill accent"><i class="dot"></i>running</span></td></tr>
+            <tr><td class="id">#R-8833</td><td class="strong">Hidden Room</td><td>Sora</td><td>failed</td><td class="mono">—</td><td style="text-align:right"><span class="pill danger"><i class="dot"></i>failed</span></td></tr>
+            <tr><td class="id">#R-8830</td><td class="strong">Patron Cut</td><td>Wan</td><td>completed</td><td class="mono">—</td><td style="text-align:right"><span class="pill pos">done</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="glass pad-lg">
+        <div class="cardhead"><div class="t">Failed renders</div><div class="meta">last hour · 3</div></div>
+        <div class="grid g3">
+          <div class="between"><span class="id">#R-8833 · Hidden Room</span><span class="pill danger">OOM</span></div>
+          <div class="between"><span class="id">#R-8821 · Vault Teaser</span><span class="pill danger">timeout</span></div>
+          <div class="between"><span class="id">#R-8814 · Night Market</span><span class="pill danger">provider 5xx</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body></html>

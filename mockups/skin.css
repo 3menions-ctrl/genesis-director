@@ -1,0 +1,142 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Admin · Cinema-Noir skin — shared mockup stylesheet.
+   Exact tokens lifted from src/admin/ui/primitives.tsx + AdminLayout.tsx.
+   Borderless gradient-glass, single blue accent, Fraunces + Inter + mono.
+   Compose pages from these classes only — keep every page on the same skin.
+   ────────────────────────────────────────────────────────────────────────── */
+:root{
+  --bg:#06070a;
+  --accent:214 90% 62%;
+  --accent-hsl:hsl(214 90% 62%);
+  --cyan:hsl(188 92% 58%);
+  --violet:hsl(256 88% 72%);
+  --rose:hsl(350 90% 70%);
+  --amber:hsl(38 96% 62%);
+  --emerald:hsl(160 84% 50%);
+  --card:linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015));
+  --card-shadow:0 30px 90px -50px rgba(0,0,0,0.95);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:rgba(255,255,255,0.7)}
+body{
+  font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  position:relative;overflow-x:hidden;
+}
+.mono{font-family:'Roboto Mono',ui-monospace,SFMono-Regular,monospace}
+.display{font-family:'Fraunces',Georgia,serif}
+
+/* Ambient atmosphere (grain + accent aurora glows) */
+.atmos{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.aurora{position:absolute;border-radius:9999px;filter:blur(90px);opacity:.5}
+.aurora.a1{top:-200px;left:4%;width:560px;height:560px;background:radial-gradient(closest-side,hsl(214 90% 62%/.26),transparent 70%)}
+.aurora.a2{top:-110px;right:3%;width:500px;height:500px;background:radial-gradient(closest-side,hsl(188 92% 58%/.18),transparent 70%)}
+.aurora.a3{top:240px;left:46%;width:520px;height:520px;background:radial-gradient(closest-side,hsl(256 88% 72%/.14),transparent 70%)}
+
+/* Page frame — full-bleed, maximum space, generous padding */
+.page{position:relative;z-index:1;width:100%;padding:40px 48px 56px}
+.page.tight{padding:36px 40px 48px}
+
+/* Variant chrome (mockup-only label band; not part of the design) */
+.vlabel{display:flex;align-items:baseline;gap:14px;margin:0 0 26px;
+  font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+.vlabel b{color:#fff;font-weight:600}
+.vlabel .tag{color:var(--accent-hsl)}
+.vlabel .desc{color:rgba(255,255,255,.4);letter-spacing:.04em;text-transform:none;font-family:'Inter',sans-serif;font-size:12.5px}
+
+/* ── Typography ─────────────────────────────────────────────── */
+.eyebrow{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.3em;color:var(--accent-hsl)}
+h1.title{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.9rem,3.4vw,2.7rem);line-height:1.03;letter-spacing:-.03em;color:#fff;margin-top:8px}
+h1.title i{font-style:italic;font-weight:500}
+.sub{margin-top:8px;max-width:40rem;font-size:14px;font-weight:300;color:rgba(255,255,255,.55)}
+.label{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:rgba(255,255,255,.45)}
+.sectlabel{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.24em;color:rgba(255,255,255,.4);margin-bottom:16px}
+.num{font-family:'Fraunces',serif;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:#fff}
+.accent{color:var(--accent-hsl)}
+.muted{color:rgba(255,255,255,.4)}
+
+/* ── Header row ─────────────────────────────────────────────── */
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:30px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:9999px;background:rgba(255,255,255,.06);
+  padding:9px 16px;font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.6);cursor:pointer}
+.btn.primary{background:#fff;color:#06070a;font-weight:600}
+.btn.accentbtn{background:hsl(214 90% 62%/.16);color:var(--accent-hsl)}
+
+/* ── Glass surface (borderless, specular top highlight, soft shadow) ── */
+.glass{position:relative;border-radius:18px;background:var(--card);box-shadow:var(--card-shadow);backdrop-filter:blur(20px);overflow:hidden}
+.glass::before{content:"";position:absolute;inset-inline:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.glass.glow{box-shadow:0 40px 120px -50px hsl(214 90% 62%/.5)}
+.pad{padding:20px}
+.pad-lg{padding:26px}
+
+/* ── KPI tile ───────────────────────────────────────────────── */
+.kpi{padding:20px}
+.kpi .top{display:flex;align-items:flex-start;justify-content:space-between}
+.chip{display:flex;width:28px;height:28px;align-items:center;justify-content:center;border-radius:9px;
+  background:linear-gradient(135deg,hsl(214 90% 62%/.22),hsl(214 90% 62%/.08));color:var(--accent-hsl)}
+.chip svg{width:15px;height:15px}
+.kpi .val{display:block;margin-top:12px;font-family:'Fraunces',serif;font-weight:600;font-size:32px;line-height:1;letter-spacing:-.01em;color:#fff;font-variant-numeric:tabular-nums}
+.kpi .val.acc{color:var(--accent-hsl);text-shadow:0 0 26px hsl(214 90% 62%/.6)}
+.kpi .foot{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500}
+.delta.up{color:var(--cyan)} .delta.down{color:rgba(255,255,255,.5)}
+
+/* ── Chart card head ────────────────────────────────────────── */
+.cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.cardhead .t{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:600;font-size:16px;letter-spacing:-.01em;color:#fff}
+.cardhead .t::before{content:"";width:4px;height:16px;border-radius:9999px;background:linear-gradient(var(--accent-hsl),var(--cyan))}
+.cardhead .meta{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.4)}
+
+/* ── Status pill ────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;padding:4px 10px;
+  font-family:'Roboto Mono',monospace;font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.16em}
+.pill.accent{color:var(--accent-hsl);background:hsl(214 90% 62%/.14)}
+.pill.pos{color:var(--cyan);background:hsl(188 92% 58%/.12)}
+.pill.warn{color:var(--amber);background:hsl(38 96% 62%/.12)}
+.pill.danger{color:var(--rose);background:hsl(350 90% 70%/.12)}
+.pill.neutral{color:rgba(255,255,255,.6);background:rgba(255,255,255,.06)}
+.dot{width:6px;height:6px;border-radius:9999px;background:currentColor;box-shadow:0 0 8px currentColor}
+
+/* ── Borderless data table ──────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-family:'Roboto Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.2em;color:rgba(255,255,255,.38);text-align:left;padding:10px 14px;font-weight:500}
+.tbl td{padding:13px 14px;color:rgba(255,255,255,.78);border-top:1px solid rgba(255,255,255,.05)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl .id{font-family:'Roboto Mono',monospace;font-size:11px;color:rgba(255,255,255,.5)}
+.tbl .strong{color:#fff;font-weight:500}
+.avatar{width:26px;height:26px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:#fff;background:linear-gradient(135deg,hsl(214 90% 62%/.4),hsl(214 90% 62%/.08))}
+
+/* ── Layout helpers ─────────────────────────────────────────── */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)} .g5{grid-template-columns:repeat(5,1fr)} .g6{grid-template-columns:repeat(6,1fr)}
+.row{display:flex;gap:16px} .col{display:flex;flex-direction:column;gap:16px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}
+.mt{margin-top:24px}.mt-lg{margin-top:32px}
+
+/* Mini bar/spark visuals (pure CSS, no chart dep) */
+.spark{display:flex;align-items:flex-end;gap:3px;height:40px}
+.spark i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(var(--accent-hsl),hsl(188 92% 58%/.3));opacity:.85}
+.bars{display:flex;align-items:flex-end;gap:8px;height:120px}
+.bars i{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.25));box-shadow:0 6px 18px hsl(214 90% 62%/.25)}
+.donut{width:150px;height:150px;border-radius:9999px;position:relative;
+  background:conic-gradient(var(--accent-hsl) 0 55%,var(--violet) 55% 78%,var(--rose) 78% 100%)}
+.donut::after{content:"";position:absolute;inset:22px;border-radius:9999px;background:#0a0d14}
+.area{position:relative;height:180px;border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,hsl(214 90% 62%/.18),transparent 70%)}
+.area::before{content:"";position:absolute;left:0;right:0;bottom:30%;height:2px;
+  background:linear-gradient(90deg,var(--accent-hsl),var(--cyan));box-shadow:0 0 12px hsl(214 90% 62%/.6);
+  clip-path:polygon(0 60%,12% 40%,28% 70%,42% 30%,58% 55%,72% 20%,86% 45%,100% 15%,100% 100%,0 100%)}
+.bignum{font-family:'Fraunces',serif;font-weight:600;font-size:44px;line-height:1;color:#fff;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* Left rail for the Split-Console direction */
+.rail{width:340px;flex:0 0 340px}
+.canvas{flex:1;min-width:0}
+.segwrap{display:inline-flex;gap:4px;background:rgba(255,255,255,.04);border-radius:9999px;padding:4px}
+.seg{padding:7px 14px;border-radius:9999px;font-size:12px;color:rgba(255,255,255,.55);cursor:pointer}
+.seg.on{background:rgba(255,255,255,.1);color:#fff}
+.divline{height:1px;background:rgba(255,255,255,.06);margin:18px 0}

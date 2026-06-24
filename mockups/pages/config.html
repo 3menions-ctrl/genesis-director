@@ -1,0 +1,455 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../skin.css">
+<title>System config — mockups</title></head>
+<body>
+<div class="atmos"><div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div></div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIRECTION A — Command Deck
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="A" class="page">
+  <div class="vlabel"><span class="tag">DIR A</span><b>Command Deck</b><span class="desc">full-bleed KPI rail · one dominant chart · dense action list</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">Tools · Config</div>
+      <h1 class="title">System <i>config</i>.</h1>
+      <p class="sub">Feature flags, rollouts and platform switches — the levers that change the product live.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New flag
+    </button>
+  </div>
+
+  <!-- KPI rail -->
+  <div class="grid g6">
+    <div class="glass kpi">
+      <div class="top"><span class="label">Feature flags</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span></div>
+      <span class="val">34</span>
+      <div class="foot"><span class="delta up">18 on</span><span class="muted" style="font-size:11px">16 off</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Maintenance</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg></span></div>
+      <span class="val" style="font-size:24px">OFF</span>
+      <div class="foot"><span class="pill pos"><span class="dot"></span>Live</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Signups</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><path d="m16 11 2 2 4-4"/></svg></span></div>
+      <span class="val" style="font-size:24px">OPEN</span>
+      <div class="foot"><span class="pill pos"><span class="dot"></span>Accepting</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Free renders</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></span></div>
+      <span class="val" style="font-size:24px">ON</span>
+      <div class="foot"><span class="muted" style="font-size:11px">cap 3 / day</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Providers</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg></span></div>
+      <span class="val">5</span>
+      <div class="foot"><span class="delta up">all active</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Config version</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span></div>
+      <span class="val acc">v128</span>
+      <div class="foot"><span class="muted" style="font-size:11px">2h ago</span></div>
+    </div>
+  </div>
+
+  <!-- dominant card + companion -->
+  <div class="grid mt" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Rollout coverage</div><div class="meta">6 flags · % of audience</div></div>
+      <div class="stack">
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">ad_studio</span><span class="mono muted" style="font-size:11px">100%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div>
+        </div>
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">daily_prompt</span><span class="mono muted" style="font-size:11px">100%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div>
+        </div>
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">watch_parties</span><span class="mono muted" style="font-size:11px">60%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:60%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div>
+        </div>
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">new_onboarding</span><span class="mono muted" style="font-size:11px">50%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:50%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div>
+        </div>
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.55)">posthog_replay</span><span class="mono muted" style="font-size:11px">0%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div>
+        </div>
+        <div>
+          <div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.55)">creator_payouts</span><span class="mono muted" style="font-size:11px">0%</span></div>
+          <div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Flags on / off</div><div class="meta">34 total</div></div>
+      <div class="row" style="align-items:center;gap:28px">
+        <div class="donut" style="background:conic-gradient(var(--cyan) 0 53%,rgba(255,255,255,.12) 53% 100%)">
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2">
+            <span class="num" style="font-size:30px">18</span>
+            <span class="label" style="margin-top:2px">on</span>
+          </div>
+        </div>
+        <div class="stack" style="gap:18px">
+          <div>
+            <div class="between" style="gap:10px"><span class="mono" style="font-size:12px;color:#fff"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--cyan);margin-right:8px"></span>Enabled</span></div>
+            <span class="num" style="font-size:22px;margin-left:17px">18</span>
+          </div>
+          <div>
+            <div class="between" style="gap:10px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.7)"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(255,255,255,.3);margin-right:8px"></span>Disabled</span></div>
+            <span class="num muted" style="font-size:22px;margin-left:17px">16</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- table + kill switches / config -->
+  <div class="grid mt" style="grid-template-columns:1.6fr 1fr">
+    <div class="col">
+      <div class="glass pad">
+        <div class="cardhead"><div class="t">Feature flags</div><div class="meta">6 of 34</div></div>
+        <table class="tbl">
+          <thead><tr><th>Flag</th><th>Description</th><th style="width:170px">Rollout</th><th>Audience</th><th style="text-align:right">State</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="mono strong">ad_studio</span></td>
+              <td>Business ad generation suite</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td>
+              <td><span class="pill neutral">All business</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td>
+            </tr>
+            <tr>
+              <td><span class="mono strong">watch_parties</span></td>
+              <td>Synchronized group viewing</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:60%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">60%</span></div></td>
+              <td><span class="pill neutral">Pro+</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td>
+            </tr>
+            <tr>
+              <td><span class="mono strong">new_onboarding</span></td>
+              <td>Revamped first-run flow</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:50%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">50%</span></div></td>
+              <td><span class="pill neutral">New users</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td>
+            </tr>
+            <tr>
+              <td><span class="mono strong">posthog_replay</span></td>
+              <td>Session replay capture</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td>
+              <td><span class="pill neutral">Internal</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td>
+            </tr>
+            <tr>
+              <td><span class="mono strong">daily_prompt</span></td>
+              <td>Hidden Room daily prompt</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td>
+              <td><span class="pill neutral">All</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td>
+            </tr>
+            <tr>
+              <td><span class="mono strong">creator_payouts</span></td>
+              <td>Creator earnings withdrawal</td>
+              <td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td>
+              <td><span class="pill neutral">Beta cohort</span></td>
+              <td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead"><div class="t">Recent config changes</div><div class="meta">audit log</div></div>
+        <div class="stack" style="gap:16px">
+          <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--cyan)"></span><div><div style="color:#fff;font-size:13px">Enabled <span class="mono accent">new_onboarding</span> at 50%</div><div class="mono muted" style="font-size:11px;margin-top:3px">avery.cole · 2h ago</div></div></div>
+          <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--accent-hsl)"></span><div><div style="color:#fff;font-size:13px">Raised <span class="mono accent">free_tier_render_cap</span> 2 → 3</div><div class="mono muted" style="font-size:11px;margin-top:3px">avery.cole · 6h ago</div></div></div>
+          <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--violet)"></span><div><div style="color:#fff;font-size:13px">Bumped <span class="mono accent">watch_parties</span> 40% → 60%</div><div class="mono muted" style="font-size:11px;margin-top:3px">jordan.kim · yesterday</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="glass pad">
+        <div class="cardhead"><div class="t">Kill switches</div><div class="meta">platform overrides</div></div>
+        <div class="stack" style="gap:0">
+          <div class="between" style="padding:14px 0"><div><div style="color:#fff;font-size:13px">Maintenance mode</div><div class="muted" style="font-size:11.5px;margin-top:2px">Take the app offline for all users</div></div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:14px 0"><div><div style="color:#fff;font-size:13px">Pause signups</div><div class="muted" style="font-size:11.5px;margin-top:2px">Stop accepting new accounts</div></div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:14px 0"><div><div style="color:#fff;font-size:13px">Freeze renders</div><div class="muted" style="font-size:11.5px;margin-top:2px">Halt all generation jobs</div></div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+        </div>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead"><div class="t">System config</div><div class="meta">key / value</div></div>
+        <div class="stack" style="gap:0">
+          <div class="between" style="padding:11px 0"><span class="mono muted" style="font-size:12px">signups_open</span><span class="mono" style="font-size:12px;color:var(--cyan)">true</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:11px 0"><span class="mono muted" style="font-size:12px">maintenance_message</span><span class="mono muted" style="font-size:12px">""</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:11px 0"><span class="mono muted" style="font-size:12px">free_tier_render_cap</span><span class="mono" style="font-size:12px;color:#fff">3</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:11px 0"><span class="mono muted" style="font-size:12px">max_upload_mb</span><span class="mono" style="font-size:12px;color:#fff">200</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:11px 0"><span class="mono muted" style="font-size:12px">default_engine</span><span class="mono accent" style="font-size:12px">wan</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIRECTION B — Control Grid
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="B" class="page">
+  <div class="vlabel"><span class="tag">DIR B</span><b>Control Grid</b><span class="desc">edge-to-edge bento of glass tiles, packed for density</span></div>
+
+  <div class="pagehead" style="margin-bottom:20px">
+    <div class="between" style="gap:18px;align-items:baseline">
+      <div>
+        <div class="eyebrow">Tools · Config</div>
+        <h1 class="title" style="font-size:1.9rem">System <i>config</i>.</h1>
+      </div>
+      <span class="pill accent" style="margin-bottom:4px">v128</span>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New flag
+    </button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <!-- row 1 — KPIs -->
+    <div class="glass kpi">
+      <div class="top"><span class="label">Feature flags</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span></div>
+      <span class="val">34</span><div class="foot"><span class="delta up">18 on</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Maintenance</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg></span></div>
+      <span class="val" style="font-size:24px">OFF</span><div class="foot"><span class="pill pos"><span class="dot"></span>Live</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Signups</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><path d="m16 11 2 2 4-4"/></svg></span></div>
+      <span class="val" style="font-size:24px">OPEN</span><div class="foot"><span class="pill pos"><span class="dot"></span>Accepting</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Free renders</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></span></div>
+      <span class="val" style="font-size:24px">ON</span><div class="foot"><span class="muted" style="font-size:11px">cap 3 / day</span></div>
+    </div>
+
+    <!-- row 2 — 2 KPIs + donut span2 -->
+    <div class="glass kpi">
+      <div class="top"><span class="label">Providers</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg></span></div>
+      <span class="val">5</span><div class="foot"><span class="delta up">all active</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Config version</span><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span></div>
+      <span class="val acc">v128</span><div class="foot"><span class="muted" style="font-size:11px">2h ago</span></div>
+    </div>
+    <div class="glass pad span2">
+      <div class="cardhead"><div class="t">Flags on / off</div><div class="meta">34 total</div></div>
+      <div class="row" style="align-items:center;gap:24px">
+        <div class="donut" style="width:120px;height:120px;background:conic-gradient(var(--cyan) 0 53%,rgba(255,255,255,.12) 53% 100%)">
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2"><span class="num" style="font-size:24px">18</span><span class="label">on</span></div>
+        </div>
+        <div class="stack" style="gap:14px">
+          <div class="between" style="gap:18px"><span class="mono" style="font-size:12px;color:#fff"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--cyan);margin-right:8px"></span>Enabled</span><span class="num" style="font-size:18px">18</span></div>
+          <div class="between" style="gap:18px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.7)"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(255,255,255,.3);margin-right:8px"></span>Disabled</span><span class="num muted" style="font-size:18px">16</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- row 3 — rollout coverage wide -->
+    <div class="glass pad span4">
+      <div class="cardhead"><div class="t">Rollout coverage</div><div class="meta">6 flags · % of audience</div></div>
+      <div class="grid g3">
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">ad_studio</span><span class="mono muted" style="font-size:11px">100%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">daily_prompt</span><span class="mono muted" style="font-size:11px">100%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">watch_parties</span><span class="mono muted" style="font-size:11px">60%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:60%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">new_onboarding</span><span class="mono muted" style="font-size:11px">50%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:50%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.55)">posthog_replay</span><span class="mono muted" style="font-size:11px">0%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:rgba(255,255,255,.55)">creator_payouts</span><span class="mono muted" style="font-size:11px">0%</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div></div>
+      </div>
+    </div>
+
+    <!-- row 4 — feature flags table wide -->
+    <div class="glass pad span4">
+      <div class="cardhead"><div class="t">Feature flags</div><div class="meta">6 of 34</div></div>
+      <table class="tbl">
+        <thead><tr><th>Flag</th><th>Description</th><th style="width:200px">Rollout</th><th>Audience</th><th style="text-align:right">State</th></tr></thead>
+        <tbody>
+          <tr><td><span class="mono strong">ad_studio</span></td><td>Business ad generation suite</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td><td><span class="pill neutral">All business</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+          <tr><td><span class="mono strong">watch_parties</span></td><td>Synchronized group viewing</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:60%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">60%</span></div></td><td><span class="pill neutral">Pro+</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+          <tr><td><span class="mono strong">new_onboarding</span></td><td>Revamped first-run flow</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:50%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">50%</span></div></td><td><span class="pill neutral">New users</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+          <tr><td><span class="mono strong">posthog_replay</span></td><td>Session replay capture</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td><td><span class="pill neutral">Internal</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td></tr>
+          <tr><td><span class="mono strong">daily_prompt</span></td><td>Hidden Room daily prompt</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td><td><span class="pill neutral">All</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+          <tr><td><span class="mono strong">creator_payouts</span></td><td>Creator earnings withdrawal</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td><td><span class="pill neutral">Beta cohort</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- row 5 — kill switches span2, system config, recent changes -->
+    <div class="glass pad span2">
+      <div class="cardhead"><div class="t">Kill switches</div><div class="meta">platform overrides</div></div>
+      <div class="grid g3">
+        <div><div style="color:#fff;font-size:12.5px;margin-bottom:10px">Maintenance mode</div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span><div class="muted" style="font-size:11px;margin-top:8px">App offline</div></div>
+        <div><div style="color:#fff;font-size:12.5px;margin-bottom:10px">Pause signups</div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span><div class="muted" style="font-size:11px;margin-top:8px">No new accounts</div></div>
+        <div><div style="color:#fff;font-size:12.5px;margin-bottom:10px">Freeze renders</div><span style="position:relative;display:inline-flex;width:42px;height:23px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span><div class="muted" style="font-size:11px;margin-top:8px">Halt all jobs</div></div>
+      </div>
+    </div>
+    <div class="glass pad">
+      <div class="cardhead"><div class="t" style="font-size:15px">System config</div></div>
+      <div class="stack" style="gap:0">
+        <div class="between" style="padding:8px 0"><span class="mono muted" style="font-size:11.5px">signups_open</span><span class="mono" style="font-size:11.5px;color:var(--cyan)">true</span></div>
+        <div class="divline" style="margin:0"></div>
+        <div class="between" style="padding:8px 0"><span class="mono muted" style="font-size:11.5px">render_cap</span><span class="mono" style="font-size:11.5px;color:#fff">3</span></div>
+        <div class="divline" style="margin:0"></div>
+        <div class="between" style="padding:8px 0"><span class="mono muted" style="font-size:11.5px">max_upload_mb</span><span class="mono" style="font-size:11.5px;color:#fff">200</span></div>
+        <div class="divline" style="margin:0"></div>
+        <div class="between" style="padding:8px 0"><span class="mono muted" style="font-size:11.5px">default_engine</span><span class="mono accent" style="font-size:11.5px">wan</span></div>
+      </div>
+    </div>
+    <div class="glass pad">
+      <div class="cardhead"><div class="t" style="font-size:15px">Recent changes</div></div>
+      <div class="stack" style="gap:13px">
+        <div class="row" style="gap:10px;align-items:flex-start"><span class="dot" style="margin-top:5px;color:var(--cyan)"></span><div><div style="color:#fff;font-size:12px">Enabled <span class="mono accent">new_onboarding</span></div><div class="mono muted" style="font-size:10.5px;margin-top:2px">avery.cole · 2h</div></div></div>
+        <div class="row" style="gap:10px;align-items:flex-start"><span class="dot" style="margin-top:5px;color:var(--accent-hsl)"></span><div><div style="color:#fff;font-size:12px">Cap 2 → 3</div><div class="mono muted" style="font-size:10.5px;margin-top:2px">avery.cole · 6h</div></div></div>
+        <div class="row" style="gap:10px;align-items:flex-start"><span class="dot" style="margin-top:5px;color:var(--violet)"></span><div><div style="color:#fff;font-size:12px"><span class="mono accent">watch_parties</span> 40→60%</div><div class="mono muted" style="font-size:10.5px;margin-top:2px">jordan.kim · 1d</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     DIRECTION C — Split Console
+     ════════════════════════════════════════════════════════════════════ -->
+<section id="C" class="page">
+  <div class="vlabel"><span class="tag">DIR C</span><b>Split Console</b><span class="desc">left summary rail + large right data canvas</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">Tools · Config</div>
+      <h1 class="title">System <i>config</i>.</h1>
+      <p class="sub">Feature flags, rollouts and platform switches — the levers that change the product live.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New flag
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- LEFT RAIL -->
+    <div class="rail col">
+      <div class="segwrap" style="width:100%;justify-content:space-between">
+        <span class="seg on">Flags</span><span class="seg">Switches</span><span class="seg">Versions</span>
+      </div>
+
+      <div class="glass pad">
+        <div class="stack" style="gap:0">
+          <div class="between" style="padding:12px 0"><span class="label">Feature flags</span><span class="num" style="font-size:22px">34</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><span class="label">Maintenance</span><span class="pill pos"><span class="dot"></span>OFF</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><span class="label">Signups</span><span class="pill pos"><span class="dot"></span>OPEN</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><span class="label">Free renders</span><span class="pill pos"><span class="dot"></span>ON</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><span class="label">Providers</span><span class="num" style="font-size:22px">5</span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><span class="label">Config version</span><span class="num acc" style="font-size:22px;color:var(--accent-hsl)">v128</span></div>
+        </div>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead"><div class="t" style="font-size:15px">Flags on / off</div></div>
+        <div class="row" style="align-items:center;gap:18px">
+          <div class="donut" style="width:104px;height:104px;background:conic-gradient(var(--cyan) 0 53%,rgba(255,255,255,.12) 53% 100%)">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2"><span class="num" style="font-size:22px">18</span><span class="label">on</span></div>
+          </div>
+          <div class="stack" style="gap:12px">
+            <div><div class="mono" style="font-size:11.5px;color:#fff"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--cyan);margin-right:7px"></span>On</div><span class="num" style="font-size:17px;margin-left:15px">18</span></div>
+            <div><div class="mono" style="font-size:11.5px;color:rgba(255,255,255,.7)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,.3);margin-right:7px"></span>Off</div><span class="num muted" style="font-size:17px;margin-left:15px">16</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead"><div class="t" style="font-size:15px">Kill switches</div></div>
+        <div class="stack" style="gap:0">
+          <div class="between" style="padding:12px 0"><div style="color:#fff;font-size:12.5px">Maintenance mode</div><span style="position:relative;display:inline-flex;width:40px;height:22px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><div style="color:#fff;font-size:12.5px">Pause signups</div><span style="position:relative;display:inline-flex;width:40px;height:22px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+          <div class="divline" style="margin:0"></div>
+          <div class="between" style="padding:12px 0"><div style="color:#fff;font-size:12.5px">Freeze renders</div><span style="position:relative;display:inline-flex;width:40px;height:22px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT CANVAS -->
+    <div class="canvas col">
+      <div class="glass pad">
+        <!-- toolbar -->
+        <div class="between" style="margin-bottom:18px;flex-wrap:wrap;gap:12px">
+          <div class="row" style="gap:8px;align-items:center">
+            <span class="pill accent">All · 34</span>
+            <span class="pill neutral">On · 18</span>
+            <span class="pill neutral">Off · 16</span>
+            <span class="pill neutral">Beta</span>
+          </div>
+          <div class="row" style="gap:10px;align-items:center;background:rgba(255,255,255,.04);border-radius:9999px;padding:8px 14px">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="mono muted" style="font-size:11px">Search flags…</span>
+          </div>
+        </div>
+
+        <table class="tbl">
+          <thead><tr><th>Flag</th><th>Description</th><th style="width:200px">Rollout</th><th>Audience</th><th style="text-align:right">State</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono strong">ad_studio</span></td><td>Business ad generation suite</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td><td><span class="pill neutral">All business</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+            <tr><td><span class="mono strong">watch_parties</span></td><td>Synchronized group viewing</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:60%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">60%</span></div></td><td><span class="pill neutral">Pro+</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+            <tr><td><span class="mono strong">new_onboarding</span></td><td>Revamped first-run flow</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:50%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">50%</span></div></td><td><span class="pill neutral">New users</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+            <tr><td><span class="mono strong">posthog_replay</span></td><td>Session replay capture</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td><td><span class="pill neutral">Internal</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td></tr>
+            <tr><td><span class="mono strong">daily_prompt</span></td><td>Hidden Room daily prompt</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:100%;height:100%;background:linear-gradient(90deg,hsl(214 90% 62%),hsl(188 92% 58%))"></div></div><span class="mono muted" style="font-size:11px">100%</span></div></td><td><span class="pill neutral">All</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill pos">ON</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:hsl(214 90% 62%/.4);flex:0 0 auto"><span style="position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 8px hsl(214 90% 62%/.7)"></span></span></div></td></tr>
+            <tr><td><span class="mono strong">creator_payouts</span></td><td>Creator earnings withdrawal</td><td><div style="display:flex;align-items:center;gap:9px"><div style="flex:1;height:5px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden;min-width:80px"><div style="width:2%;height:100%;background:rgba(255,255,255,.25)"></div></div><span class="mono muted" style="font-size:11px">0%</span></div></td><td><span class="pill neutral">Beta cohort</span></td><td><div style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span class="pill neutral">OFF</span><span style="position:relative;display:inline-flex;width:36px;height:20px;border-radius:9999px;background:rgba(255,255,255,.12);flex:0 0 auto"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.6)"></span></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2">
+        <div class="glass pad">
+          <div class="cardhead"><div class="t" style="font-size:15px">System config</div><div class="meta">key / value</div></div>
+          <div class="stack" style="gap:0">
+            <div class="between" style="padding:10px 0"><span class="mono muted" style="font-size:12px">signups_open</span><span class="mono" style="font-size:12px;color:var(--cyan)">true</span></div>
+            <div class="divline" style="margin:0"></div>
+            <div class="between" style="padding:10px 0"><span class="mono muted" style="font-size:12px">maintenance_message</span><span class="mono muted" style="font-size:12px">""</span></div>
+            <div class="divline" style="margin:0"></div>
+            <div class="between" style="padding:10px 0"><span class="mono muted" style="font-size:12px">free_tier_render_cap</span><span class="mono" style="font-size:12px;color:#fff">3</span></div>
+            <div class="divline" style="margin:0"></div>
+            <div class="between" style="padding:10px 0"><span class="mono muted" style="font-size:12px">max_upload_mb</span><span class="mono" style="font-size:12px;color:#fff">200</span></div>
+            <div class="divline" style="margin:0"></div>
+            <div class="between" style="padding:10px 0"><span class="mono muted" style="font-size:12px">default_engine</span><span class="mono accent" style="font-size:12px">wan</span></div>
+          </div>
+        </div>
+        <div class="glass pad">
+          <div class="cardhead"><div class="t" style="font-size:15px">Recent config changes</div><div class="meta">audit log</div></div>
+          <div class="stack" style="gap:16px">
+            <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--cyan)"></span><div><div style="color:#fff;font-size:13px">Enabled <span class="mono accent">new_onboarding</span> at 50%</div><div class="mono muted" style="font-size:11px;margin-top:3px">avery.cole · 2h ago</div></div></div>
+            <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--accent-hsl)"></span><div><div style="color:#fff;font-size:13px">Raised <span class="mono accent">free_tier_render_cap</span> 2 → 3</div><div class="mono muted" style="font-size:11px;margin-top:3px">avery.cole · 6h ago</div></div></div>
+            <div class="row" style="gap:12px;align-items:flex-start"><span class="dot" style="margin-top:6px;color:var(--violet)"></span><div><div style="color:#fff;font-size:13px">Bumped <span class="mono accent">watch_parties</span> 40% → 60%</div><div class="mono muted" style="font-size:11px;margin-top:3px">jordan.kim · yesterday</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body></html>

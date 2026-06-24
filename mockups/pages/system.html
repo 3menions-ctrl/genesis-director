@@ -1,0 +1,365 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../skin.css">
+<title>System health — mockups</title></head>
+<body>
+<div class="atmos"><div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR A — Command Deck
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="A" class="page">
+  <div class="vlabel"><span class="tag">DIR A</span><b>Command Deck</b><span class="desc">full-bleed KPI rail · one dominant chart · dense action list</span></div>
+
+  <header class="pagehead">
+    <div>
+      <div class="eyebrow">06 · System</div>
+      <h1 class="title">System <i>health</i>.</h1>
+      <p class="sub">Uptime, edge, database and the keys that hold it together.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  <!-- KPI rail -->
+  <div class="grid g6">
+    <div class="glass kpi">
+      <div class="top"><span class="label">Uptime</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span></div>
+      <span class="val acc num">99.98%</span>
+      <div class="foot"><span class="delta up">30-day rolling</span><span class="muted mono" style="font-size:10px">SLA 99.9%</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Edge errors · 24h</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span></div>
+      <span class="val num">12</span>
+      <div class="foot"><span class="pill warn"><span class="dot"></span>elevated</span><span class="muted mono" style="font-size:10px">+5 vs 24h</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">DB CPU</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></span></div>
+      <span class="val num">34%</span>
+      <div class="foot"><span class="delta up">nominal</span><span class="muted mono" style="font-size:10px">peak 61%</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">API keys</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg></span></div>
+      <span class="val num">28</span>
+      <div class="foot"><span class="delta up">26 active</span><span class="muted mono" style="font-size:10px">2 expiring</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Webhook failures</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.66 0-3.01-1.34-3.01-3s1.34-3 3-3h.01"/><path d="m6 17 3.13-5.78c.53-.97.43-2.22-.26-3.07A4 4 0 1 1 16 6"/><path d="m12 17 1 2"/></svg></span></div>
+      <span class="val num">3</span>
+      <div class="foot"><span class="pill danger"><span class="dot"></span>retrying</span><span class="muted mono" style="font-size:10px">us-east</span></div>
+    </div>
+    <div class="glass kpi">
+      <div class="top"><span class="label">Storage</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span></div>
+      <span class="val num">4.2 TB</span>
+      <div class="foot"><span class="delta up">+40 GB / day</span><span class="muted mono" style="font-size:10px">of 8 TB</span></div>
+    </div>
+  </div>
+
+  <!-- Dominant chart + companion -->
+  <div class="grid mt" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead">
+        <div class="t">Edge requests — last 24h</div>
+        <div class="meta">p50 41ms · p95 188ms · p99 410ms</div>
+      </div>
+      <div class="bars">
+        <i style="height:46%"></i><i style="height:52%"></i><i style="height:38%"></i><i style="height:60%"></i>
+        <i style="height:72%"></i><i style="height:84%"></i><i style="height:91%"></i><i style="height:77%"></i>
+        <i style="height:63%"></i><i style="height:69%"></i><i style="height:55%"></i><i style="height:48%"></i>
+      </div>
+      <div class="between" style="margin-top:14px">
+        <span class="muted mono" style="font-size:10px">00:00</span>
+        <span class="muted" style="font-size:12px">8.4M requests · median latency <b class="accent">41ms</b> · 0.03% 5xx</span>
+        <span class="muted mono" style="font-size:10px">now</span>
+      </div>
+    </div>
+
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Database metrics</div><div class="meta">primary · us-east</div></div>
+      <div class="stack">
+        <div>
+          <div class="between"><span class="label">Connections</span><span class="num" style="font-size:15px">142<span class="muted" style="font-weight:400;font-size:12px"> / 200</span></span></div>
+          <div class="spark" style="height:8px;margin-top:8px;background:rgba(255,255,255,.05);border-radius:9999px;overflow:hidden"><i style="height:100%;flex:0 0 71%;border-radius:9999px"></i></div>
+        </div>
+        <div class="divline" style="margin:6px 0"></div>
+        <div class="between"><span class="label">Cache hit ratio</span><span class="num accent" style="font-size:17px">98.7%</span></div>
+        <div class="between"><span class="label">Replication lag</span><span class="num" style="font-size:15px">0.4s</span></div>
+        <div class="between"><span class="label">Slow queries · 1h</span><span class="num" style="font-size:15px">6</span></div>
+        <div class="divline" style="margin:6px 0"></div>
+        <div class="between"><span class="label">Backups</span><span class="pill pos"><span class="dot"></span>healthy</span></div>
+        <div class="between"><span class="muted" style="font-size:12px">Last backup 2h ago ✓</span><span class="muted mono" style="font-size:10px">retention 30d</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service status + edge logs -->
+  <div class="grid mt" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Service status</div><div class="meta">6 services · 1 degraded · 1 incident</div></div>
+      <table class="tbl">
+        <thead><tr><th>Service</th><th>Region</th><th>Latency</th><th>Error rate</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">API</td><td class="mono muted">us-east</td><td class="mono">88ms</td><td class="mono">0.02%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+          <tr><td class="strong">Auth</td><td class="mono muted">us-east</td><td class="mono">64ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+          <tr><td class="strong">Render orchestrator</td><td class="mono muted">us-west</td><td class="mono">142ms</td><td class="mono">0.31%</td><td style="text-align:right"><span class="pill warn"><span class="dot"></span>degraded</span></td></tr>
+          <tr><td class="strong">Storage</td><td class="mono muted">global</td><td class="mono">39ms</td><td class="mono">0.01%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+          <tr><td class="strong">Webhooks</td><td class="mono muted">us-east</td><td class="mono">210ms</td><td class="mono">1.2%</td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>incident</span></td></tr>
+          <tr><td class="strong">Database</td><td class="mono muted">us-east</td><td class="mono">12ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="glass pad-lg" style="background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(0,0,0,.18))">
+      <div class="cardhead"><div class="t">Edge logs</div><div class="meta">live tail · us-east</div></div>
+      <div class="mono" style="font-size:11.5px;line-height:1.9;color:rgba(255,255,255,.7)">
+        <div><span class="muted">14:02:11</span> <span class="accent">INFO </span> GET /api/v2/render/queue → 200 41ms</div>
+        <div><span class="muted">14:02:09</span> <span style="color:var(--amber)">WARN </span> POST /api/webhooks/stripe retry 2/5</div>
+        <div><span class="muted">14:02:04</span> <span class="accent">INFO </span> GET /api/v2/auth/session → 200 64ms</div>
+        <div><span class="muted">14:01:58</span> <span style="color:var(--rose)">ERROR</span> POST /api/webhooks/stripe → 504 timeout</div>
+        <div><span class="muted">14:01:52</span> <span class="accent">INFO </span> GET /api/v2/storage/sign → 200 39ms</div>
+      </div>
+      <div class="between" style="margin-top:18px">
+        <span class="label">Webhook failures · 24h</span><span class="num" style="font-size:15px;color:var(--rose)">3</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR B — Control Grid
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="B" class="page">
+  <div class="vlabel"><span class="tag">DIR B</span><b>Control Grid</b><span class="desc">edge-to-edge bento of glass tiles, packed for density</span></div>
+
+  <header class="between" style="margin-bottom:24px">
+    <div style="display:flex;align-items:baseline;gap:16px">
+      <div class="eyebrow">06 · System</div>
+      <h1 class="title" style="font-size:1.7rem;margin-top:0">System <i>health</i>.</h1>
+      <span class="muted" style="font-size:13px">Uptime, edge, database and the keys that hold it together.</span>
+    </div>
+    <button class="btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <!-- KPI row -->
+    <div class="glass kpi"><div class="top"><span class="label">Uptime</span></div><span class="val acc num">99.98%</span><div class="foot"><span class="delta up">SLA 99.9%</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Edge errors · 24h</span></div><span class="val num">12</span><div class="foot"><span class="pill warn"><span class="dot"></span>elevated</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">DB CPU</span></div><span class="val num">34%</span><div class="foot"><span class="delta up">peak 61%</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">API keys</span></div><span class="val num">28</span><div class="foot"><span class="muted mono" style="font-size:10px">2 expiring</span></div></div>
+
+    <!-- Wide chart tile -->
+    <div class="glass pad-lg span2">
+      <div class="cardhead"><div class="t">Edge requests — last 24h</div><div class="meta">8.4M · 0.03% 5xx</div></div>
+      <div class="bars">
+        <i style="height:46%"></i><i style="height:52%"></i><i style="height:38%"></i><i style="height:60%"></i>
+        <i style="height:72%"></i><i style="height:84%"></i><i style="height:91%"></i><i style="height:77%"></i>
+        <i style="height:63%"></i><i style="height:69%"></i><i style="height:55%"></i><i style="height:48%"></i>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:12px">median latency <b class="accent">41ms</b> · p95 188ms · p99 410ms</div>
+    </div>
+
+    <!-- Donut tile: request mix -->
+    <div class="glass pad-lg" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="donut" style="width:118px;height:118px;background:conic-gradient(var(--accent-hsl) 0 64%,var(--cyan) 64% 86%,var(--rose) 86% 100%)"></div>
+      <div class="stack" style="margin-top:16px;width:100%;gap:7px">
+        <div class="between"><span class="label" style="color:var(--accent-hsl)">2xx</span><span class="mono" style="font-size:11px">64%</span></div>
+        <div class="between"><span class="label" style="color:var(--cyan)">3xx</span><span class="mono" style="font-size:11px">22%</span></div>
+        <div class="between"><span class="label" style="color:var(--rose)">4xx/5xx</span><span class="mono" style="font-size:11px">14%</span></div>
+      </div>
+    </div>
+
+    <!-- Webhook failures tile -->
+    <div class="glass kpi" style="display:flex;flex-direction:column;justify-content:center"><div class="top"><span class="label">Webhook failures</span><span class="pill danger"><span class="dot"></span>incident</span></div><span class="val num" style="color:var(--rose)">3</span><div class="foot"><span class="muted mono" style="font-size:10px">retrying · us-east</span></div></div>
+
+    <!-- Storage tile -->
+    <div class="glass kpi" style="display:flex;flex-direction:column;justify-content:center"><div class="top"><span class="label">Storage</span></div><span class="val num">4.2 TB</span><div class="foot"><span class="muted mono" style="font-size:10px">of 8 TB · +40 GB/d</span></div></div>
+
+    <!-- Service status table tile (span2) -->
+    <div class="glass pad span2" style="grid-row:span 2">
+      <div class="cardhead"><div class="t">Service status</div><div class="meta">6 services</div></div>
+      <table class="tbl">
+        <thead><tr><th>Service</th><th>Region</th><th>Latency</th><th>Err</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">API</td><td class="mono muted">us-east</td><td class="mono">88ms</td><td class="mono">0.02%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>ok</span></td></tr>
+          <tr><td class="strong">Auth</td><td class="mono muted">us-east</td><td class="mono">64ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>ok</span></td></tr>
+          <tr><td class="strong">Render orchestrator</td><td class="mono muted">us-west</td><td class="mono">142ms</td><td class="mono">0.31%</td><td style="text-align:right"><span class="pill warn"><span class="dot"></span>degraded</span></td></tr>
+          <tr><td class="strong">Storage</td><td class="mono muted">global</td><td class="mono">39ms</td><td class="mono">0.01%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>ok</span></td></tr>
+          <tr><td class="strong">Webhooks</td><td class="mono muted">us-east</td><td class="mono">210ms</td><td class="mono">1.2%</td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>incident</span></td></tr>
+          <tr><td class="strong">Database</td><td class="mono muted">us-east</td><td class="mono">12ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>ok</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Edge logs console tile (span2, terminal feel) -->
+    <div class="glass span2" style="grid-row:span 2;background:linear-gradient(165deg,rgba(10,14,22,.85),rgba(4,6,10,.95));padding:0;overflow:hidden">
+      <div class="between" style="padding:13px 18px;background:rgba(255,255,255,.03)">
+        <div style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:var(--rose)"></span><span class="dot" style="color:var(--amber)"></span><span class="dot" style="color:var(--emerald)"></span><span class="label" style="margin-left:8px">edge-logs · live tail</span></div>
+        <span class="muted mono" style="font-size:10px">us-east</span>
+      </div>
+      <div class="mono" style="font-size:11.5px;line-height:2;padding:14px 18px;color:rgba(255,255,255,.72)">
+        <div><span class="muted">14:02:11</span> <span class="accent">INFO </span> GET /api/v2/render/queue → 200 <span class="muted">41ms</span></div>
+        <div><span class="muted">14:02:09</span> <span style="color:var(--amber)">WARN </span> POST /api/webhooks/stripe retry 2/5</div>
+        <div><span class="muted">14:02:04</span> <span class="accent">INFO </span> GET /api/v2/auth/session → 200 <span class="muted">64ms</span></div>
+        <div><span class="muted">14:01:58</span> <span style="color:var(--rose)">ERROR</span> POST /api/webhooks/stripe → 504 timeout</div>
+        <div><span class="muted">14:01:52</span> <span class="accent">INFO </span> GET /api/v2/storage/sign → 200 <span class="muted">39ms</span></div>
+        <div style="opacity:.6"><span class="muted">14:01:47</span> <span class="accent">INFO </span> GET /api/v2/render/142 → 200 <span class="muted">142ms</span></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span class="muted">$</span><span style="width:7px;height:15px;background:var(--accent-hsl);display:inline-block;border-radius:1px"></span></div>
+      </div>
+    </div>
+
+    <!-- DB metrics mini tile -->
+    <div class="glass pad">
+      <div class="cardhead" style="margin-bottom:12px"><div class="t" style="font-size:14px">Database</div></div>
+      <div class="stack" style="gap:10px">
+        <div class="between"><span class="label">Connections</span><span class="num" style="font-size:14px">142/200</span></div>
+        <div class="between"><span class="label">Cache hit</span><span class="num accent" style="font-size:14px">98.7%</span></div>
+        <div class="between"><span class="label">Repl. lag</span><span class="num" style="font-size:14px">0.4s</span></div>
+      </div>
+    </div>
+
+    <!-- Backups tile -->
+    <div class="glass pad">
+      <div class="cardhead" style="margin-bottom:12px"><div class="t" style="font-size:14px">Backups</div><span class="pill pos"><span class="dot"></span>healthy</span></div>
+      <div class="stack" style="gap:10px">
+        <div class="between"><span class="label">Last backup</span><span class="num" style="font-size:14px">2h ago ✓</span></div>
+        <div class="between"><span class="label">Retention</span><span class="num" style="font-size:14px">30d</span></div>
+        <div class="between"><span class="label">Snapshot size</span><span class="num" style="font-size:14px">412 GB</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR C — Split Console
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="C" class="page">
+  <div class="vlabel"><span class="tag">DIR C</span><b>Split Console</b><span class="desc">left summary rail + large right data canvas</span></div>
+
+  <header class="pagehead">
+    <div>
+      <div class="eyebrow">06 · System</div>
+      <h1 class="title">System <i>health</i>.</h1>
+      <p class="sub">Uptime, edge, database and the keys that hold it together.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M9.5 2h5l.5 2.5 2.2 1.3 2.4-1 2.5 4.3-1.9 1.7v2.4l1.9 1.7-2.5 4.3-2.4-1-2.2 1.3-.5 2.5h-5l-.5-2.5-2.2-1.3-2.4 1L2.1 16l1.9-1.7v-2.4L2.1 10.2 4.6 5.9l2.4 1L9.2 5.6z"/><circle cx="12" cy="12" r="2.5"/></svg>
+      Run diagnostics
+    </button>
+  </header>
+
+  <div class="row">
+    <!-- Left summary rail -->
+    <aside class="rail">
+      <div class="col">
+        <div class="glass kpi" style="text-align:center;padding:26px 20px">
+          <span class="label">Overall uptime · 30d</span>
+          <span class="num acc" style="display:block;font-size:46px;margin-top:14px;color:var(--accent-hsl);text-shadow:0 0 30px hsl(214 90% 62%/.6)">99.98%</span>
+          <div class="foot" style="justify-content:center;margin-top:14px"><span class="pill pos"><span class="dot"></span>all systems nominal</span></div>
+        </div>
+
+        <div class="segwrap" style="width:100%;justify-content:space-between">
+          <span class="seg on">Live</span><span class="seg">24h</span><span class="seg">7d</span><span class="seg">30d</span>
+        </div>
+
+        <div class="grid g2">
+          <div class="glass kpi"><span class="label">Edge errors</span><span class="val num" style="font-size:24px">12</span><div class="foot"><span class="pill warn" style="font-size:8.5px"><span class="dot"></span>24h</span></div></div>
+          <div class="glass kpi"><span class="label">DB CPU</span><span class="val num" style="font-size:24px">34%</span><div class="foot"><span class="muted mono" style="font-size:9px">nominal</span></div></div>
+          <div class="glass kpi"><span class="label">API keys</span><span class="val num" style="font-size:24px">28</span><div class="foot"><span class="muted mono" style="font-size:9px">2 expiring</span></div></div>
+          <div class="glass kpi"><span class="label">Webhooks</span><span class="val num" style="font-size:24px;color:var(--rose)">3</span><div class="foot"><span class="pill danger" style="font-size:8.5px"><span class="dot"></span>fail</span></div></div>
+        </div>
+
+        <div class="glass pad">
+          <div class="between"><span class="label">Storage used</span><span class="num" style="font-size:15px">4.2 TB</span></div>
+          <div class="spark" style="height:8px;margin-top:10px;background:rgba(255,255,255,.05);border-radius:9999px;overflow:hidden"><i style="height:100%;flex:0 0 52%;border-radius:9999px"></i></div>
+          <div class="between" style="margin-top:8px"><span class="muted mono" style="font-size:9px">of 8 TB</span><span class="muted mono" style="font-size:9px">52%</span></div>
+        </div>
+
+        <div class="glass pad">
+          <div class="cardhead" style="margin-bottom:12px"><div class="t" style="font-size:14px">Backups</div><span class="pill pos"><span class="dot"></span>healthy</span></div>
+          <div class="stack" style="gap:9px">
+            <div class="between"><span class="label">Last backup</span><span class="num" style="font-size:13px">2h ago ✓</span></div>
+            <div class="between"><span class="label">Retention</span><span class="num" style="font-size:13px">30d</span></div>
+            <div class="divline" style="margin:4px 0"></div>
+            <div class="between"><span class="label">Connections</span><span class="num" style="font-size:13px">142/200</span></div>
+            <div class="between"><span class="label">Cache hit</span><span class="num accent" style="font-size:13px">98.7%</span></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right data canvas -->
+    <div class="canvas col">
+      <!-- toolbar -->
+      <div class="between">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="pill accent"><span class="dot"></span>all regions</span>
+          <span class="pill neutral">us-east</span>
+          <span class="pill neutral">us-west</span>
+          <span class="pill neutral">global</span>
+        </div>
+        <div class="btn" style="cursor:default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          search services
+        </div>
+      </div>
+
+      <!-- primary table -->
+      <div class="glass pad-lg">
+        <div class="cardhead"><div class="t">Service status</div><div class="meta">6 services · 1 degraded · 1 incident</div></div>
+        <table class="tbl">
+          <thead><tr><th>Service</th><th>Region</th><th>Latency</th><th>Error rate</th><th style="text-align:right">Status</th></tr></thead>
+          <tbody>
+            <tr><td class="strong">API</td><td class="mono muted">us-east</td><td class="mono">88ms</td><td class="mono">0.02%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+            <tr><td class="strong">Auth</td><td class="mono muted">us-east</td><td class="mono">64ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+            <tr><td class="strong">Render orchestrator</td><td class="mono muted">us-west</td><td class="mono">142ms</td><td class="mono">0.31%</td><td style="text-align:right"><span class="pill warn"><span class="dot"></span>degraded</span></td></tr>
+            <tr><td class="strong">Storage</td><td class="mono muted">global</td><td class="mono">39ms</td><td class="mono">0.01%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+            <tr><td class="strong">Webhooks</td><td class="mono muted">us-east</td><td class="mono">210ms</td><td class="mono">1.2%</td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>incident</span></td></tr>
+            <tr><td class="strong">Database</td><td class="mono muted">us-east</td><td class="mono">12ms</td><td class="mono">0.00%</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>operational</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- chart + console split -->
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="glass pad-lg">
+          <div class="cardhead"><div class="t">Edge requests — last 24h</div><div class="meta">8.4M · 0.03% 5xx</div></div>
+          <div class="bars">
+            <i style="height:46%"></i><i style="height:52%"></i><i style="height:38%"></i><i style="height:60%"></i>
+            <i style="height:72%"></i><i style="height:84%"></i><i style="height:91%"></i><i style="height:77%"></i>
+            <i style="height:63%"></i><i style="height:69%"></i><i style="height:55%"></i><i style="height:48%"></i>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:12px">median latency <b class="accent">41ms</b> · p95 188ms · p99 410ms</div>
+        </div>
+
+        <div class="glass" style="background:linear-gradient(165deg,rgba(10,14,22,.9),rgba(4,6,10,.96));padding:0;overflow:hidden">
+          <div class="between" style="padding:13px 20px;background:rgba(255,255,255,.03)">
+            <div style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:var(--rose)"></span><span class="dot" style="color:var(--amber)"></span><span class="dot" style="color:var(--emerald)"></span><span class="label" style="margin-left:6px">edge-logs — tail -f</span></div>
+            <span class="muted mono" style="font-size:10px">us-east</span>
+          </div>
+          <div class="mono" style="font-size:11.5px;line-height:2.05;padding:16px 20px;color:rgba(255,255,255,.74)">
+            <div><span class="muted">14:02:11</span> <span class="accent">INFO </span> GET /api/v2/render/queue → 200 <span class="muted">41ms</span></div>
+            <div><span class="muted">14:02:09</span> <span style="color:var(--amber)">WARN </span> POST /api/webhooks/stripe retry 2/5</div>
+            <div><span class="muted">14:02:04</span> <span class="accent">INFO </span> GET /api/v2/auth/session → 200 <span class="muted">64ms</span></div>
+            <div><span class="muted">14:01:58</span> <span style="color:var(--rose)">ERROR</span> POST /api/webhooks/stripe → 504 timeout</div>
+            <div><span class="muted">14:01:52</span> <span class="accent">INFO </span> GET /api/v2/storage/sign → 200 <span class="muted">39ms</span></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px"><span class="muted">$</span><span style="width:7px;height:15px;background:var(--accent-hsl);display:inline-block;border-radius:1px"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body></html>

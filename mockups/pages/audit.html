@@ -1,0 +1,328 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../skin.css">
+<title>Audit trail — mockups</title></head>
+<body>
+<div class="atmos"><div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR A — Command Deck
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="A" class="page">
+  <div class="vlabel"><span class="tag">DIR A</span><b>Command Deck</b><span class="desc">full-bleed KPI rail · one dominant chart · dense action list</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">Tools · Audit</div>
+      <h1 class="title">Audit <i>trail</i>.</h1>
+      <p class="sub">Every privileged action, who took it, and what it touched — append-only.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </button>
+  </div>
+
+  <!-- KPI rail -->
+  <div class="grid g6">
+    <div class="glass kpi"><div class="top"><span class="label">Actions · 24h</span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span></div>
+      <span class="val">482</span><div class="foot"><span class="delta up">▲ 6.2%</span><span class="muted mono" style="font-size:10px">vs prev 24h</span></div></div>
+
+    <div class="glass kpi"><div class="top"><span class="label">Admins active</span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span></div>
+      <span class="val">3</span><div class="foot"><span class="muted mono" style="font-size:10px">root · ops · support</span></div></div>
+
+    <div class="glass kpi"><div class="top"><span class="label">Sensitive actions</span>
+      <span class="chip" style="background:linear-gradient(135deg,hsl(38 96% 62%/.22),hsl(38 96% 62%/.08));color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span></div>
+      <span class="val">11</span><div class="foot"><span class="pill warn"><span class="dot"></span>elevated</span></div></div>
+
+    <div class="glass kpi"><div class="top"><span class="label">Impersonations</span>
+      <span class="chip" style="background:linear-gradient(135deg,hsl(350 90% 70%/.22),hsl(350 90% 70%/.08));color:var(--rose)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      <span class="val" style="color:var(--rose)">2</span><div class="foot"><span class="pill danger"><span class="dot"></span>review</span></div></div>
+
+    <div class="glass kpi"><div class="top"><span class="label">Failed auth</span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></div>
+      <span class="val">5</span><div class="foot"><span class="delta down">▼ 2 vs prev</span></div></div>
+
+    <div class="glass kpi"><div class="top"><span class="label">Config changes</span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></div>
+      <span class="val">7</span><div class="foot"><span class="muted mono" style="font-size:10px">flags · pricing</span></div></div>
+  </div>
+
+  <!-- Dominant chart + companion -->
+  <div class="grid mt" style="grid-template-columns:1.6fr 1fr">
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Actions over time — last 24h</div><div class="meta">UTC · hourly buckets</div></div>
+      <div class="bars">
+        <i style="height:38%"></i><i style="height:26%"></i><i style="height:20%"></i><i style="height:31%"></i>
+        <i style="height:48%"></i><i style="height:62%"></i><i style="height:74%"></i><i style="height:58%"></i>
+        <i style="height:88%"></i><i style="height:70%"></i><i style="height:96%"></i><i style="height:64%"></i>
+      </div>
+      <div class="between" style="margin-top:14px">
+        <span class="label">00h</span><span class="label">peak 14h · 96 actions</span><span class="label">now</span>
+      </div>
+    </div>
+
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">By admin</div><div class="meta">24h</div></div>
+      <div class="stack">
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">root@small.co</span><span class="num" style="font-size:15px">210</span></div>
+          <div style="height:8px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:100%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">ops@small.co</span><span class="num" style="font-size:15px">180</span></div>
+          <div style="height:8px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:86%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+        <div><div class="between" style="margin-bottom:7px"><span class="mono" style="font-size:12px;color:#fff">support@small.co</span><span class="num" style="font-size:15px">92</span></div>
+          <div style="height:8px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:44%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+      </div>
+      <div class="divline"></div>
+      <div class="between"><span class="label">Categories</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">
+        <span class="pill accent">Credits</span><span class="pill pos">Account</span>
+        <span class="pill warn">Auth</span><span class="pill danger">Config</span>
+        <span class="pill neutral">Billing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit log + sensitive actions -->
+  <div class="grid mt" style="grid-template-columns:1.7fr 1fr">
+    <div class="glass">
+      <div class="pad between"><div class="cardhead" style="margin:0"><div class="t">Audit log</div></div><span class="meta mono" style="font-size:10px;color:rgba(255,255,255,.4)">append-only · 482 entries</span></div>
+      <table class="tbl">
+        <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th style="text-align:right">Result</th></tr></thead>
+        <tbody>
+          <tr><td class="id">14:22:08</td><td class="strong">ops@small.co</td><td><span class="mono accent">grant_credits</span></td><td>user maya@studio.co <span class="muted">(+500)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">14:09:51</td><td class="strong">root@small.co</td><td><span class="mono" style="color:var(--amber)">suspend_account</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user noah@hey.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:58:30</td><td class="strong">ops@small.co</td><td><span class="mono accent">force_logout</span></td><td>user liam@gmail.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:40:12</td><td class="strong">root@small.co</td><td><span class="mono" style="color:var(--amber)">change_account_type</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user aria@lumen.io <span class="muted">→ business</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:31:44</td><td class="strong">support@small.co</td><td><span class="mono" style="color:var(--rose)">edit_feature_flag</span></td><td>flag ad_studio <span class="muted">→ on</span></td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>blocked</span></td></tr>
+          <tr><td class="id">13:18:09</td><td class="strong">root@small.co</td><td><span class="mono accent">refund_issued</span></td><td>txn #TX-5519 <span class="muted">(−$29)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Sensitive actions</div><div class="meta">last 24h</div></div>
+      <div class="stack">
+        <div class="between" style="padding:12px 0;border-bottom:0">
+          <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="color:var(--rose)"></span><div><div class="mono" style="font-size:12px;color:#fff">impersonation</div><div class="muted" style="font-size:11px">session takeover</div></div></div>
+          <span class="num" style="font-size:20px;color:var(--rose)">2</span>
+        </div>
+        <div class="between" style="padding:12px 0">
+          <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="color:var(--amber)"></span><div><div class="mono" style="font-size:12px;color:#fff">role change</div><div class="muted" style="font-size:11px">account_type → business</div></div></div>
+          <span class="num" style="font-size:20px;color:var(--amber)">1</span>
+        </div>
+        <div class="between" style="padding:12px 0">
+          <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="color:var(--amber)"></span><div><div class="mono" style="font-size:12px;color:#fff">suspend</div><div class="muted" style="font-size:11px">noah@hey.com</div></div></div>
+          <span class="num" style="font-size:20px;color:var(--amber)">1</span>
+        </div>
+      </div>
+      <div class="divline"></div>
+      <button class="btn accentbtn" style="width:100%;justify-content:center">Review sensitive queue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR B — Control Grid
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="B" class="page">
+  <div class="vlabel"><span class="tag">DIR B</span><b>Control Grid</b><span class="desc">edge-to-edge bento of glass tiles, packed for density</span></div>
+
+  <div class="pagehead" style="margin-bottom:20px">
+    <div>
+      <div class="eyebrow">Tools · Audit</div>
+      <h1 class="title">Audit <i>trail</i>.</h1>
+      <p class="sub">Every privileged action, who took it, and what it touched — append-only.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <!-- KPI row -->
+    <div class="glass kpi"><div class="top"><span class="label">Actions · 24h</span></div><span class="val acc">482</span><div class="foot"><span class="delta up">▲ 6.2%</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Admins active</span></div><span class="val">3</span><div class="foot"><span class="muted mono" style="font-size:10px">root·ops·support</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Sensitive</span></div><span class="val" style="color:var(--amber)">11</span><div class="foot"><span class="pill warn"><span class="dot"></span>elevated</span></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Impersonations</span></div><span class="val" style="color:var(--rose)">2</span><div class="foot"><span class="pill danger"><span class="dot"></span>review</span></div></div>
+
+    <!-- Wide chart tile -->
+    <div class="glass pad-lg span3">
+      <div class="cardhead"><div class="t">Actions over time — last 24h</div><div class="meta">UTC · hourly · peak 14h</div></div>
+      <div class="bars">
+        <i style="height:38%"></i><i style="height:26%"></i><i style="height:20%"></i><i style="height:31%"></i>
+        <i style="height:48%"></i><i style="height:62%"></i><i style="height:74%"></i><i style="height:58%"></i>
+        <i style="height:88%"></i><i style="height:70%"></i><i style="height:96%"></i><i style="height:64%"></i>
+      </div>
+    </div>
+
+    <!-- Stacked secondary KPIs tile -->
+    <div class="glass pad-lg">
+      <div class="stack">
+        <div class="between"><span class="label">Failed auth</span><span class="num" style="font-size:22px">5</span></div>
+        <div class="divline" style="margin:4px 0"></div>
+        <div class="between"><span class="label">Config changes</span><span class="num" style="font-size:22px">7</span></div>
+        <div class="divline" style="margin:4px 0"></div>
+        <div class="between"><span class="label">Refunds</span><span class="num" style="font-size:22px">3</span></div>
+      </div>
+    </div>
+
+    <!-- Audit log table — spans 3 columns + 2 rows -->
+    <div class="glass span3" style="grid-row:span 2">
+      <div class="pad between"><div class="cardhead" style="margin:0"><div class="t">Audit log</div></div><span class="meta mono" style="font-size:10px;color:rgba(255,255,255,.4)">append-only · 482 entries</span></div>
+      <table class="tbl">
+        <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th style="text-align:right">Result</th></tr></thead>
+        <tbody>
+          <tr><td class="id">14:22:08</td><td class="strong">ops@small.co</td><td><span class="mono accent">grant_credits</span></td><td>user maya@studio.co <span class="muted">(+500)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">14:09:51</td><td class="strong">root@small.co</td><td><span class="mono" style="color:var(--amber)">suspend_account</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user noah@hey.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:58:30</td><td class="strong">ops@small.co</td><td><span class="mono accent">force_logout</span></td><td>user liam@gmail.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:40:12</td><td class="strong">root@small.co</td><td><span class="mono" style="color:var(--amber)">change_account_type</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user aria@lumen.io <span class="muted">→ business</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          <tr><td class="id">13:31:44</td><td class="strong">support@small.co</td><td><span class="mono" style="color:var(--rose)">edit_feature_flag</span></td><td>flag ad_studio <span class="muted">→ on</span></td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>blocked</span></td></tr>
+          <tr><td class="id">13:18:09</td><td class="strong">root@small.co</td><td><span class="mono accent">refund_issued</span></td><td>txn #TX-5519 <span class="muted">(−$29)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- By admin tile -->
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">By admin</div></div>
+      <div class="stack">
+        <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">root</span><span class="num" style="font-size:14px">210</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:100%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+        <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">ops</span><span class="num" style="font-size:14px">180</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:86%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+        <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">support</span><span class="num" style="font-size:14px">92</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:44%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Sensitive callout tile -->
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Sensitive</div><div class="meta">24h</div></div>
+      <div class="stack">
+        <div class="between"><span class="mono" style="font-size:12px;color:#fff"><span class="dot" style="color:var(--rose);display:inline-block;margin-right:6px"></span>impersonation</span><span class="num" style="font-size:16px;color:var(--rose)">×2</span></div>
+        <div class="between"><span class="mono" style="font-size:12px;color:#fff"><span class="dot" style="color:var(--amber);display:inline-block;margin-right:6px"></span>role change</span><span class="num" style="font-size:16px;color:var(--amber)">×1</span></div>
+        <div class="between"><span class="mono" style="font-size:12px;color:#fff"><span class="dot" style="color:var(--amber);display:inline-block;margin-right:6px"></span>suspend</span><span class="num" style="font-size:16px;color:var(--amber)">×1</span></div>
+      </div>
+    </div>
+
+    <!-- Categories / breakdown tile -->
+    <div class="glass pad-lg span2">
+      <div class="cardhead"><div class="t">Action categories</div><div class="meta">by volume</div></div>
+      <div class="row" style="align-items:center;gap:22px">
+        <div class="donut" style="width:120px;height:120px;background:conic-gradient(var(--accent-hsl) 0 42%,var(--cyan) 42% 64%,var(--amber) 64% 82%,var(--rose) 82% 94%,rgba(255,255,255,.25) 94% 100%)"></div>
+        <div class="stack" style="flex:1;gap:10px">
+          <div class="between"><span class="mono" style="font-size:11px"><span class="dot accent" style="display:inline-block;margin-right:6px"></span>Credits</span><span class="num" style="font-size:13px">42%</span></div>
+          <div class="between"><span class="mono" style="font-size:11px"><span class="dot" style="color:var(--cyan);display:inline-block;margin-right:6px"></span>Account</span><span class="num" style="font-size:13px">22%</span></div>
+          <div class="between"><span class="mono" style="font-size:11px"><span class="dot" style="color:var(--amber);display:inline-block;margin-right:6px"></span>Auth</span><span class="num" style="font-size:13px">18%</span></div>
+          <div class="between"><span class="mono" style="font-size:11px"><span class="dot" style="color:var(--rose);display:inline-block;margin-right:6px"></span>Config</span><span class="num" style="font-size:13px">12%</span></div>
+          <div class="between"><span class="mono" style="font-size:11px"><span class="dot" style="color:rgba(255,255,255,.4);display:inline-block;margin-right:6px"></span>Billing</span><span class="num" style="font-size:13px">6%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DIR C — Split Console
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="C" class="page">
+  <div class="vlabel"><span class="tag">DIR C</span><b>Split Console</b><span class="desc">left summary rail + large right data canvas</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">Tools · Audit</div>
+      <h1 class="title">Audit <i>trail</i>.</h1>
+      <p class="sub">Every privileged action, who took it, and what it touched — append-only.</p>
+    </div>
+    <button class="btn primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      Export range
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- LEFT RAIL -->
+    <div class="rail col">
+      <div class="glass kpi"><div class="top"><span class="label">Actions · 24h</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span></div>
+        <span class="val acc">482</span><div class="foot"><span class="delta up">▲ 6.2%</span><span class="muted mono" style="font-size:10px">vs prev</span></div></div>
+
+      <div class="glass pad">
+        <div class="stack">
+          <div class="between"><span class="label">Admins active</span><span class="num" style="font-size:18px">3</span></div>
+          <div class="divline" style="margin:2px 0"></div>
+          <div class="between"><span class="label">Sensitive</span><span class="num" style="font-size:18px;color:var(--amber)">11</span></div>
+          <div class="divline" style="margin:2px 0"></div>
+          <div class="between"><span class="label">Impersonations</span><span class="num" style="font-size:18px;color:var(--rose)">2</span></div>
+          <div class="divline" style="margin:2px 0"></div>
+          <div class="between"><span class="label">Failed auth</span><span class="num" style="font-size:18px">5</span></div>
+          <div class="divline" style="margin:2px 0"></div>
+          <div class="between"><span class="label">Config changes</span><span class="num" style="font-size:18px">7</span></div>
+        </div>
+      </div>
+
+      <div class="glass pad">
+        <span class="label">Range</span>
+        <div class="segwrap" style="margin-top:10px;width:100%"><span class="seg">6h</span><span class="seg on">24h</span><span class="seg">7d</span><span class="seg">30d</span></div>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead" style="margin-bottom:14px"><div class="t" style="font-size:14px">By admin</div></div>
+        <div class="stack">
+          <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">root</span><span class="num" style="font-size:13px">210</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:100%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+          <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">ops</span><span class="num" style="font-size:13px">180</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:86%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+          <div><div class="between" style="margin-bottom:6px"><span class="mono" style="font-size:11px;color:#fff">support</span><span class="num" style="font-size:13px">92</span></div><div style="height:7px;border-radius:9999px;background:rgba(255,255,255,.05)"><div style="height:100%;width:44%;border-radius:9999px;background:linear-gradient(90deg,hsl(214 90% 62%/.9),hsl(188 92% 58%/.4))"></div></div></div>
+        </div>
+      </div>
+
+      <div class="glass pad">
+        <div class="cardhead" style="margin-bottom:12px"><div class="t" style="font-size:14px">Sensitive</div></div>
+        <div class="stack" style="gap:10px">
+          <div class="between"><span class="mono" style="font-size:11px;color:#fff"><span class="dot" style="color:var(--rose);display:inline-block;margin-right:6px"></span>impersonation</span><span class="num" style="font-size:14px;color:var(--rose)">×2</span></div>
+          <div class="between"><span class="mono" style="font-size:11px;color:#fff"><span class="dot" style="color:var(--amber);display:inline-block;margin-right:6px"></span>role change</span><span class="num" style="font-size:14px;color:var(--amber)">×1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT CANVAS -->
+    <div class="canvas col">
+      <div class="glass pad-lg">
+        <div class="cardhead"><div class="t">Actions over time — last 24h</div><div class="meta">UTC · hourly buckets · peak 14h</div></div>
+        <div class="bars" style="height:90px">
+          <i style="height:38%"></i><i style="height:26%"></i><i style="height:20%"></i><i style="height:31%"></i>
+          <i style="height:48%"></i><i style="height:62%"></i><i style="height:74%"></i><i style="height:58%"></i>
+          <i style="height:88%"></i><i style="height:70%"></i><i style="height:96%"></i><i style="height:64%"></i>
+        </div>
+      </div>
+
+      <div class="glass">
+        <!-- toolbar: filter chips -->
+        <div class="pad between" style="flex-wrap:wrap;gap:12px">
+          <div class="cardhead" style="margin:0"><div class="t">Audit log</div></div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+            <span class="pill neutral" style="padding:6px 12px">Admin
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg></span>
+            <span class="pill neutral" style="padding:6px 12px">Action
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg></span>
+            <span class="pill warn" style="padding:6px 12px"><span class="dot"></span>Sensitive only</span>
+            <span class="mono" style="font-size:10px;color:rgba(255,255,255,.35);margin-left:4px">482 entries · append-only</span>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th style="text-align:right">Result</th></tr></thead>
+          <tbody>
+            <tr><td class="id">14:22:08</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">OP</span><span class="strong">ops@small.co</span></td><td><span class="mono accent">grant_credits</span></td><td>user maya@studio.co <span class="muted">(+500)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+            <tr><td class="id">14:09:51</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">RT</span><span class="strong">root@small.co</span></td><td><span class="mono" style="color:var(--amber)">suspend_account</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user noah@hey.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+            <tr><td class="id">13:58:30</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">OP</span><span class="strong">ops@small.co</span></td><td><span class="mono accent">force_logout</span></td><td>user liam@gmail.com</td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+            <tr><td class="id">13:40:12</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">RT</span><span class="strong">root@small.co</span></td><td><span class="mono" style="color:var(--amber)">change_account_type</span> <span class="pill warn" style="padding:2px 7px">sensitive</span></td><td>user aria@lumen.io <span class="muted">→ business</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+            <tr><td class="id">13:31:44</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">SU</span><span class="strong">support@small.co</span></td><td><span class="mono" style="color:var(--rose)">edit_feature_flag</span></td><td>flag ad_studio <span class="muted">→ on</span></td><td style="text-align:right"><span class="pill danger"><span class="dot"></span>blocked</span></td></tr>
+            <tr><td class="id">13:18:09</td><td><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-right:8px">RT</span><span class="strong">root@small.co</span></td><td><span class="mono accent">refund_issued</span></td><td>txn #TX-5519 <span class="muted">(−$29)</span></td><td style="text-align:right"><span class="pill pos"><span class="dot"></span>success</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+</body></html>

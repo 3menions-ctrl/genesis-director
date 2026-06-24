@@ -43,94 +43,54 @@ export function AdminPageShell({
     return <div className={cn("animate-fade-in", className)}>{children}</div>;
   }
   return (
-    <div className={cn("p-8 lg:p-12 space-y-10 animate-fade-in", contained && "max-w-[1480px] mx-auto", className)}>
-      {/* Hero — borderless gradient glass */}
-      <section
-        className="relative overflow-hidden rounded-3xl backdrop-blur-xl shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)]"
-        style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))" }}
-      >
-        {/* top specular highlight */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
-        />
-        {/* aurora */}
-        <div
-          aria-hidden
-          className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${accent(0.18)}, transparent 65%)`, filter: "blur(60px)" }}
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-40 -left-20 w-[380px] h-[380px] rounded-full pointer-events-none opacity-50"
-          style={{ background: "radial-gradient(circle, hsl(188 92% 58% / 0.10), transparent 70%)", filter: "blur(80px)" }}
-        />
-
-        <div className="relative p-8 lg:p-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-5">
-              <span
-                className="px-3 py-1 rounded-full text-[9px] font-bold tracking-[0.28em] uppercase font-mono"
-                style={{ color: ACCENT_HSL, background: accent(0.14) }}
-              >
-                {eyebrow}
-              </span>
-              <span className="h-px w-10 bg-white/15" />
-              <span className="text-white/45 text-[10px] tracking-[0.28em] uppercase font-mono">
-                MOD // {code}
-              </span>
-            </div>
-            <h1
-              className="font-display text-4xl lg:text-6xl text-white font-semibold tracking-[-0.02em] leading-[0.95]"
+    <div className={cn("p-8 lg:p-12 space-y-12 animate-fade-in", contained && "max-w-[1480px] mx-auto", className)}>
+      {/* Floating page header — no container; the title sits directly on the
+          aurora. Eyebrow chip · giant Fraunces title · description. */}
+      <header className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <div className="mb-6 flex items-center gap-3">
+            <span
+              className="rounded-full px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.28em]"
+              style={{ color: ACCENT_HSL, background: accent(0.14) }}
             >
-              {title}
-              {italic && (
-                <>
-                  {" "}
-                  <span className="italic font-light" style={{ color: ACCENT_HSL }}>{italic}</span>
-                </>
-              )}
-            </h1>
-            {description && (
-              <p className="mt-5 text-[14px] text-white/55 max-w-xl leading-relaxed font-light">
-                {description}
-              </p>
-            )}
+              {eyebrow}
+            </span>
+            <span className="h-px w-10 bg-white/15" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/45">MOD // {code}</span>
           </div>
-          {(actions || meta) && (
-            <div className="flex flex-col items-end gap-4 shrink-0">
-              {actions && <div className="flex items-center gap-3">{actions}</div>}
-              {meta && <div className="flex items-center gap-3">{meta}</div>}
-            </div>
+          <h1 className="font-display font-semibold leading-[0.9] tracking-[-0.035em] text-white" style={{ fontSize: "clamp(2.8rem, 5.4vw, 4.4rem)" }}>
+            {title}
+            {italic && (
+              <> <span className="italic font-light" style={{ color: ACCENT_HSL, textShadow: `0 0 36px ${accent(0.5)}` }}>{italic}</span></>
+            )}
+          </h1>
+          {description && (
+            <p className="mt-6 max-w-xl text-[14.5px] font-light leading-relaxed text-white/55">{description}</p>
           )}
         </div>
-
-        {stats && stats.length > 0 && (
-          <div className="relative grid grid-cols-2 md:grid-cols-4">
-            {stats.map((s, i) => {
-              const toneMap: Record<string, string> = {
-                blue: ACCENT_HSL, amber: AMBER, emerald: CYAN,
-                rose: ROSE, neutral: "#fff",
-              };
-              return (
-                <div key={i} className="px-6 py-5 relative group transition-colors hover:bg-white/[0.03]">
-                  <div className="text-[9px] text-white/45 font-mono uppercase tracking-[0.32em] mb-2">{s.label}</div>
-                  <div className="text-3xl font-display font-semibold tracking-[-0.02em] tabular-nums" style={{ color: toneMap[s.tone || "neutral"] }}>
-                    {s.value}
-                  </div>
-                  {s.sub && <div className="text-[10px] text-white/40 mt-1 font-mono uppercase tracking-[0.18em]">{s.sub}</div>}
-                  <div
-                    aria-hidden
-                    className="absolute bottom-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: `linear-gradient(to right, transparent, ${accent(0.5)}, transparent)` }}
-                  />
-                </div>
-              );
-            })}
+        {(actions || meta) && (
+          <div className="flex shrink-0 flex-col items-end gap-4">
+            {actions && <div className="flex items-center gap-3">{actions}</div>}
+            {meta && <div className="flex items-center gap-3">{meta}</div>}
           </div>
         )}
-      </section>
+      </header>
+
+      {/* Floating stats — figures over a single hairline, no box. */}
+      {stats && stats.length > 0 && (
+        <div className="grid grid-cols-2 gap-x-10 gap-y-7 pt-7 md:grid-cols-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          {stats.map((s, i) => {
+            const toneMap: Record<string, string> = { blue: ACCENT_HSL, amber: AMBER, emerald: CYAN, rose: ROSE, neutral: "#fff" };
+            return (
+              <div key={i}>
+                <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.32em] text-white/45">{s.label}</div>
+                <div className="font-display text-3xl font-semibold tracking-[-0.02em] tabular-nums" style={{ color: toneMap[s.tone || "neutral"] }}>{s.value}</div>
+                {s.sub && <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">{s.sub}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Body */}
       <div>{children}</div>

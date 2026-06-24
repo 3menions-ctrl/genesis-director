@@ -91,7 +91,7 @@ export default function MoneyOverview() {
   return (
     <div className="space-y-14">
       {/* KPI rail — floating figures */}
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k, i) => <StatOrb key={k.label} index={i} aura={ORB_AURAS[i % ORB_AURAS.length]} {...k} />)}
       </div>
 

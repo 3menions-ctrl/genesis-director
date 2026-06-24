@@ -369,17 +369,18 @@ export function StatOrb({ label, value, icon: Icon, aura = ACCENT_HSL, accentNum
   return (
     <motion.div
       initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.05, ease: EASE }}
-      className="group/orb relative overflow-hidden rounded-[26px] p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-0.5"
-      style={{ background: CARD_BG, boxShadow: "0 44px 120px -55px rgba(0,0,0,0.95)" }}
+      className="group/orb relative"
     >
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)" }} />
-      <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full transition-opacity duration-500 group-hover/orb:opacity-70" style={{ background: aura, filter: "blur(38px)", opacity: 0.42 }} />
+      {/* No card surface — a soft coloured aura sits BEHIND the figure so the
+          number reads as floating directly on the page. */}
+      <span aria-hidden className="pointer-events-none absolute -left-4 -top-5 h-28 w-28 rounded-full transition-opacity duration-500 group-hover/orb:opacity-95"
+        style={{ background: aura, filter: "blur(44px)", opacity: 0.55 }} />
       <div className="relative flex items-center gap-2">
         {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.8} style={{ color: accent(0.85) }} />}
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">{label}</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">{label}</span>
       </div>
-      <CountUp value={value} className="relative mt-4 block font-display font-semibold leading-none tracking-tight tabular-nums"
-        style={{ fontSize: "clamp(1.9rem, 2.4vw, 2.8rem)", color: accentNumber ? ACCENT_HSL : "#fff", textShadow: accentNumber ? `0 0 34px ${accent(0.6)}` : undefined }} />
+      <CountUp value={value} className="relative mt-3.5 block font-display font-semibold leading-none tracking-tight tabular-nums"
+        style={{ fontSize: "clamp(2rem, 2.6vw, 2.9rem)", color: accentNumber ? ACCENT_HSL : "#fff", textShadow: `0 0 38px ${accentNumber ? accent(0.6) : "rgba(0,0,0,0.6)"}` }} />
       <div className="relative mt-3 flex items-center justify-between gap-2">
         {delta !== undefined ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: up ? CYAN : "rgba(255,255,255,0.5)" }}>

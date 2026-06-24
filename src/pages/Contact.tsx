@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { checkRateLimit, isValidEmail } from "@/lib/security";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHero } from "@/components/page/PageHero";
@@ -79,6 +80,20 @@ const Contact = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic client-side guards. The edge function remains the source of truth,
+    // but these stop accidental double-sends and casual abuse from the browser.
+    if (!isValidEmail(formData.email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    // Throttle: at most 3 messages per 5 minutes per sender (best-effort, in-memory).
+    const rlKey = `contact:${user?.id || formData.email.trim().toLowerCase() || "anon"}`;
+    if (!checkRateLimit(rlKey, 3, 5 * 60 * 1000)) {
+      toast.error("You've sent a few messages already — please wait a few minutes before sending another.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -212,6 +227,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Your name"
                       required
+                      maxLength={120}
                       className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
@@ -227,6 +243,7 @@ const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="you@example.com"
                       required
+                      maxLength={200}
                       className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                     />
                   </div>
@@ -242,6 +259,7 @@ const Contact = () => {
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="How can we help?"
                     required
+                    maxLength={160}
                     className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl"
                   />
                 </div>
@@ -257,6 +275,7 @@ const Contact = () => {
                     placeholder="Tell us more about your inquiry..."
                     rows={5}
                     required
+                    maxLength={5000}
                     className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-white/10 rounded-xl resize-none"
                   />
                 </div>

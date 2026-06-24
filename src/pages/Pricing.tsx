@@ -243,10 +243,10 @@ const SEGMENT_PACKAGES: Record<Segment, CreditPackage[]> = {
 };
 
 const TRUST_POINTS = [
-  { icon: <Shield className="w-3.5 h-3.5" />, text: 'Secure via Stripe' },
+  { icon: <Shield className="w-3.5 h-3.5" />, text: 'Secure checkout via Polar' },
   { icon: <InfinityIcon className="w-3.5 h-3.5" />, text: 'Credits never expire' },
-  { icon: <Film className="w-3.5 h-3.5" />, text: 'Kling V3 + Seedance Pro' },
-  { icon: <Star className="w-3.5 h-3.5" />, text: 'Zero-waste guarantee' },
+  { icon: <Film className="w-3.5 h-3.5" />, text: 'Kling V3 + Seedance 2.0' },
+  { icon: <Star className="w-3.5 h-3.5" />, text: 'Failed renders refunded' },
 ];
 
 const SEGMENT_META: Record<Segment, {
@@ -315,7 +315,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is my payment secure?',
-    a: 'All payments are processed by Stripe. We never see or store card numbers. Refund disputes are handled per Stripe policy.',
+    a: 'All payments are processed by Polar, our payment provider. We never see or store card numbers. Refund disputes are handled per Polar policy.',
   },
 ];
 
@@ -475,7 +475,7 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 }
 
 export default function Pricing() {
-  usePageMeta({ title: 'Pricing — Small Bridges', description: 'Pay-as-you-go credits at $0.10 each. No subscriptions, no expirations. Generate cinematic video on demand.' });
+  usePageMeta({ title: 'Pricing — Small Bridges | Credits & Plans', description: 'Simple pricing for cinematic AI video: pay-as-you-go credit packs at $0.10 each, or monthly plans from $19. Your first 5-second video is free.' });
 
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();

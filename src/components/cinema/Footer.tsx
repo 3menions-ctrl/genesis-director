@@ -59,12 +59,16 @@ function FootLink({ to, children }: { to: string; children: React.ReactNode }) {
 
 function NewsletterForm() {
   const [email, setEmail] = useState("");
+  // Honeypot — real users never fill this hidden field; bots that auto-fill
+  // every input give themselves away. We silently no-op on a hit.
+  const [botField, setBotField] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (state === "loading") return;
+    if (botField) { setState("done"); setEmail(""); return; }
     const value = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { setState("error"); setMsg("Enter a valid email."); return; }
     setState("loading"); setMsg("");
@@ -87,6 +91,17 @@ function NewsletterForm() {
   return (
     <>
       <form onSubmit={submit} className="relative mt-3 max-w-sm">
+        {/* Honeypot — visually hidden, off-screen, excluded from tab order. */}
+        <input
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={botField}
+          onChange={(e) => setBotField(e.target.value)}
+          className="absolute left-[-9999px] h-0 w-0 opacity-0"
+        />
         <input
           type="email"
           required

@@ -137,7 +137,7 @@ export default function Landing() {
 }
 
 function LandingInner() {
-  usePageMeta({ title: "Small Bridges — Cinematic AI video creation", description: "Generate Hollywood-quality video scenes from a single prompt. Avatars, environments, and dialogue, all unified." });
+  usePageMeta({ title: "Small Bridges — Cinematic AI video creation", description: "Generate cinematic video scenes from a single prompt — consistent characters, real locations, dialogue, and a score, unified in one studio. First clip free." });
 
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();

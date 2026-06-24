@@ -1,5 +1,5 @@
-# Apex Studio - AI Video Generation Platform
-# https://apex-studio.ai
+# Small Bridges - Cinematic AI Video Generation Platform
+# https://smallbridges.co
 
 User-agent: Googlebot
 Allow: /
@@ -78,7 +78,7 @@ Disallow: /reset-password
 Disallow: /unsubscribe
 
 # Sitemap
-Sitemap: https://apex-studio.ai/sitemap.xml
+Sitemap: https://smallbridges.co/sitemap.xml
 
 # LLM-readable summary
 # See /llms.txt for AI-friendly platform documentation

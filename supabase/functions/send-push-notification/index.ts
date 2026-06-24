@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import webpush from "https://esm.sh/web-push@3.6.7";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,18 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // AUDIT FIX H-3 (High): this used the service-role key and trusted a
+  // body-supplied `userId`, with no auth — anyone with the public anon key could
+  // push brand-spoofed notifications (with an attacker deep-link `url`) to any
+  // user's devices. It is an internal dispatch worker, so require service-role.
+  if (!requireServiceRole(req)) {
+    return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { userId, title, body, url } = await req.json();
     if (!userId || !title) throw new Error("userId + title required");

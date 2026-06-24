@@ -229,7 +229,7 @@ export default function BusinessDistribution() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 70}ms` }} />
+            <div key={i} className="h-28 rounded-2xl bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 70}ms` }} />
           ))}
         </div>
       ) : (
@@ -243,7 +243,7 @@ export default function BusinessDistribution() {
 
       {/* ── Composer ──────────────────────────────────────────────────────── */}
       <SectionHead label="New distribution" />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5 space-y-4">
+      <div className="rounded-2xl p-5 space-y-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <label className="flex flex-col gap-2">
             <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">Asset URL (rendered video)</span>
@@ -322,7 +322,7 @@ export default function BusinessDistribution() {
       {/* ── Jobs ──────────────────────────────────────────────────────────── */}
       <SectionHead label="Recent distributions" count={jobs.length || undefined} />
       {loading ? (
-        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse" />)}</div>
+        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 rounded-2xl bg-white/[0.02] animate-pulse" />)}</div>
       ) : jobs.length === 0 ? (
         <EmptyState icon={Send} title="No distributions yet" description="Connect a channel and publish a finished ad — jobs and their status will appear here." />
       ) : (
@@ -351,7 +351,7 @@ function ChannelCard({ provider, canEdit, busy, onConnect, onDisconnect }: {
     : <Badge tone="neutral">Not connected</Badge>;
 
   return (
-    <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+    <div className="rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.03] flex items-center justify-center shrink-0">
@@ -399,7 +399,7 @@ function JobRow({ job }: { job: DistJob }) {
   const when = job.posted_at || job.scheduled_at || job.created_at;
   const whenLabel = job.posted_at ? "Posted" : job.scheduled_at ? "Scheduled" : "Created";
   return (
-    <div className="flex items-center gap-3 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.015] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-2xl px-4 py-3">
       <div className="w-9 h-9 rounded-lg ring-1 ring-white/[0.08] bg-white/[0.03] flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-white/65" strokeWidth={1.6} />
       </div>

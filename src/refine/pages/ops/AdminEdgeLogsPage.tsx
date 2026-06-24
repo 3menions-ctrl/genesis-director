@@ -2,9 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,7 +54,7 @@ export default function AdminEdgeLogsPage() {
         { label: "Spend", value: `$${totalCost.toFixed(2)}`, tone: "amber" },
         { label: "Avg Duration", value: `${avgDuration}s`, tone: "emerald" },
       ]}
-      actions={<Button variant="outline" size="sm" onClick={() => setReload(k => k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
+      actions={<DeckButton onClick={() => setReload(k => k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
       <FloatSection title="Invocations" meta="last 24h">
         {loading ? (
@@ -80,7 +78,7 @@ export default function AdminEdgeLogsPage() {
                   when: <span className="text-white/60 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</span>,
                   service: <span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.service}</span>,
                   operation: <span className="text-white/70 font-mono text-[11px]">{r.operation}</span>,
-                  status: <Badge variant={ok ? "secondary" : "destructive"} className="font-mono text-[10px]">{r.status}</Badge>,
+                  status: <StatusPill tone={ok ? "neutral" : "danger"}>{r.status}</StatusPill>,
                   duration: <span className="text-white/60 font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</span>,
                   credits: <span className="text-white/60 font-mono text-[11px] tabular-nums">{r.credits_charged}</span>,
                   cost: <span className="text-amber-300/80 font-mono text-[11px] tabular-nums">${(r.real_cost_cents/100).toFixed(3)}</span>,

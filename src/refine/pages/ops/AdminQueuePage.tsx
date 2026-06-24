@@ -2,9 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Lock, RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -68,9 +66,9 @@ export default function AdminQueuePage() {
         { label: "Total Active", value: rows.length, tone: "emerald" },
       ]}
       actions={
-        <Button variant="outline" size="sm" onClick={() => setReloadKey(k => k + 1)} disabled={loading}>
+        <DeckButton onClick={() => setReloadKey(k => k + 1)} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        </DeckButton>
       }
     >
       <FloatSection title="Active clips" meta="pending + generating">
@@ -96,9 +94,9 @@ export default function AdminQueuePage() {
                     _key: r.id,
                     created: <span className="text-white/60 font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</span>,
                     status: (
-                      <Badge variant={isStuck ? "destructive" : r.status === "generating" ? "default" : "secondary"} className="font-mono text-[10px]">
+                      <StatusPill tone={isStuck ? "danger" : r.status === "generating" ? "accent" : "neutral"}>
                         {r.status}{isStuck ? " · stuck" : ""}
-                      </Badge>
+                      </StatusPill>
                     ),
                     engine: <span className="text-white/60 font-mono text-[11px]">{r.engine ?? "—"}</span>,
                     shot: <span className="text-white/60 font-mono text-[11px]">#{r.shot_index}</span>,

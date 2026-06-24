@@ -2,9 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Folder, Lock, RefreshCw, Unlock } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -58,9 +56,9 @@ export default function AdminStoragePage() {
         { label: "Est. Cost / mo", value: `$${estCost.toFixed(2)}`, tone: "emerald" },
       ]}
       actions={
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+        <DeckButton onClick={load} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        </DeckButton>
       }
     >
       <FloatSection title="Buckets" meta="object inventory">
@@ -80,9 +78,9 @@ export default function AdminStoragePage() {
               _key: r.bucket_id,
               bucket: <span className="font-mono text-[12px] text-white/90"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</span>,
               access: (
-                <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
+                <StatusPill tone={r.is_public ? "neutral" : "accent"}>
                   {r.is_public ? <><Unlock className="w-3 h-3 mr-1" />public</> : <><Lock className="w-3 h-3 mr-1" />private</>}
-                </Badge>
+                </StatusPill>
               ),
               objects: <span className="font-mono tabular-nums text-[12px] text-white/80">{Number(r.object_count).toLocaleString()}</span>,
               size: <span className="font-mono tabular-nums text-[12px] text-primary/80">{bytes(Number(r.total_bytes))}</span>,

@@ -2,9 +2,7 @@
 import { useEffect, useState } from "react";
 import { Bug, RefreshCw, Shield, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { getDiagnosticEntries, subscribeToDiagnostics, clearDiagnostics, type DiagnosticEntry } from "@/lib/diagnostics/DiagnosticsLogger";
 import { getRecentEvents, getHealthScore } from "@/lib/stabilityMonitor";
 import { getSafeModeBannerData } from "@/lib/safeMode";
@@ -46,12 +44,12 @@ export default function AdminCrashForensicsPage() {
       ]}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={() => { setEntries(getDiagnosticEntries()); setTick(t=>t+1); }}>
+          <DeckButton onClick={() => { setEntries(getDiagnosticEntries()); setTick(t=>t+1); }}>
             <RefreshCw className="w-3.5 h-3.5 mr-2" /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => { clearDiagnostics(); setEntries([]); }} disabled={entries.length === 0}>
+          </DeckButton>
+          <DeckButton onClick={() => { clearDiagnostics(); setEntries([]); }} disabled={entries.length === 0}>
             <Trash2 className="w-3.5 h-3.5 mr-2" /> Clear
-          </Button>
+          </DeckButton>
         </>
       }
     >
@@ -78,7 +76,7 @@ export default function AdminCrashForensicsPage() {
               rows={entries.slice().reverse().map(e => ({
                 _key: e.id,
                 when: <span className="text-white/50 font-mono text-[10px] whitespace-nowrap">{new Date(e.timestamp).toLocaleTimeString()}</span>,
-                sev: <Badge variant={e.severity === "error" ? "destructive" : e.severity === "warning" ? "secondary" : "default"} className="font-mono text-[10px]">{e.severity}</Badge>,
+                sev: <StatusPill tone={e.severity === "error" ? "danger" : e.severity === "warning" ? "neutral" : "accent"}>{e.severity}</StatusPill>,
                 source: <span className="text-white/60 font-mono text-[10px]">{e.source}</span>,
                 message: <span className="block max-w-[640px] truncate text-white/80 font-mono text-[11px]">{e.message}</span>,
               }))}

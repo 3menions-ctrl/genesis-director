@@ -2,10 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -88,12 +86,12 @@ export default function AdminInvoicesPage() {
       ]}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <DeckButton onClick={load} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!filtered.length}>
+          </DeckButton>
+          <DeckButton onClick={exportCsv} disabled={!filtered.length}>
             <Download className="w-3.5 h-3.5 mr-2" /> Export CSV
-          </Button>
+          </DeckButton>
         </>
       }
     >
@@ -125,7 +123,7 @@ export default function AdminInvoicesPage() {
             rows={loading ? [] : pg.slice.map((r) => ({
               _key: r.id,
               date: <span className="font-mono text-[11px] whitespace-nowrap text-white/70">{new Date(r.created_at).toLocaleString()}</span>,
-              type: <Badge variant="secondary" className="font-mono text-[10px]">{r.transaction_type}</Badge>,
+              type: <StatusPill tone="neutral">{r.transaction_type}</StatusPill>,
               credits: <span className={`font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>{r.amount > 0 ? "+" : ""}{r.amount}</span>,
               usd: <span className={`font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>${(r.amount * CENTS_PER_CREDIT / 100).toFixed(2)}</span>,
               user: <span className="font-mono text-[10px] text-white/40">{r.user_id.slice(0,8)}…</span>,

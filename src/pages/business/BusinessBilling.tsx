@@ -318,7 +318,7 @@ export default function BusinessBilling() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-6">
+        <div className="rounded-2xl p-6">
           <p className="text-[13px] text-white/55 leading-relaxed mb-5">
             Tell us what your team needs — we&rsquo;ll size a plan that fits.
           </p>

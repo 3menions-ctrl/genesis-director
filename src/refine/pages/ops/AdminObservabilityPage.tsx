@@ -5,8 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Clock } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatRow } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 
 type FailureRow = {
@@ -85,10 +84,10 @@ export default function AdminObservabilityPage() {
         { label: "Recent shown", value: recent.length, tone: "neutral" },
       ]}
       actions={
-        <Button variant="outline" size="sm" onClick={() => setReload((k) => k + 1)} disabled={loading}>
+        <DeckButton onClick={() => setReload((k) => k + 1)} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} />
           Refresh
-        </Button>
+        </DeckButton>
       }
     >
       <div className="space-y-14">

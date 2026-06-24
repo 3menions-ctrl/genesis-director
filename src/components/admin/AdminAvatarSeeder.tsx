@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -46,6 +46,12 @@ export function AdminAvatarSeeder() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<GenerationResult[]>([]);
   const [isPaused, setIsPaused] = useState(false);
+  // LOGIC FIX AD-2: the recursive setTimeout(generateNextBatch) captured the
+  // closure of the render that STARTED the run, so `currentIndex`/`isPaused`
+  // were frozen — the loop re-sent the same startIndex forever (regenerating
+  // preset 0 against Replicate every ~1.5s = runaway cost) and Pause did
+  // nothing. Drive the loop with an explicit index param + a live pause ref.
+  const isPausedRef = useRef(false);
 
   const loadPresets = async () => {
     setIsLoading(true);
@@ -65,17 +71,20 @@ export function AdminAvatarSeeder() {
     }
   };
 
-  const generateNextBatch = async () => {
-    if (isPaused || currentIndex >= presets.length) {
+  // Drives the seed loop. `index` is passed explicitly each step (never read
+  // from a frozen closure); pause is read from the live ref.
+  const generateNextBatch = async (index: number) => {
+    if (isPausedRef.current || index >= presets.length) {
       setIsGenerating(false);
       return;
     }
+    setCurrentIndex(index);
 
     try {
       const { data, error } = await supabase.functions.invoke('seed-avatar-library', {
         body: {
           action: 'generate',
-          startIndex: currentIndex,
+          startIndex: index,
           count: 1, // Generate one at a time for better progress tracking
         },
       });
@@ -86,12 +95,12 @@ export function AdminAvatarSeeder() {
         setResults(prev => [...prev, ...data.results]);
       }
 
-      if (data.nextIndex !== null) {
-        setCurrentIndex(data.nextIndex);
+      if (data.nextIndex !== null && data.nextIndex !== undefined) {
         // Skipped (already seeded) → no rate-limit needed; real gen → small delay
         const wasSkipped = data.results?.[0]?.skipped === true;
-        setTimeout(() => generateNextBatch(), wasSkipped ? 50 : 1500);
+        setTimeout(() => generateNextBatch(data.nextIndex), wasSkipped ? 50 : 1500);
       } else {
+        setCurrentIndex(presets.length);
         setIsGenerating(false);
         toast.success('Avatar library generation complete!');
       }
@@ -99,35 +108,38 @@ export function AdminAvatarSeeder() {
       console.error('Generation error:', err);
       // Auto-resume: log failure, skip this preset, keep going
       setResults(prev => [...prev, {
-        name: presets[currentIndex]?.name || `#${currentIndex}`,
+        name: presets[index]?.name || `#${index}`,
         success: false,
         error: err instanceof Error ? err.message : String(err),
       }]);
-      setCurrentIndex(prev => prev + 1);
-      setTimeout(() => generateNextBatch(), 3000);
+      setTimeout(() => generateNextBatch(index + 1), 3000);
     }
   };
 
   const startGeneration = (resumeFromIndex?: number) => {
+    isPausedRef.current = false;
     setIsGenerating(true);
     setIsPaused(false);
+    const startIdx = resumeFromIndex ?? 0;
     if (resumeFromIndex === undefined) {
       setResults([]);
-      setCurrentIndex(0);
     }
-    generateNextBatch();
+    setCurrentIndex(startIdx);
+    generateNextBatch(startIdx);
   };
 
   const pauseGeneration = () => {
+    isPausedRef.current = true;
     setIsPaused(true);
     setIsGenerating(false);
     toast.info('Generation paused');
   };
 
   const resumeGeneration = () => {
+    isPausedRef.current = false;
     setIsPaused(false);
     setIsGenerating(true);
-    generateNextBatch();
+    generateNextBatch(currentIndex);
   };
 
   const progress = presets.length > 0 ? (currentIndex / presets.length) * 100 : 0;

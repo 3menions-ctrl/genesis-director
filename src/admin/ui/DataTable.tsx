@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdminCard, ACCENT_HSL } from "./primitives";
+import { ACCENT_HSL } from "./primitives";
 
 export function DataTable<T>({
   columns, data, onRowClick, dense, empty = "Nothing here yet.",
@@ -29,7 +29,7 @@ export function DataTable<T>({
   });
 
   return (
-    <AdminCard className="overflow-hidden">
+    <div>
       <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-0 text-left">
           <thead>
@@ -81,6 +81,6 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
-    </AdminCard>
+    </div>
   );
 }

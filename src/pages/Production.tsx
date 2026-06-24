@@ -40,6 +40,18 @@ const ScriptReviewPanel = lazy(() => import('@/components/studio/ScriptReviewPan
 const FailedClipsPanel = lazy(() => import('@/components/studio/FailedClipsPanel').then(m => ({ default: m.FailedClipsPanel })));
 const SpecializedModeProgress = lazy(() => import('@/components/production/SpecializedModeProgress').then(m => ({ default: m.SpecializedModeProgress })));
 
+// Premium create-flow surfaces: the screenplay approval + the bridge pipeline.
+import { ScriptApproval, type ScriptScene } from '@/components/create/ScriptApproval';
+import { PipelineCreation } from '@/components/create/PipelineCreation';
+import { useCredits } from '@/contexts/CreditsContext';
+import { calculateCreditsForDurations } from '@/lib/creditSystem';
+
+// Soft look-strip gradients for the screenplay scene cards.
+const SCENE_GRADIENTS: [string, string][] = [
+  ['#b8842a', '#7c2d12'], ['#2b3b8f', '#7d2d6b'], ['#1f7a86', '#123e6b'],
+  ['#3a55c0', '#6ad0ff'], ['#5e2a7a', '#2a2f6b'], ['#7a2d3a', '#3a1c52'],
+];
+
 // Minimal fallbacks for error boundaries - memoized for stability
 const MinimalFallback = memo(() => <div className="py-8" />);
 MinimalFallback.displayName = 'MinimalFallback';
@@ -1362,6 +1374,28 @@ const transitionsData = useMemo(() =>
     setSelectedClipUrl(url);
   }, []);
 
+  // ── Premium create-flow overlays (script approval + bridge pipeline) ──────
+  const credits = useCredits();
+  const approvalScenes = useMemo<ScriptScene[]>(
+    () => (scriptShots ?? []).map((s, i) => ({
+      id: String(s.index ?? i),
+      heading: (s.sceneType ? `${s.sceneType.toUpperCase()} — ` : '') + (s.title || `Scene ${i + 1}`),
+      action: s.description || '',
+      voiceover: s.dialogue || undefined,
+      durationSec: s.durationSeconds || 6,
+      gradient: SCENE_GRADIENTS[i % SCENE_GRADIENTS.length],
+    })),
+    [scriptShots],
+  );
+  const approvalCost = useMemo(() => {
+    const durations = (scriptShots ?? []).map((s) => s.durationSeconds || 6);
+    return durations.length ? calculateCreditsForDurations(durations, 'kling') : 0;
+  }, [scriptShots]);
+  const isStandardMode = !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode);
+  const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
+  const showBridge = isStandardMode && !isComplete && !isError && pipelineStage !== 'awaiting_approval'
+    && ['generating', 'producing', 'rendering', 'stitching'].includes(projectStatus || '');
+
   if (gatekeeper.isLoading) {
     return (
       <CinemaLoader
@@ -1375,6 +1409,29 @@ const transitionsData = useMemo(() =>
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Premium create-flow takeovers — render over the page while approving
+          the script and while the film is building. The existing functional UI
+          stays mounted underneath (same handlers/state). */}
+      {showScriptApproval && (
+        <ScriptApproval
+          title={projectTitle || 'Untitled film'}
+          scenes={approvalScenes}
+          costCredits={approvalCost}
+          balanceCredits={credits.available}
+          busy={isApprovingScript}
+          onApprove={() => { void handleApproveScript(scriptShots!); }}
+          onRegenerate={() => { void handleRegenerateScript(); }}
+          onClose={() => navigate('/projects')}
+        />
+      )}
+      {showBridge && (
+        <PipelineCreation
+          progress={realTimeProgress}
+          prompt={scriptShots?.[0]?.description || projectTitle}
+          onCancel={() => navigate('/projects')}
+        />
+      )}
+
       {/* App Header */}
       <AppHeader />
       <confirmDialog.Dialog />

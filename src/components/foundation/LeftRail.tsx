@@ -261,14 +261,14 @@ function RailTile({
         active ? "text-foreground" : "text-muted-foreground/65 hover:text-foreground/90",
       )}
     >
-      {/* Selection — a clean vertical line at the rail's edge that glides
+      {/* Selection — a clean horizontal line centred below the icon that glides
           between tiles. No fill/bloom; the active icon carries a subtle glow. */}
       {active && (
         <motion.span
           layoutId="rail-active-line"
           aria-hidden
-          className="pointer-events-none absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-white"
-          style={{ boxShadow: "0 0 10px -1px rgba(255,255,255,0.4)" }}
+          className="pointer-events-none absolute bottom-1 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-white"
+          style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
         />
       )}

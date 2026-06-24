@@ -250,14 +250,21 @@ async function drainQueue(projectId: string): Promise<void> {
     return;
   }
   state.queues.set(projectId, q);
+
+  // Check the runner BEFORE claiming the serial slot. Previously the slot was
+  // claimed first and, when no runner was installed, drainQueue just returned —
+  // leaving the job stuck in "running" forever and wedging every later shot for
+  // the project behind it. If no engine is wired, fail the job honestly: that
+  // releases the slot and drains the next one (see transitionJob) instead of
+  // showing an eternal "rendering" spinner.
+  const runner = installedRunner;
+  if (!runner) {
+    transitionJob(nextId, "failed", "No render engine is connected.");
+    return;
+  }
+
   state.running.set(projectId, nextId);
   notify();
-
-  // Hand off to the runner. When no runner is installed (tests,
-  // partial wiring), we just leave the job in queued state — the
-  // status bus reflects that and the user can retry.
-  const runner = installedRunner;
-  if (!runner) return;
 
   try {
     await runner(nextId);

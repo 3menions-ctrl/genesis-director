@@ -1242,20 +1242,21 @@ function CharacterStep({
             Who is on camera?
           </span>
         </h2>
-        <p className="mt-2 text-[13px] text-foreground/55">Pick a stock presenter, upload your own, or capture with your webcam.</p>
+        <p className="mt-2 text-[13px] text-foreground/55">Pick a stock presenter or upload your own.</p>
       </header>
 
       <div className="mb-5">
         <IconFilterRow title="Source">
+          {/* Webcam capture isn't implemented yet — omit the tile rather than
+              show a control whose only action is a "coming soon" toast. */}
           {([
             ["stock", "Stock", UserIcon],
             ["upload", "Upload", Upload],
-            ["webcam", "Webcam", Camera],
           ] as const).map(([s, label, Icon]) => (
             <IconFilterTile
               key={s}
               active={source === s}
-              onClick={() => (s === "webcam" ? toast.info("Webcam capture coming soon") : onSourceChange(s))}
+              onClick={() => onSourceChange(s)}
               Icon={Icon}
               label={label}
             />

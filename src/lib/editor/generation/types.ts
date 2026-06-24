@@ -75,6 +75,11 @@ export interface EngineInput {
   aspectRatio: AspectRatio;
   /** Continuity-chain start frame URL (previous shot's last frame). */
   startImageUrl: string | null;
+  /** Continuity-chain END frame URL — the next locked anchor. When
+   *  present AND the engine supports it (Kling / Runway), the clip is
+   *  generated as a bounded interpolation start→end instead of a
+   *  forward-only generation, which is what keeps drift bounded. */
+  endImageUrl: string | null;
   /** Character reference images used for identity lock. Some engines
    *  accept multi-ref; some accept only the first; submitters know. */
   identityRefs: IdentityRef[];
@@ -133,6 +138,10 @@ export interface ChainContext {
   /** Identity references for every character mentioned in this
    *  shot's beats — already resolved against the document's cast. */
   identityRefs: IdentityRef[];
+  /** The NEXT locked anchor still (skeleton-first interpolation). When
+   *  set and the engine supports an end frame, the clip is rendered as
+   *  a bounded interpolation toward this exact frame. */
+  endAnchorUrl?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

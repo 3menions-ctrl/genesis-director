@@ -43,6 +43,7 @@ const SpecializedModeProgress = lazy(() => import('@/components/production/Speci
 // Premium create-flow surfaces: the screenplay approval + the bridge pipeline.
 import { ScriptApproval, type ScriptScene } from '@/components/create/ScriptApproval';
 import { PipelineCreation } from '@/components/create/PipelineCreation';
+import { derivePipelineFromCounts, type PipelineProgress, type BoundaryType } from '@/lib/video/continuity';
 import { useCredits } from '@/contexts/CreditsContext';
 import { calculateCreditsForDurations } from '@/lib/creditSystem';
 
@@ -1392,6 +1393,43 @@ const transitionsData = useMemo(() =>
     return durations.length ? calculateCreditsForDurations(durations, 'kling') : 0;
   }, [scriptShots]);
   const isStandardMode = !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode);
+
+  // Live Continuity Engine progress model that drives the premium bridge.
+  // Derived from the real clip counts, then enriched with shot labels +
+  // inferred boundary types so the continuity chain reads like the film.
+  const livePipeline = useMemo<PipelineProgress>(() => {
+    const shots = scriptShots ?? [];
+    const generating = clipResults.filter((c) => c.status === 'generating').length;
+    const phaseId =
+      ['stitching', 'post_production'].includes(projectStatus || '')
+        ? 'assembly'
+        : generating > 0 || ['generating', 'producing', 'rendering'].includes(projectStatus || '')
+        ? 'motion'
+        : 'storyboard';
+    const base = derivePipelineFromCounts({
+      completed: completedClips,
+      generating,
+      expected: Math.max(expectedClipCount, shots.length),
+      overall: realTimeProgress,
+      phaseId,
+    });
+    // Enrich each node with its real label + a boundary inferred from
+    // scene changes (first shot opens; a sceneType change is a hard cut;
+    // otherwise the shot continues the previous one).
+    const clips = base.clips.map((c, i) => {
+      const s = shots[i];
+      const prev = shots[i - 1];
+      const boundaryType: BoundaryType =
+        i === 0
+          ? 'INTRO'
+          : s?.sceneType && prev?.sceneType && s.sceneType !== prev.sceneType
+          ? 'HARD_CUT'
+          : 'CONTINUOUS';
+      return { ...c, label: s?.title || c.label, boundaryType };
+    });
+    return { ...base, clips };
+  }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress]);
+
   const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
   const showBridge = isStandardMode && !isComplete && !isError && pipelineStage !== 'awaiting_approval'
     && ['generating', 'producing', 'rendering', 'stitching'].includes(projectStatus || '');
@@ -1427,6 +1465,7 @@ const transitionsData = useMemo(() =>
       {showBridge && (
         <PipelineCreation
           progress={realTimeProgress}
+          pipeline={livePipeline}
           prompt={scriptShots?.[0]?.description || projectTitle}
           onCancel={() => navigate('/projects')}
         />

@@ -127,6 +127,7 @@ const AdminApp = ADMIN_ENABLED ? lazy(() => import("./admin/AdminApp")) : null;
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
+const PipelinePreview = lazy(() => import("./pages/PipelinePreview"));
 
 const Production = lazy(() => import("./pages/Production"));
 
@@ -340,6 +341,12 @@ const App = () => {
                 <Route path="/contact" element={
                   <RouteContainer>
                     <Contact />
+                  </RouteContainer>
+                } />
+                {/* Continuity Engine — premium pipeline visualisation preview */}
+                <Route path="/pipeline-preview" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <PipelinePreview />
                   </RouteContainer>
                 } />
                 {/* Enterprise — Coming Soon + lead capture (no signup). All entry points land here. */}

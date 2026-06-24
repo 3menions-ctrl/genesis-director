@@ -44,11 +44,11 @@ export default function AdminAvatarCatalogPage() {
         columns={[
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v
-              ? <img src={String(v)} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/[0.06]" />
-              : <div className="w-10 h-10 rounded-lg bg-glass border border-white/[0.06]" /> },
+              ? <img src={String(v)} alt="" className="w-10 h-10 rounded-lg object-cover border border-[#e7ebf3]" />
+              : <div className="w-10 h-10 rounded-lg bg-glass border border-[#e7ebf3]" /> },
           { key: "name", label: "Name", width: "200px" },
           { key: "slug", label: "Slug", width: "180px",
-            render: (v) => <code className="font-mono text-[11px] text-white/55">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[11px] text-[#5d6a82]">{String(v)}</code> },
           { key: "category", label: "Category", width: "140px" },
           { key: "rank", label: "Rank", width: "70px", align: "right" },
           { key: "featured", label: "Featured", width: "100px" },

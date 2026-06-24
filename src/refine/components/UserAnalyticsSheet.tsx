@@ -30,10 +30,10 @@ interface Bundle {
 function Stat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
     <AdminCard className="p-4">
-      <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+      <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#9aa4b8]">
         <Icon className="h-3 w-3" style={{ color: ACCENT_HSL }} /> {label}
       </div>
-      <div className="mt-2 font-display text-[22px] font-semibold tabular-nums text-white">{value}</div>
+      <div className="mt-2 font-display text-[22px] font-semibold tabular-nums text-[#0c1426]">{value}</div>
     </AdminCard>
   );
 }
@@ -58,25 +58,25 @@ export function UserAnalyticsSheet({ userId, label, open, onClose }: { userId: s
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto border-l border-white/[0.06] bg-[#06070a] p-0 text-white sm:max-w-xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between bg-[#06070a]/80 px-6 py-5 backdrop-blur-xl">
+      <SheetContent side="right" className="w-full overflow-y-auto bg-white p-0 text-[#0c1426] sm:max-w-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-white/85 px-6 py-5 backdrop-blur-xl">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.24em]" style={{ color: ACCENT_HSL }}>User analytics</div>
             <div className="mt-1 font-display text-[20px] font-semibold">{data?.profile?.display_name || label || (userId ? userId.slice(0, 8) : "")}</div>
             <div className="mt-1 flex items-center gap-2">
               {data?.profile?.account_type && <StatusPill tone="neutral">{data.profile.account_type}</StatusPill>}
               {m.paid ? <StatusPill tone="accent">Paid</StatusPill> : <StatusPill tone="neutral">Free</StatusPill>}
-              <span className="font-mono text-[10px] text-white/35">joined {ago(data?.profile?.created_at)}</span>
+              <span className="font-mono text-[10px] text-[#9aa4b8]">joined {ago(data?.profile?.created_at)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {userId && <Link to={`/admin/users/${userId}`} onClick={onClose} className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70 hover:bg-white/[0.1] hover:text-white">Full profile <ArrowUpRight className="h-3 w-3" /></Link>}
-            <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 hover:bg-white/[0.06] hover:text-white"><X className="h-4 w-4" /></button>
+            {userId && <Link to={`/admin/users/${userId}`} onClick={onClose} className="inline-flex items-center gap-1 rounded-full bg-[#f6f8fc] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0c1426] hover:bg-[#f4f7ff] hover:text-[#0c1426]">Full profile <ArrowUpRight className="h-3 w-3" /></Link>}
+            <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#5d6a82] hover:bg-[#f4f7ff] hover:text-[#0c1426]"><X className="h-4 w-4" /></button>
           </div>
         </div>
 
         {loading ? (
-          <div className="py-24 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading analytics…</div>
+          <div className="py-24 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading analytics…</div>
         ) : (
           <div className="space-y-6 px-6 pb-10">
             {/* engagement */}
@@ -89,12 +89,12 @@ export function UserAnalyticsSheet({ userId, label, open, onClose }: { userId: s
 
             {/* money */}
             <AdminCard className="p-5">
-              <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Monetization</div>
+              <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Monetization</div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div><div className="font-display text-[20px] font-semibold tabular-nums" style={{ color: ACCENT_HSL }}>${ltv.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">LTV (est)</div></div>
-                <div><div className="font-display text-[20px] font-semibold tabular-nums text-white">{(m.credits_purchased ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">Purchased</div></div>
-                <div><div className="font-display text-[20px] font-semibold tabular-nums text-white">{(m.credits_spent ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">Spent</div></div>
-                <div><div className="font-display text-[20px] font-semibold tabular-nums text-white">{(m.balance ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">Balance</div></div>
+                <div><div className="font-display text-[20px] font-semibold tabular-nums" style={{ color: ACCENT_HSL }}>${ltv.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#9aa4b8]">LTV (est)</div></div>
+                <div><div className="font-display text-[20px] font-semibold tabular-nums text-[#0c1426]">{(m.credits_purchased ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#9aa4b8]">Purchased</div></div>
+                <div><div className="font-display text-[20px] font-semibold tabular-nums text-[#0c1426]">{(m.credits_spent ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#9aa4b8]">Spent</div></div>
+                <div><div className="font-display text-[20px] font-semibold tabular-nums text-[#0c1426]">{(m.balance ?? 0).toLocaleString()}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#9aa4b8]">Balance</div></div>
               </div>
             </AdminCard>
 
@@ -108,30 +108,30 @@ export function UserAnalyticsSheet({ userId, label, open, onClose }: { userId: s
             {/* top pages + searches */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <AdminCard className="p-5">
-                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Top pages</div>
-                {(data?.top_pages ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-white/40">No pageviews.</div> : (data?.top_pages ?? []).map((p, i) => (
-                  <div key={i} className="flex items-center justify-between py-1 font-mono text-[12px]"><span className="truncate text-white/70">{p.path}</span><span className="tabular-nums text-white/45">{p.views}</span></div>
+                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Top pages</div>
+                {(data?.top_pages ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-[#9aa4b8]">No pageviews.</div> : (data?.top_pages ?? []).map((p, i) => (
+                  <div key={i} className="flex items-center justify-between py-1 font-mono text-[12px]"><span className="truncate text-[#0c1426]">{p.path}</span><span className="tabular-nums text-[#5d6a82]">{p.views}</span></div>
                 ))}
               </AdminCard>
               <AdminCard className="p-5">
-                <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40"><SearchIcon className="h-3 w-3" /> Searches</div>
-                {(data?.searches ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-white/40">No searches.</div> : (data?.searches ?? []).map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-1 text-[12px]"><span className="truncate text-white/70">{s.q}</span><span className="tabular-nums text-white/45">{s.n}</span></div>
+                <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]"><SearchIcon className="h-3 w-3" /> Searches</div>
+                {(data?.searches ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-[#9aa4b8]">No searches.</div> : (data?.searches ?? []).map((s, i) => (
+                  <div key={i} className="flex items-center justify-between py-1 text-[12px]"><span className="truncate text-[#0c1426]">{s.q}</span><span className="tabular-nums text-[#5d6a82]">{s.n}</span></div>
                 ))}
               </AdminCard>
             </div>
 
             {/* spend history */}
             <AdminCard className="p-5">
-              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Spend history</div>
-              {(data?.spend_history ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-white/40">No transactions.</div> : (
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Spend history</div>
+              {(data?.spend_history ?? []).length === 0 ? <div className="py-4 text-[12px] font-light text-[#9aa4b8]">No transactions.</div> : (
                 <div className="space-y-1.5">
                   {(data?.spend_history ?? []).map((t, i) => (
                     <div key={i} className="flex items-center justify-between text-[12px]">
-                      <span className="font-mono text-white/60">{t.transaction_type}</span>
+                      <span className="font-mono text-[#5d6a82]">{t.transaction_type}</span>
                       <span className="flex items-center gap-3">
                         <span className="tabular-nums" style={{ color: t.amount >= 0 ? CYAN : "rgba(255,255,255,0.55)" }}>{t.amount >= 0 ? "+" : ""}{t.amount.toLocaleString()}</span>
-                        <span className="font-mono text-[10px] text-white/30">{new Date(t.created_at).toLocaleDateString()}</span>
+                        <span className="font-mono text-[10px] text-[#9aa4b8]">{new Date(t.created_at).toLocaleDateString()}</span>
                       </span>
                     </div>
                   ))}

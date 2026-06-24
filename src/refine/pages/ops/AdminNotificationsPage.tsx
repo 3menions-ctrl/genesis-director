@@ -155,7 +155,7 @@ export default function AdminNotificationsPage() {
               onClick={() => setFilter(active ? "all" : k)}
               className={cn(
                 "relative group overflow-hidden text-left rounded-2xl border bg-background/60 backdrop-blur-xl p-5 transition-all",
-                active ? "border-white/30 scale-[1.01]" : "border-white/8 hover:border-white/15"
+                active ? "border-[#d8deea] scale-[1.01]" : "border-[#e7ebf3] hover:border-[#d8deea]"
               )}
               style={{ boxShadow: active ? `0 0 40px ${m.glow}, inset 0 0 0 1px ${m.tone}55` : `0 0 0 transparent` }}
             >
@@ -174,17 +174,17 @@ export default function AdminNotificationsPage() {
                     <Icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-[9px] uppercase tracking-[0.3em] text-white/40 font-mono">
+                    <div className="text-[9px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono">
                       {m.label}
                     </div>
-                    <div className="text-[11px] text-white/50 mt-0.5 font-mono">
+                    <div className="text-[11px] text-[#5d6a82] mt-0.5 font-mono">
                       {c.last ? `${timeAgo(c.last)} ago` : "—"}
                     </div>
                   </div>
                 </div>
                 {c.unread > 0 && (
                   <span
-                    className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-mono font-semibold flex items-center justify-center text-white animate-pulse"
+                    className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-mono font-semibold flex items-center justify-center text-[#0c1426] animate-pulse"
                     style={{ background: m.tone, boxShadow: `0 0 14px ${m.glow}` }}
                   >
                     {c.unread}
@@ -193,12 +193,12 @@ export default function AdminNotificationsPage() {
               </div>
               <div className="relative mt-5 flex items-baseline gap-2">
                 <div
-                  className="text-[42px] leading-none text-white"
+                  className="text-[42px] leading-none text-[#0c1426]"
                   style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, textShadow: c.unread > 0 ? `0 0 24px ${m.glow}` : "none" }}
                 >
                   {c.total}
                 </div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-white/35 font-mono">total</div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#9aa4b8] font-mono">total</div>
               </div>
             </button>
           );
@@ -207,26 +207,26 @@ export default function AdminNotificationsPage() {
 
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono">
           <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
           <span>Live · {filtered.length} event{filtered.length === 1 ? "" : "s"}</span>
           {filter !== "all" && (
-            <button onClick={() => setFilter("all")} className="text-primary hover:text-white transition-colors normal-case tracking-normal">
+            <button onClick={() => setFilter("all")} className="text-primary hover:text-[#0c1426] transition-colors normal-case tracking-normal">
               · clear filter
             </button>
           )}
         </div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-mono">
-          <div className="flex items-center gap-1.5 text-white/40 px-2 py-1 rounded border border-white/5">
+          <div className="flex items-center gap-1.5 text-[#9aa4b8] px-2 py-1 rounded border border-[#e7ebf3]">
             <Mail className="w-3 h-3" /> Email · on
           </div>
-          <div className="flex items-center gap-1.5 text-white/40 px-2 py-1 rounded border border-white/5">
+          <div className="flex items-center gap-1.5 text-[#9aa4b8] px-2 py-1 rounded border border-[#e7ebf3]">
             <Bell className="w-3 h-3" /> In-app · on
           </div>
           <button
             onClick={markAllRead}
             disabled={totalUnread === 0}
-            className="flex items-center gap-1.5 px-3 py-1 rounded border border-white/10 hover:border-primary/50 hover:text-primary text-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 rounded border border-[#e7ebf3] hover:border-primary/50 hover:text-primary text-[#5d6a82] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <CheckCheck className="w-3 h-3" /> Mark all read
           </button>
@@ -234,20 +234,20 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* Feed */}
-      <div className="relative rounded-2xl border border-white/8 bg-background/60 backdrop-blur-xl overflow-hidden">
+      <div className="relative rounded-2xl border border-[#e7ebf3] bg-background/60 backdrop-blur-xl overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-white/30">
+          <div className="flex items-center justify-center py-20 text-[#9aa4b8]">
             <Loader2 className="w-4 h-4 animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
-            <div className="text-[11px] uppercase tracking-[0.3em] text-white/30 font-mono">No events yet</div>
-            <div className="text-[13px] text-white/40 mt-2">
+            <div className="text-[11px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono">No events yet</div>
+            <div className="text-[13px] text-[#9aa4b8] mt-2">
               Live alerts will appear here the moment they happen.
             </div>
           </div>
         ) : (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-[#eef1f6]">
             {filtered.map((n) => {
               const m = META[n.type];
               const Icon = m.icon;
@@ -257,7 +257,7 @@ export default function AdminNotificationsPage() {
                     onClick={() => handleOpen(n)}
                     className={cn(
                       "group w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-glass transition-colors relative",
-                      !n.read && "bg-white/[0.015]"
+                      !n.read && "bg-[#f6f8fc]"
                     )}
                   >
                     {!n.read && (
@@ -283,21 +283,21 @@ export default function AdminNotificationsPage() {
                         <div
                           className={cn(
                             "text-[15px] truncate",
-                            n.read ? "text-white/70" : "text-white"
+                            n.read ? "text-[#0c1426]" : "text-[#0c1426]"
                           )}
                         >
                           {n.title}
                         </div>
-                        <div className="text-[10px] uppercase tracking-[0.25em] text-white/30 font-mono shrink-0">
+                        <div className="text-[10px] uppercase tracking-[0.25em] text-[#9aa4b8] font-mono shrink-0">
                           {timeAgo(n.created_at)} ago
                         </div>
                       </div>
                       {n.body && (
-                        <div className="text-[13px] text-white/50 mt-1 line-clamp-2">
+                        <div className="text-[13px] text-[#5d6a82] mt-1 line-clamp-2">
                           {n.body}
                         </div>
                       )}
-                      <div className="text-[9px] uppercase tracking-[0.3em] text-white/25 font-mono mt-2">
+                      <div className="text-[9px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono mt-2">
                         {m.label}
                         {n.data?.href && (
                           <span className="ml-3 text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity normal-case tracking-normal">

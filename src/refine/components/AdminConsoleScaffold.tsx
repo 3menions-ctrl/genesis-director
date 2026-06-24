@@ -59,10 +59,10 @@ export function AdminConsoleScaffold({
                 style={{ color: s.fg, background: s.bg }}>
                 {s.label}
               </span>
-              <span className="h-px w-8 bg-white/10" />
-              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/35">Operator Console</span>
+              <span className="h-px w-8 bg-[#f6f8fc]" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-[#9aa4b8]">Operator Console</span>
             </div>
-            <p className="text-[15px] text-white/65 leading-relaxed font-light max-w-xl">
+            <p className="text-[15px] text-[#0c1426] leading-relaxed font-light max-w-xl">
               {intro}
             </p>
           </div>
@@ -70,7 +70,7 @@ export function AdminConsoleScaffold({
             <div className="flex items-center gap-3 shrink-0">
               {secondaryCta && (
                 <a href={secondaryCta.href} onClick={secondaryCta.onClick}
-                  className="text-[11px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors">
+                  className="text-[11px] uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2.5 rounded-full bg-[#f6f8fc] hover:bg-[#f4f7ff] transition-colors">
                   {secondaryCta.label}
                 </a>
               )}
@@ -90,9 +90,9 @@ export function AdminConsoleScaffold({
             <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }} />
             {signals.map((sig, i) => (
               <div key={i}>
-                <div className="text-[9px] text-white/45 font-mono uppercase tracking-[0.32em] mb-2">{sig.label}</div>
+                <div className="text-[9px] text-[#5d6a82] font-mono uppercase tracking-[0.32em] mb-2">{sig.label}</div>
                 <div className="text-2xl font-display font-semibold tracking-[-0.02em] tabular-nums" style={{ color: toneColor[sig.tone || "neutral"] }}>{sig.value}</div>
-                {sig.trend && <div className="text-[10px] text-white/35 mt-1 font-mono uppercase tracking-[0.2em]">{sig.trend}</div>}
+                {sig.trend && <div className="text-[10px] text-[#9aa4b8] mt-1 font-mono uppercase tracking-[0.2em]">{sig.trend}</div>}
               </div>
             ))}
           </div>
@@ -102,9 +102,9 @@ export function AdminConsoleScaffold({
       {/* Capabilities grid */}
       <section>
         <div className="flex items-center gap-4 mb-6">
-          <span className="text-[11px] text-white/45 font-mono font-bold uppercase tracking-[0.2em]">Surface Capabilities</span>
-          <div className="h-px flex-1 bg-white/5" />
-          <span className="text-[10px] text-white/30 font-mono uppercase tracking-widest">{capabilities.length} modules</span>
+          <span className="text-[11px] text-[#5d6a82] font-mono font-bold uppercase tracking-[0.2em]">Surface Capabilities</span>
+          <div className="h-px flex-1 bg-[#f6f8fc]" />
+          <span className="text-[10px] text-[#9aa4b8] font-mono uppercase tracking-widest">{capabilities.length} modules</span>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {capabilities.map((c, i) => {
@@ -121,10 +121,10 @@ export function AdminConsoleScaffold({
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor, boxShadow: `0 0 8px ${dotColor}` }} title={c.status} />
                 </div>
-                <h3 className="font-display text-[15px] text-white font-semibold tracking-[-0.02em] mb-1.5">
+                <h3 className="font-display text-[15px] text-[#0c1426] font-semibold tracking-[-0.02em] mb-1.5">
                   {c.title}
                 </h3>
-                <p className="text-[12px] text-white/50 leading-relaxed">{c.description}</p>
+                <p className="text-[12px] text-[#5d6a82] leading-relaxed">{c.description}</p>
               </AdminCard>
             );
           })}
@@ -136,11 +136,11 @@ export function AdminConsoleScaffold({
           <span aria-hidden className="pointer-events-none absolute -top-24 -right-16 w-[360px] h-[360px] rounded-full" style={{ background: `radial-gradient(circle, ${accent(0.1)}, transparent 60%)`, filter: "blur(50px)" }} />
           <div className="relative flex items-center gap-3 mb-5">
             <Lock className="w-3.5 h-3.5" style={{ color: ACCENT_HSL }} />
-            <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/50">{manifest.title}</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.32em] text-[#5d6a82]">{manifest.title}</span>
           </div>
           <ul className="relative space-y-2.5">
             {manifest.lines.map((l, i) => (
-              <li key={i} className="flex items-start gap-3 text-[13px] text-white/60 leading-relaxed">
+              <li key={i} className="flex items-start gap-3 text-[13px] text-[#5d6a82] leading-relaxed">
                 <span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ background: ACCENT_HSL, boxShadow: `0 0 6px ${accent(0.7)}` }} />
                 {l}
               </li>

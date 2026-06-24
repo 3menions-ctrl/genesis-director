@@ -19,7 +19,7 @@ interface ExperimentRow extends AdminRow {
   winner: string | null;
 }
 
-const STATUS_TONE = { draft: "text-white/55", live: "text-emerald-300", paused: "text-amber-300", concluded: "text-primary/80" } as const;
+const STATUS_TONE = { draft: "text-[#5d6a82]", live: "text-emerald-300", paused: "text-amber-300", concluded: "text-primary/80" } as const;
 
 export default function AdminExperimentsPage() {
   const [creating, setCreating] = useState(false);

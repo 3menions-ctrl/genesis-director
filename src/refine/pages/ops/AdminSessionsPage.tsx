@@ -92,19 +92,19 @@ export default function AdminSessionsPage() {
       }
     >
       <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
+        <div className="p-4 border-b border-[#e7ebf3] flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#9aa4b8]" />
           <Input
             placeholder="Filter by email, name, tier…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+            className="bg-transparent border-[#e7ebf3] text-[#0c1426] placeholder:text-[#9aa4b8]"
           />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">User</th>
                 <th className="text-left px-4 py-3">Tier</th>
                 <th className="text-left px-4 py-3">Last Sign-In</th>
@@ -114,16 +114,16 @@ export default function AdminSessionsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No sessions.</td></tr>}
+              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">No sessions.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.user_id} className="border-b border-white/[0.04] hover:bg-glass">
+                <tr key={r.user_id} className="border-b border-[#e7ebf3] hover:bg-glass">
                   <td className="px-4 py-3">
-                    <div className="text-white/90 text-[13px]">{r.display_name ?? "—"}</div>
-                    <div className="text-white/40 font-mono text-[10px]">{r.email}</div>
+                    <div className="text-[#0c1426] text-[13px]">{r.display_name ?? "—"}</div>
+                    <div className="text-[#9aa4b8] font-mono text-[10px]">{r.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.account_tier ?? "—"}</td>
-                  <td className="px-4 py-3 text-white/70 font-mono text-[11px] whitespace-nowrap">
+                  <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px]">{r.account_tier ?? "—"}</td>
+                  <td className="px-4 py-3 text-[#0c1426] font-mono text-[11px] whitespace-nowrap">
                     {r.last_sign_in_at ? new Date(r.last_sign_in_at).toLocaleString() : "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -131,7 +131,7 @@ export default function AdminSessionsPage() {
                       {r.is_active_24h ? "active" : r.is_idle_24h ? "idle" : "—"}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px] whitespace-nowrap">
+                  <td className="px-4 py-3 text-[#9aa4b8] font-mono text-[10px] whitespace-nowrap">
                     {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -144,7 +144,7 @@ export default function AdminSessionsPage() {
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-[#e7ebf3]" />
       </AdminSurface>
     </AdminPageShell>
   );

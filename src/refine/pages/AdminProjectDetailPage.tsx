@@ -226,7 +226,7 @@ export default function AdminProjectDetailPage() {
         <>
           <button
             onClick={() => navigate("/admin/projects")}
-            className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-3.5 py-1.5 rounded-full border border-white/[0.08] hover:border-white/20 transition-colors"
+            className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-3.5 py-1.5 rounded-full border border-[#e7ebf3] hover:border-[#d8deea] transition-colors"
           >
             <ArrowLeft className="w-3 h-3" /> Back
           </button>
@@ -234,15 +234,15 @@ export default function AdminProjectDetailPage() {
       }
     >
       {loading ? (
-        <div className="flex items-center justify-center py-24 gap-3 text-white/55">
+        <div className="flex items-center justify-center py-24 gap-3 text-[#5d6a82]">
           <Spinner size="md" tone="muted" />
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading project…</span>
         </div>
       ) : !detail ? (
         <AdminSurface>
-          <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
+          <div className="text-center py-12 text-[#0c1426] max-w-xl mx-auto">
             <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
-            <div className="text-[15px] mb-2 text-white">Project not found.</div>
+            <div className="text-[15px] mb-2 text-[#0c1426]">Project not found.</div>
             {loadError && (
               <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
                 {loadError}
@@ -250,7 +250,7 @@ export default function AdminProjectDetailPage() {
             )}
             <button
               onClick={() => void load()}
-              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors"
+              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2 rounded-md border border-[#e7ebf3] hover:border-[#d8deea] transition-colors"
             >
               Retry
             </button>
@@ -267,18 +267,18 @@ export default function AdminProjectDetailPage() {
                   <img
                     src={detail.project.thumbnail_url}
                     alt=""
-                    className="w-32 h-20 rounded-xl object-cover border border-white/[0.08] shrink-0"
+                    className="w-32 h-20 rounded-xl object-cover border border-[#e7ebf3] shrink-0"
                   />
                 ) : (
-                  <div className="w-32 h-20 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/35 shrink-0">
+                  <div className="w-32 h-20 rounded-xl border border-[#e7ebf3] bg-glass flex items-center justify-center text-[#9aa4b8] shrink-0">
                     <ImageOff className="w-5 h-5" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35 mb-1">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[#9aa4b8] mb-1">
                     {detail.project.id.slice(0, 8)}…
                   </div>
-                  <h2 className="font-display text-[24px] text-white font-light truncate">
+                  <h2 className="font-display text-[24px] text-[#0c1426] font-light truncate">
                     {detail.project.title || "Untitled scene"}
                   </h2>
                   <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
@@ -293,14 +293,14 @@ export default function AdminProjectDetailPage() {
 
             {/* Tabs */}
             <AdminSurface className="!p-0">
-              <div className="flex border-b border-white/[0.05]">
+              <div className="flex border-b border-[#e7ebf3]">
                 {(["pipeline", "costs", "failures", "metadata"] as TabKey[]).map((k) => (
                   <button
                     key={k}
                     onClick={() => setTab(k)}
                     className={cn(
                       "px-5 py-3 text-[11px] font-mono uppercase tracking-[0.28em] transition-colors relative",
-                      tab === k ? "text-white" : "text-white/35 hover:text-white/70",
+                      tab === k ? "text-[#0c1426]" : "text-[#9aa4b8] hover:text-[#0c1426]",
                     )}
                   >
                     {k}
@@ -344,28 +344,28 @@ export default function AdminProjectDetailPage() {
                     <img
                       src={detail.owner.avatar_url}
                       alt=""
-                      className="w-10 h-10 rounded-full object-cover border border-white/[0.08]"
+                      className="w-10 h-10 rounded-full object-cover border border-[#e7ebf3]"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 text-[12px] font-mono">
+                    <div className="w-10 h-10 rounded-full border border-[#e7ebf3] bg-glass flex items-center justify-center text-[#5d6a82] text-[12px] font-mono">
                       {(detail.owner.email?.[0] || detail.owner.display_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-white truncate">
+                    <div className="text-[13px] text-[#0c1426] truncate">
                       {detail.owner.display_name || detail.owner.email || "Unknown user"}
                     </div>
-                    <div className="text-[11px] text-white/40 truncate font-mono">
+                    <div className="text-[11px] text-[#9aa4b8] truncate font-mono">
                       {detail.owner.email}
                     </div>
                   </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-white/35 group-hover:text-primary" />
+                  <ExternalLink className="w-3.5 h-3.5 text-[#9aa4b8] group-hover:text-primary" />
                 </Link>
               ) : (
-                <div className="text-[12px] text-white/40">No owner attached.</div>
+                <div className="text-[12px] text-[#9aa4b8]">No owner attached.</div>
               )}
               {typeof detail.owner.credits_balance === "number" && (
-                <div className="mt-3 flex items-center gap-2 text-[11px] text-white/45 font-mono">
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-[#5d6a82] font-mono">
                   <Coins className="w-3 h-3" />
                   {detail.owner.credits_balance.toLocaleString()} credits available
                 </div>
@@ -398,13 +398,13 @@ export default function AdminProjectDetailPage() {
             <AdminSurface>
               <AdminSectionLabel label="Recent events" meta={`${detail.recent_events.length}`} />
               {detail.recent_events.length === 0 ? (
-                <div className="text-[12px] text-white/35 py-2">No admin actions recorded.</div>
+                <div className="text-[12px] text-[#9aa4b8] py-2">No admin actions recorded.</div>
               ) : (
                 <div className="space-y-2 max-h-[280px] overflow-y-auto">
                   {detail.recent_events.map((e) => (
-                    <div key={e.id} className="text-[11px] font-mono border-l-2 border-white/[0.08] pl-3 py-1.5">
-                      <div className="text-white/75">{e.action}</div>
-                      <div className="text-white/35">
+                    <div key={e.id} className="text-[11px] font-mono border-l-2 border-[#e7ebf3] pl-3 py-1.5">
+                      <div className="text-[#0c1426]">{e.action}</div>
+                      <div className="text-[#9aa4b8]">
                         {new Date(e.created_at).toLocaleString()}
                       </div>
                     </div>
@@ -429,7 +429,7 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "
   return (
     <span className={cn(
       "px-2 py-0.5 rounded-full border text-[10px] font-mono uppercase tracking-[0.18em]",
-      tone ? toneClass[tone] : "border-white/[0.08] text-white/55",
+      tone ? toneClass[tone] : "border-[#e7ebf3] text-[#5d6a82]",
     )}>
       {children}
     </span>
@@ -452,15 +452,15 @@ function ActionRow({
       disabled={disabled}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors",
-        "border-white/[0.06] bg-white/[0.015] hover:border-primary/30 hover:bg-primary/[0.05]",
+        "border-[#e7ebf3] bg-[#f6f8fc] hover:border-primary/30 hover:bg-primary/[0.05]",
         tone === "rose" && "hover:border-rose-400/30 hover:bg-rose-400/[0.05]",
-        disabled && "opacity-40 cursor-not-allowed hover:border-white/[0.06] hover:bg-white/[0.015]",
+        disabled && "opacity-40 cursor-not-allowed hover:border-[#d8deea]] hover:bg-[#f4f7ff]",
       )}
     >
-      <Icon className={cn("w-3.5 h-3.5 shrink-0", tone === "rose" ? "text-rose-300" : "text-white/55")} />
+      <Icon className={cn("w-3.5 h-3.5 shrink-0", tone === "rose" ? "text-rose-300" : "text-[#5d6a82]")} />
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] text-white">{label}</div>
-        {hint && <div className="text-[10px] text-white/40 font-mono">{hint}</div>}
+        <div className="text-[12px] text-[#0c1426]">{label}</div>
+        {hint && <div className="text-[10px] text-[#9aa4b8] font-mono">{hint}</div>}
       </div>
     </button>
   );
@@ -468,7 +468,7 @@ function ActionRow({
 
 function PipelineTab({ clips }: { clips: ClipRow[] }) {
   if (clips.length === 0) {
-    return <div className="text-[12px] text-white/40 py-4">No clips yet.</div>;
+    return <div className="text-[12px] text-[#9aa4b8] py-4">No clips yet.</div>;
   }
   return (
     <div className="space-y-1.5">
@@ -479,13 +479,13 @@ function PipelineTab({ clips }: { clips: ClipRow[] }) {
         return (
           <div
             key={c.id}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015]"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#e7ebf3] bg-[#f6f8fc]"
           >
-            <span className="font-mono text-[10px] text-white/35 w-8 shrink-0">
+            <span className="font-mono text-[10px] text-[#9aa4b8] w-8 shrink-0">
               #{String(c.shot_index ?? 0).padStart(2, "0")}
             </span>
             <Pill tone={tone}>{c.status}</Pill>
-            <div className="text-[12px] text-white/65 truncate flex-1">
+            <div className="text-[12px] text-[#0c1426] truncate flex-1">
               {c.prompt ?? c.error_message ?? "(no prompt)"}
             </div>
             {c.video_url && (
@@ -493,7 +493,7 @@ function PipelineTab({ clips }: { clips: ClipRow[] }) {
                 href={c.video_url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-white"
+                className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426]"
               >
                 view
               </a>
@@ -512,27 +512,27 @@ function CostsTab({ cost }: { cost: ProjectDetail["cost"] }) {
         <div className="text-4xl font-display font-light text-amber-200 tabular-nums">
           {cost.total_credits_spent.toLocaleString()}
         </div>
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35 pb-2">
+        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[#9aa4b8] pb-2">
           credits attributed
         </div>
       </div>
-      <p className="text-[11px] text-white/35 font-mono">
+      <p className="text-[11px] text-[#9aa4b8] font-mono">
         Approximate — the ledger tags spend by description match, not by FK. Use the user&apos;s full ledger for absolute totals.
       </p>
       {cost.transactions.length === 0 ? (
-        <div className="text-[12px] text-white/40 py-4">No matched transactions.</div>
+        <div className="text-[12px] text-[#9aa4b8] py-4">No matched transactions.</div>
       ) : (
         <div className="space-y-1.5 max-h-[320px] overflow-y-auto">
           {cost.transactions.map((t) => (
-            <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015]">
+            <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#e7ebf3] bg-[#f6f8fc]">
               <span className={cn(
                 "font-mono text-[11px] w-16 shrink-0 tabular-nums",
                 t.amount < 0 ? "text-rose-300" : "text-emerald-300",
               )}>
                 {t.amount > 0 ? "+" : ""}{t.amount}
               </span>
-              <div className="text-[11px] text-white/55 truncate flex-1">{t.description}</div>
-              <div className="text-[10px] text-white/30 font-mono shrink-0">
+              <div className="text-[11px] text-[#5d6a82] truncate flex-1">{t.description}</div>
+              <div className="text-[10px] text-[#9aa4b8] font-mono shrink-0">
                 {new Date(t.created_at).toLocaleDateString()}
               </div>
             </div>
@@ -548,11 +548,11 @@ function FailuresTab({ clips, events }: { clips: ClipRow[]; events: ProjectDetai
   return (
     <div className="space-y-5">
       <div>
-        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35 mb-3">
+        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-[#9aa4b8] mb-3">
           Clip failures · {failed.length}
         </div>
         {failed.length === 0 ? (
-          <div className="text-[12px] text-white/40">No failed clips.</div>
+          <div className="text-[12px] text-[#9aa4b8]">No failed clips.</div>
         ) : (
           <div className="space-y-1.5">
             {failed.map((c) => (
@@ -573,17 +573,17 @@ function FailuresTab({ clips, events }: { clips: ClipRow[]; events: ProjectDetai
       </div>
 
       <div>
-        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35 mb-3">
+        <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-[#9aa4b8] mb-3">
           Admin events
         </div>
         {events.length === 0 ? (
-          <div className="text-[12px] text-white/40">No admin actions recorded.</div>
+          <div className="text-[12px] text-[#9aa4b8]">No admin actions recorded.</div>
         ) : (
           <div className="space-y-1.5">
             {events.map((e) => (
-              <div key={e.id} className="px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015] text-[11px] font-mono">
-                <div className="text-white/75">{e.action}</div>
-                <div className="text-white/35">{new Date(e.created_at).toLocaleString()}</div>
+              <div key={e.id} className="px-3 py-2 rounded-lg border border-[#e7ebf3] bg-[#f6f8fc] text-[11px] font-mono">
+                <div className="text-[#0c1426]">{e.action}</div>
+                <div className="text-[#9aa4b8]">{new Date(e.created_at).toLocaleString()}</div>
               </div>
             ))}
           </div>
@@ -595,8 +595,8 @@ function FailuresTab({ clips, events }: { clips: ClipRow[]; events: ProjectDetai
 
 function MetadataTab({ project }: { project: ProjectDetail["project"] }) {
   const rows: Array<[string, React.ReactNode]> = [
-    ["ID", <span className="font-mono text-white/75">{project.id}</span>],
-    ["Owner ID", project.user_id ? <span className="font-mono text-white/75">{project.user_id}</span> : "—"],
+    ["ID", <span className="font-mono text-[#0c1426]">{project.id}</span>],
+    ["Owner ID", project.user_id ? <span className="font-mono text-[#0c1426]">{project.user_id}</span> : "—"],
     ["Universe", project.universe_id ?? "—"],
     ["Parent", project.parent_project_id ?? "—"],
     ["Genre", project.genre ?? "—"],
@@ -609,9 +609,9 @@ function MetadataTab({ project }: { project: ProjectDetail["project"] }) {
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[12px]">
       {rows.map(([k, v]) => (
-        <div key={k} className="flex items-baseline justify-between gap-3 border-b border-white/[0.04] py-2">
-          <dt className="text-white/40 font-mono uppercase tracking-[0.22em] text-[10px]">{k}</dt>
-          <dd className="text-white/85 text-right truncate">{v}</dd>
+        <div key={k} className="flex items-baseline justify-between gap-3 border-b border-[#e7ebf3] py-2">
+          <dt className="text-[#9aa4b8] font-mono uppercase tracking-[0.22em] text-[10px]">{k}</dt>
+          <dd className="text-[#0c1426] text-right truncate">{v}</dd>
         </div>
       ))}
     </dl>

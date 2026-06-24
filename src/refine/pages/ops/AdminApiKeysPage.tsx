@@ -45,7 +45,7 @@ export default function AdminApiKeysPage() {
           { key: "organizations", label: "Workspace", width: "180px",
             render: (_, row) => row.organizations?.name ?? "—" },
           { key: "prefix", label: "Prefix", width: "160px",
-            render: (v) => <code className="font-mono text-[11px] text-white/55">{String(v)}…</code> },
+            render: (v) => <code className="font-mono text-[11px] text-[#5d6a82]">{String(v)}…</code> },
           { key: "last_used_at", label: "Last used", width: "170px", hideOnMobile: true },
           { key: "revoked_at", label: "Status", width: "120px",
             render: (v) => v

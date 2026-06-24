@@ -13,7 +13,7 @@ import { ReactNode, useEffect, useRef } from "react";
 import { X, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { ACCENT_HSL, accent, ROSE } from "@/admin/ui/primitives";
+import { ACCENT_HSL, ROSE } from "@/admin/ui/primitives";
 
 interface InspectPanelProps {
   open: boolean;
@@ -78,9 +78,10 @@ export function InspectPanel({
       <div
         onClick={onClose}
         className={cn(
-          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+          "absolute inset-0 backdrop-blur-sm transition-opacity duration-300",
           open ? "opacity-100" : "opacity-0",
         )}
+        style={{ background: "rgba(12,20,38,0.28)" }}
       />
 
       {/* Panel */}
@@ -91,40 +92,20 @@ export function InspectPanel({
         aria-labelledby={title ? "inspect-panel-title" : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 bottom-0 flex flex-col overflow-hidden backdrop-blur-2xl",
-          "shadow-[-40px_0_120px_-40px_rgba(0,0,0,0.95)]",
+          "absolute right-0 top-0 bottom-0 flex flex-col overflow-hidden",
           "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           "outline-none",
           WIDTH[width],
           open ? "translate-x-0" : "translate-x-full",
         )}
         style={{
-          background:
-            "linear-gradient(200deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02) 45%, rgba(6,7,10,0.96))",
+          background: "#ffffff",
+          boxShadow:
+            "0 50px 120px -30px rgba(16,24,40,0.4), 0 8px 24px -12px rgba(16,24,40,0.18)",
         }}
       >
-        {/* Leading-edge specular highlight */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-0 top-0 bottom-0 w-px"
-          style={{
-            background: `linear-gradient(to bottom, transparent, ${accent(0.45)}, transparent)`,
-          }}
-        />
-        {/* Accent bloom in the top-leading corner */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full blur-3xl"
-          style={{ background: `radial-gradient(closest-side, ${accent(0.18)}, transparent 70%)` }}
-        />
-
         {/* Header */}
         <header className="relative shrink-0 px-6 py-5 flex items-start gap-4">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
-          />
           <div className="min-w-0 flex-1">
             {eyebrow && (
               <div
@@ -137,13 +118,13 @@ export function InspectPanel({
             {title && (
               <h2
                 id="inspect-panel-title"
-                className="font-display text-[20px] text-white font-semibold tracking-[-0.02em] leading-tight truncate"
+                className="font-display text-[20px] text-[#0c1426] font-semibold tracking-[-0.02em] leading-tight truncate"
               >
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-[12px] text-white/45 mt-1 truncate">{subtitle}</p>
+              <p className="text-[12px] text-[#5d6a82] mt-1 truncate">{subtitle}</p>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -151,7 +132,7 @@ export function InspectPanel({
             {deepLinkTo && (
               <Link
                 to={deepLinkTo}
-                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/55 hover:text-white flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-[#f6f8fc] hover:bg-[#f4f7ff] text-[#5d6a82] hover:text-[#0c1426] flex items-center justify-center transition-colors"
                 title="Open full page"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -160,7 +141,7 @@ export function InspectPanel({
             <button
               type="button"
               onClick={onClose}
-              className="group/close w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/55 flex items-center justify-center transition-colors"
+              className="group/close w-8 h-8 rounded-full bg-[#f6f8fc] hover:bg-[#f4f7ff] text-[#5d6a82] flex items-center justify-center transition-colors"
               title="Close (Esc)"
               aria-label="Close inspector"
             >
@@ -177,12 +158,7 @@ export function InspectPanel({
 
         {/* Footer */}
         {footer && (
-          <footer className="relative shrink-0 px-6 py-4 bg-white/[0.03]">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
-            />
+          <footer className="relative shrink-0 px-6 py-4 bg-[#f6f8fc]">
             {footer}
           </footer>
         )}

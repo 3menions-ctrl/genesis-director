@@ -58,12 +58,12 @@ export default function AdminCommentsPage() {
 
   const columns = useMemo(() => [
     col.accessor("content", { header: "Comment", cell: (c) => (
-      <span className="block max-w-[420px] truncate text-white/85" title={c.getValue() ?? ""}>{c.getValue() || "—"}</span>
+      <span className="block max-w-[420px] truncate text-[#0c1426]" title={c.getValue() ?? ""}>{c.getValue() || "—"}</span>
     ) }),
-    col.accessor("user_id", { header: "Author", cell: (c) => <span className="font-mono text-[12px] text-white/45">{(c.getValue() ?? "").slice(0, 8) || "—"}</span> }),
-    col.accessor("project_id", { header: "On project", cell: (c) => <span className="font-mono text-[12px] text-white/45">{(c.getValue() ?? "").slice(0, 8) || "—"}</span> }),
+    col.accessor("user_id", { header: "Author", cell: (c) => <span className="font-mono text-[12px] text-[#5d6a82]">{(c.getValue() ?? "").slice(0, 8) || "—"}</span> }),
+    col.accessor("project_id", { header: "On project", cell: (c) => <span className="font-mono text-[12px] text-[#5d6a82]">{(c.getValue() ?? "").slice(0, 8) || "—"}</span> }),
     col.accessor("likes_count", { header: "Likes", cell: (c) => <span className="tabular-nums">{c.getValue() ?? 0}</span> }),
-    col.accessor("created_at", { header: "When", cell: (c) => <span className="text-white/55">{c.getValue() ? new Date(c.getValue()!).toLocaleString() : "—"}</span> }),
+    col.accessor("created_at", { header: "When", cell: (c) => <span className="text-[#5d6a82]">{c.getValue() ? new Date(c.getValue()!).toLocaleString() : "—"}</span> }),
     col.display({ id: "actions", header: "", cell: (c) => (
       <button
         type="button"
@@ -87,7 +87,7 @@ export default function AdminCommentsPage() {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40" style={{ color: accent(0.7) }}>Loading comments…</div>
+        <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]" style={{ color: accent(0.7) }}>Loading comments…</div>
       ) : (
         <DataTable columns={columns as never} data={rows} empty="No comments yet." />
       )}

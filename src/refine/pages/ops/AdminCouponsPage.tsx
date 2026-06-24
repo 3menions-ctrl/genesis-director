@@ -50,7 +50,7 @@ export default function AdminCouponsPage() {
         ]}
         columns={[
           { key: "code", label: "Code", width: "160px",
-            render: (v) => <code className="font-mono text-[12px] text-white/85 uppercase">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[12px] text-[#0c1426] uppercase">{String(v)}</code> },
           { key: "description", label: "Description" },
           { key: "percent_off", label: "Discount", width: "120px", align: "right",
             render: (_, row) => row.percent_off != null

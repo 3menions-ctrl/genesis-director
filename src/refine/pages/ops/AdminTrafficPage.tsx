@@ -26,15 +26,15 @@ function SegBars({ title, rows }: { title: string; rows: Seg[] }) {
   const max = Math.max(...rows.map((r) => r.sessions), 1);
   return (
     <AdminCard className="p-5">
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">{title}</div>
-      {rows.length === 0 ? <div className="py-6 text-center text-[13px] font-light text-white/40">No data yet.</div> : (
+      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">{title}</div>
+      {rows.length === 0 ? <div className="py-6 text-center text-[13px] font-light text-[#9aa4b8]">No data yet.</div> : (
         <div className="space-y-2">
           {rows.map((r) => (
             <div key={r.key} className="relative overflow-hidden rounded-lg px-3 py-2">
               <div aria-hidden className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${(r.sessions / max) * 100}%`, background: accent(0.12) }} />
               <div className="relative flex items-center justify-between text-[12.5px]">
-                <span className="text-white/75">{r.key}</span>
-                <span className="tabular-nums text-white/45">{r.sessions.toLocaleString()} <span className="text-white/25">sess</span></span>
+                <span className="text-[#0c1426]">{r.key}</span>
+                <span className="tabular-nums text-[#5d6a82]">{r.sessions.toLocaleString()} <span className="text-[#9aa4b8]">sess</span></span>
               </div>
             </div>
           ))}
@@ -77,16 +77,16 @@ export default function AdminTrafficPage() {
   }, []);
 
   const pageCols = useMemo(() => [
-    pcol.accessor("path", { header: "Page", cell: (c) => <span className="font-mono text-[12.5px] text-white/85">{c.getValue() || "/"}</span> }),
+    pcol.accessor("path", { header: "Page", cell: (c) => <span className="font-mono text-[12.5px] text-[#0c1426]">{c.getValue() || "/"}</span> }),
     pcol.accessor("views", { header: "Views", cell: (c) => <span className="tabular-nums" style={{ color: ACCENT_HSL }}>{Number(c.getValue()).toLocaleString()}</span> }),
-    pcol.accessor("visitors", { header: "Visitors", cell: (c) => <span className="tabular-nums text-white/60">{Number(c.getValue()).toLocaleString()}</span> }),
-    pcol.accessor("avg_seconds", { header: "Avg time", cell: (c) => <span className="tabular-nums text-white/60">{dur(Number(c.getValue()))}</span> }),
+    pcol.accessor("visitors", { header: "Visitors", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue()).toLocaleString()}</span> }),
+    pcol.accessor("avg_seconds", { header: "Avg time", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{dur(Number(c.getValue()))}</span> }),
   ], []);
   const searchCols = useMemo(() => [
-    scol.accessor("query", { header: "Query", cell: (c) => <span className="text-white/85">{c.getValue()}</span> }),
+    scol.accessor("query", { header: "Query", cell: (c) => <span className="text-[#0c1426]">{c.getValue()}</span> }),
     scol.accessor("searches", { header: "Searches", cell: (c) => <span className="tabular-nums" style={{ color: ACCENT_HSL }}>{Number(c.getValue()).toLocaleString()}</span> }),
-    scol.accessor("actors", { header: "People", cell: (c) => <span className="tabular-nums text-white/60">{Number(c.getValue()).toLocaleString()}</span> }),
-    scol.accessor("avg_results", { header: "Avg results", cell: (c) => <span className="tabular-nums text-white/60">{Number(c.getValue())}</span> }),
+    scol.accessor("actors", { header: "People", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue()).toLocaleString()}</span> }),
+    scol.accessor("avg_results", { header: "Avg results", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue())}</span> }),
   ], []);
 
   return (
@@ -122,13 +122,13 @@ export default function AdminTrafficPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
-          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Top pages · time-on-page</div>
-          {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>
+          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Top pages · time-on-page</div>
+          {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading…</div>
             : <DataTable columns={pageCols as never} data={pages} dense empty="No pageviews yet." />}
         </div>
         <div>
-          <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40"><SearchIcon className="h-3 w-3" /> Top searches</div>
-          {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>
+          <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]"><SearchIcon className="h-3 w-3" /> Top searches</div>
+          {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading…</div>
             : <DataTable columns={searchCols as never} data={searches} dense empty="No searches tracked yet." />}
         </div>
       </div>

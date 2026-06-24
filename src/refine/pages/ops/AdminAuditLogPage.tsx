@@ -86,19 +86,19 @@ export default function AdminAuditLogPage() {
       }
     >
       <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
+        <div className="p-4 border-b border-[#e7ebf3] flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#9aa4b8]" />
           <Input
             placeholder="Filter by action, target, or details…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+            className="bg-transparent border-[#e7ebf3] text-[#0c1426] placeholder:text-[#9aa4b8]"
           />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">When</th>
                 <th className="text-left px-4 py-3">Action</th>
                 <th className="text-left px-4 py-3">Target</th>
@@ -108,24 +108,24 @@ export default function AdminAuditLogPage() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>
               )}
               {!loading && pg.slice.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-white/40">No audit events.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[#9aa4b8]">No audit events.</td></tr>
               )}
               {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3 text-white/70 font-mono text-[12px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                <tr key={r.id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                  <td className="px-4 py-3 text-[#0c1426] font-mono text-[12px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.action}</span></td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.target_type ?? "—"}{r.target_id ? ` / ${r.target_id.slice(0,8)}…` : ""}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.admin_id.slice(0,8)}…</td>
-                  <td className="px-4 py-3 text-white/50 font-mono text-[11px] max-w-[420px] truncate">{JSON.stringify(r.details ?? {})}</td>
+                  <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px]">{r.target_type ?? "—"}{r.target_id ? ` / ${r.target_id.slice(0,8)}…` : ""}</td>
+                  <td className="px-4 py-3 text-[#9aa4b8] font-mono text-[11px]">{r.admin_id.slice(0,8)}…</td>
+                  <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px] max-w-[420px] truncate">{JSON.stringify(r.details ?? {})}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-[#e7ebf3]" />
       </AdminSurface>
     </AdminPageShell>
   );

@@ -320,33 +320,33 @@ export default function AdminUserDetailPage() {
       actions={
         <button
           onClick={() => navigate("/admin/users")}
-          className="text-[11px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-3 py-1.5 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors inline-flex items-center gap-1.5"
+          className="text-[11px] uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-3 py-1.5 rounded-md border border-[#e7ebf3] hover:border-[#d8deea] transition-colors inline-flex items-center gap-1.5"
         >
           <ArrowLeft className="w-3 h-3" /> All users
         </button>
       }
     >
       {loading ? (
-        <div className="flex items-center justify-center py-24 gap-3 text-white/55">
+        <div className="flex items-center justify-center py-24 gap-3 text-[#5d6a82]">
           <Spinner size="md" tone="muted" />
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading user…</span>
         </div>
       ) : !detail ? (
         <AdminSurface>
-          <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
+          <div className="text-center py-12 text-[#0c1426] max-w-xl mx-auto">
             <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
-            <div className="text-[15px] mb-2 text-white">User not found.</div>
+            <div className="text-[15px] mb-2 text-[#0c1426]">User not found.</div>
             {loadError ? (
               <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
                 {loadError}
               </div>
             ) : null}
-            <div className="text-[12px] text-white/45 mt-4 leading-relaxed">
-              Common causes: the new <span className="font-mono text-white/70">20260610094658_admin_user_powers</span> migration hasn&rsquo;t been pushed yet; your current session isn&rsquo;t in <span className="font-mono text-white/70">user_roles</span> with <span className="font-mono text-white/70">role=&lsquo;admin&rsquo;</span>; or the user ID in the URL is wrong.
+            <div className="text-[12px] text-[#5d6a82] mt-4 leading-relaxed">
+              Common causes: the new <span className="font-mono text-[#0c1426]">20260610094658_admin_user_powers</span> migration hasn&rsquo;t been pushed yet; your current session isn&rsquo;t in <span className="font-mono text-[#0c1426]">user_roles</span> with <span className="font-mono text-[#0c1426]">role=&lsquo;admin&rsquo;</span>; or the user ID in the URL is wrong.
             </div>
             <button
               onClick={() => void load()}
-              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors"
+              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2 rounded-md border border-[#e7ebf3] hover:border-[#d8deea] transition-colors"
             >
               Retry
             </button>
@@ -362,16 +362,16 @@ export default function AdminUserDetailPage() {
                   <img
                     src={detail.profile.avatar_url}
                     alt=""
-                    className="w-16 h-16 rounded-2xl object-cover border border-white/[0.08]"
+                    className="w-16 h-16 rounded-2xl object-cover border border-[#e7ebf3]"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-glass-hover border border-white/[0.08] flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white/55" />
+                  <div className="w-16 h-16 rounded-2xl bg-glass-hover border border-[#e7ebf3] flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[#5d6a82]" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h2 className="font-display text-[24px] text-white font-light leading-tight truncate">
+                    <h2 className="font-display text-[24px] text-[#0c1426] font-light leading-tight truncate">
                       {detail.profile.display_name || detail.profile.full_name || "Unnamed"}
                     </h2>
                     {isTargetAdmin && (
@@ -390,10 +390,10 @@ export default function AdminUserDetailPage() {
                       </span>
                     )}
                   </div>
-                  <div className="font-mono text-[12px] text-white/65 truncate">
+                  <div className="font-mono text-[12px] text-[#0c1426] truncate">
                     {detail.profile.email ?? detail.auth.email ?? "—"}
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/30 mt-2">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#9aa4b8] mt-2">
                     Joined {new Date(detail.profile.created_at).toLocaleDateString()} · ID {detail.profile.id.slice(0, 8)}…
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export default function AdminUserDetailPage() {
             </AdminSurface>
 
             <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
+              <div className="px-6 py-4 border-b border-[#e7ebf3]">
                 <AdminSectionLabel label="Activity at a glance" />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4">
@@ -421,7 +421,7 @@ export default function AdminUserDetailPage() {
             </AdminSurface>
 
             <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
+              <div className="px-6 py-4 border-b border-[#e7ebf3]">
                 <AdminSectionLabel label="Identity" />
               </div>
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[13px]">
@@ -446,18 +446,18 @@ export default function AdminUserDetailPage() {
 
             {detail.organizations.length > 0 && (
               <AdminSurface className="p-0 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/[0.06]">
+                <div className="px-6 py-4 border-b border-[#e7ebf3]">
                   <AdminSectionLabel label="Workspace memberships" meta={`${detail.organizations.length} orgs`} />
                 </div>
                 <table className="w-full text-[13px]">
                   <tbody>
                     {detail.organizations.map((o) => (
-                      <tr key={o.organization_id} className="border-b border-white/[0.03]">
-                        <td className="px-6 py-3 text-white/90">{o.name}</td>
-                        <td className="px-6 py-3 text-white/55">
+                      <tr key={o.organization_id} className="border-b border-[#e7ebf3]">
+                        <td className="px-6 py-3 text-[#0c1426]">{o.name}</td>
+                        <td className="px-6 py-3 text-[#5d6a82]">
                           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">{o.role}</span>
                         </td>
-                        <td className="px-6 py-3 text-right text-white/45 font-mono text-[11px]">
+                        <td className="px-6 py-3 text-right text-[#5d6a82] font-mono text-[11px]">
                           {new Date(o.joined_at).toLocaleDateString()}
                         </td>
                       </tr>
@@ -468,19 +468,19 @@ export default function AdminUserDetailPage() {
             )}
 
             <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
+              <div className="px-6 py-4 border-b border-[#e7ebf3]">
                 <AdminSectionLabel label="Recent admin actions" meta={`${audit.length} entries`} />
               </div>
               {audit.length === 0 ? (
-                <div className="p-8 text-center text-white/45 text-[12px] font-mono uppercase tracking-[0.22em]">
+                <div className="p-8 text-center text-[#5d6a82] text-[12px] font-mono uppercase tracking-[0.22em]">
                   No admin actions recorded
                 </div>
               ) : (
                 <table className="w-full text-[13px]">
                   <tbody>
                     {audit.map((a) => (
-                      <tr key={a.id} className="border-b border-white/[0.03]">
-                        <td className="px-6 py-3 text-white/55 font-mono text-[10px] uppercase tracking-[0.22em] whitespace-nowrap">
+                      <tr key={a.id} className="border-b border-[#e7ebf3]">
+                        <td className="px-6 py-3 text-[#5d6a82] font-mono text-[10px] uppercase tracking-[0.22em] whitespace-nowrap">
                           {new Date(a.created_at).toLocaleString()}
                         </td>
                         <td className="px-6 py-3">
@@ -488,10 +488,10 @@ export default function AdminUserDetailPage() {
                             {a.action.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-white/65 text-[12px] truncate">
+                        <td className="px-6 py-3 text-[#0c1426] text-[12px] truncate">
                           {a.admin_email ?? "system"}
                         </td>
-                        <td className="px-6 py-3 text-right text-white/40 font-mono text-[10px]">
+                        <td className="px-6 py-3 text-right text-[#9aa4b8] font-mono text-[10px]">
                           {(a.details as { reason?: string })?.reason ?? ""}
                         </td>
                       </tr>
@@ -506,7 +506,7 @@ export default function AdminUserDetailPage() {
           <div className="space-y-3">
             <AdminSurface>
               <AdminSectionLabel label="Operator actions" />
-              <p className="text-[11px] text-white/45 mt-1 mb-5 leading-relaxed">
+              <p className="text-[11px] text-[#5d6a82] mt-1 mb-5 leading-relaxed">
                 Every action below is logged to admin_audit_log. Self-targeting is blocked at the RPC level.
               </p>
 
@@ -586,7 +586,7 @@ export default function AdminUserDetailPage() {
                   }
                 />
                 {isTargetAdmin && (
-                  <p className="text-[10px] text-white/35 mt-2 leading-relaxed">
+                  <p className="text-[10px] text-[#9aa4b8] mt-2 leading-relaxed">
                     Admins cannot be deleted from this surface — demote first via the Roles page.
                   </p>
                 )}
@@ -602,7 +602,7 @@ export default function AdminUserDetailPage() {
               <AdminSectionLabel label="Role" />
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {detail.roles.length === 0 ? (
-                  <span className="text-[12px] text-white/45">No assigned roles</span>
+                  <span className="text-[12px] text-[#5d6a82]">No assigned roles</span>
                 ) : (
                   detail.roles.map((r) => (
                     <span
@@ -640,10 +640,10 @@ function StatCell({
           ? "text-amber-300"
           : tone === "rose"
             ? "text-rose-300"
-            : "text-white";
+            : "text-[#0c1426]";
   return (
-    <div className="px-6 py-5 border-r border-b border-white/[0.04] last:border-r-0">
-      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/35 mb-1.5">
+    <div className="px-6 py-5 border-r border-b border-[#e7ebf3] last:border-r-0">
+      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-[#9aa4b8] mb-1.5">
         {label}
       </div>
       <div className={`font-display text-2xl tabular-nums font-light ${toneClass}`}>
@@ -656,10 +656,10 @@ function StatCell({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/35 mb-1">
+      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-[#9aa4b8] mb-1">
         {label}
       </div>
-      <div className="text-white/80 truncate">{children}</div>
+      <div className="text-[#0c1426] truncate">{children}</div>
     </div>
   );
 }
@@ -679,19 +679,19 @@ function ActionRow({
 }) {
   const palette =
     tone === "brand"
-      ? "border-brand/30 hover:border-brand/60 text-brand-light hover:text-white"
+      ? "border-brand/30 hover:border-brand/60 text-brand-light hover:text-[#0c1426]"
       : tone === "amber"
-        ? "border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-white"
+        ? "border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-[#0c1426]"
         : tone === "emerald"
-          ? "border-emerald-400/30 hover:border-emerald-400/60 text-emerald-200 hover:text-white"
+          ? "border-emerald-400/30 hover:border-emerald-400/60 text-emerald-200 hover:text-[#0c1426]"
           : tone === "destructive"
-            ? "border-rose-400/30 hover:border-rose-400/60 text-rose-200 hover:text-white"
-            : "border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white";
+            ? "border-rose-400/30 hover:border-rose-400/60 text-rose-200 hover:text-[#0c1426]"
+            : "border-[#e7ebf3] hover:border-[#d8deea] text-[#0c1426] hover:text-[#0c1426]";
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-white/[0.015] hover:bg-glass-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left ${palette}`}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-[#f6f8fc] hover:bg-glass-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left ${palette}`}
     >
       <Icon className="w-3.5 h-3.5" />
       <span className="text-[12px] uppercase tracking-[0.18em] font-mono">{label}</span>

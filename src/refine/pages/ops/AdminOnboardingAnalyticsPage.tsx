@@ -97,8 +97,8 @@ export default function AdminOnboardingAnalyticsPage() {
               return (
                 <div key={i}>
                   <div className="flex justify-between text-[12px] mb-1.5">
-                    <span className="text-white/70 font-mono">{stage.label}</span>
-                    <span className="text-white/50 font-mono tabular-nums">{stage.n.toLocaleString()} · {pct.toFixed(1)}%</span>
+                    <span className="text-[#0c1426] font-mono">{stage.label}</span>
+                    <span className="text-[#5d6a82] font-mono tabular-nums">{stage.n.toLocaleString()} · {pct.toFixed(1)}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-glass-hover overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${Math.min(100, pct)}%` }} />
@@ -114,10 +114,10 @@ export default function AdminOnboardingAnalyticsPage() {
             <AdminSectionLabel label="By Account Type" />
             <table className="w-full text-sm">
               <tbody>
-                {byAccountType.length === 0 && <tr><td className="text-white/40 py-4">No data.</td></tr>}
+                {byAccountType.length === 0 && <tr><td className="text-[#9aa4b8] py-4">No data.</td></tr>}
                 {byAccountType.map(([k, v]) => (
-                  <tr key={k} className="border-b border-white/[0.04]">
-                    <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
+                  <tr key={k} className="border-b border-[#e7ebf3]">
+                    <td className="py-2 text-[#0c1426] font-mono text-[12px]">{k}</td>
                     <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
                   </tr>
                 ))}
@@ -128,10 +128,10 @@ export default function AdminOnboardingAnalyticsPage() {
             <AdminSectionLabel label="Top Use Cases" />
             <table className="w-full text-sm">
               <tbody>
-                {byUseCase.length === 0 && <tr><td className="text-white/40 py-4">No data.</td></tr>}
+                {byUseCase.length === 0 && <tr><td className="text-[#9aa4b8] py-4">No data.</td></tr>}
                 {byUseCase.map(([k, v]) => (
-                  <tr key={k} className="border-b border-white/[0.04]">
-                    <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
+                  <tr key={k} className="border-b border-[#e7ebf3]">
+                    <td className="py-2 text-[#0c1426] font-mono text-[12px]">{k}</td>
                     <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
                   </tr>
                 ))}

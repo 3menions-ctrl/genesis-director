@@ -203,7 +203,7 @@ export default function AdminUsersPage() {
       italic="Roster."
       description="Every authenticated principal across the platform — credits, tier, roles, and project footprint."
       actions={
-        <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9 text-white/40">
+        <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9 text-[#9aa4b8]">
           {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
         </Button>
       }
@@ -217,37 +217,37 @@ export default function AdminUsersPage() {
       <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9aa4b8]" />
           <Input
             placeholder="Search users..."
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
-            className="pl-9 h-9 text-sm bg-glass border-white/[0.06] text-white placeholder:text-white/20"
+            className="pl-9 h-9 text-sm bg-glass border-[#e7ebf3] text-[#0c1426] placeholder:text-[#9aa4b8]"
           />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+      <div className="rounded-2xl border border-[#e7ebf3] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06]">
+              <tr className="border-b border-[#e7ebf3]">
                 <th className="w-10 py-3 pl-4">
                   <input
                     type="checkbox"
                     checked={users.length > 0 && selected.size === users.length}
                     onChange={toggleAll}
                     aria-label="Select all"
-                    className="w-3.5 h-3.5 rounded border border-white/20 bg-transparent accent-[#0A84FF] cursor-pointer"
+                    className="w-3.5 h-3.5 rounded border border-[#d8deea] bg-transparent accent-[#0A84FF] cursor-pointer"
                   />
                 </th>
-                <th className="text-left py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">User</th>
-                <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Credits</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Projects</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Tier</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Roles</th>
-                <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Actions</th>
+                <th className="text-left py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">User</th>
+                <th className="text-right py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">Credits</th>
+                <th className="text-center py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">Projects</th>
+                <th className="text-center py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">Tier</th>
+                <th className="text-center py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">Roles</th>
+                <th className="text-right py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
                 <tr
                   key={u.id}
                   className={cn(
-                    "border-b border-white/[0.04] transition-colors",
+                    "border-b border-[#e7ebf3] transition-colors",
                     selected.has(u.id) ? "bg-primary/[0.05]" : "hover:bg-glass",
                   )}
                 >
@@ -265,19 +265,19 @@ export default function AdminUsersPage() {
                       checked={selected.has(u.id)}
                       onChange={() => toggleOne(u.id)}
                       aria-label={`Select ${u.email}`}
-                      className="w-3.5 h-3.5 rounded border border-white/20 bg-transparent accent-[#0A84FF] cursor-pointer"
+                      className="w-3.5 h-3.5 rounded border border-[#d8deea] bg-transparent accent-[#0A84FF] cursor-pointer"
                     />
                   </td>
                   <td className="py-3 px-4">
-                    <p className="text-sm font-medium text-white">{u.display_name || u.full_name || "Unknown"}</p>
-                    <p className="text-xs text-white/30">{u.email}</p>
+                    <p className="text-sm font-medium text-[#0c1426]">{u.display_name || u.full_name || "Unknown"}</p>
+                    <p className="text-xs text-[#9aa4b8]">{u.email}</p>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <span className="font-mono text-sm text-white/70">{u.credits_balance?.toLocaleString()}</span>
+                    <span className="font-mono text-sm text-[#0c1426]">{u.credits_balance?.toLocaleString()}</span>
                   </td>
-                  <td className="py-3 px-4 text-center text-sm text-white/40">{u.project_count}</td>
+                  <td className="py-3 px-4 text-center text-sm text-[#9aa4b8]">{u.project_count}</td>
                   <td className="py-3 px-4 text-center">
-                    <Badge variant="secondary" className="text-[10px] font-medium bg-glass-hover text-white/50 border-white/[0.06]">{u.account_tier}</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-medium bg-glass-hover text-[#5d6a82] border-[#e7ebf3]">{u.account_tier}</Badge>
                   </td>
                   <td className="py-3 px-4 text-center">
                     {u.roles?.includes("admin") && (
@@ -288,7 +288,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/30 hover:text-white/60"
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-[#9aa4b8] hover:text-[#5d6a82]"
                         onClick={() => setCreditDialog({ open: true, user: u, amount: "", reason: "" })} title="Adjust Credits">
                         <Coins className="w-3.5 h-3.5" />
                       </Button>
@@ -312,7 +312,7 @@ export default function AdminUsersPage() {
                         }}>
                         <Shield className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/30 hover:text-white/60" title="User analytics"
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-[#9aa4b8] hover:text-[#5d6a82]" title="User analytics"
                         onClick={() => setAnalyticsUser({ id: u.id, label: u.display_name || u.email })}>
                         <BarChart3 className="w-3.5 h-3.5" />
                       </Button>
@@ -321,7 +321,7 @@ export default function AdminUsersPage() {
                       <Link
                         to={`/admin/users/${u.id}`}
                         title="Manage user"
-                        className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-white/[0.08] hover:border-white/30 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 hover:text-white transition-colors"
+                        className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-[#e7ebf3] hover:border-[#d8deea] text-[10px] font-mono uppercase tracking-[0.22em] text-[#0c1426] hover:text-[#0c1426] transition-colors"
                       >
                         Manage <ArrowRight className="w-3 h-3" />
                       </Link>
@@ -378,7 +378,7 @@ export default function AdminUsersPage() {
 
       {/* Bulk grant dialog */}
       <Dialog open={bulkGrantOpen} onOpenChange={setBulkGrantOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md border-0 bg-white text-[#0c1426] shadow-[0_50px_120px_-30px_rgba(16,24,40,0.4)]">
           <DialogHeader>
             <DialogTitle className="text-base">Bulk grant credits</DialogTitle>
             <DialogDescription className="text-xs">
@@ -411,7 +411,7 @@ export default function AdminUsersPage() {
 
       {/* Credit Adjustment Dialog */}
       <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: "", reason: "" })}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md border-0 bg-white text-[#0c1426] shadow-[0_50px_120px_-30px_rgba(16,24,40,0.4)]">
           <DialogHeader>
             <DialogTitle className="text-base">Adjust Credits</DialogTitle>
             <DialogDescription className="text-xs">

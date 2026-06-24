@@ -51,8 +51,8 @@ export default function AdminTemplatesAdminPage() {
         columns={[
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v
-              ? <img src={String(v)} alt="" className="w-12 h-8 rounded-md object-cover border border-white/[0.06]" />
-              : <div className="w-12 h-8 rounded-md bg-glass border border-white/[0.06]" /> },
+              ? <img src={String(v)} alt="" className="w-12 h-8 rounded-md object-cover border border-[#e7ebf3]" />
+              : <div className="w-12 h-8 rounded-md bg-glass border border-[#e7ebf3]" /> },
           { key: "name", label: "Name" },
           { key: "category", label: "Category", width: "130px" },
           { key: "profiles", label: "Author", width: "200px",

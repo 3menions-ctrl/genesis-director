@@ -25,7 +25,7 @@ export default memo(function AdminProductionPage() {
       italic="Pipeline."
       description="Live render telemetry and the failure recovery queue, in one continuous stream."
     >
-      <div className="flex items-center gap-1 p-1 rounded-2xl border border-white/[0.06] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-xl w-fit mb-6">
+      <div className="flex items-center gap-1 p-1 rounded-2xl border border-[#e7ebf3] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-xl w-fit mb-6">
         {TABS.map(({ key, label, code, icon: Icon }) => {
           const isActive = active === key;
           return (
@@ -35,13 +35,13 @@ export default memo(function AdminProductionPage() {
               className={cn(
                 "relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-[11px] uppercase tracking-[0.18em] font-medium transition-all",
                 isActive
-                  ? "text-white bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.4)] shadow-[0_8px_24px_-12px_hsla(215,100%,60%,0.6)]"
-                  : "text-white/45 hover:text-white border border-transparent hover:bg-glass-hover"
+                  ? "text-[#0c1426] bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.4)] shadow-[0_8px_24px_-12px_hsla(215,100%,60%,0.6)]"
+                  : "text-[#5d6a82] hover:text-[#0c1426] border border-transparent hover:bg-glass-hover"
               )}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{label}</span>
-              <span className="text-[9px] font-mono tracking-[0.3em] text-white/30">{code}</span>
+              <span className="text-[9px] font-mono tracking-[0.3em] text-[#9aa4b8]">{code}</span>
             </button>
           );
         })}

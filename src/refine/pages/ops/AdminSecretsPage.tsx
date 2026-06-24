@@ -32,7 +32,7 @@ const SPEC: SecretSpec[] = [
 
 const CATEGORY_TONE: Record<SecretSpec["category"], string> = {
   auth: "text-rose-300", ai: "text-primary/80", payments: "text-emerald-300",
-  email: "text-amber-300", integrations: "text-violet-300", monitoring: "text-white/55",
+  email: "text-amber-300", integrations: "text-violet-300", monitoring: "text-[#5d6a82]",
 };
 
 export default function AdminSecretsPage() {
@@ -86,7 +86,7 @@ export default function AdminSecretsPage() {
       <div className="space-y-8">
         {Object.entries(grouped).map(([category, items]) => (
           <AdminSurface key={category} className="p-0 overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/[0.06]">
+            <div className="px-6 py-4 border-b border-[#e7ebf3]">
               <AdminSectionLabel
                 label={category.toUpperCase()}
                 meta={`${items.length} secrets`}
@@ -94,28 +94,28 @@ export default function AdminSecretsPage() {
             </div>
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-white/[0.05]">
-                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Key</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Description</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35 w-[140px]">Status</th>
+                <tr className="border-b border-[#e7ebf3]">
+                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Key</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Description</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8] w-[140px]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((s) => (
-                  <tr key={s.key} className="border-b border-white/[0.03]">
-                    <td className="px-5 py-3 font-mono text-[12px] text-white/85">
+                  <tr key={s.key} className="border-b border-[#e7ebf3]">
+                    <td className="px-5 py-3 font-mono text-[12px] text-[#0c1426]">
                       <span className={CATEGORY_TONE[s.category]}>●</span> {s.key}
                     </td>
-                    <td className="px-5 py-3 text-white/55 text-[12px]">{s.description}</td>
+                    <td className="px-5 py-3 text-[#5d6a82] text-[12px]">{s.description}</td>
                     <td className="px-5 py-3">
                       {loading ? (
-                        <Loader2 className="w-3 h-3 animate-spin text-white/40" />
+                        <Loader2 className="w-3 h-3 animate-spin text-[#9aa4b8]" />
                       ) : status[s.key] === "present" ? (
                         <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-300">Present</span>
                       ) : status[s.key] === "missing" ? (
                         <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-rose-300">Missing</span>
                       ) : (
-                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/40">Unknown</span>
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#9aa4b8]">Unknown</span>
                       )}
                     </td>
                   </tr>
@@ -129,15 +129,15 @@ export default function AdminSecretsPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-emerald-300 mt-0.5" />
             <div>
-              <div className="text-white/85 text-[13px] mb-2">Rotation</div>
-              <p className="text-[12px] text-white/55 leading-relaxed mb-3">
-                Set or rotate secrets with: <code className="font-mono text-white/85">supabase secrets set KEY=value</code>.
+              <div className="text-[#0c1426] text-[13px] mb-2">Rotation</div>
+              <p className="text-[12px] text-[#5d6a82] leading-relaxed mb-3">
+                Set or rotate secrets with: <code className="font-mono text-[#0c1426]">supabase secrets set KEY=value</code>.
                 Values never appear in this console — that's by design.
               </p>
               <a
                 href="https://supabase.com/dashboard/project/_/settings/functions"
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-primary/80 hover:text-white"
+                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-primary/80 hover:text-[#0c1426]"
               >
                 Open Supabase secrets dashboard <ExternalLink className="w-3 h-3" />
               </a>

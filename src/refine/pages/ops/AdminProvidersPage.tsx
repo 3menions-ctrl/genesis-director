@@ -79,7 +79,7 @@ export default function AdminProvidersPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">Provider</th>
                 <th className="text-right px-4 py-3">Invocations</th>
                 <th className="text-right px-4 py-3">Success</th>
@@ -89,15 +89,15 @@ export default function AdminProvidersPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && groups.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No provider activity in last 7 days.</td></tr>}
+              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && groups.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">No provider activity in last 7 days.</td></tr>}
               {groups.map(g => (
-                <tr key={g.service} className="border-b border-white/[0.04] hover:bg-glass">
+                <tr key={g.service} className="border-b border-[#e7ebf3] hover:bg-glass">
                   <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{g.service}</span></td>
-                  <td className="px-4 py-3 text-right text-white/70 font-mono text-[11px] tabular-nums">{g.invocations}</td>
+                  <td className="px-4 py-3 text-right text-[#0c1426] font-mono text-[11px] tabular-nums">{g.invocations}</td>
                   <td className={`px-4 py-3 text-right font-mono text-[11px] tabular-nums ${g.success_rate >= 95 ? "text-emerald-300" : g.success_rate >= 80 ? "text-amber-300" : "text-rose-300"}`}>{g.success_rate}%</td>
-                  <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{g.avg_duration}s</td>
-                  <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{g.credits}</td>
+                  <td className="px-4 py-3 text-right text-[#5d6a82] font-mono text-[11px] tabular-nums">{g.avg_duration}s</td>
+                  <td className="px-4 py-3 text-right text-[#5d6a82] font-mono text-[11px] tabular-nums">{g.credits}</td>
                   <td className="px-4 py-3 text-right text-amber-300/80 font-mono text-[11px] tabular-nums">${(g.cost_cents/100).toFixed(2)}</td>
                 </tr>
               ))}

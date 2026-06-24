@@ -175,22 +175,22 @@ export default function AdminOrgDetailPage() {
       actions={
         <button
           onClick={() => navigate("/admin/people")}
-          className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-3.5 py-1.5 rounded-full border border-white/[0.08] hover:border-white/20 transition-colors"
+          className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-3.5 py-1.5 rounded-full border border-[#e7ebf3] hover:border-[#d8deea] transition-colors"
         >
           <ArrowLeft className="w-3 h-3" /> Back
         </button>
       }
     >
       {loading ? (
-        <div className="flex items-center justify-center py-24 gap-3 text-white/55">
+        <div className="flex items-center justify-center py-24 gap-3 text-[#5d6a82]">
           <Spinner size="md" tone="muted" />
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading org…</span>
         </div>
       ) : !detail ? (
         <AdminSurface>
-          <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
+          <div className="text-center py-12 text-[#0c1426] max-w-xl mx-auto">
             <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
-            <div className="text-[15px] mb-2 text-white">Organization not found.</div>
+            <div className="text-[15px] mb-2 text-[#0c1426]">Organization not found.</div>
             {loadError && (
               <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
                 {loadError}
@@ -198,7 +198,7 @@ export default function AdminOrgDetailPage() {
             )}
             <button
               onClick={() => void load()}
-              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors"
+              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2 rounded-md border border-[#e7ebf3] hover:border-[#d8deea] transition-colors"
             >
               Retry
             </button>
@@ -213,22 +213,22 @@ export default function AdminOrgDetailPage() {
                 <img
                   src={detail.org.logo_url}
                   alt=""
-                  className="w-16 h-16 rounded-xl object-cover border border-white/[0.08] shrink-0"
+                  className="w-16 h-16 rounded-xl object-cover border border-[#e7ebf3] shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 shrink-0">
+                <div className="w-16 h-16 rounded-xl border border-[#e7ebf3] bg-glass flex items-center justify-center text-[#5d6a82] shrink-0">
                   <Building2 className="w-6 h-6" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35 mb-1">
+                <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[#9aa4b8] mb-1">
                   /{detail.org.slug}
                 </div>
-                <h2 className="font-display text-[24px] text-white font-light truncate">{detail.org.name}</h2>
-                <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-white/55 font-mono">
+                <h2 className="font-display text-[24px] text-[#0c1426] font-light truncate">{detail.org.name}</h2>
+                <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-[#5d6a82] font-mono">
                   {detail.org.industry && <span>{detail.org.industry}</span>}
                   {detail.org.website && (
-                    <a href={detail.org.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
+                    <a href={detail.org.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-[#0c1426]">
                       <Globe className="w-3 h-3" /> {detail.org.website.replace(/^https?:\/\//, "")}
                     </a>
                   )}
@@ -239,14 +239,14 @@ export default function AdminOrgDetailPage() {
 
           {/* Tabs */}
           <AdminSurface className="!p-0">
-            <div className="flex border-b border-white/[0.05]">
+            <div className="flex border-b border-[#e7ebf3]">
               {(["members", "plan", "projects", "metadata"] as TabKey[]).map((k) => (
                 <button
                   key={k}
                   onClick={() => setTab(k)}
                   className={cn(
                     "px-5 py-3 text-[11px] font-mono uppercase tracking-[0.28em] transition-colors relative",
-                    tab === k ? "text-white" : "text-white/35 hover:text-white/70",
+                    tab === k ? "text-[#0c1426]" : "text-[#9aa4b8] hover:text-[#0c1426]",
                   )}
                 >
                   {k}
@@ -282,29 +282,29 @@ function MembersTab({ members, invites }: { members: Member[]; invites: Invite[]
       <div>
         <AdminSectionLabel label="Members" meta={`${members.length}`} />
         {members.length === 0 ? (
-          <div className="text-[12px] text-white/40 py-4">No members yet.</div>
+          <div className="text-[12px] text-[#9aa4b8] py-4">No members yet.</div>
         ) : (
           <div className="space-y-1.5">
             {members.map((m) => (
               <Link
                 key={m.user_id}
                 to={`/admin/users/${m.user_id}`}
-                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:border-primary/25 hover:bg-primary/[0.04] transition-colors"
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[#e7ebf3] bg-[#f6f8fc] hover:border-primary/25 hover:bg-primary/[0.04] transition-colors"
               >
                 {m.avatar_url ? (
-                  <img src={m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08] shrink-0" />
+                  <img src={m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-[#e7ebf3] shrink-0" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full border border-white/[0.08] bg-glass flex items-center justify-center text-white/55 text-[11px] font-mono shrink-0">
+                  <div className="w-8 h-8 rounded-full border border-[#e7ebf3] bg-glass flex items-center justify-center text-[#5d6a82] text-[11px] font-mono shrink-0">
                     {(m.display_name?.[0] || m.email?.[0] || "?").toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] text-white truncate">{m.display_name || m.email || m.user_id.slice(0, 8) + "…"}</div>
-                  <div className="text-[11px] text-white/40 truncate font-mono">{m.email}</div>
+                  <div className="text-[13px] text-[#0c1426] truncate">{m.display_name || m.email || m.user_id.slice(0, 8) + "…"}</div>
+                  <div className="text-[11px] text-[#9aa4b8] truncate font-mono">{m.email}</div>
                 </div>
                 {m.role === "owner" && <Crown className="w-3.5 h-3.5 text-amber-300" />}
                 <Pill tone={roleTone(m.role)}>{m.role}</Pill>
-                <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-primary" />
+                <ExternalLink className="w-3.5 h-3.5 text-[#9aa4b8] group-hover:text-primary" />
               </Link>
             ))}
           </div>
@@ -316,11 +316,11 @@ function MembersTab({ members, invites }: { members: Member[]; invites: Invite[]
           <AdminSectionLabel label="Pending invites" meta={`${pending.length}`} />
           <div className="space-y-1.5">
             {pending.map((i) => (
-              <div key={i.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015]">
-                <Mail className="w-3.5 h-3.5 text-white/45" />
-                <span className="text-[12px] text-white/75 flex-1 truncate">{i.email}</span>
+              <div key={i.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#e7ebf3] bg-[#f6f8fc]">
+                <Mail className="w-3.5 h-3.5 text-[#5d6a82]" />
+                <span className="text-[12px] text-[#0c1426] flex-1 truncate">{i.email}</span>
                 <Pill tone={roleTone(i.role)}>{i.role}</Pill>
-                <span className="text-[10px] text-white/30 font-mono">expires {new Date(i.expires_at).toLocaleDateString()}</span>
+                <span className="text-[10px] text-[#9aa4b8] font-mono">expires {new Date(i.expires_at).toLocaleDateString()}</span>
               </div>
             ))}
           </div>
@@ -342,7 +342,7 @@ function PlanTab({ org }: { org: OrgDetail["org"] }) {
 
 function ProjectsTab({ projects }: { projects: RecentProject[] }) {
   if (projects.length === 0) {
-    return <div className="text-[12px] text-white/40 py-4">No projects from this org&apos;s members yet.</div>;
+    return <div className="text-[12px] text-[#9aa4b8] py-4">No projects from this org&apos;s members yet.</div>;
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -350,20 +350,20 @@ function ProjectsTab({ projects }: { projects: RecentProject[] }) {
         <Link
           key={p.id}
           to={`/admin/projects/${p.id}`}
-          className="group rounded-xl border border-white/[0.05] bg-white/[0.015] hover:border-primary/25 hover:bg-primary/[0.04] overflow-hidden transition-colors"
+          className="group rounded-xl border border-[#e7ebf3] bg-[#f6f8fc] hover:border-primary/25 hover:bg-primary/[0.04] overflow-hidden transition-colors"
         >
           <div className="aspect-video bg-black/40">
             {p.thumbnail_url ? (
               <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/30">
+              <div className="w-full h-full flex items-center justify-center text-[#9aa4b8]">
                 <FolderKanban className="w-5 h-5" />
               </div>
             )}
           </div>
           <div className="p-3">
-            <div className="text-[12px] text-white truncate">{p.title || "Untitled scene"}</div>
-            <div className="text-[10px] text-white/35 font-mono uppercase tracking-[0.22em] mt-1">
+            <div className="text-[12px] text-[#0c1426] truncate">{p.title || "Untitled scene"}</div>
+            <div className="text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.22em] mt-1">
               {p.status} · {new Date(p.updated_at).toLocaleDateString()}
             </div>
           </div>
@@ -375,20 +375,20 @@ function ProjectsTab({ projects }: { projects: RecentProject[] }) {
 
 function MetadataTab({ org }: { org: OrgDetail["org"] }) {
   const rows: Array<[string, React.ReactNode]> = [
-    ["ID", <span className="font-mono text-white/75">{org.id}</span>],
-    ["Slug", <span className="font-mono text-white/75">/{org.slug}</span>],
+    ["ID", <span className="font-mono text-[#0c1426]">{org.id}</span>],
+    ["Slug", <span className="font-mono text-[#0c1426]">/{org.slug}</span>],
     ["Industry", org.industry ?? "—"],
     ["Website", org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
-    ["Created by", <span className="font-mono text-white/75">{org.created_by.slice(0, 8)}…</span>],
+    ["Created by", <span className="font-mono text-[#0c1426]">{org.created_by.slice(0, 8)}…</span>],
     ["Created", new Date(org.created_at).toLocaleString()],
     ["Updated", new Date(org.updated_at).toLocaleString()],
   ];
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[12px]">
       {rows.map(([k, v]) => (
-        <div key={k} className="flex items-baseline justify-between gap-3 border-b border-white/[0.04] py-2">
-          <dt className="text-white/40 font-mono uppercase tracking-[0.22em] text-[10px]">{k}</dt>
-          <dd className="text-white/85 text-right truncate">{v}</dd>
+        <div key={k} className="flex items-baseline justify-between gap-3 border-b border-[#e7ebf3] py-2">
+          <dt className="text-[#9aa4b8] font-mono uppercase tracking-[0.22em] text-[10px]">{k}</dt>
+          <dd className="text-[#0c1426] text-right truncate">{v}</dd>
         </div>
       ))}
     </dl>
@@ -401,7 +401,7 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "
     amber:   "border-amber-400/30 bg-amber-400/10 text-amber-200",
     emerald: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
     rose:    "border-rose-400/30 bg-rose-400/10 text-rose-200",
-    neutral: "border-white/[0.08] text-white/55",
+    neutral: "border-[#e7ebf3] text-[#5d6a82]",
   };
   return (
     <span className={cn(
@@ -415,13 +415,13 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "
 
 function Stat({ label, value, sub, tone = "neutral" }: { label: string; value: string; sub?: string; tone?: "blue" | "amber" | "emerald" | "neutral" }) {
   const toneMap: Record<string, string> = {
-    blue: "text-primary/80", amber: "text-amber-300", emerald: "text-emerald-300", neutral: "text-white",
+    blue: "text-primary/80", amber: "text-amber-300", emerald: "text-emerald-300", neutral: "text-[#0c1426]",
   };
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-glass p-4">
-      <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35 mb-2">{label}</div>
+    <div className="rounded-xl border border-[#e7ebf3] bg-glass p-4">
+      <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-[#9aa4b8] mb-2">{label}</div>
       <div className={cn("text-2xl font-display font-light tabular-nums", toneMap[tone])}>{value}</div>
-      {sub && <div className="text-[10px] text-white/30 mt-1 font-mono uppercase tracking-[0.22em]">{sub}</div>}
+      {sub && <div className="text-[10px] text-[#9aa4b8] mt-1 font-mono uppercase tracking-[0.22em]">{sub}</div>}
     </div>
   );
 }

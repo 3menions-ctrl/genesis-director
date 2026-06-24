@@ -60,7 +60,7 @@ export default function AdminBackupsPage() {
             render: (v) => formatBytes(v as number | null) },
           { key: "status", label: "Status", width: "120px" },
           { key: "storage_path", label: "Storage path", hideOnMobile: true,
-            render: (v) => v ? <code className="font-mono text-[11px] text-white/55">{String(v)}</code> : "—" },
+            render: (v) => v ? <code className="font-mono text-[11px] text-[#5d6a82]">{String(v)}</code> : "—" },
           { key: "notes", label: "Notes", hideOnMobile: true },
         ]}
         emptyTitle="No backups recorded"

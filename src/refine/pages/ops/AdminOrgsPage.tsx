@@ -57,8 +57,8 @@ export default function AdminOrgsPage() {
   const columns = useMemo(() => [
     col.accessor("name", { header: "Organization", cell: (c) => (
       <div>
-        <div className="font-medium text-white">{c.getValue() || "Untitled org"}</div>
-        <div className="font-mono text-[11px] text-white/35">{c.row.original.slug || c.row.original.id.slice(0, 8)}</div>
+        <div className="font-medium text-[#0c1426]">{c.getValue() || "Untitled org"}</div>
+        <div className="font-mono text-[11px] text-[#9aa4b8]">{c.row.original.slug || c.row.original.id.slice(0, 8)}</div>
       </div>
     ) }),
     col.accessor("plan", { header: "Plan", cell: (c) => {
@@ -66,7 +66,7 @@ export default function AdminOrgsPage() {
       const tone = p.includes("enter") ? "accent" : p === "free" ? "neutral" : "positive";
       return <StatusPill tone={tone as never}>{p}</StatusPill>;
     } }),
-    col.accessor("industry", { header: "Industry", cell: (c) => <span className="text-white/55">{c.getValue() || "—"}</span> }),
+    col.accessor("industry", { header: "Industry", cell: (c) => <span className="text-[#5d6a82]">{c.getValue() || "—"}</span> }),
     col.accessor("credits_balance", { header: "Credits", cell: (c) => <span className="tabular-nums">{(c.getValue() ?? 0).toLocaleString()}</span> }),
   ], []);
 
@@ -81,13 +81,13 @@ export default function AdminOrgsPage() {
       </div>
 
       <div className="relative mb-4 max-w-sm">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa4b8]" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search organizations…"
-          className="h-11 w-full rounded-full bg-white/[0.05] pl-10 pr-4 text-[14px] text-white outline-none placeholder:text-white/30 focus:bg-white/[0.08]" />
+          className="h-11 w-full rounded-full bg-[#f6f8fc] pl-10 pr-4 text-[14px] text-[#0c1426] outline-none placeholder:text-[#9aa4b8] focus:bg-[#f4f7ff]" />
       </div>
 
       {loading ? (
-        <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading organizations…</div>
+        <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading organizations…</div>
       ) : (
         <DataTable columns={columns as never} data={filtered} onRowClick={(o) => navigate(`/admin/orgs/${o.id}`)} empty="No organizations match." />
       )}

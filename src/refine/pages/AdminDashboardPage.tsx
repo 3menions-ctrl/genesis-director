@@ -1,9 +1,10 @@
 /**
- * AdminDashboardPage — Mission Control (premium rebuild).
+ * AdminDashboardPage — Overview, "Floating Analysis" LIGHT.
  *
- * The bar-setter for the admin rebuild: borderless glass, single blue accent,
- * Fraunces, real charts. KPI tiles + live visualizations + an attention queue
- * + hub nav, all on the shared admin UI primitives (src/admin/ui).
+ * The bar-setter for the admin rebuild: borderless data that floats directly on
+ * the aurora — no card frames, just generous whitespace, hairline rules, soft
+ * depth shadows, and color-coded numerals. Gradient hero figure, tier bars,
+ * real recharts growth curve, a live action queue, and hub nav.
  *
  * Data path is preserved: one `admin_dashboard_pulse` RPC with a parallel-count
  * fallback, plus a real 14-day signups series for the trend chart.
@@ -12,29 +13,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Coins, FolderKanban, MessageSquare, RefreshCw,
-  Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, type LucideIcon,
+  Sparkles, TrendingUp, Users, Wallet, Cpu, ChevronRight, ArrowUpRight, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
-  AdminPageHeader, AdminCard, KpiTile, ChartCard, AttentionCard,
-  ACCENT_HSL, accent, CYAN, VIOLET, ROSE, AMBER,
+  CountUp, Sparkline, AttentionCard,
+  ACCENT_HSL, CYAN, VIOLET, ROSE, AMBER, EMERALD, MAGENTA, INK, MUT, MUT2,
 } from "@/admin/ui/primitives";
-
-const AURORA_CSS = `
-.admin-aurora{position:absolute;border-radius:9999px;filter:blur(90px);opacity:.55;will-change:transform}
-.admin-aurora-1{top:-180px;left:6%;width:540px;height:540px;background:radial-gradient(closest-side, hsl(214 90% 62% / .28), transparent 70%);animation:admAur1 24s ease-in-out infinite}
-.admin-aurora-2{top:-90px;right:4%;width:480px;height:480px;background:radial-gradient(closest-side, hsl(188 92% 58% / .20), transparent 70%);animation:admAur2 30s ease-in-out infinite}
-.admin-aurora-3{top:220px;left:42%;width:520px;height:520px;background:radial-gradient(closest-side, hsl(256 88% 72% / .16), transparent 70%);animation:admAur3 34s ease-in-out infinite}
-@keyframes admAur1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(46px,34px) scale(1.08)}}
-@keyframes admAur2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-54px,22px) scale(.94)}}
-@keyframes admAur3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(24px,-34px) scale(1.06)}}
-@media (prefers-reduced-motion: reduce){.admin-aurora{animation:none!important}}
-`;
 
 interface Pulse {
   users:    { total_users: number; signups_24h: number; signups_7d: number };
@@ -53,12 +42,27 @@ type ActionCard = { priority: "high" | "medium" | "low"; icon: LucideIcon; title
 const priorityRank = (p: ActionCard["priority"]) => (p === "high" ? 0 : p === "medium" ? 1 : 2);
 
 const HUBS = [
-  { icon: Users, title: "People", sub: "Users · sessions · roles · GDPR · abuse", to: "/admin/people" },
-  { icon: FolderKanban, title: "Production", sub: "Projects · queue · providers · edge logs", to: "/admin/production-hub" },
-  { icon: Wallet, title: "Money", sub: "Subscriptions · refunds · coupons · ledger", to: "/admin/money" },
-  { icon: TrendingUp, title: "Growth", sub: "Analytics · experiments · flags · cohorts", to: "/admin/growth" },
-  { icon: Zap, title: "System", sub: "API keys · webhooks · secrets · DB health", to: "/admin/system" },
+  { icon: Users, title: "People", sub: "Users · sessions · roles · GDPR", to: "/admin/people", tint: ACCENT_HSL },
+  { icon: FolderKanban, title: "Studio", sub: "Projects · queue · providers · logs", to: "/admin/production-hub", tint: CYAN },
+  { icon: Wallet, title: "Money", sub: "Subscriptions · refunds · ledger", to: "/admin/money", tint: VIOLET },
+  { icon: TrendingUp, title: "Growth", sub: "Analytics · experiments · flags", to: "/admin/growth", tint: EMERALD },
+  { icon: Cpu, title: "System", sub: "Keys · webhooks · secrets · health", to: "/admin/system", tint: AMBER },
 ];
+
+/** Numeral that floats on the aura with a soft depth shadow (no card). */
+function Floor({ children, className, big, style }: { children: React.ReactNode; className?: string; big?: boolean; style?: React.CSSProperties }) {
+  return (
+    <span
+      className={cn("block font-display font-semibold tabular-nums leading-none tracking-[-0.03em]", className)}
+      style={{ filter: big ? "drop-shadow(0 14px 24px rgba(47,107,255,.16))" : "drop-shadow(0 10px 18px rgba(16,24,40,.1))", ...style }}
+    >
+      {children}
+    </span>
+  );
+}
+
+const GL = "font-mono text-[9.5px] font-semibold uppercase tracking-[0.22em]";
+const Sep = () => <div className="my-7 h-px" style={{ background: "linear-gradient(90deg,transparent,rgba(16,24,40,.1),transparent)" }} />;
 
 export default function AdminDashboardPage() {
   const [pulse, setPulse] = useState<Pulse>(empty);
@@ -125,144 +129,169 @@ export default function AdminDashboardPage() {
     return items;
   }, [pulse]);
 
-  const statusData = useMemo(() => ([
-    { key: "completed", name: "Completed", value: pulse.projects.completed, from: ACCENT_HSL, to: CYAN },
-    { key: "inflight", name: "In flight", value: pulse.projects.in_flight, from: VIOLET, to: ACCENT_HSL },
-    { key: "failed", name: "Failed", value: pulse.projects.failed, from: ROSE, to: AMBER },
-  ].filter((d) => d.value > 0)), [pulse]);
-
   const spark = useMemo(() => series.map((s) => s.signups), [series]);
+  const completionPct = pulse.projects.total > 0 ? Math.round((pulse.projects.completed / pulse.projects.total) * 100) : 0;
+
+  // Project status tier bars (proportions of total).
+  const tiers = useMemo(() => {
+    const t = Math.max(pulse.projects.total, 1);
+    return [
+      { label: "Completed", value: pulse.projects.completed, pct: (pulse.projects.completed / t) * 100, grad: "linear-gradient(90deg,#0fa968,#34d399)" },
+      { label: "In flight", value: pulse.projects.in_flight, pct: (pulse.projects.in_flight / t) * 100, grad: "linear-gradient(90deg,#2f6bff,#60a5fa)" },
+      { label: "Failed", value: pulse.projects.failed, pct: (pulse.projects.failed / t) * 100, grad: "linear-gradient(90deg,#f43f5e,#fb7185)" },
+    ];
+  }, [pulse]);
 
   return (
-    <div className="relative isolate mx-auto w-full max-w-7xl px-6 py-8 sm:px-8">
-      <style>{AURORA_CSS}</style>
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="admin-aurora admin-aurora-1" />
-        <div className="admin-aurora admin-aurora-2" />
-        <div className="admin-aurora admin-aurora-3" />
-      </div>
-      <AdminPageHeader
-        eyebrow="01 · Pulse"
-        title={<>Mission <span className="italic">control</span>.</>}
-        sub="What needs you right now — and the signals behind it. Drill into any card to act."
-        actions={
+    <div className="relative mx-auto w-full max-w-[1340px] px-8 py-7">
+      {/* ── Top bar ── */}
+      <div className="mb-7 flex items-center gap-4">
+        <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em]" style={{ color: INK }}>Overview</h1>
+        <div className="ml-auto flex items-center gap-5">
+          <span className="inline-flex items-center gap-2 text-[12px] font-semibold" style={{ color: MUT }}>
+            <span className="h-2 w-2 rounded-full" style={{ background: EMERALD, boxShadow: `0 0 8px ${EMERALD}` }} /> Nominal
+          </span>
+          <span className={GL} style={{ color: MUT2 }}>Render queue · {pulse.projects.in_flight}</span>
           <button onClick={() => void load(true)} disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/60 transition-colors hover:bg-white/[0.1] hover:text-white disabled:opacity-40">
+            className={cn("inline-flex items-center gap-2 rounded-full px-3.5 py-1.5", GL)}
+            style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.9)", color: MUT, boxShadow: "0 6px 18px -10px rgba(16,24,40,0.2)" }}>
             <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
-            {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}
+            {refreshing ? "Sync" : lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Refresh"}
           </button>
-        }
-      />
-
-      {/* KPI rail */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <KpiTile index={0} label="Total users" value={pulse.users.total_users} icon={Users} delta={pulse.users.signups_24h} deltaLabel="today" sparkData={spark} />
-        <KpiTile index={1} label="New · 7d" value={pulse.users.signups_7d} icon={TrendingUp} accentNumber sparkData={spark} />
-        <KpiTile index={2} label="Projects" value={pulse.projects.total} icon={FolderKanban} delta={pulse.projects.created_24h} deltaLabel="new" />
-        <KpiTile index={3} label="In flight" value={pulse.projects.in_flight} icon={Activity} deltaLabel="rendering now" />
-        <KpiTile index={4} label="Failed" value={pulse.projects.failed} icon={AlertTriangle} deltaLabel={pulse.projects.failed > 0 ? "need attention" : "all clear"} />
-        <KpiTile index={5} label="Open tickets" value={pulse.support.open_tickets} icon={MessageSquare} deltaLabel="support" />
+        </div>
       </div>
 
-      {/* Charts */}
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <ChartCard title="Sign-ups" meta="last 14 days">
-          <div className="h-60">
+      {/* ── Hero deck ── */}
+      <div className="grid items-start gap-11 lg:grid-cols-[1.5fr_1fr_1fr]">
+        {/* Hero — total users */}
+        <div>
+          <div className="flex items-center justify-between">
+            <span className={GL} style={{ color: ACCENT_HSL }}>◆ Total operators</span>
+            {pulse.users.signups_24h > 0 && <span className="text-[12px] font-bold" style={{ color: EMERALD }}>▲ {pulse.users.signups_24h} today</span>}
+          </div>
+          <Floor big className="mt-3.5 text-[80px]" style={undefined}>
+            <CountUp value={pulse.users.total_users} className="bg-gradient-to-br from-[#2f6bff] to-[#7c3aed] bg-clip-text text-transparent" />
+          </Floor>
+          <div className="mt-2.5 text-[13px]" style={{ color: MUT }}>
+            {pulse.users.signups_7d > 0 ? `${pulse.users.signups_7d.toLocaleString()} new this week · ` : ""}{pulse.users.signups_24h.toLocaleString()} today
+          </div>
+          <div className="mt-4 w-full">
+            <Sparkline data={spark.length > 1 ? spark : [0, 0]} id="hero" w={520} h={84} />
+          </div>
+        </div>
+
+        {/* Projects + tier bars */}
+        <div>
+          <span className={GL} style={{ color: VIOLET }}>Projects total</span>
+          <Floor className="mt-3 text-[50px]" style={{ color: VIOLET }}><CountUp value={pulse.projects.total} /></Floor>
+          <div className="mt-2.5 text-[13px]" style={{ color: MUT }}>+{pulse.projects.created_24h.toLocaleString()} in 24h</div>
+          <div className="mt-5 space-y-1">
+            {tiers.map((t) => (
+              <div key={t.label} className="flex items-center gap-3.5 py-1 text-[13.5px] font-semibold" style={{ color: INK }}>
+                <span className="w-[68px] shrink-0">{t.label}</span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(16,24,40,.06)" }}>
+                  <i className="block h-full rounded-full" style={{ width: `${Math.max(t.pct, t.value > 0 ? 4 : 0)}%`, background: t.grad }} />
+                </span>
+                <span className="w-9 shrink-0 text-right tabular-nums" style={{ color: MUT }}>{t.value.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Rendered today */}
+        <div>
+          <span className={GL} style={{ color: CYAN }}>Created · today</span>
+          <Floor className="mt-3 text-[50px]" style={{ color: CYAN }}><CountUp value={pulse.projects.created_24h} /></Floor>
+          <div className="mt-2.5 text-[13px]" style={{ color: MUT }}>
+            {completionPct}% completion · {pulse.projects.failed > 0 ? <span style={{ color: ROSE }}>{pulse.projects.failed} failed</span> : "0 failed"} · {pulse.projects.in_flight} in flight
+          </div>
+          <div className="mt-4">
+            <Sparkline data={spark.length > 1 ? spark : [0, 0]} id="today" w={240} h={74} />
+          </div>
+        </div>
+      </div>
+
+      <Sep />
+
+      {/* ── Mini metric row ── */}
+      <div className="grid grid-cols-2 gap-11 md:grid-cols-4">
+        {[
+          { gl: "New · 24h", color: EMERALD, value: pulse.users.signups_24h, foot: "sign-ups" },
+          { gl: "New · 7d", color: ACCENT_HSL, value: pulse.users.signups_7d, foot: "this week" },
+          { gl: "In flight", color: MAGENTA, value: pulse.projects.in_flight, foot: "rendering now" },
+          { gl: "Open tickets", color: AMBER, value: pulse.support.open_tickets, foot: pulse.support.open_tickets > 0 ? "needs response" : "all clear" },
+        ].map((m) => (
+          <div key={m.gl}>
+            <span className={GL} style={{ color: m.color }}>{m.gl}</span>
+            <Floor className="mt-2.5 text-[42px]" style={{ color: m.color }}><CountUp value={m.value} /></Floor>
+            <div className="mt-1.5 text-[12px]" style={{ color: MUT2 }}>{m.foot}</div>
+          </div>
+        ))}
+      </div>
+
+      <Sep />
+
+      {/* ── Growth curve + action queue ── */}
+      <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr]">
+        <div>
+          <span className={GL} style={{ color: MUT }}>Growth · sign-ups, last 14 days</span>
+          <div className="mt-3 h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={ACCENT_HSL} stopOpacity={0.6} />
-                    <stop offset="45%" stopColor={CYAN} stopOpacity={0.24} />
+                    <stop offset="0%" stopColor={ACCENT_HSL} stopOpacity={0.22} />
                     <stop offset="100%" stopColor={CYAN} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="areaStroke" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={ACCENT_HSL} />
-                    <stop offset="100%" stopColor={CYAN} />
+                    <stop offset="0%" stopColor={EMERALD} /><stop offset="50%" stopColor={CYAN} /><stop offset="100%" stopColor={ACCENT_HSL} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} interval={1} />
-                <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-                <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, boxShadow: "0 20px 60px -20px rgba(0,0,0,0.9)", fontSize: 12 }} labelStyle={{ color: "rgba(255,255,255,0.6)" }} itemStyle={{ color: "#fff" }} cursor={{ stroke: accent(0.4) }} />
-                <Area type="monotone" dataKey="signups" stroke="url(#areaStroke)" strokeWidth={2.5} fill="url(#areaFill)" dot={false} activeDot={{ r: 5, fill: CYAN, stroke: ACCENT_HSL, strokeWidth: 2 }} isAnimationActive animationDuration={1200} style={{ filter: `drop-shadow(0 6px 16px ${accent(0.4)})` }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,24,40,0.06)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: MUT2, fontSize: 10 }} tickLine={false} axisLine={false} interval={1} />
+                <YAxis tick={{ fill: MUT2, fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+                <Tooltip contentStyle={{ background: "#fff", border: "none", borderRadius: 12, boxShadow: "0 20px 50px -20px rgba(16,24,40,0.3)", fontSize: 12 }} labelStyle={{ color: MUT }} itemStyle={{ color: INK }} cursor={{ stroke: "rgba(47,107,255,0.3)" }} />
+                <Area type="monotone" dataKey="signups" stroke="url(#areaStroke)" strokeWidth={3} fill="url(#areaFill)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: ACCENT_HSL, strokeWidth: 2.5 }} isAnimationActive animationDuration={1200} style={{ filter: "drop-shadow(0 12px 20px rgba(16,24,40,.12))" }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </ChartCard>
-
-        <ChartCard title="Projects by status" meta={`${pulse.projects.total.toLocaleString()} total`}>
-          <div className="flex h-60 items-center">
-            <div className="relative h-48 w-48 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    {statusData.map((d) => (
-                      <linearGradient key={d.key} id={`seg-${d.key}`} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor={d.from} /><stop offset="100%" stopColor={d.to} />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={56} outerRadius={78} paddingAngle={4} cornerRadius={6} stroke="none" isAnimationActive animationDuration={1100} style={{ filter: `drop-shadow(0 4px 16px ${accent(0.35)})` }}>
-                    {statusData.map((d) => <Cell key={d.key} fill={`url(#seg-${d.key})`} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }} itemStyle={{ color: "#fff" }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-display text-[26px] font-semibold leading-none text-white" style={{ textShadow: `0 0 22px ${accent(0.5)}` }}>{pulse.projects.total.toLocaleString()}</span>
-                <span className="mt-1 font-mono text-[8px] uppercase tracking-[0.2em] text-white/40">projects</span>
-              </div>
-            </div>
-            <div className="flex-1 space-y-3 pl-3">
-              {statusData.length === 0 && <div className="text-[13px] font-light text-white/40">No projects yet.</div>}
-              {statusData.map((d) => (
-                <div key={d.key} className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2.5 text-[13px] text-white/70">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${d.from}, ${d.to})`, boxShadow: `0 0 8px ${d.from}` }} />{d.name}
-                  </span>
-                  <span className="font-display text-[15px] font-semibold tabular-nums text-white">{d.value.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Attention queue + hubs */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div>
-          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Action queue</div>
-          {loading ? (
-            <AdminCard className="flex items-center justify-center gap-3 py-20 text-white/50">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="font-mono text-[11px] uppercase tracking-[0.22em]">Reading pulse…</span>
-            </AdminCard>
-          ) : (
-            <div className="space-y-4">
-              {cards.map((c, i) => <AttentionCard key={i} index={i} {...c} />)}
-            </div>
-          )}
         </div>
 
         <div>
-          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Hubs</div>
-          <div className="space-y-3">
-            {HUBS.map((h) => (
-              <Link key={h.to} to={h.to} className="group block">
-                <AdminCard interactive className="flex items-center gap-3.5 p-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: accent(0.12), color: ACCENT_HSL }}>
-                    <h.icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+          <span className={GL} style={{ color: MUT }}>◆ Action queue</span>
+          {loading ? (
+            <div className="mt-3 flex items-center justify-center gap-3 py-16" style={{ color: MUT }}>
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="font-mono text-[11px] uppercase tracking-[0.22em]">Reading pulse…</span>
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {cards.slice(0, 4).map((c, i) => <AttentionCard key={i} index={i} {...c} />)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Sep />
+
+      {/* ── Hub nav ── */}
+      <div>
+        <span className={GL} style={{ color: MUT }}>Hubs</span>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {HUBS.map((h) => (
+            <Link key={h.to} to={h.to} className="group block">
+              <div className="rounded-2xl border border-[#e7ebf3] bg-white p-4 shadow-[0_2px_4px_rgba(16,24,40,.04),0_12px_28px_-14px_rgba(16,24,40,.14)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(16,24,40,.06),0_24px_48px_-16px_rgba(16,24,40,.22)]">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${h.tint}1a`, color: h.tint }}>
+                    <h.icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-[15px] font-semibold text-white">{h.title}</div>
-                    <div className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">{h.sub}</div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-white/25 transition-all group-hover:translate-x-0.5 group-hover:text-white/60" />
-                </AdminCard>
-              </Link>
-            ))}
-          </div>
+                  <ArrowUpRight className="h-4 w-4 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: MUT2 }} />
+                </div>
+                <div className="mt-3 font-display text-[16px] font-semibold" style={{ color: INK }}>{h.title}</div>
+                <div className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.12em]" style={{ color: MUT2 }}>{h.sub}</div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

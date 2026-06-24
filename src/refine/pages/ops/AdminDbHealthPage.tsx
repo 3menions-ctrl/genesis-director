@@ -60,9 +60,9 @@ export default function AdminDbHealthPage() {
           <AdminSurface key={t} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Database className="w-4 h-4 text-primary/80" />
-              <span className="text-white/80 font-mono text-[12px]">{t}</span>
+              <span className="text-[#0c1426] font-mono text-[12px]">{t}</span>
             </div>
-            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`}>
+            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-[#0c1426]"}`}>
               {counts[t] === null ? "ERR" : (counts[t] ?? "—").toLocaleString()}
             </div>
           </AdminSurface>

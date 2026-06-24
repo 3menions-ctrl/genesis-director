@@ -10,6 +10,7 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Overview      = lazy(() => import("./PeopleOverviewPage"));
 const Users         = lazy(() => import("../AdminUsersPage"));
 const Orgs          = lazy(() => import("../ops/AdminOrgsPage"));
 const Messages      = lazy(() => import("../AdminMessagesPage"));
@@ -28,7 +29,7 @@ const wrap = (Comp: React.ComponentType) => (
 
 function TabFallback() {
   return (
-    <div className="flex items-center justify-center py-24 gap-3 text-white/55">
+    <div className="flex items-center justify-center py-24 gap-3 text-[#5d6a82]">
       <Spinner size="md" tone="muted" />
       <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading section…</span>
     </div>
@@ -37,7 +38,8 @@ function TabFallback() {
 
 export default function PeopleHubPage() {
   const tabs: HubTab[] = [
-    { id: "users",     label: "Users",     suggested: true, render: () => wrap(Users) },
+    { id: "overview",  label: "Overview",  suggested: true, render: () => wrap(Overview) },
+    { id: "users",     label: "Users",     render: () => wrap(Users) },
     { id: "orgs",      label: "Orgs",      render: () => wrap(Orgs) },
     { id: "messages",  label: "Inbox",     render: () => wrap(Messages) },
     { id: "team",      label: "Team",      render: () => wrap(Team) },
@@ -56,7 +58,7 @@ export default function PeopleHubPage() {
       italic="Hub."
       description="Every per-person operation in one place — identity, access, communication, compliance, safety."
       tabs={tabs}
-      defaultTab="users"
+      defaultTab="overview"
     />
   );
 }

@@ -21,12 +21,12 @@ export default function AdminDbDiagnosticsPage() {
   useEffect(() => { (async () => { const { data } = await supabase.rpc("admin_db_diagnostics" as never, {} as never); setD((data as Diag) ?? null); setLoading(false); })(); }, []);
 
   const cols = useMemo(() => [
-    col.accessor("table", { header: "Table", cell: (c) => <span className="font-mono text-[12.5px] text-white/85">{c.getValue()}</span> }),
+    col.accessor("table", { header: "Table", cell: (c) => <span className="font-mono text-[12.5px] text-[#0c1426]">{c.getValue()}</span> }),
     col.accessor("rows", { header: "Rows", cell: (c) => <span className="tabular-nums" style={{ color: ACCENT_HSL }}>{Number(c.getValue()).toLocaleString()}</span> }),
-    col.accessor("bytes", { header: "Size", cell: (c) => <span className="tabular-nums text-white/70">{fmtBytes(Number(c.getValue()))}</span> }),
-    col.accessor("dead_rows", { header: "Dead", cell: (c) => <span className="tabular-nums text-white/45">{Number(c.getValue()).toLocaleString()}</span> }),
-    col.accessor("seq_scans", { header: "Seq scans", cell: (c) => <span className="tabular-nums text-white/45">{Number(c.getValue()).toLocaleString()}</span> }),
-    col.accessor("idx_scans", { header: "Idx scans", cell: (c) => <span className="tabular-nums text-white/45">{Number(c.getValue()).toLocaleString()}</span> }),
+    col.accessor("bytes", { header: "Size", cell: (c) => <span className="tabular-nums text-[#0c1426]">{fmtBytes(Number(c.getValue()))}</span> }),
+    col.accessor("dead_rows", { header: "Dead", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue()).toLocaleString()}</span> }),
+    col.accessor("seq_scans", { header: "Seq scans", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue()).toLocaleString()}</span> }),
+    col.accessor("idx_scans", { header: "Idx scans", cell: (c) => <span className="tabular-nums text-[#5d6a82]">{Number(c.getValue()).toLocaleString()}</span> }),
   ], []);
 
   return (
@@ -40,8 +40,8 @@ export default function AdminDbDiagnosticsPage() {
         <KpiTile index={3} label="Tables" value={d?.tables?.length ?? 0} icon={TableIcon} />
       </div>
 
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Tables · by size</div>
-      {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>
+      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Tables · by size</div>
+      {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading…</div>
         : <DataTable columns={cols as never} data={d?.tables ?? []} dense empty="No table stats." />}
     </div>
   );

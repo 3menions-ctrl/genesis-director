@@ -46,17 +46,17 @@ export default function AdminWebhooksPage() {
         ]}
         columns={[
           { key: "url", label: "Endpoint",
-            render: (v) => <code className="font-mono text-[11px] text-white/80">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[11px] text-[#0c1426]">{String(v)}</code> },
           { key: "organizations", label: "Workspace", width: "180px",
             render: (_, row) => row.organizations?.name ?? "—" },
           { key: "events", label: "Events", width: "200px",
             render: (v) => Array.isArray(v) && v.length
-              ? <span className="text-[11px] text-white/55">{v.slice(0, 2).join(", ")}{v.length > 2 ? ` +${v.length - 2}` : ""}</span>
+              ? <span className="text-[11px] text-[#5d6a82]">{v.slice(0, 2).join(", ")}{v.length > 2 ? ` +${v.length - 2}` : ""}</span>
               : "—" },
           { key: "failure_count", label: "Failures", width: "100px", align: "right",
             render: (v) => v as number > 0
               ? <span className="text-rose-300">{v as number}</span>
-              : <span className="text-white/55">0</span> },
+              : <span className="text-[#5d6a82]">0</span> },
           { key: "last_delivered_at", label: "Last sent", width: "180px", hideOnMobile: true },
           { key: "active", label: "Status", width: "100px" },
         ]}

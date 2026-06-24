@@ -44,7 +44,7 @@ export default function AdminCreditsPage() {
       italic="Transactions."
       description="Every credit movement across the platform — purchases, consumption, refunds, and adjustments."
       actions={
-        <Button onClick={fetch} variant="ghost" size="sm" className="text-xs text-white/30 hover:text-white/60">
+        <Button onClick={fetch} variant="ghost" size="sm" className="text-xs text-[#9aa4b8] hover:text-[#5d6a82]">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
         </Button>
       }
@@ -55,22 +55,22 @@ export default function AdminCreditsPage() {
         { label: "Purchases / Refunds", value: `${purchases} / ${refunds}`, tone: "amber", sub: "txn split" },
       ]}
     >
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-glass backdrop-blur-md">
+      <div className="rounded-2xl border border-[#e7ebf3] overflow-hidden bg-glass backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06]">
+              <tr className="border-b border-[#e7ebf3]">
                 {["Type", "Amount", "Description", "Date"].map((h) => (
-                  <th key={h} className="py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider text-left">{h}</th>
+                  <th key={h} className="py-3 px-4 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider text-left">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {txns.map((t) => (
-                <tr key={t.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
+                <tr key={t.id} className="border-b border-[#e7ebf3] hover:bg-glass transition-colors">
                   <td className="py-3 px-4">
-                    <Badge variant="outline" className={cn("text-[10px] border-white/10",
-                      t.transaction_type === "purchase" ? "text-success" : t.transaction_type === "refund" ? "text-warning" : "text-white/50"
+                    <Badge variant="outline" className={cn("text-[10px] border-[#e7ebf3]",
+                      t.transaction_type === "purchase" ? "text-success" : t.transaction_type === "refund" ? "text-warning" : "text-[#5d6a82]"
                     )}>{t.transaction_type}</Badge>
                   </td>
                   <td className="py-3 px-4">
@@ -78,8 +78,8 @@ export default function AdminCreditsPage() {
                       {t.amount >= 0 ? "+" : ""}{t.amount}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-xs text-white/40 max-w-xs truncate">{t.description || "—"}</td>
-                  <td className="py-3 px-4 text-xs text-white/30">{new Date(t.created_at).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-xs text-[#9aa4b8] max-w-xs truncate">{t.description || "—"}</td>
+                  <td className="py-3 px-4 text-xs text-[#9aa4b8]">{new Date(t.created_at).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

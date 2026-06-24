@@ -61,7 +61,7 @@ export default function AdminEdgeLogsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">When</th>
                 <th className="text-left px-4 py-3">Service</th>
                 <th className="text-left px-4 py-3">Operation</th>
@@ -72,18 +72,18 @@ export default function AdminEdgeLogsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">No edge invocations in last 24h.</td></tr>}
+              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#9aa4b8]">No edge invocations in last 24h.</td></tr>}
               {pg.slice.map(r => {
                 const ok = r.status === "success" || r.status === "completed";
                 return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                  <tr key={r.id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                    <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.service}</span></td>
-                    <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.operation}</td>
+                    <td className="px-4 py-3 text-[#0c1426] font-mono text-[11px]">{r.operation}</td>
                     <td className="px-4 py-3"><Badge variant={ok ? "secondary" : "destructive"} className="font-mono text-[10px]">{r.status}</Badge></td>
-                    <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</td>
-                    <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{r.credits_charged}</td>
+                    <td className="px-4 py-3 text-right text-[#5d6a82] font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</td>
+                    <td className="px-4 py-3 text-right text-[#5d6a82] font-mono text-[11px] tabular-nums">{r.credits_charged}</td>
                     <td className="px-4 py-3 text-right text-amber-300/80 font-mono text-[11px] tabular-nums">${(r.real_cost_cents/100).toFixed(3)}</td>
                   </tr>
                 );
@@ -91,7 +91,7 @@ export default function AdminEdgeLogsPage() {
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-[#e7ebf3]" />
       </AdminSurface>
     </AdminPageShell>
   );

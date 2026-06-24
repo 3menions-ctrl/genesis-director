@@ -25,9 +25,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
-
-const PALETTE_BG = "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015)), #070809";
+import { ACCENT_HSL, accent, INK, MUT, MUT2 } from "@/admin/ui/primitives";
 
 type ResultKind = "user" | "project" | "org" | "hub" | "action";
 interface PaletteResult {
@@ -219,47 +217,43 @@ export function AdminPalette() {
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-md"
+        className="absolute inset-0 backdrop-blur-md"
+        style={{ background: "rgba(12,20,38,0.28)" }}
         onClick={() => setOpen(false)}
       />
 
       {/* Card */}
       <div
-        className="relative w-[640px] max-w-[92vw] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] animate-fade-in-up"
-        style={{ background: PALETTE_BG }}
+        className="relative w-[640px] max-w-[92vw] rounded-2xl border border-[#e7ebf3] bg-white overflow-hidden animate-fade-in-up"
+        style={{ boxShadow: "0 60px 120px -30px rgba(16,24,40,0.4)" }}
       >
-        {/* Top specular highlight */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
-        />
         {/* Brand rail */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-px"
-          style={{ background: `linear-gradient(to bottom, transparent, ${accent(0.6)}, transparent)` }}
+          className="absolute left-0 top-0 bottom-0 w-[3px]"
+          style={{ background: "linear-gradient(to bottom, #2f6bff, #7c3aed)" }}
         />
 
         {/* Search bar */}
-        <div className="flex items-center gap-3 px-5 py-4">
-          <Search className="w-4 h-4 text-white/40 shrink-0" />
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#eef1f6]">
+          <Search className="w-4 h-4 shrink-0" style={{ color: MUT2 }} />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => { setQ(e.target.value); setCursor(0); }}
             onKeyDown={onKeyDown}
             placeholder="Search users, projects, orgs, or jump to a hub…"
-            className="flex-1 bg-transparent outline-none text-[15px] text-white placeholder:text-white/30 font-light"
+            className="flex-1 bg-transparent outline-none text-[15px] font-light"
+            style={{ color: INK }}
             spellCheck={false}
             autoComplete="off"
           />
           {loading ? (
-            <span className="text-[10px] text-white/45 font-mono uppercase tracking-[0.24em] animate-pulse">
+            <span className="text-[10px] font-mono uppercase tracking-[0.22em] animate-pulse" style={{ color: MUT }}>
               Searching…
             </span>
           ) : (
-            <kbd className="text-[10px] text-white/45 font-mono px-1.5 py-0.5 rounded bg-white/[0.06]">
+            <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: MUT, background: "rgba(16,24,40,0.06)" }}>
               Esc
             </kbd>
           )}
@@ -268,7 +262,7 @@ export function AdminPalette() {
         {/* Recents (only when query is empty) */}
         {!q && recents.length > 0 && (
           <div className="px-5 pt-4 pb-2">
-            <div className="text-[9px] font-mono uppercase tracking-[0.32em] text-white/45 mb-2 flex items-center gap-2">
+            <div className="text-[9px] font-mono uppercase tracking-[0.28em] mb-2 flex items-center gap-2" style={{ color: MUT2 }}>
               <ClockIcon className="w-3 h-3" /> Recently visited
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -278,10 +272,11 @@ export function AdminPalette() {
                   <button
                     key={r.id}
                     onClick={() => activate(r)}
-                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
+                    className="group flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors"
+                    style={{ background: "rgba(16,24,40,0.05)" }}
                   >
-                    <Icon className="w-3 h-3 text-white/50 group-hover:text-white transition-colors" />
-                    <span className="text-[11px] text-white/75 truncate max-w-[180px]">{r.label}</span>
+                    <Icon className="w-3 h-3 transition-colors" style={{ color: MUT }} />
+                    <span className="text-[11px] truncate max-w-[180px]" style={{ color: INK }}>{r.label}</span>
                   </button>
                 );
               })}
@@ -292,7 +287,7 @@ export function AdminPalette() {
         {/* Results */}
         <div ref={listRef} className="max-h-[55vh] overflow-y-auto py-2">
           {visible.length === 0 ? (
-            <div className="text-center py-12 text-[12px] text-white/45">
+            <div className="text-center py-12 text-[12px]" style={{ color: MUT }}>
               {q ? "No matches." : "Type to search."}
             </div>
           ) : (
@@ -307,9 +302,9 @@ export function AdminPalette() {
                   onClick={() => activate(r)}
                   className={cn(
                     "group w-full text-left px-5 py-3 flex items-center gap-3 transition-colors",
-                    !focused && "hover:bg-white/[0.05]",
+                    !focused && "hover:bg-[#f4f7ff]",
                   )}
-                  style={focused ? { background: accent(0.12), boxShadow: `inset 2px 0 0 0 ${ACCENT_HSL}` } : undefined}
+                  style={focused ? { background: accent(0.08), boxShadow: `inset 3px 0 0 0 ${ACCENT_HSL}` } : undefined}
                 >
                   {/* Avatar / thumbnail / icon */}
                   {r.avatar ? (
@@ -328,25 +323,25 @@ export function AdminPalette() {
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                       style={focused
-                        ? { background: `linear-gradient(135deg, ${accent(0.22)}, ${accent(0.08)})`, color: ACCENT_HSL }
-                        : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}
+                        ? { background: accent(0.12), color: ACCENT_HSL }
+                        : { background: "rgba(16,24,40,0.05)", color: MUT }}
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-white truncate font-normal">
+                    <div className="text-[13px] truncate font-medium" style={{ color: INK }}>
                       {r.label}
                     </div>
                     {r.sub && (
-                      <div className="text-[11px] text-white/45 truncate font-mono">
+                      <div className="text-[11px] truncate font-mono" style={{ color: MUT2 }}>
                         {r.sub}
                       </div>
                     )}
                   </div>
                   <span
-                    className="text-[9px] font-mono uppercase tracking-[0.28em] shrink-0"
-                    style={focused ? { color: ACCENT_HSL } : { color: "rgba(255,255,255,0.3)" }}
+                    className="text-[9px] font-mono uppercase tracking-[0.24em] shrink-0"
+                    style={focused ? { color: ACCENT_HSL } : { color: MUT2 }}
                   >
                     {r.kind}
                   </span>
@@ -361,10 +356,10 @@ export function AdminPalette() {
         </div>
 
         {/* Footer key hints */}
-        <div className="px-5 py-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">
+        <div className="px-5 py-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.2em] border-t border-[#eef1f6]" style={{ color: MUT2 }}>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded bg-white/[0.06]">↑↓</kbd> navigate</span>
-            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded bg-white/[0.06]">⏎</kbd> open</span>
+            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded" style={{ background: "rgba(16,24,40,0.06)" }}>↑↓</kbd> navigate</span>
+            <span className="flex items-center gap-1.5"><kbd className="px-1 py-0.5 rounded" style={{ background: "rgba(16,24,40,0.06)" }}>⏎</kbd> open</span>
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-3 h-3" /> Admin Membrane

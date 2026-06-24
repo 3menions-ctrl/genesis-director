@@ -35,12 +35,16 @@ describe("standalone admin — packaging chain", () => {
     expect(src).toMatch(/getElementById\("root"\)/);
   });
 
-  it("AdminStandalone mounts AdminApp at /admin/* and redirects root", () => {
+  it("AdminStandalone mounts AdminApp at /admin/* and bounces unknown paths to /auth", () => {
     const src = read("src/admin/AdminStandalone.tsx");
     expect(src).toMatch(/AdminApp/);
     expect(src).toMatch(/path="\/admin\/\*"/);
-    // Root → /admin so every absolute /admin/... link keeps working.
-    expect(src).toMatch(/Navigate\s+to="\/admin"/);
+    // A /auth route must exist so the unauthenticated bounce has somewhere to land.
+    expect(src).toMatch(/path="\/auth"/);
+    // Catch-all → /auth (NOT /admin). Routing unknown paths to /admin made the
+    // unauthenticated bounce ping-pong /admin ↔ / forever (the blank-screen
+    // loop). Sending them to the login page is the verified fix.
+    expect(src).toMatch(/Navigate\s+to="\/auth"/);
     // Must provide the contexts admin pages rely on (useAuth at minimum).
     expect(src).toMatch(/AuthProvider/);
     expect(src).toMatch(/QueryClientProvider/);

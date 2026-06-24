@@ -110,22 +110,32 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      style={{ background: "rgba(12,20,38,0.28)" }}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl p-6 space-y-4"
+        style={{
+          background: "#ffffff",
+          boxShadow:
+            "0 50px 120px -30px rgba(16,24,40,0.4), 0 8px 24px -12px rgba(16,24,40,0.18)",
+        }}
+      >
         <div className="flex items-center gap-2"><Megaphone className="w-4 h-4 text-primary/80" />
-          <h2 className="font-display text-white text-lg">New announcement</h2></div>
+          <h2 className="font-display text-[#0c1426] text-lg">New announcement</h2></div>
         <FormField label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
+          className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]" /></FormField>
         <FormField label="Body"><textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
-          className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40 resize-none" /></FormField>
+          className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff] resize-none" /></FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Severity"><select value={severity} onChange={(e) => setSeverity(e.target.value as any)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40">
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]">
             <option value="info">Info</option><option value="success">Success</option>
             <option value="warning">Warning</option><option value="critical">Critical</option>
           </select></FormField>
           <FormField label="Audience"><select value={audience} onChange={(e) => setAudience(e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40">
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]">
             <option value="all">All</option><option value="admin">Admin</option>
             <option value="business">Business</option><option value="enterprise">Enterprise</option>
             <option value="personal">Personal</option>
@@ -133,14 +143,14 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
         </div>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="CTA label"><input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Learn more"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]" /></FormField>
           <FormField label="CTA URL"><input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://…"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]" /></FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2 rounded-lg border border-white/[0.08]">Cancel</button>
+          <button onClick={onClose} className="text-[11px] uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2 rounded-lg bg-[#f6f8fc] hover:bg-[#f4f7ff]">Cancel</button>
           <button onClick={submit} disabled={busy}
-            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-primary/50 disabled:opacity-40">
+            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] disabled:opacity-40">
             {busy ? "Publishing…" : "Publish"}
           </button>
         </div>
@@ -150,5 +160,5 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
 }
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (<label className="block"><span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">{label}</span>{children}</label>);
+  return (<label className="block"><span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">{label}</span>{children}</label>);
 }

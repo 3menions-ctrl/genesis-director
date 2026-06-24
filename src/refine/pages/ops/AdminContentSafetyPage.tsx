@@ -46,7 +46,7 @@ export default function AdminContentSafetyPage() {
         ]}
         columns={[
           { key: "pattern", label: "Pattern",
-            render: (v) => <code className="font-mono text-[12px] text-white/85">{String(v)}</code> },
+            render: (v) => <code className="font-mono text-[12px] text-[#0c1426]">{String(v)}</code> },
           { key: "match_type", label: "Match", width: "100px" },
           { key: "severity", label: "Severity", width: "100px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${v === "block" ? "text-rose-300" : "text-amber-300"}`}>{String(v)}</span> },

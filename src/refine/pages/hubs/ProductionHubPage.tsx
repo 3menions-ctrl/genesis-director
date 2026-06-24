@@ -25,7 +25,7 @@ const Backups        = lazy(() => import("../ops/AdminBackupsPage"));
 
 const wrap = (Comp: React.ComponentType) => (
   <Suspense fallback={
-    <div className="flex items-center justify-center py-24 gap-3 text-white/55">
+    <div className="flex items-center justify-center py-24 gap-3 text-[#5d6a82]">
       <Spinner size="md" tone="muted" />
       <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading section…</span>
     </div>

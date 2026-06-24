@@ -76,7 +76,7 @@ export default function AdminReconcilePage() {
           { key: "discrepancies", label: "Discrepancies", width: "120px", align: "right",
             render: (v) => v as number > 0
               ? <span className="text-rose-300">{(v as number).toLocaleString()}</span>
-              : <span className="text-white/55">0</span> },
+              : <span className="text-[#5d6a82]">0</span> },
           { key: "status", label: "Status", width: "120px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${STATUS_TONE[v as keyof typeof STATUS_TONE]}`}>{String(v).replace("_", " ")}</span> },
         ]}

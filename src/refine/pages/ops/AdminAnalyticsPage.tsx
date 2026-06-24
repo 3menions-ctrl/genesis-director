@@ -246,7 +246,7 @@ export default function AdminAnalyticsPage() {
       description="Real-time growth, retention, monetization and activation across the entire platform."
       actions={
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full border border-white/10 bg-glass p-0.5">
+          <div className="flex items-center rounded-full border border-[#e7ebf3] bg-glass p-0.5">
             {WINDOWS.map((w) => (
               <button
                 key={w}
@@ -255,7 +255,7 @@ export default function AdminAnalyticsPage() {
                   "px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] rounded-full transition-colors",
                   windowDays === w
                     ? "bg-primary/15 text-primary/80"
-                    : "text-white/40 hover:text-white/70",
+                    : "text-[#9aa4b8] hover:text-[#0c1426]",
                 )}
               >
                 {w}d
@@ -264,7 +264,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <button
             onClick={() => load(windowDays)}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 bg-glass text-white/50 hover:text-primary/80 hover:border-primary/40 transition-colors"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-[#e7ebf3] bg-glass text-[#5d6a82] hover:text-primary/80 hover:border-primary/40 transition-colors"
             aria-label="Refresh"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
@@ -363,7 +363,7 @@ export default function AdminAnalyticsPage() {
       {/* Two-column row: tier mix + activation */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <AdminSurface className="lg:col-span-1">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-4">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-4">
             <Layers className="h-3 w-3" /> Tier mix
           </div>
           {loading ? (
@@ -382,10 +382,10 @@ export default function AdminAnalyticsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="text-2xl text-white font-light tabular-nums">
+                  <div className="text-2xl text-[#0c1426] font-light tabular-nums">
                     {fmtN(tierTotal)}
                   </div>
-                  <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.3em]">accounts</div>
+                  <div className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.3em]">accounts</div>
                 </div>
               </div>
               <div className="mt-4 space-y-2">
@@ -393,10 +393,10 @@ export default function AdminAnalyticsPage() {
                   <div key={t.tier} className="flex items-center justify-between text-[12px]">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full" style={{ background: TIER_COLORS[i % TIER_COLORS.length] }} />
-                      <span className="text-white/70 capitalize">{t.tier}</span>
+                      <span className="text-[#0c1426] capitalize">{t.tier}</span>
                     </div>
-                    <span className="text-white/40 font-mono tabular-nums">
-                      {fmtN(t.count)} <span className="text-white/25">· {Math.round((t.count / tierTotal) * 100)}%</span>
+                    <span className="text-[#9aa4b8] font-mono tabular-nums">
+                      {fmtN(t.count)} <span className="text-[#9aa4b8]">· {Math.round((t.count / tierTotal) * 100)}%</span>
                     </span>
                   </div>
                 ))}
@@ -406,7 +406,7 @@ export default function AdminAnalyticsPage() {
         </AdminSurface>
 
         <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-5">
             <Clock className="h-3 w-3" /> Activation funnel
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -433,8 +433,8 @@ export default function AdminAnalyticsPage() {
             />
           </div>
 
-          <div className="mt-8 pt-6 border-t border-white/[0.05]">
-            <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
+          <div className="mt-8 pt-6 border-t border-[#e7ebf3]">
+            <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-3">
               <DollarSign className="h-3 w-3" /> Monetization
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -468,13 +468,13 @@ export default function AdminAnalyticsPage() {
       <AdminSectionLabel label="Funnel & retention" meta={`${windowDays}-day cohort`} />
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
         <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-5">
             <Filter className="h-3 w-3" /> Activation funnel
           </div>
           <FunnelView steps={data?.funnel ?? []} loading={loading} />
         </AdminSurface>
         <AdminSurface className="lg:col-span-3">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-5">
             <Calendar className="h-3 w-3" /> Weekly cohort retention
           </div>
           <CohortMatrix cohorts={data?.cohorts ?? []} loading={loading} />
@@ -484,14 +484,14 @@ export default function AdminAnalyticsPage() {
       {/* ── Heatmap + Failures ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
         <AdminSurface className="lg:col-span-3">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-5">
             <Activity className="h-3 w-3" /> Generation heatmap
-            <span className="ml-auto text-white/25 normal-case tracking-normal">UTC · clips by hour</span>
+            <span className="ml-auto text-[#9aa4b8] normal-case tracking-normal">UTC · clips by hour</span>
           </div>
           <Heatmap data={data?.heatmap} loading={loading} />
         </AdminSurface>
         <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
+          <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-5">
             <AlertOctagon className="h-3 w-3" /> Failure categories
           </div>
           <FailureBars rows={data?.failureBreakdown ?? []} loading={loading} />
@@ -505,7 +505,7 @@ export default function AdminAnalyticsPage() {
       </AdminSurface>
 
       {data && (
-        <p className="mt-10 text-[10px] text-white/25 font-mono uppercase tracking-[0.28em] text-right">
+        <p className="mt-10 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em] text-right">
           Last refreshed {new Date(data.generatedAt).toLocaleString()}
         </p>
       )}
@@ -549,20 +549,20 @@ function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === "Enter") onClick(); } : undefined}
       className={cn(
-        "rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-md p-5 relative overflow-hidden group",
+        "rounded-2xl border border-[#e7ebf3] bg-glass backdrop-blur-md p-5 relative overflow-hidden group",
         onClick && "cursor-pointer transition-colors hover:border-primary/30",
       )}
     >
       <div aria-hidden className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(20px)" }} />
-      <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
+      <div className="flex items-center gap-2 text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-3">
         <Icon className={cn("h-3 w-3", tone)} /> {label}
-        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-primary/80 transition-colors" />}
+        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-[#9aa4b8] group-hover:text-primary/80 transition-colors" />}
       </div>
       {loading || value == null ? (
         <Skeleton className="h-8 w-20 bg-glass-hover" />
       ) : (
-        <div className="text-3xl font-light text-white tabular-nums">
+        <div className="text-3xl font-light text-[#0c1426] tabular-nums">
           {value}
         </div>
       )}
@@ -576,7 +576,7 @@ function BigStat({ label, value, sub, tone, loading }: {
   const c = { blue: "text-primary/80", emerald: "text-emerald-300", rose: "text-rose-300" }[tone];
   return (
     <div>
-      <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-2">{label}</div>
+      <div className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em] mb-2">{label}</div>
       {loading ? (
         <Skeleton className="h-9 w-24 bg-glass-hover" />
       ) : (
@@ -584,7 +584,7 @@ function BigStat({ label, value, sub, tone, loading }: {
           {value}
         </div>
       )}
-      {sub && <div className="text-[10px] text-white/30 mt-1.5">{sub}</div>}
+      {sub && <div className="text-[10px] text-[#9aa4b8] mt-1.5">{sub}</div>}
     </div>
   );
 }
@@ -592,8 +592,8 @@ function BigStat({ label, value, sub, tone, loading }: {
 function MiniStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div>
-      <div className="text-[9px] text-white/40 font-mono uppercase tracking-[0.3em] mb-1">{label}</div>
-      <div className={cn("text-xl font-light tabular-nums", accent ? "text-primary/80" : "text-white")}>
+      <div className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.3em] mb-1">{label}</div>
+      <div className={cn("text-xl font-light tabular-nums", accent ? "text-primary/80" : "text-[#0c1426]")}>
         {value}
       </div>
     </div>
@@ -605,7 +605,7 @@ function ChartLegend({ items, onSelect }: {
   onSelect?: (ds: Dataset) => void;
 }) {
   return (
-    <div className="flex items-center gap-5 mt-4 pt-4 border-t border-white/[0.04]">
+    <div className="flex items-center gap-5 mt-4 pt-4 border-t border-[#e7ebf3]">
       {items.map((i) => (
         <button
           key={i.label}
@@ -613,8 +613,8 @@ function ChartLegend({ items, onSelect }: {
           disabled={!onSelect || !i.dataset}
           onClick={() => i.dataset && onSelect?.(i.dataset)}
           className={cn(
-            "flex items-center gap-2 text-[10px] text-white/50 font-mono uppercase tracking-[0.22em]",
-            onSelect && i.dataset && "hover:text-white transition-colors cursor-pointer",
+            "flex items-center gap-2 text-[10px] text-[#5d6a82] font-mono uppercase tracking-[0.22em]",
+            onSelect && i.dataset && "hover:text-[#0c1426] transition-colors cursor-pointer",
           )}
         >
           <span className="h-1.5 w-3 rounded-sm" style={{ background: i.color }} />
@@ -634,10 +634,10 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
   return (
     <AdminSurface>
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em]">
+        <div className="flex items-center gap-2 text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.32em]">
           <Icon className="h-3 w-3" /> {title}
         </div>
-        <div className="text-[9px] text-white/25 font-mono uppercase tracking-[0.28em]">{subtitle}</div>
+        <div className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">{subtitle}</div>
       </div>
       {loading ? (
         <div className="space-y-2.5">
@@ -646,14 +646,14 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-[12px] text-white/30 italic py-6 text-center">No data in this window</div>
+        <div className="text-[12px] text-[#9aa4b8] italic py-6 text-center">No data in this window</div>
       ) : (
         <div className="space-y-2">
           {rows.map((r) => (
             <div key={r.key} className="relative">
               <div className="flex items-center justify-between text-[12px] py-1.5 relative z-10 px-3">
-                <span className="text-white/75 truncate max-w-[60%]" title={r.key}>{r.key}</span>
-                <span className="text-white/45 font-mono tabular-nums">{r.count.toLocaleString()}</span>
+                <span className="text-[#0c1426] truncate max-w-[60%]" title={r.key}>{r.key}</span>
+                <span className="text-[#5d6a82] font-mono tabular-nums">{r.count.toLocaleString()}</span>
               </div>
               <div aria-hidden className="absolute inset-y-0 left-0 rounded-md bg-gradient-to-r from-[#0A84FF]/20 to-[#0A84FF]/0"
                 style={{ width: `${(r.count / max) * 100}%` }} />
@@ -763,22 +763,25 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-2xl lg:max-w-4xl bg-[hsl(220,14%,3%)] border-l border-white/[0.06] text-white p-0 flex flex-col"
+        className="w-full sm:max-w-2xl lg:max-w-4xl text-[#0c1426] p-0 flex flex-col border-0"
+        style={{
+          background: "#ffffff",
+          boxShadow:
+            "0 50px 120px -30px rgba(16,24,40,0.4), 0 8px 24px -12px rgba(16,24,40,0.18)",
+        }}
       >
-        <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${accent}33, transparent 65%)`, filter: "blur(60px)" }} />
-        <SheetHeader className="px-8 pt-8 pb-5 border-b border-white/[0.05] relative">
+        <SheetHeader className="px-8 pt-8 pb-5 relative">
           <div className="flex items-center gap-3 mb-3">
-            <span className="px-2.5 py-1 rounded-full border text-[9px] font-mono font-bold uppercase tracking-[0.28em]"
-              style={{ borderColor: `${accent}66`, color: accent, background: `${accent}10` }}>
+            <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-[0.28em]"
+              style={{ color: accent, background: `${accent}14` }}>
               {target?.dataset}
             </span>
-            <span className="h-px w-8 bg-white/15" />
+            <span className="h-px w-8 bg-[#f6f8fc]" />
             {onChangeDate && target ? (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => shiftDay(-1)}
-                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors"
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-[#f6f8fc] text-[#5d6a82] hover:text-[#0c1426] hover:bg-[#f4f7ff] transition-colors"
                   aria-label="Previous day"
                 >
                   <ArrowDown className="h-3 w-3 -rotate-90" />
@@ -786,14 +789,22 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
+                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md bg-[#f6f8fc] text-[10px] font-mono uppercase tracking-[0.24em] text-[#5d6a82] hover:text-primary/80 hover:bg-[#f4f7ff] transition-colors"
                       aria-label="Pick date"
                     >
                       <CalendarIcon className="h-3 w-3" />
                       {target.date}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-[hsl(220,14%,4%)] border-white/10" align="start">
+                  <PopoverContent
+                    className="w-auto p-0 border-0"
+                    align="start"
+                    style={{
+                      background: "#ffffff",
+                      boxShadow:
+                        "0 1px 2px rgba(16,24,40,.04), 0 18px 40px -18px rgba(16,24,40,.18)",
+                    }}
+                  >
                     <CalendarPicker
                       mode="single"
                       selected={selectedDate}
@@ -813,7 +824,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 </Popover>
                 <button
                   onClick={() => shiftDay(1)}
-                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors disabled:opacity-30"
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-[#f6f8fc] text-[#5d6a82] hover:text-[#0c1426] hover:bg-[#f4f7ff] transition-colors disabled:opacity-30"
                   aria-label="Next day"
                   disabled={(() => {
                     if (!target) return true;
@@ -826,7 +837,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 </button>
               </div>
             ) : (
-              <span className="text-[10px] text-white/35 font-mono uppercase tracking-[0.28em]">
+              <span className="text-[10px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">
                 {target?.date}
               </span>
             )}
@@ -847,7 +858,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                   </span>
                 </button>
               )}
-              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-[#f6f8fc] text-[#5d6a82] hover:text-[#0c1426] hover:bg-[#f4f7ff] transition-colors">
               <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -855,7 +866,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
           <SheetTitle className="text-2xl font-light tracking-tight">
             {heading}
           </SheetTitle>
-          <SheetDescription className="text-[12px] text-white/40 mt-1">
+          <SheetDescription className="text-[12px] text-[#9aa4b8] mt-1">
             {loading ? "Fetching rows…"
               : payload ? (
                   activeFilterCount > 0
@@ -867,14 +878,14 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
           </SheetDescription>
           {payload && filterableCols.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Filter className="h-3 w-3 text-white/30" />
+              <Filter className="h-3 w-3 text-[#9aa4b8]" />
               {filterableCols.map((c) => {
                 const opts = distinctValues[c.key] ?? [];
                 if (opts.length === 0) return null;
                 const value = filters[c.key] ?? "__all__";
                 return (
                   <label key={c.key} className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-white/35">
+                    <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-[#9aa4b8]">
                       {c.label}
                     </span>
                     <select
@@ -882,7 +893,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                       onChange={(e) =>
                         setFilters((f) => ({ ...f, [c.key]: e.target.value }))
                       }
-                      className="h-7 px-2 rounded-md bg-glass-hover border border-white/10 text-[11px] font-mono text-white/80 hover:border-white/20 focus:outline-none focus:border-primary/60"
+                      className="h-7 px-2 rounded-md bg-[#f6f8fc] text-[11px] font-mono text-[#0c1426] hover:bg-[#f4f7ff] focus:outline-none focus:bg-[#f4f7ff]"
                     >
                       <option value="__all__">All</option>
                       {opts.map((o) => (
@@ -895,7 +906,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               {activeFilterCount > 0 && (
                 <button
                   onClick={clearFilters}
-                  className="ml-1 h-7 px-2.5 inline-flex items-center gap-1 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white hover:border-white/30 transition-colors"
+                  className="ml-1 h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-[#f6f8fc] text-[10px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] hover:bg-[#f4f7ff] transition-colors"
                 >
                   <X className="h-3 w-3" /> Clear
                 </button>
@@ -910,24 +921,24 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               <Loader2 className="h-5 w-5 animate-spin text-primary/80" />
             </div>
           ) : error ? (
-            <div className="m-6 rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4 text-rose-300 text-sm flex items-start gap-3">
+            <div className="m-6 rounded-xl bg-[#fff1f3] p-4 text-[#f43f5e] text-sm flex items-start gap-3">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           ) : !payload || payload.rows.length === 0 ? (
-            <div className="py-20 text-center text-[13px] text-white/30 italic">
+            <div className="py-20 text-center text-[13px] text-[#9aa4b8] italic">
               No rows for this day.
             </div>
           ) : filteredRows.length === 0 ? (
-            <div className="py-20 text-center text-[13px] text-white/30 italic">
+            <div className="py-20 text-center text-[13px] text-[#9aa4b8] italic">
               No rows match the current filters.
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-white/[0.05] hover:bg-transparent">
+                <TableRow className="border-0 hover:bg-transparent">
                   {payload.columns.map((c) => (
-                    <TableHead key={c.key} className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">
+                    <TableHead key={c.key} className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">
                       {c.label}
                     </TableHead>
                   ))}
@@ -935,9 +946,9 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               </TableHeader>
               <TableBody>
                 {filteredRows.map((row, i) => (
-                  <TableRow key={i} className="border-white/[0.04] hover:bg-glass">
+                  <TableRow key={i} className="border-0 hover:bg-[#f4f7ff]">
                     {payload.columns.map((c) => (
-                      <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
+                      <TableCell key={c.key} className="text-[12px] text-[#0c1426] font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
                         {formatCell(c.key, row[c.key])}
                       </TableCell>
                     ))}
@@ -950,25 +961,25 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
           {payload && payload.rows.length > 0 && hasMore && (
             <div ref={sentinelRef} className="py-6 flex items-center justify-center">
               {loadingMore ? (
-                <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.24em] text-white/45">
+                <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.24em] text-[#5d6a82]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more…
                 </div>
               ) : activeFilterCount > 0 ? (
                 <button
                   onClick={() => onLoadMore?.()}
-                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-[#f6f8fc] text-[10px] font-mono uppercase tracking-[0.22em] text-[#5d6a82] hover:text-primary/80 hover:bg-[#f4f7ff] transition-colors"
                 >
                   Load next {DRILL_PAGE_SIZE}
                 </button>
               ) : (
-                <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/25">
+                <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#9aa4b8]">
                   Scroll to load more
                 </span>
               )}
             </div>
           )}
           {payload && payload.rows.length > 0 && !hasMore && (
-            <div className="py-6 text-center text-[10px] font-mono uppercase tracking-[0.28em] text-white/20">
+            <div className="py-6 text-center text-[10px] font-mono uppercase tracking-[0.28em] text-[#9aa4b8]">
               End of results
             </div>
           )}
@@ -995,7 +1006,7 @@ function formatCell(key: string, value: unknown): string {
 // ── Funnel ─────────────────────────────────────────────────────────────
 function FunnelView({ steps, loading }: { steps: { step: string; users: number }[]; loading: boolean }) {
   if (loading) return <Skeleton className="h-48 w-full bg-glass-hover" />;
-  if (!steps.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No funnel data</div>;
+  if (!steps.length) return <div className="py-10 text-center text-[12px] text-[#9aa4b8] italic">No funnel data</div>;
   const top = steps[0]?.users || 1;
   return (
     <div className="space-y-2">
@@ -1008,13 +1019,13 @@ function FunnelView({ steps, loading }: { steps: { step: string; users: number }
           <div key={s.step} className="relative">
             <div className="flex items-center justify-between text-[12px] mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-white/30 font-mono text-[10px] w-4">{i + 1}</span>
-                <span className="text-white/75">{s.step}</span>
+                <span className="text-[#9aa4b8] font-mono text-[10px] w-4">{i + 1}</span>
+                <span className="text-[#0c1426]">{s.step}</span>
               </div>
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-white tabular-nums font-mono">{s.users.toLocaleString()}</span>
+                <span className="text-[#0c1426] tabular-nums font-mono">{s.users.toLocaleString()}</span>
                 {i > 0 && (
-                  <span className={cn("font-mono tabular-nums", dropFromPrev > 30 ? "text-rose-300" : "text-white/30")}>
+                  <span className={cn("font-mono tabular-nums", dropFromPrev > 30 ? "text-rose-300" : "text-[#9aa4b8]")}>
                     {dropFromPrev > 0 ? `−${dropFromPrev}%` : "—"}
                   </span>
                 )}
@@ -1026,7 +1037,7 @@ function FunnelView({ steps, loading }: { steps: { step: string; users: number }
                   width: `${pct}%`,
                   background: `linear-gradient(90deg, rgba(10,132,255,${0.55 - i * 0.1}), rgba(10,132,255,${0.15 - i * 0.03}))`,
                 }} />
-              <div className="absolute inset-y-0 left-3 flex items-center text-[10px] text-white/60 font-mono">
+              <div className="absolute inset-y-0 left-3 flex items-center text-[10px] text-[#5d6a82] font-mono">
                 {pct.toFixed(0)}%
               </div>
             </div>
@@ -1040,12 +1051,12 @@ function FunnelView({ steps, loading }: { steps: { step: string; users: number }
 // ── Cohort retention matrix ────────────────────────────────────────────
 function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: number; weeks: number[] }[]; loading: boolean }) {
   if (loading) return <Skeleton className="h-56 w-full bg-glass-hover" />;
-  if (!cohorts.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No cohorts in window</div>;
+  if (!cohorts.length) return <div className="py-10 text-center text-[12px] text-[#9aa4b8] italic">No cohorts in window</div>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-[10px] font-mono">
         <thead>
-          <tr className="text-white/30">
+          <tr className="text-[#9aa4b8]">
             <th className="text-left pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Cohort</th>
             <th className="text-right pb-2 pr-3 font-normal uppercase tracking-[0.22em]">Size</th>
             {Array.from({ length: 8 }).map((_, w) => (
@@ -1055,9 +1066,9 @@ function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: n
         </thead>
         <tbody>
           {cohorts.map((c) => (
-            <tr key={c.cohort} className="border-t border-white/[0.04]">
-              <td className="py-1.5 pr-3 text-white/75 whitespace-nowrap">{c.cohort.slice(5)}</td>
-              <td className="py-1.5 pr-3 text-right text-white/45 tabular-nums">{c.size}</td>
+            <tr key={c.cohort} className="border-t border-[#e7ebf3]">
+              <td className="py-1.5 pr-3 text-[#0c1426] whitespace-nowrap">{c.cohort.slice(5)}</td>
+              <td className="py-1.5 pr-3 text-right text-[#5d6a82] tabular-nums">{c.size}</td>
               {c.weeks.map((v, i) => (
                 <td key={i} className="py-1 px-0.5">
                   {v < 0 ? (
@@ -1088,18 +1099,18 @@ function CohortMatrix({ cohorts, loading }: { cohorts: { cohort: string; size: n
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function Heatmap({ data, loading }: { data?: { matrix: number[][]; max: number }; loading: boolean }) {
   if (loading) return <Skeleton className="h-56 w-full bg-glass-hover" />;
-  if (!data || data.max === 0) return <div className="py-10 text-center text-[12px] text-white/30 italic">No clip activity in window</div>;
+  if (!data || data.max === 0) return <div className="py-10 text-center text-[12px] text-[#9aa4b8] italic">No clip activity in window</div>;
   return (
     <div className="overflow-x-auto">
       <div className="flex flex-col gap-1 min-w-[520px]">
-        <div className="flex items-center gap-1 pl-10 text-[8px] font-mono text-white/25 uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-1 pl-10 text-[8px] font-mono text-[#9aa4b8] uppercase tracking-[0.2em]">
           {Array.from({ length: 24 }).map((_, h) => (
             <div key={h} className="flex-1 text-center">{h % 6 === 0 ? h : ""}</div>
           ))}
         </div>
         {data.matrix.map((row, d) => (
           <div key={d} className="flex items-center gap-1">
-            <div className="w-10 text-[9px] font-mono text-white/35 uppercase tracking-[0.2em]">{DOW[d]}</div>
+            <div className="w-10 text-[9px] font-mono text-[#9aa4b8] uppercase tracking-[0.2em]">{DOW[d]}</div>
             {row.map((v, h) => (
               <div
                 key={h}
@@ -1129,7 +1140,7 @@ function FailureBars({ rows, loading }: { rows: { category: string; count: numbe
       {rows.map((r) => (
         <div key={r.category} className="relative">
           <div className="flex items-center justify-between text-[12px] py-1.5 relative z-10 px-3">
-            <span className="text-white/75 truncate max-w-[60%]" title={r.category}>{r.category}</span>
+            <span className="text-[#0c1426] truncate max-w-[60%]" title={r.category}>{r.category}</span>
             <span className="text-rose-300 font-mono tabular-nums">{r.count}</span>
           </div>
           <div aria-hidden className="absolute inset-y-0 left-0 rounded-md bg-gradient-to-r from-rose-500/15 to-rose-500/0"
@@ -1149,32 +1160,32 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
       </div>
     );
   }
-  if (!rows?.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No power users in window</div>;
+  if (!rows?.length) return <div className="py-10 text-center text-[12px] text-[#9aa4b8] italic">No power users in window</div>;
   const maxSpend = Math.max(...rows.map((r) => r.spend), 1);
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-white/[0.05] hover:bg-transparent">
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] w-10">#</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">User</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Tier</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Projects</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Credits spent</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Share</TableHead>
+        <TableRow className="border-[#e7ebf3] hover:bg-transparent">
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em] w-10">#</TableHead>
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">User</TableHead>
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">Tier</TableHead>
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em] text-right">Projects</TableHead>
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em] text-right">Credits spent</TableHead>
+          <TableHead className="text-[9px] text-[#9aa4b8] font-mono uppercase tracking-[0.28em]">Share</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.map((u, i) => (
-          <TableRow key={u.id} className="border-white/[0.04] hover:bg-glass">
-            <TableCell className="text-[12px] text-white/40 font-mono tabular-nums">
+          <TableRow key={u.id} className="border-[#e7ebf3] hover:bg-glass">
+            <TableCell className="text-[12px] text-[#9aa4b8] font-mono tabular-nums">
               {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : i + 1}
             </TableCell>
             <TableCell className="text-[12px]">
-              <div className="text-white/85 truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
-              <div className="text-[10px] text-white/30 font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+              <div className="text-[#0c1426] truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+              <div className="text-[10px] text-[#9aa4b8] font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
             </TableCell>
-            <TableCell className="text-[11px] text-white/55 capitalize">{u.profile?.account_tier ?? "free"}</TableCell>
-            <TableCell className="text-[12px] text-white/75 font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
+            <TableCell className="text-[11px] text-[#5d6a82] capitalize">{u.profile?.account_tier ?? "free"}</TableCell>
+            <TableCell className="text-[12px] text-[#0c1426] font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
             <TableCell className="text-[12px] text-amber-300 font-mono tabular-nums text-right">{u.spend.toLocaleString()}</TableCell>
             <TableCell className="w-[160px]">
               <div className="h-1.5 w-full rounded-full bg-glass-hover overflow-hidden">

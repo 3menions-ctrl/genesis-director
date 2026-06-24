@@ -1,33 +1,34 @@
 /* ==============================================================
-   Admin Editorial Noir — global skin overrides
+   Admin — "Floating Analysis" LIGHT skin (global overrides)
+   BORDERLESS through and through: surfaces, popups and pages float
+   on soft layered shadows + whitespace + zebra — no hairline borders.
    Applied only inside `.admin-skin` so the rest of the app is
-   untouched. Re-skins shadcn primitives (Card, Button, Input,
-   Tabs, Table, Badge, Dialog, Select, Switch, Progress, Tooltip)
-   to the Editorial Noir aesthetic without touching 6,000+ lines
-   of legacy admin components.
+   untouched. Re-skins shadcn primitives without touching 6,000+
+   lines of legacy admin components.
    ============================================================== */
 
 .admin-skin {
-  --admin-surface:        rgba(255,255,255,0.02);
-  --admin-surface-strong: rgba(255,255,255,0.035);
-  --admin-border:         rgba(255,255,255,0.06);
-  --admin-border-strong:  rgba(255,255,255,0.10);
-  --admin-text:           rgba(255,255,255,0.85);
-  --admin-text-soft:      rgba(255,255,255,0.55);
-  --admin-text-mute:      rgba(255,255,255,0.35);
-  --admin-blue:           #0A84FF;
+  --admin-surface:        #ffffff;
+  --admin-surface-strong: #f3f5f9;
+  --admin-border:         transparent;
+  --admin-border-strong:  transparent;
+  --admin-text:           #0c1426;
+  --admin-text-soft:      #5d6a82;
+  --admin-text-mute:      #9aa4b8;
+  --admin-blue:           #2f6bff;
+  --admin-violet:         #7c3aed;
+  --admin-zebra:          #fafbfd;
+  --admin-hover:          #f4f7ff;
   color: var(--admin-text);
 }
 
-/* ---------- Card ---------- */
+/* ---------- Card (borderless — floats on soft shadow) ---------- */
 .admin-skin [class*="rounded-lg"][class*="border"][class*="bg-card"],
 .admin-skin .bg-card {
   background: var(--admin-surface) !important;
-  border-color: var(--admin-border) !important;
+  border-color: transparent !important;
   border-radius: 1rem !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 24px 60px -36px rgba(0,0,0,0.7);
+  box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 18px 40px -18px rgba(16,24,40,.18) !important;
   color: var(--admin-text) !important;
 }
 .admin-skin .text-card-foreground { color: var(--admin-text) !important; }
@@ -35,46 +36,46 @@
 /* CardHeader / CardTitle / CardDescription */
 .admin-skin [class*="font-semibold"][class*="leading-none"][class*="tracking-tight"] {
   font-family: 'Fraunces', serif;
-  font-weight: 300 !important;
-  letter-spacing: -0.01em;
-  color: #fff;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
   font-size: 1.25rem;
 }
-.admin-skin .text-muted-foreground { color: var(--admin-text-mute) !important; }
+.admin-skin .text-muted-foreground { color: var(--admin-text-soft) !important; }
 
 /* ---------- Buttons ---------- */
 .admin-skin button[class*="bg-primary"] {
-  background: linear-gradient(180deg, rgba(10,132,255,0.95), rgba(10,132,255,0.78)) !important;
+  background: linear-gradient(135deg, #2f6bff, #7c3aed) !important;
   color: #fff !important;
-  border: 1px solid rgba(10,132,255,0.55) !important;
-  box-shadow: 0 8px 24px -10px rgba(10,132,255,0.6), inset 0 1px 0 rgba(255,255,255,0.18);
+  border: 0 !important;
+  box-shadow: 0 8px 22px -10px rgba(47,107,255,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
   border-radius: 0.625rem !important;
-  letter-spacing: 0.04em;
-  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-weight: 600;
 }
-.admin-skin button[class*="bg-primary"]:hover { filter: brightness(1.08); }
+.admin-skin button[class*="bg-primary"]:hover { filter: brightness(1.05); }
 
 .admin-skin button[class*="bg-secondary"],
 .admin-skin button[class*="border"][class*="bg-background"],
 .admin-skin button[class*="variant-outline"],
 .admin-skin button[class*="border-input"] {
   background: var(--admin-surface) !important;
-  border: 1px solid var(--admin-border) !important;
+  border: 0 !important;
   color: var(--admin-text) !important;
   border-radius: 0.625rem !important;
-  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.18);
 }
 .admin-skin button[class*="border-input"]:hover {
   background: var(--admin-surface-strong) !important;
-  border-color: rgba(10,132,255,0.4) !important;
-  color: #fff !important;
+  color: var(--admin-blue) !important;
 }
 
 .admin-skin button[class*="bg-destructive"] {
-  background: linear-gradient(180deg, rgba(239,68,68,0.9), rgba(220,38,38,0.8)) !important;
-  border: 1px solid rgba(239,68,68,0.5) !important;
+  background: linear-gradient(180deg, #f43f5e, #e11d48) !important;
+  color: #fff !important;
+  border: 0 !important;
   border-radius: 0.625rem !important;
-  box-shadow: 0 8px 24px -10px rgba(239,68,68,0.6);
+  box-shadow: 0 8px 22px -10px rgba(244,63,94,0.5);
 }
 
 /* Ghost buttons stay subtle but readable */
@@ -82,138 +83,152 @@
   color: var(--admin-text-soft);
   border-radius: 0.5rem !important;
 }
-.admin-skin button[class*="hover:bg-accent"]:hover { color: #fff; background: var(--admin-surface-strong) !important; }
+.admin-skin button[class*="hover:bg-accent"]:hover { color: var(--admin-text); background: var(--admin-surface-strong) !important; }
 
-/* ---------- Inputs / Textarea / Select trigger ---------- */
+/* ---------- Inputs / Textarea / Select trigger (filled, no border) ---------- */
 .admin-skin input,
 .admin-skin textarea,
 .admin-skin [role="combobox"],
 .admin-skin [class*="border-input"] {
-  background: rgba(0,0,0,0.35) !important;
-  border: 1px solid var(--admin-border) !important;
+  background: var(--admin-surface-strong) !important;
+  border: 0 !important;
   color: var(--admin-text) !important;
   border-radius: 0.625rem !important;
   font-family: 'Inter', sans-serif;
+  box-shadow: inset 0 1px 2px rgba(16,24,40,.04);
 }
 .admin-skin input:focus,
 .admin-skin textarea:focus,
 .admin-skin [role="combobox"]:focus {
-  border-color: rgba(10,132,255,0.55) !important;
-  box-shadow: 0 0 0 3px rgba(10,132,255,0.12) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(47,107,255,0.15) !important;
   outline: none !important;
 }
 .admin-skin input::placeholder,
-.admin-skin textarea::placeholder { color: rgba(255,255,255,0.25) !important; }
+.admin-skin textarea::placeholder { color: var(--admin-text-mute) !important; }
 
-/* ---------- Tabs ---------- */
+/* ---------- Tabs (borderless pill) ---------- */
 .admin-skin [role="tablist"] {
-  background: rgba(0,0,0,0.35) !important;
-  border: 1px solid var(--admin-border) !important;
+  background: #eef1f7 !important;
+  border: 0 !important;
   border-radius: 0.875rem !important;
   padding: 4px !important;
-  backdrop-filter: blur(12px);
 }
 .admin-skin [role="tab"] {
-  color: var(--admin-text-mute) !important;
+  color: var(--admin-text-soft) !important;
   font-size: 11px !important;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   border-radius: 0.625rem !important;
   transition: all 0.2s;
 }
 .admin-skin [role="tab"][data-state="active"] {
-  background: rgba(10,132,255,0.14) !important;
-  color: #fff !important;
-  border: 1px solid rgba(10,132,255,0.4) !important;
-  box-shadow: 0 8px 24px -12px rgba(10,132,255,0.6);
+  background: #ffffff !important;
+  color: var(--admin-blue) !important;
+  border: 0 !important;
+  box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 18px -8px rgba(16,24,40,0.24);
 }
 
-/* ---------- Table ---------- */
+/* ---------- Table (borderless — zebra + hover instead of rules) ---------- */
 .admin-skin table { border-collapse: separate; border-spacing: 0; }
 .admin-skin thead th {
-  background: rgba(255,255,255,0.02) !important;
+  background: transparent !important;
   color: var(--admin-text-mute) !important;
   font-size: 10px !important;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 600 !important;
-  border-bottom: 1px solid var(--admin-border) !important;
+  border-bottom: 0 !important;
 }
-.admin-skin tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04) !important; transition: background 0.15s; }
-.admin-skin tbody tr:hover { background: rgba(10,132,255,0.04) !important; }
+.admin-skin tbody tr { border-bottom: 0 !important; transition: background 0.15s; }
+.admin-skin tbody tr:nth-child(even) { background: var(--admin-zebra) !important; }
+.admin-skin tbody tr:hover { background: var(--admin-hover) !important; }
 .admin-skin td { color: var(--admin-text); }
 
-/* ---------- Badge ---------- */
+/* ---------- Badge (borderless) ---------- */
 .admin-skin [class*="rounded-full"][class*="border"][class*="px-2"] {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 10px !important;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   border-radius: 999px !important;
-  background: rgba(255,255,255,0.04) !important;
-  border-color: var(--admin-border) !important;
+  background: #f3f5f9 !important;
+  border: 0 !important;
+  color: var(--admin-text-soft) !important;
 }
 .admin-skin [class*="bg-primary"][class*="text-primary-foreground"][class*="rounded-full"] {
-  background: rgba(10,132,255,0.18) !important;
-  color: #6FB6FF !important;
-  border: 1px solid rgba(10,132,255,0.35) !important;
+  background: rgba(47,107,255,0.1) !important;
+  color: #2f6bff !important;
+  border: 0 !important;
 }
 .admin-skin [class*="bg-destructive"][class*="rounded-full"] {
-  background: rgba(239,68,68,0.18) !important;
-  color: #FCA5A5 !important;
-  border: 1px solid rgba(239,68,68,0.35) !important;
+  background: rgba(244,63,94,0.1) !important;
+  color: #e11d48 !important;
+  border: 0 !important;
 }
 
-/* ---------- Dialog ---------- */
+/* ---------- Dialog / popups (borderless, deep float) ---------- */
 .admin-skin [role="dialog"],
 [role="dialog"][data-admin] {
-  background: rgba(8,9,12,0.95) !important;
-  border: 1px solid var(--admin-border) !important;
+  background: #ffffff !important;
+  border: 0 !important;
   border-radius: 1.25rem !important;
-  backdrop-filter: blur(24px);
-  box-shadow: 0 60px 120px -40px rgba(0,0,0,0.8);
+  color: var(--admin-text) !important;
+  box-shadow: 0 50px 120px -30px rgba(16,24,40,0.4), 0 8px 24px -12px rgba(16,24,40,0.18) !important;
 }
 
 /* ---------- Switch ---------- */
 .admin-skin [role="switch"][data-state="checked"] {
   background: var(--admin-blue) !important;
-  box-shadow: 0 0 12px rgba(10,132,255,0.5);
+  box-shadow: 0 4px 10px -2px rgba(47,107,255,0.5);
 }
 .admin-skin [role="switch"][data-state="unchecked"] {
-  background: rgba(255,255,255,0.08) !important;
+  background: #d8deea !important;
 }
 
 /* ---------- Progress ---------- */
 .admin-skin [role="progressbar"] {
-  background: rgba(255,255,255,0.06) !important;
+  background: #eef1f7 !important;
   border-radius: 999px;
   overflow: hidden;
 }
 .admin-skin [role="progressbar"] > * {
-  background: linear-gradient(90deg, rgba(10,132,255,0.6), rgba(10,132,255,1)) !important;
+  background: linear-gradient(90deg, #2f6bff, #7c3aed) !important;
 }
 
-/* ---------- Tooltip / Popover ---------- */
+/* ---------- Tooltip / Popover (borderless dark pill) ---------- */
 .admin-skin [role="tooltip"],
 [role="tooltip"][data-admin] {
-  background: rgba(8,9,12,0.95) !important;
-  border: 1px solid var(--admin-border) !important;
-  color: var(--admin-text) !important;
+  background: #0c1426 !important;
+  border: 0 !important;
+  color: rgba(255,255,255,0.92) !important;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   border-radius: 0.5rem !important;
+  box-shadow: 0 20px 50px -20px rgba(16,24,40,0.5) !important;
 }
 
+/* ---------- BORDERLESS NEUTRALIZER ----------
+   Any element using the light hairline palette (decorative borders or
+   single-side dividers in hand-written + ops pages) goes borderless.
+   Separation comes from shadow, whitespace and zebra instead. */
+.admin-skin [class*="border-[#e7ebf3]"],
+.admin-skin [class*="border-[#eef1f6]"],
+.admin-skin [class*="border-[#f1f3f8]"],
+.admin-skin [class*="border-[#d8deea]"],
+.admin-skin [class*="border-[#eef1f7]"],
+.admin-skin [class*="border-[#e3e8f0]"],
+.admin-skin .border,
+.admin-skin .border-border { border-color: transparent !important; }
+
 /* ---------- Misc utility tone-mapping ---------- */
-.admin-skin .bg-muted        { background: rgba(255,255,255,0.04) !important; }
+.admin-skin .bg-muted        { background: #f3f5f9 !important; }
 .admin-skin .bg-background   { background: transparent !important; }
-.admin-skin .bg-secondary    { background: rgba(255,255,255,0.04) !important; }
-.admin-skin .border          { border-color: var(--admin-border) !important; }
-.admin-skin .border-border   { border-color: var(--admin-border) !important; }
+.admin-skin .bg-secondary    { background: #f3f5f9 !important; }
 .admin-skin .text-foreground { color: var(--admin-text) !important; }
 
 /* Numeric / mono-like text inside admin gets tabular numbers */
@@ -222,12 +237,12 @@
 /* Headings inside any admin card */
 .admin-skin h1, .admin-skin h2, .admin-skin h3 {
   font-family: 'Fraunces', serif;
-  font-weight: 300;
-  letter-spacing: -0.01em;
-  color: #fff;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
 }
 
 /* Subtle scrollbars within admin */
 .admin-skin ::-webkit-scrollbar { width: 8px; height: 8px; }
-.admin-skin ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 999px; }
-.admin-skin ::-webkit-scrollbar-thumb:hover { background: rgba(10,132,255,0.4); }
+.admin-skin ::-webkit-scrollbar-thumb { background: #d8deea; border-radius: 999px; }
+.admin-skin ::-webkit-scrollbar-thumb:hover { background: rgba(47,107,255,0.4); }

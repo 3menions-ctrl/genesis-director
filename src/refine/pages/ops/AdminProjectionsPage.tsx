@@ -125,7 +125,7 @@ export default function AdminProjectionsPage() {
             </SegBtn>
           ))}
         </Segmented>
-        <span className="mx-1 h-5 w-px bg-white/10" />
+        <span className="mx-1 h-5 w-px bg-[#f6f8fc]" />
         <Segmented>
           {GRAINS.map((g) => (
             <SegBtn key={g.id} active={grain === g.id} onClick={() => setGrain(g.id)}>
@@ -179,7 +179,7 @@ export default function AdminProjectionsPage() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <p className="mt-3 px-1 text-[11.5px] leading-relaxed text-white/40">
+        <p className="mt-3 px-1 text-[11.5px] leading-relaxed text-[#9aa4b8]">
           The dashed line extends the least-squares trend of the visible buckets {grainCfg.horizonLabel}.
           It's a straight-line estimate — useful for direction and rough planning, not a guarantee.
           Fit quality (r²) shows how closely recent {grainCfg.label.toLowerCase()} {metricLabel.toLowerCase()} follow that line.
@@ -192,7 +192,7 @@ export default function AdminProjectionsPage() {
 // ── tiny segmented-control primitives ───────────────────────────────────────
 function Segmented({ children }: { children: React.ReactNode }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] p-1 ring-1 ring-inset ring-white/[0.06]">
+    <div className="inline-flex items-center gap-1 rounded-full bg-[#f6f8fc] p-1 ring-1 ring-inset ring-[#e7ebf3]]">
       {children}
     </div>
   );
@@ -204,7 +204,7 @@ function SegBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={[
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
-        active ? "bg-white/[0.10] text-white" : "text-white/55 hover:text-white/85",
+        active ? "bg-[#f6f8fc] text-[#0c1426]" : "text-[#5d6a82] hover:text-[#0c1426]",
       ].join(" ")}
     >
       {children}

@@ -95,27 +95,27 @@ export default function AdminObservabilityPage() {
             widest one so the relative ordering reads at a glance. */}
         <AdminSurface>
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-white/60" />
-            <h3 className="text-white text-[13px] font-medium uppercase tracking-[0.18em]">
+            <BarChart3 className="w-4 h-4 text-[#5d6a82]" />
+            <h3 className="text-[#0c1426] text-[13px] font-medium uppercase tracking-[0.18em]">
               Failures by classification (last {WINDOW_HOURS}h)
             </h3>
           </div>
           {histogram.length === 0 ? (
-            <div className="text-white/40 text-sm">No failures recorded in this window.</div>
+            <div className="text-[#9aa4b8] text-sm">No failures recorded in this window.</div>
           ) : (
             <div className="space-y-2">
               {histogram.map((h) => (
                 <div key={h.classification} className="flex items-center gap-3">
-                  <div className="w-44 text-white/70 text-[12px] font-mono uppercase tracking-[0.18em]">
+                  <div className="w-44 text-[#0c1426] text-[12px] font-mono uppercase tracking-[0.18em]">
                     {h.classification}
                   </div>
-                  <div className="flex-1 h-6 bg-white/[0.04] border border-white/10 rounded relative overflow-hidden">
+                  <div className="flex-1 h-6 bg-[#f6f8fc] border border-[#e7ebf3] rounded relative overflow-hidden">
                     <div
                       className="absolute inset-y-0 left-0 bg-rose-500/30 border-r border-rose-400/60"
                       style={{ width: maxBucket > 0 ? `${(h.n / maxBucket) * 100}%` : "0%" }}
                     />
                   </div>
-                  <div className="w-12 text-right text-white/80 font-mono text-[12px]">{h.n}</div>
+                  <div className="w-12 text-right text-[#0c1426] font-mono text-[12px]">{h.n}</div>
                 </div>
               ))}
             </div>
@@ -127,17 +127,17 @@ export default function AdminObservabilityPage() {
             to decide whether to drill further. */}
         <AdminSurface>
           <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-white/60" />
-            <h3 className="text-white text-[13px] font-medium uppercase tracking-[0.18em]">
+            <AlertTriangle className="w-4 h-4 text-[#5d6a82]" />
+            <h3 className="text-[#0c1426] text-[13px] font-medium uppercase tracking-[0.18em]">
               Most recent {RECENT_LIMIT}
             </h3>
           </div>
           {loading && recent.length === 0 ? (
-            <div className="text-white/40 text-sm">Loading…</div>
+            <div className="text-[#9aa4b8] text-sm">Loading…</div>
           ) : recent.length === 0 ? (
-            <div className="text-white/40 text-sm">Clean. Nothing failed recently.</div>
+            <div className="text-[#9aa4b8] text-sm">Clean. Nothing failed recently.</div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-[#eef1f6]">
               {recent.map((r) => (
                 <div key={r.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-4">
@@ -151,20 +151,20 @@ export default function AdminObservabilityPage() {
                             retry
                           </span>
                         )}
-                        <span className="text-white/40 font-mono text-[10px] uppercase tracking-[0.18em]">
+                        <span className="text-[#9aa4b8] font-mono text-[10px] uppercase tracking-[0.18em]">
                           {r.stitcher_version ?? "unknown"}
                         </span>
                       </div>
-                      <div className="text-white/85 text-[13px] truncate" title={r.message}>
+                      <div className="text-[#0c1426] text-[13px] truncate" title={r.message}>
                         {r.message}
                       </div>
-                      <div className="mt-1 text-white/40 font-mono text-[10px] uppercase tracking-[0.18em]">
+                      <div className="mt-1 text-[#9aa4b8] font-mono text-[10px] uppercase tracking-[0.18em]">
                         {r.project_id ? `project ${r.project_id.slice(0, 8)}…` : "no project"}
                         {" · "}
                         {formatShape(r.input_shape)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-white/40 font-mono text-[10px] uppercase tracking-[0.18em] shrink-0">
+                    <div className="flex items-center gap-1 text-[#9aa4b8] font-mono text-[10px] uppercase tracking-[0.18em] shrink-0">
                       <Clock className="w-3 h-3" />
                       {formatAgo(r.created_at)}
                     </div>

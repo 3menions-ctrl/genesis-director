@@ -59,42 +59,42 @@ export default function AdminCohortsPage() {
       ]}
     >
       <AdminSurface className="p-0 overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
+        <div className="px-6 py-4 border-b border-[#e7ebf3]">
           <AdminSectionLabel label="Daily cohort" meta={`${rows.length} days`} />
         </div>
         {loading ? (
-          <div className="p-16 flex items-center justify-center gap-3 text-white/40">
+          <div className="p-16 flex items-center justify-center gap-3 text-[#9aa4b8]">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading…</span>
           </div>
         ) : rows.length === 0 ? (
           <div className="p-16 text-center">
-            <Users className="w-7 h-7 mx-auto mb-3 text-white/20" />
-            <p className="text-[15px] text-white/70 mb-2">No signup data yet</p>
-            <p className="text-[12px] text-white/40 max-w-md mx-auto">When users sign up, their cohort metrics appear here.</p>
+            <Users className="w-7 h-7 mx-auto mb-3 text-[#9aa4b8]" />
+            <p className="text-[15px] text-[#0c1426] mb-2">No signup data yet</p>
+            <p className="text-[12px] text-[#9aa4b8] max-w-md mx-auto">When users sign up, their cohort metrics appear here.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-white/[0.05]">
-                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Day</th>
-                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Signups</th>
-                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Activated</th>
-                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Paid</th>
-                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Activation %</th>
-                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Paid %</th>
+                <tr className="border-b border-[#e7ebf3]">
+                  <th className="px-5 py-3 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Day</th>
+                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Signups</th>
+                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Activated</th>
+                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Paid</th>
+                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Activation %</th>
+                  <th className="px-5 py-3 text-right text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Paid %</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.signup_date} className="border-b border-white/[0.03] hover:bg-glass">
-                    <td className="px-5 py-3 text-white/75 font-mono text-[12px]">{r.signup_date}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-white/85">{r.signups.toLocaleString()}</td>
+                  <tr key={r.signup_date} className="border-b border-[#e7ebf3] hover:bg-glass">
+                    <td className="px-5 py-3 text-[#0c1426] font-mono text-[12px]">{r.signup_date}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-[#0c1426]">{r.signups.toLocaleString()}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-emerald-300">{r.activations}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-amber-300">{r.paid_conversions}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-white/55">{r.signups ? `${Math.round((r.activations / r.signups) * 100)}%` : "—"}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-white/55">{r.signups ? `${Math.round((r.paid_conversions / r.signups) * 100)}%` : "—"}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-[#5d6a82]">{r.signups ? `${Math.round((r.activations / r.signups) * 100)}%` : "—"}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-[#5d6a82]">{r.signups ? `${Math.round((r.paid_conversions / r.signups) * 100)}%` : "—"}</td>
                   </tr>
                 ))}
               </tbody>

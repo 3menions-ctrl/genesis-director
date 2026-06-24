@@ -35,14 +35,14 @@ function StatPill({ icon: Icon, label, value, sub, accent }: {
 }) {
   const c = { primary: "text-primary", success: "text-success", warning: "text-warning", destructive: "text-destructive", info: "text-info" }[accent || "primary"];
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-glass p-5 space-y-3">
+    <div className="rounded-2xl border border-[#e7ebf3] bg-glass p-5 space-y-3">
       <div className="flex items-center gap-2.5">
         <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-glass-hover", c)}><Icon className="w-4 h-4" /></div>
-        <span className="text-xs font-medium text-white/40 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-medium text-[#9aa4b8] uppercase tracking-wider">{label}</span>
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight text-white">{value}</p>
-        {sub && <p className="text-xs text-white/30 mt-0.5">{sub}</p>}
+        <p className="text-2xl font-bold tracking-tight text-[#0c1426]">{value}</p>
+        {sub && <p className="text-xs text-[#9aa4b8] mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -137,17 +137,17 @@ export default function AdminFinancialsPage() {
         <StatPill icon={BarChart3} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" accent={margin >= 70 ? "success" : margin >= 50 ? "warning" : "destructive"} />
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-white/40" /> Recent Stripe Purchases
+      <div className="rounded-2xl border border-[#e7ebf3] overflow-hidden">
+        <div className="p-5 border-b border-[#e7ebf3] flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[#0c1426] flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 text-[#9aa4b8]" /> Recent Stripe Purchases
           </h3>
-          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#9aa4b8]">
             {purchases.length} shown
           </span>
         </div>
         {purchases.length === 0 ? (
-          <div className="text-center py-16 text-white/30">
+          <div className="text-center py-16 text-[#9aa4b8]">
             <ShoppingCart className="w-8 h-8 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No purchases yet</p>
           </div>
@@ -155,21 +155,21 @@ export default function AdminFinancialsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-[#e7ebf3]">
                   {["Date", "Buyer", "Credits", "USD", "Payment", "Description"].map((h, i) => (
-                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-white/30 uppercase tracking-wider", i >= 2 && i <= 3 ? "text-right" : "text-left")}>{h}</th>
+                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider", i >= 2 && i <= 3 ? "text-right" : "text-left")}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {purchases.map((p) => (
-                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="py-3 px-5 text-xs text-white/60">{new Date(p.created_at).toLocaleString()}</td>
-                    <td className="py-3 px-5 text-xs text-white/80">{emailById[p.user_id] || p.user_id.slice(0, 8)}</td>
+                  <tr key={p.id} className="border-b border-[#e7ebf3] hover:bg-glass transition-colors">
+                    <td className="py-3 px-5 text-xs text-[#5d6a82]">{new Date(p.created_at).toLocaleString()}</td>
+                    <td className="py-3 px-5 text-xs text-[#0c1426]">{emailById[p.user_id] || p.user_id.slice(0, 8)}</td>
                     <td className="py-3 px-5 text-sm text-right text-success font-mono">+{p.amount}</td>
                     <td className="py-3 px-5 text-sm text-right text-success font-mono">{fmt(p.amount * 10)}</td>
-                    <td className="py-3 px-5 text-[10px] text-white/40 font-mono">{p.stripe_payment_id?.slice(0, 18) || "—"}</td>
-                    <td className="py-3 px-5 text-xs text-white/40 max-w-xs truncate">{p.description || "—"}</td>
+                    <td className="py-3 px-5 text-[10px] text-[#9aa4b8] font-mono">{p.stripe_payment_id?.slice(0, 18) || "—"}</td>
+                    <td className="py-3 px-5 text-xs text-[#9aa4b8] max-w-xs truncate">{p.description || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -178,32 +178,32 @@ export default function AdminFinancialsPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06]">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Activity className="w-4 h-4 text-white/40" /> Cost Breakdown by Service
+      <div className="rounded-2xl border border-[#e7ebf3] overflow-hidden">
+        <div className="p-5 border-b border-[#e7ebf3]">
+          <h3 className="text-sm font-semibold text-[#0c1426] flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#9aa4b8]" /> Cost Breakdown by Service
           </h3>
         </div>
         {profitData.length === 0 ? (
-          <div className="text-center py-16 text-white/30">
+          <div className="text-center py-16 text-[#9aa4b8]">
             <Coins className="w-8 h-8 mx-auto mb-3 opacity-30" /><p className="text-sm">No cost data yet</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-[#e7ebf3]">
                   {["Date", "Service", "Ops", "Revenue", "Cost", "Margin"].map((h, i) => (
-                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-white/30 uppercase tracking-wider", i >= 2 ? "text-right" : "text-left")}>{h}</th>
+                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-[#9aa4b8] uppercase tracking-wider", i >= 2 ? "text-right" : "text-left")}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {profitData.map((row, idx) => (
-                  <tr key={idx} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="py-3 px-5 text-sm text-white/70">{new Date(row.date).toLocaleDateString()}</td>
-                    <td className="py-3 px-5"><Badge variant="secondary" className="text-[10px] bg-glass-hover text-white/50">{row.service}</Badge></td>
-                    <td className="py-3 px-5 text-sm text-right text-white/40">{row.total_operations.toLocaleString()}</td>
+                  <tr key={idx} className="border-b border-[#e7ebf3] hover:bg-glass transition-colors">
+                    <td className="py-3 px-5 text-sm text-[#0c1426]">{new Date(row.date).toLocaleDateString()}</td>
+                    <td className="py-3 px-5"><Badge variant="secondary" className="text-[10px] bg-glass-hover text-[#5d6a82]">{row.service}</Badge></td>
+                    <td className="py-3 px-5 text-sm text-right text-[#9aa4b8]">{row.total_operations.toLocaleString()}</td>
                     <td className="py-3 px-5 text-sm text-right text-success">{fmt(row.estimated_revenue_cents)}</td>
                     <td className="py-3 px-5 text-sm text-right text-destructive">{fmt(row.total_real_cost_cents)}</td>
                     <td className="py-3 px-5 text-right">
@@ -219,7 +219,7 @@ export default function AdminFinancialsPage() {
         )}
       </div>
 
-      <Button onClick={() => { fetchProfitData(); fetchRevenue(); fetchApiCost(); }} variant="ghost" size="sm" className="text-xs text-white/30 hover:text-white/60">
+      <Button onClick={() => { fetchProfitData(); fetchRevenue(); fetchApiCost(); }} variant="ghost" size="sm" className="text-xs text-[#9aa4b8] hover:text-[#5d6a82]">
         <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
       </Button>
     </div>

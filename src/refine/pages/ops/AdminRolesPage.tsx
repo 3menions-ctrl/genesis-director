@@ -13,7 +13,7 @@ interface RoleRow extends AdminRow {
 }
 
 const ROLE_TONE: Record<string, string> = {
-  admin: "text-rose-300", moderator: "text-amber-300", support: "text-primary/80", user: "text-white/65",
+  admin: "text-rose-300", moderator: "text-amber-300", support: "text-primary/80", user: "text-[#0c1426]",
 };
 
 export default function AdminRolesPage() {
@@ -41,10 +41,10 @@ export default function AdminRolesPage() {
         columns={[
           { key: "profiles", label: "User", width: "300px",
             render: (_, row) => row.profiles?.email
-              ? <span><span className="text-white/90">{row.profiles.email}</span>{row.profiles.display_name ? <span className="text-white/45 ml-2">· {row.profiles.display_name}</span> : null}</span>
-              : <code className="font-mono text-[11px] text-white/45">{row.user_id}</code> },
+              ? <span><span className="text-[#0c1426]">{row.profiles.email}</span>{row.profiles.display_name ? <span className="text-[#5d6a82] ml-2">· {row.profiles.display_name}</span> : null}</span>
+              : <code className="font-mono text-[11px] text-[#5d6a82]">{row.user_id}</code> },
           { key: "role", label: "Role", width: "140px",
-            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${ROLE_TONE[String(v)] ?? "text-white/55"}`}>{String(v)}</span> },
+            render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${ROLE_TONE[String(v)] ?? "text-[#5d6a82]"}`}>{String(v)}</span> },
           { key: "granted_at", label: "Granted", width: "180px" },
         ]}
         actions={[

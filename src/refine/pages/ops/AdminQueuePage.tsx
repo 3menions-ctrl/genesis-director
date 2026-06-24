@@ -76,7 +76,7 @@ export default function AdminQueuePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">Created</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Engine</th>
@@ -87,31 +87,31 @@ export default function AdminQueuePage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Queue is empty.</td></tr>}
+              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#9aa4b8]">Queue is empty.</td></tr>}
               {pg.slice.map((r) => {
                 const ageMin = (Date.now() - new Date(r.updated_at).getTime()) / 60000;
                 const isStuck = ageMin > 10;
                 return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</td>
+                  <tr key={r.id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                    <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <Badge variant={isStuck ? "destructive" : r.status === "generating" ? "default" : "secondary"} className="font-mono text-[10px]">
                         {r.status}{isStuck ? " · stuck" : ""}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.engine ?? "—"}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">#{r.shot_index}</td>
-                    <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.project_id.slice(0,8)}…</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.retry_count ?? 0}</td>
-                    <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.replicate_prediction_id ? <><Lock className="w-3 h-3 inline mr-1 opacity-50" />{r.replicate_prediction_id.slice(0,12)}…</> : "—"}</td>
+                    <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px]">{r.engine ?? "—"}</td>
+                    <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px]">#{r.shot_index}</td>
+                    <td className="px-4 py-3 text-[#9aa4b8] font-mono text-[11px]">{r.project_id.slice(0,8)}…</td>
+                    <td className="px-4 py-3 text-[#5d6a82] font-mono text-[11px]">{r.retry_count ?? 0}</td>
+                    <td className="px-4 py-3 text-[#9aa4b8] font-mono text-[11px]">{r.replicate_prediction_id ? <><Lock className="w-3 h-3 inline mr-1 opacity-50" />{r.replicate_prediction_id.slice(0,12)}…</> : "—"}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-[#e7ebf3]" />
       </AdminSurface>
     </AdminPageShell>
   );

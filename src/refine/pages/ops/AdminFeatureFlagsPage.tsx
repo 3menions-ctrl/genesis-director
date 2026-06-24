@@ -182,51 +182,61 @@ function CreateFlagDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-background p-6 space-y-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      style={{ background: "rgba(12,20,38,0.28)" }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-6 space-y-4"
+        style={{
+          background: "#ffffff",
+          boxShadow:
+            "0 50px 120px -30px rgba(16,24,40,0.4), 0 8px 24px -12px rgba(16,24,40,0.18)",
+        }}
+      >
         <div className="flex items-center gap-2 mb-1">
           <Plus className="w-4 h-4 text-primary/80" />
-          <h2 className="font-display text-white text-lg">
+          <h2 className="font-display text-[#0c1426] text-lg">
             New feature flag
           </h2>
         </div>
         <div className="space-y-3">
           <label className="block">
-            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">Key</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Key</span>
             <input
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="checkout.new_flow"
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40 font-mono"
+              className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff] font-mono"
             />
           </label>
           <label className="block">
-            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">Description</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Description</span>
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enable the new checkout flow"
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
+              className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">Rollout %</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Rollout %</span>
               <input
                 type="number"
                 min={0}
                 max={100}
                 value={rollout}
                 onChange={(e) => setRollout(Number(e.target.value))}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
+                className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]"
               />
             </label>
             <label className="block">
-              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">Audience</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#9aa4b8]">Audience</span>
               <select
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40"
+                className="mt-1 w-full px-3 py-2 rounded-lg bg-[#f6f8fc] text-[13px] text-[#0c1426] focus:outline-none focus:bg-[#f4f7ff]"
               >
                 <option value="all">All</option>
                 <option value="admin">Admin</option>
@@ -240,14 +250,14 @@ function CreateFlagDialog({
         <div className="flex justify-end gap-2 pt-2">
           <button
             onClick={onClose}
-            className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2 rounded-lg border border-white/[0.08]"
+            className="text-[11px] uppercase tracking-[0.22em] text-[#5d6a82] hover:text-[#0c1426] px-4 py-2 rounded-lg bg-[#f6f8fc] hover:bg-[#f4f7ff]"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={busy || !key}
-            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] border border-primary/50 disabled:opacity-40"
+            className="text-[11px] uppercase tracking-[0.22em] text-white px-4 py-2 rounded-lg bg-gradient-to-b from-[#0A84FF] to-[#0A6CCC] disabled:opacity-40"
           >
             {busy ? "Creating…" : "Create flag"}
           </button>

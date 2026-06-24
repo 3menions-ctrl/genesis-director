@@ -70,19 +70,19 @@ export default function AdminReferralsPage() {
       }
     >
       <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
+        <div className="p-4 border-b border-[#e7ebf3] flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#9aa4b8]" />
           <Input
             placeholder="Filter by code or referrer email…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+            className="bg-transparent border-[#e7ebf3] text-[#0c1426] placeholder:text-[#9aa4b8]"
           />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">Code</th>
                 <th className="text-left px-4 py-3">Referrer</th>
                 <th className="text-right px-4 py-3">Total</th>
@@ -92,22 +92,22 @@ export default function AdminReferralsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No referral codes.</td></tr>}
+              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">No referral codes.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.code_id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3"><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></td>
-                  <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0,8) + "…"}</td>
-                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{r.total_redemptions}</td>
+                <tr key={r.code_id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                  <td className="px-4 py-3"><GitBranch className="w-3 h-3 inline mr-2 text-[#9aa4b8]" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></td>
+                  <td className="px-4 py-3 text-[#0c1426] font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0,8) + "…"}</td>
+                  <td className="px-4 py-3 text-right text-[#0c1426] font-mono tabular-nums text-[12px]">{r.total_redemptions}</td>
                   <td className="px-4 py-3 text-right"><Badge variant="default" className="font-mono text-[10px]">{r.credited_redemptions}</Badge></td>
-                  <td className="px-4 py-3 text-right">{Number(r.pending_redemptions) > 0 ? <Badge variant="secondary" className="font-mono text-[10px]">{r.pending_redemptions}</Badge> : <span className="text-white/30 font-mono text-[11px]">0</span>}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px] whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right">{Number(r.pending_redemptions) > 0 ? <Badge variant="secondary" className="font-mono text-[10px]">{r.pending_redemptions}</Badge> : <span className="text-[#9aa4b8] font-mono text-[11px]">0</span>}</td>
+                  <td className="px-4 py-3 text-[#9aa4b8] font-mono text-[10px] whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-[#e7ebf3]" />
       </AdminSurface>
     </AdminPageShell>
   );

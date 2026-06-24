@@ -68,19 +68,19 @@ export default function AdminCrashForensicsPage() {
         )}
 
         <AdminSurface className="p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06]">
+          <div className="px-6 py-4 border-b border-[#e7ebf3]">
             <AdminSectionLabel label="Diagnostics Tail" meta={`${entries.length} entries · capped at 100`} />
           </div>
           <div className="max-h-[480px] overflow-auto">
             {entries.length === 0 ? (
-              <div className="px-6 py-10 text-center text-white/40 text-[13px]">
+              <div className="px-6 py-10 text-center text-[#9aa4b8] text-[13px]">
                 <Bug className="w-5 h-5 mx-auto mb-2 opacity-50" />
                 No diagnostic events captured this session.
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+                  <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                     <th className="text-left px-6 py-2">When</th>
                     <th className="text-left px-6 py-2">Sev</th>
                     <th className="text-left px-6 py-2">Source</th>
@@ -89,13 +89,13 @@ export default function AdminCrashForensicsPage() {
                 </thead>
                 <tbody>
                   {entries.slice().reverse().map(e => (
-                    <tr key={e.id} className="border-b border-white/[0.04] hover:bg-glass">
-                      <td className="px-6 py-2 text-white/50 font-mono text-[10px] whitespace-nowrap">{new Date(e.timestamp).toLocaleTimeString()}</td>
+                    <tr key={e.id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                      <td className="px-6 py-2 text-[#5d6a82] font-mono text-[10px] whitespace-nowrap">{new Date(e.timestamp).toLocaleTimeString()}</td>
                       <td className="px-6 py-2">
                         <Badge variant={e.severity === "error" ? "destructive" : e.severity === "warning" ? "secondary" : "default"} className="font-mono text-[10px]">{e.severity}</Badge>
                       </td>
-                      <td className="px-6 py-2 text-white/60 font-mono text-[10px]">{e.source}</td>
-                      <td className="px-6 py-2 text-white/80 font-mono text-[11px] max-w-[640px] truncate">{e.message}</td>
+                      <td className="px-6 py-2 text-[#5d6a82] font-mono text-[10px]">{e.source}</td>
+                      <td className="px-6 py-2 text-[#0c1426] font-mono text-[11px] max-w-[640px] truncate">{e.message}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -105,21 +105,21 @@ export default function AdminCrashForensicsPage() {
         </AdminSurface>
 
         <AdminSurface className="p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06]">
+          <div className="px-6 py-4 border-b border-[#e7ebf3]">
             <AdminSectionLabel label="Stability Events" meta={`${stability.length} recent`} />
           </div>
           <div className="max-h-[320px] overflow-auto">
             {stability.length === 0 ? (
-              <div className="px-6 py-8 text-center text-white/40 text-[13px]">No stability events recorded.</div>
+              <div className="px-6 py-8 text-center text-[#9aa4b8] text-[13px]">No stability events recorded.</div>
             ) : (
               <table className="w-full text-sm">
                 <tbody>
                   {stability.slice().reverse().map((s, i) => (
-                    <tr key={i} className="border-b border-white/[0.04]">
-                      <td className="px-6 py-2 text-white/50 font-mono text-[10px] whitespace-nowrap">{new Date(s.timestamp).toLocaleTimeString()}</td>
-                      <td className="px-6 py-2 text-white/70 font-mono text-[11px]">{s.category}</td>
-                      <td className="px-6 py-2 text-white/60 font-mono text-[11px]">{s.componentName || s.route || "—"}</td>
-                      <td className="px-6 py-2 text-white/80 font-mono text-[11px] truncate max-w-[520px]">{s.message}</td>
+                    <tr key={i} className="border-b border-[#e7ebf3]">
+                      <td className="px-6 py-2 text-[#5d6a82] font-mono text-[10px] whitespace-nowrap">{new Date(s.timestamp).toLocaleTimeString()}</td>
+                      <td className="px-6 py-2 text-[#0c1426] font-mono text-[11px]">{s.category}</td>
+                      <td className="px-6 py-2 text-[#5d6a82] font-mono text-[11px]">{s.componentName || s.route || "—"}</td>
+                      <td className="px-6 py-2 text-[#0c1426] font-mono text-[11px] truncate max-w-[520px]">{s.message}</td>
                     </tr>
                   ))}
                 </tbody>

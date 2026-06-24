@@ -27,7 +27,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.Elem
 
 function StatusBadge({ status }: { status: string | null }) {
   const key = (status || "").toLowerCase();
-  const cfg = STATUS_STYLES[key] || { bg: "bg-white/5 border-white/10", text: "text-white/70", icon: Mail };
+  const cfg = STATUS_STYLES[key] || { bg: "bg-[#f6f8fc] border-[#e7ebf3]", text: "text-[#0c1426]", icon: Mail };
   const Icon = cfg.icon;
   return (
     <span className={cn(
@@ -115,14 +115,14 @@ export default function AdminEmailsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: "Total",      value: stats.total,      tone: "text-white" },
+          { label: "Total",      value: stats.total,      tone: "text-[#0c1426]" },
           { label: "Sent",       value: stats.sent,       tone: "text-emerald-300" },
           { label: "Pending",    value: stats.pending,    tone: "text-amber-300" },
           { label: "Failed",     value: stats.failed,     tone: "text-red-300" },
           { label: "Suppressed", value: stats.suppressed, tone: "text-yellow-200" },
         ].map(s => (
-          <div key={s.label} className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-white/[0.06] backdrop-blur-xl p-4">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">{s.label}</div>
+          <div key={s.label} className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[#e7ebf3] backdrop-blur-xl p-4">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono">{s.label}</div>
             <div className={cn("text-2xl font-semibold mt-1 font-mono", s.tone)}>{s.value}</div>
           </div>
         ))}
@@ -131,34 +131,34 @@ export default function AdminEmailsPage() {
       {/* Filters */}
       <div className="flex items-end gap-3 flex-wrap">
         <form onSubmit={submitFilter} className="flex-1 min-w-[260px]">
-          <label className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono block mb-1.5">
+          <label className="text-[10px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono block mb-1.5">
             Filter by recipient email
           </label>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9aa4b8]" />
               <input
                 type="text"
                 value={emailFilter}
                 onChange={(e) => setEmailFilter(e.target.value)}
                 placeholder="user@example.com or substring"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-white/[0.08] text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-[#e7ebf3] text-sm text-[#0c1426] placeholder:text-[#9aa4b8] focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
               />
             </div>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-[hsl(215,100%,60%)] text-white text-xs uppercase tracking-[0.2em] font-mono hover:bg-[hsl(215,100%,55%)] transition-colors"
+              className="px-4 py-2 rounded-lg bg-[hsl(215,100%,60%)] text-[#0c1426] text-xs uppercase tracking-[0.2em] font-mono hover:bg-[hsl(215,100%,55%)] transition-colors"
             >
               Search
             </button>
           </div>
         </form>
         <div>
-          <label className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono block mb-1.5">Status</label>
+          <label className="text-[10px] uppercase tracking-[0.3em] text-[#9aa4b8] font-mono block mb-1.5">Status</label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
+            className="px-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-[#e7ebf3] text-sm text-[#0c1426] focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
           >
             <option value="all">All</option>
             <option value="sent">Sent</option>
@@ -181,9 +181,9 @@ export default function AdminEmailsPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-white/[0.06] backdrop-blur-xl overflow-hidden">
+      <div className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-[#e7ebf3] backdrop-blur-xl overflow-hidden">
         {loading ? (
-          <div className="p-12 flex items-center justify-center text-white/40">
+          <div className="p-12 flex items-center justify-center text-[#9aa4b8]">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
             <span className="text-xs uppercase tracking-[0.3em] font-mono">Loading…</span>
           </div>
@@ -193,12 +193,12 @@ export default function AdminEmailsPage() {
             <div className="text-red-300/70 text-xs font-mono">{error}</div>
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="p-12 text-center text-white/40 text-sm">No emails match the current filters.</div>
+          <div className="p-12 text-center text-[#9aa4b8] text-sm">No emails match the current filters.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.25em] text-white/40 font-mono">
+                <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.25em] text-[#9aa4b8] font-mono">
                   <th className="text-left px-4 py-3 font-medium">Template</th>
                   <th className="text-left px-4 py-3 font-medium">Recipient</th>
                   <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -208,11 +208,11 @@ export default function AdminEmailsPage() {
               </thead>
               <tbody>
                 {filteredRows.map((r) => (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="px-4 py-3 text-white/80 font-mono text-xs">{r.template_name || "—"}</td>
-                    <td className="px-4 py-3 text-white/70 text-xs">{r.recipient_email || "—"}</td>
+                  <tr key={r.id} className="border-b border-[#e7ebf3] hover:bg-glass transition-colors">
+                    <td className="px-4 py-3 text-[#0c1426] font-mono text-xs">{r.template_name || "—"}</td>
+                    <td className="px-4 py-3 text-[#0c1426] text-xs">{r.recipient_email || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                    <td className="px-4 py-3 text-white/50 text-xs font-mono whitespace-nowrap">
+                    <td className="px-4 py-3 text-[#5d6a82] text-xs font-mono whitespace-nowrap">
                       {new Date(r.created_at).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-red-300/80 text-xs max-w-md truncate" title={r.error_message || undefined}>

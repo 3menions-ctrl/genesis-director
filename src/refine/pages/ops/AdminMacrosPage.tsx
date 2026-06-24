@@ -41,10 +41,10 @@ export default function AdminMacrosPage() {
           { key: "title", label: "Title", width: "260px" },
           { key: "tags", label: "Tags", width: "200px",
             render: (v) => Array.isArray(v) && v.length
-              ? <div className="flex flex-wrap gap-1">{v.map((t) => <span key={t} className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/55 border border-white/[0.06] rounded-full px-2 py-0.5">{t}</span>)}</div>
-              : <span className="text-white/25">—</span> },
+              ? <div className="flex flex-wrap gap-1">{v.map((t) => <span key={t} className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#5d6a82] border border-[#e7ebf3] rounded-full px-2 py-0.5">{t}</span>)}</div>
+              : <span className="text-[#9aa4b8]">—</span> },
           { key: "body", label: "Body preview",
-            render: (v) => <span className="text-white/55 text-[12px]">{String(v).slice(0, 80)}…</span> },
+            render: (v) => <span className="text-[#5d6a82] text-[12px]">{String(v).slice(0, 80)}…</span> },
           { key: "use_count", label: "Uses", width: "80px", align: "right" },
         ]}
         actions={[

@@ -5,7 +5,9 @@
  */
 import { ReactNode, createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
-import { ACCENT_HSL, accent, CYAN, AMBER, ROSE } from "@/admin/ui/primitives";
+import { ACCENT_HSL, accent, AMBER, ROSE, EMERALD, INK, MUT, MUT2 } from "@/admin/ui/primitives";
+
+const CARD = "0 2px 4px rgba(16,24,40,.04), 0 14px 32px -16px rgba(16,24,40,.16)";
 
 /**
  * AdminEmbeddedContext — set to true by AdminHubShell when it renders a
@@ -44,45 +46,40 @@ export function AdminPageShell({
   }
   return (
     <div className={cn("p-8 lg:p-12 space-y-10 animate-fade-in", contained && "max-w-[1480px] mx-auto", className)}>
-      {/* Hero — borderless gradient glass */}
+      {/* Hero — borderless floating analysis, white surface */}
       <section
-        className="relative overflow-hidden rounded-3xl backdrop-blur-xl shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)]"
-        style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))" }}
+        className="relative overflow-hidden rounded-3xl border border-[#e7ebf3] bg-white"
+        style={{ boxShadow: CARD }}
       >
-        {/* top specular highlight */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
-        />
-        {/* aurora */}
+        {/* aurora — soft accent blooms on the white */}
         <div
           aria-hidden
           className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${accent(0.18)}, transparent 65%)`, filter: "blur(60px)" }}
+          style={{ background: `radial-gradient(circle, ${accent(0.1)}, transparent 65%)`, filter: "blur(60px)" }}
         />
         <div
           aria-hidden
-          className="absolute -bottom-40 -left-20 w-[380px] h-[380px] rounded-full pointer-events-none opacity-50"
-          style={{ background: "radial-gradient(circle, hsl(188 92% 58% / 0.10), transparent 70%)", filter: "blur(80px)" }}
+          className="absolute -bottom-40 -left-20 w-[380px] h-[380px] rounded-full pointer-events-none opacity-60"
+          style={{ background: "radial-gradient(circle, hsl(262 83% 58% / 0.08), transparent 70%)", filter: "blur(80px)" }}
         />
 
         <div className="relative p-8 lg:p-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-5">
               <span
-                className="px-3 py-1 rounded-full text-[9px] font-bold tracking-[0.28em] uppercase font-mono"
-                style={{ color: ACCENT_HSL, background: accent(0.14) }}
+                className="px-3 py-1 rounded-full text-[9px] font-bold tracking-[0.24em] uppercase font-mono"
+                style={{ color: ACCENT_HSL, background: accent(0.1) }}
               >
                 {eyebrow}
               </span>
-              <span className="h-px w-10 bg-white/15" />
-              <span className="text-white/45 text-[10px] tracking-[0.28em] uppercase font-mono">
+              <span className="h-px w-10" style={{ background: "#e3e8f0" }} />
+              <span className="text-[10px] tracking-[0.24em] uppercase font-mono" style={{ color: MUT2 }}>
                 MOD // {code}
               </span>
             </div>
             <h1
-              className="font-display text-4xl lg:text-6xl text-white font-semibold tracking-[-0.02em] leading-[0.95]"
+              className="font-display text-4xl lg:text-6xl font-semibold tracking-[-0.02em] leading-[0.95]"
+              style={{ color: INK }}
             >
               {title}
               {italic && (
@@ -93,7 +90,7 @@ export function AdminPageShell({
               )}
             </h1>
             {description && (
-              <p className="mt-5 text-[14px] text-white/55 max-w-xl leading-relaxed font-light">
+              <p className="mt-5 text-[14px] max-w-xl leading-relaxed font-light" style={{ color: MUT }}>
                 {description}
               </p>
             )}
@@ -107,23 +104,23 @@ export function AdminPageShell({
         </div>
 
         {stats && stats.length > 0 && (
-          <div className="relative grid grid-cols-2 md:grid-cols-4">
+          <div className="relative grid grid-cols-2 md:grid-cols-4 border-t border-[#eef1f6]">
             {stats.map((s, i) => {
               const toneMap: Record<string, string> = {
-                blue: ACCENT_HSL, amber: AMBER, emerald: CYAN,
-                rose: ROSE, neutral: "#fff",
+                blue: ACCENT_HSL, amber: AMBER, emerald: EMERALD,
+                rose: ROSE, neutral: INK,
               };
               return (
-                <div key={i} className="px-6 py-5 relative group transition-colors hover:bg-white/[0.03]">
-                  <div className="text-[9px] text-white/45 font-mono uppercase tracking-[0.32em] mb-2">{s.label}</div>
+                <div key={i} className="px-6 py-5 relative group transition-colors hover:bg-[#f7f9fc] border-l border-[#eef1f6] first:border-l-0">
+                  <div className="text-[9px] font-mono uppercase tracking-[0.28em] mb-2" style={{ color: MUT2 }}>{s.label}</div>
                   <div className="text-3xl font-display font-semibold tracking-[-0.02em] tabular-nums" style={{ color: toneMap[s.tone || "neutral"] }}>
                     {s.value}
                   </div>
-                  {s.sub && <div className="text-[10px] text-white/40 mt-1 font-mono uppercase tracking-[0.18em]">{s.sub}</div>}
+                  {s.sub && <div className="text-[10px] mt-1 font-mono uppercase tracking-[0.16em]" style={{ color: MUT2 }}>{s.sub}</div>}
                   <div
                     aria-hidden
                     className="absolute bottom-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: `linear-gradient(to right, transparent, ${accent(0.5)}, transparent)` }}
+                    style={{ background: `linear-gradient(to right, transparent, ${accent(0.4)}, transparent)` }}
                   />
                 </div>
               );
@@ -142,28 +139,23 @@ export function AdminPageShell({
 export function AdminSectionLabel({ label, meta }: { label: string; meta?: string }) {
   return (
     <div className="flex items-center gap-4 mb-6">
-      <span className="text-[11px] text-white/55 font-mono font-medium uppercase tracking-[0.3em]">{label}</span>
-      <div className="h-px flex-1 bg-white/[0.06]" />
-      {meta && <span className="text-[10px] text-white/30 font-mono uppercase tracking-widest">{meta}</span>}
+      <span className="text-[11px] font-mono font-semibold uppercase tracking-[0.26em]" style={{ color: MUT }}>{label}</span>
+      <div className="h-px flex-1" style={{ background: "#e7ebf3" }} />
+      {meta && <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: MUT2 }}>{meta}</span>}
     </div>
   );
 }
 
-/** Borderless gradient-glass surface */
+/** Borderless floating surface — white card, hairline border, soft shadow */
 export function AdminSurface({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl backdrop-blur-xl p-6 shadow-[0_30px_90px_-50px_rgba(0,0,0,0.95)]",
+        "relative overflow-hidden rounded-2xl border border-[#e7ebf3] bg-white p-6",
         className,
       )}
-      style={{ background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))" }}
+      style={{ boxShadow: CARD }}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }}
-      />
       {children}
     </div>
   );
@@ -183,28 +175,28 @@ export function AdminEmptyState({
     <div className="relative flex flex-col items-center justify-center py-20 px-6 text-center overflow-hidden">
       {/* concentric rings */}
       <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="absolute w-[420px] h-[420px] rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }} />
-        <div className="absolute w-[300px] h-[300px] rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)" }} />
-        <div className="absolute w-[180px] h-[180px] rounded-full" style={{ boxShadow: `inset 0 0 0 1px ${accent(0.15)}` }} />
+        <div className="absolute w-[420px] h-[420px] rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(16,24,40,0.05)" }} />
+        <div className="absolute w-[300px] h-[300px] rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(16,24,40,0.06)" }} />
+        <div className="absolute w-[180px] h-[180px] rounded-full" style={{ boxShadow: `inset 0 0 0 1px ${accent(0.2)}` }} />
         <div className="absolute w-[180px] h-[180px] rounded-full"
-             style={{ background: `radial-gradient(circle, ${accent(0.10)}, transparent 65%)`, filter: "blur(20px)" }} />
+             style={{ background: `radial-gradient(circle, ${accent(0.1)}, transparent 65%)`, filter: "blur(20px)" }} />
       </div>
       <div className="relative z-10 flex flex-col items-center">
         {Icon && (
           <div
-            className="w-14 h-14 rounded-2xl backdrop-blur-md flex items-center justify-center mb-5"
-            style={{ background: `linear-gradient(135deg, ${accent(0.2)}, ${accent(0.06)})`, boxShadow: `0 8px 24px -12px ${accent(0.4)}`, color: ACCENT_HSL }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+            style={{ background: accent(0.1), boxShadow: `0 8px 24px -12px ${accent(0.4)}`, color: ACCENT_HSL }}
           >
             <Icon className="w-5 h-5" />
           </div>
         )}
-        <span className="text-[9px] font-mono uppercase tracking-[0.4em] mb-3" style={{ color: ACCENT_HSL }}>
+        <span className="text-[9px] font-mono uppercase tracking-[0.36em] mb-3" style={{ color: ACCENT_HSL }}>
           {code} // STANDBY
         </span>
-        <h3 className="font-display text-2xl text-white font-semibold tracking-[-0.02em] mb-2">
+        <h3 className="font-display text-2xl font-semibold tracking-[-0.02em] mb-2" style={{ color: INK }}>
           {title}
         </h3>
-        {hint && <p className="text-[13px] text-white/45 max-w-md leading-relaxed font-light">{hint}</p>}
+        {hint && <p className="text-[13px] max-w-md leading-relaxed font-light" style={{ color: MUT }}>{hint}</p>}
         {action && <div className="mt-6">{action}</div>}
       </div>
     </div>

@@ -62,8 +62,8 @@ export default function AdminRefundsPage() {
         columns={[
           { key: "charge_id", label: "Charge", width: "200px",
             render: (v) => v
-              ? <code className="font-mono text-[11px] text-white/75">{String(v)}</code>
-              : <span className="text-white/25">—</span> },
+              ? <code className="font-mono text-[11px] text-[#0c1426]">{String(v)}</code>
+              : <span className="text-[#9aa4b8]">—</span> },
           { key: "amount_cents", label: "Amount", width: "120px", align: "right",
             render: (_, row) => formatCurrency(row.amount_cents, row.currency) },
           { key: "reason", label: "Reason" },

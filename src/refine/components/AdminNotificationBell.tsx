@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { ACCENT_HSL, accent, ROSE, AMBER } from "@/admin/ui/primitives";
+import { ACCENT_HSL, accent, ROSE, AMBER, INK, MUT, MUT2 } from "@/admin/ui/primitives";
 
 type AdminNotifType =
   | "admin_purchase" | "admin_support_message" | "admin_inquiry" | "admin_signup"
@@ -65,9 +65,9 @@ function iconFor(type: AdminNotifType) {
 }
 
 function tonesFor(severity: AdminNotif["severity"]) {
-  if (severity === "critical") return { fg: ROSE, bg: "hsl(350 90% 70% / 0.14)", row: "hsl(350 90% 70% / 0.06)", dot: ROSE };
-  if (severity === "warn") return { fg: AMBER, bg: "hsl(38 96% 62% / 0.14)", row: "hsl(38 96% 62% / 0.05)", dot: AMBER };
-  return { fg: ACCENT_HSL, bg: accent(0.14), row: accent(0.05), dot: ACCENT_HSL };
+  if (severity === "critical") return { fg: ROSE, bg: "hsl(345 82% 56% / 0.1)", row: "hsl(345 82% 56% / 0.05)", dot: ROSE };
+  if (severity === "warn") return { fg: AMBER, bg: "hsl(33 92% 47% / 0.12)", row: "hsl(33 92% 47% / 0.05)", dot: AMBER };
+  return { fg: ACCENT_HSL, bg: accent(0.1), row: accent(0.05), dot: ACCENT_HSL };
 }
 
 function timeAgo(iso: string) {
@@ -166,17 +166,21 @@ export function AdminNotificationBell() {
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5",
-          unread > 0 ? "bg-white/[0.06] text-white hover:bg-white/[0.12]" : "bg-white/[0.04] text-white/55 hover:bg-white/[0.1] hover:text-white",
         )}
-        style={unread > 0 ? { color: bellTone.color, boxShadow: bellTone.glow || undefined } : undefined}
+        style={{
+          background: "rgba(255,255,255,0.7)",
+          border: "1px solid rgba(255,255,255,0.9)",
+          boxShadow: unread > 0 && bellTone.glow ? bellTone.glow : "0 6px 18px -10px rgba(16,24,40,0.2)",
+          color: unread > 0 ? bellTone.color : MUT,
+        }}
         aria-label="Admin notifications"
         title="Admin notifications"
       >
         <Bell className="w-3.5 h-3.5" />
         {unread > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[#0a0b0e] text-[9px] font-mono font-semibold flex items-center justify-center"
-            style={{ background: bellTone.color, boxShadow: `0 0 12px ${bellTone.color}` }}
+            className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-white text-[9px] font-mono font-semibold flex items-center justify-center"
+            style={{ background: bellTone.color, boxShadow: `0 4px 10px -2px ${bellTone.color}` }}
           >
             {unread > 99 ? "99+" : unread}
           </span>
@@ -185,26 +189,26 @@ export function AdminNotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-3 w-[380px] max-h-[520px] rounded-2xl backdrop-blur-xl z-50 flex flex-col overflow-hidden shadow-[0_30px_90px_-50px_rgba(0,0,0,0.95)]"
+          className="absolute right-0 mt-3 w-[380px] max-h-[520px] rounded-2xl border border-[#e7ebf3] bg-white z-50 flex flex-col overflow-hidden"
           style={{
             fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
-            background: "linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015)), #070809",
+            boxShadow: "0 40px 100px -30px rgba(16,24,40,0.35)",
           }}
         >
-          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }} />
-          <div className="px-5 py-4 flex items-center justify-between">
+          <div className="px-5 py-4 flex items-center justify-between border-b border-[#eef1f6]">
             <div>
-              <div className="text-[9px] uppercase tracking-[0.3em] text-white/45 font-mono">
+              <div className="text-[9px] uppercase tracking-[0.26em] font-mono" style={{ color: MUT2 }}>
                 Operator Inbox
               </div>
-              <div className="font-display text-[15px] font-semibold tracking-[-0.02em] text-white mt-0.5">
+              <div className="font-display text-[15px] font-semibold tracking-[-0.02em] mt-0.5" style={{ color: INK }}>
                 {unread > 0 ? `${unread} new alert${unread === 1 ? "" : "s"}` : "All caught up"}
               </div>
             </div>
             {unread > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-[10px] uppercase tracking-[0.2em] text-white/45 hover:text-white font-mono flex items-center gap-1 transition-colors"
+                className="text-[10px] uppercase tracking-[0.18em] font-mono flex items-center gap-1 transition-colors"
+                style={{ color: MUT }}
               >
                 <Check className="w-3 h-3" />
                 Mark all
@@ -214,15 +218,15 @@ export function AdminNotificationBell() {
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="flex items-center justify-center py-12 text-white/30">
+              <div className="flex items-center justify-center py-12" style={{ color: MUT2 }}>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               </div>
             ) : items.length === 0 ? (
               <div className="px-5 py-12 text-center">
-                <div className="text-[11px] text-white/40 uppercase tracking-[0.25em] font-mono">
+                <div className="text-[11px] uppercase tracking-[0.22em] font-mono" style={{ color: MUT2 }}>
                   No alerts yet
                 </div>
-                <div className="text-[12px] text-white/45 mt-2 font-light">
+                <div className="text-[12px] mt-2 font-light" style={{ color: MUT }}>
                   Purchases, support messages, and inquiries will surface here in realtime.
                 </div>
               </div>
@@ -235,12 +239,12 @@ export function AdminNotificationBell() {
                     <li key={n.id}>
                       <button
                         onClick={() => handleClick(n)}
-                        className="group w-full text-left px-5 py-3 flex gap-3 transition-colors hover:bg-white/[0.05]"
+                        className="group w-full text-left px-5 py-3 flex gap-3 border-b border-[#f1f3f8] transition-colors hover:bg-[#f4f7ff]"
                         style={{
                           background: !n.read
                             ? t.row
                             : i % 2 === 1
-                            ? "rgba(255,255,255,0.015)"
+                            ? "#fafbfd"
                             : undefined,
                         }}
                       >
@@ -248,8 +252,8 @@ export function AdminNotificationBell() {
                           className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                           style={
                             n.read
-                              ? { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }
-                              : { background: `linear-gradient(135deg, ${t.bg}, ${accent(0.06)})`, color: t.fg }
+                              ? { background: "rgba(16,24,40,0.05)", color: MUT2 }
+                              : { background: t.bg, color: t.fg }
                           }
                         >
                           <Icon className="w-3.5 h-3.5" />
@@ -257,19 +261,17 @@ export function AdminNotificationBell() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-2">
                             <div
-                              className={cn(
-                                "text-[13px] truncate",
-                                n.read ? "text-white/70" : "text-white"
-                              )}
+                              className="text-[13px] truncate"
+                              style={{ color: n.read ? MUT : INK }}
                             >
                               {n.title}
                             </div>
-                            <div className="text-[9px] uppercase tracking-[0.2em] text-white/40 font-mono shrink-0">
+                            <div className="text-[9px] uppercase tracking-[0.18em] font-mono shrink-0" style={{ color: MUT2 }}>
                               {timeAgo(n.created_at)}
                             </div>
                           </div>
                           {n.body && (
-                            <div className="text-[12px] text-white/55 mt-0.5 line-clamp-2 font-light">
+                            <div className="text-[12px] mt-0.5 line-clamp-2 font-light" style={{ color: MUT }}>
                               {n.body}
                             </div>
                           )}

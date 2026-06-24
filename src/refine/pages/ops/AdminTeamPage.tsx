@@ -47,11 +47,11 @@ export default function AdminTeamPage() {
             render: (_, row) => (
               <div className="flex items-center gap-3">
                 {row.profiles?.avatar_url
-                  ? <img src={row.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full border border-white/[0.06]" />
-                  : <div className="w-8 h-8 rounded-full bg-glass-hover border border-white/[0.06]" />}
+                  ? <img src={row.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full border border-[#e7ebf3]" />
+                  : <div className="w-8 h-8 rounded-full bg-glass-hover border border-[#e7ebf3]" />}
                 <div>
-                  <div className="text-white/90 text-[13px]">{row.profiles?.display_name || row.profiles?.email || row.user_id.slice(0,8)}</div>
-                  {row.profiles?.email && <div className="text-white/45 text-[11px]">{row.profiles.email}</div>}
+                  <div className="text-[#0c1426] text-[13px]">{row.profiles?.display_name || row.profiles?.email || row.user_id.slice(0,8)}</div>
+                  {row.profiles?.email && <div className="text-[#5d6a82] text-[11px]">{row.profiles.email}</div>}
                 </div>
               </div>
             )},

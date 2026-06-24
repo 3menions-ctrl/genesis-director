@@ -16,8 +16,8 @@ interface Drift { user_id: string; cached: number; ledger: number; drift: number
 
 function Line({ label, value, accent: acc, strong, indent }: { label: string; value: number; accent?: boolean; strong?: boolean; indent?: boolean }) {
   return (
-    <div className={`flex items-center justify-between py-1.5 ${strong ? "border-t border-white/[0.08] pt-3 mt-1" : ""}`}>
-      <span className={`${indent ? "pl-4 text-white/55" : "text-white/75"} ${strong ? "font-display text-[14px] font-semibold text-white" : "text-[13px]"}`}>{label}</span>
+    <div className={`flex items-center justify-between py-1.5 ${strong ? "border-t border-[#e7ebf3] pt-3 mt-1" : ""}`}>
+      <span className={`${indent ? "pl-4 text-[#5d6a82]" : "text-[#0c1426]"} ${strong ? "font-display text-[14px] font-semibold text-[#0c1426]" : "text-[13px]"}`}>{label}</span>
       <span className={`tabular-nums ${strong ? "font-display text-[15px] font-semibold" : "text-[13.5px]"}`} style={{ color: acc ? ACCENT_HSL : strong ? "#fff" : "rgba(255,255,255,0.7)" }}>{usd(value)}</span>
     </div>
   );
@@ -59,17 +59,17 @@ export default function AdminPnlPage() {
         <KpiTile index={3} label="Gross margin" value={`${pnl?.gross_margin_pct ?? 0}%`} icon={Percent} />
       </div>
 
-      {loading ? <div className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading ledger…</div> : (
+      {loading ? <div className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#9aa4b8]">Loading ledger…</div> : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* P&L statement */}
           <AdminCard className="p-6">
-            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Income statement</div>
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Revenue</div>
+            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Income statement</div>
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9aa4b8]">Revenue</div>
             <Line indent label="Credit usage" value={pnl?.revenue.credit_usage ?? 0} />
             <Line indent label="Storage" value={pnl?.revenue.storage ?? 0} />
             <Line indent label="Subscriptions" value={pnl?.revenue.subscription ?? 0} />
             <Line label="Total revenue" value={pnl?.revenue.total ?? 0} strong accent />
-            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Cost of goods sold</div>
+            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9aa4b8]">Cost of goods sold</div>
             <Line indent label="API generation" value={pnl?.cogs.api ?? 0} />
             <Line indent label="Storage" value={pnl?.cogs.storage ?? 0} />
             <Line label="Total COGS" value={pnl?.cogs.total ?? 0} strong />
@@ -80,18 +80,18 @@ export default function AdminPnlPage() {
 
           {/* Balance sheet */}
           <AdminCard className="p-6">
-            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Balance sheet</div>
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Assets</div>
+            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9aa4b8]">Balance sheet</div>
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9aa4b8]">Assets</div>
             <Line indent label="Cash" value={bs?.assets.cash ?? 0} />
             <Line indent label="Stripe clearing" value={bs?.assets.stripe_clearing ?? 0} />
             <Line label="Total assets" value={bs?.assets.total ?? 0} strong accent />
-            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Liabilities</div>
+            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9aa4b8]">Liabilities</div>
             <Line indent label="Deferred revenue (unspent credits)" value={bs?.liabilities.deferred_credits ?? 0} />
             <Line indent label="API provider payable" value={bs?.liabilities.api_payable ?? 0} />
             <Line indent label="Storage payable" value={bs?.liabilities.storage_payable ?? 0} />
             <Line indent label="Creator payouts" value={bs?.liabilities.creator_payouts ?? 0} />
             <Line label="Total liabilities" value={bs?.liabilities.total ?? 0} strong />
-            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Equity</div>
+            <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9aa4b8]">Equity</div>
             <Line indent label="Opening equity" value={bs?.equity.opening ?? 0} />
             <Line indent label="Retained earnings" value={bs?.equity.retained ?? 0} />
             <Line label="Total equity" value={bs?.equity.total ?? 0} strong accent />
@@ -104,8 +104,8 @@ export default function AdminPnlPage() {
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em]" style={{ color: ROSE }}><AlertTriangle className="h-3.5 w-3.5" /> Balance drift — cached vs ledger</div>
           {drift.map((d) => (
             <div key={d.user_id} className="flex items-center justify-between py-1 font-mono text-[12px]">
-              <span className="text-white/60">{d.user_id.slice(0, 8)}</span>
-              <span className="tabular-nums text-white/55">cached {d.cached} · ledger {d.ledger} · <span style={{ color: ROSE }}>drift {d.drift}</span></span>
+              <span className="text-[#5d6a82]">{d.user_id.slice(0, 8)}</span>
+              <span className="tabular-nums text-[#5d6a82]">cached {d.cached} · ledger {d.ledger} · <span style={{ color: ROSE }}>drift {d.drift}</span></span>
             </div>
           ))}
         </AdminCard>

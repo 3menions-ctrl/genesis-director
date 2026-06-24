@@ -66,7 +66,7 @@ export default function AdminStoragePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+              <tr className="border-b border-[#e7ebf3] text-[10px] uppercase tracking-[0.18em] text-[#9aa4b8] font-mono">
                 <th className="text-left px-4 py-3">Bucket</th>
                 <th className="text-left px-4 py-3">Access</th>
                 <th className="text-right px-4 py-3">Objects</th>
@@ -76,20 +76,20 @@ export default function AdminStoragePage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No buckets.</td></tr>}
+              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">Loading…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-[#9aa4b8]">No buckets.</td></tr>}
               {rows.map((r) => (
-                <tr key={r.bucket_id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3 text-white/90 font-mono text-[12px]"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</td>
+                <tr key={r.bucket_id} className="border-b border-[#e7ebf3] hover:bg-glass">
+                  <td className="px-4 py-3 text-[#0c1426] font-mono text-[12px]"><Folder className="w-3 h-3 inline mr-2 text-[#9aa4b8]" />{r.bucket_id}</td>
                   <td className="px-4 py-3">
                     <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
                       {r.is_public ? <><Unlock className="w-3 h-3 mr-1" />public</> : <><Lock className="w-3 h-3 mr-1" />private</>}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{Number(r.object_count).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-[#0c1426] font-mono tabular-nums text-[12px]">{Number(r.object_count).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-primary/80 font-mono tabular-nums text-[12px]">{bytes(Number(r.total_bytes))}</td>
-                  <td className="px-4 py-3 text-right text-white/40 font-mono text-[11px]">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</td>
-                  <td className="px-4 py-3 pl-8 text-white/40 font-mono text-[11px] whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</td>
+                  <td className="px-4 py-3 text-right text-[#9aa4b8] font-mono text-[11px]">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</td>
+                  <td className="px-4 py-3 pl-8 text-[#9aa4b8] font-mono text-[11px] whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</td>
                 </tr>
               ))}
             </tbody>

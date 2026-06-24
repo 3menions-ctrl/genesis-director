@@ -11,6 +11,7 @@
  *   • Sound design hints (for post-mux), no audio cues inside visual prompts
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -212,6 +213,18 @@ function normalizeShots(raw: any, expectedCount: number, defaultDuration: number
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // AUDIT FIX M-8: this was unauthenticated (verify_jwt=false) and let callers
+  // pick the model (`body.model ?? 'openai/gpt-5'`), so anyone could drain the
+  // shared LOVABLE_API_KEY on the priciest model. It is an internal worker
+  // (seedance-pipeline invokes it with the service-role key), so require
+  // service-role; this also neutralizes the caller-chosen-model vector.
+  if (!requireServiceRole(req)) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {

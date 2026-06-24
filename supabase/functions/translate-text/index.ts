@@ -33,6 +33,28 @@ Deno.serve(async (req) => {
     // — assigned wrong translations to each source string. Now we
     // preserve the slot and only ship the non-empty subset to the LLM.
     const rawTexts = Array.isArray(body?.texts) ? body.texts : [];
+
+    // AUDIT FIX M-9: this endpoint is intentionally public (UI i18n for
+    // logged-out visitors), so auth isn't viable — but it was uncapped, letting
+    // a caller drain the shared LOVABLE_API_KEY with huge payloads. Bound the
+    // per-request cost: cap the array length and total characters. (Per-IP rate
+    // limiting is a recommended follow-up.)
+    const MAX_ITEMS = 200;
+    const MAX_TOTAL_CHARS = 20000;
+    if (rawTexts.length > MAX_ITEMS) {
+      return new Response(
+        JSON.stringify({ error: `Too many strings (max ${MAX_ITEMS})` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const totalChars = rawTexts.reduce((n: number, v: unknown) => n + (typeof v === "string" ? v.length : 0), 0);
+    if (totalChars > MAX_TOTAL_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Payload too large (max ${MAX_TOTAL_CHARS} chars)` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const nonEmptyIdx: number[] = [];
     const texts: string[] = [];
     for (let i = 0; i < rawTexts.length; i++) {

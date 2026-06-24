@@ -29,7 +29,7 @@ export default function AdminAbusePage() {
       description="IP and email blocklist, velocity rules, and surgical overrides for trusted partners."
     >
       <AdminConsoleV2<RuleRow>
-        intro="The wall between you and the bots — rules, lists, and surgical overrides for trusted partners."
+        intro="The wall between you and the bots — rules, lists, and surgical overrides for trusted partners. Note: rules are authored and stored here but are not yet enforced at runtime (no request-time layer reads them), so the Hits counter stays at 0 until enforcement ships."
         query={{ table: "abuse_rules", orderBy: { column: "created_at", ascending: false } }}
         searchKey="pattern"
         searchPlaceholder="Search by pattern…"

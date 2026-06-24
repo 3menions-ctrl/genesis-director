@@ -71,10 +71,10 @@ export default function AdminFinancialsPage() {
 
   const fetchRevenue = async () => {
     try {
-      // Revenue = real Stripe purchases only. Credit-refunds from failed
+      // Revenue = real Polar purchases only. Credit-refunds from failed
       // generations are internal credit grants, NOT cash refunds — they
       // must never be subtracted from revenue. Cash refunds would arrive
-      // via Stripe webhooks as a separate transaction class.
+      // via Polar webhooks as a separate transaction class.
       const CREDIT_PRICE_CENTS = 10.0;
 
       // Revenue total must cover ALL purchases, not just the latest 100.
@@ -162,7 +162,7 @@ export default function AdminFinancialsPage() {
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
         <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-white/40" /> Recent Stripe Purchases
+            <ShoppingCart className="w-4 h-4 text-white/40" /> Recent Polar Purchases
           </h3>
           <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30">
             {purchases.length} shown

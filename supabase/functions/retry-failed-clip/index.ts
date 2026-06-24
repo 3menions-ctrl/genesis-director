@@ -72,13 +72,36 @@ serve(async (req) => {
   try {
     const request: RetryRequest = await req.json();
 
+    // ADMIN ON-BEHALF: an admin may retry a failed clip for any project from the
+    // admin console. The retry then runs as the project OWNER — generation lock,
+    // continuity checks, and credit spend in generate-single-clip all bind to the
+    // owner, exactly as if they had clicked retry themselves. Without this branch
+    // an admin JWT either 403s (USER_ID_MISMATCH) or, worse, charges the admin.
+    let resolvedAsAdmin = false;
+    if (!auth.isServiceRole && auth.userId) {
+      const { data: adminFlag } = await supabase.rpc("is_admin", { _user_id: auth.userId });
+      if (adminFlag === true) {
+        if (!request.projectId) throw new Error("projectId is required");
+        const { data: ownerRow, error: ownerErr } = await supabase
+          .from("movie_projects").select("user_id").eq("id", request.projectId).maybeSingle();
+        if (ownerErr || !ownerRow?.user_id) {
+          return forbiddenResponse(corsHeaders, "Project not found for admin retry");
+        }
+        request.userId = ownerRow.user_id as string;
+        resolvedAsAdmin = true;
+        console.log(`[RetryClip] Admin ${auth.userId} retrying on behalf of owner ${request.userId}`);
+      }
+    }
+
     // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
-    try {
-      request.userId = resolveEffectiveUserId(auth, request.userId ?? null);
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
-      return unauthorizedResponse(corsHeaders, msg);
+    if (!resolvedAsAdmin) {
+      try {
+        request.userId = resolveEffectiveUserId(auth, request.userId ?? null);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg === 'USER_ID_MISMATCH') return forbiddenResponse(corsHeaders);
+        return unauthorizedResponse(corsHeaders, msg);
+      }
     }
     
     if (!request.userId || !request.projectId || request.clipIndex === undefined) {

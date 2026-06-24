@@ -185,6 +185,21 @@ export function AdminFailedClipsQueue() {
     setSelectedClips(newSelected);
   };
 
+  // Retry through the REAL generation path (retry-failed-clip →
+  // generate-single-clip), running as the clip's owner via admin-on-behalf.
+  // A raw status flip to 'pending' re-renders nothing — the pipeline watchdog
+  // only acts on 'generating' projects and is disabled by default.
+  const retryOne = async (clip: FailedClip): Promise<boolean> => {
+    const { data, error } = await supabase.functions.invoke('retry-failed-clip', {
+      body: { projectId: clip.project_id, clipIndex: clip.shot_index },
+    });
+    if (error || data?.success === false) {
+      console.warn('[FailedClips] retry failed for', clip.id, error?.message ?? data?.message);
+      return false;
+    }
+    return true;
+  };
+
   const handleRetrySelected = async () => {
     if (selectedClips.size === 0) {
       toast.error('No clips selected');
@@ -192,15 +207,20 @@ export function AdminFailedClipsQueue() {
     }
 
     setProcessing(true);
+    // Sequential by shot order: the edge function holds a per-project generation
+    // lock (concurrent retries 409) and continuity needs in-order retries.
+    const targets = Array.from(selectedClips)
+      .map((id) => clips.find((c) => c.id === id))
+      .filter((c): c is FailedClip => !!c)
+      .sort((a, b) => a.shot_index - b.shot_index);
+    let ok = 0, failures = 0;
     try {
-      const { error } = await supabase
-        .from('video_clips')
-        .update({ status: 'pending', error_message: null })
-        .in('id', Array.from(selectedClips));
-
-      if (error) throw error;
-
-      toast.success(`${selectedClips.size} clips queued for retry`);
+      for (const clip of targets) {
+        if (await retryOne(clip)) ok++; else failures++;
+      }
+      if (ok && !failures) toast.success(`${ok} clip${ok === 1 ? '' : 's'} queued for re-render`);
+      else if (ok) toast(`Queued ${ok}; ${failures} could not retry (see console)`);
+      else toast.error('No clips could be retried — check continuity/locks');
       setSelectedClips(new Set());
       fetchFailedClips();
     } catch (err) {
@@ -242,19 +262,18 @@ export function AdminFailedClipsQueue() {
   };
 
   const handleRetrySingle = async (clipId: string) => {
+    const clip = clips.find((c) => c.id === clipId);
+    if (!clip) { toast.error('Clip not found'); return; }
+    setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('video_clips')
-        .update({ status: 'pending', error_message: null })
-        .eq('id', clipId);
-
-      if (error) throw error;
-
-      toast.success('Clip queued for retry');
-      fetchFailedClips();
-    } catch (err) {
-      console.error('Failed to retry clip:', err);
-      toast.error('Failed to retry clip');
+      if (await retryOne(clip)) {
+        toast.success('Clip queued for re-render');
+        fetchFailedClips();
+      } else {
+        toast.error('Could not retry clip — check continuity/locks');
+      }
+    } finally {
+      setProcessing(false);
     }
   };
 

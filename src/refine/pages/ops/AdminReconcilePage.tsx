@@ -1,4 +1,4 @@
-/** Reconcile — Stripe ↔ Supabase reconciliation job history. */
+/** Reconcile — Polar ↔ Supabase reconciliation job history. */
 import { useState } from "react";
 import { GitCompare, Play, Loader2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
@@ -45,10 +45,10 @@ export default function AdminReconcilePage() {
       code="REC"
       title="Reconcile"
       italic="& Audit."
-      description="Stripe ↔ Supabase reconciliation jobs — scanned, matched, discrepancies."
+      description="Polar ↔ Supabase reconciliation jobs — scanned, matched, discrepancies."
     >
       <AdminConsoleV2<ReconcileRow>
-        intro="Reconcile the subscription/payment ledger between Stripe and your DB. Discrepancies > 0 means manual review needed."
+        intro="Reconcile the subscription/payment ledger between Polar and your DB. Discrepancies > 0 means manual review needed."
         query={{ table: "reconcile_jobs", orderBy: { column: "started_at", ascending: false }, limit: 50 }}
         filters={[
           { key: "status", label: "Status", type: "select", options: [
@@ -82,7 +82,7 @@ export default function AdminReconcilePage() {
         ]}
         primaryCta={{ label: starting ? "Queueing…" : "Run reconcile", onClick: startJob }}
         emptyTitle="No reconcile jobs yet"
-        emptyDescription="Queue a job to audit your Stripe ↔ Supabase ledger. Periodic runs catch drift before customers do."
+        emptyDescription="Queue a job to audit your Polar ↔ Supabase ledger. Periodic runs catch drift before customers do."
       />
     </AdminPageShell>
   );

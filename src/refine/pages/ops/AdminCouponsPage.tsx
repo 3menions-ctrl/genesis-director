@@ -1,4 +1,4 @@
-/** Discount coupons — code-based promos for Stripe checkout. */
+/** Discount coupons — code-based promos for Polar checkout. */
 import { useState } from "react";
 import { Tag, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
@@ -31,10 +31,10 @@ export default function AdminCouponsPage() {
       code="CPN"
       title="Coupons"
       italic="& Promos."
-      description="Code-based discounts mirrored to Stripe — percent or fixed amount, single-use or repeating."
+      description="Code-based discounts — percent or fixed amount, single-use or repeating."
     >
       <AdminConsoleV2<CouponRow>
-        intro="Issue promo codes. Use them in Stripe checkout sessions and track redemption per code here."
+        intro="Issue promo codes and track redemption per code here. Note: codes are stored locally only — they are not yet auto-synced to Polar, so they must also be created in the Polar dashboard to apply at checkout."
         query={{ table: "discount_coupons", orderBy: { column: "created_at", ascending: false } }}
         searchKey="code"
         signals={[
@@ -71,7 +71,7 @@ export default function AdminCouponsPage() {
             const { error } = await supabase.from("discount_coupons").update({ active: !r.active }).eq("id", r.id);
             if (error) throw error;
           }},
-          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this coupon? Existing redemptions are preserved in Stripe.",
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this coupon? Existing redemption history is preserved.",
             onRun: async (r) => {
               const { error } = await supabase.from("discount_coupons").delete().eq("id", r.id);
               if (error) throw error;
@@ -79,7 +79,7 @@ export default function AdminCouponsPage() {
         ]}
         primaryCta={{ label: "Create coupon", onClick: () => setCreating(true) }}
         emptyTitle="No coupons yet"
-        emptyDescription="Create promo codes here, then reference them in your Stripe checkout flow."
+        emptyDescription="Create promo codes here, then reference them in your Polar checkout flow."
       >
         {creating && <CreateCoupon onClose={() => setCreating(false)} />}
       </AdminConsoleV2>

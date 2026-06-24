@@ -19,6 +19,31 @@ interface ShowcaseRow extends AdminRow {
   created_at: string;
 }
 
+/**
+ * Move an entry one slot up/down by SWAPPING sort_order with its neighbour in the
+ * sorted list — not by nudging a single row ±1 (which collides into duplicate
+ * sort_order values and fails to actually reorder). Operates on the real ordered
+ * set so the move is stable regardless of gaps in the sequence.
+ */
+async function swapOrder(id: string, dir: "up" | "down") {
+  const { data, error } = await supabase
+    .from("gallery_showcase")
+    .select("id, sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  const list = (data ?? []) as { id: string; sort_order: number }[];
+  const idx = list.findIndex((x) => x.id === id);
+  if (idx === -1) return;
+  const neighbour = dir === "up" ? list[idx - 1] : list[idx + 1];
+  if (!neighbour) return; // already at the edge — no-op
+  const current = list[idx];
+  // Two-step swap of the two rows' sort_order values.
+  const r1 = await supabase.from("gallery_showcase").update({ sort_order: neighbour.sort_order }).eq("id", current.id);
+  if (r1.error) throw r1.error;
+  const r2 = await supabase.from("gallery_showcase").update({ sort_order: current.sort_order }).eq("id", neighbour.id);
+  if (r2.error) throw r2.error;
+}
+
 export default function AdminGalleryCurationPage() {
   const [creating, setCreating] = useState(false);
   return (
@@ -60,15 +85,9 @@ export default function AdminGalleryCurationPage() {
         ]}
         actions={[
           { label: "Up", icon: ArrowUp,
-            onRun: async (r) => {
-              const { error } = await supabase.from("gallery_showcase").update({ sort_order: Math.max(0, r.sort_order - 1) }).eq("id", r.id);
-              if (error) throw error;
-            }},
+            onRun: async (r) => { await swapOrder(r.id, "up"); }},
           { label: "Down", icon: ArrowDown,
-            onRun: async (r) => {
-              const { error } = await supabase.from("gallery_showcase").update({ sort_order: r.sort_order + 1 }).eq("id", r.id);
-              if (error) throw error;
-            }},
+            onRun: async (r) => { await swapOrder(r.id, "down"); }},
           { label: "Toggle", icon: Power,
             onRun: async (r) => {
               const { error } = await supabase.from("gallery_showcase").update({ is_active: !r.is_active }).eq("id", r.id);

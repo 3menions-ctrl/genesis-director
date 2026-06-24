@@ -1,4 +1,4 @@
-/** Invoices — credit purchase ledger (Stripe-backed) with export. */
+/** Invoices — credit purchase ledger (Polar-backed; payment id stored in legacy stripe_payment_id column) with export. */
 import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
@@ -29,7 +29,8 @@ export default function AdminInvoicesPage() {
 
   async function load() {
     setLoading(true);
-    // Pull last 5000 paid credit transactions (those tied to a Stripe payment)
+    // Pull last 5000 paid credit transactions (those tied to a payment;
+    // stripe_payment_id is the legacy column name, populated by Polar as polar_<id>)
     const { data, error } = await supabase
       .from("credit_transactions")
       .select("id,user_id,amount,transaction_type,description,stripe_payment_id,created_at")
@@ -79,7 +80,7 @@ export default function AdminInvoicesPage() {
       code="INV"
       title="Invoices"
       italic="& Receipts."
-      description="Credit purchase ledger — every Stripe-backed transaction with full audit trail."
+      description="Credit purchase ledger — every Polar-backed transaction with full audit trail."
       stats={[
         { label: "Transactions YTD", value: ytd.length, tone: "blue" },
         { label: "Gross YTD", value: `$${(grossCents/100).toFixed(2)}`, tone: "emerald" },
@@ -99,12 +100,12 @@ export default function AdminInvoicesPage() {
     >
       <FloatSection
         title="Ledger"
-        meta="Stripe-backed transactions"
+        meta="Polar-backed transactions"
         actions={
           <div className="flex items-center gap-2.5">
             <Search className="w-4 h-4 text-white/40" />
             <Input
-              placeholder="Filter by Stripe ID, user, type, description…"
+              placeholder="Filter by payment ID, user, type, description…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="w-72 bg-transparent border-white/10 text-white placeholder:text-white/30"
@@ -120,7 +121,7 @@ export default function AdminInvoicesPage() {
               { key: "credits", label: "Credits", align: "right" },
               { key: "usd", label: "USD", align: "right" },
               { key: "user", label: "User" },
-              { key: "stripe", label: "Stripe Payment" },
+              { key: "stripe", label: "Payment ID" },
             ]}
             rows={loading ? [] : pg.slice.map((r) => ({
               _key: r.id,

@@ -85,6 +85,23 @@ Deno.serve(async (req) => {
     if (action === 'revoke') {
       const sid = body.session_id
       if (!sid) return jsonResponse({ error: 'Missing session_id' }, 400)
+
+      // AUDIT FIX M-11: verify the session belongs to the calling user before
+      // deleting it. Previously any caller-supplied session_id was deleted via
+      // the service-role admin API — an IDOR allowing targeted force-sign-out of
+      // another user's device.
+      const ownResp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}/sessions`, {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      })
+      if (!ownResp.ok) {
+        return jsonResponse({ error: 'Failed to verify session ownership' }, 500)
+      }
+      const ownData = await ownResp.json()
+      const ownSessions: Array<{ id: string }> = Array.isArray(ownData) ? ownData : (ownData?.sessions || [])
+      if (!ownSessions.some((s) => s.id === sid)) {
+        return jsonResponse({ error: 'Session not found' }, 404)
+      }
+
       const resp = await fetch(`${supabaseUrl}/auth/v1/admin/sessions/${sid}`, {
         method: 'DELETE',
         headers: {

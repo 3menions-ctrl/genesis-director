@@ -1,6 +1,6 @@
 /** Support macros — reusable canned responses for customer support. */
 import { useState } from "react";
-import { MessageSquareText, Plus, Copy, Trash2 } from "lucide-react";
+import { Pencil, Plus, Copy, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass, textareaClass } from "../../components/AdminFormPrimitives";
@@ -19,6 +19,7 @@ interface MacroRow extends AdminRow {
 
 export default function AdminMacrosPage() {
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<MacroRow | null>(null);
   return (
     <AdminPageShell
       eyebrow="12 // COMMS"
@@ -53,6 +54,7 @@ export default function AdminMacrosPage() {
               await navigator.clipboard.writeText(r.body);
               await supabase.from("support_macros").update({ use_count: r.use_count + 1 }).eq("id", r.id);
             }},
+          { label: "Edit", icon: Pencil, silent: true, onRun: (r) => setEditing(r) },
           { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this macro?",
             onRun: async (r) => {
               const { error } = await supabase.from("support_macros").delete().eq("id", r.id);
@@ -63,32 +65,35 @@ export default function AdminMacrosPage() {
         emptyTitle="No support macros yet"
         emptyDescription="Save your common replies as macros. Copy to clipboard in one click."
       >
-        {creating && <CreateMacro onClose={() => setCreating(false)} />}
+        {creating && <MacroDialog onClose={() => setCreating(false)} />}
+        {editing && <MacroDialog existing={editing} onClose={() => setEditing(null)} />}
       </AdminConsoleV2>
     </AdminPageShell>
   );
 }
 
-function CreateMacro({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [tags, setTags] = useState("");
+function MacroDialog({ existing, onClose }: { existing?: MacroRow; onClose: () => void }) {
+  const [title, setTitle] = useState(existing?.title ?? "");
+  const [body, setBody] = useState(existing?.body ?? "");
+  const [tags, setTags] = useState((existing?.tags ?? []).join(", "));
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!title.trim() || !body.trim()) { toast.error("Title and body required"); return; }
     setBusy(true);
     const tagsArr = tags.split(",").map((t) => t.trim()).filter(Boolean);
-    const { error } = await supabase.from("support_macros").insert({ title, body, tags: tagsArr });
+    const { error } = existing
+      ? await supabase.from("support_macros").update({ title, body, tags: tagsArr }).eq("id", existing.id)
+      : await supabase.from("support_macros").insert({ title, body, tags: tagsArr });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Macro saved");
+    toast.success(existing ? "Macro updated" : "Macro saved");
     window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 
   return (
-    <AdminDialog title="New support macro" icon={Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Save">
+    <AdminDialog title={existing ? "Edit support macro" : "New support macro"} icon={existing ? Pencil : Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel={existing ? "Save changes" : "Save"}>
       <AdminField label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Refund — generation failed" /></AdminField>
       <AdminField label="Body"><textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} placeholder="Hi {{name}}, sorry your generation failed…" /></AdminField>
       <AdminField label="Tags" hint="Comma-separated"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="refund, billing" /></AdminField>

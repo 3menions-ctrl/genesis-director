@@ -1,6 +1,6 @@
 /** Experiments — A/B test definitions, status, and winner picking. */
 import { useState } from "react";
-import { FlaskConical, Plus, Play, Pause, BadgeCheck, Trash2 } from "lucide-react";
+import { Plus, Play, Pause, BadgeCheck, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
@@ -23,6 +23,7 @@ const STATUS_TONE = { draft: "text-white/55", live: "text-emerald-300", paused: 
 
 export default function AdminExperimentsPage() {
   const [creating, setCreating] = useState(false);
+  const [concluding, setConcluding] = useState<ExperimentRow | null>(null);
   return (
     <AdminPageShell
       eyebrow="08 // GROWTH"
@@ -32,7 +33,7 @@ export default function AdminExperimentsPage() {
       description="Hypothesis, variants, allocation, and the verdict — all in one register."
     >
       <AdminConsoleV2<ExperimentRow>
-        intro="Define an experiment once. Allocation drives randomization at request time, and conclusion locks the winner site-wide."
+        intro="Experiments are defined and managed here, but the product runtime does not read them yet — there is no request-time allocation or winner gating wired up. Treat this as the admin source of record for planned, running, and concluded tests."
         query={{ table: "experiments", orderBy: { column: "created_at", ascending: false } }}
         searchKey="key"
         filters={[
@@ -55,7 +56,21 @@ export default function AdminExperimentsPage() {
           { key: "metric_primary", label: "Metric", width: "140px" },
           { key: "status", label: "Status", width: "120px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${STATUS_TONE[v as keyof typeof STATUS_TONE]}`}>{String(v)}</span> },
-          { key: "winner", label: "Winner", width: "120px" },
+          { key: "winner", label: "Winner", width: "160px",
+            render: (_v, r) => {
+              if (r.winner) return <span className="inline-flex items-center gap-1.5 text-[12px] text-emerald-300"><BadgeCheck className="w-3.5 h-3.5" />{String(r.winner)}</span>;
+              if (r.status === "live" || r.status === "paused")
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setConcluding(r)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-[11px] text-white/70 transition-colors hover:bg-white/[0.12] hover:text-white"
+                  >
+                    <BadgeCheck className="w-3 h-3" />Pick winner
+                  </button>
+                );
+              return <span className="text-white/25">—</span>;
+            } },
         ]}
         actions={[
           { label: "Launch", icon: Play, show: (r) => r.status === "draft" || r.status === "paused",
@@ -68,15 +83,7 @@ export default function AdminExperimentsPage() {
               const { error } = await supabase.from("experiments").update({ status: "paused" }).eq("id", r.id);
               if (error) throw error;
             }},
-          { label: "Conclude", icon: BadgeCheck, show: (r) => r.status === "live" || r.status === "paused",
-            onRun: async (r) => {
-              const winner = prompt(`Pick winning variant for ${r.key}:\n${r.variants.join(", ")}`);
-              if (!winner || !r.variants.includes(winner)) return;
-              const { error } = await supabase.from("experiments")
-                .update({ status: "concluded", ended_at: new Date().toISOString(), winner }).eq("id", r.id);
-              if (error) throw error;
-            }},
-          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this experiment? Any code reading its key will get the control variant.",
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this experiment? It is not read by the product runtime, so deleting only removes the admin record.",
             onRun: async (r) => {
               const { error } = await supabase.from("experiments").delete().eq("id", r.id);
               if (error) throw error;
@@ -84,11 +91,41 @@ export default function AdminExperimentsPage() {
         ]}
         primaryCta={{ label: "New experiment", onClick: () => setCreating(true) }}
         emptyTitle="No experiments yet"
-        emptyDescription="Define your first A/B test — variants randomize at request time, allocation determines split."
+        emptyDescription="Define your first A/B test. Note: experiments are admin-managed only — nothing in the product reads them at runtime yet."
       >
         {creating && <CreateExperiment onClose={() => setCreating(false)} />}
+        {concluding && <ConcludeExperiment exp={concluding} onClose={() => setConcluding(null)} />}
       </AdminConsoleV2>
     </AdminPageShell>
+  );
+}
+
+function ConcludeExperiment({ exp, onClose }: { exp: ExperimentRow; onClose: () => void }) {
+  const variants = Array.isArray(exp.variants) ? exp.variants : [];
+  const [winner, setWinner] = useState(variants[0] ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!winner || !variants.includes(winner)) { toast.error("Pick a winning variant"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("experiments")
+      .update({ status: "concluded", ended_at: new Date().toISOString(), winner }).eq("id", exp.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Winner set: ${winner}`);
+    window.dispatchEvent(new Event("admin-console-refresh"));
+    onClose();
+  };
+
+  return (
+    <AdminDialog title={`Conclude ${exp.key}`} icon={BadgeCheck} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Conclude & set winner">
+      <AdminField label="Winning variant" hint="Recorded on the experiment record; no runtime consumer reads it yet.">
+        <select value={winner} onChange={(e) => setWinner(e.target.value)} className={inputClass}>
+          {variants.length === 0 && <option value="">No variants defined</option>}
+          {variants.map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </AdminField>
+    </AdminDialog>
   );
 }
 
@@ -120,7 +157,7 @@ function CreateExperiment({ onClose }: { onClose: () => void }) {
 
   return (
     <AdminDialog title="New experiment" icon={Plus} onClose={onClose} onSubmit={submit} busy={busy} submitLabel="Save draft">
-      <AdminField label="Key" hint="Used in code to read the variant">
+      <AdminField label="Key" hint="Identifier for this experiment (not yet read by product code)">
         <input value={key} onChange={(e) => setKey(e.target.value)} className={`${inputClass} font-mono`} placeholder="onboarding_v3" /></AdminField>
       <AdminField label="Hypothesis"><input value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} className={inputClass} placeholder="Skipping email step lifts D7 retention" /></AdminField>
       <AdminField label="Variants" hint="Comma-separated">

@@ -1,6 +1,6 @@
 /** Email templates — subject + body HTML for transactional sends. */
 import { useState } from "react";
-import { Mail, Plus, Power, Trash2 } from "lucide-react";
+import { Eye, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass, textareaClass } from "../../components/AdminFormPrimitives";
@@ -20,6 +20,7 @@ interface TemplateRow extends AdminRow {
 
 export default function AdminEmailTemplatesPage() {
   const [creating, setCreating] = useState(false);
+  const [previewing, setPreviewing] = useState<TemplateRow | null>(null);
   return (
     <AdminPageShell
       eyebrow="12 // COMMS"
@@ -49,6 +50,7 @@ export default function AdminEmailTemplatesPage() {
           { key: "updated_at", label: "Updated", width: "170px", hideOnMobile: true },
         ]}
         actions={[
+          { label: "Preview", icon: Eye, silent: true, onRun: (r) => setPreviewing(r) },
           { label: "Toggle", icon: Power, onRun: async (r) => {
             const { error } = await supabase.from("email_templates").update({ enabled: !r.enabled }).eq("id", r.id);
             if (error) throw error;
@@ -64,6 +66,7 @@ export default function AdminEmailTemplatesPage() {
         emptyDescription="Create a template, then reference it by slug from your send code."
       >
         {creating && <CreateTemplate onClose={() => setCreating(false)} />}
+        {previewing && <PreviewTemplate row={previewing} onClose={() => setPreviewing(null)} />}
       </AdminConsoleV2>
     </AdminPageShell>
   );
@@ -98,6 +101,20 @@ function CreateTemplate({ onClose }: { onClose: () => void }) {
       <AdminField label="Name"><input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} /></AdminField>
       <AdminField label="Subject"><input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputClass} /></AdminField>
       <AdminField label="HTML body"><textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} className={`${textareaClass} font-mono text-[11px]`} /></AdminField>
+    </AdminDialog>
+  );
+}
+
+function PreviewTemplate({ row, onClose }: { row: TemplateRow; onClose: () => void }) {
+  const blockClass = "mt-1 max-h-[40vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/[0.08] bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-white/70";
+  return (
+    <AdminDialog title={`Preview · ${row.name}`} icon={Eye} onClose={onClose} onSubmit={onClose} submitLabel="Close">
+      <p className="text-[10px] text-white/35 leading-relaxed">Read-only view of the stored copy. The live send pipeline uses code-defined templates, so this reflects the drafted row, not the mail users receive.</p>
+      <AdminField label="Subject"><div className="mt-1 rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[13px] text-white/80">{row.subject}</div></AdminField>
+      <AdminField label="HTML body"><pre className={blockClass}>{row.body_html}</pre></AdminField>
+      {row.body_text && (
+        <AdminField label="Text body"><pre className={blockClass}>{row.body_text}</pre></AdminField>
+      )}
     </AdminDialog>
   );
 }

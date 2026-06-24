@@ -65,6 +65,9 @@ export interface AdminAction<T extends AdminRow = AdminRow> {
   variant?: "default" | "destructive";
   /** Runs against the row; rows refresh after success. */
   onRun: (row: T) => Promise<void> | void;
+  /** Skip the "succeeded" toast + auto-refresh — for actions that only open a
+   *  dialog (Edit / Preview) rather than mutating data. */
+  silent?: boolean;
   /** Hide for rows that don't meet a condition. */
   show?: (row: T) => boolean;
 }
@@ -263,6 +266,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
       if (a.confirm && !window.confirm(a.confirm)) return;
       try {
         await a.onRun(row);
+        if (a.silent) return; // dialog-opener; no success toast / refresh
         toast.success(`${a.label} succeeded`);
         refresh();
       } catch (e: unknown) {

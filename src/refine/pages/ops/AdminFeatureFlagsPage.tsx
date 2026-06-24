@@ -31,7 +31,7 @@ export default function AdminFeatureFlagsPage() {
       description="Runtime toggles, percentage rollouts, and per-audience gates for every shipping surface."
     >
       <AdminConsoleV2<FlagRow>
-        intro="Roll a feature out a slice at a time. Flip a flag and the next request sees the new behavior."
+        intro="Flags, rollout percentages, and audiences are stored here, but the product does not read this table yet — toggling a flag does not gate any shipping behavior at runtime. This is the admin source of record until gating is wired up."
         query={{
           table: "feature_flags",
           orderBy: { column: "updated_at", ascending: false },
@@ -118,7 +118,7 @@ export default function AdminFeatureFlagsPage() {
             label: "Delete",
             icon: Trash2,
             variant: "destructive",
-            confirm: "Delete this flag? Code paths reading it will get false.",
+            confirm: "Delete this flag? Nothing in the product reads it yet, so this only removes the stored record.",
             onRun: async (row) => {
               const { error } = await supabase
                 .from("feature_flags")
@@ -130,7 +130,7 @@ export default function AdminFeatureFlagsPage() {
         ]}
         primaryCta={{ label: "New flag", onClick: () => setCreating(true) }}
         emptyTitle="No feature flags yet"
-        emptyDescription="Create your first flag to gate a new feature behind a switch."
+        emptyDescription="Create your first flag. Note: flags are stored for now — the product does not yet read them to gate behavior."
       >
         {creating && (
           <CreateFlagDialog

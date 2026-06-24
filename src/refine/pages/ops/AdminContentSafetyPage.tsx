@@ -14,7 +14,6 @@ interface RuleRow extends AdminRow {
   severity: string;
   category: string | null;
   active: boolean;
-  hits: number;
   created_at: string;
 }
 
@@ -26,10 +25,10 @@ export default function AdminContentSafetyPage() {
       code="SAF"
       title="Content"
       italic="Safety."
-      description="Pattern-based rules that block or warn on prompts and generated assets."
+      description="Pattern-based block/warn rules — authored here for an upcoming moderation pipeline (not yet enforced at runtime)."
     >
       <AdminConsoleV2<RuleRow>
-        intro="Layer this on top of the built-in moderation. Patterns match against prompts before the pipeline runs."
+        intro="Advisory: these rules are stored but not yet enforced — no edge function or generation step currently reads content_safety_rules, so adding a rule does not block or flag content yet. Authoring is live so the catalogue is ready once a runtime pipeline consumes it."
         query={{ table: "content_safety_rules", orderBy: { column: "created_at", ascending: false } }}
         searchKey="pattern"
         filters={[
@@ -51,7 +50,6 @@ export default function AdminContentSafetyPage() {
           { key: "severity", label: "Severity", width: "100px",
             render: (v) => <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${v === "block" ? "text-rose-300" : "text-amber-300"}`}>{String(v)}</span> },
           { key: "category", label: "Category", width: "140px" },
-          { key: "hits", label: "Hits", width: "80px", align: "right" },
           { key: "active", label: "Status", width: "100px" },
         ]}
         actions={[
@@ -103,8 +101,8 @@ function CreateRule({ onClose }: { onClose: () => void }) {
       <AdminField label="Match type"><select value={matchType} onChange={(e) => setMatchType(e.target.value)} className={inputClass}>
         <option value="substring">Substring</option><option value="regex">Regex</option><option value="exact">Exact</option>
       </select></AdminField>
-      <AdminField label="Severity"><select value={severity} onChange={(e) => setSeverity(e.target.value)} className={inputClass}>
-        <option value="warn">Warn (let through, flag)</option><option value="block">Block (refuse generation)</option>
+      <AdminField label="Severity" hint="Intended behaviour once a pipeline enforces these rules"><select value={severity} onChange={(e) => setSeverity(e.target.value)} className={inputClass}>
+        <option value="warn">Warn — flag for review</option><option value="block">Block — refuse generation</option>
       </select></AdminField>
       <AdminField label="Category" hint="Optional grouping (e.g. violence, pii)"><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} /></AdminField>
     </AdminDialog>

@@ -1,6 +1,6 @@
 /** In-app banner system — CRUD on announcements with severity + audience targeting. */
 import { useState } from "react";
-import { Megaphone, Plus, Trash2, Power } from "lucide-react";
+import { Megaphone, Trash2, Power } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,7 @@ export default function AdminAnnouncementsPage() {
       description="Schedulable in-app banners targeted by audience, severity, and time window."
     >
       <AdminConsoleV2<AnnouncementRow>
-        intro="Push targeted messages into the product surface — schedule them, target them, kill them on demand."
+        intro="Compose, schedule, and target in-app banners by audience and severity. Note: entries are stored in the announcements table, but the live in-app banner reads a different system_config key — messages composed here are not yet surfaced in the product."
         query={{ table: "announcements", orderBy: { column: "created_at", ascending: false } }}
         searchKey="title"
         searchPlaceholder="Search announcements…"
@@ -94,15 +94,22 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
   const [audience, setAudience] = useState("all");
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!title.trim() || !body.trim()) { toast.error("Title and body required"); return; }
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) { toast.error("End must be after start"); return; }
     setBusy(true);
-    const { error } = await supabase.from("announcements").insert({
+    // starts_at defaults to now() in the DB, so only send it when scheduled.
+    const payload: Record<string, unknown> = {
       title, body, severity, audience,
       cta_label: ctaLabel || null, cta_url: ctaUrl || null,
-    });
+    };
+    if (startsAt) payload.starts_at = new Date(startsAt).toISOString();
+    if (endsAt) payload.ends_at = new Date(endsAt).toISOString();
+    const { error } = await supabase.from("announcements").insert(payload);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Announcement created");
@@ -137,6 +144,13 @@ function CreateAnnouncementDialog({ onClose, onCreated }: { onClose: () => void;
           <FormField label="CTA URL"><input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://…"
             className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Starts (optional)"><input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
+          <FormField label="Ends (optional)"><input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-white/[0.08] bg-glass text-[13px] text-white focus:outline-none focus:border-primary/40" /></FormField>
+        </div>
+        <p className="text-[10px] text-white/35 leading-relaxed">Leave start blank to publish immediately. A future start time marks the banner as "Scheduled". These columns are real, but the product does not surface announcements yet.</p>
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="text-[11px] uppercase tracking-[0.22em] text-white/45 hover:text-white px-4 py-2 rounded-lg border border-white/[0.08]">Cancel</button>
           <button onClick={submit} disabled={busy}

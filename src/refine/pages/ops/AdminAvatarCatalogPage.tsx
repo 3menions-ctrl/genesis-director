@@ -1,5 +1,5 @@
 /** Avatar catalog — featured + enabled CRUD on avatar_catalog_entries. */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, Power, Plus, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
@@ -22,6 +22,29 @@ interface AvatarRow extends AdminRow {
 
 export default function AdminAvatarCatalogPage() {
   const [creating, setCreating] = useState(false);
+  // Category is admin-authored free text, so derive the filter options from the
+  // real distinct values in the table rather than hardcoding a guessed list.
+  const [categories, setCategories] = useState<string[]>([]);
+  useEffect(() => {
+    let active = true;
+    supabase
+      .from("avatar_catalog_entries")
+      .select("category")
+      .then(({ data }) => {
+        if (!active || !data) return;
+        const unique = Array.from(
+          new Set(
+            data
+              .map((d) => (d as { category: string | null }).category)
+              .filter((c): c is string => !!c),
+          ),
+        ).sort();
+        setCategories(unique);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   return (
     <AdminPageShell
       eyebrow="11 // CONTENT"
@@ -35,6 +58,18 @@ export default function AdminAvatarCatalogPage() {
         query={{ table: "avatar_catalog_entries", orderBy: { column: "rank", ascending: true } }}
         searchKey="name"
         searchPlaceholder="Search by name…"
+        filters={
+          categories.length > 0
+            ? [
+                {
+                  key: "category",
+                  label: "Category",
+                  type: "select",
+                  options: categories.map((c) => ({ value: c, label: c })),
+                },
+              ]
+            : undefined
+        }
         signals={[
           { label: "Total", value: (r) => r.length, tone: "blue" },
           { label: "Enabled", value: (r) => r.filter((x) => (x as AvatarRow).enabled).length, tone: "emerald" },

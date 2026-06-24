@@ -73,7 +73,7 @@ export default function AdminTemplatesAdminPage() {
             }},
         ]}
         emptyTitle="No templates yet"
-        emptyDescription="When users save templates they appear here for global oversight and promotion."
+        emptyDescription="There is currently no in-app flow that writes to project_templates, so this table stays empty until one ships. When templates start being created they will appear here for global oversight and promotion."
       />
     </AdminPageShell>
   );

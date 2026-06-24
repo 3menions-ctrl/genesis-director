@@ -38,6 +38,9 @@ export default function AdminGalleryCurationPage() {
             { value: "text-to-video", label: "Text to video" },
             { value: "image-to-video", label: "Image to video" },
             { value: "avatar", label: "Avatar" }] },
+          { key: "is_active", label: "Status", type: "select", options: [
+            { value: "true", label: "Active" },
+            { value: "false", label: "Hidden" }] },
         ]}
         signals={[
           { label: "Total", value: (r) => r.length, tone: "blue" },

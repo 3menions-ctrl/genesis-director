@@ -101,8 +101,9 @@ export function AutoGallery({ items, className, variant = "card" }: Props) {
       className={cn(
         !isHero && [
           "relative w-[280px] sm:w-[320px] aspect-[16/9] rounded-2xl overflow-hidden",
-          "ring-1 ring-inset ring-white/[0.10]",
-          "shadow-[0_24px_60px_-18px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.03)]",
+          // Borderless: no ring / no 1px shadow-border — just a soft drop shadow
+          // so the card floats on the backdrop.
+          "shadow-[0_24px_60px_-18px_rgba(0,0,0,0.65)]",
         ],
         isHero && "absolute inset-0 overflow-hidden",
         className,

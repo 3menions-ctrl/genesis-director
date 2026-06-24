@@ -190,9 +190,9 @@ const CrossoverCard = memo(function CrossoverCard({
       <div
         className={cn(
           "relative rounded-2xl overflow-hidden",
-          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "bg-white/[0.03] backdrop-blur shadow-[0_12px_44px_-22px_hsla(220,45%,2%,0.85)]",
           "transition-all duration-500",
-          hover && "ring-white/[0.14] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
+          hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
         )}
       >
         {/* Chrome preview is the hero — its own aspect ratio determines tile height */}
@@ -234,7 +234,7 @@ const CrossoverCard = memo(function CrossoverCard({
               </span>
             )}
             {bp.acceptsSubject && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/25 ring-1 ring-inset ring-emerald-300/40 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/30 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 <UserIcon className="w-2.5 h-2.5" />
                 Subject
               </span>
@@ -247,19 +247,19 @@ const CrossoverCard = memo(function CrossoverCard({
               onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
               title={isFavorite ? "Remove from favorites" : "Save to favorites"}
               className={cn(
-                "h-6 w-6 rounded-full backdrop-blur ring-1 ring-inset flex items-center justify-center transition-all",
+                "h-6 w-6 rounded-full backdrop-blur flex items-center justify-center transition-all",
                 isFavorite
-                  ? "bg-amber-300 text-black ring-amber-300/60"
-                  : "bg-black/40 text-foreground/85 ring-white/15 hover:bg-black/60",
+                  ? "bg-amber-300 text-black shadow-[0_6px_18px_-8px_hsla(45,95%,55%,0.8)]"
+                  : "bg-black/45 text-foreground/85 hover:bg-black/65",
               )}
             >
               <Star className="w-3 h-3" fill={isFavorite ? "currentColor" : "none"} strokeWidth={1.6} />
             </button>
 
-            <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/55 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+            <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/55 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
               <span
-                className="inline-block ring-1 ring-inset ring-white/40 rounded-[2px]"
-                style={{ width: 10, height: Math.max((10 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.20)" }}
+                className="inline-block rounded-[2px]"
+                style={{ width: 10, height: Math.max((10 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.45)" }}
               />
               {bp.aspectRatio}
             </span>
@@ -281,11 +281,10 @@ const CrossoverCard = memo(function CrossoverCard({
           {/* Engine + cost meta */}
           <div className="mt-2 flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.18em]">
             <span
-              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md"
               style={{
                 color: TIER_HUE[engine.tier],
-                background: `${TIER_HUE[engine.tier].replace(")", " / 0.08)").replace("hsl(", "hsla(")}`,
-                borderColor: `${TIER_HUE[engine.tier].replace(")", " / 0.25)").replace("hsl(", "hsla(")}`,
+                background: `${TIER_HUE[engine.tier].replace(")", " / 0.12)").replace("hsl(", "hsla(")}`,
               }}
             >
               <Cpu className="w-2.5 h-2.5" />
@@ -327,9 +326,13 @@ function FilterPill({
       className={cn(
         "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
         active
-          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
-          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+          ? "text-[hsl(213_100%_88%)]"
+          : "text-foreground/55 hover:text-foreground/85 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur",
       )}
+      style={active ? {
+        background: "radial-gradient(closest-side, hsl(218 70% 38% / 0.5), transparent 78%)",
+        boxShadow: "0 0 14px -6px hsl(216 80% 50% / 0.35)",
+      } : undefined}
     >
       {icon}
       {children}
@@ -369,17 +372,17 @@ function CategoryRail({
         <div className="flex items-center gap-1">
           <button
             onClick={() => scrollBy(-560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll left"
           >‹</button>
           <button
             onClick={() => scrollBy(560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll right"
           >›</button>
           <button
             onClick={onSeeAll}
-            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
           >
             See all {items.length}
             <ArrowRight className="w-3 h-3" />
@@ -602,7 +605,7 @@ function CrossoverContent() {
               placeholder="Search — dancer, tiger, code, oil painting…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-12 bg-white/[0.02] ring-1 ring-inset ring-white/[0.06] focus:ring-white/[0.18] border-0 text-foreground placeholder:text-foreground/35 rounded-full text-[13px] backdrop-blur"
+              className="pl-11 h-12 bg-white/[0.04] border-transparent text-foreground placeholder:text-foreground/35 rounded-full text-[13px] backdrop-blur"
             />
           </div>
         </div>
@@ -651,7 +654,7 @@ function CrossoverContent() {
         </div>
       </section>
 
-      <div className="border-t border-white/[0.05] my-6" />
+      <div aria-hidden className="my-9" />
 
       {/* ── BODY ──────────────────────────────────────────────── */}
       {loading ? (
@@ -792,7 +795,7 @@ function FloatingStat({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_10px_34px_-14px_hsla(220,45%,2%,0.85)]">
         <Sparkles className="w-6 h-6 text-foreground/55" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No crossovers matched</h3>
@@ -800,8 +803,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
         Try clearing a filter — your category + engine + aspect combination might be too narrow.
       </p>
       <Button
-        variant="outline"
-        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        variant="ghost"
+        className="border-transparent bg-white/[0.04] backdrop-blur text-foreground hover:bg-white/[0.08] rounded-full"
         onClick={onReset}
       >
         Clear filters

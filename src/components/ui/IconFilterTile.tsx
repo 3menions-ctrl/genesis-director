@@ -22,28 +22,35 @@ export function IconFilterTile({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "group/ft flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 rounded-2xl backdrop-blur-md transition-all",
-        active
-          ? "bg-white/[0.20] ring-1 ring-inset ring-white/[0.45] shadow-[0_10px_30px_-12px_rgba(255,255,255,0.55)]"
-          : "bg-white/[0.02] hover:bg-white/[0.06]",
-      )}
+      className="group/ft relative flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 transition-all"
     >
-      <span
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
-          active
-            ? "bg-white/[0.30] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
-            : "bg-white/[0.04] text-foreground/50 group-hover/ft:text-foreground/85",
-        )}
-      >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
+      {/* Borderless selection — a quiet dark-blue bloom behind the icon (no
+          ring, no box), matching the rail + page backdrop. */}
+      {active && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1.5 h-9 w-9 -translate-x-1/2 rounded-2xl"
+          style={{
+            background: "radial-gradient(closest-side, hsl(218 70% 38% / 0.55), hsl(218 70% 38% / 0) 78%)",
+            boxShadow: "0 0 14px -6px hsl(216 80% 50% / 0.35)",
+          }}
+        />
+      )}
+      <span className="relative flex h-9 w-9 items-center justify-center transition-transform duration-200 group-hover/ft:scale-105">
+        <Icon
+          className={cn(
+            "h-[18px] w-[18px] transition-colors",
+            active ? "text-[hsl(213_100%_88%)]" : "text-foreground/50 group-hover/ft:text-foreground/85",
+          )}
+          strokeWidth={1.7}
+        />
       </span>
       <span
         className={cn(
-          "text-[9.5px] font-mono uppercase tracking-[0.14em] transition-colors leading-none text-center",
-          active ? "text-foreground" : "text-foreground/50 group-hover/ft:text-foreground/75",
+          "relative text-[9.5px] font-mono uppercase tracking-[0.14em] transition-colors leading-none text-center",
+          active ? "" : "text-foreground/50 group-hover/ft:text-foreground/75",
         )}
+        style={active ? { color: "hsl(213 90% 84%)" } : undefined}
       >
         {label}
       </span>

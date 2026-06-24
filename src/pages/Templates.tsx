@@ -180,9 +180,9 @@ const TemplateCard = memo(function TemplateCard({
       <div
         className={cn(
           "relative aspect-[3/4] rounded-2xl overflow-hidden",
-          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "bg-white/[0.03] backdrop-blur shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)]",
           "transition-all duration-500",
-          hover && "ring-white/[0.12] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
+          hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
         )}
       >
         {/* Thumbnail */}
@@ -230,28 +230,28 @@ const TemplateCard = memo(function TemplateCard({
               </span>
             )}
             {bp.isTrending && !bp.isBreakout && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/25 ring-1 ring-inset ring-rose-300/40 text-rose-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/30 text-rose-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 <Sparkles className="w-2.5 h-2.5" />
                 Hot
               </span>
             )}
             {bp.isPro && !bp.isBreakout && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/25 ring-1 ring-inset ring-amber-300/40 text-amber-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/30 text-amber-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 Pro
               </span>
             )}
             {bp.isFeatured && !bp.isTrending && !bp.isBreakout && !bp.isPro && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-white/10 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-white/[0.14] text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 Featured
               </span>
             )}
           </div>
 
           {/* Aspect chip — top right */}
-          <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/55 ring-1 ring-inset ring-white/15 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+          <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/60 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
             <span
-              className="inline-block ring-1 ring-inset ring-white/40 rounded-[2px]"
-              style={{ width: 12, height: Math.max((12 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.20)" }}
+              className="inline-block rounded-[2px]"
+              style={{ width: 12, height: Math.max((12 * aspectDims.h) / aspectDims.w, 6), background: "hsl(48 80% 88% / 0.45)" }}
             />
             {bp.aspectRatio}
           </span>
@@ -267,11 +267,10 @@ const TemplateCard = memo(function TemplateCard({
           {/* Engine + clips meta row */}
           <div className="mt-1.5 flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.18em]">
             <span
-              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md"
               style={{
                 color: TIER_HUE[engine.tier],
-                background: `${TIER_HUE[engine.tier].replace(")", " / 0.08)").replace("hsl(", "hsla(")}`,
-                borderColor: `${TIER_HUE[engine.tier].replace(")", " / 0.25)").replace("hsl(", "hsla(")}`,
+                background: `${TIER_HUE[engine.tier].replace(")", " / 0.14)").replace("hsl(", "hsla(")}`,
               }}
             >
               <Cpu className="w-2.5 h-2.5" />
@@ -486,7 +485,7 @@ function TemplatesContent() {
                 placeholder="Search by name, mood, genre, tag…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-12 bg-white/[0.06] ring-1 ring-inset ring-white/[0.12] focus:ring-white/[0.25] border-0 text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl"
+                className="pl-11 h-12 bg-white/[0.05] border-transparent text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl shadow-[0_14px_40px_-24px_rgba(0,0,0,0.8)]"
               />
             </div>
           </div>
@@ -690,21 +689,21 @@ function CategoryRail({
           {/* scroll arrows — desktop only */}
           <button
             onClick={() => scrollBy(-560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.09] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll left"
           >
             ‹
           </button>
           <button
             onClick={() => scrollBy(560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.09] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll right"
           >
             ›
           </button>
           <button
             onClick={onSeeAll}
-            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/[0.04] hover:bg-white/[0.09] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
           >
             See all {items.length}
             <ArrowRight className="w-3 h-3" />
@@ -747,7 +746,7 @@ function CategoryRail({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)]">
         <Search className="w-6 h-6 text-foreground/55" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No blueprints matched</h3>
@@ -755,8 +754,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
         Try clearing a filter or two — your category + engine + aspect combination might be too narrow.
       </p>
       <Button
-        variant="outline"
-        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        variant="ghost"
+        className="border-transparent bg-white/[0.05] backdrop-blur text-foreground hover:bg-white/[0.1] rounded-full shadow-[0_14px_40px_-24px_rgba(0,0,0,0.8)]"
         onClick={onReset}
       >
         Clear filters

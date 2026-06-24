@@ -197,9 +197,9 @@ const EnvironmentCard = memo(function EnvironmentCard({
       <div
         className={cn(
           "relative aspect-[3/4] rounded-2xl overflow-hidden",
-          "ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur",
+          "bg-white/[0.03] backdrop-blur shadow-[0_18px_50px_-26px_hsla(0,0%,0%,0.7)]",
           "transition-all duration-500",
-          hover && "ring-white/[0.14] -translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(48,95%,70%,0.35)]",
+          hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(48,95%,70%,0.35)]",
         )}
       >
         <img
@@ -255,15 +255,15 @@ const EnvironmentCard = memo(function EnvironmentCard({
               onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
               title={isFavorite ? "Remove from favorites" : "Save to favorites"}
               className={cn(
-                "h-6 w-6 rounded-full backdrop-blur ring-1 ring-inset flex items-center justify-center transition-all",
+                "h-6 w-6 rounded-full backdrop-blur flex items-center justify-center transition-all",
                 isFavorite
-                  ? "bg-amber-300 text-black ring-amber-300/60"
-                  : "bg-black/40 text-foreground/85 ring-white/15 hover:bg-black/60",
+                  ? "bg-amber-300 text-black shadow-[0_4px_14px_-4px_hsla(45,95%,60%,0.6)]"
+                  : "bg-black/40 text-foreground/85 hover:bg-black/60",
               )}
             >
               <Star className="w-3 h-3" fill={isFavorite ? "currentColor" : "none"} strokeWidth={1.6} />
             </button>
-            <span className="h-6 w-6 rounded-full bg-black/55 ring-1 ring-inset ring-white/15 backdrop-blur flex items-center justify-center text-foreground/85">
+            <span className="h-6 w-6 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-foreground/85">
               <Icon className="w-3 h-3" />
             </span>
           </div>
@@ -277,11 +277,10 @@ const EnvironmentCard = memo(function EnvironmentCard({
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-mono uppercase tracking-[0.18em]">
             <span
-              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md ring-1 ring-inset"
+              className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md"
               style={{
                 color: TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)",
-                background: (TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)").replace(")", " / 0.08)").replace("hsl(", "hsla("),
-                borderColor: (TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)").replace(")", " / 0.25)").replace("hsl(", "hsla("),
+                background: (TEMP_HUE[bp.lighting.temperature] ?? "hsl(48 80% 88%)").replace(")", " / 0.12)").replace("hsl(", "hsla("),
               }}
             >
               {TOD_LABEL[bp.lighting.timeOfDay] ?? bp.lighting.timeOfDay}
@@ -322,8 +321,8 @@ function FilterPill({
       className={cn(
         "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
         active
-          ? "text-foreground bg-foreground/[0.08] ring-1 ring-inset ring-white/[0.16] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
-          : "text-foreground/55 hover:text-foreground/85 ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+          ? "text-foreground bg-foreground/[0.10] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.35)]"
+          : "text-foreground/55 hover:text-foreground/85 hover:bg-white/[0.05] bg-white/[0.03] backdrop-blur",
       )}
     >
       {icon}
@@ -366,17 +365,17 @@ function WorldRail({
         <div className="flex items-center gap-1">
           <button
             onClick={() => scrollBy(-560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll left"
           >‹</button>
           <button
             onClick={() => scrollBy(560)}
-            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
+            className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur text-foreground/55 hover:text-foreground/85 transition-colors"
             aria-label="Scroll right"
           >›</button>
           <button
             onClick={onSeeAll}
-            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
+            className="ml-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur text-[10px] font-mono uppercase tracking-[0.20em] text-foreground/70 hover:text-foreground/95 transition-colors whitespace-nowrap"
           >
             See all {items.length}
             <ArrowRight className="w-3 h-3" />
@@ -575,7 +574,7 @@ function EnvironmentsContent() {
                 placeholder="Search by name, mood, world, terrain…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-12 bg-white/[0.06] ring-1 ring-inset ring-white/[0.12] focus:ring-white/[0.25] border-0 text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl"
+                className="pl-11 h-12 bg-white/[0.05] focus:bg-white/[0.08] border-transparent text-foreground placeholder:text-foreground/45 rounded-full text-[13px] backdrop-blur-xl shadow-[0_8px_30px_-18px_hsla(0,0%,0%,0.7)] transition-colors"
               />
             </div>
           </div>
@@ -714,7 +713,7 @@ function FloatingStat({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_12px_36px_-20px_hsla(0,0%,0%,0.8)]">
         <Mountain className="w-6 h-6 text-foreground/55" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No environments matched</h3>
@@ -722,8 +721,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
         Try clearing a filter — your world + setting combination might be too narrow.
       </p>
       <Button
-        variant="outline"
-        className="border-white/[0.12] bg-white/[0.02] backdrop-blur text-foreground hover:bg-white/[0.05] rounded-full"
+        variant="ghost"
+        className="border-transparent bg-white/[0.04] backdrop-blur text-foreground hover:bg-white/[0.08] rounded-full shadow-[0_8px_24px_-16px_hsla(0,0%,0%,0.7)]"
         onClick={onReset}
       >
         Clear filters

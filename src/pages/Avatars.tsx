@@ -386,7 +386,7 @@ export function AvatarsWorkbench() {
             <span className={cn(TYPE_META, "text-muted-foreground/60")}>
               {filtered.length} {filtered.length === 1 ? "result" : "results"}
             </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-border/60 via-border/30 to-transparent" />
+            <div className="flex-1" />
             {(search ||
               typeFilter !== "all" ||
               genderFilter !== "all" ||
@@ -488,7 +488,7 @@ function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search by name, vibe, archetype, or tag…"
-        className="w-full h-12 rounded-full bg-[hsl(var(--foreground)/0.02)] border border-border/30 pl-11 pr-11 text-[14px] text-foreground placeholder:text-muted-foreground/45 outline-none focus:border-accent/40 transition-colors backdrop-blur-xl"
+        className="w-full h-12 rounded-full bg-white/[0.04] border border-transparent pl-11 pr-11 text-[14px] text-foreground placeholder:text-muted-foreground/45 outline-none focus:bg-white/[0.06] transition-colors backdrop-blur-xl shadow-[0_8px_30px_-18px_hsl(220_40%_2%/0.7)]"
       />
       {value && (
         <button
@@ -518,7 +518,7 @@ function TypeTabs({
   return (
     <div
       role="tablist"
-      className="inline-flex items-center gap-1 rounded-full p-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
+      className="inline-flex items-center gap-1 rounded-full p-1 border border-transparent bg-white/[0.03] backdrop-blur-xl shadow-[0_10px_30px_-18px_hsl(220_40%_2%/0.7)]"
     >
       {TYPE_TABS.map((t) => {
         const active = value === t.id;
@@ -548,7 +548,11 @@ function TypeTabs({
               <motion.span
                 layoutId="avatar-type-active"
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.30)]"
+                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.12)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
+                style={{
+                  background:
+                    "radial-gradient(closest-side, hsl(218 70% 38% / 0.5), transparent 78%)",
+                }}
               />
             )}
             <Icon
@@ -593,10 +597,10 @@ function SortPicker({
             key={id}
             onClick={() => onChange(id)}
             className={cn(
-              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors",
+              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors border border-transparent",
               active
-                ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
-                : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:text-foreground/90",
+                ? "bg-[hsl(218_70%_38%/0.25)] text-[hsl(213_100%_88%)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
+                : "bg-white/[0.03] text-muted-foreground/70 hover:text-foreground/90 hover:bg-white/[0.05]",
             )}
           >
             <Icon className="h-3 w-3" strokeWidth={1.5} />
@@ -627,10 +631,10 @@ function CategoryChips({
             key={c.id}
             onClick={() => onChange(c.id)}
             className={cn(
-              "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors",
+              "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors border border-transparent",
               active
-                ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
-                : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:border-accent/30 hover:text-foreground/90",
+                ? "bg-[hsl(218_70%_38%/0.25)] text-[hsl(213_100%_88%)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
+                : "bg-white/[0.03] text-muted-foreground/70 hover:bg-white/[0.05] hover:text-foreground/90",
             )}
           >
             <span>{c.icon}</span>
@@ -832,17 +836,17 @@ function GlassFrame({
       <div
         className={cn(
           "relative overflow-hidden rounded-[22px]",
-          "border border-white/[0.09]",
+          "border border-transparent",
           "bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-white/[0.01]",
           "backdrop-blur-2xl",
-          "shadow-[0_30px_80px_-24px_hsl(220_40%_2%/0.85),0_0_0_1px_hsl(var(--accent)/0.06),inset_0_1px_0_hsl(0_0%_100%/0.10)]",
+          "shadow-[0_30px_80px_-24px_hsl(220_40%_2%/0.85),inset_0_1px_0_hsl(0_0%_100%/0.10)]",
           "transition-shadow duration-500",
-          "group-hover:shadow-[0_40px_120px_-24px_hsl(220_40%_2%/0.92),0_0_0_1px_hsl(var(--accent)/0.18),inset_0_1px_0_hsl(0_0%_100%/0.14),0_0_60px_-12px_hsl(var(--accent)/0.45)]",
+          "group-hover:shadow-[0_40px_120px_-24px_hsl(220_40%_2%/0.92),inset_0_1px_0_hsl(0_0%_100%/0.14),0_0_60px_-12px_hsl(var(--accent)/0.45)]",
         )}
       >
-        {/* Picture-frame mat — a thin glass border around the portrait */}
+        {/* Picture-frame mat — soft glass inset around the portrait */}
         <div className="p-[10px]">
-          <div className="relative aspect-[3/4] overflow-hidden rounded-[14px] ring-1 ring-inset ring-white/[0.06]">
+          <div className="relative aspect-[3/4] overflow-hidden rounded-[14px]">
             <OptimizedAvatarImage
               src={imageUrl}
               alt={avatar.name}
@@ -876,17 +880,17 @@ function GlassFrame({
             {/* Top-right small badges — type + premium */}
             <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
               {avatar.is_premium && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.18)] backdrop-blur-md px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)] shadow-[0_4px_14px_-6px_hsl(45_95%_55%/0.5)]">
                   <Crown className="h-2.5 w-2.5" strokeWidth={1.5} />
                   Premium
                 </span>
               )}
               <span
                 className={cn(
-                  "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+                  "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md",
                   avatar.avatar_type === "realistic"
-                    ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
-                    : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+                    ? "bg-[hsl(var(--accent)/0.16)] text-accent"
+                    : "bg-[hsl(280_55%_65%/0.16)] text-[hsl(280_55%_85%)]",
                 )}
               >
                 {avatar.avatar_type === "realistic" ? "Real" : "Animated"}
@@ -900,7 +904,7 @@ function GlassFrame({
                 aria-label={playing ? "Pause voice sample" : "Play voice sample"}
                 className={cn(
                   "absolute bottom-3 left-3 inline-flex items-center justify-center h-9 w-9 rounded-full z-10",
-                  "bg-black/60 backdrop-blur-md ring-1 ring-inset ring-white/20",
+                  "bg-black/60 backdrop-blur-md shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.8)]",
                   "opacity-0 group-hover:opacity-100 transition-opacity",
                   playing && "opacity-100",
                 )}
@@ -923,8 +927,8 @@ function GlassFrame({
               className={cn(
                 "absolute bottom-3 right-3 inline-flex items-center justify-center h-9 w-9 rounded-full z-10 transition-all",
                 inCast
-                  ? "bg-[hsl(var(--accent)/0.92)] ring-1 ring-inset ring-accent text-foreground opacity-100"
-                  : "bg-black/60 backdrop-blur-md ring-1 ring-inset ring-white/20 text-white opacity-0 group-hover:opacity-100",
+                  ? "bg-[hsl(var(--accent)/0.92)] text-foreground opacity-100 shadow-[0_0_18px_-4px_hsl(216_80%_50%/0.6)]"
+                  : "bg-black/60 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.8)]",
               )}
             >
               {inCast ? (
@@ -934,14 +938,16 @@ function GlassFrame({
               )}
             </button>
 
-            {/* In-cast accent ring around the whole picture */}
+            {/* In-cast accent glow around the whole picture */}
             {inCast && (
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-[hsl(var(--accent)/0.6)]"
+                className="pointer-events-none absolute inset-0"
                 style={{
+                  background:
+                    "radial-gradient(closest-side, hsl(218 70% 38% / 0.32), transparent 78%)",
                   boxShadow:
-                    "inset 0 0 24px hsl(var(--accent) / 0.25), 0 0 0 1px hsl(var(--accent) / 0.4)",
+                    "inset 0 0 32px hsl(var(--accent) / 0.3), 0 0 14px -6px hsl(216 80% 50% / 0.35)",
                 }}
               />
             )}
@@ -1005,9 +1011,9 @@ function GlassFrame({
                 }}
                 className={cn(
                   "pointer-events-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-full",
-                  "bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl ring-1 ring-inset ring-accent/30",
+                  "bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl shadow-[0_0_18px_-6px_hsl(216_80%_50%/0.4)]",
                   "text-[10.5px] font-mono uppercase tracking-[0.22em] text-accent",
-                  "hover:text-foreground hover:ring-accent/60 transition-colors cursor-pointer",
+                  "hover:text-foreground hover:bg-[hsl(220_30%_4%/0.85)] transition-colors cursor-pointer",
                 )}
               >
                 Cast in Studio
@@ -1108,23 +1114,17 @@ function DetailPopup({
         className={cn(
           "relative w-full max-w-[1100px] max-h-[92dvh]",
           "overflow-hidden rounded-[28px]",
-          "border border-white/[0.09]",
+          "border border-transparent",
           "bg-gradient-to-br from-[hsl(220_30%_6%/0.95)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.98)]",
           "backdrop-blur-2xl",
           "shadow-[0_80px_200px_-50px_hsl(0_0%_0%/0.85),0_30px_80px_-30px_hsl(var(--accent)/0.22),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
         )}
       >
-        {/* Foundation corner brackets — picture-frame registration marks */}
-        <div aria-hidden className="pointer-events-none absolute left-4 top-4 h-3 w-3 border-l border-t border-accent/40 z-30" />
-        <div aria-hidden className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r border-t border-accent/40 z-30" />
-        <div aria-hidden className="pointer-events-none absolute left-4 bottom-4 h-3 w-3 border-l border-b border-accent/40 z-30" />
-        <div aria-hidden className="pointer-events-none absolute right-4 bottom-4 h-3 w-3 border-r border-b border-accent/40 z-30" />
-
         {/* Close — top right, above everything */}
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[hsl(220_30%_4%/0.55)] backdrop-blur-xl text-foreground/80 hover:text-foreground hover:border-accent/50 transition-colors"
+          className="absolute top-4 right-4 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl text-foreground/80 hover:text-foreground hover:bg-[hsl(220_30%_4%/0.9)] transition-colors shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.8)]"
         >
           <X className="h-4 w-4" strokeWidth={1.5} />
         </button>
@@ -1132,7 +1132,7 @@ function DetailPopup({
         {/* Body — grid on desktop, stack on mobile */}
         <div className="grid h-[92dvh] max-h-[92dvh] grid-rows-[minmax(0,1fr)_auto] md:h-auto md:max-h-[92dvh] md:grid-rows-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           {/* Portrait pane (head-to-toe) */}
-          <div className="relative overflow-hidden bg-[hsl(220_40%_4%)] md:border-r md:border-white/[0.05]">
+          <div className="relative overflow-hidden bg-[hsl(220_40%_4%)]">
             <div className="relative h-full w-full">
               <OptimizedAvatarImage
                 src={imageUrl}
@@ -1172,17 +1172,17 @@ function DetailPopup({
               {/* Bottom-anchored badges */}
               <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 z-10">
                 {avatar.is_premium && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.15)] backdrop-blur-md ring-1 ring-inset ring-[hsl(45_95%_55%/0.4)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.18)] backdrop-blur-md px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)] shadow-[0_4px_14px_-6px_hsl(45_95%_55%/0.5)]">
                     <Crown className="h-3 w-3" strokeWidth={1.5} />
                     Premium
                   </span>
                 )}
                 <span
                   className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md ring-1 ring-inset",
+                    "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md",
                     avatar.avatar_type === "realistic"
-                      ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.30)] text-accent"
-                      : "bg-[hsl(280_55%_65%/0.10)] ring-[hsl(280_55%_65%/0.30)] text-[hsl(280_55%_85%)]",
+                      ? "bg-[hsl(var(--accent)/0.16)] text-accent"
+                      : "bg-[hsl(280_55%_65%/0.16)] text-[hsl(280_55%_85%)]",
                   )}
                 >
                   {avatar.avatar_type === "realistic" ? "Realistic" : "Animated"}
@@ -1233,15 +1233,15 @@ function DetailPopup({
 
               {/* Voice */}
               <Section eyebrow="Voice">
-                <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-3.5">
+                <div className="flex items-center gap-3 rounded-2xl border border-transparent bg-white/[0.03] p-3.5 shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]">
                   <button
                     onClick={togglePlay}
                     disabled={!hasAudio}
                     aria-label={playing ? "Pause" : "Play voice sample"}
                     className={cn(
-                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                      "border border-accent/40 bg-[hsl(var(--accent)/0.10)] text-accent",
-                      "hover:bg-[hsl(var(--accent)/0.15)] transition-colors",
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-transparent",
+                      "bg-[hsl(var(--accent)/0.16)] text-accent shadow-[0_0_16px_-6px_hsl(216_80%_50%/0.4)]",
+                      "hover:bg-[hsl(var(--accent)/0.22)] transition-colors",
                       "disabled:opacity-40 disabled:cursor-not-allowed",
                     )}
                   >
@@ -1274,7 +1274,7 @@ function DetailPopup({
                     {avatar.tags.map((t) => (
                       <span
                         key={t}
-                        className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
+                        className="inline-flex items-center rounded-full border border-transparent bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
                       >
                         {t}
                       </span>
@@ -1286,7 +1286,7 @@ function DetailPopup({
               {/* Stats */}
               {avatar.use_count != null && avatar.use_count > 0 && (
                 <Section eyebrow="Filmography">
-                  <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] p-4">
+                  <div className="rounded-2xl border border-transparent bg-white/[0.03] p-4 shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]">
                     <div className="flex items-baseline gap-2">
                       <span className="font-display text-3xl font-light text-foreground tabular-nums">
                         {avatar.use_count.toLocaleString()}
@@ -1301,14 +1301,14 @@ function DetailPopup({
             </div>
 
             {/* Footer — Add-to-cast toggle + Cast-in-Studio primary CTA */}
-            <div className="shrink-0 border-t border-border/30 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-4 sm:px-8 lg:px-10 flex flex-col sm:flex-row gap-3">
+            <div className="shrink-0 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-5 sm:px-8 lg:px-10 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onToggleCast}
                 className={cn(
-                  "shrink-0 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-[12.5px] font-mono uppercase tracking-[0.22em] transition-all",
+                  "shrink-0 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-[12.5px] font-mono uppercase tracking-[0.22em] transition-all border border-transparent",
                   inCast
-                    ? "border border-accent bg-[hsl(var(--accent)/0.18)] text-accent hover:bg-[hsl(var(--accent)/0.25)]"
-                    : "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-foreground/85 hover:border-accent/40",
+                    ? "bg-[hsl(var(--accent)/0.2)] text-accent hover:bg-[hsl(var(--accent)/0.28)] shadow-[0_0_18px_-6px_hsl(216_80%_50%/0.45)]"
+                    : "bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]",
                 )}
               >
                 {inCast ? (
@@ -1326,9 +1326,9 @@ function DetailPopup({
               <button
                 onClick={onCast}
                 className={cn(
-                  "group flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-full",
-                  "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-                  "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+                  "group flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-full border border-transparent",
+                  "bg-gradient-to-br from-accent/25 to-accent/10 shadow-[0_0_22px_-6px_hsl(216_80%_50%/0.45)]",
+                  "text-foreground transition-all hover:from-accent/35 hover:to-accent/15",
                 )}
               >
                 <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -1362,7 +1362,7 @@ function Section({
 
 function Pill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border/30 bg-[hsl(var(--foreground)/0.02)] px-2.5 py-1 text-[11px] tracking-tight text-foreground/85 capitalize">
+    <span className="inline-flex items-center rounded-full border border-transparent bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-foreground/85 capitalize">
       {label}
     </span>
   );
@@ -1384,7 +1384,7 @@ function FocusedAvatarCard({ avatar }: { avatar: BackdropAvatar | null }) {
         "md:w-[300px] flex-shrink-0",
         "flex flex-col justify-end",
         "rounded-2xl px-5 py-6 md:py-8",
-        "border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl",
+        "border border-transparent bg-white/[0.03] backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(220_40%_2%/0.8)]",
       )}
       aria-live="polite"
     >
@@ -1437,7 +1437,7 @@ function GridSkeleton() {
       {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] overflow-hidden"
+          className="rounded-2xl border border-transparent bg-white/[0.03] overflow-hidden shadow-[0_14px_40px_-26px_hsl(220_40%_2%/0.7)]"
         >
           <div className="aspect-[3/4] w-full bg-[hsl(220_30%_8%)] animate-pulse" />
           <div className="p-3.5 space-y-2">
@@ -1466,9 +1466,9 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <button
         onClick={onReset}
         className={cn(
-          "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
-          "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground",
-          "transition-colors hover:border-accent/60 hover:bg-[hsl(var(--accent)/0.12)]",
+          "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-transparent",
+          "bg-[hsl(var(--accent)/0.14)] text-foreground shadow-[0_0_18px_-6px_hsl(216_80%_50%/0.4)]",
+          "transition-colors hover:bg-[hsl(var(--accent)/0.2)]",
         )}
       >
         <span className="text-[13px]">Reset filters</span>
@@ -1512,10 +1512,10 @@ function CastBar({
       <div
         className={cn(
           "pointer-events-auto w-full max-w-[1100px]",
-          "rounded-2xl border border-white/[0.09]",
+          "rounded-2xl border border-transparent",
           "bg-gradient-to-br from-[hsl(220_30%_6%/0.92)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.97)]",
           "backdrop-blur-2xl",
-          "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85),0_0_0_1px_hsl(var(--accent)/0.10),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
+          "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
           "px-4 py-3 sm:px-5 sm:py-3.5",
           "flex items-center gap-4",
         )}
@@ -1536,9 +1536,6 @@ function CastBar({
           </span>
         </div>
 
-        {/* Vertical hairline (desktop only) */}
-        <div className="hidden sm:block w-px h-12 bg-white/[0.06] shrink-0" />
-
         {/* Thumbnail strip */}
         <ul className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0">
           {cast.map((m) => (
@@ -1546,8 +1543,7 @@ function CastBar({
               <div
                 className={cn(
                   "h-12 w-10 sm:h-14 sm:w-11 overflow-hidden rounded-md",
-                  "border border-white/[0.10] bg-[hsl(220_40%_4%)]",
-                  "ring-1 ring-inset ring-white/[0.04]",
+                  "bg-[hsl(220_40%_4%)] shadow-[0_6px_18px_-8px_hsl(220_40%_2%/0.8)]",
                 )}
               >
                 <OptimizedAvatarImage
@@ -1564,8 +1560,8 @@ function CastBar({
                 aria-label={`Remove ${m.name}`}
                 className={cn(
                   "absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full",
-                  "bg-[hsl(220_30%_4%)] ring-1 ring-inset ring-white/30",
-                  "text-foreground/85 hover:text-foreground hover:ring-accent/60",
+                  "bg-[hsl(220_30%_8%)] shadow-[0_4px_12px_-4px_hsl(220_40%_2%/0.9)]",
+                  "text-foreground/85 hover:text-foreground hover:bg-[hsl(220_30%_12%)]",
                   "inline-flex items-center justify-center transition-colors",
                   "opacity-0 group-hover/cast:opacity-100 focus:opacity-100",
                 )}
@@ -1577,7 +1573,7 @@ function CastBar({
                 className={cn(
                   "hidden sm:block absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap",
                   "px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-[0.22em] text-white",
-                  "bg-[hsl(220_30%_4%)] ring-1 ring-inset ring-white/20",
+                  "bg-[hsl(220_30%_8%)] shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.9)]",
                   "opacity-0 group-hover/cast:opacity-100 transition-opacity pointer-events-none",
                 )}
               >
@@ -1593,9 +1589,9 @@ function CastBar({
             onClick={onClear}
             aria-label="Clear cast"
             className={cn(
-              "inline-flex items-center justify-center h-9 w-9 rounded-full",
-              "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70",
-              "hover:text-foreground hover:border-destructive/40 transition-colors",
+              "inline-flex items-center justify-center h-9 w-9 rounded-full border border-transparent",
+              "bg-white/[0.04] text-muted-foreground/70",
+              "hover:text-foreground hover:bg-[hsl(var(--destructive)/0.18)] transition-colors",
             )}
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -1603,9 +1599,9 @@ function CastBar({
           <button
             onClick={onOpen}
             className={cn(
-              "group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full",
-              "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5 text-foreground",
-              "transition-all hover:border-accent/60 hover:from-accent/25",
+              "group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full border border-transparent",
+              "bg-gradient-to-br from-accent/25 to-accent/10 text-foreground shadow-[0_0_20px_-6px_hsl(216_80%_50%/0.45)]",
+              "transition-all hover:from-accent/35 hover:to-accent/15",
             )}
           >
             <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
@@ -1635,9 +1631,9 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <button
         onClick={onRetry}
         className={cn(
-          "mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full",
-          "border border-border/40 bg-[hsl(var(--foreground)/0.02)] text-foreground",
-          "transition-colors hover:border-accent/40",
+          "mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-transparent",
+          "bg-white/[0.04] text-foreground shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]",
+          "transition-colors hover:bg-white/[0.07]",
         )}
       >
         <Loader2 className="h-4 w-4" strokeWidth={1.5} />

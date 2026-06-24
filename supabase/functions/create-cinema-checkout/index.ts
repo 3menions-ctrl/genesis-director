@@ -35,7 +35,11 @@ Deno.serve(async (req) => {
     const priceId = String(body?.priceId ?? "").trim();
     const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : null;
     const rawEnv = body?.environment;
-    const env: StripeEnv = rawEnv === "sandbox" ? "sandbox" : "live";
+    // AUDIT FIX M-2: only local origins may request sandbox (hosted = always
+    // live), to prevent a "sandbox" request falling back to the live key in prod.
+    const originHeader = req.headers.get("origin") || req.headers.get("referer") || "";
+    const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeader);
+    const env: StripeEnv = (isLocalOrigin && rawEnv === "sandbox") ? "sandbox" : "live";
 
     if (!priceId || !CINEMA_CATALOG[priceId]) {
       return new Response(JSON.stringify({ error: "Invalid Cinema plan" }), {

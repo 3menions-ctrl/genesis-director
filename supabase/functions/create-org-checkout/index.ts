@@ -42,7 +42,11 @@ Deno.serve(async (req) => {
     const orgName = typeof body?.orgName === "string" ? body.orgName.trim() : null;
     const organizationId = typeof body?.organizationId === "string" ? body.organizationId : null;
     const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : null;
-    const env: StripeEnv = body?.environment === "sandbox" ? "sandbox" : "live";
+    // AUDIT FIX M-2: only local origins may request sandbox (hosted = always
+    // live), to prevent a "sandbox" request falling back to the live key in prod.
+    const originHeaderEnv = req.headers.get("origin") || req.headers.get("referer") || "";
+    const isLocalOriginEnv = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeaderEnv);
+    const env: StripeEnv = (isLocalOriginEnv && body?.environment === "sandbox") ? "sandbox" : "live";
 
     const plan = ORG_PLAN_CATALOG[planKey];
     if (!plan) {

@@ -53,11 +53,14 @@ Deno.serve(async (req) => {
     const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : null;
     const rawEnv = body?.environment;
 
-    // Trust the environment the client is running in. The client derives
-    // env from the publishable token prefix (pk_test_ vs pk_live_), so the
-    // server must match — otherwise checkout sessions are created in the
-    // wrong account and the embedded form fails to mount.
-    const env: StripeEnv = rawEnv === "sandbox" ? "sandbox" : "live";
+    // AUDIT FIX M-2: only local development may request sandbox. Previously the
+    // client could pass environment="sandbox" from any origin; when
+    // STRIPE_SANDBOX_SECRET_KEY is unset in prod that silently falls back to the
+    // LIVE key (real charge tagged "sandbox"), and omitting it defaults to live.
+    // Mirror create-credit-checkout: hosted origins are always live.
+    const originHeader = req.headers.get("origin") || req.headers.get("referer") || "";
+    const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeader);
+    const env: StripeEnv = (isLocalOrigin && rawEnv === "sandbox") ? "sandbox" : "live";
 
     if (!priceId || !PLAN_CATALOG[priceId]) {
       return new Response(JSON.stringify({ error: "Invalid plan" }), {

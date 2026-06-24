@@ -218,16 +218,22 @@ export default function Credits() {
             ))}
           </div>
 
-          {/* Business — higher-volume team/agency packs */}
-          <div className="mt-12 border-t border-white/[0.07] pt-10">
-            <div className="mb-1 text-[10px] font-mono uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>For teams &amp; business</div>
-            <p className="text-white/45 text-[12px] mb-2 max-w-2xl">Higher-volume one-time packs for studios and agencies.</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-16 py-8">
-              {CREDIT_PACKAGES.filter((p) => p.tier === 'business').map((pkg) => (
-                <Orb key={pkg.id} name={pkg.name} price={pkg.price} credits={pkg.credits} popular={pkg.popular} busy={buying === pkg.id} disabled={!!buying} onSelect={() => buy(pkg)} ctaLabel="Buy" />
-              ))}
+          {/* Business — higher-volume team/agency packs.
+              AUDIT FIX M-1: account type is mutually exclusive (personal vs
+              business). This personal /credits surface previously rendered the
+              business packs unconditionally; gate them so only business/
+              enterprise accounts ever see them. */}
+          {(profile?.account_type === 'business' || profile?.account_type === 'enterprise') && (
+            <div className="mt-12 border-t border-white/[0.07] pt-10">
+              <div className="mb-1 text-[10px] font-mono uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>For teams &amp; business</div>
+              <p className="text-white/45 text-[12px] mb-2 max-w-2xl">Higher-volume one-time packs for studios and agencies.</p>
+              <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-16 py-8">
+                {CREDIT_PACKAGES.filter((p) => p.tier === 'business').map((pkg) => (
+                  <Orb key={pkg.id} name={pkg.name} price={pkg.price} credits={pkg.credits} popular={pkg.popular} busy={buying === pkg.id} disabled={!!buying} onSelect={() => buy(pkg)} ctaLabel="Buy" />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Subscriptions — recurring monthly plans (Polar) */}

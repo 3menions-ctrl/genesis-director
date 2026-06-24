@@ -95,7 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // column-revoked from `authenticated` (cross-tenant containment), so a
       // direct `select('*')` would now fail; get_my_profile() returns the
       // caller's full row (incl. email) scoped to auth.uid().
-      const ownProfileRpc = supabase.rpc as unknown as (
+      //
+      // MUST .bind(supabase): a *detached* `supabase.rpc` loses its `this` and
+      // throws "Cannot read properties of undefined (reading 'rest')". That
+      // throw is swallowed by the catch below → a fallback profile with
+      // onboarding_completed=false → ProtectedRoute bounces the user to
+      // /onboarding, which navigates back out, forever (the redirect loop).
+      const ownProfileRpc = supabase.rpc.bind(supabase) as unknown as (
         fn: string,
         args?: Record<string, unknown>,
       ) => { maybeSingle: () => Promise<{ data: UserProfile | null; error: { message: string } | null }> };

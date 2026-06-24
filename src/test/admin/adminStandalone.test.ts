@@ -39,8 +39,9 @@ describe("standalone admin — packaging chain", () => {
     const src = read("src/admin/AdminStandalone.tsx");
     expect(src).toMatch(/AdminApp/);
     expect(src).toMatch(/path="\/admin\/\*"/);
-    // Root → /admin so every absolute /admin/... link keeps working.
-    expect(src).toMatch(/Navigate\s+to="\/admin"/);
+    // Every non-admin path → /auth so an unauthenticated user LANDS on sign-in
+    // instead of ping-ponging /admin ↔ / forever (the blank-screen loop).
+    expect(src).toMatch(/Navigate\s+to="\/auth"/);
     // Must provide the contexts admin pages rely on (useAuth at minimum).
     expect(src).toMatch(/AuthProvider/);
     expect(src).toMatch(/QueryClientProvider/);

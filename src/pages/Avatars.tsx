@@ -874,14 +874,8 @@ function GlassFrame({
               className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[hsl(220_30%_4%/0.92)] via-[hsl(220_30%_4%/0.35)] to-transparent"
             />
 
-            {/* Top-right small badges — type + premium */}
+            {/* Top-right small badge — type */}
             <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-              {avatar.is_premium && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.18)] backdrop-blur-md px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)] shadow-[0_4px_14px_-6px_hsl(45_95%_55%/0.5)]">
-                  <Crown className="h-2.5 w-2.5" strokeWidth={1.5} />
-                  Premium
-                </span>
-              )}
               <span
                 className={cn(
                   "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.22em] backdrop-blur-md",
@@ -1163,14 +1157,8 @@ function DetailPopup({
                 }}
               />
 
-              {/* Bottom-anchored badges */}
+              {/* Bottom-anchored badge — type */}
               <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 z-10">
-                {avatar.is_premium && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(45_95%_55%/0.18)] backdrop-blur-md px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(45_95%_75%)] shadow-[0_4px_14px_-6px_hsl(45_95%_55%/0.5)]">
-                    <Crown className="h-3 w-3" strokeWidth={1.5} />
-                    Premium
-                  </span>
-                )}
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.22em] backdrop-blur-md",

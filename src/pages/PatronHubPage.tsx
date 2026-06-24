@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from "framer-motion";
 import {
-  ArrowLeft, Crown, Check, Sparkles, Loader2, Settings, Plus,
+  ArrowLeft, Crown, Check, Loader2, Settings, Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/shell";
@@ -610,29 +610,6 @@ function PatronTierCard({
           style={{ background: `radial-gradient(220px 220px at ${glareX} ${glareY}, hsla(0 0% 100% / 0.28), transparent 60%)` }}
         />
         <div aria-hidden className="absolute inset-0 opacity-[0.06] mix-blend-overlay pointer-events-none" style={{ backgroundImage: GRAIN_URL }} />
-
-        {isPopular && (
-          <div className="absolute top-4 right-4 z-10">
-            <motion.div
-              className="relative inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.20em] text-black overflow-hidden"
-              style={{ background: "linear-gradient(180deg, hsl(45 100% 75%) 0%, hsl(38 95% 55%) 100%)" }}
-              animate={reducedMotion ? undefined : { y: [0, -1.5, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Sparkles className="h-3 w-3" strokeWidth={2} />
-              <span className="relative">Most popular</span>
-              {!reducedMotion && (
-                <motion.span
-                  aria-hidden
-                  className="absolute inset-0"
-                  style={{ background: "linear-gradient(120deg, transparent 30%, hsla(0 0% 100% / 0.55) 50%, transparent 70%)" }}
-                  animate={{ x: ["-100%", "200%"] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: "linear", repeatDelay: 1.6 }}
-                />
-              )}
-            </motion.div>
-          </div>
-        )}
 
         <div className="relative px-7 pt-7 text-center flex-1" style={{ transform: "translateZ(20px)" }}>
           <motion.div

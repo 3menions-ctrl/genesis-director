@@ -1,7 +1,7 @@
 import { useState, useCallback, memo, forwardRef, useRef, useEffect, useMemo } from 'react';
 import { 
   User, Search, Volume2, Play, Check, 
-  Loader2, X, Sparkles, Crown
+  Loader2, X, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
@@ -9,7 +9,6 @@ import { AvatarTemplate, AVATAR_STYLES, AVATAR_GENDERS } from '@/types/avatar-te
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
 import { shuffleAvatars } from '@/lib/utils/shuffleAvatars';
 import {
@@ -264,16 +263,6 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
                   {selectedAvatar?.id === avatar.id && (
                     <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center animate-scale-in">
                       <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-
-                  {/* Premium badge */}
-                  {avatar.is_premium && (
-                    <div className="absolute top-2 left-2">
-                      <Badge className="bg-amber-500/90 text-black text-[10px] px-1.5 py-0.5">
-                        <Crown className="w-3 h-3 mr-0.5" />
-                        PRO
-                      </Badge>
                     </div>
                   )}
 

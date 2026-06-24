@@ -58,11 +58,6 @@ function Orb({ name, price, credits, popular, busy, disabled, onSelect, priceSuf
     : 'h-[clamp(15rem,23vw,18.5rem)] w-[clamp(15rem,23vw,18.5rem)]';
   return (
     <button type="button" onClick={onSelect} disabled={disabled} className="group relative flex flex-col items-center outline-none disabled:opacity-60">
-      {popular && (
-        <span className="absolute -top-2.5 z-30 inline-flex items-center rounded-full px-3.5 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-white" style={{ background: 'hsl(var(--accent) / 0.3)', boxShadow: '0 8px 24px -8px hsl(var(--accent) / 0.9)' }}>
-          Most popular
-        </span>
-      )}
       <div aria-hidden className={cn('pointer-events-none absolute -inset-6 rounded-full blur-3xl transition-opacity duration-500', popular ? 'opacity-80' : 'opacity-40 group-hover:opacity-70')} style={{ background: 'radial-gradient(closest-side, hsl(var(--accent) / 0.42), transparent 70%)' }} />
       <div
         className={cn('relative flex flex-col items-center justify-center rounded-full text-center transition-transform duration-300 group-hover:-translate-y-1.5', size)}

@@ -374,10 +374,6 @@ function ListingCard({ listing, seller, onBuy, buying, isOwn }: { listing: Listi
             <Icon className="w-10 h-10" />
           </div>
         )}
-        <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-md border border-white/[0.10] text-[9px] font-mono uppercase tracking-[0.28em] text-white/85">
-          <Icon className="w-3 h-3" />
-          {prettyType(listing.atom_type)}
-        </div>
         {listing.is_demo && (
           <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-300/15 border border-amber-300/30 text-amber-200 text-[9px] font-mono uppercase tracking-[0.28em]">
             sample

@@ -28,7 +28,6 @@ import {
   Wand2,
   User as UserIcon,
   Loader2,
-  Flame,
   Layers,
   Gift,
   Gauge,
@@ -227,12 +226,6 @@ const CrossoverCard = memo(function CrossoverCard({
         {/* Top badges */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
           <div className="flex flex-wrap gap-1.5">
-            {bp.isFeatured && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/90 text-foreground text-[9px] font-mono uppercase tracking-[0.18em] shadow-[0_8px_20px_-8px_hsla(45,95%,55%,0.8)]">
-                <Flame className="w-2.5 h-2.5" />
-                Featured
-              </span>
-            )}
             {bp.acceptsSubject && (
               <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/30 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                 <UserIcon className="w-2.5 h-2.5" />

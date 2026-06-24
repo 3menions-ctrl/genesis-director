@@ -234,19 +234,7 @@ const EnvironmentCard = memo(function EnvironmentCard({
 
         {/* Top badges */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            {bp.isTrending && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/85 text-foreground text-[9px] font-mono uppercase tracking-[0.18em]">
-                <Sparkles className="w-2.5 h-2.5" />
-                Hot
-              </span>
-            )}
-            {bp.isPopular && !bp.isTrending && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/80 text-foreground text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
-                Popular
-              </span>
-            )}
-          </div>
+          <div className="flex flex-wrap gap-1.5" />
 
           {/* Favorite + icon */}
           <div className="flex items-center gap-1.5">

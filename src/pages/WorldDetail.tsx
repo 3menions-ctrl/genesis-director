@@ -166,9 +166,6 @@ export default function WorldDetail() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     <div className="absolute bottom-6 left-6 right-6">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.32em] mb-1.5" style={{ color: `hsl(${accent})` }}>
-                        Featured tonight
-                      </div>
                       <div className="text-[20px] text-white font-light truncate">{featured.title}</div>
                       <div className="mt-2 text-[10px] text-white/55 font-mono uppercase tracking-[0.22em]">
                         by {featured.creator_name ?? "Anonymous"}
@@ -245,11 +242,6 @@ function Rail({ reels, accent }: { reels: Reel[]; accent: string }) {
             {r.thumbnail_url ? (
               <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover" />
             ) : null}
-            {r.is_featured && (
-              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.28em] bg-white text-black">
-                featured
-              </div>
-            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-white/75">
               <span className="inline-flex items-center gap-1"><Eye className="w-3 h-3" />{r.play_count.toLocaleString()}</span>

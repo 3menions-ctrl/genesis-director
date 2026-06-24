@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 // STABILITY: Removed framer-motion AnimatePresence which caused ref-injection crashes
 // Using CSS animations instead for progressive loading
-import { Crown, Star, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Crown, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -272,14 +272,7 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
         
         {/* Gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
-        
-        {/* Premium star - simplified, no staggered animation */}
-        <div className="absolute top-3 right-3">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
-            <Star className="w-3.5 h-3.5 text-white fill-white" />
-          </div>
-        </div>
-        
+
         {/* Info panel */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className={cn(

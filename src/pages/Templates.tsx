@@ -23,7 +23,6 @@ import {
   Play,
   Clock,
   Users,
-  Sparkles,
   Film,
   Megaphone,
   BookOpen,
@@ -31,7 +30,6 @@ import {
   Briefcase,
   TrendingUp,
   Layers,
-  Zap,
   Cpu,
   Wand2,
   ArrowRight,
@@ -222,30 +220,7 @@ const TemplateCard = memo(function TemplateCard({
 
         {/* ── TOP BADGES ────────────────────────────────────── */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10 gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            {bp.isBreakout && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-[hsl(215,100%,60%)] text-foreground text-[9px] font-mono uppercase tracking-[0.18em] shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)]">
-                <Zap className="w-2.5 h-2.5" />
-                4th Wall
-              </span>
-            )}
-            {bp.isTrending && !bp.isBreakout && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-rose-500/30 text-rose-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
-                <Sparkles className="w-2.5 h-2.5" />
-                Hot
-              </span>
-            )}
-            {bp.isPro && !bp.isBreakout && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/30 text-amber-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
-                Pro
-              </span>
-            )}
-            {bp.isFeatured && !bp.isTrending && !bp.isBreakout && !bp.isPro && (
-              <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-white/[0.14] text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
-                Featured
-              </span>
-            )}
-          </div>
+          <div className="flex flex-wrap gap-1.5" />
 
           {/* Aspect chip — top right */}
           <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/60 text-foreground/85 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">

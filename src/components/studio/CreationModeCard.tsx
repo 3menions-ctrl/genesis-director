@@ -1,5 +1,5 @@
 import { memo, forwardRef } from 'react';
-import { LucideIcon, Check, Sparkles, TrendingUp } from 'lucide-react';
+import { LucideIcon, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Unified Pro-Dark theme — cinematic blue (Apple-Clean / Tesla-borderless)
@@ -29,8 +29,6 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
   description,
   icon: Icon,
   isSelected,
-  isPopular,
-  isNew,
   onClick,
   delay = 0,
 }, ref) {
@@ -88,14 +86,6 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
           }}
         >
           <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.2} />
-        </div>
-      )}
-
-      {/* Badge */}
-      {(isPopular || isNew) && !isSelected && (
-        <div className="absolute top-4 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-light uppercase tracking-[0.18em] flex items-center gap-1 bg-glass-hover text-white/60">
-          {isNew ? <Sparkles className="w-2.5 h-2.5" strokeWidth={1.5} /> : <TrendingUp className="w-2.5 h-2.5" strokeWidth={1.5} />}
-          {isNew ? 'New' : 'Popular'}
         </div>
       )}
 

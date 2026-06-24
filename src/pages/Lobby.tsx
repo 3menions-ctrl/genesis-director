@@ -15,7 +15,9 @@
  *
  * Data is real: channel_worlds + published_reels (decorated with creator
  * profiles + world accents), the daily prompt + challenges RPCs, and editor
- * presence. Falls back to demos so the page is never empty.
+ * presence. Every engagement figure (plays/likes/remixes, live counts) is
+ * sourced from the database — there is NO fabricated/demo data. When there are
+ * no published reels yet, the page renders a graceful empty state.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -68,15 +70,6 @@ const WORLDS_FALLBACK: ChannelWorld[] = [
   { id: "5", slug: "music",  name: "Music videos", description: null, accent_hsl: "280 70% 65%",  glyph: "▲" },
   { id: "6", slug: "experi", name: "Experimental", description: null, accent_hsl: "0 0% 70%",     glyph: "✦" },
 ];
-const U = (id: string, w: number) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
-const DEMO_REELS: FeedRow[] = [
-  { id: "demo-1", title: "Stillwater · the cassette tape", synopsis: "A rain-soaked detective piece — one apartment, three acts, a single tape hiss for a score.", video_url: "", thumbnail_url: U("1485846234645-a62644f84728", 1400), duration_sec: 47, world_slug: "noir",   tags: [], play_count: 2841, like_count: 412, remix_count: 18, is_featured: true,  created_at: new Date().toISOString(),                  creator_id: "demo-1", creator_name: "Vela Reyes",  creator_avatar: null, world_name: "Noir",         world_accent: "38 80% 60%",   world_glyph: "◐" },
-  { id: "demo-2", title: "Ground control to Earl Grey",    synopsis: null, video_url: "", thumbnail_url: U("1462331940025-496dfbfc7564", 1000), duration_sec: 32, world_slug: "scifi",  tags: [], play_count: 1823, like_count: 276, remix_count: 11, is_featured: false, created_at: new Date(Date.now() - 1 * 864e5).toISOString(), creator_id: "demo-2", creator_name: "Iko Marvell", creator_avatar: null, world_name: "Sci-Fi",       world_accent: "213 100% 60%", world_glyph: "◊" },
-  { id: "demo-3", title: "Hot soup for one",               synopsis: null, video_url: "", thumbnail_url: U("1547573854-74d2a71d0826", 1000), duration_sec: 24, world_slug: "comedy", tags: [], play_count: 4129, like_count: 893, remix_count: 42, is_featured: false, created_at: new Date(Date.now() - 2 * 864e5).toISOString(), creator_id: "demo-3", creator_name: "Theo Park",   creator_avatar: null, world_name: "Comedy",       world_accent: "14 90% 60%",   world_glyph: "★" },
-  { id: "demo-4", title: "The librarian who paints",       synopsis: null, video_url: "", thumbnail_url: U("1481627834876-b7833e8f5570", 1000), duration_sec: 65, world_slug: "docu",   tags: [], play_count: 1208, like_count: 198, remix_count: 6,  is_featured: false, created_at: new Date(Date.now() - 3 * 864e5).toISOString(), creator_id: "demo-4", creator_name: "Aiyana Wells",creator_avatar: null, world_name: "Documentary",  world_accent: "160 60% 50%",  world_glyph: "◯" },
-  { id: "demo-5", title: "Lemon, neon, three breaths",     synopsis: null, video_url: "", thumbnail_url: U("1571330735066-03aaa9429d89", 1000), duration_sec: 38, world_slug: "music",  tags: [], play_count: 3245, like_count: 620, remix_count: 24, is_featured: false, created_at: new Date(Date.now() - 1 * 864e5).toISOString(), creator_id: "demo-5", creator_name: "Cassia Roe",  creator_avatar: null, world_name: "Music videos", world_accent: "280 70% 65%",  world_glyph: "▲" },
-  { id: "demo-6", title: "Glass moth — first sequence",    synopsis: null, video_url: "", thumbnail_url: U("1516280440614-37939bbacd81", 1000), duration_sec: 28, world_slug: "experi", tags: [], play_count: 967,  like_count: 134, remix_count: 4,  is_featured: false, created_at: new Date(Date.now() - 4 * 864e5).toISOString(), creator_id: "demo-6", creator_name: "Pax Wren",    creator_avatar: null, world_name: "Experimental", world_accent: "0 0% 70%",     world_glyph: "✦" },
-];
 const TECHNIQUES: Technique[] = [
   { id: "anamorphic-bokeh", title: "Anamorphic Bokeh", oneLiner: "Oval out-of-focus highlights and horizontal flares — the widescreen breath of a Villeneuve frame.", seed: "A close-up scene with shallow depth of field. Use anamorphic 2.39:1 framing with oval bokeh in the deep background. Practical neon highlights bloom into horizontal blue lens flares." },
   { id: "dolly-zoom", title: "Dolly Zoom", oneLiner: "The background collapses while the face holds — a panic the camera invented.", seed: "Dolly-zoom shot: the camera pushes in on the subject while zooming out, so the subject stays the same size but the background warps and collapses. Hold for 4 seconds of dread." },
@@ -85,9 +78,6 @@ const TECHNIQUES: Technique[] = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function driftedCount(base: number, amplitude: number, periodMs: number, t = Date.now()): number {
-  return Math.max(1, Math.round(base + amplitude * Math.sin((t / periodMs) * Math.PI * 2)));
-}
 function compact(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k`;
@@ -111,35 +101,23 @@ export default function Lobby() {
   });
   usePageTone(TONE_PRESETS.lobby);
 
-  // ── Live presence (drifts) ──
-  const [presence, setPresence] = useState(() => ({
-    watching: driftedCount(84, 22, 1000 * 60 * 3),
-    rendering: driftedCount(12, 6, 1000 * 60 * 2),
-  }));
-  useEffect(() => {
-    const t = setInterval(() => setPresence({
-      watching: driftedCount(84, 22, 1000 * 60 * 3),
-      rendering: driftedCount(12, 6, 1000 * 60 * 2),
-    }), 5000);
-    return () => clearInterval(t);
-  }, []);
-  const [nowEditing, setNowEditing] = useState(3);
+  // ── Live presence — real editor_presence count only (null until known) ──
+  const [nowEditing, setNowEditing] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const { count } = await supabase.from("editor_presence" as never).select("user_id", { count: "exact", head: true });
-        if (!cancelled && typeof count === "number" && count > 0) { setNowEditing(count); return; }
-      } catch { /* fallback */ }
-      if (!cancelled) setNowEditing(driftedCount(7, 4, 1000 * 60 * 2));
+        if (!cancelled && typeof count === "number") setNowEditing(count);
+      } catch { /* no presence data — leave hidden */ }
     })();
     return () => { cancelled = true; };
   }, []);
 
   // ── Worlds + reels ──
   const [worlds, setWorlds] = useState<ChannelWorld[]>(WORLDS_FALLBACK);
-  const [feed, setFeed] = useState<FeedRow[]>(DEMO_REELS);
-  const [usingDemo, setUsingDemo] = useState(true);
+  const [feed, setFeed] = useState<FeedRow[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
   const [activeWorld, setActiveWorld] = useState<string>("all");
   const [prompt, setPrompt] = useState<DailyPrompt | null>(null);
   const [challenges, setChallenges] = useState<DailyChallengeRow[]>([]);
@@ -161,7 +139,7 @@ export default function Lobby() {
         if (worldsRes.data && (worldsRes.data as ChannelWorld[]).length > 0) setWorlds(worldsRes.data as ChannelWorld[]);
 
         const reels = (reelsRes.data ?? []) as Array<Omit<FeedRow, "creator_name" | "creator_avatar" | "world_name" | "world_accent" | "world_glyph">>;
-        if (reels.length === 0) return;
+        if (reels.length === 0) { setFeedLoading(false); return; }
 
         const creatorIds = Array.from(new Set(reels.map((r) => r.creator_id))).filter(Boolean);
         const profilesById = new Map<string, { display_name: string | null; avatar_url: string | null }>();
@@ -183,10 +161,11 @@ export default function Lobby() {
         });
         if (cancelled) return;
         setFeed(decorated);
-        setUsingDemo(false);
+        setFeedLoading(false);
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.warn("[Lobby] feed load failed, using demos", e);
+        console.warn("[Lobby] feed load failed", e);
+        if (!cancelled) setFeedLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -217,14 +196,13 @@ export default function Lobby() {
 
   // ── Theater ──
   const openTheater = useCallback((r: FeedRow) => {
-    if (usingDemo) return; // demos have no real video
     setTheaterReel({
       id: r.id, title: r.title, video_url: r.video_url, thumbnail_url: r.thumbnail_url,
       play_count: r.play_count, like_count: r.like_count, remix_count: r.remix_count,
       creator_id: r.creator_id, creator_name: r.creator_name, creator_avatar: r.creator_avatar,
       world_name: r.world_name, world_accent: r.world_accent, world_glyph: r.world_glyph,
     });
-  }, [usingDemo]);
+  }, []);
 
   // ── Derived ──
   const filtered = useMemo(
@@ -284,8 +262,9 @@ export default function Lobby() {
     navigate(user ? dest : `/auth?next=${encodeURIComponent(dest)}`);
   }, [user, navigate]);
 
-  const filmsToday = usingDemo ? feed.length : feed.length;
+  const filmsToday = feed.length;
   const remixesToday = useMemo(() => feed.reduce((a, r) => a + r.remix_count, 0), [feed]);
+  const isEmpty = !feedLoading && feed.length === 0;
 
   return (
     <FoundationShell>
@@ -318,14 +297,8 @@ export default function Lobby() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
                 >
-                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 backdrop-blur-sm"
-                    style={{ background: heroReel.world_accent ? `hsl(${heroReel.world_accent} / .12)` : "hsl(var(--foreground) / 0.05)" }}>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={accentStyle(heroReel.world_accent)}>
-                      {heroReel.world_glyph} {heroReel.world_name ?? "Premiere"} · premiere of the night
-                    </span>
-                  </div>
                   {/* No oversized headline — a restrained title + synopsis carry it. */}
-                  <h2 className="mt-3 max-w-2xl font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[26px]">
+                  <h2 className="max-w-2xl font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[26px]">
                     {heroReel.title}
                   </h2>
                   {heroReel.synopsis && (
@@ -381,29 +354,38 @@ export default function Lobby() {
         {/* ── BODY: rails + sidebar ─────────────────────────────────── */}
         <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-x-11 gap-y-0 px-4 pb-28 pt-9 sm:px-8 lg:grid-cols-[1fr_336px] lg:px-12">
           <main className="min-w-0">
-            <Rail title="Featured tonight" sub="hand-picked premieres" onSeeAll={() => navigate("/search")}>
-              {featuredRail.map((r) => <VideoCard key={r.id} reel={r} demo={usingDemo} onOpen={openTheater} reduced={!!reduced} />)}
-            </Rail>
+            {isEmpty ? (
+              <EmptyMarquee onCreate={() => navigate(user ? "/studio" : "/auth?next=/studio")} />
+            ) : feed.length === 0 ? (
+              null /* feed still loading — no rails, no fabricated cards */
+            ) : (
+              <>
+                <Rail title="Featured tonight" sub="hand-picked premieres" onSeeAll={() => navigate("/search")}>
+                  {featuredRail.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
+                </Rail>
 
-            {spotlightWorld && spotlightRail.length > 0 && (
-              <Rail title={`Wander ${spotlightWorld.name}`} sub={`${spotlightWorld.glyph ?? ""} ${spotlightRail.length} films`}
-                onSeeAll={() => setActiveWorld(spotlightWorld.slug)} seeAllLabel="Enter world →">
-                {spotlightRail.map((r) => <VideoCard key={r.id} reel={r} demo={usingDemo} onOpen={openTheater} reduced={!!reduced} />)}
-              </Rail>
+                {spotlightWorld && spotlightRail.length > 0 && (
+                  <Rail title={`Wander ${spotlightWorld.name}`} sub={`${spotlightWorld.glyph ?? ""} ${spotlightRail.length} films`}
+                    onSeeAll={() => setActiveWorld(spotlightWorld.slug)} seeAllLabel="Enter world →">
+                    {spotlightRail.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
+                  </Rail>
+                )}
+
+                <Rail title="New this week" sub={`${feed.length} fresh films`} onSeeAll={() => navigate("/search")} last>
+                  {newThisWeek.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
+                </Rail>
+              </>
             )}
-
-            <Rail title="New this week" sub={`${feed.length} fresh films`} onSeeAll={() => navigate("/search")} last>
-              {newThisWeek.map((r) => <VideoCard key={r.id} reel={r} demo={usingDemo} onOpen={openTheater} reduced={!!reduced} />)}
-            </Rail>
           </main>
 
           {/* ── SIDEBAR INFO CENTER ─────────────────────────────────── */}
           <aside className="mt-2 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
             <Panel title="The Lobby · live" badge={<span className="text-[hsl(160_60%_50%)]">● now</span>}>
-              <Stat label="Watching now" value={compact(presence.watching)} />
               <Stat label="Films today" value={String(filmsToday)} />
               <Stat label="Remixes today" value={compact(remixesToday)} />
-              <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" />
+              {nowEditing !== null && (
+                <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" />
+              )}
             </Panel>
 
             <Panel
@@ -429,7 +411,7 @@ export default function Lobby() {
 
             <Panel title="This week's directors">
               {directors.map((d, i) => (
-                <button key={d.id} type="button" onClick={() => navigate(usingDemo ? "/lobby" : `/u/${d.id}`)}
+                <button key={d.id} type="button" onClick={() => navigate(`/u/${d.id}`)}
                   className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.03]">
                   <span className="w-5 shrink-0 font-display text-[20px] font-semibold text-muted-foreground/50">{i + 1}</span>
                   <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[#2a2e3a] to-[#15171f]">
@@ -509,7 +491,7 @@ function Rail({ title, sub, onSeeAll, seeAllLabel = "See all →", last, childre
   );
 }
 
-function VideoCard({ reel, demo, onOpen, reduced }: { reel: FeedRow; demo: boolean; onOpen: (r: FeedRow) => void; reduced: boolean }) {
+function VideoCard({ reel, onOpen, reduced }: { reel: FeedRow; onOpen: (r: FeedRow) => void; reduced: boolean }) {
   // The frame adopts the media's OWN aspect ratio (read from the thumbnail).
   // Until it loads we hold a 16:9 placeholder so the masonry doesn't jump.
   const [ratio, setRatio] = useState<number | null>(null);
@@ -518,7 +500,7 @@ function VideoCard({ reel, demo, onOpen, reduced }: { reel: FeedRow; demo: boole
       <button
         type="button"
         onClick={() => onOpen(reel)}
-        title={demo ? "Sample film" : reel.title}
+        title={reel.title}
         /* Borderless, floating frame sized to the video's true ratio — never
            cropped, never letterboxed. The title card lives INSIDE the frame and
            only fades in on hover, so the grid reads as a clean wall of imagery. */
@@ -578,6 +560,28 @@ function Stat({ label, value, valueClass }: { label: string; value: string; valu
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[13px] text-muted-foreground">{label}</span>
       <span className={cn("font-display text-[16px] font-semibold text-foreground", valueClass)}>{value}</span>
+    </div>
+  );
+}
+
+// Empty state — shown when no published reels exist yet. No fabricated films,
+// no invented counts; just an invitation to make the first one.
+function EmptyMarquee({ onCreate }: { onCreate: () => void }) {
+  return (
+    <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-3xl bg-white/[0.02] px-6 py-20 text-center">
+      <span className="grid h-14 w-14 place-items-center rounded-full bg-white/[0.05] text-foreground/70">
+        <Sparkles className="h-6 w-6" />
+      </span>
+      <h3 className="mt-5 font-display text-[22px] font-semibold tracking-tight text-foreground">
+        The marquee is dark — for now
+      </h3>
+      <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+        No films have premiered yet. Be the first to light up the lobby — direct a short and it lands right here.
+      </p>
+      <button type="button" onClick={onCreate}
+        className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
+        <Plus className="h-4 w-4" /> Direct the first film
+      </button>
     </div>
   );
 }

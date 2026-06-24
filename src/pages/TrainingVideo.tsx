@@ -1120,9 +1120,6 @@ function VoiceCard({
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-baseline gap-2">
           <h4 className="text-[16px] font-display italic font-medium text-foreground/95">{voice.name}</h4>
-          {voice.isFeatured && (
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-amber-200">★</span>
-          )}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onPreview(); }}
@@ -1492,9 +1489,6 @@ function SceneRail({
 
                 {/* Top badges */}
                 <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-                  {s.isFeatured && (
-                    <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-amber-500/85 text-foreground text-[9px] font-mono uppercase tracking-[0.18em]">Featured</span>
-                  )}
                   {highlightPersona && s.voicePairings.includes(highlightPersona) && (
                     <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/25 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                       <Star className="w-2.5 h-2.5" />Pairs

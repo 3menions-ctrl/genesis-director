@@ -1,10 +1,10 @@
 /**
  * TimelineTemplatesDrawer — the one-click "50 templates" picker.
  *
- * A full modal of pre-built LOOK + PACING + AUDIO recipes. Pick one and the
- * timeline is instantly styled (or laid out, if empty) and scored — via
- * applyTimelineTemplate(), which composes the existing store mutators so
- * undo/redo and the bake see a normal edit.
+ * A premium, centred modal gallery of pre-built LOOK + PACING + AUDIO recipes.
+ * Pick one and the timeline is instantly styled (or laid out, if empty) and
+ * scored — via applyTimelineTemplate(), which composes the existing store
+ * mutators so undo/redo and the bake see a normal edit.
  *
  * Mobile-first templates (9:16 / 4:5) are surfaced first on phones.
  */
@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Sparkles, Music2, Check } from "lucide-react";
+import { Sparkles, Music2, Check, Clapperboard } from "lucide-react";
 import {
   applyTimelineTemplate,
   CATEGORY_LABELS,
@@ -39,9 +39,24 @@ function isPhone(): boolean {
   return window.matchMedia?.("(max-width: 640px)")?.matches ?? false;
 }
 
+/** A framed preview of the template's canvas orientation, sized from its
+ *  aspect ratio so landscape / portrait / square all read at a glance. */
+function aspectFrameStyle(aspect: string): React.CSSProperties {
+  const [w, h] = aspect.split(/[:x/]/).map((n) => Number(n) || 1);
+  const ratio = w / h;
+  // Landscape & square hang off a fixed height; portrait off a taller one.
+  return { aspectRatio: `${w} / ${h}`, height: ratio >= 1 ? "44%" : "70%" };
+}
+
 export function TimelineTemplatesDrawer({ open, onClose }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [appliedId, setAppliedId] = useState<string | null>(null);
+
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { all: TIMELINE_TEMPLATES.length };
+    for (const t of TIMELINE_TEMPLATES) m[t.category] = (m[t.category] ?? 0) + 1;
+    return m;
+  }, []);
 
   const templates = useMemo(() => {
     const list = filter === "all"
@@ -76,66 +91,110 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      {/* flex column capped to the viewport: header + filter stay fixed, the
-          grid is the only scroll region. Overrides the shared dialog's default
-          `grid` display so the modal can never outgrow the screen, and keeps
-          the standard translate-based centering. */}
-      <DialogContent className="flex max-h-[85vh] w-[96vw] max-w-5xl flex-col overflow-hidden rounded-[24px] border-0 bg-[#0a0b10]/95 p-0 backdrop-blur-2xl">
-        <DialogHeader className="shrink-0 border-b border-white/[0.06] px-6 py-4 pr-14">
-          <DialogTitle className="flex items-center gap-2.5 text-[18px] font-semibold text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-inset ring-white/10">
-              <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.7} />
+      {/* Centred glass modal capped to the viewport: header + filter stay fixed,
+          the gallery is the only scroll region. Flex column overrides the shared
+          dialog's default `grid` so the modal can never outgrow the screen. */}
+      <DialogContent className="flex max-h-[88vh] w-[96vw] max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#070810]/95 p-0 backdrop-blur-2xl">
+        {/* Aurora bloom — soft coloured light behind the header for depth. */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-56 overflow-hidden">
+          <span className="absolute -left-16 -top-24 h-72 w-72 rounded-full opacity-60 blur-[90px]" style={{ background: "radial-gradient(closest-side, rgba(120,140,255,0.30), transparent 70%)" }} />
+          <span className="absolute right-0 -top-20 h-64 w-64 rounded-full opacity-50 blur-[90px]" style={{ background: "radial-gradient(closest-side, rgba(255,150,210,0.22), transparent 70%)" }} />
+          <span className="absolute left-1/2 -top-16 h-56 w-72 -translate-x-1/2 rounded-full opacity-40 blur-[90px]" style={{ background: "radial-gradient(closest-side, rgba(140,230,255,0.20), transparent 70%)" }} />
+        </div>
+
+        <DialogHeader className="relative z-10 shrink-0 px-7 pb-4 pt-7 pr-14 text-left">
+          <DialogTitle className="flex items-baseline gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-2xl bg-white/[0.06] ring-1 ring-inset ring-white/15">
+              <Sparkles className="h-4 w-4 text-white" strokeWidth={1.7} />
             </span>
-            One-click templates
-            <span className="ml-1 font-mono text-[11px] font-normal uppercase tracking-[0.16em] text-white/40">
-              {TIMELINE_TEMPLATES.length} looks · video + audio
+            <span className="font-display text-[26px] font-semibold leading-none tracking-tight text-white">
+              Templates
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
+              {TIMELINE_TEMPLATES.length} one-click looks · video + audio
             </span>
           </DialogTitle>
+          <p className="mt-2 max-w-2xl text-[13px] font-light leading-relaxed text-white/45">
+            A complete look, pacing and score in one click. Pick a recipe — your timeline is instantly graded, transitioned and scored. Undo reverts everything.
+          </p>
         </DialogHeader>
 
         {/* Category filter strip */}
-        <div className="flex shrink-0 flex-wrap gap-1.5 px-6 py-3">
-          <Chip active={filter === "all"} onClick={() => setFilter("all")} label="All" />
+        <div className="relative z-10 flex shrink-0 flex-wrap gap-1.5 px-7 pb-4">
+          <Chip active={filter === "all"} onClick={() => setFilter("all")} label="All" count={counts.all} />
           {CATEGORY_ORDER.map((c) => (
-            <Chip key={c} active={filter === c} onClick={() => setFilter(c)} label={CATEGORY_LABELS[c]} />
+            <Chip key={c} active={filter === c} onClick={() => setFilter(c)} label={CATEGORY_LABELS[c]} count={counts[c] ?? 0} />
           ))}
         </div>
 
-        {/* Grid — the only scroll region; flex-1 + min-h-0 lets it fill the
+        {/* Hairline above the scroll region. */}
+        <div className="relative z-10 mx-7 h-px shrink-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+        {/* Gallery — the only scroll region; flex-1 + min-h-0 lets it fill the
             remaining height and scroll instead of pushing the modal off-screen. */}
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto px-6 pb-6 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="relative z-10 grid min-h-0 flex-1 grid-cols-2 gap-3.5 overflow-y-auto px-7 py-6 sm:grid-cols-3 lg:grid-cols-4">
           {templates.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => apply(t)}
-              className="group relative flex flex-col overflow-hidden rounded-2xl text-left ring-1 ring-inset ring-white/[0.08] transition-transform duration-200 hover:-translate-y-0.5 hover:ring-accent/40"
+              className="group relative flex flex-col rounded-2xl bg-white/[0.025] text-left ring-1 ring-inset ring-white/[0.07] transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white/[0.045] hover:ring-white/20 hover:shadow-[0_28px_64px_-28px_rgba(0,0,0,0.95)]"
             >
-              {/* gradient tile */}
+              {/* Hero — the template's signature gradient + framed canvas. A
+                  FIXED pixel height (not aspect/%): percentage & aspect-ratio
+                  heights don't contribute to CSS-grid intrinsic row sizing, so a
+                  fixed height is what keeps every card from collapsing. */}
               <div
-                className="relative aspect-video w-full"
+                className="relative h-[150px] w-full shrink-0 overflow-hidden rounded-t-2xl"
                 style={{ background: `linear-gradient(135deg, ${t.gradient[0]}, ${t.gradient[1]})` }}
               >
-                <span className="absolute left-2 top-2 rounded-full bg-black/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white/85 backdrop-blur-sm">
-                  {t.aspectRatio}
+                {/* top-left sheen + bottom vignette for depth */}
+                <span aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(80% 60% at 22% 12%, rgba(255,255,255,0.35), transparent 60%)" }} />
+                <span aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(130% 130% at 50% 0%, transparent 42%, rgba(0,0,0,0.5))" }} />
+
+                {/* canvas-orientation frame */}
+                <span aria-hidden className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className="rounded-md ring-1 ring-inset ring-white/35 transition-transform duration-300 group-hover:scale-105"
+                    style={{ ...aspectFrameStyle(t.aspectRatio), background: "rgba(255,255,255,0.06)", boxShadow: "0 8px 30px -10px rgba(0,0,0,0.6)" }}
+                  />
                 </span>
-                <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white/85 backdrop-blur-sm">
+
+                {/* chips */}
+                <span className="absolute left-2.5 top-2.5 rounded-full bg-black/35 px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-white/90 backdrop-blur-sm">
                   {t.vibe}
                 </span>
+                <span className="absolute right-2.5 top-2.5 rounded-full bg-black/35 px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-white/90 backdrop-blur-sm">
+                  {t.aspectRatio}
+                </span>
+
+                {/* hover apply affordance */}
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-3 items-center justify-center pb-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#06070a] shadow-lg">
+                    <Clapperboard className="h-3 w-3" strokeWidth={2.2} /> Apply
+                  </span>
+                </span>
+
+                {/* applied confirmation */}
                 {appliedId === t.id && (
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/55">
-                    <Check className="h-8 w-8 text-emerald-400" strokeWidth={2.4} />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/15 ring-1 ring-inset ring-emerald-400/50">
+                      <Check className="h-6 w-6 text-emerald-300" strokeWidth={2.6} />
+                    </span>
                   </span>
                 )}
               </div>
-              {/* meta */}
-              <div className="flex flex-1 flex-col gap-1 bg-white/[0.02] p-3">
-                <div className="text-[13px] font-semibold leading-tight text-white">{t.name}</div>
-                <div className="line-clamp-2 text-[11px] leading-snug text-white/50">{t.description}</div>
-                <div className="mt-auto flex items-center gap-2 pt-1.5 font-mono text-[9px] uppercase tracking-wider text-white/40">
+
+              {/* Meta */}
+              <div className="flex flex-1 flex-col gap-1.5 p-3.5">
+                <div className="font-display text-[15px] font-semibold leading-tight text-white">{t.name}</div>
+                <div className="line-clamp-2 text-[11.5px] font-light leading-snug text-white/45">{t.description}</div>
+                <div className="mt-auto flex items-center gap-2.5 pt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white/40">
                   <span>{t.slots.length} shots</span>
-                  <span className="flex items-center gap-1">
-                    <Music2 className="h-2.5 w-2.5" strokeWidth={2} /> {MUSIC_BEDS[t.music].title}
+                  <span aria-hidden className="h-2.5 w-px bg-white/15" />
+                  <span className="flex min-w-0 items-center gap-1">
+                    <Music2 className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
+                    <span className="truncate">{MUSIC_BEDS[t.music].title}</span>
                   </span>
                 </div>
               </div>
@@ -147,19 +206,20 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
   );
 }
 
-function Chip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function Chip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1 text-[12px] font-medium transition-colors",
+        "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors",
         active
-          ? "bg-accent/16 text-white ring-1 ring-inset ring-accent/40"
-          : "bg-white/[0.04] text-white/55 ring-1 ring-inset ring-white/[0.06] hover:text-white/85",
+          ? "bg-white text-[#06070a] ring-1 ring-inset ring-white"
+          : "bg-white/[0.04] text-white/55 ring-1 ring-inset ring-white/[0.07] hover:text-white/90 hover:bg-white/[0.07]",
       )}
     >
       {label}
+      <span className={cn("font-mono text-[10px] tabular-nums", active ? "text-[#06070a]/55" : "text-white/30")}>{count}</span>
     </button>
   );
 }

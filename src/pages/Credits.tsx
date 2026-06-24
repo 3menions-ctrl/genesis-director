@@ -157,7 +157,11 @@ export default function Credits() {
   // credits_balance display cache, which can overstate while renders hold
   // credits or before reconciliation. Fall back to the cache only until the
   // credit state loads.
-  const balance = credits.available || (profile?.credits_balance ?? 0);
+  // Show the authoritative available (ledger − holds) once loaded — including a
+  // legitimate 0 (spent down / fully held). Fall back to the profile cache only
+  // while the credit state is still loading. (Was `||`, which also fell back on
+  // a real 0 and re-showed the too-high cache.)
+  const balance = credits.loading ? (profile?.credits_balance ?? 0) : credits.available;
   const used = profile?.total_credits_used ?? 0;
   const purchased = profile?.total_credits_purchased ?? 0;
 

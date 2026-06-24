@@ -123,7 +123,7 @@ export default function PeopleOverview() {
             ]}
             rows={users.map((u) => {
               const name = str(u, "display_name", "full_name", "username") || (str(u, "email").split("@")[0]) || "User";
-              const tier = str(u, "subscription_tier", "tier", "plan") || "free";
+              const tier = str(u, "account_tier", "subscription_tier", "tier") || "free";
               const suspended = !!(u["suspended_at"] || u["banned_at"]) || str(u, "status") === "suspended";
               return {
                 _key: str(u, "id"),

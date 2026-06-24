@@ -20,7 +20,7 @@
  * independently — one failure can't blank the page.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from "framer-motion";
 import {
   Film,
@@ -256,6 +256,7 @@ export default function ProfileDashboard() {
   //     RPC to a UUID
   // When no param, we're on the owner's own /account or /profile.
   const { id: routeParam } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [resolvedRouteId, setResolvedRouteId] = useState<string | null>(routeParam ?? null);
   const [resolving, setResolving] = useState<boolean>(false);
   useEffect(() => {

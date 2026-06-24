@@ -74,3 +74,47 @@ These predate the design work. None block launch on their own, but they're real.
 - **Business module logic** (org/seat/credit math, invite/approval state machines, switchOrg refetch races).
 - **Admin module logic + RPC/edge call-site wiring** (arg/shape mismatches, aggregation/finance math, `as never` casts hiding drift).
 These three sweeps were launched but the agents hit the shared session limit (resets 6:30pm). They should be re-run to make this audit complete.
+
+---
+
+# Part 2 — Module sweeps (the 3 that completed on re-run)
+
+## C. Regular-user + editor/studio
+**FIXED:**
+- **RU-2 — `orchestrator.ts` (High):** every generation timestamp was `new Date(0)` (epoch 1970) — `queuedAt/preparingAt/.../completedAt` + every StatusEvent `at`, ~8 sites. Broke all elapsed-time UI and the status-bus retry guard (which compares `at`). → `new Date()`.
+- **RU-3 — `ProfileDashboard.tsx:570` (High):** `navigate("/auth")` with no `useNavigate` import → `ReferenceError` when a logged-out visitor clicks Follow. → added `useNavigate`.
+- **RU-5 — `Credits.tsx:160` (Medium):** my own L-4 fix used `||`, so a *legitimate* `available === 0` (spent down / fully held) fell back to the too-high cache. → loading-aware (`credits.loading ? cache : available`).
+
+**DOCUMENTED (not yet fixed):**
+- **RU-1 — `lib/editor/document-store.ts` (Critical-if-live):** the store mutates a single `state` object in place and `getDocumentState()` returns the same reference, so `useSyncExternalStore` bails on every update → the **ScriptDocument surface is non-reactive** (stays in `loading`, never repaints). Needs the store to return a fresh reference (like the sibling editor `store.ts`). *Verify whether ScriptDocument is on a live route before prioritizing.*
+- **RU-4 (Medium):** duplicate global `keydown` listeners (`EditorShell` + `PlayerCanvas`) — Shift+T theater toggle cancels itself out; `F`/`N` double-fire.
+- **RU-6 (Medium):** `useProject.ts` attaches takes by **filtered** playable index instead of true `shot_index` → versions drawer/`switchActiveTake` can show the wrong clip's takes when a pending/failed clip precedes a playable one.
+- **RU-7 (Medium):** `store.setProject` doesn't reset undo/redo history → first Cmd-Z after switching projects restores the previous project's timeline (and can persist it).
+- Plus: RU-8 `gradeToFfmpeg` reads un-normalized curves (export throws on legacy grades); RU-9 interests gated on `country` + never loaded; RU-10 JKL reverse stale-closure; Lows (follower off-by-one on no-op, redo selection prune, patron goal /0 → NaN%, `probeVideo` NaN-duration).
+
+## D. Business module
+**FIXED:**
+- **B-1 — `WorkspaceContext.tsx` (High):** the DB `org_role` enum includes `editor` and the Team UI can assign it, but `OrgRole`/`ROLE_RANK` omitted it → a member set to **editor** got `ROLE_RANK['editor'] = undefined` → `hasPermission` always false → **blank rail, zero actions, full lockout**. → added `editor` to the type + rank (between producer and reviewer).
+
+**DOCUMENTED:**
+- **B-2 (Medium):** org spend/burn/billing aggregate `credit_transactions` by member `user_id` with **no org scoping** (table has no `organization_id`), so a member who belongs to >1 org has all their tx counted toward each → cross-org contamination of every KPI + the $ statement. *(Same root as AUDIT_REPORT H-6; needs an org-scoped RPC.)*
+- **B-3 (Medium):** Approvals gate `hasPermission("reviewer")` lets **producers** approve/reject (producer rank > reviewer), contradicting the Permissions matrix. Rank model can't express the non-monotonic "approve" capability.
+- **B-4 (Low/Medium):** the Team roster UI offers demoting/removing the owner + promoting to owner with no client guard — the **server now blocks it** (the H-1 RLS `WITH CHECK` fix), so it fails with an error toast rather than succeeding; tighten the UI for polish.
+- **B-5 (Low):** BusinessCredits "Top up"/"burn report" link to legacy `/workspace/*` (works only via the redirect layer).
+
+## E. Admin module (RPC/edge wiring + computations)
+**FIXED:**
+- **AD-1 — `admin_bulk_suspend`/`admin_bulk_restore` (High):** wrote `suspended_reason` but the column is `suspension_reason` → every bulk Suspend/Restore raised 42703 and did nothing. → migration `20260704000500` corrects the column.
+- **AD-3 — `CostAnalysisDashboard.tsx:390` (High):** platform storage cost missing `/100` → **100× overstated** (50 GB shown as $105 not $1.05), inflating total cost and understating Net Profit. → added `/100` to match the per-bucket calc.
+- **AD-4 — `AdminCommentsPage.tsx:57` (High):** selected the revoked `email` column → the whole profiles query 42501-failed → every comment author rendered as an 8-char UUID. → dropped `email` from the select.
+- **AD-10 — `PeopleOverview.tsx:126` (Medium):** read `subscription_tier/tier/plan` but the column is `account_tier` → every user shown "free". → read `account_tier`.
+
+**DOCUMENTED:**
+- **AD-2 (High):** `AdminAvatarSeeder` stale-closure recursion — never advances `startIndex`, Pause is inert, regenerates preset 0 against Replicate every ~1.5s (**runaway cost**). Needs a ref-based loop.
+- **AD-5/AD-6 (Medium):** the two finance dashboards disagree on revenue — CostAnalysis subtracts internal refund *grants* from revenue (the other says never subtract); Financials counts non-Stripe `purchase` rows as cash. Reconcile to one rule.
+- **AD-7 (Medium):** PipelineMonitor service-health keys (`replicate-kling`, `openai-tts`) don't match logged names (`replicate-kling-v3`, `replicate_minimax`) → primary video service shows "0 calls / healthy" during a real outage.
+- **AD-8/AD-9 (Medium, edge fn):** `admin-analytics` mislabels cross-window KPIs (90D card shows 30-day count; Active-30D truncated at small windows) and caps cohort activity at 1000 users while the denominator counts all → understated retention.
+- **AD-11/AD-12 (Medium):** Gallery edit bumps the item to the end (`sort_order = max+1` on the edit path); Gallery-curation Up/Down does `±1` without swapping the neighbor → duplicate `sort_order`.
+- **AD-13 + Lows:** email log ordered by random `message_id` not time; pricing margin /0 → "-Infinity%"; refunds "this month" ignores year; moderation "Flagged" reads the wrong column (always 0); AdminProjectsBrowser refetches un-debounced per keystroke; `AdminFailedClipsQueue` null-prompt `.toLowerCase()` throws.
+
+> **Net:** comprehensive sweep complete. **15 logic bugs fixed** across the session; the rest documented above with file:line. Highest remaining priorities: RU-1 (script-doc non-reactivity — verify if live), AD-2 (seeder runaway cost), B-2 (cross-org credit scoping), RU-4 (editor keyboard collisions).

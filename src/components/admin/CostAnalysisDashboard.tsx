@@ -387,7 +387,7 @@ export function CostAnalysisDashboard() {
   });
 
   const totalStorageMB = storageCosts.reduce((sum, s) => sum + s.size_mb, 0);
-  const totalStorageCostCents = Math.round((totalStorageMB / 1024) * STORAGE_COST_PER_GB_CENTS * 100);
+  const totalStorageCostCents = Math.round((totalStorageMB / 1024) * STORAGE_COST_PER_GB_CENTS * 100) / 100;
   const devCostCents = devHours * DEV_HOURLY_RATE_DOLLARS * 100;
   const lovableCostCents = LOVABLE_MONTHLY_COST_DOLLARS * 100;
   const supabaseCostCents = SUPABASE_MONTHLY_COST_DOLLARS * 100;

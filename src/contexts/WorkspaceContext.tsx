@@ -3,7 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { queryClient } from '@/lib/queryClient';
 
-export type OrgRole = 'owner' | 'admin' | 'producer' | 'reviewer' | 'viewer';
+// LOGIC FIX: the DB org_role enum includes 'editor' (added BEFORE 'reviewer'),
+// and the Team UI can assign it — but it was missing here, so a member with
+// role 'editor' got ROLE_RANK['editor'] = undefined → hasPermission() always
+// false → a completely blank rail and zero actions (full lockout). Include it.
+export type OrgRole = 'owner' | 'admin' | 'producer' | 'editor' | 'reviewer' | 'viewer';
 
 export interface Organization {
   id: string;
@@ -26,8 +30,11 @@ interface WorkspaceContextValue {
   hasPermission: (minRole: OrgRole) => boolean;
 }
 
+// 'editor' sits between producer and reviewer (DB enum order: …producer,
+// editor, reviewer…). Ranks are only compared relatively, so renumbering to
+// make room is safe.
 const ROLE_RANK: Record<OrgRole, number> = {
-  owner: 5, admin: 4, producer: 3, reviewer: 2, viewer: 1,
+  owner: 6, admin: 5, producer: 4, editor: 3, reviewer: 2, viewer: 1,
 };
 
 const STORAGE_KEY = 'smallbridges.currentOrgId';

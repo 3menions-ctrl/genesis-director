@@ -23,7 +23,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Search, Sparkles, User as UserIcon, Command, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCredits } from "@/contexts/CreditsContext";
+import { useEffectiveCredits } from "@/hooks/useEffectiveCredits";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
 import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 import { LeftRail } from "@/components/foundation/LeftRail";
@@ -44,7 +44,11 @@ interface Props {
 export function FoundationShell({ children, bare = false, noHeader }: Props) {
   void noHeader; // no longer rendered; LeftRail + Cmd+K replace it
   const { profile, user } = useAuth();
-  const { balance } = useCredits();
+  // Show the SPENDABLE balance of the active wallet (org pool for business
+  // workspaces, else personal available = ledger − holds). Was useCredits().balance,
+  // which (a) ignored holds — disagreeing with the studio's `available` display —
+  // and (b) showed personal credits even when working in an org workspace.
+  const { available: balance } = useEffectiveCredits();
   const location = useLocation();
   const reducedMotion = useReducedMotion();
 

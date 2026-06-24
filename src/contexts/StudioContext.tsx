@@ -3,7 +3,7 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, parseP
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCredits } from '@/contexts/CreditsContext';
+import { useEffectiveCredits } from '@/hooks/useEffectiveCredits';
 import { calculateCreditsRequired } from '@/lib/creditSystem';
 import type { QualityTier } from '@/types/quality-tiers';
 // Default credits for unauthenticated state
@@ -91,7 +91,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // FIX: useAuth now returns a safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
-  const ledgerCredits = useCredits();
+  // Org-aware wallet: org pool for business workspaces, personal ledger otherwise.
+  // Same source the top bar reads, so the studio balance can't disagree with it.
+  const ledgerCredits = useEffectiveCredits();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);

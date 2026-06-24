@@ -23,7 +23,7 @@ import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
 import { scopeForPath } from "./rbac/scopes";
 import { AdminNotificationBell } from "./components/AdminNotificationBell";
 import { AdminPalette } from "./components/AdminPalette";
-import { ACCENT_HSL, accent } from "@/admin/ui/primitives";
+import { ACCENT_HSL, accent, Aurora } from "@/admin/ui/primitives";
 import "./admin-skin.css";
 
 type NavItem = { label: string; icon: React.ElementType; path: string; n: string };
@@ -121,12 +121,8 @@ function RefineAdminLayoutInner() {
         className="pointer-events-none fixed inset-0 z-[60] opacity-[0.03] mix-blend-overlay"
         style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }}
       />
-      {/* Atmospheric glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-60 right-0 w-[800px] h-[800px] rounded-full"
-        style={{ background: `radial-gradient(circle, ${accent(0.1)}, transparent 65%)`, filter: "blur(80px)" }}
-      />
+      {/* Deep aurora atmosphere — figures float over it (Horizon direction). */}
+      <Aurora />
 
       {/* Icon rail — large icons, small labels below */}
       <aside

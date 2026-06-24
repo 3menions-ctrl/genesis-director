@@ -13,7 +13,7 @@ import { Activity, CheckCircle2, AlertTriangle, FolderKanban, Plus, Layers } fro
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  FloatStat, FloatSection, FloatTable, FloatRow, Avatar, StatusPill, DeckButton,
+  StatOrb, ORB_AURAS, FloatSection, FloatTable, FloatRow, Avatar, StatusPill, DeckButton,
   ACCENT_HSL, CYAN, accent,
 } from "@/admin/ui/primitives";
 
@@ -87,8 +87,8 @@ export default function ProductionOverview() {
   return (
     <div className="space-y-14">
       {/* KPI rail — floating figures */}
-      <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k, i) => <FloatStat key={k.label} index={i} {...k} />)}
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+        {kpis.map((k, i) => <StatOrb key={k.label} index={i} aura={ORB_AURAS[i % ORB_AURAS.length]} {...k} />)}
       </div>
 
       {/* Dominant trend */}

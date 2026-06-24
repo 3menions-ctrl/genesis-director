@@ -320,3 +320,74 @@ export function AttentionCard({ priority, icon: Icon, title, body, ctaLabel, cta
     </motion.a>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HORIZON layer — deep aurora atmosphere + floating orbs + giant hero metric.
+//  These give admin surfaces the "from the future" spatial-glass feel: weight-
+//  less figures over coloured blooms. All additive; existing primitives unchanged.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const ORB_AURAS = [ACCENT_HSL, CYAN, VIOLET, "hsl(158 86% 52%)", AMBER, ROSE];
+
+/** Deep multi-bloom aurora atmosphere. Fixed + non-interactive; sits behind
+ *  admin content so figures read as floating. Respects reduced-motion. */
+export function Aurora() {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <span className="absolute rounded-full" style={{ top: -280, left: -60, width: 720, height: 720, filter: "blur(110px)", background: `radial-gradient(closest-side, ${accent(0.26)}, transparent 70%)` }} />
+      <span className="absolute rounded-full" style={{ top: -180, right: -80, width: 620, height: 620, filter: "blur(110px)", background: "radial-gradient(closest-side, hsl(188 95% 62% / 0.16), transparent 70%)" }} />
+      <span className="absolute rounded-full" style={{ top: 420, left: "40%", width: 760, height: 760, filter: "blur(120px)", background: "radial-gradient(closest-side, hsl(258 90% 74% / 0.13), transparent 70%)" }} />
+      <span className="absolute rounded-full" style={{ bottom: -300, right: "10%", width: 640, height: 640, filter: "blur(120px)", background: `radial-gradient(closest-side, ${accent(0.12)}, transparent 70%)` }} />
+    </div>
+  );
+}
+
+/** Giant floating hero metric — gradient Fraunces number over a soft glow halo. */
+export function HeroStat({ label, value, sub, align = "center" }: {
+  label: string; value: string | number; sub?: ReactNode; align?: "center" | "left";
+}) {
+  return (
+    <div className={cn("relative", align === "center" ? "text-center" : "text-left")}>
+      <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: 640, height: 280, background: `radial-gradient(closest-side, ${accent(0.2)}, transparent 72%)`, filter: "blur(16px)" }} />
+      <div className="relative font-mono text-[10px] uppercase tracking-[0.34em]" style={{ color: ACCENT_HSL }}>{label}</div>
+      <CountUp value={value} className="relative mt-3 block font-display font-semibold leading-[0.92] tracking-[-0.035em] tabular-nums"
+        style={{ fontSize: "clamp(3rem, 7vw, 6rem)", background: "linear-gradient(98deg,#fff 6%, hsl(214 92% 80%) 48%, hsl(188 95% 74%) 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }} />
+      {sub && <div className="relative mt-3.5 text-[14px] font-light text-white/55">{sub}</div>}
+    </div>
+  );
+}
+
+/** Floating "orb" metric tile — borderless glass with a coloured aura, big
+ *  Fraunces number + sparkline. The signature Horizon KPI element. Drop-in for
+ *  KpiTile/FloatStat (same core props) with an extra `aura` colour. */
+export function StatOrb({ label, value, icon: Icon, aura = ACCENT_HSL, accentNumber, sub, delta, deltaLabel, sparkData, index = 0 }: {
+  label: string; value: string | number; icon?: LucideIcon; aura?: string; accentNumber?: boolean;
+  sub?: string; delta?: number; deltaLabel?: string; sparkData?: number[]; index?: number;
+}) {
+  const up = (delta ?? 0) >= 0;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.05, ease: EASE }}
+      className="group/orb relative overflow-hidden rounded-[26px] p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-0.5"
+      style={{ background: CARD_BG, boxShadow: "0 44px 120px -55px rgba(0,0,0,0.95)" }}
+    >
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)" }} />
+      <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full transition-opacity duration-500 group-hover/orb:opacity-70" style={{ background: aura, filter: "blur(38px)", opacity: 0.42 }} />
+      <div className="relative flex items-center gap-2">
+        {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.8} style={{ color: accent(0.85) }} />}
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">{label}</span>
+      </div>
+      <CountUp value={value} className="relative mt-4 block font-display font-semibold leading-none tracking-tight tabular-nums"
+        style={{ fontSize: "clamp(1.9rem, 2.4vw, 2.8rem)", color: accentNumber ? ACCENT_HSL : "#fff", textShadow: accentNumber ? `0 0 34px ${accent(0.6)}` : undefined }} />
+      <div className="relative mt-3 flex items-center justify-between gap-2">
+        {delta !== undefined ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: up ? CYAN : "rgba(255,255,255,0.5)" }}>
+            {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}{Math.abs(delta).toLocaleString()}{deltaLabel ? ` ${deltaLabel}` : ""}
+          </span>
+        ) : <span className="text-[11px] text-white/40">{sub ?? ""}</span>}
+        {sparkData && <Sparkline data={sparkData} id={`orb-${index}`} />}
+      </div>
+    </motion.div>
+  );
+}

@@ -118,3 +118,31 @@ These three sweeps were launched but the agents hit the shared session limit (re
 - **AD-13 + Lows:** email log ordered by random `message_id` not time; pricing margin /0 → "-Infinity%"; refunds "this month" ignores year; moderation "Flagged" reads the wrong column (always 0); AdminProjectsBrowser refetches un-debounced per keystroke; `AdminFailedClipsQueue` null-prompt `.toLowerCase()` throws.
 
 > **Net:** comprehensive sweep complete. **15 logic bugs fixed** across the session; the rest documented above with file:line. Highest remaining priorities: RU-1 (script-doc non-reactivity — verify if live), AD-2 (seeder runaway cost), B-2 (cross-org credit scoping), RU-4 (editor keyboard collisions).
+
+---
+
+# Part 3 — Follow-up fix batches (this session)
+
+**Total logic bugs fixed: 27** — all verified (typecheck/build/tests green, 3642 pass).
+
+**Admin data correctness (fixed):** AD-1 bulk-suspend column, AD-3 storage 100×, AD-4 comment-author revoked column, AD-5/AD-6 finance revenue rules reconciled, AD-7 pipeline service-name keys, AD-10 People tier column, AD-11/AD-12 gallery sort_order (edit + swap), AD-13 email-log ordering.
+
+**Business (fixed):** B-1 editor-role lockout.
+
+**Regular-user (fixed):** RU-2 orchestrator epoch timestamps, RU-3 ProfileDashboard navigate, RU-5/L-1 credit display, RU-9 interests gate.
+
+**Shared primitives (fixed):** L-2 canAffordShots held-credits, L-3/L-11 CreditsContext ordering+unmount guard, L-4 usePaginatedProjects latest-wins, L-6 useSocial DM channel dep, L-7 notifications mark-read self-healing, L-8 isLocked reactive, RU-1 document-store reactivity (pre-emptive — surface unrouted), AD-2 avatar-seeder cost loop.
+
+## L-5 — AuthContext re-render storm (DOCUMENTED, verified recipe — perf, not correctness)
+Deferred deliberately (root context, launch week, perf-only gain). The deps were verified:
+- `signIn`, `signUp`, `signInWithMagicLink`, `signOut`, `getValidSession` read **only** stable refs (`sessionRef.current`), setters, module imports, and `supabase` — wrap each in `useCallback(…, [])`.
+- `retryProfileFetch` reads `user` → `useCallback(…, [user, fetchProfile])`.
+- Then `useMemo` the provider value over `[user, session, profile, loading, isSessionVerified, profileError, isAdmin, adminChecked, signIn, signUp, signInWithMagicLink, signOut, refreshProfile, patchProfile, retryProfileFetch, getValidSession, waitForSession]`.
+This stops handing every `useAuth()` consumer a new value + new callback identities on each of the 8 state slices / 10-min interval / visibility re-renders.
+
+## Still open (documented, not fixed)
+- **B-2 / H-6** — org credit/billing has no `organization_id` scoping (cross-org contamination). Needs a money-path schema change (tag org-pool deductions); flagged, not guessed.
+- **AD-8 / AD-9** — `admin-analytics` edge function: cross-window KPI slicing + cohort 1000-cap. Needs edge-fn deploy + testing.
+- **B-3** producers pass the reviewer approval gate (authorization-matrix design call); **B-4** Team UI offers owner demotion (server now blocks via the H-1 RLS WITH CHECK).
+- **Latent (unrouted WIP editor `src/pages/Editor/**`):** RU-4 keyboard collisions, RU-6 takes-by-filtered-index, RU-7 setProject undo history, RU-8 gradeToFfmpeg curves, RU-10 JKL reverse. Real, but not on a live route.
+- Assorted Lows (queryKeys prefix, debounce cancel/flush, etc.).

@@ -65,7 +65,7 @@ export function CreditLowInline({ balance, required, className, context }: Credi
             </div>
           ) : (
             <div className="font-mono text-[11px] uppercase tracking-[0.14em]">
-              Credits running low — {balance} left after this {context || 'generation'} costs {required}
+              Credits running low — {Math.max(0, balance - required)} left after this {context || 'generation'} costs {required}
             </div>
           )}
         </div>

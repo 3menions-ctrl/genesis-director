@@ -267,7 +267,7 @@ function RailTile({
         <motion.span
           layoutId="rail-active-line"
           aria-hidden
-          className="pointer-events-none absolute bottom-1 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-white"
+          className="pointer-events-none absolute bottom-1 left-1/2 h-[2px] w-7 -translate-x-[57%] rounded-full bg-white"
           style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
         />

@@ -521,14 +521,14 @@ function StudioContentInner() {
               <Link
                 to={moduleLink("/lobby")}
                 aria-label="Back to lobby"
-                className="group inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-[hsl(220_30%_8%/0.5)] backdrop-blur-md px-4 h-9 transition-colors hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.07)]"
+                className="group inline-flex items-center gap-2 rounded-full ring-1 ring-inset ring-white/[0.05] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.5)] backdrop-blur-md px-4 h-9 transition-colors hover:ring-accent/40 hover:bg-[hsl(var(--accent)/0.07)]"
               >
                 <ArrowLeft className="h-4 w-4 text-white/70 group-hover:text-accent" strokeWidth={1.7} />
                 <span className="text-[13px] text-white/85 group-hover:text-white">Lobby</span>
               </Link>
 
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <div className="inline-flex items-center gap-2.5 rounded-full border border-white/[0.1] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
+                <div className="inline-flex items-center gap-2.5 rounded-full ring-1 ring-inset ring-white/[0.05] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
                   <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
                   <span className="text-[13px] font-medium text-white/90 tabular-nums">
                     {credits.available.toLocaleString()}
@@ -540,8 +540,8 @@ function StudioContentInner() {
                     key={to}
                     to={moduleLink(to)}
                     className={cn(
-                      "group hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[hsl(220_30%_8%/0.45)] backdrop-blur-md px-3.5 h-9",
-                      "transition-colors hover:border-accent/40 hover:bg-[hsl(var(--accent)/0.07)]",
+                      "group hidden sm:inline-flex items-center gap-2 rounded-full ring-1 ring-inset ring-white/[0.04] shadow-[0_10px_26px_-16px_rgba(0,0,0,0.65)] bg-[hsl(220_30%_8%/0.45)] backdrop-blur-md px-3.5 h-9",
+                      "transition-colors hover:ring-accent/40 hover:bg-[hsl(var(--accent)/0.07)]",
                     )}
                   >
                     <Icon className="h-3.5 w-3.5 text-white/60 group-hover:text-accent" strokeWidth={1.5} />

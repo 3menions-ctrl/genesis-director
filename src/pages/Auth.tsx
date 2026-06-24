@@ -301,7 +301,7 @@ export default function Auth() {
                       onChange={setOtp}
                       onComplete={() => { void submitOtp(); }}
                       disabled={verifying}
-                      length={8}
+                      length={6}
                     />
                   </div>
 

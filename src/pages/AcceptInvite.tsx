@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,14 +17,21 @@ export default function AcceptInvite() {
   const { refresh, switchOrg } = useWorkspace();
   const [status, setStatus] = useState<'idle' | 'accepting' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  // Token refreshes / focus events hand us a new `user` object reference,
+  // re-running this effect. Without a guard we'd re-call the accept RPC and
+  // re-send the admin "member joined" emails every time. Accept at most once.
+  const acceptedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      // Bounce to auth, preserving return path
-      navigate(`/auth?redirect=${encodeURIComponent(`/invite/${token}`)}`);
+      // Bounce to auth, preserving return path. Auth.tsx reads `next`,
+      // so use that param name (not `redirect`) or the invitee never returns.
+      navigate(`/auth?next=${encodeURIComponent(`/invite/${token}`)}`);
       return;
     }
+    if (acceptedRef.current) return;
+    acceptedRef.current = true;
     accept();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, token]);

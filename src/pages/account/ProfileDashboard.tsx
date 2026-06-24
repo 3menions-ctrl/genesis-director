@@ -6058,45 +6058,33 @@ function ProfileSettingsPanel({
     }
   }, [links, initialProfile.external_links, userId, onSaved]);
 
+  // Persist via the shared preferences writer so pronouns/accent merge onto
+  // the same live base as every other setting. Writing the raw JSONB column
+  // directly here (from a mount-time snapshot) would clobber any theme/privacy
+  // changes made via setPrefs since mount — and vice-versa.
   const savePronouns = useCallback(async (next: string) => {
     const prev = pronouns;
     setPronouns(next);
     try {
-      const merged = {
-        ...((initialProfile.preferences as Record<string, unknown>) ?? {}),
-        pronouns: next || null,
-      };
-      const { error } = await supabase
-        .from("profiles")
-        .update({ preferences: merged as never })
-        .eq("id", userId);
-      if (error) throw error;
+      await setPrefs({ pronouns: next });
       toast.success("Pronouns saved");
     } catch (e) {
       setPronouns(prev);
       toast.error(e instanceof Error ? e.message : "Couldn't save pronouns");
     }
-  }, [pronouns, initialProfile.preferences, userId]);
+  }, [pronouns, setPrefs]);
 
   const saveAccent = useCallback(async (next: string) => {
     const prev = accent;
     setAccent(next);
     try {
-      const merged = {
-        ...((initialProfile.preferences as Record<string, unknown>) ?? {}),
-        themeAccent: next,
-      };
-      const { error } = await supabase
-        .from("profiles")
-        .update({ preferences: merged as never })
-        .eq("id", userId);
-      if (error) throw error;
+      await setPrefs({ themeAccent: next });
       toast.success("Accent saved");
     } catch (e) {
       setAccent(prev);
       toast.error(e instanceof Error ? e.message : "Couldn't save accent");
     }
-  }, [accent, initialProfile.preferences, userId]);
+  }, [accent, setPrefs]);
 
   const setPref = useCallback(async <K extends keyof UserPrefs>(key: K, value: UserPrefs[K]) => {
     const prev = prefs[key];

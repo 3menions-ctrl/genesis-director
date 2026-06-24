@@ -646,6 +646,10 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
   const [partner, setPartner] = useState<{ id: string; display_name: string | null; username: string | null; avatar_url: string | null; tagline: string | null } | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  // Mirror of `messages` so the unfiltered dm_reactions realtime stream can be
+  // scoped to this thread without re-subscribing on every message.
+  const messagesRef = useRef<MessageRow[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const [loading, setLoading] = useState(true);
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [sending, setSending] = useState(false);
@@ -706,7 +710,15 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_reactions" }, (payload) => {
         const r = payload.new as Reaction;
-        setReactions((p) => [...p, r]);
+        // The stream is unfiltered (every dm_reaction the user can see), so
+        // drop reactions for other threads, and dedup against ones already in
+        // state (the initial SELECT and this INSERT can race) — otherwise a
+        // grouped reaction count renders inflated.
+        if (!messagesRef.current.some((m) => m.id === r.message_id)) return;
+        setReactions((p) =>
+          p.some((x) => x.message_id === r.message_id && x.user_id === r.user_id && x.emoji === r.emoji)
+            ? p
+            : [...p, r]);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "dm_reactions" }, (payload) => {
         const r = payload.old as Reaction;

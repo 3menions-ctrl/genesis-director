@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,8 +31,15 @@ export default function AuthCallback() {
   const { navigateTo } = useNavigationWithLoading();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('Verifying your email...');
+  // PKCE codes / OTP token hashes are single-use. Without a once-guard a
+  // re-invocation (StrictMode double-mount, or a navigate/searchParams identity
+  // change) would exchange the code twice — the second attempt fails and shows
+  // "Verification Failed" even though the first succeeded.
+  const ranRef = useRef(false);
 
   useEffect(() => {
+    if (ranRef.current) return;
+    ranRef.current = true;
     const handleAuthCallback = async () => {
       try {
         // Supabase delivers the verification payload in one of THREE shapes

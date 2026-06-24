@@ -137,7 +137,11 @@ export default function NotificationSettings() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user]);
+    // Key on the stable id, not the `user` object — AuthContext hands us a new
+    // user reference on every token refresh / focus, which would otherwise
+    // re-run this load and overwrite the user's in-progress (unsaved) edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const dirty = useMemo(
     () => JSON.stringify(prefs) !== JSON.stringify(original),

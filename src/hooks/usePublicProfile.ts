@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export interface PublicProfile {
   id: string;
@@ -153,21 +154,30 @@ export function usePublicProfile(userId?: string) {
 
       if (error) throw error;
 
-      // Create notification
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          type: 'follow',
-          title: 'New Follower!',
-          body: 'Someone started following you',
-          data: { follower_id: user.id },
-        });
+      // Create notification — best-effort. A failure here (e.g. RLS) must NOT
+      // reject the whole mutation, or onSuccess wouldn't fire and the UI would
+      // show "not following" while the follow row actually exists in the DB.
+      try {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: userId,
+            type: 'follow',
+            title: 'New Follower!',
+            body: 'Someone started following you',
+            data: { follower_id: user.id },
+          });
+      } catch (notifyErr) {
+        console.warn('[usePublicProfile] follow notification failed:', notifyErr);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['public-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['followers-count'] });
       queryClient.invalidateQueries({ queryKey: ['following-count'] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : 'Could not follow this user');
     },
   });
 

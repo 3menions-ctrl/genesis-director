@@ -62,6 +62,15 @@ function isUrgent(n: Partial<Notification> | undefined): boolean {
   return false;
 }
 
+/**
+ * Quiet-hours check. `start`/`end` are local-time hours (0-23). Supports
+ * overnight windows (e.g. 22 → 8). Equal/absent bounds mean "no window".
+ */
+function inQuietHours(hour: number, start: number | null, end: number | null): boolean {
+  if (start == null || end == null || start === end) return false;
+  return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+}
+
 const LAST_SEEN_KEY = 'smallbridges.notifications.lastSeen';
 
 function readLastSeen(): string | null {
@@ -98,6 +107,46 @@ export function useNotifications() {
     },
     enabled: !!user,
   });
+
+  // Exact unread count — computed server-side rather than from the page-limited
+  // list above, which would cap the badge at `pageSize` (e.g. never show >50 or
+  // the "99+" state). Kept on a separate key so the list's optimistic cache
+  // edits don't clobber it; the realtime handlers invalidate both.
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications-unread', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!user,
+  });
+
+  // Delivery preferences (in-app channel + quiet hours) so the toast bridge
+  // honors the Settings → Notifications screen. Read through a ref inside the
+  // realtime handler so changing prefs doesn't force a channel re-subscribe.
+  const { data: deliveryPrefs } = useQuery({
+    queryKey: ['notification-prefs', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      // `notification_preferences` isn't in the generated Supabase types, so we
+      // cast the builder (repo convention) to avoid a deep-instantiation error.
+      const { data } = await supabase
+        .from('notification_preferences' as never)
+        .select('ch_inapp, quiet_start, quiet_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return (data ?? null) as unknown as { ch_inapp: boolean | null; quiet_start: number | null; quiet_end: number | null } | null;
+    },
+    enabled: !!user,
+  });
+  const deliveryPrefsRef = useRef(deliveryPrefs);
+  deliveryPrefsRef.current = deliveryPrefs;
 
   // "New since you last visited" — persisted lastSeen timestamp.
   const [lastSeen, setLastSeen] = useState<string | null>(readLastSeen);
@@ -141,12 +190,17 @@ export function useNotifications() {
         },
         (payload) => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications-unread', user.id] });
           const n = (payload as unknown as { new?: Partial<Notification> }).new;
           if (!n?.title) return;
-          // Toast bridge — only urgent categories interrupt the room.
+          // Toast bridge — only urgent categories interrupt the room, and
+          // only when the in-app channel is on and we're outside quiet hours.
           // The rest land silently in the bell so nothing buzzes during
           // deep work unless it really matters.
-          if (isUrgent(n)) {
+          const dp = deliveryPrefsRef.current;
+          const inAppOn = dp?.ch_inapp ?? true;
+          const muted = dp ? inQuietHours(new Date().getHours(), dp.quiet_start, dp.quiet_end) : false;
+          if (isUrgent(n) && inAppOn && !muted) {
             const link = (n.link ?? (n.data as Record<string, unknown>)?.link) as string | undefined;
             toast(n.title, {
               description: n.body ?? undefined,
@@ -168,14 +222,19 @@ export function useNotifications() {
         { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         () => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications-unread', user.id] });
         },
       )
-      // DELETE — single delete or clear-all.
+      // DELETE — single delete or clear-all. NOTE: with the default replica
+      // identity the DELETE payload only carries the primary key, so the
+      // user_id filter above never matches and this handler does not fire.
+      // The delete/clearAll mutations therefore update the cache themselves.
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         () => {
           queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications-unread', user.id] });
         },
       )
       .subscribe();
@@ -217,28 +276,53 @@ export function useNotifications() {
     // delete and fires the single invalidate. Avoids double-refetch.
   });
 
-  // Delete one
+  // Delete one. The realtime DELETE event can't be relied on (see note on the
+  // DELETE handler above), so update the cache optimistically and reconcile on
+  // settle. Without this the row would stay on screen until a full refetch.
   const deleteNotification = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
       if (error) throw error;
     },
-    // No invalidation here — the realtime channel above observes the
-    // delete and fires the single invalidate. Avoids double-refetch.
+    onMutate: async (notificationId: string) => {
+      const listKey = ['notifications', user?.id];
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueriesData<Notification[]>({ queryKey: listKey });
+      queryClient.setQueriesData<Notification[]>({ queryKey: listKey }, (old) =>
+        Array.isArray(old) ? old.filter((n) => n.id !== notificationId) : old);
+      return { previous };
+    },
+    onError: (_e, _id, ctx) => {
+      ctx?.previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread', user?.id] });
+    },
   });
 
-  // Clear all
+  // Clear all — same rationale as delete one.
   const clearAll = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase.from('notifications').delete().eq('user_id', user.id);
       if (error) throw error;
     },
-    // No invalidation here — the realtime channel above observes the
-    // delete and fires the single invalidate. Avoids double-refetch.
+    onMutate: async () => {
+      const listKey = ['notifications', user?.id];
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueriesData<Notification[]>({ queryKey: listKey });
+      queryClient.setQueriesData<Notification[]>({ queryKey: listKey }, () => []);
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread', user?.id] });
+    },
   });
-
-  const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
 
   return {
     /** Canonical list of recent notifications (capped at pageSize). */

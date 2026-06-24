@@ -101,11 +101,10 @@ export default function PublicShare() {
       setDirector(prof.data ?? null);
       setLoading(false);
 
-      // Increment view count (best-effort; failures are silent).
-      void supabase
-        .from('project_shares')
-        .update({ view_count: shareRow.view_count + 1 })
-        .eq('id', shareRow.id);
+      // Increment view count atomically via RPC (best-effort; failures are
+      // silent). A client-side read-modify-write would race between concurrent
+      // viewers AND be blocked by the owner-only UPDATE policy for visitors.
+      void supabase.rpc('increment_share_view_count', { p_share_id: shareRow.id });
     })();
     return () => { cancelled = true; };
   }, [slug]);

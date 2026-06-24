@@ -9651,6 +9651,10 @@ export type Database = {
         Args: { amount_param: number; user_id_param: string }
         Returns: undefined
       }
+      increment_share_view_count: {
+        Args: { p_share_id: string }
+        Returns: undefined
+      }
       increment_widget_analytics: {
         Args: { p_event_type: string; p_widget_id: string }
         Returns: undefined

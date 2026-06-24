@@ -492,8 +492,8 @@ describe('Admin Panel — Tier Limits Integration', () => {
 
   it('should provide safe defaults for all tier properties', () => {
     expect(tierLimits).toMatch(/DEFAULT_TIER_LIMITS\.free/);
-    expect(tierLimits).toMatch(/maxClips.*\?\?\s*5/);
-    expect(tierLimits).toMatch(/maxRetries.*\?\?\s*4/);
+    expect(tierLimits).toMatch(/maxClips.*\?\?\s*6/);
+    expect(tierLimits).toMatch(/maxRetries.*\?\?\s*1/);
   });
 
   it('should cache tier limits for 5 minutes', () => {

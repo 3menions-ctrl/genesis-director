@@ -37,6 +37,7 @@ import {
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
 import { Button } from "@/components/ui/button";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { SeedanceAnimateDialog } from "@/components/mascots/SeedanceAnimateDialog";
 import { LazyAutoVideo } from "@/components/video/LazyAutoVideo";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
@@ -155,8 +156,8 @@ export default function Cast() {
               onClick={() => setTab("people")}
               className={cn(
                 "group inline-flex items-center gap-2 px-5 py-3 rounded-full",
-                "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-                "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+                "bg-gradient-to-br from-accent/20 to-accent/[0.06]",
+                "text-foreground transition-all hover:from-accent/30 hover:to-accent/10",
               )}
             >
               <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -168,7 +169,7 @@ export default function Cast() {
           </div>
 
           {/* ── Hairline rule + tabs ─────────────────────────────── */}
-          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <CastTabs value={tab} onChange={setTab} />
@@ -217,7 +218,7 @@ function CastTabs({
   return (
     <div
       role="tablist"
-      className="relative inline-flex flex-wrap items-center gap-1 rounded-full p-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
+      className="relative inline-flex flex-wrap items-center gap-1 rounded-full p-1 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
     >
       {TABS.map((t) => {
         const active = value === t.id;
@@ -235,17 +236,11 @@ function CastTabs({
                 : "text-muted-foreground/70 hover:text-foreground/90",
             )}
           >
-            {active && (
-              <motion.span
-                layoutId="cast-tab-active"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.30)]"
-              />
-            )}
+            {active && <CenterLine />}
             <Icon
               className={cn(
                 "h-3.5 w-3.5 shrink-0",
-                active ? "text-accent" : "opacity-60",
+                active ? "text-foreground" : "opacity-60",
               )}
               strokeWidth={1.5}
             />
@@ -264,7 +259,7 @@ function CastTabs({
 // ─────────────────────────────────────────────────────────────────────────────
 function PeopleTab() {
   return (
-    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl">
+    <div className="rounded-2xl bg-[hsl(var(--foreground)/0.02)] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl">
       <div className="p-12 text-center">
         <Users className="mx-auto h-8 w-8 text-accent/70" strokeWidth={1.2} />
         <h3 className="mt-6 font-display italic text-2xl font-light text-foreground">
@@ -279,8 +274,8 @@ function PeopleTab() {
           to="/avatars"
           className={cn(
             "mt-8 group inline-flex items-center gap-2 px-5 py-3 rounded-full",
-            "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-            "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+            "bg-gradient-to-br from-accent/20 to-accent/[0.06]",
+            "text-foreground transition-all hover:from-accent/30 hover:to-accent/10",
           )}
         >
           <span className="text-[13px]">Open Avatar Studio</span>
@@ -316,13 +311,14 @@ function MascotsTab() {
               key={key}
               onClick={() => setFilter(key)}
               className={cn(
-                "inline-flex items-center rounded-full px-3.5 h-8 text-[12px] tracking-tight transition-colors",
+                "relative inline-flex items-center rounded-full px-3.5 h-8 text-[12px] tracking-tight transition-colors",
                 active
-                  ? "border border-accent/40 bg-[hsl(var(--accent)/0.08)] text-foreground"
-                  : "border border-border/30 bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:border-accent/30 hover:text-foreground/90",
+                  ? "bg-white/[0.04] text-foreground"
+                  : "bg-[hsl(var(--foreground)/0.02)] text-muted-foreground/70 hover:bg-white/[0.04] hover:text-foreground/90",
               )}
             >
               {label}
+              {active && <CenterLine />}
             </button>
           );
         })}
@@ -335,7 +331,7 @@ function MascotsTab() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.45, ease: EASE_PREMIUM }}
-            className="group relative overflow-hidden rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
+            className="group relative overflow-hidden rounded-2xl bg-[hsl(var(--foreground)/0.02)] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl"
           >
             {/* Palette aurora */}
             <div
@@ -351,7 +347,7 @@ function MascotsTab() {
 
             {/* Stage */}
             <div className="relative aspect-square overflow-hidden">
-              <div className="absolute inset-4 rounded-2xl border border-foreground/[0.06]" />
+              <div className="absolute inset-4 rounded-2xl bg-foreground/[0.02]" />
               <LazyAutoVideo
                 src={m.loop}
                 poster={m.src}
@@ -361,7 +357,7 @@ function MascotsTab() {
             </div>
 
             {/* Caption rail */}
-            <div className="relative px-5 py-4 border-t border-border/30">
+            <div className="relative px-5 pb-5 pt-1">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <div className={cn(TYPE_META, "text-muted-foreground/60")}>
@@ -405,7 +401,7 @@ function MascotsTab() {
       </section>
 
       {visible.length === 0 && (
-        <div className="text-center py-20 rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)]">
+        <div className="text-center py-20 rounded-2xl bg-[hsl(var(--foreground)/0.02)]">
           <p className={cn(TYPE_META, "text-muted-foreground/60")}>
             No mascots in this pack yet.
           </p>
@@ -512,7 +508,7 @@ function BrandTab() {
   };
 
   return (
-    <div className="rounded-2xl border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl p-6 sm:p-8">
+    <div className="rounded-2xl bg-[hsl(var(--foreground)/0.02)] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl p-6 sm:p-8">
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.32em] text-accent/85">
@@ -537,7 +533,7 @@ function BrandTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Identity strings */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5 space-y-4">
+        <div className="rounded-xl bg-white/[0.03] p-5 space-y-4">
           <Field label="Brand name">
             <input
               type="text"
@@ -545,7 +541,7 @@ function BrandTab() {
               onChange={(e) => update("name", e.target.value)}
               placeholder="e.g. Slow Cinema Co."
               maxLength={60}
-              className="w-full h-10 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[14px] focus:outline-none focus:border-accent/55"
+              className="w-full h-10 px-3 rounded-md bg-white/[0.04] text-foreground text-[14px] focus:outline-none focus:bg-white/[0.07]"
             />
           </Field>
           <Field label="Tagline">
@@ -555,7 +551,7 @@ function BrandTab() {
               onChange={(e) => update("tagline", e.target.value)}
               placeholder="e.g. Quiet stories, deeply filmed."
               maxLength={120}
-              className="w-full h-10 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[14px] focus:outline-none focus:border-accent/55"
+              className="w-full h-10 px-3 rounded-md bg-white/[0.04] text-foreground text-[14px] focus:outline-none focus:bg-white/[0.07]"
             />
           </Field>
           <Field label="Voice / tone notes">
@@ -565,17 +561,17 @@ function BrandTab() {
               rows={4}
               maxLength={600}
               placeholder="Narration style, vocabulary, what to avoid…"
-              className="w-full px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:border-accent/55"
+              className="w-full px-3 py-2 rounded-md bg-white/[0.04] text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:bg-white/[0.07]"
             />
           </Field>
         </div>
 
         {/* Visual identity */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5 space-y-5">
+        <div className="rounded-xl bg-white/[0.03] p-5 space-y-5">
           <Field label="Palette">
             <div className="grid grid-cols-3 gap-3">
               {brand.palette.map((color, i) => (
-                <div key={i} className="rounded-lg border border-white/[0.06] bg-black/30 overflow-hidden">
+                <div key={i} className="rounded-lg bg-black/30 overflow-hidden">
                   <div className="h-16" style={{ backgroundColor: color }} />
                   <div className="p-2">
                     <input
@@ -636,8 +632,8 @@ function BrandTab() {
             Primary action
           </span>
           <span
-            className="inline-block h-9 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] flex items-center border"
-            style={{ borderColor: brand.palette[2] ?? "#FCD34D", color: brand.palette[2] ?? "#FCD34D", fontFamily: brand.bodyFont }}
+            className="inline-block h-9 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] flex items-center"
+            style={{ backgroundColor: `${brand.palette[2] ?? "#FCD34D"}22`, color: brand.palette[2] ?? "#FCD34D", fontFamily: brand.bodyFont }}
           >
             Secondary
           </span>

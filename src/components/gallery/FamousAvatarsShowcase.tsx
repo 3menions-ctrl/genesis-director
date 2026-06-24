@@ -221,7 +221,6 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
   
   // Memoize computed values
   const { gradient } = useMemo(() => getStyleGradient(avatar.style, index), [avatar.style, index]);
-  const category = useMemo(() => getCategoryFromTags(avatar.tags, avatar.avatar_type), [avatar.tags, avatar.avatar_type]);
   const imageUrl = avatar.thumbnail_url || avatar.face_image_url;
   
   // Limit stagger delay to prevent animation overload (max 0.5s stagger)
@@ -247,9 +246,6 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
         gradient,
         isHovered ? "scale-[1.03] shadow-2xl shadow-white/5" : "shadow-xl shadow-black/20"
       )}>
-        {/* Glass border effect */}
-        <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none z-20" />
-        
         {/* Shimmer loading state */}
         {!imageLoaded && (
           <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 via-muted/30 to-muted/50 flex items-center justify-center">
@@ -276,14 +272,6 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
         
         {/* Gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
-        
-        {/* Category badge */}
-        <div className={cn(
-          "absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-          "bg-black/60 backdrop-blur-xl border border-white/20 text-white/80"
-        )}>
-          {category}
-        </div>
         
         {/* Premium star - simplified, no staggered animation */}
         <div className="absolute top-3 right-3">
@@ -378,7 +366,7 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
       
       {/* Header */}
       <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl mb-6">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-xl mb-6">
           <Crown className="w-4 h-4 text-amber-400" />
           <span className="text-sm text-white/70 font-medium">Premium Avatar Collection</span>
         </div>
@@ -416,9 +404,9 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
         {hasMore && (
           <div className="flex justify-center mt-8">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={loadAll}
-              className="px-6 py-2 text-white/70 border-white/20 hover:bg-white/5 hover:text-white"
+              className="px-6 py-2 text-white/70 hover:bg-white/5 hover:text-white"
             >
               Show all {avatars.length} avatars
             </Button>
@@ -436,7 +424,7 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
             "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600",
             "hover:from-violet-500 hover:via-fuchsia-500 hover:to-pink-500",
             "shadow-xl shadow-violet-500/25 hover:shadow-violet-500/40",
-            "border border-white/10 transition-all duration-300",
+            "transition-all duration-300",
             "hover:scale-105"
           )}
         >

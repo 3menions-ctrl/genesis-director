@@ -252,7 +252,7 @@ export default function NotificationSettings() {
 
             {/* Quiet hours */}
             <Section eyebrow="◆ Quiet hours" title="When the bell stays silent">
-              <div className="px-4 py-5 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+              <div className="px-4 py-5 rounded-2xl bg-white/[0.02]">
                 <div className="flex items-start gap-3">
                   <Moon className="h-4 w-4 text-accent/80 mt-1" strokeWidth={1.5} />
                   <div className="flex-1">
@@ -291,7 +291,7 @@ export default function NotificationSettings() {
 
         {/* Sticky save bar */}
         {!loading && (
-          <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.06] bg-[hsl(220_30%_3%/0.92)] backdrop-blur-xl">
+          <div className="fixed bottom-0 left-0 right-0 z-20 bg-[hsl(220_30%_3%/0.92)] backdrop-blur-xl shadow-[0_-12px_40px_-12px_rgba(0,0,0,0.6)]">
             <div className="max-w-[820px] mx-auto px-6 lg:px-10 py-3 flex items-center justify-between">
               <span className={cn(TYPE_META, 'text-muted-foreground/55')}>
                 {dirty ? 'Unsaved changes' : 'All saved'}
@@ -302,9 +302,9 @@ export default function NotificationSettings() {
                 disabled={!dirty || saving}
                 className={cn(
                   'inline-flex items-center gap-2 px-5 h-10 rounded-full text-[13px]',
-                  'border border-accent/45 bg-gradient-to-br from-accent/22 to-accent/[0.06]',
+                  'bg-gradient-to-br from-accent/25 to-accent/[0.08]',
                   'text-foreground transition-all',
-                  'hover:border-accent/65 hover:from-accent/30',
+                  'hover:from-accent/35 hover:to-accent/[0.12]',
                   'disabled:opacity-40 disabled:cursor-not-allowed',
                 )}
               >
@@ -367,10 +367,10 @@ function ToggleRow({
       )}
     >
       <div className={cn(
-        'shrink-0 flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-inset transition-colors',
+        'shrink-0 flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
         on
-          ? 'bg-[hsl(var(--accent)/0.10)] ring-accent/40 text-accent'
-          : 'bg-white/[0.02] ring-white/[0.06] text-muted-foreground/60',
+          ? 'bg-[hsl(var(--accent)/0.12)] text-accent'
+          : 'bg-white/[0.03] text-muted-foreground/60',
       )}>
         <Icon className="h-4 w-4" strokeWidth={1.5} />
       </div>
@@ -419,9 +419,9 @@ function HourPicker({
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
         className={cn(
-          'rounded-md bg-white/[0.04] border border-white/[0.08]',
+          'rounded-md bg-white/[0.04]',
           'px-2.5 py-1.5 text-[13px] font-mono tabular-nums text-foreground',
-          'outline-none focus:border-accent/55',
+          'outline-none focus:bg-white/[0.07]',
         )}
       >
         <option value="">—</option>

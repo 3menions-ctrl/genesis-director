@@ -45,7 +45,7 @@ export const GalleryHeroSection = memo(function GalleryHeroSection({
         )}
         style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}
       >
-        <div className="w-10 h-10 rounded-full bg-glass hover:bg-glass-active backdrop-blur-xl border border-white/[0.06] hover:border-white/20 flex items-center justify-center transition-all">
+        <div className="w-10 h-10 rounded-full bg-glass hover:bg-glass-active backdrop-blur-xl flex items-center justify-center transition-all">
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
         </div>
         <span className="text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Back</span>
@@ -64,7 +64,7 @@ export const GalleryHeroSection = memo(function GalleryHeroSection({
         <div className="absolute inset-0 rounded-full blur-xl opacity-60 group-hover:opacity-100 transition-opacity scale-110"
              style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.45), transparent 70%)' }} />
 
-        <div className="relative px-6 py-3 rounded-full text-primary-foreground text-sm font-medium transition-all group-hover:scale-105 border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]">
+        <div className="relative px-6 py-3 rounded-full text-primary-foreground text-sm font-medium transition-all group-hover:scale-105 bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]">
           View Avatar Collection
         </div>
       </button>

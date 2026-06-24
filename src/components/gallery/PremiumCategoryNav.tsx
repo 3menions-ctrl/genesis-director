@@ -2,6 +2,7 @@
  import { motion, AnimatePresence } from 'framer-motion';
  import { Sparkles, Type, Image, User } from 'lucide-react';
  import { cn } from '@/lib/utils';
+ import { CenterLine } from '@/components/ui/CenterLine';
  
  type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
  
@@ -53,7 +54,7 @@
          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-500/20 via-transparent to-violet-500/20 blur-xl opacity-50" />
          
          {/* Main container */}
-         <div className="relative flex items-center gap-1 p-1.5 bg-black/60 backdrop-blur-2xl rounded-full border border-white/[0.08] shadow-2xl shadow-black/50">
+         <div className="relative flex items-center gap-1 p-1.5 bg-black/60 backdrop-blur-2xl rounded-full shadow-2xl shadow-black/50">
            {CATEGORIES.map((cat) => {
              const Icon = cat.icon;
              const isActive = activeCategory === cat.id;
@@ -74,20 +75,9 @@
                  whileHover={{ scale: 1.02 }}
                  whileTap={{ scale: 0.98 }}
                >
-                {/* Active background with gradient - STABILITY: Removed layoutId which caused crashes */}
-                  {isActive && (
-                    <div
-                      className={cn(
-                        "absolute inset-0 rounded-full transition-all duration-200 ease-out",
-                        "bg-gradient-to-r",
-                        cat.gradient
-                      )}
-                      style={{
-                        boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-                      }}
-                    />
-                  )}
-                 
+                {/* Active indicator — shared centered white line */}
+                  {isActive && <CenterLine />}
+
                  {/* Hover glow for inactive */}
                  {!isActive && (
                    <motion.div

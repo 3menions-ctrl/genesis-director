@@ -32,6 +32,7 @@ import {
   AlertCircle, Layers, Film,
 } from "lucide-react";
 import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -61,7 +62,6 @@ import {
 import {
   type TrainingSceneBlueprint, type SceneWorld,
   SCENE_WORLD_LABELS, SCENE_WORLD_SHORT,
-  SCENE_LIGHTING_LABELS, PRODUCTION_TIER_LABELS,
 } from "@/lib/training/scene-blueprint";
 
 import {
@@ -620,12 +620,12 @@ const TrainingContent = memo(function TrainingContent() {
                   key={step.id}
                   onClick={() => setActiveStep(i)}
                   className={cn(
-                    "inline-flex items-center gap-2 h-10 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] transition-all backdrop-blur-xl",
+                    "relative inline-flex items-center gap-2 h-10 px-4 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] transition-all backdrop-blur-xl",
                     active
-                      ? "text-foreground bg-foreground/[0.12] ring-1 ring-inset ring-white/[0.25] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.45)]"
+                      ? "text-foreground bg-foreground/[0.12] shadow-[0_8px_24px_-12px_hsla(0,0%,100%,0.45)]"
                       : done
-                      ? "text-emerald-200/90 ring-1 ring-inset ring-emerald-300/30 bg-emerald-500/[0.06]"
-                      : "text-foreground/65 hover:text-foreground/95 ring-1 ring-inset ring-white/[0.10] hover:ring-white/[0.20] bg-white/[0.04]",
+                      ? "text-emerald-200/90 bg-emerald-500/[0.06]"
+                      : "text-foreground/65 hover:text-foreground/95 bg-white/[0.04] hover:bg-white/[0.06]",
                   )}
                 >
                   <span className={cn(
@@ -636,6 +636,7 @@ const TrainingContent = memo(function TrainingContent() {
                   </span>
                   <Icon className="w-3.5 h-3.5" />
                   {step.label}
+                  {active && <CenterLine />}
                 </button>
               );
             })}
@@ -700,11 +701,11 @@ const TrainingContent = memo(function TrainingContent() {
           {/* Step navigation footer */}
           <div className="mt-8 flex items-center justify-between">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               disabled={activeStep === 0}
               onClick={() => setActiveStep(s => Math.max(0, s - 1))}
-              className="rounded-full border-white/[0.10] bg-white/[0.02] backdrop-blur"
+              className="rounded-full bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur"
             >
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
               Back
@@ -727,11 +728,11 @@ const TrainingContent = memo(function TrainingContent() {
         {/* RIGHT: STICKY PREVIEW + GENERATE */}
         <aside className="lg:sticky lg:top-6 lg:self-start space-y-4">
           {generatedVideoUrl ? (
-            <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur overflow-hidden">
+            <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur overflow-hidden">
               <BrandedVideoPlayer src={generatedVideoUrl} className="w-full aspect-video" />
               <div className="p-3 flex items-center justify-between gap-2">
                 <a href={generatedVideoUrl} download="training-video.mp4">
-                  <Button size="sm" variant="outline" className="rounded-full border-white/[0.10] bg-white/[0.02]">
+                  <Button size="sm" variant="ghost" className="rounded-full bg-white/[0.04] hover:bg-white/[0.08]">
                     <Download className="w-3.5 h-3.5 mr-1.5" />
                     Download
                   </Button>
@@ -751,7 +752,7 @@ const TrainingContent = memo(function TrainingContent() {
           )}
 
           {/* Cost + ETA */}
-          <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-4">
+          <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40 mb-3">
               Render plan
             </div>
@@ -779,25 +780,25 @@ const TrainingContent = memo(function TrainingContent() {
             </div>
 
             {/* Engine toggle */}
-            <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/[0.05]">
+            <div className="grid grid-cols-2 gap-2 mt-3 pt-3">
               <button
                 onClick={() => { setVideoEngine("kling"); setClipCount(1); }}
                 className={cn(
-                  "h-9 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
+                  "relative h-9 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
                   videoEngine === "kling"
-                    ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.20] text-foreground"
-                    : "ring-1 ring-inset ring-white/[0.05] text-foreground/55 hover:text-foreground/85",
+                    ? "bg-foreground/[0.10] text-foreground"
+                    : "bg-white/[0.04] text-foreground/55 hover:text-foreground/85 hover:bg-white/[0.06]",
                 )}
-              >Kling V3</button>
+              >Kling V3{videoEngine === "kling" && <CenterLine />}</button>
               <button
                 onClick={() => setVideoEngine("seedance")}
                 className={cn(
-                  "h-9 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
+                  "relative h-9 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
                   videoEngine === "seedance"
-                    ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.20] text-foreground"
-                    : "ring-1 ring-inset ring-white/[0.05] text-foreground/55 hover:text-foreground/85",
+                    ? "bg-foreground/[0.10] text-foreground"
+                    : "bg-white/[0.04] text-foreground/55 hover:text-foreground/85 hover:bg-white/[0.06]",
                 )}
-              >Seedance 2</button>
+              >Seedance 2{videoEngine === "seedance" && <CenterLine />}</button>
             </div>
 
             {/* Settings collapsible */}
@@ -817,7 +818,7 @@ const TrainingContent = memo(function TrainingContent() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 pt-3 border-t border-white/[0.05] space-y-3 overflow-hidden"
+                  className="mt-3 pt-3 space-y-3 overflow-hidden"
                 >
                   <SettingRow label="Aspect ratio">
                     <div className="flex gap-1">
@@ -885,7 +886,7 @@ const TrainingContent = memo(function TrainingContent() {
 
           {/* Progress */}
           {isGenerating && (
-            <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-4">
+            <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">{generationStep.replace(/_/g, " ")}</span>
                 <span className="font-mono text-[10px] tabular-nums text-foreground/65">{progress}%</span>
@@ -894,14 +895,14 @@ const TrainingContent = memo(function TrainingContent() {
             </div>
           )}
           {error && (
-            <div className="rounded-2xl ring-1 ring-inset ring-rose-300/15 bg-rose-500/[0.04] p-4 text-[12px] text-rose-200/85 inline-flex items-start gap-2">
+            <div className="rounded-2xl bg-rose-500/[0.06] p-4 text-[12px] text-rose-200/85 inline-flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               {error}
             </div>
           )}
 
           {!user && (
-            <div className="rounded-2xl ring-1 ring-inset ring-amber-300/15 bg-amber-500/[0.04] p-4 text-[12px] text-amber-100/90">
+            <div className="rounded-2xl bg-amber-500/[0.06] p-4 text-[12px] text-amber-100/90">
               <strong>Sign in</strong> to generate videos. <button onClick={() => navigate("/auth")} className="underline">Go to sign in →</button>
             </div>
           )}
@@ -944,17 +945,17 @@ function ScriptStep({
         {(Object.keys(TONE_LABELS) as ScriptTone[]).map(t => (
           <button key={t} onClick={() => onToneChange(t)}
             className={cn(
-              "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
+              "relative inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.18em] transition-all",
               tone === t
-                ? "bg-foreground/[0.10] ring-1 ring-inset ring-white/[0.16] text-foreground"
-                : "ring-1 ring-inset ring-white/[0.06] text-foreground/55 hover:text-foreground/85 hover:ring-white/[0.12] bg-white/[0.015] backdrop-blur",
+                ? "bg-foreground/[0.10] text-foreground"
+                : "text-foreground/55 hover:text-foreground/85 bg-white/[0.04] hover:bg-white/[0.06] backdrop-blur",
             )}
-          >{TONE_LABELS[t]}</button>
+          >{TONE_LABELS[t]}{tone === t && <CenterLine />}</button>
         ))}
       </div>
 
       {/* Textarea */}
-      <div className="rounded-2xl ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur p-4">
+      <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
         <Textarea
           value={scriptText}
           onChange={(e) => onChange(e.target.value.slice(0, 500))}
@@ -962,7 +963,7 @@ function ScriptStep({
           placeholder="Today's training is one of those things that sounds simple — until you try it. So let's walk through it together…"
           className="resize-none bg-transparent border-0 p-0 text-[14.5px] leading-relaxed text-foreground placeholder:text-foreground/35 focus-visible:ring-0"
         />
-        <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mt-3 pt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/45">
           <span>{wordCount} words · ~{speechEstimateSec}s spoken {activeVoice ? `@ ${activeVoice.name}'s pace` : ""}</span>
           <span className="tabular-nums">{scriptText.length}/500</span>
         </div>
@@ -975,7 +976,7 @@ function ScriptStep({
           {SCRIPT_STARTERS.map(s => (
             <button key={s.id}
               onClick={() => { onChange(s.text); onToneChange(s.tone); }}
-              className="text-left rounded-2xl ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.03] backdrop-blur p-4 transition-all"
+              className="text-left rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] backdrop-blur p-4 transition-all"
             >
               <div className="flex items-baseline justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/55">{s.label}</span>
@@ -1062,14 +1063,14 @@ function VoiceRail({
             {voices.length}
           </span>
           {highlighted && (
-            <span className="ml-2 inline-flex items-center gap-1 px-2 h-5 rounded-full bg-emerald-500/15 ring-1 ring-inset ring-emerald-300/30 text-[9px] font-mono uppercase tracking-[0.18em] text-emerald-200 not-italic">
+            <span className="ml-2 inline-flex items-center gap-1 px-2 h-5 rounded-full bg-emerald-500/15 text-[9px] font-mono uppercase tracking-[0.18em] text-emerald-200 not-italic">
               <Star className="w-2.5 h-2.5" />Suggested
             </span>
           )}
         </h3>
         <div className="flex items-center gap-1">
-          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85 transition-colors">‹</button>
-          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85 transition-colors">›</button>
+          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85 transition-colors">‹</button>
+          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85 transition-colors">›</button>
         </div>
       </div>
       <div className="relative -mx-1">
@@ -1110,10 +1111,10 @@ function VoiceCard({
     <div
       onClick={onSelect}
       className={cn(
-        "group relative rounded-2xl ring-1 ring-inset p-4 cursor-pointer transition-all",
+        "group relative rounded-2xl p-4 cursor-pointer transition-all",
         isSelected
-          ? "ring-amber-300/45 bg-amber-500/[0.05] shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]"
-          : "ring-white/[0.06] hover:ring-white/[0.18] bg-white/[0.015] hover:bg-white/[0.03] backdrop-blur",
+          ? "bg-amber-500/[0.05] shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]"
+          : "bg-white/[0.03] hover:bg-white/[0.05] backdrop-blur",
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -1126,10 +1127,10 @@ function VoiceCard({
         <button
           onClick={(e) => { e.stopPropagation(); onPreview(); }}
           className={cn(
-            "inline-flex items-center justify-center h-8 w-8 rounded-full ring-1 ring-inset transition-all",
+            "inline-flex items-center justify-center h-8 w-8 rounded-full transition-all",
             isPreviewing
-              ? "bg-foreground text-background ring-foreground"
-              : "bg-white/[0.04] ring-white/[0.10] text-foreground/85 hover:bg-white/[0.08]",
+              ? "bg-foreground text-background"
+              : "bg-white/[0.06] text-foreground/85 hover:bg-white/[0.10]",
           )}
         >
           {isPreviewing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -1138,13 +1139,13 @@ function VoiceCard({
       <p className="text-[12px] text-foreground/65 italic line-clamp-2 mb-3">{voice.persona}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/75">
+        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.06] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/75">
           {VOICE_PERSONA_SHORT[voice.group]}
         </span>
-        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/65">
+        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.06] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/65">
           {VOICE_ACCENT_LABELS[voice.accent].split(" · ")[0]}
         </span>
-        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/65">
+        <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-white/[0.06] text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/65">
           {VOICE_PACING_LABELS[voice.pacing].split(" &")[0]}
         </span>
       </div>
@@ -1154,7 +1155,7 @@ function VoiceCard({
       </div>
 
       {isSelected && (
-        <div className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-amber-300 text-background ring-2 ring-[hsl(220_30%_3%)] inline-flex items-center justify-center">
+        <div className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-amber-300 text-background shadow-[0_2px_8px_rgba(0,0,0,0.5)] inline-flex items-center justify-center">
           <Check className="w-3 h-3" strokeWidth={2.5} />
         </div>
       )}
@@ -1279,21 +1280,21 @@ function CharacterStep({
       )}
 
       {source === "upload" && (
-        <div className="rounded-2xl ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur p-6">
+        <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-6">
           <input ref={inputRef} type="file" accept="image/*" onChange={onUploadChange} className="hidden" />
           {uploadedImage ? (
             <div className="flex items-center gap-5">
-              <img src={uploadedImage} alt="Uploaded presenter" className="w-28 h-28 rounded-full object-cover ring-1 ring-inset ring-white/[0.15]" />
+              <img src={uploadedImage} alt="Uploaded presenter" className="w-28 h-28 rounded-full object-cover shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]" />
               <div className="flex-1">
                 <h4 className="text-[14px] font-medium text-foreground/95 mb-1">Your presenter</h4>
                 <p className="text-[11px] text-foreground/55 mb-3">Upload a different photo if you want to retake.</p>
-                <Button size="sm" variant="outline" onClick={onUploadClick} className="rounded-full border-white/[0.10] bg-white/[0.02]">
+                <Button size="sm" variant="ghost" onClick={onUploadClick} className="rounded-full bg-white/[0.04] hover:bg-white/[0.08]">
                   <Upload className="w-3.5 h-3.5 mr-1.5" />Replace photo
                 </Button>
               </div>
             </div>
           ) : (
-            <button onClick={onUploadClick} className="w-full p-8 rounded-xl ring-1 ring-dashed ring-white/[0.12] hover:ring-white/[0.25] hover:bg-white/[0.02] transition-all text-center">
+            <button onClick={onUploadClick} className="w-full p-8 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] transition-all text-center">
               <Upload className="w-7 h-7 mx-auto mb-3 text-foreground/55" />
               <div className="text-[14px] font-medium text-foreground/85 mb-1">Upload presenter photo</div>
               <div className="text-[11px] text-foreground/45">JPG / PNG · max 10MB · front-facing for best results</div>
@@ -1303,7 +1304,7 @@ function CharacterStep({
       )}
 
       {source === "webcam" && (
-        <div className="rounded-2xl ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] backdrop-blur p-8 text-center">
+        <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-8 text-center">
           <Camera className="w-7 h-7 mx-auto mb-3 text-foreground/55" />
           <h4 className="text-[14px] font-medium text-foreground/95 mb-1">Webcam capture coming soon</h4>
           <p className="text-[11px] text-foreground/55">In the meantime, use Upload to provide your photo.</p>
@@ -1336,8 +1337,8 @@ function CharacterRail({
           </span>
         </h3>
         <div className="flex items-center gap-1">
-          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85">‹</button>
-          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85">›</button>
+          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85">‹</button>
+          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85">›</button>
         </div>
       </div>
       <div className="relative -mx-1">
@@ -1353,19 +1354,18 @@ function CharacterRail({
               className="snap-start flex-shrink-0 w-[200px] text-left group"
             >
               <div className={cn(
-                "relative aspect-[3/4] rounded-2xl overflow-hidden ring-1 ring-inset transition-all",
-                selected === c.id ? "ring-amber-300/45 shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]" : "ring-white/[0.06] group-hover:ring-white/[0.18]",
+                "relative aspect-[3/4] rounded-2xl overflow-hidden transition-all",
+                selected === c.id ? "shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]" : "shadow-[0_18px_44px_-22px_rgba(0,0,0,0.7)] group-hover:opacity-95",
               )}>
                 <img src={c.image} alt={c.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_2%)]/85 via-transparent to-transparent" />
                 {selected === c.id && (
-                  <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-amber-300 text-background ring-2 ring-[hsl(220_30%_3%)] inline-flex items-center justify-center">
+                  <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-amber-300 text-background shadow-[0_2px_8px_rgba(0,0,0,0.5)] inline-flex items-center justify-center">
                     <Check className="w-3 h-3" strokeWidth={2.5} />
                   </div>
                 )}
                 <div className="absolute bottom-3 left-3 right-3">
                   <h4 className="text-[14px] font-display italic font-medium text-foreground leading-tight">{c.name}</h4>
-                  <p className="mt-0.5 text-[10.5px] text-foreground/65 italic line-clamp-2">{c.persona}</p>
                 </div>
               </div>
             </button>
@@ -1467,8 +1467,8 @@ function SceneRail({
           </span>
         </h3>
         <div className="flex items-center gap-1">
-          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85">‹</button>
-          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-inset ring-white/[0.06] hover:ring-white/[0.16] bg-white/[0.015] hover:bg-white/[0.04] text-foreground/55 hover:text-foreground/85">›</button>
+          <button onClick={() => scrollBy(-440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85">‹</button>
+          <button onClick={() => scrollBy(440)} className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-foreground/55 hover:text-foreground/85">›</button>
         </div>
       </div>
       <div className="relative -mx-1">
@@ -1484,8 +1484,8 @@ function SceneRail({
               className="snap-start flex-shrink-0 w-[260px] text-left group"
             >
               <div className={cn(
-                "relative aspect-[16/10] rounded-2xl overflow-hidden ring-1 ring-inset transition-all",
-                selected === s.id ? "ring-amber-300/45 shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]" : "ring-white/[0.06] group-hover:ring-white/[0.18]",
+                "relative aspect-[16/10] rounded-2xl overflow-hidden transition-all",
+                selected === s.id ? "shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]" : "shadow-[0_18px_44px_-22px_rgba(0,0,0,0.7)] group-hover:opacity-95",
               )}>
                 <img src={s.image} alt={s.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_2%)]/85 via-[hsl(220_30%_3%)]/15 to-transparent" />
@@ -1496,25 +1496,19 @@ function SceneRail({
                     <span className="inline-flex items-center h-5 px-1.5 rounded-md bg-amber-500/85 text-foreground text-[9px] font-mono uppercase tracking-[0.18em]">Featured</span>
                   )}
                   {highlightPersona && s.voicePairings.includes(highlightPersona) && (
-                    <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/25 ring-1 ring-inset ring-emerald-300/40 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
+                    <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/25 text-emerald-100 text-[9px] font-mono uppercase tracking-[0.18em] backdrop-blur">
                       <Star className="w-2.5 h-2.5" />Pairs
                     </span>
                   )}
                 </div>
                 {selected === s.id && (
-                  <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-amber-300 text-background ring-2 ring-[hsl(220_30%_3%)] inline-flex items-center justify-center">
+                  <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-amber-300 text-background shadow-[0_2px_8px_rgba(0,0,0,0.5)] inline-flex items-center justify-center">
                     <Check className="w-3 h-3" strokeWidth={2.5} />
                   </div>
                 )}
 
                 <div className="absolute bottom-2 left-2 right-2">
                   <h4 className="text-[14px] font-display italic font-medium text-foreground leading-tight line-clamp-1">{s.name}</h4>
-                  <p className="mt-0.5 text-[10.5px] text-foreground/65 italic line-clamp-1">{s.description}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1 text-[9px] font-mono uppercase tracking-[0.16em] text-foreground/55">
-                    <span>{SCENE_LIGHTING_LABELS[s.lighting].split(" ·")[0]}</span>
-                    <span>·</span>
-                    <span>{PRODUCTION_TIER_LABELS[s.productionTier].split(" ·")[0]}</span>
-                  </div>
                 </div>
               </div>
             </button>
@@ -1537,14 +1531,14 @@ function CompositePreview({
 }) {
   const aspectClass = aspectRatio === "16:9" ? "aspect-video" : aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-square";
   return (
-    <div className={cn("relative rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] bg-[hsl(220_30%_5%)]", aspectClass)}>
+    <div className={cn("relative rounded-2xl overflow-hidden bg-[hsl(220_30%_5%)] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]", aspectClass)}>
       {sceneImage && (
         <img src={sceneImage} alt="Scene preview" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220_30%_2%)]/40 to-transparent" />
       {characterImage ? (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5">
-          <img src={characterImage} alt="Character preview" loading="lazy" className="h-24 w-24 rounded-full object-cover ring-2 ring-white/30 shadow-[0_15px_30px_rgba(0,0,0,0.55)]" />
+          <img src={characterImage} alt="Character preview" loading="lazy" className="h-24 w-24 rounded-full object-cover shadow-[0_15px_30px_rgba(0,0,0,0.55)]" />
           <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-foreground/75 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur">Preview</span>
         </div>
       ) : (

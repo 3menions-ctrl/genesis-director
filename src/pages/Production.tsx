@@ -1400,7 +1400,7 @@ const transitionsData = useMemo(() =>
                 actions={
                   <button
                     onClick={() => navigate('/projects')}
-                    className="h-9 px-4 rounded-full border border-white/[0.08] bg-glass hover:bg-glass-active text-sm text-white/70 hover:text-white transition-colors"
+                    className="h-9 px-4 rounded-full bg-glass hover:bg-glass-active text-sm text-white/70 hover:text-white transition-colors"
                   >
                     Back to library
                   </button>
@@ -1412,7 +1412,7 @@ const transitionsData = useMemo(() =>
               {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
-                    <Card className="glass-card ring-1 ring-primary/30">
+                    <Card className="glass-card bg-white/[0.03]">
                       <CardContent className="p-6">
                         <ScriptReviewPanel
                           shots={scriptShots}
@@ -1509,7 +1509,7 @@ const transitionsData = useMemo(() =>
                   const STALL_SECONDS = 180;
                   if (elapsedTime >= STALL_SECONDS && !hasCompletedClips) {
                     return (
-                      <div className="rounded-2xl border border-amber-400/30 bg-amber-500/[0.04] p-4 flex items-start gap-3">
+                      <div className="rounded-2xl bg-amber-500/[0.06] p-4 flex items-start gap-3">
                         <Clock className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="text-amber-200 text-[13px] font-medium">
@@ -1587,7 +1587,7 @@ const transitionsData = useMemo(() =>
                   draft awaiting review so the user lands on the
                   approval surface first. */}
               {projectId && (isComplete || completedClips > 0) && (
-                <div className="mt-6 rounded-2xl ring-1 ring-inset ring-accent/35 bg-[hsl(var(--accent)/0.06)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                <div className="mt-6 rounded-2xl bg-[hsl(var(--accent)/0.08)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
                   <div className="min-w-0 flex-1">
                     <p
                       className="font-display italic text-[18px] text-foreground/95 leading-snug"
@@ -1604,7 +1604,7 @@ const transitionsData = useMemo(() =>
                       to={`/editor/${projectId}?tab=stage`}
                       className={cn(
                         "inline-flex items-center gap-2 px-4 h-10 rounded-full",
-                        "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",
+                        "bg-[hsl(var(--accent)/0.16)] text-accent",
                         "text-[13px] font-display italic",
                         "hover:bg-[hsl(var(--accent)/0.24)] transition-colors",
                       )}
@@ -1616,7 +1616,7 @@ const transitionsData = useMemo(() =>
                       to={`/editor/${projectId}?tab=script`}
                       className={cn(
                         "inline-flex items-center gap-2 px-4 h-10 rounded-full",
-                        "bg-white/[0.03] text-foreground/85 ring-1 ring-inset ring-white/[0.08]",
+                        "bg-white/[0.04] text-foreground/85",
                         "text-[13px]",
                         "hover:bg-white/[0.07] transition-colors",
                       )}
@@ -1701,7 +1701,7 @@ const transitionsData = useMemo(() =>
 
               {/* Stitch Progress - Simple inline message */}
               {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white/5">
                   <CardContent className="p-4 flex items-center gap-3">
                     <Loader2 className="w-5 h-5 animate-spin text-primary" />
                     <span className="text-white/70">Stitching video clips together...</span>

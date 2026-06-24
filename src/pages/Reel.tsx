@@ -555,8 +555,8 @@ export default function Reel() {
             className={cn(
               "mt-8 inline-flex items-center gap-2 px-5 py-3",
               RADIUS.chip,
-              "border border-border/40 text-foreground/85",
-              "transition-colors hover:border-accent/40",
+              "bg-white/[0.03] text-foreground/85",
+              "transition-colors hover:bg-white/[0.06]",
             )}
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
@@ -686,10 +686,10 @@ export default function Reel() {
                     <img
                       src={reel.creator.avatar_url}
                       alt=""
-                      className="h-7 w-7 rounded-full object-cover ring-1 ring-inset ring-border/40"
+                      className="h-7 w-7 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="h-7 w-7 rounded-full bg-[hsl(var(--foreground)/0.06)] ring-1 ring-inset ring-border/40" />
+                    <div className="h-7 w-7 rounded-full bg-[hsl(var(--foreground)/0.06)]" />
                   )}
                   <span className="text-[13px]">
                     {reel.creator.display_name || "Anonymous"}
@@ -850,7 +850,7 @@ export default function Reel() {
             <div
               className={cn(
                 "flex items-center justify-between gap-3 rounded-xl",
-                "border border-border/40 bg-[hsl(var(--foreground)/0.03)] px-4 py-3",
+                "bg-white/[0.03] px-4 py-3",
               )}
             >
               <code className="truncate text-[13px] text-foreground/85">
@@ -864,9 +864,9 @@ export default function Reel() {
                   toast.success("Link copied");
                 }}
                 className={cn(
-                  "shrink-0 rounded-full border border-accent/40 bg-[hsl(var(--accent)/0.08)]",
+                  "shrink-0 rounded-full bg-[hsl(var(--accent)/0.12)]",
                   "px-3 py-1.5 text-[12px] text-foreground",
-                  "transition-colors hover:bg-[hsl(var(--accent)/0.16)]",
+                  "transition-colors hover:bg-[hsl(var(--accent)/0.2)]",
                 )}
               >
                 <Sparkles className="mr-1 inline h-3 w-3 text-accent" />
@@ -903,10 +903,10 @@ function ActionPill({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-2 rounded-full px-4 py-2.5",
-        "border backdrop-blur-md transition-all",
+        "backdrop-blur-md transition-all",
         tone === "accent"
-          ? "border-accent/40 bg-[hsl(var(--accent)/0.08)] hover:border-accent/60 hover:bg-[hsl(var(--accent)/0.15)]"
-          : "border-border/40 bg-[hsl(var(--foreground)/0.02)] hover:border-accent/40 hover:bg-[hsl(var(--foreground)/0.04)]",
+          ? "bg-[hsl(var(--accent)/0.12)] hover:bg-[hsl(var(--accent)/0.2)]"
+          : "bg-[hsl(var(--foreground)/0.03)] hover:bg-[hsl(var(--foreground)/0.06)]",
       )}
     >
       <Icon

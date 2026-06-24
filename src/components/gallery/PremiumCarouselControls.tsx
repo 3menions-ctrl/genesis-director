@@ -46,7 +46,7 @@
              {/* Glow effect */}
              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity scale-150" />
              
-             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
+             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
                <ChevronLeft className="w-6 h-6 md:w-7 md:h-7" />
              </div>
            </motion.button>
@@ -67,7 +67,7 @@
              {/* Glow effect */}
              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity scale-150" />
              
-             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl border border-white/[0.08] hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
+             <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-glass hover:bg-glass-active backdrop-blur-2xl flex items-center justify-center text-white/50 hover:text-white transition-all duration-300 shadow-2xl shadow-black/50">
                <ChevronRight className="w-6 h-6 md:w-7 md:h-7" />
              </div>
            </motion.button>
@@ -76,7 +76,7 @@
        
        {/* Progress dots */}
        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-xl border border-white/[0.06]">
+         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-xl">
            {Array.from({ length: totalCount }).map((_, idx) => (
              <motion.button
                key={idx}
@@ -92,10 +92,10 @@
              >
               {/* Active glow - STABILITY: Removed layoutId which caused crashes */}
                 {idx === currentIndex && (
-                  <div 
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-200"
+                  <div
+                    className="absolute inset-0 rounded-full bg-white transition-all duration-200"
                     style={{
-                      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
+                      boxShadow: '0 0 16px rgba(255, 255, 255, 0.5)',
                     }}
                   />
                 )}
@@ -116,7 +116,7 @@
          animate={{ opacity: 1, y: 0 }}
          transition={{ delay: 0.6 }}
        >
-         <div className="flex flex-col items-end gap-1.5 px-4 py-3 rounded-xl bg-black/40 backdrop-blur-xl border border-white/[0.06]">
+         <div className="flex flex-col items-end gap-1.5 px-4 py-3 rounded-xl bg-black/40 backdrop-blur-xl">
            <div className="flex items-baseline gap-1">
              <span className="text-white text-2xl font-light tabular-nums">
                {String(currentIndex + 1).padStart(2, '0')}

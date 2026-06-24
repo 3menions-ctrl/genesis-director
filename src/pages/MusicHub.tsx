@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
 import { StudioHero } from "@/components/studio/StudioHero";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { useMediaLibrary, type MediaAsset } from "@/hooks/useMediaLibrary";
@@ -240,9 +241,6 @@ function PresetCard({ preset, onPick }: { preset: MusicPreset; onPick: () => voi
           className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-[1.04] transition-all duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-sm text-[9px] font-mono uppercase tracking-[0.28em] text-white/85">
-          {preset.vibe}
-        </div>
         <div className="absolute bottom-3 left-4 right-4">
           <div className="text-[18px] text-white font-light" style={{ fontFamily: "'Fraunces', serif" }}>
             {preset.name}
@@ -293,7 +291,7 @@ function MyTracksPanel({
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading your tracks…</span>
         </div>
       ) : assets.length === 0 ? (
-        <div className="text-center py-12 max-w-md mx-auto rounded-2xl bg-white/[0.03] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+        <div className="text-center py-12 max-w-md mx-auto rounded-2xl bg-white/[0.03]">
           <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
           <h3 className="font-display italic text-[20px] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No tracks yet.</h3>
           <p className="text-muted-foreground text-[13px] mb-5">Pick a cinematic style above to generate your first score, or upload music you've made elsewhere — MP3, WAV, M4A, FLAC.</p>
@@ -345,7 +343,7 @@ function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: strin
       <div className="flex items-center gap-3 mb-3">
         {/* Cover — real artwork if present, else a deterministic gradient. */}
         <div
-          className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-white/85 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+          className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-white/85"
           style={cover ? undefined : { background: coverGradient(title) }}
         >
           {cover ? (
@@ -468,7 +466,7 @@ function UploadTrackDialog({ open, onClose }: { open: boolean; onClose: () => vo
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0] ?? null); }}
-              className="w-full rounded-2xl border border-dashed border-white/[0.14] hover:border-accent/50 bg-white/[0.02] hover:bg-white/[0.04] transition-colors py-10 flex flex-col items-center justify-center gap-3"
+              className="w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors py-10 flex flex-col items-center justify-center gap-3"
             >
               <UploadCloud className="w-7 h-7 text-muted-foreground" strokeWidth={1.4} />
               <span className="text-[13px] text-foreground/80">Click to choose audio, or drop a file here</span>

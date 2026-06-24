@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CenterLine } from "@/components/ui/CenterLine";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
@@ -237,13 +238,13 @@ export default function Inbox() {
 
             {/* Quick actions */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link to="/search?tab=people" className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] ring-1 ring-inset ring-white/[0.08] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors">
+              <Link to="/search?tab=people" className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors">
                 <Plus className="h-3.5 w-3.5" />New thread
               </Link>
               <button
                 type="button"
                 onClick={() => setLane("rooms")}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] ring-1 ring-inset ring-white/[0.08] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors"
               >
                 <Users className="h-3.5 w-3.5" />Rooms
               </button>
@@ -336,13 +337,13 @@ function LaneNavItem({
         <motion.span
           aria-hidden
           layoutId="inbox-lane-active"
-          className="absolute inset-y-1 left-0 w-[2px] rounded-full bg-accent"
-          style={{ boxShadow: "0 0 12px hsl(var(--accent) / 0.65)" }}
+          className="absolute inset-y-1 left-0 w-[2px] rounded-full bg-white"
+          style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
         />
       )}
       <Icon
-        className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-accent" : "text-muted-foreground/55 group-hover/m:text-foreground/85")}
+        className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-foreground" : "text-muted-foreground/55 group-hover/m:text-foreground/85")}
         strokeWidth={1.5}
       />
       <span className="min-w-0 flex-1">
@@ -360,7 +361,7 @@ function LaneNavItem({
         <span
           className={cn(
             "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-mono tabular-nums transition-colors",
-            active ? "text-accent bg-accent/12" : "text-foreground/70 bg-white/[0.04]"
+            active ? "text-foreground bg-white/[0.08]" : "text-foreground/70 bg-white/[0.04]"
           )}
         >
           {unread > 99 ? "99+" : unread}
@@ -474,7 +475,7 @@ function PeopleLane({ onOpen, userId }: { onOpen: (partnerId: string) => void; u
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/55" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search messages…" className="pl-9" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search messages…" className="pl-9 border-transparent bg-white/[0.04]" />
         </div>
         <Button
           variant="ghost"
@@ -498,7 +499,7 @@ function PeopleLane({ onOpen, userId }: { onOpen: (partnerId: string) => void; u
           cta={rows.length === 0 ? { label: "Find people", to: "/search?tab=people" } : undefined}
         />
       ) : (
-        <ul className="rounded-2xl bg-white/[0.015] ring-1 ring-inset ring-white/[0.06] divide-y divide-white/[0.04] overflow-hidden">
+        <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
           {filtered.map((r) => {
             const isPinned = pinned.has(r.partner_id);
             const isArchived = archived.has(r.partner_id);
@@ -531,7 +532,7 @@ function PeopleLane({ onOpen, userId }: { onOpen: (partnerId: string) => void; u
                     </span>
                   )}
                 </button>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center gap-1 bg-[hsl(220_28%_5%/0.95)] backdrop-blur-md rounded-full ring-1 ring-inset ring-white/[0.08] px-1.5 py-1">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center gap-1 bg-[hsl(220_28%_5%/0.95)] backdrop-blur-md rounded-full shadow-[0_8px_24px_-8px_hsl(0_0%_0%/0.7)] px-1.5 py-1">
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); void togglePin(r.partner_id); }}
@@ -581,18 +582,18 @@ function NewDmButton({ onOpen }: { onOpen: (partnerId: string) => void }) {
   }, [open, query]);
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}><Plus className="h-3.5 w-3.5 mr-2" />New message</Button>
+      <Button variant="ghost" onClick={() => setOpen(true)}><Plus className="h-3.5 w-3.5 mr-2" />New message</Button>
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setQuery(""); setResults([]); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Start a conversation</DialogTitle>
           </DialogHeader>
-          <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or @handle" />
+          <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or @handle" className="border-transparent bg-white/[0.04]" />
           <div className="min-h-[120px]">
             {loading ? (
               <div className="py-6 flex items-center justify-center gap-2 text-muted-foreground/65"><Loader2 className="h-4 w-4 animate-spin" />Searching…</div>
             ) : (
-              <ul className="divide-y divide-white/[0.04]">
+              <ul className="space-y-0.5">
                 {results.map((r) => (
                   <li key={r.id}>
                     <button
@@ -839,7 +840,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
       }}
     >
       {/* Header */}
-      <header className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
+      <header className="px-5 py-4 flex items-center gap-3">
         <button type="button" onClick={onClose} className="text-muted-foreground/65 hover:text-foreground transition-colors" aria-label="Back">
           <X className="h-4 w-4" />
         </button>
@@ -849,7 +850,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
               ? <img src={partner.avatar_url} alt="" className="h-full w-full object-cover" />
               : <div className="h-full w-full grid place-items-center text-foreground/85 text-[13px] font-mono">{(partnerName[0] ?? "?").toUpperCase()}</div>}
           </div>
-          {partnerOnline && <span aria-label="Online" className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[hsl(220_28%_5%)]" />}
+          {partnerOnline && <span aria-label="Online" className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 0 2px hsl(220 28% 5%)" }} />}
         </div>
         <div className="min-w-0 flex-1">
           <Link to={`/c/${partner?.username ? `@${partner.username}` : partnerId}`} className="text-[14px] font-medium text-foreground hover:text-accent transition-colors block truncate">
@@ -859,10 +860,10 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
             {partnerTyping ? <span className="text-accent">typing…</span> : (partner?.tagline ?? (partnerOnline ? "Online" : "Offline"))}
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setShowTipDialog(true)}>
+        <Button size="sm" variant="ghost" onClick={() => setShowTipDialog(true)}>
           <Coins className="h-3.5 w-3.5 mr-1.5 text-amber-300" />Tip
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setShowAiDialog(true)}>
+        <Button size="sm" variant="ghost" onClick={() => setShowAiDialog(true)}>
           <Sparkles className="h-3.5 w-3.5 mr-1.5 text-accent" />AI reply
         </Button>
       </header>
@@ -899,7 +900,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
 
       {/* Reply preview */}
       {replyTo && (
-        <div className="px-5 py-2 border-t border-white/[0.05] bg-white/[0.02] flex items-center gap-2">
+        <div className="px-5 py-2 bg-white/[0.02] flex items-center gap-2">
           <Reply className="h-3.5 w-3.5 text-muted-foreground/65" />
           <div className="min-w-0 flex-1 text-[12px] text-muted-foreground/85 truncate">
             Replying to <span className="text-foreground/95">{replyTo.content}</span>
@@ -911,7 +912,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
       )}
 
       {/* Composer */}
-      <footer className="px-5 py-4 border-t border-white/[0.05] flex items-end gap-2">
+      <footer className="px-5 py-4 flex items-end gap-2">
         <textarea
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
@@ -919,7 +920,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
           }}
           placeholder="Say something…"
-          className="flex-1 resize-none rounded-xl bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] px-4 py-3 text-[14px] text-foreground placeholder:text-muted-foreground/45 focus:outline-none focus:ring-accent/45 min-h-[44px] max-h-[160px]"
+          className="flex-1 resize-none rounded-xl bg-white/[0.04] hover:bg-white/[0.05] border-transparent px-4 py-3 text-[14px] text-foreground placeholder:text-muted-foreground/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10 min-h-[44px] max-h-[160px]"
           rows={1}
         />
         <Button onClick={() => void send()} disabled={sending || !draft.trim()} className="h-[44px]">
@@ -976,8 +977,8 @@ function Bubble({
     >
       <div className={cn("max-w-[78%] flex flex-col gap-1", isMe ? "items-end" : "items-start")}>
         {replyParent && (
-          <div className={cn("max-w-full text-[11px] text-muted-foreground/65 truncate px-3 py-1 rounded-lg bg-white/[0.025] border-l-2",
-            isMe ? "border-accent/65" : "border-white/30")}>
+          <div className={cn("max-w-full text-[11px] text-muted-foreground/65 truncate px-3 py-1 rounded-lg",
+            isMe ? "bg-accent/[0.08]" : "bg-white/[0.04]")}>
             <Reply className="h-3 w-3 inline-block mr-1.5 opacity-65" />
             {replyParent.content}
           </div>
@@ -1000,9 +1001,9 @@ function Bubble({
           <div className={cn(
             "px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed",
             isMe
-              ? "bg-accent/22 text-foreground rounded-br-md ring-1 ring-inset ring-accent/25"
-              : "bg-white/[0.05] text-foreground rounded-bl-md ring-1 ring-inset ring-white/[0.06]",
-            msg.tip_amount && "ring-amber-300/45 bg-gradient-to-br from-amber-400/12 to-white/[0.04]"
+              ? "bg-accent/22 text-foreground rounded-br-md"
+              : "bg-white/[0.05] text-foreground rounded-bl-md",
+            msg.tip_amount && "bg-gradient-to-br from-amber-400/16 to-white/[0.05]"
           )}>
             {msg.tip_amount && (
               <div className={cn(TYPE_META, "text-amber-200 tracking-[0.22em] mb-1 inline-flex items-center gap-1.5")}>
@@ -1038,8 +1039,8 @@ function Bubble({
                 className={cn(
                   "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] transition-colors",
                   info.mine
-                    ? "bg-accent/22 ring-1 ring-inset ring-accent/35 text-foreground"
-                    : "bg-white/[0.05] hover:bg-white/[0.08] text-foreground/90 ring-1 ring-inset ring-white/[0.06]"
+                    ? "bg-accent/25 text-foreground"
+                    : "bg-white/[0.05] hover:bg-white/[0.08] text-foreground/90"
                 )}
               >
                 <span>{emoji}</span>
@@ -1136,18 +1137,19 @@ function TipDialog({ open, onClose, onSend, recipientName }: { open: boolean; on
                 type="button"
                 onClick={() => setAmount(p)}
                 className={cn(
-                  "px-4 py-2 rounded-xl ring-1 ring-inset transition-colors text-[13px] font-mono tabular-nums",
+                  "relative px-4 py-2 rounded-xl transition-colors text-[13px] font-mono tabular-nums",
                   amount === p
-                    ? "ring-amber-300/65 bg-amber-400/12 text-amber-100"
-                    : "ring-white/[0.08] text-foreground/85 hover:bg-white/[0.03]"
+                    ? "bg-white/[0.06] text-foreground"
+                    : "text-foreground/70 hover:bg-white/[0.03]"
                 )}
               >
                 {p} cr
+                {amount === p && <CenterLine />}
               </button>
             ))}
           </div>
-          <Input type="number" min={1} max={10000} value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value) || 1))} />
-          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Add a note (optional)" maxLength={140} />
+          <Input type="number" min={1} max={10000} value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value) || 1))} className="border-transparent bg-white/[0.04]" />
+          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Add a note (optional)" maxLength={140} className="border-transparent bg-white/[0.04]" />
           <p className="text-[11.5px] text-muted-foreground/65">90% goes to {recipientName}, 10% to the platform.</p>
         </div>
         <DialogFooter>
@@ -1219,15 +1221,16 @@ function AiVideoReplyDialog({
                 type="button"
                 onClick={() => setTone(t.id)}
                 className={cn(
-                  "px-4 py-2 rounded-xl ring-1 ring-inset text-[12px] font-mono uppercase tracking-[0.22em] transition-colors",
-                  tone === t.id ? "ring-accent/65 bg-accent/12 text-foreground" : "ring-white/[0.08] text-foreground/80 hover:bg-white/[0.03]"
+                  "relative px-4 py-2 rounded-xl text-[12px] font-mono uppercase tracking-[0.22em] transition-colors",
+                  tone === t.id ? "bg-white/[0.06] text-foreground" : "text-foreground/70 hover:bg-white/[0.03]"
                 )}
               >
                 {t.label}
+                {tone === t.id && <CenterLine />}
               </button>
             ))}
           </div>
-          <div className="rounded-xl bg-white/[0.025] ring-1 ring-inset ring-white/[0.06] p-4 text-[14px] leading-relaxed italic text-foreground/95" style={{ fontFamily: "'Fraunces', serif" }}>
+          <div className="rounded-xl bg-white/[0.04] p-4 text-[14px] leading-relaxed italic text-foreground/95" style={{ fontFamily: "'Fraunces', serif" }}>
             {draft}
           </div>
           <p className="text-[11.5px] text-muted-foreground/65">
@@ -1236,7 +1239,7 @@ function AiVideoReplyDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={generating}>Cancel</Button>
-          <Button variant="outline" onClick={() => onPrompt(draft)} disabled={generating}>
+          <Button variant="ghost" onClick={() => onPrompt(draft)} disabled={generating}>
             <Send className="h-3.5 w-3.5 mr-2" />Use as text
           </Button>
           <Button onClick={() => void generateVideo()} disabled={generating}>
@@ -1371,7 +1374,7 @@ function NotificationsLane({
           {grouped.map(([day, items]) => (
             <section key={day}>
               <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-3")}>{day}</div>
-              <ul className="divide-y divide-white/[0.04]">
+              <ul className="space-y-0.5">
                 {items.map((row) => (
                   <li key={row.id}>
                     <button
@@ -1468,7 +1471,7 @@ function BrandInquiryDetailDialog({
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="flex items-center gap-3 pb-4 border-b border-white/[0.05]">
+            <div className="flex items-center gap-3 pb-4">
               <Avatar url={sender?.avatar_url ?? null} fallback={sender?.display_name?.[0] ?? "?"} />
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] text-foreground font-medium">{sender?.display_name ?? "Unknown sender"}</div>
@@ -1489,7 +1492,7 @@ function BrandInquiryDetailDialog({
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => void resolve("archived")} disabled={busy || !row}>Archive</Button>
-          <Button variant="outline" onClick={() => void resolve("declined")} disabled={busy || !row}>Decline</Button>
+          <Button variant="ghost" onClick={() => void resolve("declined")} disabled={busy || !row}>Decline</Button>
           <Button onClick={() => void resolve("accepted")} disabled={busy || !row}>
             <Check className="h-3.5 w-3.5 mr-2" />Accept & reply
           </Button>
@@ -1501,7 +1504,7 @@ function BrandInquiryDetailDialog({
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: "amber" }) {
   return (
-    <div className="rounded-xl bg-white/[0.025] ring-1 ring-inset ring-white/[0.06] p-4">
+    <div className="rounded-xl bg-white/[0.04] p-4">
       <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
       <div className={cn("mt-1 font-display italic tabular-nums leading-none", tone === "amber" ? "text-amber-200" : "text-foreground")}
         style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(1.4rem, 2.2vw, 1.9rem)" }}>
@@ -1547,7 +1550,7 @@ function NotificationIcon({ type }: { type: string }) {
   const meta = map[type] ?? { Icon: Bell, tone: "text-muted-foreground/70" };
   const Icon = meta.Icon;
   return (
-    <div className={cn("mt-0.5 h-9 w-9 rounded-full grid place-items-center bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] shrink-0", meta.tone)}>
+    <div className={cn("mt-0.5 h-9 w-9 rounded-full grid place-items-center bg-white/[0.04] shrink-0", meta.tone)}>
       <Icon className="h-4 w-4" strokeWidth={1.6} />
     </div>
   );
@@ -1579,7 +1582,7 @@ function EmptyState({
         }}
       />
       <div className="relative">
-        <div className="mx-auto h-16 w-16 rounded-full grid place-items-center bg-white/[0.025] ring-1 ring-inset ring-white/[0.08]">
+        <div className="mx-auto h-16 w-16 rounded-full grid place-items-center bg-white/[0.04]">
           <Icon className="h-6 w-6 text-accent/85" strokeWidth={1.3} />
         </div>
         <div
@@ -1591,11 +1594,11 @@ function EmptyState({
         {sub && <p className="mt-3 text-[13.5px] text-muted-foreground/70 max-w-md mx-auto leading-relaxed">{sub}</p>}
         {cta && (
           cta.to ? (
-            <Link to={cta.to} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/12 hover:bg-accent/20 ring-1 ring-inset ring-accent/35 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
+            <Link to={cta.to} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/15 hover:bg-accent/25 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
               {cta.label} <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
-            <button type="button" onClick={cta.onClick} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/12 hover:bg-accent/20 ring-1 ring-inset ring-accent/35 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
+            <button type="button" onClick={cta.onClick} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/15 hover:bg-accent/25 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
               {cta.label} <ChevronRight className="h-3.5 w-3.5" />
             </button>
           )
@@ -1828,7 +1831,7 @@ function AllLane({
       {grouped.map(([day, dayItems]) => (
         <section key={day}>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-3")}>{day}</div>
-          <ul className="divide-y divide-white/[0.04]">
+          <ul className="space-y-0.5">
             {dayItems.map((it) => (
               <li key={`${it.kind}-${it.ref_id}`}>
                 <FeedItem item={it} onOpen={() => openItem(it)} onAccept={accept} onReject={reject} />
@@ -1857,7 +1860,6 @@ function FeedItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="text-[14px] font-medium text-foreground truncate">{p.display_name ?? "Anonymous"}</span>
-            <span className={cn(TYPE_META, "text-accent tracking-[0.20em] shrink-0")}>DM</span>
             <span className={cn(TYPE_META, "ml-auto shrink-0 text-muted-foreground/55 tracking-[0.18em]")}>{relTime(item.at)}</span>
           </div>
           <div className="text-[13px] text-muted-foreground/85 truncate mt-0.5">{p.preview ?? ""}</div>
@@ -1874,16 +1876,13 @@ function FeedItem({
     return (
       <button type="button" onClick={onOpen} className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
         <div className={cn("h-10 w-10 rounded-full grid place-items-center shrink-0",
-          p.kind === "patron" ? "bg-amber-400/12 text-amber-300 ring-1 ring-inset ring-amber-300/25"
-                              : "bg-accent/12 text-accent ring-1 ring-inset ring-accent/25")}>
+          p.kind === "patron" ? "bg-amber-400/12 text-amber-300"
+                              : "bg-accent/12 text-accent")}>
           {p.kind === "patron" ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="text-[14px] font-medium text-foreground truncate">{p.name}</span>
-            <span className={cn(TYPE_META, p.kind === "patron" ? "text-amber-300" : "text-accent", "tracking-[0.20em] shrink-0")}>
-              {p.kind === "patron" ? "PATRON ROOM" : "CREW ROOM"}
-            </span>
             <span className={cn(TYPE_META, "ml-auto shrink-0 text-muted-foreground/55 tracking-[0.18em]")}>{relTime(item.at)}</span>
           </div>
           <div className="text-[13px] text-muted-foreground/85 truncate mt-0.5">{p.preview ?? p.description ?? "No messages yet."}</div>
@@ -1900,12 +1899,11 @@ function FeedItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="text-[14px] font-medium text-foreground truncate">{p.display_name ?? "Someone"}</span>
-            <span className={cn(TYPE_META, "text-amber-300 tracking-[0.20em] shrink-0")}>WANTS TO FOLLOW</span>
             <span className={cn(TYPE_META, "ml-auto shrink-0 text-muted-foreground/55 tracking-[0.18em]")}>{relTime(item.at)}</span>
           </div>
           {p.username && <div className="text-[12px] text-muted-foreground/65 truncate mt-0.5">@{p.username}</div>}
         </div>
-        <Button size="sm" variant="outline" onClick={() => void onReject(p.request_id)}>Decline</Button>
+        <Button size="sm" variant="ghost" onClick={() => void onReject(p.request_id)}>Decline</Button>
         <Button size="sm" onClick={() => void onAccept(p.request_id)}>Accept</Button>
       </div>
     );
@@ -1915,7 +1913,7 @@ function FeedItem({
     const p = item.payload;
     return (
       <button type="button" onClick={onOpen} className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
-        <div className="h-10 w-10 rounded-full grid place-items-center shrink-0 bg-amber-400/12 text-amber-200 ring-1 ring-inset ring-amber-300/25">
+        <div className="h-10 w-10 rounded-full grid place-items-center shrink-0 bg-amber-400/12 text-amber-200">
           <Briefcase className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
@@ -2003,7 +2001,7 @@ function ReelPreview({ reelId }: { reelId: string }) {
   return (
     <Link
       to={`/r/${reel.id}`}
-      className="not-prose mb-2 block rounded-xl overflow-hidden ring-1 ring-inset ring-white/[0.08] hover:ring-accent/45 transition-all"
+      className="not-prose mb-2 block rounded-xl overflow-hidden bg-white/[0.04] hover:bg-white/[0.07] transition-all"
     >
       <div className="relative aspect-video bg-black">
         {reel.thumbnail_url ? (
@@ -2028,7 +2026,7 @@ function ReelPreview({ reelId }: { reelId: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function AiVideoPreview({ url }: { url: string }) {
   return (
-    <div className="mb-2 rounded-xl overflow-hidden ring-1 ring-inset ring-accent/45">
+    <div className="mb-2 rounded-xl overflow-hidden bg-accent/[0.06]">
       <video controls playsInline src={url} className="w-full max-w-[420px]" />
       <div className={cn(TYPE_META, "px-3 py-1 text-accent/85 tracking-[0.20em] bg-accent/[0.06] inline-flex items-center gap-1.5")}>
         <Sparkles className="h-3 w-3" />AI VIDEO REPLY
@@ -2116,7 +2114,7 @@ function RoomGroup({ title, rooms, onOpen }: { title: string; rooms: RoomRow[]; 
   return (
     <section>
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-3")}>{title}</div>
-      <ul className="rounded-2xl bg-white/[0.015] ring-1 ring-inset ring-white/[0.06] divide-y divide-white/[0.04] overflow-hidden">
+      <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
         {rooms.map((r) => (
           <li key={r.id}>
             <button
@@ -2125,8 +2123,8 @@ function RoomGroup({ title, rooms, onOpen }: { title: string; rooms: RoomRow[]; 
               className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
             >
               <div className={cn("h-11 w-11 rounded-full grid place-items-center text-[13px] font-mono shrink-0",
-                r.kind === "patron" ? "bg-amber-400/12 text-amber-300 ring-1 ring-inset ring-amber-300/25"
-                                    : "bg-accent/12 text-accent ring-1 ring-inset ring-accent/25")}>
+                r.kind === "patron" ? "bg-amber-400/12 text-amber-300"
+                                    : "bg-accent/12 text-accent")}>
                 {r.kind === "patron" ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -2215,7 +2213,7 @@ function NewRoomButton({ onCreated }: { onCreated: () => void | Promise<void> })
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}><Plus className="h-3 w-3 mr-1.5" />New room</Button>
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}><Plus className="h-3 w-3 mr-1.5" />New room</Button>
       <Dialog open={open} onOpenChange={(v) => !v && setOpen(false)}>
         <DialogContent>
           <DialogHeader>
@@ -2225,9 +2223,10 @@ function NewRoomButton({ onCreated }: { onCreated: () => void | Promise<void> })
             <div className="flex gap-2">
               {(["patron", "crew"] as const).map((k) => (
                 <button key={k} type="button" onClick={() => setKind(k)} className={cn(
-                  "flex-1 px-4 py-3 rounded-xl ring-1 ring-inset transition-colors text-left",
-                  kind === k ? "ring-accent/65 bg-accent/12" : "ring-white/[0.08] hover:bg-white/[0.03]"
+                  "relative flex-1 px-4 py-3 rounded-xl transition-colors text-left",
+                  kind === k ? "bg-white/[0.06]" : "bg-white/[0.02] hover:bg-white/[0.04]"
                 )}>
+                  {kind === k && <CenterLine />}
                   <div className="text-[13px] font-medium inline-flex items-center gap-2">
                     {k === "patron" ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : <Users className="h-3.5 w-3.5 text-accent" />}
                     {k === "patron" ? "Patron channel" : "Crew room"}
@@ -2238,18 +2237,18 @@ function NewRoomButton({ onCreated }: { onCreated: () => void | Promise<void> })
                 </button>
               ))}
             </div>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "patron" ? "Patron lounge" : "Sunset Cinema crew"} maxLength={80} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "patron" ? "Patron lounge" : "Sunset Cinema crew"} maxLength={80} className="border-transparent bg-white/[0.04]" />
             {kind === "patron" && (
               <div>
                 <div className="text-[12px] text-muted-foreground/85 mb-2">Minimum monthly credits to access</div>
-                <Input type="number" min={0} value={minCredits} onChange={(e) => setMinCredits(Number(e.target.value) || 0)} />
+                <Input type="number" min={0} value={minCredits} onChange={(e) => setMinCredits(Number(e.target.value) || 0)} className="border-transparent bg-white/[0.04]" />
                 <div className="mt-1.5 text-[11px] text-muted-foreground/65">Set 0 for all patrons. Set higher to gate to top tiers only.</div>
               </div>
             )}
             {kind === "crew" && projects.length > 0 && (
               <div>
                 <div className="text-[12px] text-muted-foreground/85 mb-2">Anchor to a project</div>
-                <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full h-10 rounded-md bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] px-3 text-[13px]">
+                <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full h-10 rounded-md bg-white/[0.04] border-transparent px-3 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10">
                   <option value="">(no anchor)</option>
                   {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
                 </select>
@@ -2355,11 +2354,11 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
         boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.07)",
       }}
     >
-      <header className="px-5 py-4 border-b border-white/[0.05] flex items-center gap-3">
+      <header className="px-5 py-4 flex items-center gap-3">
         <button type="button" onClick={onClose} className="text-muted-foreground/65 hover:text-foreground transition-colors"><X className="h-4 w-4" /></button>
         <div className={cn("h-10 w-10 rounded-full grid place-items-center shrink-0",
-          room.kind === "patron" ? "bg-amber-400/12 text-amber-300 ring-1 ring-inset ring-amber-300/25"
-                                 : "bg-accent/12 text-accent ring-1 ring-inset ring-accent/25")}>
+          room.kind === "patron" ? "bg-amber-400/12 text-amber-300"
+                                 : "bg-accent/12 text-accent")}>
           {room.kind === "patron" ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
@@ -2399,8 +2398,8 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
                     <span className="text-[11px] text-accent/85 font-mono px-1">{author?.display_name ?? author?.username ?? "Someone"}</span>
                   )}
                   <div className={cn("px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed",
-                    isMe ? "bg-accent/22 text-foreground rounded-br-md ring-1 ring-inset ring-accent/25"
-                         : "bg-white/[0.05] text-foreground rounded-bl-md ring-1 ring-inset ring-white/[0.06]")}>
+                    isMe ? "bg-accent/22 text-foreground rounded-br-md"
+                         : "bg-white/[0.05] text-foreground rounded-bl-md")}>
                     <div className="whitespace-pre-wrap break-words">{m.content}</div>
                   </div>
                   <div className={cn(TYPE_META, "text-muted-foreground/40 tracking-[0.18em]")}>
@@ -2413,13 +2412,13 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
         )}
       </div>
 
-      <footer className="px-5 py-4 border-t border-white/[0.05] flex items-end gap-2">
+      <footer className="px-5 py-4 flex items-end gap-2">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
           placeholder={`Message ${room.name}`}
-          className="flex-1 resize-none rounded-xl bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] px-4 py-3 text-[14px] text-foreground placeholder:text-muted-foreground/45 focus:outline-none focus:ring-accent/45 min-h-[44px] max-h-[160px]"
+          className="flex-1 resize-none rounded-xl bg-white/[0.04] hover:bg-white/[0.05] border-transparent px-4 py-3 text-[14px] text-foreground placeholder:text-muted-foreground/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10 min-h-[44px] max-h-[160px]"
           rows={1}
         />
         <Button onClick={() => void send()} disabled={sending || !draft.trim()} className="h-[44px]">

@@ -59,7 +59,7 @@ function Orb({ name, price, credits, popular, busy, disabled, onSelect, priceSuf
   return (
     <button type="button" onClick={onSelect} disabled={disabled} className="group relative flex flex-col items-center outline-none disabled:opacity-60">
       {popular && (
-        <span className="absolute -top-2.5 z-30 inline-flex items-center rounded-full px-3.5 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-white" style={{ background: 'hsl(var(--accent) / 0.22)', boxShadow: 'inset 0 0 0 1px hsl(var(--accent) / 0.6), 0 8px 24px -8px hsl(var(--accent) / 0.9)' }}>
+        <span className="absolute -top-2.5 z-30 inline-flex items-center rounded-full px-3.5 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-white" style={{ background: 'hsl(var(--accent) / 0.3)', boxShadow: '0 8px 24px -8px hsl(var(--accent) / 0.9)' }}>
           Most popular
         </span>
       )}
@@ -74,7 +74,6 @@ function Orb({ name, price, credits, popular, busy, disabled, onSelect, priceSuf
         }}
       >
         <div aria-hidden className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(from -90deg, hsl(var(--accent)) 0deg, hsl(var(--accent) / 0.85) ${deg * 0.5}deg, hsl(var(--accent) / 0.5) ${deg}deg, rgba(255,255,255,0.06) ${deg}deg 360deg)`, padding: '3px', WebkitMask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))', mask: 'radial-gradient(circle, transparent calc(100% - 4px), #000 calc(100% - 3px))' }} />
-        <div aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10" />
         <div className="relative z-10 flex flex-col items-center px-6">
           <span className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>{name}</span>
           <div className="mt-2 flex items-baseline gap-0.5">
@@ -84,7 +83,7 @@ function Orb({ name, price, credits, popular, busy, disabled, onSelect, priceSuf
           </div>
           <span className="mt-2 text-[13px] tabular-nums text-white/70">{credits.toLocaleString()} {creditsLabel}</span>
           <span className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">~{approxClips(credits)} clips</span>
-          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-5 py-2 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/15 transition-colors group-hover:bg-white/[0.14]">
+          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/[0.1] px-5 py-2 text-[13px] font-semibold text-white transition-colors group-hover:bg-white/[0.16]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {ctaLabel}
           </span>
         </div>
@@ -219,7 +218,7 @@ export default function Credits() {
           </div>
 
           {/* Business — higher-volume team/agency packs */}
-          <div className="mt-12 border-t border-white/[0.07] pt-10">
+          <div className="mt-12 pt-10">
             <div className="mb-1 text-[10px] font-mono uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>For teams &amp; business</div>
             <p className="text-white/45 text-[12px] mb-2 max-w-2xl">Higher-volume one-time packs for studios and agencies.</p>
             <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-16 py-8">
@@ -307,7 +306,7 @@ export default function Credits() {
             <div className="overflow-x-auto">
               <table className="w-full text-[13px] min-w-[640px]">
                 <thead>
-                  <tr className="border-b border-white/[0.05]">
+                  <tr>
                     <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">When</th>
                     <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Type</th>
                     <th className="py-3 pr-6 text-left text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Description</th>
@@ -316,7 +315,7 @@ export default function Credits() {
                 </thead>
                 <tbody>
                   {history.map((t) => (
-                    <tr key={t.id} className="border-b border-white/[0.03]">
+                    <tr key={t.id} className="shadow-[inset_0_-1px_0_rgba(255,255,255,0.03)]">
                       <td className="py-3 pr-6 text-white/55 font-mono text-[11px] whitespace-nowrap">
                         {new Date(t.created_at).toLocaleString()}
                       </td>

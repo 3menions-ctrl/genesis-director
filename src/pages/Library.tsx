@@ -25,6 +25,7 @@ import {
   Sparkles, Volume2, VolumeX, Pencil, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
 import {
@@ -208,8 +209,8 @@ export default function Library() {
               className={cn(
                 "group inline-flex items-center gap-2 px-5 py-3",
                 RADIUS.chip,
-                "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-                "text-foreground transition-all hover:border-accent/60 hover:from-accent/25",
+                "bg-gradient-to-br from-accent/15 to-accent/5",
+                "text-foreground transition-all hover:from-accent/25 hover:to-accent/10",
               )}
             >
               <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -244,21 +245,21 @@ export default function Library() {
                   key={c.id}
                   onClick={() => setCategory(c.id)}
                   className={cn(
-                    "h-9 px-4 rounded-full text-[12.5px] inline-flex items-center gap-2 transition-all",
-                    "ring-1 ring-inset",
+                    "relative h-9 px-4 rounded-full text-[12.5px] inline-flex items-center gap-2 transition-all",
                     active
-                      ? "bg-gradient-to-br from-accent/20 to-accent/[0.06] ring-accent/45 text-foreground"
-                      : "bg-white/[0.02] ring-white/[0.06] text-foreground/75 hover:ring-white/[0.18] hover:text-foreground",
+                      ? "bg-white/[0.06] text-white"
+                      : "bg-white/[0.02] text-foreground/75 hover:bg-white/[0.05] hover:text-foreground",
                   )}
                 >
                   <span>{c.label}</span>
                   <span className={cn(
                     TYPE_META,
                     "tabular-nums",
-                    active ? "text-accent/80" : "text-muted-foreground/50",
+                    active ? "text-white/70" : "text-muted-foreground/50",
                   )}>
                     {n}
                   </span>
+                  {active && <CenterLine />}
                 </button>
               );
             })}
@@ -266,7 +267,7 @@ export default function Library() {
 
           {/* ── 3. SEARCH ──────────────────────────────────────── */}
           <div className="mt-5 max-w-md">
-            <div className="flex items-center gap-2.5 rounded-full border border-border/40 bg-[hsl(var(--foreground)/0.02)] px-4 h-11">
+            <div className="flex items-center gap-2.5 rounded-full bg-white/[0.04] px-4 h-11">
               <Search className="h-3.5 w-3.5 text-muted-foreground/50" strokeWidth={1.5} />
               <input
                 value={search}
@@ -325,9 +326,9 @@ export default function Library() {
                   onClick={loadMore}
                   disabled={loading}
                   className={cn(
-                    "rounded-full border border-border/40 px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
+                    "rounded-full bg-white/[0.03] px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
                     "text-muted-foreground/70 transition-colors",
-                    "hover:border-accent/40 hover:text-foreground",
+                    "hover:bg-white/[0.06] hover:text-foreground",
                     "disabled:opacity-50",
                   )}
                 >
@@ -443,7 +444,7 @@ function HeroPlayer({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: EASE_PREMIUM }}
-      className="mt-12 relative overflow-hidden rounded-3xl border border-white/[0.08] shadow-[0_30px_80px_-20px_hsla(0_0%_0%/0.7)]"
+      className="mt-12 relative overflow-hidden rounded-3xl shadow-[0_30px_80px_-20px_hsla(0_0%_0%/0.7)]"
     >
       <div className="relative aspect-[21/9] w-full bg-black">
         {project.video_url ? (
@@ -474,7 +475,7 @@ function HeroPlayer({
             type="button"
             onClick={() => setMuted((m) => !m)}
             aria-label={muted ? "Unmute" : "Mute"}
-            className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-black/55 backdrop-blur-md ring-1 ring-inset ring-white/15 text-white hover:bg-black/75 transition-colors"
+            className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-black/55 backdrop-blur-md text-white hover:bg-black/75 transition-colors"
           >
             {muted ? (
               <VolumeX className="h-4 w-4" strokeWidth={1.6} />
@@ -584,9 +585,9 @@ function FullBleedCard({
       whileHover={reducedMotion ? undefined : { y: -3 }}
       className={cn(
         "group/card relative overflow-hidden aspect-[4/5] rounded-2xl",
-        "border border-border/40 bg-black",
-        "transition-all hover:border-accent/40",
-        "shadow-[0_18px_50px_-18px_hsla(0_0%_0%/0.75)]",
+        "bg-black",
+        "transition-all",
+        "shadow-[0_18px_50px_-18px_hsla(0_0%_0%/0.75)] hover:shadow-[0_24px_60px_-18px_hsla(0_0%_0%/0.85)]",
       )}
     >
       {/* THUMBNAIL (always visible until preview overlays it) */}
@@ -639,11 +640,6 @@ function FullBleedCard({
       <div className="absolute inset-x-0 bottom-0 p-5 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <StatusPill inProgress={inProgress} completed={completed} />
-          {project.genre && (
-            <span className={cn(TYPE_META, "text-white/55 capitalize")}>
-              {project.genre}
-            </span>
-          )}
         </div>
         <h3
           className="font-display italic text-[clamp(1.1rem,2.3vw,1.6rem)] leading-[1.1] text-white line-clamp-2"
@@ -695,8 +691,8 @@ function FullBleedCard({
         title="Delete this film"
         className={cn(
           "absolute top-3 right-3 z-20 inline-flex items-center justify-center h-9 w-9 rounded-full",
-          "bg-black/70 backdrop-blur-md ring-1 ring-inset ring-white/15",
-          "text-white/85 hover:text-white hover:bg-red-500/85 hover:ring-red-400/40",
+          "bg-black/70 backdrop-blur-md",
+          "text-white/85 hover:text-white hover:bg-red-500/85",
           "transition-all duration-200 active:scale-95",
           "opacity-0 group-hover/card:opacity-100 focus:opacity-100",
         )}
@@ -707,7 +703,7 @@ function FullBleedCard({
       {/* PLAY hint on hover (center) */}
       {completed && (
         <div className="absolute inset-0 grid place-items-center pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity">
-          <div className="h-14 w-14 rounded-full bg-white/[0.10] backdrop-blur-md ring-1 ring-inset ring-white/20 inline-flex items-center justify-center">
+          <div className="h-14 w-14 rounded-full bg-white/[0.10] backdrop-blur-md inline-flex items-center justify-center">
             <Play className="h-5 w-5 text-white fill-current translate-x-0.5" />
           </div>
         </div>
@@ -737,8 +733,8 @@ function CardActionButton({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px]",
-        "bg-black/55 backdrop-blur-md text-white/85 ring-1 ring-inset ring-white/15",
-        "hover:bg-black/75 hover:text-white hover:ring-white/30 transition-colors",
+        "bg-black/55 backdrop-blur-md text-white/85",
+        "hover:bg-black/75 hover:text-white transition-colors",
       )}
     >
       {icon}
@@ -754,7 +750,7 @@ function StatusPill({ inProgress, completed }: { inProgress: boolean; completed:
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-          "bg-[hsl(38_95%_55%/0.18)] ring-1 ring-inset ring-[hsl(38_95%_55%/0.4)] backdrop-blur-md",
+          "bg-[hsl(38_95%_55%/0.18)] backdrop-blur-md",
           TYPE_META,
           "text-[hsl(38_95%_75%)]",
         )}
@@ -769,7 +765,7 @@ function StatusPill({ inProgress, completed }: { inProgress: boolean; completed:
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-          "bg-[hsl(150_75%_45%/0.16)] ring-1 ring-inset ring-[hsl(150_75%_45%/0.35)] backdrop-blur-md",
+          "bg-[hsl(150_75%_45%/0.16)] backdrop-blur-md",
           TYPE_META,
           "text-[hsl(150_75%_75%)]",
         )}
@@ -783,7 +779,7 @@ function StatusPill({ inProgress, completed }: { inProgress: boolean; completed:
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-        "bg-[hsl(220_30%_25%/0.4)] ring-1 ring-inset ring-border/40 backdrop-blur-md",
+        "bg-[hsl(220_30%_25%/0.4)] backdrop-blur-md",
         TYPE_META,
         "text-muted-foreground/75",
       )}
@@ -813,7 +809,6 @@ function EmptyLibrary({ onNew }: { onNew: () => void }) {
           "mb-7 flex h-16 w-16 items-center justify-center",
           RADIUS.composer,
           "bg-gradient-to-br from-accent/15 to-accent/5",
-          "ring-1 ring-inset ring-accent/20",
         )}
       >
         <Film className="h-7 w-7 text-accent" strokeWidth={1.2} />
@@ -830,8 +825,8 @@ function EmptyLibrary({ onNew }: { onNew: () => void }) {
         className={cn(
           "mt-8 inline-flex items-center gap-2 px-5 py-3",
           RADIUS.chip,
-          "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-          "transition-all hover:border-accent/60 hover:from-accent/25",
+          "bg-gradient-to-br from-accent/15 to-accent/5",
+          "transition-all hover:from-accent/25",
         )}
       >
         <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -854,8 +849,8 @@ function CategoryEmpty({ onReset }: { onReset: () => void }) {
         onClick={onReset}
         className={cn(
           "mt-6 inline-flex items-center gap-2 px-4 h-9 rounded-full",
-          "ring-1 ring-inset ring-white/[0.08] text-foreground/75",
-          "hover:ring-white/[0.18] hover:text-foreground transition-colors",
+          "bg-white/[0.04] text-foreground/75",
+          "hover:bg-white/[0.08] hover:text-foreground transition-colors",
         )}
       >
         <span className="text-[12.5px]">Show all films</span>
@@ -917,7 +912,6 @@ function ConfirmDelete({
             aria-modal="true"
             className={cn(
               "relative w-full max-w-[460px] rounded-2xl",
-              "border border-white/[0.08]",
               "bg-gradient-to-b from-[hsl(220_30%_7%)] to-[hsl(220_35%_4%)]",
               "shadow-[0_40px_120px_-20px_hsla(0_0%_0%/0.85)]",
               "p-7",
@@ -927,7 +921,7 @@ function ConfirmDelete({
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.22, ease: EASE_PREMIUM }}
           >
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-500/15 ring-1 ring-inset ring-red-500/35 mb-4">
+            <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-500/15 mb-4">
               <Trash2 className="h-5 w-5 text-red-300" strokeWidth={1.8} />
             </div>
             <h3
@@ -954,8 +948,8 @@ function ConfirmDelete({
                 onClick={onConfirm}
                 className={cn(
                   "px-5 h-10 rounded-full inline-flex items-center gap-2 text-[13px]",
-                  "border border-red-500/45 bg-gradient-to-br from-red-500/20 to-red-500/[0.06]",
-                  "text-foreground hover:border-red-500/65 hover:from-red-500/30 transition-all",
+                  "bg-gradient-to-br from-red-500/20 to-red-500/[0.06]",
+                  "text-foreground hover:from-red-500/30 transition-all",
                 )}
               >
                 <Trash2 className="h-4 w-4 text-red-300" strokeWidth={1.8} />

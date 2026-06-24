@@ -120,14 +120,14 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
               />
             )}
             {hasHLS && (
-              <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-medium">
+              <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 Seamless HLS
               </div>
             )}
           </div>
         ) : (
           <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-slate-500/30 flex items-center justify-center bg-slate-500/10">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center bg-slate-500/10">
               <X className="w-10 h-10 text-slate-400/60" />
             </div>
             <p className="text-zinc-500 text-sm">Video unavailable</p>
@@ -171,8 +171,8 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                     }}
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-300",
-                      idx === currentClipIndex 
-                        ? "bg-blue-400 w-8 shadow-lg shadow-blue-500/30" 
+                      idx === currentClipIndex
+                        ? "bg-white w-8 shadow-lg shadow-white/30"
                         : "bg-white/20 hover:bg-white/40 w-3"
                     )}
                   />
@@ -182,7 +182,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
               {/* Navigation buttons */}
               <div className="flex items-center justify-center gap-4">
                 <button 
-                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
+                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePrev();
@@ -196,7 +196,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                 </span>
                 
                 <button 
-                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all border border-white/[0.08]"
+                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNext();
@@ -231,7 +231,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: showControls ? 1 : 0.3, scale: 1 }}
         onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 border border-white/[0.08] z-30 transition-all"
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 z-30 transition-all"
       >
         <X className="w-5 h-5" />
       </motion.button>

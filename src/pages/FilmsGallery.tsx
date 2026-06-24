@@ -20,11 +20,11 @@ function FilmTile({ title, clips, onOpen }: { title: string; clips: string[]; on
       onClick={onOpen}
       onMouseEnter={() => ref.current?.play().catch(() => {})}
       onMouseLeave={() => ref.current?.pause()}
-      className="group relative block aspect-video w-full overflow-hidden rounded-xl ring-1 ring-white/10 transition-transform duration-300 hover:-translate-y-1 hover:ring-white/25"
+      className="group relative block aspect-video w-full overflow-hidden rounded-xl transition-transform duration-300 hover:-translate-y-1"
     >
       <video ref={ref} src={clips[0]} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/70" />
-      <span aria-hidden className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 opacity-0 ring-1 ring-white/40 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
+      <span aria-hidden className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 opacity-0 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
         <Play className="ml-0.5 h-4 w-4 fill-white text-white" />
       </span>
       <div className="absolute inset-x-0 bottom-0 p-3 text-left">
@@ -47,9 +47,9 @@ function Lightbox({ index, onClose, onPrev, onNext }: { index: number; onClose: 
 
   return (
     <motion.div className="fixed inset-0 z-[80] grid place-items-center bg-black/92 px-4 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <button type="button" onClick={onClose} aria-label="Close" className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white ring-1 ring-white/20 backdrop-blur-md transition-colors hover:bg-white/16"><X className="h-5 w-5" /></button>
-      <button type="button" onClick={(e) => { e.stopPropagation(); onPrev(); }} aria-label="Previous" className="absolute left-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white ring-1 ring-white/20 backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronLeft className="h-6 w-6" /></button>
-      <button type="button" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next" className="absolute right-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white ring-1 ring-white/20 backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronRight className="h-6 w-6" /></button>
+      <button type="button" onClick={onClose} aria-label="Close" className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16"><X className="h-5 w-5" /></button>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onPrev(); }} aria-label="Previous" className="absolute left-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronLeft className="h-6 w-6" /></button>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next" className="absolute right-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronRight className="h-6 w-6" /></button>
 
       <motion.div className="relative w-full max-w-5xl" initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} onClick={(e) => e.stopPropagation()}>
         <video
@@ -58,7 +58,7 @@ function Lightbox({ index, onClose, onPrev, onNext }: { index: number; onClose: 
           autoPlay
           playsInline
           controls
-          className="w-full rounded-xl bg-black ring-1 ring-white/15 shadow-[0_60px_160px_-40px_rgba(0,0,0,0.95)]"
+          className="w-full rounded-xl bg-black shadow-[0_60px_160px_-40px_rgba(0,0,0,0.95)]"
           onEnded={() => setClip((c) => (c + 1 < film.clips.length ? c + 1 : c))}
         />
         <div className="mt-4 flex items-center justify-between">
@@ -87,7 +87,7 @@ export default function FilmsGallery() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#070809] text-white antialiased">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/[0.06] bg-[#070809]/60 px-5 py-3 backdrop-blur-xl sm:px-8">
+      <header className="sticky top-0 z-50 flex items-center justify-between bg-[#070809]/60 px-5 py-3 backdrop-blur-xl sm:px-8">
         <button type="button" onClick={() => navigate("/")} className="flex items-center gap-2.5">
           <BrandTile className="h-8 w-8" />
           <span className="font-display text-[16px] tracking-tight">Small <span className="font-semibold italic">Bridges</span></span>

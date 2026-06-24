@@ -1,6 +1,6 @@
  import { forwardRef, useState, useRef, useEffect, useCallback, memo } from 'react';
  import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
- import { Play, Film, Sparkles } from 'lucide-react';
+ import { Play, Film } from 'lucide-react';
  import { cn } from '@/lib/utils';
  import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
@@ -32,10 +32,10 @@ const shouldReduceMotion = () => {
  
  // Category-specific accent colors
  const CATEGORY_ACCENTS = {
-   'all': { gradient: 'from-blue-500 to-cyan-400', glow: 'rgba(59, 130, 246, 0.5)', border: 'rgba(59, 130, 246, 0.3)' },
-   'text-to-video': { gradient: 'from-blue-500 to-blue-400', glow: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 0.4)' },
-   'image-to-video': { gradient: 'from-slate-400 to-slate-300', glow: 'rgba(148, 163, 184, 0.5)', border: 'rgba(148, 163, 184, 0.3)' },
-   'avatar': { gradient: 'from-violet-500 to-fuchsia-400', glow: 'rgba(139, 92, 246, 0.6)', border: 'rgba(139, 92, 246, 0.4)' },
+   'all': { gradient: 'from-blue-500 to-cyan-400', glow: 'rgba(59, 130, 246, 0.5)' },
+   'text-to-video': { gradient: 'from-blue-500 to-blue-400', glow: 'rgba(59, 130, 246, 0.6)' },
+   'image-to-video': { gradient: 'from-slate-400 to-slate-300', glow: 'rgba(148, 163, 184, 0.5)' },
+   'avatar': { gradient: 'from-violet-500 to-fuchsia-400', glow: 'rgba(139, 92, 246, 0.6)' },
  };
  
  export const PremiumVideoCard = memo(forwardRef<HTMLDivElement, PremiumVideoCardProps>(function PremiumVideoCard(
@@ -204,18 +204,6 @@ const shouldReduceMotion = () => {
            transformStyle: 'preserve-3d',
          }}
        >
-         {/* Animated gradient border */}
-          {!reduceMotion && <div 
-           className={cn(
-             "absolute -inset-[2px] rounded-2xl transition-opacity duration-500",
-             isHovered ? "opacity-100" : "opacity-0"
-           )}
-           style={{
-             background: `conic-gradient(from ${borderRotation}deg, ${accent.border}, ${accent.glow}, ${accent.border}, transparent, ${accent.border})`,
-             filter: 'blur(1px)',
-           }}
-          />}
-         
          {/* Outer glow effect */}
           {!reduceMotion && <div 
            className={cn(
@@ -246,7 +234,7 @@ const shouldReduceMotion = () => {
           />}
          
          {/* Main card container with glassmorphism */}
-         <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950/80 backdrop-blur-sm border border-white/[0.08]">
+         <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950/80 backdrop-blur-sm shadow-2xl shadow-black/40">
            {/* Corner accent decorations */}
            <div className="absolute top-0 left-0 w-16 h-16 pointer-events-none z-20">
              <div className={cn("absolute top-0 left-0 w-8 h-[2px] rounded-full bg-gradient-to-r", accent.gradient, "opacity-60")} />
@@ -314,13 +302,13 @@ const shouldReduceMotion = () => {
                {/* Pulse rings */}
                 {!reduceMotion && <motion.div
                  className="absolute inset-0 rounded-full"
-                 style={{ border: `2px solid ${accent.glow}` }}
+                 style={{ boxShadow: `0 0 22px 6px ${accent.glow}` }}
                  animate={{ scale: [1, 1.5, 1.5], opacity: [0.6, 0, 0] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
                 />}
                 {!reduceMotion && <motion.div
                  className="absolute inset-0 rounded-full"
-                 style={{ border: `2px solid ${accent.glow}` }}
+                 style={{ boxShadow: `0 0 22px 6px ${accent.glow}` }}
                  animate={{ scale: [1, 1.8, 1.8], opacity: [0.4, 0, 0] }}
                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
                 />}
@@ -329,7 +317,7 @@ const shouldReduceMotion = () => {
                <div 
                  className={cn(
                    "w-20 h-20 rounded-full flex items-center justify-center",
-                   "bg-white/10 backdrop-blur-xl border border-white/30"
+                   "bg-white/15 backdrop-blur-xl"
                  )}
                  style={{
                    boxShadow: `0 0 40px ${accent.glow}, inset 0 0 20px rgba(255,255,255,0.1)`,
@@ -339,23 +327,6 @@ const shouldReduceMotion = () => {
                </div>
              </motion.div>
            </motion.div>
-           
-           {/* Category badge */}
-           {video.category && video.category !== 'all' && (
-             <div className="absolute top-4 left-4 z-20">
-               <div className={cn(
-                 "px-3 py-1.5 rounded-full text-xs font-medium",
-                 "bg-black/40 backdrop-blur-xl border border-white/10",
-                 "flex items-center gap-1.5"
-               )}>
-                 <Sparkles className="w-3 h-3 text-white/60" />
-                 <span className="text-white/80">
-                   {video.category === 'text-to-video' ? 'Text → Video' : 
-                    video.category === 'image-to-video' ? 'Image → Video' : 'Avatar'}
-                 </span>
-               </div>
-             </div>
-           )}
            
            {/* Bottom gradient for title */}
            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-10" />

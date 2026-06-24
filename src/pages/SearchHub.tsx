@@ -29,6 +29,7 @@ import { StudioHero } from "@/components/studio/StudioHero";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { cn } from "@/lib/utils";
 
 // ── Shared shapes ───────────────────────────────────────────────────────────
@@ -264,13 +265,13 @@ export default function SearchHub() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search for a reel or director…"
-                className="relative w-full h-16 pl-14 pr-12 rounded-2xl border border-white/[0.08] bg-[hsl(220_30%_7%/0.85)] focus:border-white/20 text-[18px] text-foreground placeholder:text-muted-foreground outline-none transition-colors backdrop-blur-xl"
+                className="relative w-full h-16 pl-14 pr-12 rounded-2xl bg-white/[0.03] focus:bg-white/[0.05] text-[18px] text-foreground placeholder:text-muted-foreground outline-none transition-colors backdrop-blur-xl"
               />
               {q && (
                 <button
                   onClick={() => setQ("")}
                   aria-label="Clear search"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-white/[0.08] hover:border-white/30 text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/[0.04] hover:bg-white/[0.10] text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -284,13 +285,14 @@ export default function SearchHub() {
                 key={s}
                 onClick={() => setQ(s)}
                 className={cn(
-                  "px-3 h-8 rounded-full border text-[11px] font-mono uppercase tracking-[0.22em] transition-colors",
+                  "relative px-3 h-8 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] transition-colors",
                   q.trim().toLowerCase() === s
-                    ? "border-primary/50 bg-primary/10 text-foreground"
-                    : "border-white/[0.08] hover:border-white/30 text-foreground/65 hover:text-foreground",
+                    ? "text-white"
+                    : "text-foreground/65 hover:text-foreground hover:bg-white/[0.04]",
                 )}
               >
                 {s}
+                {q.trim().toLowerCase() === s && <CenterLine />}
               </button>
             ))}
           </div>
@@ -430,7 +432,7 @@ function ReelGrid({ reels }: { reels: ReelHit[] }) {
         <Link
           key={r.id}
           to={`/r/${r.id}`}
-          className="group rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 overflow-hidden transition-colors"
+          className="group rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] overflow-hidden transition-colors"
         >
           <div className="aspect-video bg-black/40 relative">
             {r.thumbnail_url && (
@@ -439,7 +441,7 @@ function ReelGrid({ reels }: { reels: ReelHit[] }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             {/* Play affordance on hover */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 backdrop-blur-md border border-white/20">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 backdrop-blur-md">
                 <Play className="w-4 h-4 text-white translate-x-px" fill="currentColor" />
               </span>
             </div>
@@ -447,11 +449,6 @@ function ReelGrid({ reels }: { reels: ReelHit[] }) {
               <Eye className="w-3 h-3 inline mr-1" />
               {r.play_count.toLocaleString()}
             </div>
-            {r.world_slug && (
-              <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.28em] border border-white/[0.10] bg-black/45 backdrop-blur-md text-white/85">
-                {r.world_slug}
-              </div>
-            )}
           </div>
           <div className="p-3">
             <div className="text-[13px] text-foreground truncate">{r.title}</div>
@@ -486,10 +483,10 @@ function PersonCard({
   following: boolean;
 }) {
   return (
-    <div className="group relative flex items-start gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 p-4 transition-colors">
+    <div className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] p-4 transition-colors">
       <Link to={`/c/${id}`} className="flex items-start gap-3 min-w-0 flex-1">
         {avatar ? (
-          <img src={avatar} alt="" className="w-12 h-12 rounded-full object-cover border border-white/[0.06] shrink-0" />
+          <img src={avatar} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
         ) : (
           <div className="w-12 h-12 rounded-full bg-glass-hover flex items-center justify-center text-muted-foreground font-mono shrink-0">
             {(name?.[0] || "?").toUpperCase()}
@@ -559,8 +556,8 @@ function FollowButton({ creatorId, initialFollowing }: { creatorId: string; init
       className={cn(
         "shrink-0 self-center inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-60",
         following
-          ? "border border-white/[0.08] text-foreground/70 hover:border-rose-300/40 hover:text-rose-200"
-          : "border border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20",
+          ? "bg-white/[0.04] text-foreground/70 hover:bg-rose-500/10 hover:text-rose-200"
+          : "bg-primary/10 text-foreground hover:bg-primary/20",
       )}
     >
       {busy ? (

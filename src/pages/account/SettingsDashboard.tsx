@@ -92,6 +92,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { CenterLine } from "@/components/ui/CenterLine";
+
+// Borderless soft-fill button — the standard replacement for `variant="outline"`.
+// Pairs with `variant="ghost"`; resting fill + brighter hover, no border/ring.
+const SOFT_BUTTON = "bg-white/[0.05] hover:bg-white/[0.1] text-foreground";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module catalog
@@ -393,7 +398,6 @@ export default function SettingsDashboard() {
               className={cn(
                 "relative shrink-0 rounded-full overflow-hidden",
                 "h-[88px] w-[88px] sm:h-[110px] sm:w-[110px]",
-                "border-[2px] border-white/[0.18]",
                 "shadow-[0_20px_50px_-15px_hsl(0_0%_0%/0.75)]",
               )}
             >
@@ -530,14 +534,14 @@ function ModuleNavItem({
       className={cn(
         "group/m relative w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl transition-colors",
         active
-          ? "bg-white/[0.04] ring-1 ring-inset ring-white/[0.08] text-foreground"
+          ? "bg-white/[0.04] text-foreground"
           : "text-muted-foreground/85 hover:text-foreground hover:bg-white/[0.02]",
       )}
     >
       <Icon
         className={cn(
           "mt-0.5 h-4 w-4 shrink-0 transition-colors",
-          active ? "text-accent" : "text-muted-foreground/60 group-hover/m:text-foreground/80",
+          active ? "text-foreground" : "text-muted-foreground/60 group-hover/m:text-foreground/80",
         )}
         strokeWidth={1.6}
       />
@@ -549,13 +553,7 @@ function ModuleNavItem({
           {m.eyebrow}
         </span>
       </span>
-      {active && (
-        <motion.span
-          layoutId="settings-nav-pip"
-          className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent shrink-0"
-          style={{ boxShadow: "0 0 8px hsl(var(--accent)/0.7)" }}
-        />
-      )}
+      {active && <CenterLine />}
     </button>
   );
 }
@@ -603,12 +601,12 @@ function AutoSaveIndicator({
       aria-live="polite"
       className={cn(
         "sticky top-0 z-20 -mx-1 px-3.5 py-2 rounded-lg flex items-center justify-between gap-3",
-        "backdrop-blur bg-[hsl(var(--background)/0.65)] ring-1 ring-inset",
+        "backdrop-blur",
         saving
-          ? "ring-amber-300/35 text-amber-100"
+          ? "bg-amber-300/[0.08] text-amber-100"
           : recent
-            ? "ring-emerald-300/30 text-emerald-200"
-            : "ring-white/[0.06] text-muted-foreground/70",
+            ? "bg-emerald-300/[0.08] text-emerald-200"
+            : "bg-[hsl(var(--background)/0.65)] text-muted-foreground/70",
       )}
     >
       <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.24em]">
@@ -663,7 +661,7 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
     <div
       className={cn(
         "relative rounded-2xl p-6 sm:p-7",
-        "bg-white/[0.015] ring-1 ring-inset ring-white/[0.06]",
+        "bg-white/[0.03] shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
         "backdrop-blur-2xl",
         className,
       )}
@@ -682,7 +680,7 @@ function FieldRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4 border-b border-white/[0.04] last:border-b-0">
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4">
       <div className="pt-1.5">
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}
@@ -705,7 +703,7 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3.5 border-b border-white/[0.04] last:border-b-0">
+    <div className="flex items-start justify-between gap-4 py-3.5">
       <div>
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-0.5 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}
@@ -1048,7 +1046,7 @@ function ImageDropzone({
         className={cn(
           "relative w-full rounded-xl overflow-hidden",
           aspect,
-          "ring-1 ring-inset ring-white/[0.08] hover:ring-accent/45 transition-all",
+          "bg-white/[0.04] hover:bg-white/[0.07] transition-all",
           kind === "avatar" ? "max-w-[180px]" : "",
         )}
       >
@@ -1373,7 +1371,7 @@ function PrivacyModule({
             You haven't blocked anyone. Use the <span className="text-foreground/85">⋯ menu</span> on a profile to block.
           </p>
         ) : (
-          <ul className="divide-y divide-white/[0.04]">
+          <ul>
             {blocked.map((b) => (
               <li key={b.id} className="py-3 flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full overflow-hidden bg-white/[0.06] shrink-0">
@@ -1385,7 +1383,7 @@ function PrivacyModule({
                   <div className="text-[13px] truncate text-foreground/90">{b.display_name ?? "Unknown"}</div>
                   {b.username && <div className="text-[11px] text-muted-foreground/65 truncate">@{b.username}</div>}
                 </div>
-                <Button size="sm" variant="outline" onClick={() => void unblock(b.id)}>
+                <Button size="sm" variant="ghost" className={SOFT_BUTTON} onClick={() => void unblock(b.id)}>
                   <UserX className="h-3 w-3 mr-1.5" />Unblock
                 </Button>
               </li>
@@ -1423,7 +1421,7 @@ function FollowRequestsCard({ userId }: { userId: string }) {
       <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-amber-200/85 mb-3 inline-flex items-center gap-2">
         <Bell className="h-3 w-3" />Pending follow requests
       </h3>
-      <ul className="divide-y divide-white/[0.04]">
+      <ul>
         {reqs.map((r) => (
           <li key={r.id} className="py-3 flex items-center gap-3">
             <div className="h-9 w-9 rounded-full overflow-hidden bg-white/[0.06] shrink-0">
@@ -1435,7 +1433,7 @@ function FollowRequestsCard({ userId }: { userId: string }) {
               <div className="text-[13px] truncate text-foreground/90">{r.display_name ?? "Anonymous"}</div>
               {r.username && <div className="text-[11px] text-muted-foreground/65 truncate">@{r.username}</div>}
             </div>
-            <Button size="sm" variant="outline" onClick={() => void reject(r.id)}>Decline</Button>
+            <Button size="sm" variant="ghost" className={SOFT_BUTTON} onClick={() => void reject(r.id)}>Decline</Button>
             <Button size="sm" onClick={() => void accept(r.id)}>Accept</Button>
           </li>
         ))}
@@ -1541,7 +1539,7 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
       <Card>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-muted-foreground/75">Tiers</h3>
-          <Button size="sm" variant="outline" onClick={() => void addTier()}>
+          <Button size="sm" variant="ghost" className={SOFT_BUTTON} onClick={() => void addTier()}>
             <Plus className="h-3 w-3 mr-1.5" />Add tier
           </Button>
         </div>
@@ -1557,7 +1555,7 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
                 A <span className="text-foreground/85">tier</span> is a pledge level patrons pick — name, monthly credits, and what they get. Different from the <span className="text-foreground/85">funding goal</span> above, which is the total you&rsquo;re working toward.
               </p>
             </div>
-            <Button onClick={() => void addTier()} className="bg-amber-400/15 hover:bg-amber-400/25 ring-1 ring-inset ring-amber-300/40 text-amber-100">
+            <Button onClick={() => void addTier()} className="bg-amber-400/15 hover:bg-amber-400/25 text-amber-100">
               <Plus className="h-3.5 w-3.5 mr-1.5" />Create your first tier
             </Button>
           </div>
@@ -1648,7 +1646,7 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
         <Stat label="Pending payout"  value={`$${(earnings.pending_cents / 100).toFixed(2)}`} />
       </div>
 
-      <div className="rounded-xl bg-white/[0.02] ring-1 ring-inset ring-white/[0.06] p-4 flex items-start justify-between gap-3">
+      <div className="rounded-xl bg-white/[0.04] p-4 flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-medium text-foreground/90 inline-flex items-center gap-2">
             <Wallet className="h-3.5 w-3.5" />Stripe Connect
@@ -1709,7 +1707,7 @@ function PatronTierEditor({
   onRemove: () => void;
 }) {
   return (
-    <li className="rounded-xl bg-white/[0.02] ring-1 ring-inset ring-white/[0.05] p-4">
+    <li className="rounded-xl bg-white/[0.04] p-4">
       <div className="flex items-center gap-3">
         <div
           className="h-10 w-10 rounded-full flex items-center justify-center font-mono text-[12px] text-black shrink-0"
@@ -1875,7 +1873,7 @@ function BillingModule({
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to="/account?tab=credits"><Button><Sparkles className="h-3.5 w-3.5 mr-2" />Buy credits</Button></Link>
-          <Button variant="outline" onClick={exportCsv}><Download className="h-3.5 w-3.5 mr-2" />Export CSV</Button>
+          <Button variant="ghost" className={SOFT_BUTTON} onClick={exportCsv}><Download className="h-3.5 w-3.5 mr-2" />Export CSV</Button>
         </div>
       </Card>
 
@@ -1896,7 +1894,7 @@ function BillingModule({
         ) : transactions.length === 0 ? (
           <p className="text-[13px] text-muted-foreground/65 py-4">No transactions yet.</p>
         ) : (
-          <ul className="divide-y divide-white/[0.04]">
+          <ul>
             {transactions.map((t) => (
               <li key={t.id} className="py-3 flex items-center gap-3">
                 <Receipt className="h-3.5 w-3.5 text-muted-foreground/55 shrink-0" />
@@ -1918,7 +1916,7 @@ function BillingModule({
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl bg-white/[0.015] ring-1 ring-inset ring-white/[0.06] p-4">
+    <div className="rounded-xl bg-white/[0.03] p-4">
       <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
       <div
         className={cn("mt-2 font-display italic tabular-nums leading-none", accent ? "text-amber-200" : "text-foreground")}
@@ -2009,7 +2007,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             <div className="text-[13px] font-medium text-foreground/90">Sign-in password</div>
             <p className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">Use a long passphrase. Updates are atomic — nobody gets signed out.</p>
           </div>
-          <Button variant="outline" onClick={() => setShowPasswordDialog(true)}><KeyRound className="h-3.5 w-3.5 mr-2" />Change password</Button>
+          <Button variant="ghost" className={SOFT_BUTTON} onClick={() => setShowPasswordDialog(true)}><KeyRound className="h-3.5 w-3.5 mr-2" />Change password</Button>
         </div>
       </Card>
 
@@ -2026,7 +2024,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
                 {verifiedFactor.friendly_name && <> · {verifiedFactor.friendly_name}</>}
               </p>
             </div>
-            <Button variant="outline" onClick={() => void unenrollTotp()}>Disable</Button>
+            <Button variant="ghost" className={SOFT_BUTTON} onClick={() => void unenrollTotp()}>Disable</Button>
           </div>
         ) : (
           <div className="flex items-start justify-between gap-4">
@@ -2043,7 +2041,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
 
       <Card>
         <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-muted-foreground/75 mb-3">Current session</h3>
-        <ul className="divide-y divide-white/[0.04]">
+        <ul>
           <li className="py-3 flex items-center gap-3">
             <Smartphone className="h-4 w-4 text-emerald-300 shrink-0" />
             <div className="min-w-0 flex-1">
@@ -2057,7 +2055,8 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
         </ul>
         <div className="mt-5 flex justify-end gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
+            className={SOFT_BUTTON}
             onClick={async () => {
               await supabase.auth.signOut({ scope: "others" });
               toast.success("Signed out of all other sessions.");
@@ -2067,7 +2066,8 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             Sign out of other sessions
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
+            className={SOFT_BUTTON}
             onClick={async () => {
               await supabase.auth.signOut({ scope: "global" });
               toast.success("Signed out everywhere.");
@@ -2084,7 +2084,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
         {identities.length === 0 ? (
           <p className="text-[13px] text-muted-foreground/65 py-2">No social sign-in methods linked yet.</p>
         ) : (
-          <ul className="divide-y divide-white/[0.04] mb-4">
+          <ul className="mb-4">
             {identities.map((i) => (
               <li key={i.id ?? i.identity_id ?? i.provider} className="py-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-white/[0.05] grid place-items-center text-foreground/80 text-[11px] font-mono uppercase shrink-0">{i.provider.slice(0, 2)}</div>
@@ -2105,7 +2105,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
           {(["google", "github", "apple"] as const)
             .filter((p) => !identities.some((i) => i.provider === p))
             .map((p) => (
-              <Button key={p} size="sm" variant="outline" onClick={() => void linkIdentity(p)}>
+              <Button key={p} size="sm" variant="ghost" className={SOFT_BUTTON} onClick={() => void linkIdentity(p)}>
                 <Plus className="h-3 w-3 mr-1.5" />Link {p}
               </Button>
             ))}
@@ -2258,7 +2258,7 @@ function DevelopersModule() {
               Manage API keys, webhook endpoints, and event signatures. We're keeping the full UI on its own tab so this page stays scoped to settings.
             </p>
           </div>
-          <Link to="/account?tab=developers"><Button variant="outline"><Code className="h-3.5 w-3.5 mr-2" />Open developer console</Button></Link>
+          <Link to="/account?tab=developers"><Button variant="ghost" className={SOFT_BUTTON}><Code className="h-3.5 w-3.5 mr-2" />Open developer console</Button></Link>
         </div>
       </Card>
     </div>
@@ -2326,11 +2326,11 @@ function DataModule({ profile }: { profile: ProfileRow }) {
               A JSON file with your profile, reels, projects, transactions, and follows. Pulled live, so it's always current.
             </p>
           </div>
-          <Button variant="outline" onClick={() => void downloadData()}><Download className="h-3.5 w-3.5 mr-2" />Export</Button>
+          <Button variant="ghost" className={SOFT_BUTTON} onClick={() => void downloadData()}><Download className="h-3.5 w-3.5 mr-2" />Export</Button>
         </div>
       </Card>
 
-      <Card className="ring-rose-500/15">
+      <Card className="bg-rose-500/[0.04]">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-rose-200/85 mb-3 inline-flex items-center gap-2">
           <AlertTriangle className="h-3 w-3" />Danger zone
         </h3>
@@ -2342,12 +2342,12 @@ function DataModule({ profile }: { profile: ProfileRow }) {
                 Hide your profile and pause notifications. Reactivate any time by signing back in.
               </p>
             </div>
-            <Button variant="outline" onClick={() => void deactivate()} disabled={deactivating}>
+            <Button variant="ghost" className={SOFT_BUTTON} onClick={() => void deactivate()} disabled={deactivating}>
               {deactivating && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
               <Briefcase className="h-3.5 w-3.5 mr-2" />Deactivate
             </Button>
           </div>
-          <div className="flex items-start justify-between gap-4 pt-5 border-t border-rose-500/10">
+          <div className="flex items-start justify-between gap-4 pt-5">
             <div>
               <div className="text-[13px] font-medium text-rose-200">Delete account</div>
               <p className="mt-1 text-[12px] text-muted-foreground/65 leading-snug max-w-md">

@@ -87,6 +87,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -1192,7 +1193,7 @@ export default function ProfileDashboard() {
               <div id="profile-settings-panel" className="scroll-mt-24">
                 <ErrorBoundary
                   fallback={
-                    <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                    <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
                       <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
                       <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
                         Open full settings <ChevronRight className="h-3.5 w-3.5" />
@@ -1362,7 +1363,7 @@ function AtAGlanceCard({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-5">
+      <div className="rounded-2xl bg-white/[0.015] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
           ◆ At a glance
         </div>
@@ -1402,7 +1403,7 @@ function AtAGlanceCard({
         )}
 
         {verifiedKind && (
-          <div className="mt-5 pt-4 border-t border-white/[0.05] inline-flex items-center gap-2 text-[11px] text-emerald-200/85">
+          <div className="mt-5 pt-4 inline-flex items-center gap-2 text-[11px] text-emerald-200/85">
             <ShieldCheck className="h-3 w-3" strokeWidth={1.8} />
             <span className="font-mono uppercase tracking-[0.20em]">Verified {verifiedKind}</span>
           </div>
@@ -1413,7 +1414,7 @@ function AtAGlanceCard({
             below the verified tab: "I've claimed this profile, now what do
             I want to do?". Visitors never see this. */}
         {isOwner && (
-          <div className={cn("pt-4 mt-4 border-t border-white/[0.05] flex flex-col gap-3", verifiedKind ? "" : "border-t-0 pt-0 mt-0")}>
+          <div className={cn("pt-4 mt-4 flex flex-col gap-3", verifiedKind ? "" : "pt-0 mt-0")}>
             <Link
               to="/inbox"
               className="group/setlink flex items-center gap-2.5 text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/75 hover:text-foreground transition-colors"
@@ -1464,7 +1465,7 @@ function HighlightsPanel({
   if (highlights.length === 0 && !isOwner) return null;
 
   return (
-    <aside className="rounded-2xl ring-1 ring-inset ring-white/[0.07] bg-white/[0.025] backdrop-blur p-5">
+    <aside className="rounded-2xl bg-white/[0.025] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] inline-flex items-center gap-2")}>
           <Pin className="h-3 w-3 text-accent/85" strokeWidth={1.7} />
@@ -1488,7 +1489,7 @@ function HighlightsPanel({
             <Link
               key={h.id}
               to={`/r/${h.id}`}
-              className="group/hl relative block aspect-video rounded-xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all"
+              className="group/hl relative block aspect-video rounded-xl overflow-hidden bg-white/[0.03] transition-all"
             >
               {h.thumbnail_url ? (
                 <img
@@ -1504,7 +1505,7 @@ function HighlightsPanel({
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
               <div className="absolute inset-0 grid place-items-center opacity-0 group-hover/hl:opacity-100 transition-opacity">
-                <span className="grid place-items-center h-10 w-10 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30">
+                <span className="grid place-items-center h-10 w-10 rounded-full bg-accent/90 text-black">
                   <Play className="h-4 w-4 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
                 </span>
               </div>
@@ -1594,11 +1595,11 @@ function HighlightsEditor({
                 aria-pressed={isPinned}
                 title={hint}
                 className={cn(
-                  "group/pin relative block aspect-video rounded-xl overflow-hidden ring-2 transition-all text-left",
-                  isPinned ? "ring-accent" : "ring-transparent hover:ring-white/25",
-                  disabled && !isPinned && "opacity-45 cursor-not-allowed hover:ring-transparent",
+                  "group/pin relative block aspect-video rounded-xl overflow-hidden transition-all text-left",
+                  disabled && !isPinned && "opacity-45 cursor-not-allowed",
                 )}
               >
+                {isPinned && <CenterLine />}
                 {f.thumbnail_url ? (
                   <img src={f.thumbnail_url} alt={f.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
@@ -1611,10 +1612,10 @@ function HighlightsEditor({
                 {/* Pin badge — solid accent when pinned, ghost otherwise. */}
                 <span
                   className={cn(
-                    "absolute top-2 right-2 grid place-items-center h-7 w-7 rounded-full ring-1 ring-inset transition-colors",
+                    "absolute top-2 right-2 grid place-items-center h-7 w-7 rounded-full transition-colors",
                     isPinned
-                      ? "bg-accent text-black ring-white/30"
-                      : "bg-black/45 text-white/80 ring-white/20 group-hover/pin:bg-black/65",
+                      ? "bg-accent text-black"
+                      : "bg-black/45 text-white/80 group-hover/pin:bg-black/65",
                   )}
                 >
                   <Pin className="h-3.5 w-3.5" strokeWidth={2} fill={isPinned ? "currentColor" : "none"} />
@@ -1681,11 +1682,11 @@ function FilmsGallery({
       {loading ? (
         <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="aspect-video rounded-2xl bg-white/[0.03] ring-1 ring-inset ring-white/[0.05] animate-pulse" />
+            <div key={i} className="aspect-video rounded-2xl bg-white/[0.03] animate-pulse" />
           ))}
         </div>
       ) : films.length === 0 ? (
-        <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] py-16 px-6 text-center">
+        <div className="rounded-2xl bg-white/[0.015] py-16 px-6 text-center shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
           <Film className="h-7 w-7 mx-auto text-muted-foreground/45" strokeWidth={1.3} />
           <div className="mt-4 font-display italic text-[20px] text-foreground/90" style={{ fontFamily: "'Fraunces', serif" }}>
             {isOwner ? "No films yet." : "No public films yet."}
@@ -1740,7 +1741,7 @@ function GalleryTile({
     <Link
       to={`/r/${film.id}`}
       style={{ aspectRatio: String(aspect) }}
-      className="group/tile relative block w-full rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-24px_hsl(0_0%_0%/0.8)]"
+      className="group/tile relative block w-full rounded-2xl overflow-hidden bg-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-24px_hsl(0_0%_0%/0.8)]"
     >
       {film.thumbnail_url ? (
         <img
@@ -1759,7 +1760,7 @@ function GalleryTile({
 
       {/* Hover play glyph. */}
       <div className="absolute inset-0 grid place-items-center opacity-0 group-hover/tile:opacity-100 transition-opacity duration-300">
-        <span className="grid place-items-center h-12 w-12 rounded-full bg-accent/90 text-black ring-1 ring-inset ring-white/30 backdrop-blur shadow-[0_8px_30px_hsl(var(--accent)/0.45)]">
+        <span className="grid place-items-center h-12 w-12 rounded-full bg-accent/90 text-black backdrop-blur shadow-[0_8px_30px_hsl(var(--accent)/0.45)]">
           <Play className="h-5 w-5 translate-x-[1px]" strokeWidth={2} fill="currentColor" />
         </span>
       </div>
@@ -1808,7 +1809,7 @@ function ProofStatsCard({
     { key: "fol", label: "Followers", value: followers, Icon: UserCheck },
   ];
   return (
-    <div className="rounded-2xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.015] backdrop-blur p-5">
+    <div className="rounded-2xl bg-white/[0.015] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
         ◆ The proof
       </div>
@@ -1828,7 +1829,7 @@ function ProofStatCell({
 }) {
   const display = useAnimatedNumber(value, reducedMotion);
   return (
-    <div className="rounded-xl bg-white/[0.02] ring-1 ring-inset ring-white/[0.05] px-3.5 py-3">
+    <div className="rounded-xl bg-white/[0.02] px-3.5 py-3">
       <div className={cn("inline-flex items-center gap-1.5", TYPE_META, "tracking-[0.18em]", accent ? "text-accent/85" : "text-muted-foreground/55")}>
         <Icon className="h-3 w-3" strokeWidth={1.6} />
         {label}
@@ -1951,7 +1952,7 @@ function FeaturedFilmTile({
     <div className="relative group/featured">
       <Link
         to={`/r/${tile.id}`}
-        className="block relative aspect-video rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/40 transition-all"
+        className="block relative aspect-video rounded-2xl overflow-hidden bg-white/[0.03] transition-all"
       >
         {tile.thumbnail_url ? (
           <img
@@ -1991,7 +1992,7 @@ function FeaturedFilmTile({
           type="button"
           onClick={() => void onUnpin(tile.id)}
           title="Unpin"
-          className="absolute top-4 right-4 inline-flex items-center gap-1 h-8 px-3 rounded-full bg-black/55 hover:bg-rose-500/85 backdrop-blur ring-1 ring-inset ring-white/15 hover:ring-rose-300/65 text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors opacity-0 group-hover/featured:opacity-100"
+          className="absolute top-4 right-4 inline-flex items-center gap-1 h-8 px-3 rounded-full bg-black/55 hover:bg-rose-500/85 backdrop-blur text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors opacity-0 group-hover/featured:opacity-100"
         >
           <X className="h-3 w-3" />Unpin
         </button>
@@ -2014,7 +2015,7 @@ function UpNextRow({
         to={`/r/${tile.id}`}
         className="grid grid-cols-[160px_1fr] gap-3 items-start rounded-xl p-1.5 hover:bg-white/[0.025] transition-colors"
       >
-        <div className="relative aspect-video rounded-lg overflow-hidden ring-1 ring-inset ring-white/[0.05] bg-black/40">
+        <div className="relative aspect-video rounded-lg overflow-hidden bg-black/40">
           {tile.thumbnail_url ? (
             <img src={tile.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover group-hover/row:scale-[1.03] transition-transform duration-500" />
           ) : (
@@ -2653,7 +2654,6 @@ function CoverHero({
                   "relative shrink-0 group/avatar",
                   "h-[120px] w-[120px] sm:h-[150px] sm:w-[150px] lg:h-[180px] lg:w-[180px]",
                   "rounded-full overflow-hidden",
-                  "border-[3px] border-white/[0.18]",
                   "bg-gradient-to-br from-white/[0.06] to-[hsl(220_30%_8%)]",
                   "shadow-[0_30px_80px_-20px_hsl(0_0%_0%/0.85),inset_0_2px_0_hsl(0_0%_100%/0.08)]",
                 )}
@@ -3124,11 +3124,11 @@ function BioSection({
             placeholder="What kind of films do you make? What world are you building?"
             rows={3}
             className={cn(
-              "block w-full resize-none bg-transparent outline-none",
+              "block w-full resize-none outline-none border-transparent",
               "font-display italic font-light tracking-tight",
               "text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.32]",
               "text-foreground placeholder:text-foreground/30",
-              "border-b border-accent/40 focus:border-accent pb-3",
+              "rounded-xl bg-white/[0.04] focus:bg-white/[0.06] px-4 py-3 transition-colors",
               "caret-accent",
             )}
             style={{ fontFamily: "'Fraunces', serif" }}
@@ -3722,7 +3722,7 @@ function DirectorReelMaker({
           type="button"
           onClick={autoPickTop}
           disabled={busy}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent/15 hover:bg-accent/25 text-accent ring-1 ring-inset ring-accent/40 text-[11px] font-mono uppercase tracking-[0.22em] transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent/15 hover:bg-accent/25 text-accent text-[11px] font-mono uppercase tracking-[0.22em] transition-colors disabled:opacity-50"
         >
           <Sparkles className="h-3 w-3" strokeWidth={1.6} />
           Auto-pick top reel
@@ -3749,10 +3749,11 @@ function DirectorReelMaker({
               onClick={() => setFeatured(active ? null : r.id)}
               disabled={busy}
               className={cn(
-                "group relative aspect-video rounded-xl overflow-hidden ring-1 ring-inset transition-all text-left",
-                active ? "ring-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.20)]" : "ring-white/[0.06] hover:ring-white/30",
+                "group relative aspect-video rounded-xl overflow-hidden transition-all text-left",
+                active ? "" : "hover:bg-white/[0.04]",
               )}
             >
+              {active && <CenterLine />}
               {r.thumbnail_url ? (
                 <img src={r.thumbnail_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
@@ -3907,7 +3908,7 @@ function PatronTiersBlock({
           // Goal progress is PRIVATE — only the creator themselves can
           // see the live total + percent funded. Visitors get the goal
           // headline above; that's it.
-          <div className="mt-6 max-w-2xl rounded-2xl p-5 bg-white/[0.015] ring-1 ring-inset ring-white/[0.06]"
+          <div className="mt-6 max-w-2xl rounded-2xl p-5 bg-white/[0.015] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]"
                style={{ backgroundImage: "linear-gradient(180deg, hsla(38 80% 60% / 0.05) 0%, transparent 100%)" }}>
             <div className="flex items-baseline justify-between mb-3">
               <div className="inline-flex items-baseline gap-2">
@@ -4026,10 +4027,10 @@ function TierCard({
           // True glass: layered translucency + backdrop blur
           "bg-[linear-gradient(180deg,hsla(0_0%_100%_/_0.04)_0%,hsla(0_0%_100%_/_0.01)_100%)]",
           "backdrop-blur-2xl",
-          "ring-1 ring-inset transition-shadow duration-500",
+          "transition-shadow duration-500",
           isPopular
-            ? "ring-[hsl(45_95%_60%/0.45)] shadow-[0_30px_80px_-20px_hsla(45_95%_55%/0.45)]"
-            : "ring-white/[0.08] group-hover/tier:ring-white/25",
+            ? "shadow-[0_30px_80px_-20px_hsla(45_95%_55%/0.45)]"
+            : "shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]",
         )}
       >
         {/* Accent hue wash — top half */}
@@ -4187,7 +4188,7 @@ function TierCard({
         {/* CTA */}
         <div className="relative px-6 pb-6 mt-5" style={{ transform: "translateZ(15px)" }}>
           {isOwner ? (
-            <div className={cn(TYPE_META, "text-center text-muted-foreground/55 tracking-[0.22em] py-3 rounded-full bg-white/[0.02] ring-1 ring-inset ring-white/[0.04]")}>
+            <div className={cn(TYPE_META, "text-center text-muted-foreground/55 tracking-[0.22em] py-3 rounded-full bg-white/[0.02]")}>
               Your tier
             </div>
           ) : (
@@ -4393,8 +4394,8 @@ function PatronHubDialog({
           "max-h-[92vh]",
         )}
       >
-        {/* Cinematic frame — ring + glow + glass */}
-        <div className="relative rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.08] shadow-[0_40px_120px_-20px_hsla(45_90%_50%/0.25),0_30px_80px_-30px_hsla(0_0%_0%/0.8)] flex flex-col max-h-[92vh]">
+        {/* Cinematic frame — glow + glass */}
+        <div className="relative rounded-2xl overflow-hidden shadow-[0_40px_120px_-20px_hsla(45_90%_50%/0.25),0_30px_80px_-30px_hsla(0_0%_0%/0.8)] flex flex-col max-h-[92vh]">
           {/* ── Animated backdrop ─────────────────────────────────── */}
           <PatronHubBackdrop reducedMotion={reducedMotion ?? false} />
 
@@ -4446,7 +4447,7 @@ function PatronHubDialog({
                       <span className="text-muted-foreground/55">FUNDED</span>
                     </span>
                   </div>
-                  <div className="relative h-1.5 rounded-full bg-white/[0.05] overflow-hidden ring-1 ring-inset ring-white/[0.04]">
+                  <div className="relative h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${goalPct}%` }}
@@ -4476,7 +4477,7 @@ function PatronHubDialog({
             </div>
 
             {/* Tabs — centered */}
-            <div className="px-6 border-b border-white/[0.06] flex items-center justify-center gap-2 shrink-0">
+            <div className="px-6 pb-2 flex items-center justify-center gap-2 shrink-0">
               <PatronTab id="tiers" label="Choose a tier" active={tab === "tiers"} onClick={() => setTab("tiers")} />
               <PatronTab id="yours" label="Your pledges"  active={tab === "yours"} onClick={() => setTab("yours")} />
             </div>
@@ -4536,7 +4537,7 @@ function PatronHubDialog({
             </div>
 
             {/* Footer — trust band (compact) */}
-            <div className="px-6 pb-4 pt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 shrink-0 border-t border-white/[0.04]">
+            <div className="px-6 pb-4 pt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 shrink-0">
               <TrustChip label="Cancel anytime" />
               <span className="text-muted-foreground/30">·</span>
               <TrustChip label="90% to creator" />
@@ -4751,13 +4752,13 @@ function YoursPledgesPanel({
         <span className="text-amber-200 font-mono tabular-nums">{total.toLocaleString()}</span>{" "}
         cr / month total.
       </div>
-      <ul className="divide-y divide-white/[0.04] border-y border-white/[0.04]">
+      <ul className="flex flex-col gap-1">
         {pledges.map((p) => {
           const slug = p.creator?.username ? `@${p.creator.username}` : p.creator_id;
           const renew = new Date(p.renewal_due_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
           return (
             <li key={p.id} className="py-4 flex items-center gap-4">
-              <Link to={`/c/${slug}`} onClick={onClose} className="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-1 ring-inset ring-white/[0.08] bg-glass-hover">
+              <Link to={`/c/${slug}`} onClick={onClose} className="shrink-0 w-10 h-10 rounded-full overflow-hidden bg-glass-hover">
                 {p.creator?.avatar_url ? (
                   <img src={p.creator.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -4788,7 +4789,7 @@ function YoursPledgesPanel({
                 type="button"
                 onClick={() => void onCancel(p)}
                 disabled={cancellingId === p.id}
-                className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.22em] text-rose-200/75 hover:text-rose-100 hover:bg-rose-500/10 ring-1 ring-inset ring-rose-300/20 hover:ring-rose-300/45 transition-colors disabled:opacity-50"
+                className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.22em] text-rose-200/75 hover:text-rose-100 bg-rose-500/[0.06] hover:bg-rose-500/15 transition-colors disabled:opacity-50"
               >
                 {cancellingId === p.id ? "Cancelling…" : "Cancel"}
               </button>
@@ -4839,7 +4840,7 @@ function PinnedCollectionsRail({
         {collections.map((c) => (
           <div
             key={c.id}
-            className="shrink-0 w-[240px] rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-white/20 transition-all bg-white/[0.015] cursor-pointer"
+            className="shrink-0 w-[240px] rounded-2xl overflow-hidden transition-all bg-white/[0.015] hover:bg-white/[0.04] cursor-pointer"
           >
             <div className="relative aspect-video bg-black/40">
               {c.cover_url ? (
@@ -4904,7 +4905,7 @@ function RecommendedCreatorsRail({
             title={r.display_name ?? undefined}
             className="group flex w-[68px] shrink-0 flex-col items-center gap-2 text-center"
           >
-            <div className="relative w-14 h-14 rounded-full overflow-hidden ring-1 ring-inset ring-white/[0.10] group-hover:ring-accent/50 transition-all">
+            <div className="relative w-14 h-14 rounded-full overflow-hidden bg-white/[0.05] transition-all">
               {r.avatar_url ? (
                 <img src={r.avatar_url} alt={r.display_name ?? ""} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               ) : (
@@ -5028,7 +5029,7 @@ function SafetyMenu({ targetId, targetName }: { targetId: string; targetName: st
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 mt-2 w-52 z-50 rounded-2xl overflow-hidden bg-[hsl(220_28%_8%/0.95)] backdrop-blur-2xl ring-1 ring-inset ring-white/[0.08] shadow-[0_18px_60px_rgba(0,0,0,0.55)]"
+            className="absolute right-0 mt-2 w-52 z-50 rounded-2xl overflow-hidden bg-[hsl(220_28%_8%/0.95)] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.55)]"
           >
             <button
               type="button"
@@ -5095,7 +5096,7 @@ function SafetyMenu({ targetId, targetName }: { targetId: string; targetName: st
                 rows={3}
                 maxLength={2000}
                 placeholder="Anything we should know?"
-                className="w-full px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.06] text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:border-rose-300/55"
+                className="w-full px-3 py-2 rounded-md bg-white/[0.04] border-transparent text-foreground text-[13px] leading-relaxed resize-none focus:outline-none focus:bg-white/[0.07] transition-colors"
               />
             </div>
           </div>
@@ -5153,7 +5154,7 @@ function MutualFollowsLine({
           <Link
             key={m.id}
             to={`/c/${m.id}`}
-            className="relative h-7 w-7 rounded-full overflow-hidden ring-2 ring-[hsl(220_28%_5%)] bg-glass-hover hover:z-10 transition-transform hover:scale-110"
+            className="relative h-7 w-7 rounded-full overflow-hidden bg-glass-hover hover:z-10 transition-transform hover:scale-110"
             style={{ zIndex: sample.length - i }}
             title={m.display_name ?? "Anonymous"}
           >
@@ -5235,7 +5236,7 @@ function InlineUploadOverlay({
           disabled={upload.isUploading}
           className={cn(
             "inline-flex items-center gap-2 h-9 px-4 rounded-full",
-            "bg-black/55 backdrop-blur ring-1 ring-inset ring-white/15",
+            "bg-black/55 backdrop-blur",
             "text-white/85 hover:text-white hover:bg-black/70",
             "text-[11px] font-mono uppercase tracking-[0.22em] transition-colors",
             "opacity-0 hover:opacity-100 focus:opacity-100 group-hover/cover:opacity-100",
@@ -5281,7 +5282,7 @@ function BrandInquiryLink({ recipientId, recipientName }: { recipientId: string;
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] ring-1 ring-inset ring-white/[0.10] hover:ring-white/[0.25] text-[11px] font-mono uppercase tracking-[0.32em] text-foreground/85 hover:text-foreground transition-all"
+        className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-mono uppercase tracking-[0.32em] text-foreground/85 hover:text-foreground transition-all"
       >
         <Briefcase className="h-3.5 w-3.5" strokeWidth={1.5} />
         Pitch a deal
@@ -5306,7 +5307,7 @@ function PatronButton({
   return (
     <Link
       to={`/c/${slug}/patron`}
-      className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-amber-400/12 hover:bg-amber-400/22 ring-1 ring-inset ring-amber-300/35 hover:ring-amber-300/65 text-[11px] font-mono uppercase tracking-[0.32em] text-amber-100 hover:text-amber-50 transition-all shadow-[0_0_18px_-6px_hsla(45_95%_60%/0.55)]"
+      className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-amber-400/12 hover:bg-amber-400/22 text-[11px] font-mono uppercase tracking-[0.32em] text-amber-100 hover:text-amber-50 transition-all shadow-[0_0_18px_-6px_hsla(45_95%_60%/0.55)]"
     >
       <Crown className="h-3.5 w-3.5" strokeWidth={1.5} />
       Patron
@@ -5343,7 +5344,7 @@ function PinnedReels({
         <div key={r.id} className="relative group/pin">
           <Link
             to={`/r/${r.id}`}
-            className="block relative aspect-video rounded-2xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/35 transition-all"
+            className="block relative aspect-video rounded-2xl overflow-hidden bg-white/[0.03] transition-all"
           >
             {r.thumbnail_url ? (
               <img
@@ -5372,7 +5373,7 @@ function PinnedReels({
               type="button"
               onClick={() => void onUnpin(r.id)}
               title="Unpin"
-              className="absolute top-3 right-3 inline-flex items-center gap-1 h-8 px-3 rounded-full bg-black/55 hover:bg-rose-500/85 backdrop-blur ring-1 ring-inset ring-white/15 hover:ring-rose-300/65 text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors opacity-0 group-hover/pin:opacity-100"
+              className="absolute top-3 right-3 inline-flex items-center gap-1 h-8 px-3 rounded-full bg-black/55 hover:bg-rose-500/85 backdrop-blur text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors opacity-0 group-hover/pin:opacity-100"
             >
               <X className="h-3 w-3" />Unpin
             </button>
@@ -5487,16 +5488,17 @@ function CornerGearButton({
       aria-label={active ? "Exit profile settings" : "Open profile settings"}
       title={active ? "Done — exit settings" : "Edit profile"}
       className={cn(
-        "fixed top-4 right-4 z-[9000]",
+        "fixed top-4 right-4 z-[9000] relative",
         "h-11 w-11 rounded-full",
         "backdrop-blur-xl",
-        "ring-1 ring-inset transition-all",
+        "transition-all",
         active
-          ? "bg-accent/15 ring-accent/55 text-accent shadow-[0_0_28px_-6px_hsl(var(--accent)/0.85)]"
-          : "bg-black/40 ring-white/[0.12] text-foreground/70 hover:text-foreground hover:bg-black/55 hover:ring-white/30",
+          ? "bg-white/[0.06] text-white"
+          : "bg-black/40 text-foreground/70 hover:text-foreground hover:bg-black/55",
         "flex items-center justify-center",
       )}
     >
+      {active && <CenterLine />}
       <SettingsIcon
         className={cn(
           "h-4 w-4 transition-transform duration-500",
@@ -5534,12 +5536,12 @@ function CurrentProjectBadge({
       to={`/editor/${project.id}`}
       className={cn(
         "group/cp ml-2 inline-flex items-center gap-2 h-6 pl-1 pr-3 rounded-full",
-        "bg-accent/10 hover:bg-accent/20 ring-1 ring-inset ring-accent/30 hover:ring-accent/55",
+        "bg-accent/10 hover:bg-accent/20",
         "transition-all shadow-[0_0_14px_-6px_hsl(var(--accent)/0.55)]",
       )}
       title={`In progress · ${project.title ?? "Untitled"}`}
     >
-      <span className="relative h-4 w-4 rounded-full overflow-hidden ring-1 ring-inset ring-accent/45 bg-black/40">
+      <span className="relative h-4 w-4 rounded-full overflow-hidden bg-black/40">
         {project.thumbnail_url ? (
           <img src={project.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
@@ -5561,7 +5563,7 @@ function CurrentProjectBadge({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InlineHeroTextInput — the display-italic XL serif input that replaces
-// the <h1> name when settings mode is on. Thick accent ring, soft glow
+// the <h1> name when settings mode is on. Soft accent glow
 // underneath, save-on-blur + ⌘↵ shortcut.
 // ─────────────────────────────────────────────────────────────────────────────
 function InlineHeroTextInput({
@@ -5598,8 +5600,7 @@ function InlineHeroTextInput({
         className={cn(
           "block w-full bg-transparent outline-none",
           "font-display italic font-light leading-[0.95] tracking-tight",
-          "text-white placeholder:text-white/30",
-          "border-b-2 border-accent/55 focus:border-accent pb-2",
+          "text-white placeholder:text-white/30 border-transparent pb-2",
           "caret-accent",
           "transition-all",
           "focus:[box-shadow:0_8px_42px_-12px_hsl(var(--accent)/0.85)]",
@@ -5670,7 +5671,7 @@ function InlineMicroInput({
           "block w-full bg-transparent outline-none",
           italic ? "font-display italic font-light text-[clamp(1.1rem,1.6vw,1.4rem)] leading-snug" : "text-[14px] font-light",
           "text-foreground/95 placeholder:text-foreground/30",
-          "border-b border-accent/45 focus:border-accent pb-1.5",
+          "border-transparent rounded-md focus:bg-white/[0.04] pb-1.5 transition-colors",
           "caret-accent",
           "transition-all focus:[box-shadow:0_8px_28px_-12px_hsl(var(--accent)/0.7)]",
           align === "right" && "text-right",
@@ -5809,7 +5810,7 @@ function HighlightReelPicker({
             <Link
               key={r.id}
               to={`/r/${r.id}`}
-              className="group/h relative block aspect-video rounded-xl overflow-hidden ring-1 ring-inset ring-white/[0.06] hover:ring-accent/40 transition-all"
+              className="group/h relative block aspect-video rounded-xl overflow-hidden bg-white/[0.03] transition-all"
             >
               {r.thumbnail_url ? (
                 <img src={r.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover group-hover/h:scale-[1.04] transition-transform duration-700" />
@@ -5914,12 +5915,11 @@ function HighlightReelPicker({
               onClick={() => toggle(r.id)}
               aria-pressed={on}
               className={cn(
-                "group/p relative block aspect-video rounded-xl overflow-hidden ring-1 ring-inset transition-all text-left",
-                on
-                  ? "ring-accent/85 shadow-[0_0_24px_-6px_hsl(var(--accent)/0.85)]"
-                  : "ring-white/[0.06] hover:ring-white/30",
+                "group/p relative block aspect-video rounded-xl overflow-hidden bg-white/[0.03] transition-all text-left",
+                !on && "hover:bg-white/[0.06]",
               )}
             >
+              {on && <CenterLine />}
               {r.thumbnail_url ? (
                 <img src={r.thumbnail_url} alt="" className={cn("absolute inset-0 w-full h-full object-cover transition-transform duration-700", on && "scale-[1.02]")} />
               ) : (
@@ -5932,7 +5932,7 @@ function HighlightReelPicker({
                 aria-hidden
                 className={cn(
                   "absolute top-2.5 right-2.5 h-6 w-6 rounded-full flex items-center justify-center transition-all",
-                  on ? "bg-accent text-black ring-2 ring-accent/55" : "bg-black/55 text-white/55 ring-1 ring-inset ring-white/30",
+                  on ? "bg-accent text-black" : "bg-black/55 text-white/55",
                 )}
               >
                 {on ? <Check className="h-3.5 w-3.5" strokeWidth={2.4} /> : <Plus className="h-3 w-3" strokeWidth={2} />}
@@ -6107,7 +6107,7 @@ function ProfileSettingsPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.4, ease: EASE_PREMIUM }}
-      className="relative rounded-3xl ring-1 ring-inset ring-accent/25 bg-gradient-to-br from-accent/[0.04] via-white/[0.015] to-transparent p-6 sm:p-9"
+      className="relative rounded-3xl bg-gradient-to-br from-accent/[0.04] via-white/[0.015] to-transparent p-6 sm:p-9"
       style={{
         boxShadow: "0 30px 80px -28px hsl(var(--accent) / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.06)",
       }}
@@ -6133,7 +6133,7 @@ function ProfileSettingsPanel({
           onClick={onClose}
           className={cn(
             "inline-flex items-center gap-2 h-9 px-4 rounded-full",
-            "bg-accent/15 hover:bg-accent/25 ring-1 ring-inset ring-accent/40",
+            "bg-accent/15 hover:bg-accent/25",
             "text-[11px] font-mono uppercase tracking-[0.28em] text-accent transition-colors",
           )}
         >
@@ -6153,12 +6153,13 @@ function ProfileSettingsPanel({
                   type="button"
                   onClick={() => void savePronouns(p)}
                   className={cn(
-                    "h-8 px-3 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] transition-all ring-1 ring-inset",
+                    "relative h-8 px-3 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] transition-all",
                     pronouns === p
-                      ? "bg-accent/20 ring-accent/55 text-accent shadow-[0_0_16px_-6px_hsl(var(--accent)/0.75)]"
-                      : "bg-white/[0.03] ring-white/[0.08] text-foreground/70 hover:text-foreground hover:ring-white/30",
+                      ? "text-white"
+                      : "bg-white/[0.03] text-foreground/70 hover:text-foreground hover:bg-white/[0.06]",
                   )}
                 >
+                  {pronouns === p && <CenterLine />}
                   {p}
                 </button>
               ))}
@@ -6181,10 +6182,8 @@ function ProfileSettingsPanel({
                   type="button"
                   onClick={() => void saveAccent(a.key)}
                   className={cn(
-                    "group/a relative h-12 rounded-xl ring-1 ring-inset transition-all overflow-hidden",
-                    a.key === accent
-                      ? "ring-accent/85 shadow-[0_0_22px_-4px_hsl(var(--accent)/0.85)]"
-                      : "ring-white/[0.08] hover:ring-white/30",
+                    "group/a relative h-12 rounded-xl transition-all overflow-hidden",
+                    a.key === accent ? "" : "hover:opacity-90",
                   )}
                   style={{
                     background: `radial-gradient(circle at 30% 40%, hsl(${a.hsl} / 0.85), hsl(${a.hsl} / 0.30) 70%)`,
@@ -6226,8 +6225,8 @@ function ProfileSettingsPanel({
                   onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
                   placeholder={placeholder}
                   className={cn(
-                    "block w-full h-10 px-3 rounded-xl",
-                    "bg-white/[0.03] ring-1 ring-inset ring-white/[0.08] focus:ring-accent/55",
+                    "block w-full h-10 px-3 rounded-xl border-transparent",
+                    "bg-white/[0.04] focus:bg-white/[0.07]",
                     "text-[13px] text-foreground placeholder:text-foreground/30 font-mono",
                     "outline-none transition-all focus:[box-shadow:0_8px_28px_-12px_hsl(var(--accent)/0.7)]",
                   )}
@@ -6285,7 +6284,7 @@ function ProfileSettingsPanel({
             to="/account?tab=settings#notifications"
             className={cn(
               "inline-flex items-center gap-2 h-9 px-4 rounded-full",
-              "bg-white/[0.04] hover:bg-white/[0.08] ring-1 ring-inset ring-white/[0.10] hover:ring-white/30",
+              "bg-white/[0.04] hover:bg-white/[0.08]",
               "text-[11px] font-mono uppercase tracking-[0.28em] text-foreground/85 hover:text-foreground transition-all",
             )}
           >
@@ -6364,8 +6363,8 @@ function SettingsInput({
       }}
       placeholder={placeholder}
       className={cn(
-        "block w-full h-10 px-3 rounded-xl",
-        "bg-white/[0.03] ring-1 ring-inset ring-white/[0.08] focus:ring-accent/55",
+        "block w-full h-10 px-3 rounded-xl border-transparent",
+        "bg-white/[0.04] focus:bg-white/[0.07]",
         "text-[13px] text-foreground placeholder:text-foreground/30 font-mono",
         "outline-none transition-all focus:[box-shadow:0_8px_28px_-12px_hsl(var(--accent)/0.7)]",
       )}
@@ -6389,19 +6388,18 @@ function SettingsRadioRow({
           onClick={() => onChange(o.value)}
           className={cn(
             "group/r flex items-center w-full text-left gap-3 h-10 px-3 rounded-xl transition-all",
-            "ring-1 ring-inset",
             o.value === value
-              ? "bg-accent/15 ring-accent/55 text-accent shadow-[0_0_18px_-6px_hsl(var(--accent)/0.75)]"
-              : "bg-white/[0.02] ring-white/[0.06] text-foreground/75 hover:text-foreground hover:ring-white/25",
+              ? "bg-white/[0.05] text-foreground"
+              : "bg-white/[0.02] text-foreground/75 hover:text-foreground hover:bg-white/[0.04]",
           )}
         >
           <span
             aria-hidden
             className={cn(
-              "inline-block h-3 w-3 rounded-full ring-1 ring-inset transition-all",
+              "inline-block h-3 w-3 rounded-full transition-all",
               o.value === value
-                ? "bg-accent ring-accent shadow-[0_0_8px_hsl(var(--accent)/0.85)]"
-                : "bg-transparent ring-foreground/45",
+                ? "bg-accent shadow-[0_0_8px_hsl(var(--accent)/0.85)]"
+                : "bg-white/20",
             )}
           />
           <span className="text-[13px] font-light">{o.label}</span>
@@ -6426,12 +6424,13 @@ function SettingsPills({
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            "h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.24em] transition-all ring-1 ring-inset",
+            "relative h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.24em] transition-all",
             o.value === value
-              ? "bg-accent/20 ring-accent/55 text-accent shadow-[0_0_18px_-6px_hsl(var(--accent)/0.85)]"
-              : "bg-white/[0.03] ring-white/[0.08] text-foreground/70 hover:text-foreground hover:ring-white/30",
+              ? "text-white"
+              : "bg-white/[0.03] text-foreground/70 hover:text-foreground hover:bg-white/[0.06]",
           )}
         >
+          {o.value === value && <CenterLine />}
           {o.label}
         </button>
       ))}
@@ -6477,12 +6476,12 @@ function AssetUploadRow({
       disabled={upload.isUploading}
       className={cn(
         "group/au flex items-center gap-3 w-full h-12 px-4 rounded-xl text-left",
-        "bg-white/[0.03] ring-1 ring-inset ring-white/[0.08] hover:ring-accent/45 transition-all",
+        "bg-white/[0.03] hover:bg-white/[0.06] transition-all",
         "shadow-[0_0_0_-6px_hsl(var(--accent)/0.0)] hover:shadow-[0_0_20px_-6px_hsl(var(--accent)/0.55)]",
       )}
     >
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFile} />
-      <div className="h-8 w-8 rounded-full bg-accent/10 ring-1 ring-inset ring-accent/30 flex items-center justify-center text-accent">
+      <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">
         <Icon className="h-4 w-4" strokeWidth={1.5} />
       </div>
       <div className="flex-1 min-w-0">

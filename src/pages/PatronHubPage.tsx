@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/shell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
+import { CenterLine } from "@/components/ui/CenterLine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -308,7 +309,7 @@ export default function PatronHubPage() {
                       <AnimatedCounter value={goalPct} />%<span className="text-muted-foreground/55">FUNDED</span>
                     </span>
                   </div>
-                  <div className="relative h-2 rounded-full bg-white/[0.05] overflow-hidden ring-1 ring-inset ring-white/[0.04]">
+                  <div className="relative h-2 rounded-full bg-white/[0.05] overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${goalPct}%` }}
@@ -337,7 +338,7 @@ export default function PatronHubPage() {
             </section>
 
             {/* Tabs */}
-            <nav className="mt-12 mb-8 flex items-center justify-center gap-2 border-b border-white/[0.06]">
+            <nav className="mt-12 mb-8 flex items-center justify-center gap-2">
               <PageTab id="tiers" label="Choose a tier" active={tab === "tiers"} onClick={() => setTab("tiers")} />
               <PageTab id="yours" label="Your pledges" active={tab === "yours"} onClick={() => setTab("yours")} />
             </nav>
@@ -367,7 +368,7 @@ export default function PatronHubPage() {
                         // straight to the editor where they can author
                         // their first tier.
                         <div className="py-12 max-w-md mx-auto text-center">
-                          <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-amber-400/[0.08] ring-1 ring-inset ring-amber-300/25 flex items-center justify-center">
+                          <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-amber-400/[0.08] flex items-center justify-center">
                             <Crown className="h-5 w-5 text-amber-200/85" strokeWidth={1.6} />
                           </div>
                           <h2
@@ -381,7 +382,7 @@ export default function PatronHubPage() {
                           </p>
                           <Link
                             to="/account?tab=settings&m=creator"
-                            className="mt-6 inline-flex items-center gap-2 px-5 h-10 rounded-full border border-amber-300/40 bg-gradient-to-br from-amber-400/[0.18] to-amber-400/[0.04] text-[13px] text-amber-100 hover:border-amber-300/60 hover:from-amber-400/[0.28] transition-all"
+                            className="mt-6 inline-flex items-center gap-2 px-5 h-10 rounded-full bg-gradient-to-br from-amber-400/[0.18] to-amber-400/[0.04] text-[13px] text-amber-100 hover:from-amber-400/[0.32] hover:to-amber-400/[0.10] transition-all"
                           >
                             <Plus className="h-3.5 w-3.5" strokeWidth={1.8} />
                             Create your first tier
@@ -533,16 +534,11 @@ function PageTab({
       role="tab"
       className={cn(
         "relative inline-flex items-center h-11 px-5 text-[11px] font-mono uppercase tracking-[0.24em] transition-colors",
-        active ? "text-amber-200" : "text-muted-foreground/60 hover:text-foreground",
+        active ? "text-white" : "text-muted-foreground/60 hover:text-foreground",
       )}
     >
       {label}
-      {active && (
-        <motion.span
-          layoutId="patron-page-tab-underline"
-          className="absolute inset-x-3 -bottom-px h-px bg-amber-300"
-        />
-      )}
+      {active && <CenterLine />}
     </button>
   );
 }
@@ -597,10 +593,10 @@ function PatronTierCard({
         className={cn(
           "relative rounded-3xl overflow-hidden h-full flex flex-col",
           "bg-[linear-gradient(180deg,hsla(0_0%_100%_/_0.04)_0%,hsla(0_0%_100%_/_0.01)_100%)]",
-          "backdrop-blur-2xl ring-1 ring-inset transition-shadow duration-500",
+          "backdrop-blur-2xl transition-shadow duration-500",
           isPopular
-            ? "ring-[hsl(45_95%_60%/0.5)] shadow-[0_30px_80px_-20px_hsla(45_95%_55%/0.5)]"
-            : "ring-white/[0.08] group-hover/tier:ring-white/25",
+            ? "shadow-[0_30px_80px_-20px_hsla(45_95%_55%/0.5)]"
+            : "shadow-[0_20px_60px_-30px_hsla(0_0%_0%/0.7)] group-hover/tier:shadow-[0_28px_70px_-25px_hsla(0_0%_0%/0.85)]",
         )}
       >
         <div
@@ -783,13 +779,13 @@ function YoursPledgesPanel({
         {pledges.length === 1 ? "creator" : "creators"} · <span className="text-amber-200 font-mono tabular-nums">{total.toLocaleString()}</span>{" "}
         cr / month total.
       </div>
-      <ul className="divide-y divide-white/[0.04] border-y border-white/[0.04]">
+      <ul className="space-y-1">
         {pledges.map((p) => {
           const slug = p.creator?.username ? `@${p.creator.username}` : p.creator_id;
           const renew = new Date(p.renewal_due_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
           return (
-            <li key={p.id} className="py-4 flex items-center gap-4">
-              <Link to={`/c/${slug}`} className="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-1 ring-inset ring-white/[0.08] bg-glass-hover">
+            <li key={p.id} className="rounded-2xl px-3 py-3 flex items-center gap-4 hover:bg-white/[0.03] transition-colors">
+              <Link to={`/c/${slug}`} className="shrink-0 w-10 h-10 rounded-full overflow-hidden bg-glass-hover">
                 {p.creator?.avatar_url ? (
                   <img src={p.creator.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -820,7 +816,7 @@ function YoursPledgesPanel({
                 type="button"
                 onClick={() => void onCancel(p)}
                 disabled={cancellingId === p.id}
-                className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.22em] text-rose-200/75 hover:text-rose-100 hover:bg-rose-500/10 ring-1 ring-inset ring-rose-300/20 hover:ring-rose-300/45 transition-colors disabled:opacity-50"
+                className="shrink-0 inline-flex items-center justify-center h-8 px-3 rounded-full text-[10px] font-mono uppercase tracking-[0.22em] text-rose-200/75 hover:text-rose-100 bg-rose-500/[0.06] hover:bg-rose-500/15 transition-colors disabled:opacity-50"
               >
                 {cancellingId === p.id ? "Cancelling…" : "Cancel"}
               </button>

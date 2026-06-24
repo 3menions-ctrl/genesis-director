@@ -371,16 +371,16 @@ export function StatOrb({ label, value, icon: Icon, aura = ACCENT_HSL, accentNum
       initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.05, ease: EASE }}
       className="group/orb relative"
     >
-      {/* No card surface — a soft coloured aura sits BEHIND the figure so the
-          number reads as floating directly on the page. */}
-      <span aria-hidden className="pointer-events-none absolute -left-4 -top-5 h-28 w-28 rounded-full transition-opacity duration-500 group-hover/orb:opacity-95"
-        style={{ background: aura, filter: "blur(44px)", opacity: 0.55 }} />
+      {/* No card surface. A very faint coloured tint sits behind the figure so
+          it lifts off the page — subtle, not a glow. */}
+      <span aria-hidden className="pointer-events-none absolute -left-4 -top-5 h-24 w-24 rounded-full transition-opacity duration-500 group-hover/orb:opacity-40"
+        style={{ background: aura, filter: "blur(46px)", opacity: 0.16 }} />
       <div className="relative flex items-center gap-2">
-        {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.8} style={{ color: accent(0.85) }} />}
+        {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.8} style={{ color: accent(0.7) }} />}
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">{label}</span>
       </div>
       <CountUp value={value} className="relative mt-3.5 block font-display font-semibold leading-none tracking-tight tabular-nums"
-        style={{ fontSize: "clamp(2rem, 2.6vw, 2.9rem)", color: accentNumber ? ACCENT_HSL : "#fff", textShadow: `0 0 38px ${accentNumber ? accent(0.6) : "rgba(0,0,0,0.6)"}` }} />
+        style={{ fontSize: "clamp(2rem, 2.6vw, 2.9rem)", color: accentNumber ? ACCENT_HSL : "#fff" }} />
       <div className="relative mt-3 flex items-center justify-between gap-2">
         {delta !== undefined ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: up ? CYAN : "rgba(255,255,255,0.5)" }}>

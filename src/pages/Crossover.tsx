@@ -326,8 +326,8 @@ function FilterPill({
       className={cn(
         "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
         active
-          ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-5 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
-          : "text-foreground/55 hover:text-foreground/85 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur",
+          ? "relative text-foreground after:absolute after:-bottom-0.5 after:left-1/2 after:h-[2px] after:w-6 after:-ml-3 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
+          : "text-foreground/55 hover:text-foreground/85",
       )}
     >
       {icon}

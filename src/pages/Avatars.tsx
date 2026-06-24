@@ -548,7 +548,7 @@ function TypeTabs({
               <motion.span
                 layoutId="avatar-type-active"
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="absolute bottom-0.5 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-white"
+                className="absolute bottom-0.5 left-1/2 -ml-3 h-[2px] w-6 rounded-full bg-white"
                 style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
               />
             )}
@@ -596,8 +596,8 @@ function SortPicker({
             className={cn(
               "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors border border-transparent",
               active
-                ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
-                : "bg-white/[0.03] text-muted-foreground/70 hover:text-foreground/90 hover:bg-white/[0.05]",
+                ? "relative text-foreground after:absolute after:-bottom-0.5 after:left-1/2 after:h-[2px] after:w-6 after:-ml-3 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
+                : "text-muted-foreground/70 hover:text-foreground/90",
             )}
           >
             <Icon className="h-3 w-3" strokeWidth={1.5} />
@@ -630,8 +630,8 @@ function CategoryChips({
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors border border-transparent",
               active
-                ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-5 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
-                : "bg-white/[0.03] text-muted-foreground/70 hover:bg-white/[0.05] hover:text-foreground/90",
+                ? "relative text-foreground after:absolute after:-bottom-0.5 after:left-1/2 after:h-[2px] after:w-6 after:-ml-3 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
+                : "text-muted-foreground/70 hover:text-foreground/90",
             )}
           >
             <span>{c.icon}</span>

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { CREDIT_SYSTEM } from '@/lib/creditSystem';
 
 interface PricingConfig {
   id: string;
@@ -139,8 +140,10 @@ export function AdminPricingConfigEditor() {
   };
 
   const calculateMargin = (credits: number) => {
-    // Assume 1 credit = $0.116 (from credit packages average)
-    const revenuePerCredit = 11.6; // cents
+    // AUDIT FIX M-5: use the canonical price ($0.10/credit) from creditSystem
+    // instead of a divergent hardcoded 11.6¢, which overstated revenue/margin by
+    // 16% versus billing, invoices, and the business billing page.
+    const revenuePerCredit = CREDIT_SYSTEM.CENTS_PER_CREDIT; // cents
     const revenue = credits * revenuePerCredit;
     
     // Cost per clip (Veo is the main cost)

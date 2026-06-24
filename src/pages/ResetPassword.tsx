@@ -12,9 +12,15 @@ import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
+// Mirror the signup policy (Auth.tsx signupPasswordSchema) so a reset can't be
+// used to downgrade to a weaker password than signup allows.
 const passwordSchema = z.string()
-  .min(6, 'Password must be at least 6 characters')
-  .max(72, 'Password must be less than 72 characters');
+  .min(8, 'Use at least 8 characters')
+  .max(72, 'Password must be less than 72 characters')
+  .refine(
+    (v) => /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/.test(v),
+    { message: 'Mix upper, lower, and a number' },
+  );
 
 export default function ResetPassword() {
   usePageMeta({ title: "Reset password — Small Bridges", description: "Choose a new password for your Small Bridges account." });

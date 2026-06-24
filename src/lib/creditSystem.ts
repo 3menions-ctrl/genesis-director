@@ -227,7 +227,10 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
   isExtended: boolean;
   isVeo: boolean;
 } {
-  const baseRate = calculateCreditsPerClip(CREDIT_SYSTEM.BASE_DURATION_THRESHOLD, 0, videoEngine);
+  // Price the actual clip duration (e.g. a 5s clip costs less than 10s) — this
+  // must match calculateCreditsRequired, which prices each clip at clipDuration.
+  // Hardcoding the 10s threshold here over-charged shorter clips ~2x.
+  const baseRate = calculateCreditsPerClip(clipDuration, 0, videoEngine);
   const extRate = calculateCreditsPerClip(clipDuration > CREDIT_SYSTEM.BASE_DURATION_THRESHOLD ? clipDuration : 15, 0, videoEngine);
 
   let baseClipCount = 0;

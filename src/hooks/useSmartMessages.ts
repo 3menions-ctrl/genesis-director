@@ -215,9 +215,10 @@
      
      if (daysSinceCreation <= 7 && !hasBeenShown('first_project_tip')) {
        // Delay to not overwhelm on first load
-       setTimeout(() => {
+       const t = setTimeout(() => {
          showFirstProjectTip();
        }, 3000);
+       return () => clearTimeout(t);
      }
    }, [options.showOnboardingTips, profile, showFirstProjectTip]);
    
@@ -231,9 +232,10 @@
      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
      if (isSafari) {
        // Delay to not overwhelm
-       setTimeout(() => {
+       const t = setTimeout(() => {
          showSafariCompatibility();
        }, 5000);
+       return () => clearTimeout(t);
      }
    }, [options.checkSystemCompat, showSafariCompatibility]);
    

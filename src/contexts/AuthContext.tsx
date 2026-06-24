@@ -35,6 +35,10 @@ interface AuthContextType {
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Optimistically merge fields into the in-memory profile (e.g. right after
+   *  a successful DB write) so routing reflects the change immediately even if
+   *  a follow-up fetch times out and falls back. */
+  patchProfile: (patch: Partial<UserProfile>) => void;
   retryProfileFetch: () => Promise<void>;
   getValidSession: () => Promise<Session | null>;
   waitForSession: <T>(callback: (session: Session) => Promise<T>) => Promise<T | null>;
@@ -157,6 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
     }
   }, [user]);
+
+  const patchProfile = useCallback((patch: Partial<UserProfile>) => {
+    // Update the ref synchronously too, so a reconcile that fires before the
+    // next render (which uses profileRef.current as `prev`) keeps the patch.
+    const next = profileRef.current ? { ...profileRef.current, ...patch } : profileRef.current;
+    profileRef.current = next;
+    setProfile(next);
+  }, []);
 
   // Listen for credit updates from Hoppy agent chat
   useEffect(() => {
@@ -465,8 +477,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
+
       if (currentSession) {
+        // Enforce admin session invalidation on this ALREADY-OPEN tab. The
+        // login/initial-load path stamps + checks security_version, but an open
+        // tab that only ever sees TOKEN_REFRESHED would never re-check it, so an
+        // admin "invalidate all sessions" wouldn't take effect until reload.
+        const uid = currentSession.user?.id;
+        if (uid) {
+          const { data: secRow } = await supabase
+            .from('profiles')
+            .select('security_version')
+            .eq('id', uid)
+            .maybeSingle();
+          const serverVersion = secRow?.security_version;
+          const storedRaw = localStorage.getItem(SECURITY_VERSION_KEY);
+          if (serverVersion != null && storedRaw !== null && serverVersion > parseInt(storedRaw, 10)) {
+            console.warn('[AuthContext] Security version increased on active session — forcing sign-out');
+            localStorage.setItem(SECURITY_VERSION_KEY, String(serverVersion));
+            lastUserIdRef.current = null;
+            resetQueryCache('security version invalidation (active session)');
+            await supabase.auth.signOut({ scope: 'global' });
+            if (mounted) { setProfile(null); setIsAdmin(false); }
+            return;
+          }
+        }
+
         // Check if token expires in less than 15 minutes
         const expiresAt = currentSession.expires_at;
         const now = Math.floor(Date.now() / 1000);
@@ -699,20 +735,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetAnalytics();
     resetTracking();
 
-    // Clear all sb.* keys from both storages so the next user on this
-    // device starts clean: workspace selection, intent token, security stamp.
-    // `apex.*` is the legacy prefix kept here through one rebrand cycle —
-    // delete after a release window once we're sure no clients still hold them.
+    // Purge per-user state from both storages so the next user on this device
+    // starts clean: workspace selection, intent token, prefs cache, create
+    // drafts, notification markers, security stamp, and the Supabase auth token
+    // itself (`sb-<ref>-auth-token` / legacy `supabase.auth.token`). The old
+    // loop only matched `sb.`/`apex.` — prefixes NOTHING in the app actually
+    // uses — so it cleared nothing. We intentionally KEEP device-level UI prefs
+    // (`smallbridges.lang`, diagnostics flags). `apex.*` is a legacy rebrand
+    // prefix retained for one release window.
+    const shouldPurge = (key: string): boolean => {
+      if (key === SECURITY_VERSION_KEY) return true;
+      if (key === 'smallbridges.lang') return false; // device UI pref — keep
+      return (
+        key.startsWith('sb-') ||      // real supabase auth token
+        key.startsWith('sb.') ||      // legacy
+        key.startsWith('sb_') ||      // create-page drafts/tabs
+        key.startsWith('sb:') ||      // auth flags
+        key.startsWith('apex.') ||    // legacy rebrand
+        key.startsWith('smallbridges.') || // app namespace (orgId, intent, prefs cache, lastSeen…)
+        key === 'supabase.auth.token' // legacy supabase token
+      );
+    };
     try {
       for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('sb.') || key.startsWith('apex.') || key === SECURITY_VERSION_KEY) {
-          localStorage.removeItem(key);
-        }
+        if (shouldPurge(key)) localStorage.removeItem(key);
       }
     } catch {}
     try {
       for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith('sb.') || key.startsWith('apex.')) sessionStorage.removeItem(key);
+        if (shouldPurge(key)) sessionStorage.removeItem(key);
       }
     } catch {}
 
@@ -769,6 +820,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithMagicLink,
       signOut,
       refreshProfile,
+      patchProfile,
       retryProfileFetch,
       getValidSession,
       waitForSession,
@@ -798,6 +850,7 @@ export function useAuth() {
       signInWithMagicLink: async () => ({ error: new Error('Auth not initialized') }),
       signOut: async () => {},
       refreshProfile: async () => {},
+      patchProfile: () => {},
       retryProfileFetch: async () => {},
       getValidSession: async () => null,
       waitForSession: async () => null,

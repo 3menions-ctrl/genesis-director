@@ -26,7 +26,7 @@ export default function Onboarding() {
     description: 'Finishing setup for your Small Bridges account.',
   });
 
-  const { user, profile, refreshProfile, loading, isSessionVerified } = useAuth();
+  const { user, profile, patchProfile, loading, isSessionVerified } = useAuth();
   const { navigate } = useSafeNavigation();
 
   useEffect(() => {
@@ -71,12 +71,16 @@ export default function Onboarding() {
       // Always mark onboarding complete so the user can't get re-trapped in
       // any future redirect that gates on this flag.
       if (profile && !profile.onboarding_completed) {
+        // Mark complete in memory FIRST. The destination routes below are
+        // gated by ProtectedRoute on this same flag; relying on a post-update
+        // refreshProfile() could time out and fall back to onboarding_completed
+        // = false, bouncing the user straight back here in an infinite loop.
+        patchProfile({ onboarding_completed: true });
         try {
           await supabase
             .from('profiles')
             .update({ onboarding_completed: true })
             .eq('id', user.id);
-          await refreshProfile();
         } catch (e) {
           console.warn('[Onboarding] mark completed failed', e);
         }
@@ -115,7 +119,7 @@ export default function Onboarding() {
     return () => {
       cancelled = true;
     };
-  }, [user, profile, loading, isSessionVerified, navigate, refreshProfile]);
+  }, [user, profile, loading, isSessionVerified, navigate, patchProfile]);
 
   return <CinemaLoader message="Finishing setup..." showProgress progress={85} variant="fullscreen" />;
 }

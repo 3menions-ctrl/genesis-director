@@ -249,6 +249,12 @@ export default function SettingsDashboard() {
   }, [searchParams, setSearchParams]);
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+  // Imperative mirror of `profile` so patchProfile can merge JSONB columns
+  // (preferences / notification_settings) onto the latest value — toggling two
+  // switches before the first write returns would otherwise read a stale render
+  // snapshot and drop the first change.
+  const profileRef = useRef<ProfileRow | null>(null);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
   const [loading, setLoading] = useState(true);
   const [savingField, setSavingField] = useState<string | null>(null);
   /** Wall-clock of the most recent successful save. Drives the
@@ -284,22 +290,41 @@ export default function SettingsDashboard() {
   useEffect(() => { void load(); }, [load]);
 
   // Patch helper — sends a column-level update and updates local state.
+  // For the JSONB columns (`preferences`, `notification_settings`) the caller
+  // passes only the changed keys; we deep-merge them onto the *latest* value
+  // (via profileRef) so rapid successive toggles don't clobber each other.
   const patchProfile = useCallback(async (
     patch: Partial<ProfileRow>,
     fieldKey?: string,
   ): Promise<boolean> => {
     if (!user?.id) return false;
     if (fieldKey) setSavingField(fieldKey);
+    const latest = profileRef.current;
+    const effective: Partial<ProfileRow> = { ...patch };
+    if (patch.preferences) {
+      effective.preferences = {
+        ...((latest?.preferences as Record<string, unknown>) ?? {}),
+        ...(patch.preferences as Record<string, unknown>),
+      } as ProfileRow["preferences"];
+    }
+    if (patch.notification_settings) {
+      effective.notification_settings = {
+        ...((latest?.notification_settings as Record<string, unknown>) ?? {}),
+        ...(patch.notification_settings as Record<string, unknown>),
+      } as ProfileRow["notification_settings"];
+    }
     try {
       const { error } = await supabase
         .from("profiles" as never)
-        .update(patch as never)
+        .update(effective as never)
         .eq("id", user.id);
       if (error) throw error;
-      setProfile((prev) => prev ? { ...prev, ...patch } as ProfileRow : prev);
+      // Update the ref synchronously so a concurrent patch sees this change.
+      if (profileRef.current) profileRef.current = { ...profileRef.current, ...effective } as ProfileRow;
+      setProfile((prev) => prev ? { ...prev, ...effective } as ProfileRow : prev);
       // If the patch touched preferences or notification settings,
       // refresh the global UserPreferences cache so consumers re-render.
-      if (("preferences" in patch) || ("notification_settings" in patch)) {
+      if (("preferences" in effective) || ("notification_settings" in effective)) {
         void refreshPrefs();
       }
       setLastSavedAt(Date.now());
@@ -717,6 +742,31 @@ function IdentityModule({
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
 
+  // Re-seed the form from the profile, but ONLY after an explicit Refresh —
+  // never on the prop changes caused by auto-save patches (that would wipe a
+  // field the user is mid-edit on). The inputs use useState initializers, so
+  // without this the Refresh button would silently do nothing.
+  const pendingResync = useRef(false);
+  useEffect(() => {
+    if (!pendingResync.current) return;
+    pendingResync.current = false;
+    setDisplayName(profile.display_name ?? "");
+    setFullName(profile.full_name ?? "");
+    setUsername(profile.username ?? "");
+    setBio(profile.bio ?? "");
+    setTagline(profile.tagline ?? "");
+    setLocation(profile.location ?? "");
+    setCountry(profile.country ?? "");
+    setRole(profile.role ?? "");
+    setCompany(profile.company ?? "");
+    setInterestsInput((profile.interests ?? []).join(", "));
+    setLinks(profile.external_links ?? {});
+  }, [profile]);
+  const handleRefresh = useCallback(async () => {
+    pendingResync.current = true;
+    await reload();
+  }, [reload]);
+
   // Username availability check (debounced).
   const usernameRef = useRef(username);
   usernameRef.current = username;
@@ -951,7 +1001,7 @@ function IdentityModule({
           To change your sign-in email, open <strong>Security → Login email</strong>.
         </p>
         <div className="mt-5 flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => void reload()} className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" onClick={() => void handleRefresh()} className="text-muted-foreground hover:text-foreground">
             <Loader2 className="h-3 w-3 mr-2" />Refresh
           </Button>
         </div>
@@ -1060,7 +1110,7 @@ function AppearanceModule({
 }) {
   const prefs = (profile.preferences ?? {}) as PrefsState;
   const merged = { ...DEFAULT_PREFS, ...prefs };
-  const set = (next: Partial<PrefsState>) => void patch({ preferences: { ...prefs, ...next } as never }, Object.keys(next)[0]);
+  const set = (next: Partial<PrefsState>) => void patch({ preferences: next as never }, Object.keys(next)[0]);
   return (
     <div className="space-y-8">
       <SectionHeader eyebrow="Appearance" title="Make the app feel like yours." sub="Theme, language, motion. Applies everywhere you're signed in." />
@@ -1143,7 +1193,7 @@ function NotificationsModule({
 }) {
   const ns = (profile.notification_settings ?? {}) as NotificationPrefs;
   const merged = { ...DEFAULT_NOTIFS, ...ns };
-  const set = (next: Partial<NotificationPrefs>) => void patch({ notification_settings: { ...ns, ...next } as never });
+  const set = (next: Partial<NotificationPrefs>) => void patch({ notification_settings: next as never });
 
   const [pushPrefs, setPushPrefs] = useState<Record<string, boolean>>({});
   const [pushReady, setPushReady] = useState(false);
@@ -1226,7 +1276,7 @@ function PrivacyModule({
 }) {
   const prefs = (profile.preferences ?? {}) as PrefsState;
   const merged = { ...DEFAULT_PREFS, ...prefs };
-  const set = (next: Partial<PrefsState>) => void patch({ preferences: { ...prefs, ...next } as never });
+  const set = (next: Partial<PrefsState>) => void patch({ preferences: next as never });
 
   const [blocked, setBlocked] = useState<Array<{ id: string; display_name: string | null; username: string | null; avatar_url: string | null; created_at: string }>>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(true);
@@ -1708,7 +1758,7 @@ function PlaybackModule({
 }) {
   const prefs = (profile.preferences ?? {}) as PrefsState;
   const merged = { ...DEFAULT_PREFS, ...prefs };
-  const set = (next: Partial<PrefsState>) => void patch({ preferences: { ...prefs, ...next } as never });
+  const set = (next: Partial<PrefsState>) => void patch({ preferences: next as never });
 
   return (
     <div className="space-y-8">

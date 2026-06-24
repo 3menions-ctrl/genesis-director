@@ -171,13 +171,14 @@ export default function Credits() {
     if (buying || subscribing) return;
     setSubscribing(planKey);
     try {
-      const { payments } = await import('@/lib/payments');
-      const session = await payments.createSubscriptionCheckout({
+      const { getPaymentsProvider } = await import('@/lib/payments');
+      const provider = await getPaymentsProvider();
+      const session = await provider.createSubscriptionCheckout({
         priceId: planKey,
-        kind: 'subscription',
+        kind: 'personal',
         returnUrl: `${window.location.origin}/credits?payment=success`,
       });
-      window.location.href = session.url; // redirect to Polar
+      window.location.href = session.url; // redirect to the active provider
     } catch (e) {
       setSubscribing(null);
       toast.error(e instanceof Error ? e.message : 'Could not start checkout');

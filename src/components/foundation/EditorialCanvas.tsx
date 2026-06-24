@@ -78,7 +78,7 @@ export function EditorialChrome({ crumbs, timecode, className }: ChromeProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 border-b border-border/30 bg-[hsl(var(--foreground)/0.015)] px-6 h-12",
+        "flex items-center gap-3 bg-[hsl(var(--foreground)/0.015)] px-6 h-12",
         className,
       )}
     >

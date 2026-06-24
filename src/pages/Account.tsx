@@ -201,7 +201,7 @@ export default function Account() {
               <div
                 className={cn(
                   "shrink-0 inline-flex h-16 w-16 items-center justify-center rounded-2xl",
-                  "border border-accent/30 bg-gradient-to-br from-[hsl(var(--accent)/0.12)] via-[hsl(var(--accent)/0.04)] to-transparent",
+                  "bg-gradient-to-br from-[hsl(var(--accent)/0.14)] via-[hsl(var(--accent)/0.05)] to-transparent",
                   "shadow-[0_20px_60px_-24px_hsl(0_0%_0%/0.7),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
                   "self-end md:self-auto",
                 )}
@@ -212,7 +212,7 @@ export default function Account() {
           </AnimatePresence>
 
           {/* Hairline separator between hero and content */}
-          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
           {/* Active panel — no in-page tabs; LeftRail handles navigation */}
           <div className="mt-8 min-h-[420px]">
@@ -270,8 +270,8 @@ function WorkspaceHint() {
         className={cn(
           "mt-7 inline-flex items-center gap-2 px-5 py-3",
           RADIUS.chip,
-          "border border-accent/40 bg-gradient-to-br from-accent/15 to-accent/5",
-          "transition-all hover:border-accent/60 hover:from-accent/25",
+          "bg-gradient-to-br from-accent/15 to-accent/5",
+          "transition-all hover:from-accent/25 hover:to-accent/10",
         )}
       >
         <Briefcase className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />

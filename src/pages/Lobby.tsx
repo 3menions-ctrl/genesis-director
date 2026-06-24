@@ -30,6 +30,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { ImmersiveTheater, type TheaterReel } from "@/components/social/ImmersiveTheater";
+import { CenterLine } from "@/components/ui/CenterLine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ChannelWorld {
@@ -402,7 +403,7 @@ export default function Lobby() {
               <Stat label="Watching now" value={compact(presence.watching)} />
               <Stat label="Films today" value={String(filmsToday)} />
               <Stat label="Remixes today" value={compact(remixesToday)} />
-              <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" last />
+              <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" />
             </Panel>
 
             <Panel
@@ -429,7 +430,7 @@ export default function Lobby() {
             <Panel title="This week's directors">
               {directors.map((d, i) => (
                 <button key={d.id} type="button" onClick={() => navigate(usingDemo ? "/lobby" : `/u/${d.id}`)}
-                  className="flex w-full items-center gap-3 border-b border-white/[0.04] py-2.5 text-left last:border-0">
+                  className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.03]">
                   <span className="w-5 shrink-0 font-display text-[20px] font-semibold text-muted-foreground/50">{i + 1}</span>
                   <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[#2a2e3a] to-[#15171f]">
                     {d.avatar && <img src={d.avatar} alt="" className="h-full w-full object-cover" />}
@@ -476,11 +477,12 @@ function WorldChip({ label, glyph, accent, active, onClick }: { label: string; g
   return (
     <button type="button" onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[13px] transition-colors",
-        active ? "bg-white/10 text-foreground ring-1 ring-inset ring-white/20" : "bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+        "relative inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[13px] transition-colors",
+        active ? "bg-white/10 text-foreground" : "bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
       )}>
       {glyph && <span style={accentStyle(accent ?? null)}>{glyph}</span>}
       {label}
+      {active && <CenterLine />}
     </button>
   );
 }
@@ -543,10 +545,7 @@ function VideoCard({ reel, demo, onOpen, reduced }: { reel: FeedRow; demo: boole
             title and director that used to sit permanently below the frame. */}
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1.5 p-3.5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-          <span className="flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.16em]" style={accentStyle(reel.world_accent)}>
-            {reel.world_glyph} {reel.world_name ?? "Film"}
-          </span>
-          <span className="mt-1 block font-display text-[15px] font-semibold leading-tight tracking-tight text-white line-clamp-2">{reel.title}</span>
+          <span className="block font-display text-[15px] font-semibold leading-tight tracking-tight text-white line-clamp-2">{reel.title}</span>
           <span className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-white/65">
             <span className="truncate">{reel.creator_name ?? "Unknown director"}</span>
             <span className="shrink-0 font-mono">{compact(reel.play_count)} ▶</span>
@@ -574,9 +573,9 @@ function Panel({ title, badge, tint, children }: { title: React.ReactNode; badge
   );
 }
 
-function Stat({ label, value, valueClass, last }: { label: string; value: string; valueClass?: string; last?: boolean }) {
+function Stat({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
   return (
-    <div className={cn("flex items-center justify-between py-2.5", !last && "border-b border-white/[0.04]")}>
+    <div className="flex items-center justify-between py-1.5">
       <span className="text-[13px] text-muted-foreground">{label}</span>
       <span className={cn("font-display text-[16px] font-semibold text-foreground", valueClass)}>{value}</span>
     </div>

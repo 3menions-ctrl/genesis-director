@@ -55,6 +55,7 @@ import {
   showUserFriendlyError,
 } from "@/lib/userFriendlyErrors";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { CenterLine } from "@/components/ui/CenterLine";
 import {
   useStabilityGuard,
   useSafeNavigation,
@@ -114,7 +115,7 @@ function StudioTabs({
   return (
     <div
       role="tablist"
-      className="relative inline-flex flex-wrap items-center gap-1 rounded-full p-1 border border-border/30 bg-[hsl(var(--foreground)/0.02)] backdrop-blur-xl"
+      className="relative inline-flex flex-wrap items-center gap-1 rounded-full p-1 bg-white/[0.03] backdrop-blur-xl shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]"
     >
       {STUDIO_TABS.map((tab) => {
         const active = value === tab.key;
@@ -132,21 +133,16 @@ function StudioTabs({
                 : "text-muted-foreground/70 hover:text-foreground/90",
             )}
           >
-            {active && (
-              <motion.span
-                layoutId="studio-tab-active"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-[hsl(var(--accent)/0.30)]"
-              />
-            )}
+            {active && <CenterLine />}
             <Icon
               className={cn(
                 "h-3.5 w-3.5 shrink-0",
-                active ? "text-accent" : "opacity-60",
+                active ? "text-white" : "opacity-60",
               )}
               strokeWidth={1.5}
+              style={active ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.4))" } : undefined}
             />
-            <span className="font-light">{tab.label}</span>
+            <span className={cn("font-light", active && "text-white")}>{tab.label}</span>
           </button>
         );
       })}
@@ -521,14 +517,14 @@ function StudioContentInner() {
               <Link
                 to={moduleLink("/lobby")}
                 aria-label="Back to lobby"
-                className="group inline-flex items-center gap-2 rounded-full ring-1 ring-inset ring-white/[0.05] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.5)] backdrop-blur-md px-4 h-9 transition-colors hover:ring-accent/40 hover:bg-[hsl(var(--accent)/0.07)]"
+                className="group inline-flex items-center gap-2 rounded-full shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.5)] backdrop-blur-md px-4 h-9 transition-colors hover:bg-[hsl(var(--accent)/0.07)]"
               >
                 <ArrowLeft className="h-4 w-4 text-white/70 group-hover:text-accent" strokeWidth={1.7} />
                 <span className="text-[13px] text-white/85 group-hover:text-white">Lobby</span>
               </Link>
 
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <div className="inline-flex items-center gap-2.5 rounded-full ring-1 ring-inset ring-white/[0.05] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
+                <div className="inline-flex items-center gap-2.5 rounded-full shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
                   <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
                   <span className="text-[13px] font-medium text-white/90 tabular-nums">
                     {credits.available.toLocaleString()}
@@ -540,8 +536,8 @@ function StudioContentInner() {
                     key={to}
                     to={moduleLink(to)}
                     className={cn(
-                      "group hidden sm:inline-flex items-center gap-2 rounded-full ring-1 ring-inset ring-white/[0.04] shadow-[0_10px_26px_-16px_rgba(0,0,0,0.65)] bg-[hsl(220_30%_8%/0.45)] backdrop-blur-md px-3.5 h-9",
-                      "transition-colors hover:ring-accent/40 hover:bg-[hsl(var(--accent)/0.07)]",
+                      "group hidden sm:inline-flex items-center gap-2 rounded-full shadow-[0_10px_26px_-16px_rgba(0,0,0,0.65)] bg-[hsl(220_30%_8%/0.45)] backdrop-blur-md px-3.5 h-9",
+                      "transition-colors hover:bg-[hsl(var(--accent)/0.07)]",
                     )}
                   >
                     <Icon className="h-3.5 w-3.5 text-white/60 group-hover:text-accent" strokeWidth={1.5} />

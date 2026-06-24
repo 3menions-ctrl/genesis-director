@@ -9,10 +9,10 @@
  * Mobile-first templates (9:16 / 4:5) are surfaced first on phones.
  */
 import { useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Sparkles, Music2, Check, Clapperboard } from "lucide-react";
+import { Sparkles, Music2, Check, Clapperboard, X } from "lucide-react";
 import {
   applyTimelineTemplate,
   CATEGORY_LABELS,
@@ -90,11 +90,19 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      {/* Centred glass modal capped to the viewport: header + filter stay fixed,
-          the gallery is the only scroll region. Flex column overrides the shared
-          dialog's default `grid` so the modal can never outgrow the screen. */}
-      <DialogContent className="flex max-h-[88vh] w-[96vw] max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#070810]/95 p-0 backdrop-blur-2xl">
+    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        {/* Flex-centring layer: a viewport-fixed flexbox centres the modal. This
+            is immune to the translate(-50%)/zoom-animation conflict that pinned
+            the modal to a corner, and to any transformed editor ancestor (the
+            content is portalled to <body>). pointer-events-none lets clicks in
+            the empty margin fall through to the overlay to close. */}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            className="pointer-events-auto relative flex max-h-[88vh] w-[96vw] max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#070810]/95 backdrop-blur-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.95)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          >
         {/* Aurora bloom — soft coloured light behind the header for depth. */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-56 overflow-hidden">
           <span className="absolute -left-16 -top-24 h-72 w-72 rounded-full opacity-60 blur-[90px]" style={{ background: "radial-gradient(closest-side, rgba(120,140,255,0.30), transparent 70%)" }} />
@@ -102,8 +110,13 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
           <span className="absolute left-1/2 -top-16 h-56 w-72 -translate-x-1/2 rounded-full opacity-40 blur-[90px]" style={{ background: "radial-gradient(closest-side, rgba(140,230,255,0.20), transparent 70%)" }} />
         </div>
 
-        <DialogHeader className="relative z-10 shrink-0 px-7 pb-4 pt-7 pr-14 text-left">
-          <DialogTitle className="flex items-baseline gap-3">
+        <DialogPrimitive.Close className="absolute right-5 top-5 z-20 flex h-8 w-8 items-center justify-center rounded-full text-white/45 transition-colors hover:bg-white/[0.07] hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30">
+          <X className="h-4 w-4" strokeWidth={2} />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+
+        <div className="relative z-10 shrink-0 px-7 pb-4 pt-7 pr-14 text-left">
+          <DialogPrimitive.Title className="flex items-baseline gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-2xl bg-white/[0.06] ring-1 ring-inset ring-white/15">
               <Sparkles className="h-4 w-4 text-white" strokeWidth={1.7} />
             </span>
@@ -113,11 +126,11 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
               {TIMELINE_TEMPLATES.length} one-click looks · video + audio
             </span>
-          </DialogTitle>
+          </DialogPrimitive.Title>
           <p className="mt-2 max-w-2xl text-[13px] font-light leading-relaxed text-white/45">
             A complete look, pacing and score in one click. Pick a recipe — your timeline is instantly graded, transitioned and scored. Undo reverts everything.
           </p>
-        </DialogHeader>
+        </div>
 
         {/* Category filter strip */}
         <div className="relative z-10 flex shrink-0 flex-wrap gap-1.5 px-7 pb-4">
@@ -201,8 +214,10 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
             </button>
           ))}
         </div>
-      </DialogContent>
-    </Dialog>
+          </DialogPrimitive.Content>
+        </div>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 

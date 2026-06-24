@@ -176,17 +176,29 @@ export function LeftScenes({ project, selectedSceneId, onOpenTemplates }: Props)
         )}
       </div>
 
-      {/* Templates — one-click looks (video + audio) straight from the rail. */}
+      {/* Templates — one-click looks (video + audio) straight from the rail.
+          Premium glass pill: layered gradient, hairline border, top shine, an
+          icon tile, and a soft lift+glow on hover (not a flat tinted box). */}
       {onOpenTemplates && (
         <button
           type="button"
           onClick={onOpenTemplates}
-          className="mx-3 mb-2 flex items-center gap-2.5 rounded-xl bg-[hsl(var(--accent)/0.10)] px-3 py-2.5 text-left ring-1 ring-inset ring-[hsl(var(--accent)/0.30)] transition-colors hover:bg-[hsl(var(--accent)/0.16)]"
+          className="group relative mx-3 mb-2 flex items-center gap-3 overflow-hidden rounded-2xl px-3.5 py-3 text-left transition-all duration-300 ease-out hover:-translate-y-px"
+          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.085), rgba(255,255,255,0.02) 70%)" }}
         >
-          <Sparkles className="h-4 w-4 shrink-0 text-accent" strokeWidth={1.7} />
-          <span className="min-w-0">
-            <span className="block truncate text-[12.5px] font-medium text-foreground">Templates</span>
-            <span className={cn(TYPE_META, "text-muted-foreground/60")}>50 one-click looks</span>
+          {/* hairline border, brightens on hover */}
+          <span aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.12] transition-colors duration-300 group-hover:ring-white/25" />
+          {/* top shine */}
+          <span aria-hidden className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+          {/* soft glow on hover */}
+          <span aria-hidden className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ boxShadow: "0 14px 36px -16px rgba(170,195,255,0.45)" }} />
+          {/* icon tile */}
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.08] ring-1 ring-inset ring-white/15 transition-transform duration-300 group-hover:scale-105">
+            <Sparkles className="h-4 w-4 text-white" strokeWidth={1.7} />
+          </span>
+          <span className="relative min-w-0">
+            <span className="block truncate text-[13px] font-semibold leading-tight text-white">Templates</span>
+            <span className={cn(TYPE_META, "text-white/45")}>50 one-click looks</span>
           </span>
         </button>
       )}

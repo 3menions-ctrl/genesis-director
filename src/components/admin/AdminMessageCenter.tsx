@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StatusPill, DeckButton } from '@/admin/ui/primitives';
 import {
   Mail,
   MessageSquare,
@@ -228,16 +226,16 @@ export function AdminMessageCenter() {
     resolved: messages.filter((m) => m.status === 'resolved').length,
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusTone = (status: string): 'accent' | 'positive' | 'warn' | 'danger' | 'neutral' => {
     switch (status) {
       case 'new':
-        return 'bg-primary text-primary-foreground';
+        return 'accent';
       case 'in_progress':
-        return 'bg-warning text-warning-foreground';
+        return 'warn';
       case 'resolved':
-        return 'bg-success text-success-foreground';
+        return 'positive';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'neutral';
     }
   };
 
@@ -260,40 +258,34 @@ export function AdminMessageCenter() {
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/35">
           {statusCounts.new > 0
-            ? <span className="text-primary/80">{statusCounts.new} awaiting response</span>
+            ? <span style={{ color: 'hsl(214 90% 62% / 0.8)' }}>{statusCounts.new} awaiting response</span>
             : 'all clear'}
         </div>
-        <Button onClick={fetchMessages} variant="outline" size="sm" disabled={loading}>
+        <DeckButton onClick={fetchMessages} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-        </Button>
+        </DeckButton>
       </div>
 
       {/* Status Tabs */}
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-white/[0.04]">
           <TabsTrigger value="all" className="gap-1.5">
             <Inbox className="w-3.5 h-3.5" />
             All
-            <Badge variant="secondary" className="ml-1 text-xs h-5 px-1.5">
-              {statusCounts.all}
-            </Badge>
+            <StatusPill tone="neutral">{statusCounts.all}</StatusPill>
           </TabsTrigger>
           <TabsTrigger value="new" className="gap-1.5">
             <AlertCircle className="w-3.5 h-3.5" />
             New
             {statusCounts.new > 0 && (
-              <Badge className="ml-1 text-xs h-5 px-1.5 bg-primary">
-                {statusCounts.new}
-              </Badge>
+              <StatusPill tone="accent">{statusCounts.new}</StatusPill>
             )}
           </TabsTrigger>
           <TabsTrigger value="in_progress" className="gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             In Progress
             {statusCounts.in_progress > 0 && (
-              <Badge variant="secondary" className="ml-1 text-xs h-5 px-1.5">
-                {statusCounts.in_progress}
-              </Badge>
+              <StatusPill tone="neutral">{statusCounts.in_progress}</StatusPill>
             )}
           </TabsTrigger>
           <TabsTrigger value="resolved" className="gap-1.5">
@@ -305,7 +297,7 @@ export function AdminMessageCenter() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
         <Input
           placeholder="Search messages by name, email, or subject..."
           value={searchQuery}
@@ -317,16 +309,19 @@ export function AdminMessageCenter() {
       {/* Main Content */}
       <div className="grid lg:grid-cols-5 gap-4 h-[calc(100vh-360px)] min-h-[500px]">
         {/* Message List */}
-        <Card className="lg:col-span-2 flex flex-col overflow-hidden">
-          <CardHeader className="py-3 px-4 border-b bg-muted/30 flex-shrink-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div
+          className="lg:col-span-2 flex flex-col overflow-hidden rounded-2xl backdrop-blur-xl"
+          style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))' }}
+        >
+          <div className="py-3 px-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="text-sm font-medium text-white/60">
               {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''}
-            </CardTitle>
-          </CardHeader>
+            </div>
+          </div>
           <ScrollArea className="flex-1">
             {loading && messages.length === 0 ? (
               <div className="flex items-center justify-center h-40">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 animate-spin text-white/40" />
               </div>
             ) : filteredMessages.length === 0 ? (
               <AdminEmptyState
@@ -337,15 +332,16 @@ export function AdminMessageCenter() {
               />
             ) : (
               <>
-              <div className="divide-y divide-border">
+              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                 {pagedMessages.map((msg) => (
                   <button
                     key={msg.id}
                     className={cn(
-                      'w-full text-left p-3 hover:bg-muted/50 transition-colors',
-                      selectedMessage?.id === msg.id && 'bg-primary/5 border-l-2 border-l-primary',
-                      msg.status === 'new' && selectedMessage?.id !== msg.id && 'bg-primary/5'
+                      'w-full text-left p-3 hover:bg-white/[0.03] transition-colors',
+                      selectedMessage?.id === msg.id && 'bg-white/[0.04] border-l-2',
+                      msg.status === 'new' && selectedMessage?.id !== msg.id && 'bg-white/[0.03]'
                     )}
+                    style={selectedMessage?.id === msg.id ? { borderLeftColor: 'hsl(214 90% 62%)' } : undefined}
                     onClick={() => setSelectedMessage(msg)}
                   >
                     <div className="flex items-start gap-2.5">
@@ -353,8 +349,8 @@ export function AdminMessageCenter() {
                         className={cn(
                           'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium',
                           msg.status === 'new'
-                            ? 'bg-primary/20 text-primary'
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-[hsl(214_90%_62%/0.18)] text-[hsl(214_90%_62%)]'
+                            : 'bg-white/[0.06] text-white/60'
                         )}
                       >
                         {msg.name.charAt(0).toUpperCase()}
@@ -364,36 +360,33 @@ export function AdminMessageCenter() {
                           <span
                             className={cn(
                               'font-medium truncate text-sm',
-                              msg.status === 'new' ? 'text-foreground' : 'text-muted-foreground'
+                              msg.status === 'new' ? 'text-white' : 'text-white/60'
                             )}
                           >
                             {msg.name}
                           </span>
-                          <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                          <span className="text-[10px] text-white/40 flex-shrink-0">
                             {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                           </span>
                         </div>
                         <p
                           className={cn(
                             'text-sm truncate',
-                            msg.status === 'new' ? 'text-foreground font-medium' : 'text-muted-foreground'
+                            msg.status === 'new' ? 'text-white font-medium' : 'text-white/60'
                           )}
                         >
                           {msg.subject}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        <p className="text-xs text-white/40 truncate mt-0.5">
                           {msg.message.substring(0, 60)}...
                         </p>
                         <div className="flex items-center gap-1.5 mt-1.5">
-                          <Badge
-                            variant="secondary"
-                            className={cn('text-[10px] px-1.5 py-0 h-4', getStatusColor(msg.status))}
-                          >
+                          <StatusPill tone={getStatusTone(msg.status)}>
                             {getStatusIcon(msg.status)}
-                            <span className="ml-1">{msg.status.replace('_', ' ')}</span>
-                          </Badge>
+                            <span>{msg.status.replace('_', ' ')}</span>
+                          </StatusPill>
                           {msg.admin_notes && (
-                            <StickyNote className="w-3 h-3 text-warning" />
+                            <StickyNote className="w-3 h-3" style={{ color: 'hsl(38 96% 62%)' }} />
                           )}
                         </div>
                       </div>
@@ -407,47 +400,52 @@ export function AdminMessageCenter() {
               </>
             )}
           </ScrollArea>
-        </Card>
+        </div>
 
         {/* Message Detail */}
-        <Card className="lg:col-span-3 flex flex-col overflow-hidden">
+        <div
+          className="lg:col-span-3 flex flex-col overflow-hidden rounded-2xl backdrop-blur-xl"
+          style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))' }}
+        >
           {selectedMessage ? (
             <>
-              <CardHeader className="py-3 px-4 border-b bg-muted/30 flex-shrink-0">
+              <div className="py-3 px-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <CardTitle className="text-base font-semibold truncate">
+                    <div className="text-base font-semibold truncate text-white">
                       {selectedMessage.subject}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    </div>
+                    <p className="text-sm text-white/60 mt-0.5">
                       From: {selectedMessage.name}
                     </p>
                   </div>
-                  <Badge className={cn('flex-shrink-0', getStatusColor(selectedMessage.status))}>
-                    {getStatusIcon(selectedMessage.status)}
-                    <span className="ml-1">{selectedMessage.status.replace('_', ' ')}</span>
-                  </Badge>
+                  <span className="flex-shrink-0">
+                    <StatusPill tone={getStatusTone(selectedMessage.status)}>
+                      {getStatusIcon(selectedMessage.status)}
+                      <span>{selectedMessage.status.replace('_', ' ')}</span>
+                    </StatusPill>
+                  </span>
                 </div>
-              </CardHeader>
+              </div>
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
                   {/* Meta Info */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-white/60">
                       <User className="w-4 h-4" />
                       <span className="truncate">{selectedMessage.email}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-white/60">
                       <Calendar className="w-4 h-4" />
                       <span>{format(new Date(selectedMessage.created_at), 'PPp')}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-white/60">
                       <Globe className="w-4 h-4" />
                       <span>Source: {selectedMessage.source}</span>
                     </div>
                     {selectedMessage.user_id && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="flex items-center gap-2 text-white/60">
                         <User className="w-4 h-4" />
                         <span className="text-xs">Registered User</span>
                       </div>
@@ -455,14 +453,14 @@ export function AdminMessageCenter() {
                   </div>
 
                   {/* Message Content */}
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedMessage.message}</p>
+                  <div className="bg-white/[0.04] rounded-lg p-4">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-white/80">{selectedMessage.message}</p>
                   </div>
 
                   {/* Admin Notes */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <StickyNote className="w-4 h-4 text-warning" />
+                    <label className="text-sm font-medium flex items-center gap-2 text-white">
+                      <StickyNote className="w-4 h-4" style={{ color: 'hsl(38 96% 62%)' }} />
                       Admin Notes
                     </label>
                     <Textarea
@@ -472,24 +470,22 @@ export function AdminMessageCenter() {
                       rows={3}
                       className="resize-none"
                     />
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    <DeckButton
                       onClick={saveAdminNotes}
                       disabled={savingNotes || adminNotes === (selectedMessage.admin_notes || '')}
                     >
                       {savingNotes ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       Save Notes
-                    </Button>
+                    </DeckButton>
                   </div>
 
                   {/* Reply to user (in-app) */}
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Send className="w-4 h-4 text-primary" />
+                  <div className="space-y-2 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <label className="text-sm font-medium flex items-center gap-2 text-white">
+                      <Send className="w-4 h-4" style={{ color: 'hsl(214 90% 62%)' }} />
                       Reply to user (in-app)
                     </label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-white/60">
                       Saved to the ticket and shown to the user inside their Profile › Help & Support.
                     </p>
                     <Textarea
@@ -500,16 +496,16 @@ export function AdminMessageCenter() {
                       className="resize-none"
                     />
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
+                      <DeckButton
+                        primary
                         onClick={sendReply}
                         disabled={sendingReply || !replyText.trim() || replyText.trim() === (selectedMessage.admin_reply || '').trim()}
                       >
                         {sendingReply ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                         {selectedMessage.admin_reply ? 'Update reply' : 'Send reply'}
-                      </Button>
+                      </DeckButton>
                       {selectedMessage.replied_at && (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-[11px] text-white/60">
                           Last sent {formatDistanceToNow(new Date(selectedMessage.replied_at), { addSuffix: true })}
                         </span>
                       )}
@@ -519,59 +515,52 @@ export function AdminMessageCenter() {
               </ScrollArea>
 
               {/* Actions Footer */}
-              <div className="p-3 border-t bg-muted/30 flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
+              <div className="p-3 flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <DeckButton
+                  primary
                   onClick={() => openEmailClient(selectedMessage.email, selectedMessage.subject)}
                 >
                   <Send className="w-4 h-4 mr-1.5" />
                   Reply via Email
                   <ExternalLink className="w-3 h-3 ml-1.5" />
-                </Button>
+                </DeckButton>
 
                 {selectedMessage.status === 'new' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <DeckButton
                     onClick={() => updateMessageStatus(selectedMessage.id, 'in_progress')}
                   >
                     <Clock className="w-4 h-4 mr-1.5" />
                     Mark In Progress
-                  </Button>
+                  </DeckButton>
                 )}
 
                 {selectedMessage.status !== 'resolved' && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
+                  <DeckButton
                     onClick={() => updateMessageStatus(selectedMessage.id, 'resolved')}
                   >
                     <CheckCircle className="w-4 h-4 mr-1.5" />
                     Mark Resolved
-                  </Button>
+                  </DeckButton>
                 )}
 
                 <div className="flex-1" />
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                <DeckButton
                   onClick={() => deleteMessage(selectedMessage.id)}
                 >
                   <Trash2 className="w-4 h-4 mr-1.5" />
                   Delete
-                </Button>
+                </DeckButton>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <div className="flex flex-col items-center justify-center h-full text-white/40">
               <Mail className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">Select a message to view details</p>
               <p className="text-xs mt-1">Click on any message from the list</p>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

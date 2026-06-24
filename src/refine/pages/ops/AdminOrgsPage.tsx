@@ -4,15 +4,14 @@
  * Completes the org-admin flow: this list pairs with the now-wired
  * /admin/orgs/:orgId detail page (transfer owner, delete, activate enterprise).
  * Reads the organizations table directly (RLS-bypassed for admins); each row
- * deep-links into the org 360. Built on the premium admin primitives.
+ * deep-links into the org 360. Built on the borderless Horizon admin kit.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Users, Coins, Search } from "lucide-react";
-import { createColumnHelper } from "@tanstack/react-table";
+import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminPageHeader, KpiTile, StatusPill } from "@/admin/ui/primitives";
-import { DataTable } from "@/admin/ui/DataTable";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable, StatusPill } from "@/admin/ui/primitives";
 
 interface Org {
   id: string;
@@ -23,8 +22,6 @@ interface Org {
   credits_balance: number | null;
   created_at?: string | null;
 }
-
-const col = createColumnHelper<Org>();
 
 export default function AdminOrgsPage() {
   const navigate = useNavigate();
@@ -54,43 +51,61 @@ export default function AdminOrgsPage() {
   const totalCredits = useMemo(() => rows.reduce((a, o) => a + (o.credits_balance ?? 0), 0), [rows]);
   const enterprise = useMemo(() => rows.filter((o) => (o.plan ?? "").toLowerCase().includes("enter")).length, [rows]);
 
-  const columns = useMemo(() => [
-    col.accessor("name", { header: "Organization", cell: (c) => (
-      <div>
-        <div className="font-medium text-white">{c.getValue() || "Untitled org"}</div>
-        <div className="font-mono text-[11px] text-white/35">{c.row.original.slug || c.row.original.id.slice(0, 8)}</div>
-      </div>
-    ) }),
-    col.accessor("plan", { header: "Plan", cell: (c) => {
-      const p = (c.getValue() || "free").toString();
-      const tone = p.includes("enter") ? "accent" : p === "free" ? "neutral" : "positive";
-      return <StatusPill tone={tone as never}>{p}</StatusPill>;
-    } }),
-    col.accessor("industry", { header: "Industry", cell: (c) => <span className="text-white/55">{c.getValue() || "—"}</span> }),
-    col.accessor("credits_balance", { header: "Credits", cell: (c) => <span className="tabular-nums">{(c.getValue() ?? 0).toLocaleString()}</span> }),
-  ], []);
+  const tableRows = useMemo(() => filtered.map((o) => {
+    const p = (o.plan || "free").toString();
+    const tone = p.includes("enter") ? "accent" : p === "free" ? "neutral" : "positive";
+    return {
+      _key: o.id,
+      name: (
+        <button
+          type="button"
+          onClick={() => navigate(`/admin/orgs/${o.id}`)}
+          className="block text-left transition-opacity hover:opacity-80"
+        >
+          <div className="font-medium text-white">{o.name || "Untitled org"}</div>
+          <div className="font-mono text-[11px] text-white/35">{o.slug || o.id.slice(0, 8)}</div>
+        </button>
+      ),
+      plan: <StatusPill tone={tone as never}>{p}</StatusPill>,
+      industry: <span className="text-white/55">{o.industry || "—"}</span>,
+      credits_balance: <span className="tabular-nums">{(o.credits_balance ?? 0).toLocaleString()}</span>,
+    };
+  }), [filtered, navigate]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8 sm:px-8">
-      <AdminPageHeader eyebrow="02 · People" title={<>Organizations.</>} sub="Every workspace on the platform — open one to manage members, plan, ownership and provisioning." />
+    <AdminPageShell
+      eyebrow="02 // PEOPLE"
+      code="ORG"
+      title="Organizations."
+      description="Every workspace on the platform — open one to manage members, plan, ownership and provisioning."
+      stats={[
+        { label: "Organizations", value: rows.length, tone: "blue" },
+        { label: "Enterprise", value: enterprise, tone: "emerald" },
+        { label: "Credits across orgs", value: totalCredits, tone: "amber" },
+      ]}
+    >
+      <FloatSection title="All organizations" meta={`${filtered.length} of ${rows.length}`}>
+        <div className="relative mb-6 max-w-sm">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search organizations…"
+            className="h-11 w-full rounded-full bg-white/[0.05] pl-10 pr-4 text-[14px] text-white outline-none placeholder:text-white/30 focus:bg-white/[0.08]" />
+        </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-        <KpiTile index={0} label="Organizations" value={rows.length} icon={Building2} />
-        <KpiTile index={1} label="Enterprise" value={enterprise} icon={Users} accentNumber />
-        <KpiTile index={2} label="Credits across orgs" value={totalCredits} icon={Coins} />
-      </div>
-
-      <div className="relative mb-4 max-w-sm">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search organizations…"
-          className="h-11 w-full rounded-full bg-white/[0.05] pl-10 pr-4 text-[14px] text-white outline-none placeholder:text-white/30 focus:bg-white/[0.08]" />
-      </div>
-
-      {loading ? (
-        <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading organizations…</div>
-      ) : (
-        <DataTable columns={columns as never} data={filtered} onRowClick={(o) => navigate(`/admin/orgs/${o.id}`)} empty="No organizations match." />
-      )}
-    </div>
+        {loading ? (
+          <div className="py-20 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading organizations…</div>
+        ) : (
+          <FloatTable
+            columns={[
+              { key: "name", label: "Organization" },
+              { key: "plan", label: "Plan" },
+              { key: "industry", label: "Industry" },
+              { key: "credits_balance", label: "Credits", align: "right" },
+            ]}
+            rows={tableRows}
+            empty="No organizations match."
+          />
+        )}
+      </FloatSection>
+    </AdminPageShell>
   );
 }

@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -14,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { 
+import {
   Crown,
   Users,
   Clock,
@@ -24,14 +22,13 @@ import {
   Edit2,
   Zap,
   Layers,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Star,
   Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { FloatSection, FloatTable, DeckButton, StatusPill } from '@/admin/ui/primitives';
 
 interface TierLimit {
   id: string;
@@ -58,24 +55,17 @@ const TIER_ICONS: Record<string, typeof Crown> = {
   enterprise: Shield,
 };
 
-const TIER_COLORS: Record<string, string> = {
-  free: 'from-muted/50 to-muted/30 border-muted',
-  starter: 'from-info/10 to-info/5 border-info/20',
-  pro: 'from-primary/10 to-primary/5 border-primary/20',
-  enterprise: 'from-warning/10 to-warning/5 border-warning/20',
-};
-
 export function AdminTierLimitsEditor() {
   const [tiers, setTiers] = useState<TierLimit[]>([]);
   const [userCounts, setUserCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     tier: TierLimit | null;
   }>({ open: false, tier: null });
-  
+
   const [form, setForm] = useState({
     max_duration_minutes: '',
     max_clips_per_video: '',
@@ -97,7 +87,7 @@ export function AdminTierLimitsEditor() {
         .from('tier_limits')
         .select('*')
         .order('max_duration_minutes', { ascending: true });
-      
+
       if (error) throw error;
       setTiers(data || []);
     } catch (err) {
@@ -113,9 +103,9 @@ export function AdminTierLimitsEditor() {
       const { data, error } = await supabase
         .from('profiles')
         .select('account_tier');
-      
+
       if (error) throw error;
-      
+
       const counts: Record<string, number> = {};
       (data || []).forEach((profile: { account_tier: string }) => {
         counts[profile.account_tier] = (counts[profile.account_tier] || 0) + 1;
@@ -170,202 +160,162 @@ export function AdminTierLimitsEditor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Layers className="w-5 h-5 text-primary" />
+          <h2 className="font-display text-[17px] font-semibold tracking-tight text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-white/60" />
             Account Tier Limits
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-white/55">
             Configure feature limits for each subscription tier
           </p>
         </div>
-        <Button onClick={() => { fetchTiers(); fetchUserCounts(); }} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
+        <DeckButton onClick={() => { fetchTiers(); fetchUserCounts(); }}>
+          <RefreshCw className="w-3.5 h-3.5 mr-2" />
           Refresh
-        </Button>
+        </DeckButton>
       </div>
 
-      {/* Tier Cards */}
+      {/* Tier Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {tiers.map((tier) => {
           const TierIcon = getTierIcon(tier.tier);
-          const colorClass = TIER_COLORS[tier.tier.toLowerCase()] || TIER_COLORS.free;
-          
+
           return (
-            <Card key={tier.id} className={cn("bg-gradient-to-br border", colorClass)}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-background/50 flex items-center justify-center">
-                      <TierIcon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base capitalize">{tier.tier}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {userCounts[tier.tier] || 0} users
-                      </CardDescription>
+            <div
+              key={tier.id}
+              className="rounded-2xl p-5"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                    <TierIcon className="w-4 h-4 text-white/70" />
+                  </div>
+                  <div>
+                    <div className="font-display text-[15px] font-semibold capitalize text-white">{tier.tier}</div>
+                    <div className="text-xs text-white/45">
+                      {userCounts[tier.tier] || 0} users
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openEditDialog(tier)}
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <button
+                  onClick={() => openEditDialog(tier)}
+                  className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-[13px] text-white/70">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <Clock className="w-3 h-3 text-white/40" />
                     <span>{tier.max_duration_minutes}m max</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Film className="w-3 h-3 text-muted-foreground" />
+                    <Film className="w-3 h-3 text-white/40" />
                     <span>{tier.max_clips_per_video} clips</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Layers className="w-3 h-3 text-muted-foreground" />
+                    <Layers className="w-3 h-3 text-white/40" />
                     <span>{tier.max_concurrent_projects} projects</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <RefreshCw className="w-3 h-3 text-muted-foreground" />
+                    <RefreshCw className="w-3 h-3 text-white/40" />
                     <span>{tier.max_retries_per_clip} retries</span>
                   </div>
                 </div>
-                
-                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
+
+                <div className="flex flex-wrap gap-1.5 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {tier.chunked_stitching ? (
-                    <Badge className="bg-success/10 text-success border-success/20 text-xs">
-                      <CheckCircle className="w-2.5 h-2.5 mr-1" />
+                    <StatusPill tone="positive">
+                      <CheckCircle className="w-2.5 h-2.5" />
                       Chunked
-                    </Badge>
+                    </StatusPill>
                   ) : (
-                    <Badge variant="secondary" className="text-xs">
-                      <XCircle className="w-2.5 h-2.5 mr-1" />
+                    <StatusPill tone="neutral">
+                      <XCircle className="w-2.5 h-2.5" />
                       No Chunked
-                    </Badge>
+                    </StatusPill>
                   )}
                   {tier.priority_queue ? (
-                    <Badge className="bg-warning/10 text-warning border-warning/20 text-xs">
-                      <Zap className="w-2.5 h-2.5 mr-1" />
+                    <StatusPill tone="warn">
+                      <Zap className="w-2.5 h-2.5" />
                       Priority
-                    </Badge>
+                    </StatusPill>
                   ) : (
-                    <Badge variant="secondary" className="text-xs">
+                    <StatusPill tone="neutral">
                       Standard Queue
-                    </Badge>
+                    </StatusPill>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
       </div>
 
       {/* Comparison Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Tier Comparison</CardTitle>
-          <CardDescription>
-            Side-by-side feature comparison across all tiers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Feature</th>
-                  {tiers.map((tier) => (
-                    <th key={tier.id} className="text-center py-3 px-4 text-sm font-medium text-muted-foreground capitalize">
-                      {tier.tier}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Max Video Duration</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-sm text-center font-medium">
-                      {tier.max_duration_minutes} min
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Max Clips per Video</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-sm text-center font-medium">
-                      {tier.max_clips_per_video}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Concurrent Projects</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-sm text-center font-medium">
-                      {tier.max_concurrent_projects}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Retries per Clip</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-sm text-center font-medium">
-                      {tier.max_retries_per_clip}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Chunked Stitching</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-center">
-                      {tier.chunked_stitching ? (
-                        <CheckCircle className="w-4 h-4 text-success mx-auto" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-muted-foreground mx-auto" />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-3 px-4 text-sm">Priority Queue</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-center">
-                      {tier.priority_queue ? (
-                        <Zap className="w-4 h-4 text-warning mx-auto" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-muted-foreground mx-auto" />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 text-sm font-medium">Users on Tier</td>
-                  {tiers.map((tier) => (
-                    <td key={tier.id} className="py-3 px-4 text-center">
-                      <Badge variant="secondary">
-                        {userCounts[tier.tier] || 0}
-                      </Badge>
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <FloatSection title="Tier Comparison" meta="side-by-side">
+        <div className="overflow-x-auto">
+          <FloatTable
+            columns={[
+              { key: 'feature', label: 'Feature' },
+              ...tiers.map((tier) => ({ key: tier.id, label: tier.tier, align: 'right' as const, className: 'capitalize' })),
+            ]}
+            rows={[
+              {
+                _key: 'duration',
+                feature: 'Max Video Duration',
+                ...Object.fromEntries(tiers.map((t) => [t.id, <span className="font-medium text-white/80">{t.max_duration_minutes} min</span>])),
+              },
+              {
+                _key: 'clips',
+                feature: 'Max Clips per Video',
+                ...Object.fromEntries(tiers.map((t) => [t.id, <span className="font-medium text-white/80">{t.max_clips_per_video}</span>])),
+              },
+              {
+                _key: 'projects',
+                feature: 'Concurrent Projects',
+                ...Object.fromEntries(tiers.map((t) => [t.id, <span className="font-medium text-white/80">{t.max_concurrent_projects}</span>])),
+              },
+              {
+                _key: 'retries',
+                feature: 'Retries per Clip',
+                ...Object.fromEntries(tiers.map((t) => [t.id, <span className="font-medium text-white/80">{t.max_retries_per_clip}</span>])),
+              },
+              {
+                _key: 'chunked',
+                feature: 'Chunked Stitching',
+                ...Object.fromEntries(tiers.map((t) => [t.id, t.chunked_stitching
+                  ? <CheckCircle className="w-4 h-4 inline" style={{ color: 'hsl(188 92% 58%)' }} />
+                  : <XCircle className="w-4 h-4 inline text-white/35" />])),
+              },
+              {
+                _key: 'priority',
+                feature: 'Priority Queue',
+                ...Object.fromEntries(tiers.map((t) => [t.id, t.priority_queue
+                  ? <Zap className="w-4 h-4 inline" style={{ color: 'hsl(38 96% 62%)' }} />
+                  : <XCircle className="w-4 h-4 inline text-white/35" />])),
+              },
+              {
+                _key: 'users',
+                feature: <span className="font-medium text-white">Users on Tier</span>,
+                ...Object.fromEntries(tiers.map((t) => [t.id, <StatusPill tone="neutral">{userCounts[t.tier] || 0}</StatusPill>])),
+              },
+            ]}
+          />
+        </div>
+      </FloatSection>
 
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onOpenChange={(open) => !open && setEditDialog({ open: false, tier: null })}>
@@ -378,7 +328,7 @@ export function AdminTierLimitsEditor() {
               Configure limits for users on this tier
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -400,7 +350,7 @@ export function AdminTierLimitsEditor() {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="max_projects">Concurrent Projects</Label>
@@ -421,23 +371,23 @@ export function AdminTierLimitsEditor() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Chunked Stitching</Label>
-                  <p className="text-xs text-muted-foreground">Process long videos in chunks</p>
+                  <p className="text-xs text-white/45">Process long videos in chunks</p>
                 </div>
                 <Switch
                   checked={form.chunked_stitching}
                   onCheckedChange={(checked) => setForm({ ...form, chunked_stitching: checked })}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Priority Queue</Label>
-                  <p className="text-xs text-muted-foreground">Faster processing priority</p>
+                  <p className="text-xs text-white/45">Faster processing priority</p>
                 </div>
                 <Switch
                   checked={form.priority_queue}
@@ -446,7 +396,7 @@ export function AdminTierLimitsEditor() {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog({ open: false, tier: null })}>
               Cancel

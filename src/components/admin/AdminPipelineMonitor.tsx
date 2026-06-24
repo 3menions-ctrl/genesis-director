@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  FloatSection,
+  FloatStat,
+  DeckButton,
+  StatusPill,
+  CYAN,
+  ROSE,
+  AMBER,
+  ACCENT_HSL,
+} from '@/admin/ui/primitives';
 import {
   Activity,
   CheckCircle,
@@ -69,6 +75,18 @@ interface RecentError {
   error: string;
   projectId: string;
   timestamp: string;
+}
+
+/** Thin borderless gradient progress bar (replaces shadcn Progress). */
+function ThinBar({ value, tone = ACCENT_HSL }: { value: number; tone?: string }) {
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: `linear-gradient(90deg, ${tone}, ${CYAN})` }}
+      />
+    </div>
+  );
 }
 
 export function AdminPipelineMonitor() {
@@ -168,7 +186,7 @@ export function AdminPipelineMonitor() {
         .eq('status', 'completed')
         .gte('updated_at', today.toISOString())
         .limit(100);
-      
+
       let avgTime = 0;
       if (completedClipsToday && completedClipsToday.length > 0) {
         const totalSeconds = completedClipsToday.reduce((sum, clip) => {
@@ -253,35 +271,25 @@ export function AdminPipelineMonitor() {
       'Music Gen': Music,
     };
     const Icon = icons[name] || Activity;
-    return <Icon className="w-4 h-4" />;
+    return <Icon className="w-4 h-4 text-white/60" />;
   };
 
-  const getStatusColor = (status: 'healthy' | 'degraded' | 'down') => {
-    switch (status) {
-      case 'healthy': return 'text-success';
-      case 'degraded': return 'text-amber-500';
-      case 'down': return 'text-destructive';
-    }
-  };
+  const statusTone = (status: 'healthy' | 'degraded' | 'down') =>
+    status === 'healthy' ? 'positive' : status === 'degraded' ? 'warn' : 'danger';
 
-  const getStatusBg = (status: 'healthy' | 'degraded' | 'down') => {
-    switch (status) {
-      case 'healthy': return 'bg-success/10 border-success/30';
-      case 'degraded': return 'bg-amber-500/10 border-amber-500/30';
-      case 'down': return 'bg-destructive/10 border-destructive/30';
-    }
-  };
+  const rateColor = (rate: number) =>
+    rate >= 90 ? CYAN : rate >= 50 ? AMBER : ROSE;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: ACCENT_HSL }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Control Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -291,253 +299,158 @@ export function AdminPipelineMonitor() {
               onCheckedChange={setAutoRefresh}
               id="auto-refresh"
             />
-            <label htmlFor="auto-refresh" className="text-sm text-muted-foreground">
+            <label htmlFor="auto-refresh" className="text-sm text-white/50">
               Auto-refresh (10s)
             </label>
           </div>
           {autoRefresh && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Activity className="w-3 h-3 animate-pulse text-success" />
+            <div className="flex items-center gap-1 text-xs text-white/50">
+              <Activity className="w-3 h-3 animate-pulse" style={{ color: CYAN }} />
               Live
             </div>
           )}
         </div>
-        <Button variant="outline" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+        <DeckButton onClick={fetchData} disabled={loading}>
+          <RefreshCw className={cn('w-3.5 h-3.5 mr-2', loading && 'animate-spin')} />
           Refresh Now
-        </Button>
+        </DeckButton>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <Zap className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.activeJobs}</p>
-                <p className="text-xs text-muted-foreground">Active Jobs</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Clock className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.queueDepth}</p>
-                <p className="text-xs text-muted-foreground">Queue Depth</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/20">
-                <CheckCircle className="w-5 h-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.completedToday}</p>
-                <p className="text-xs text-muted-foreground">Completed Today</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cn(
-          metrics.failedToday > 0 && "bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20"
-        )}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", metrics.failedToday > 0 ? "bg-destructive/20" : "bg-muted")}>
-                <XCircle className={cn("w-5 h-5", metrics.failedToday > 0 ? "text-destructive" : "text-muted-foreground")} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.failedToday}</p>
-                <p className="text-xs text-muted-foreground">Failed Today</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <TrendingUp className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.averageProcessingTime}s</p>
-                <p className="text-xs text-muted-foreground">Avg Process Time</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-8">
+        <FloatStat label="Active Jobs" value={metrics.activeJobs} icon={Zap} accentNumber index={0} />
+        <FloatStat label="Queue Depth" value={metrics.queueDepth} icon={Clock} index={1} />
+        <FloatStat label="Completed Today" value={metrics.completedToday} icon={CheckCircle} index={2} />
+        <FloatStat label="Failed Today" value={metrics.failedToday} icon={XCircle} index={3} />
+        <FloatStat label="Avg Process Time" value={`${metrics.averageProcessingTime}s`} icon={TrendingUp} index={4} />
       </div>
 
       {/* Service Health Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="w-5 h-5" />
-            Service Health
-          </CardTitle>
-          <CardDescription>Real-time status of all pipeline services</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((service) => (
-              <Card key={service.name} className={cn("border", getStatusBg(service.status))}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {getServiceIcon(service.name)}
-                      <span className="font-medium text-sm">{service.name}</span>
-                    </div>
-                    <Badge variant="outline" className={getStatusColor(service.status)}>
-                      {service.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
-                      {service.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
-                      {service.status === 'down' && <XCircle className="w-3 h-3 mr-1" />}
-                      {service.status}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Success Rate</span>
-                      <span className={cn(
-                        "font-mono",
-                        service.successRate >= 90 ? "text-success" :
-                        service.successRate >= 50 ? "text-amber-500" : "text-destructive"
-                      )}>
-                        {service.successRate.toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress value={service.successRate} className="h-1.5" />
-
-                    <div className="flex justify-between text-xs mt-2">
-                      <span className="text-muted-foreground">Calls Today</span>
-                      <span>{service.callsToday}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Failures</span>
-                      <span className={service.failuresToday > 0 ? "text-destructive" : ""}>
-                        {service.failuresToday}
-                      </span>
-                    </div>
-                  </div>
-
-                  {service.lastError && (
-                    <div className="mt-3 p-2 rounded bg-destructive/10 text-xs">
-                      <p className="text-destructive font-medium">Last Error:</p>
-                      <p className="text-muted-foreground truncate">{service.lastError}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Active Jobs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Active Jobs
-            </CardTitle>
-            <CardDescription>Currently processing jobs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-3">
-                {activeJobs.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success opacity-50" />
-                    <p>No active jobs</p>
-                  </div>
-                ) : (
-                  activeJobs.map((job) => (
-                    <div key={job.id} className="p-3 rounded-lg border bg-card">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {job.type === 'clip' && <Video className="w-4 h-4 text-primary" />}
-                          {job.type === 'stitch' && <Scissors className="w-4 h-4 text-amber-500" />}
-                          {job.type === 'voice' && <Mic className="w-4 h-4 text-success" />}
-                          <span className="text-sm font-medium capitalize">{job.type}</span>
-                        </div>
-                        <Badge variant="secondary">{job.status}</Badge>
-                      </div>
-                      {job.type === 'clip' ? (
-                        // Clips report no real progress — show an honest
-                        // indeterminate bar instead of a fixed fake percentage.
-                        <div className="h-1.5 mb-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full w-2/3 rounded-full bg-primary/50 animate-pulse" />
-                        </div>
-                      ) : (
-                        <Progress value={job.progress} className="h-1.5 mb-2" />
-                      )}
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="font-mono">{job.projectId.slice(0, 8)}...</span>
-                        <span>{format(new Date(job.startedAt), 'HH:mm:ss')}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
+      <FloatSection title="Service Health" meta="real-time pipeline services">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map((service) => (
+            <div
+              key={service.name}
+              className="rounded-xl p-4"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {getServiceIcon(service.name)}
+                  <span className="font-medium text-sm text-white/85">{service.name}</span>
+                </div>
+                <StatusPill tone={statusTone(service.status)}>
+                  {service.status === 'healthy' && <CheckCircle className="w-3 h-3" />}
+                  {service.status === 'degraded' && <AlertTriangle className="w-3 h-3" />}
+                  {service.status === 'down' && <XCircle className="w-3 h-3" />}
+                  {service.status}
+                </StatusPill>
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/45">Success Rate</span>
+                  <span className="font-mono" style={{ color: rateColor(service.successRate) }}>
+                    {service.successRate.toFixed(1)}%
+                  </span>
+                </div>
+                <ThinBar value={service.successRate} tone={rateColor(service.successRate)} />
+
+                <div className="flex justify-between text-xs mt-2">
+                  <span className="text-white/45">Calls Today</span>
+                  <span className="text-white/80">{service.callsToday}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/45">Failures</span>
+                  <span style={service.failuresToday > 0 ? { color: ROSE } : undefined} className={service.failuresToday > 0 ? '' : 'text-white/80'}>
+                    {service.failuresToday}
+                  </span>
+                </div>
+              </div>
+
+              {service.lastError && (
+                <div className="mt-3 p-2 rounded" style={{ background: 'hsl(350 90% 70% / 0.08)' }}>
+                  <p className="text-xs font-medium" style={{ color: ROSE }}>Last Error:</p>
+                  <p className="text-xs text-white/45 truncate">{service.lastError}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </FloatSection>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Active Jobs */}
+        <FloatSection title="Active Jobs" meta="currently processing">
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-3">
+              {activeJobs.length === 0 ? (
+                <div className="text-center py-8 text-white/45">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" style={{ color: CYAN }} />
+                  <p>No active jobs</p>
+                </div>
+              ) : (
+                activeJobs.map((job) => (
+                  <div key={job.id} className="p-3 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {job.type === 'clip' && <Video className="w-4 h-4" style={{ color: ACCENT_HSL }} />}
+                        {job.type === 'stitch' && <Scissors className="w-4 h-4" style={{ color: AMBER }} />}
+                        {job.type === 'voice' && <Mic className="w-4 h-4" style={{ color: CYAN }} />}
+                        <span className="text-sm font-medium capitalize text-white/85">{job.type}</span>
+                      </div>
+                      <StatusPill tone="neutral">{job.status}</StatusPill>
+                    </div>
+                    {job.type === 'clip' ? (
+                      // Clips report no real progress — show an honest
+                      // indeterminate bar instead of a fixed fake percentage.
+                      <div className="h-1.5 mb-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                        <div className="h-full w-2/3 rounded-full animate-pulse" style={{ background: `linear-gradient(90deg, ${ACCENT_HSL}, ${CYAN})` }} />
+                      </div>
+                    ) : (
+                      <div className="mb-2">
+                        <ThinBar value={job.progress} />
+                      </div>
+                    )}
+                    <div className="flex justify-between text-xs text-white/45">
+                      <span className="font-mono">{job.projectId.slice(0, 8)}...</span>
+                      <span>{format(new Date(job.startedAt), 'HH:mm:ss')}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </FloatSection>
 
         {/* Recent Errors */}
-        <Card className={cn(recentErrors.length > 0 && "border-destructive/30")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className={cn("w-5 h-5", recentErrors.length > 0 && "text-destructive")} />
-              Recent Errors
-            </CardTitle>
-            <CardDescription>Last 20 pipeline errors</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-2">
-                {recentErrors.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success opacity-50" />
-                    <p>No recent errors</p>
-                  </div>
-                ) : (
-                  recentErrors.map((error) => (
-                    <div key={error.id} className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                      <div className="flex items-center justify-between mb-1">
-                        <Badge variant="outline" className="text-destructive border-destructive/30">
-                          {error.service}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(error.timestamp), 'HH:mm:ss')}
-                        </span>
-                      </div>
-                      <p className="text-sm text-destructive truncate">{error.error}</p>
-                      <p className="text-xs text-muted-foreground mt-1 font-mono">
-                        {error.projectId?.slice(0, 8)}... • {error.operation}
-                      </p>
+        <FloatSection title="Recent Errors" meta="last 20 pipeline errors">
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-2">
+              {recentErrors.length === 0 ? (
+                <div className="text-center py-8 text-white/45">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" style={{ color: CYAN }} />
+                  <p>No recent errors</p>
+                </div>
+              ) : (
+                recentErrors.map((error) => (
+                  <div key={error.id} className="p-3 rounded-lg" style={{ border: '1px solid hsl(350 90% 70% / 0.22)', background: 'hsl(350 90% 70% / 0.04)' }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <StatusPill tone="danger">{error.service}</StatusPill>
+                      <span className="text-xs text-white/45">
+                        {format(new Date(error.timestamp), 'HH:mm:ss')}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                    <p className="text-sm truncate" style={{ color: ROSE }}>{error.error}</p>
+                    <p className="text-xs text-white/45 mt-1 font-mono">
+                      {error.projectId?.slice(0, 8)}... • {error.operation}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </FloatSection>
       </div>
     </div>
   );

@@ -1,12 +1,11 @@
 import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Film, Image, User, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Film, Image, User, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +13,7 @@ import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { useGalleryShowcase, useAddGalleryItem, useUpdateGalleryItem, useDeleteGalleryItem, useReorderGalleryItems } from '@/hooks/useGalleryShowcase';
 import type { GalleryShowcaseItem, GalleryShowcaseInsert, GalleryCategory } from '@/types/gallery-showcase';
 import { cn } from '@/lib/utils';
+import { DeckButton, StatusPill } from '@/admin/ui/primitives';
 
 const CATEGORY_CONFIG: Record<GalleryCategory, { label: string; icon: typeof Film }> = {
   'text-to-video': { label: 'Text to Video', icon: Film },
@@ -134,13 +134,13 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Landing Page Gallery</h2>
-          <p className="text-sm text-zinc-400">Manage showcase videos displayed on the landing page</p>
+          <h2 className="font-display text-[17px] font-semibold tracking-tight text-white">Landing Page Gallery</h2>
+          <p className="text-[13px] text-white/55">Manage showcase videos displayed on the landing page</p>
         </div>
-        <Button onClick={handleAdd} className="gap-2">
-          <Plus className="w-4 h-4" />
+        <DeckButton primary onClick={handleAdd}>
+          <Plus className="w-3.5 h-3.5 mr-2" />
           Add Video
-        </Button>
+        </DeckButton>
       </div>
 
       <div className="grid gap-3">
@@ -155,30 +155,31 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg border bg-zinc-900/50",
-                  item.is_active ? "border-zinc-700" : "border-zinc-800 opacity-60"
+                  "flex items-center gap-4 p-4 rounded-2xl",
+                  !item.is_active && "opacity-60"
                 )}
+                style={{ border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 {/* Drag handle / order */}
                 <div className="flex flex-col gap-1">
                   <button
                     onClick={() => handleMoveUp(index)}
                     disabled={index === 0}
-                    className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-white/[0.06] rounded disabled:opacity-30"
                   >
-                    <GripVertical className="w-4 h-4 text-zinc-500 rotate-180" />
+                    <GripVertical className="w-4 h-4 text-white/40 rotate-180" />
                   </button>
                   <button
                     onClick={() => handleMoveDown(index)}
                     disabled={index === items.length - 1}
-                    className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-white/[0.06] rounded disabled:opacity-30"
                   >
-                    <GripVertical className="w-4 h-4 text-zinc-500" />
+                    <GripVertical className="w-4 h-4 text-white/40" />
                   </button>
                 </div>
 
                 {/* Thumbnail preview */}
-                <div className="w-24 h-14 rounded bg-zinc-800 overflow-hidden flex-shrink-0">
+                <div className="w-24 h-14 rounded bg-white/[0.06] overflow-hidden flex-shrink-0">
                   {item.thumbnail_url ? (
                     <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -194,13 +195,13 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-white truncate">{item.title}</h3>
-                    <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-zinc-800 text-zinc-400">
+                    <StatusPill tone="neutral">
                       <Icon className="w-3 h-3" />
                       {CATEGORY_CONFIG[item.category].label}
-                    </span>
+                    </StatusPill>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-zinc-500 truncate">{item.description}</p>
+                    <p className="text-[13px] text-white/45 truncate">{item.description}</p>
                   )}
                 </div>
 
@@ -210,7 +211,7 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                     onClick={() => handleToggleActive(item)}
                     className={cn(
                       "p-2 rounded-lg transition-colors",
-                      item.is_active ? "text-green-400 hover:bg-green-400/10" : "text-zinc-500 hover:bg-zinc-800"
+                      item.is_active ? "text-[hsl(188_92%_58%)] hover:bg-[hsl(188_92%_58%/0.12)]" : "text-white/45 hover:bg-white/[0.06]"
                     )}
                     title={item.is_active ? "Visible" : "Hidden"}
                   >
@@ -218,13 +219,13 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                   </button>
                   <button
                     onClick={() => handleEdit(item)}
-                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                    className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(item.id)}
-                    className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                    className="p-2 rounded-lg text-white/60 hover:text-[hsl(350_90%_70%)] hover:bg-[hsl(350_90%_70%/0.12)] transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -327,7 +328,7 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
           <DialogHeader>
             <DialogTitle>Remove Video?</DialogTitle>
           </DialogHeader>
-          <p className="text-zinc-400">This will permanently remove this video from the gallery.</p>
+          <p className="text-white/55">This will permanently remove this video from the gallery.</p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteConfirmId(null)}>
               Cancel

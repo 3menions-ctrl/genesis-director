@@ -71,20 +71,26 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
   const handleSave = async () => {
     if (!formData.title || !formData.video_url) return;
 
-    const payload: GalleryShowcaseInsert = {
+    const base = {
       title: formData.title,
       description: formData.description || null,
       video_url: formData.video_url,
       thumbnail_url: formData.thumbnail_url || null,
       category: formData.category,
       is_active: formData.is_active,
-      sort_order: items?.length ? Math.max(...items.map(i => i.sort_order)) + 1 : 1,
     };
 
     if (editingItem) {
-      await updateMutation.mutateAsync({ id: editingItem.id, updates: payload });
+      // LOGIC FIX AD-11: do NOT reassign sort_order on edit — the add-path
+      // `max+1` bumped any edited item (even a title tweak) to the bottom of the
+      // public showcase. Update only the edited fields.
+      await updateMutation.mutateAsync({ id: editingItem.id, updates: base });
       setEditingItem(null);
     } else {
+      const payload: GalleryShowcaseInsert = {
+        ...base,
+        sort_order: items?.length ? Math.max(...items.map(i => i.sort_order)) + 1 : 1,
+      };
       await addMutation.mutateAsync(payload);
       setIsAddDialogOpen(false);
     }

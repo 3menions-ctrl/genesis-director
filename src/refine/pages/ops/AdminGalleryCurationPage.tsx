@@ -59,15 +59,30 @@ export default function AdminGalleryCurationPage() {
           { key: "is_active", label: "Status", width: "100px" },
         ]}
         actions={[
+          // LOGIC FIX AD-12: swap sort_order with the adjacent row instead of
+          // ±1 on one row (which produced duplicate sort_orders → undefined
+          // ordering). Find the neighbor and exchange the two values.
           { label: "Up", icon: ArrowUp,
             onRun: async (r) => {
-              const { error } = await supabase.from("gallery_showcase").update({ sort_order: Math.max(0, r.sort_order - 1) }).eq("id", r.id);
-              if (error) throw error;
+              const { data: nb } = await supabase.from("gallery_showcase")
+                .select("id, sort_order").lt("sort_order", r.sort_order)
+                .order("sort_order", { ascending: false }).limit(1).maybeSingle();
+              if (!nb) return; // already at the top
+              const e1 = (await supabase.from("gallery_showcase").update({ sort_order: r.sort_order }).eq("id", nb.id)).error;
+              if (e1) throw e1;
+              const e2 = (await supabase.from("gallery_showcase").update({ sort_order: nb.sort_order }).eq("id", r.id)).error;
+              if (e2) throw e2;
             }},
           { label: "Down", icon: ArrowDown,
             onRun: async (r) => {
-              const { error } = await supabase.from("gallery_showcase").update({ sort_order: r.sort_order + 1 }).eq("id", r.id);
-              if (error) throw error;
+              const { data: nb } = await supabase.from("gallery_showcase")
+                .select("id, sort_order").gt("sort_order", r.sort_order)
+                .order("sort_order", { ascending: true }).limit(1).maybeSingle();
+              if (!nb) return; // already at the bottom
+              const e1 = (await supabase.from("gallery_showcase").update({ sort_order: r.sort_order }).eq("id", nb.id)).error;
+              if (e1) throw e1;
+              const e2 = (await supabase.from("gallery_showcase").update({ sort_order: nb.sort_order }).eq("id", r.id)).error;
+              if (e2) throw e2;
             }},
           { label: "Toggle", icon: Power,
             onRun: async (r) => {

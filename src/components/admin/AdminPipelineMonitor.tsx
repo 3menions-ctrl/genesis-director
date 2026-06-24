@@ -149,15 +149,26 @@ export function AdminPipelineMonitor() {
         serviceMap.set(log.service, current);
       });
 
-      const serviceConfigs = [
-        { key: 'replicate-kling', name: 'Replicate Kling', icon: Video },
-        { key: 'replicate_minimax', name: 'Minimax TTS', icon: Mic },
-        { key: 'openai-tts', name: 'OpenAI TTS', icon: Mic },
-        { key: 'replicate-musicgen-stereo', name: 'MusicGen Stereo', icon: Music },
+      // LOGIC FIX AD-7: keys must match the service names actually logged to
+      // api_cost_logs. The primary clip path logs 'replicate-kling-v3' (plus a
+      // legacy 'replicate-kling'); TTS logs 'replicate_minimax' — there is no
+      // 'openai-tts' service, so that row was permanently 0/healthy and the main
+      // video service under-reported. Aggregate the real keys per row.
+      const serviceConfigs: { keys: string[]; name: string; icon: typeof Video }[] = [
+        { keys: ['replicate-kling-v3', 'replicate-kling'], name: 'Replicate Kling', icon: Video },
+        { keys: ['replicate_minimax'], name: 'Minimax TTS', icon: Mic },
+        { keys: ['replicate-musicgen-stereo', 'musicgen'], name: 'MusicGen', icon: Music },
       ];
 
       const healthData: ServiceHealth[] = serviceConfigs.map(config => {
-        const data = serviceMap.get(config.key) || { calls: 0, failures: 0 };
+        const data = config.keys.reduce(
+          (acc, k) => {
+            const d = serviceMap.get(k);
+            if (d) { acc.calls += d.calls; acc.failures += d.failures; if (d.lastError) acc.lastError = d.lastError; }
+            return acc;
+          },
+          { calls: 0, failures: 0, lastError: undefined as any },
+        );
         const successRate = data.calls > 0 ? ((data.calls - data.failures) / data.calls) * 100 : 100;
         let status: 'healthy' | 'degraded' | 'down' = 'healthy';
         if (successRate < 50) status = 'down';

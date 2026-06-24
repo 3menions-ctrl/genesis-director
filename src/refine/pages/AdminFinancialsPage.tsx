@@ -71,6 +71,10 @@ export default function AdminFinancialsPage() {
           .from("credit_transactions")
           .select("amount")
           .eq("transaction_type", "purchase")
+          // LOGIC FIX AD-6: "Revenue = real Stripe purchases only" (header
+          // comment) — exclude manual/promo grants without a Stripe id, which
+          // were booked as cash and overstated revenue/margin.
+          .not("stripe_payment_id", "is", null)
           .range(off, off + 999);
         if (!data || !data.length) break;
         for (const r of data as { amount: number | null }[]) { totalCredits += r.amount || 0; count++; }

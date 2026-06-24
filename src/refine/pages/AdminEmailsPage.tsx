@@ -81,11 +81,15 @@ export default function AdminEmailsPage() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    if (statusFilter === "all") return rows;
-    if (statusFilter === "failed") {
-      return rows.filter(r => ["failed","dlq","bounced","complained"].includes((r.status||"").toLowerCase()));
-    }
-    return rows.filter(r => (r.status || "").toLowerCase() === statusFilter);
+    const base = statusFilter === "all"
+      ? rows
+      : statusFilter === "failed"
+        ? rows.filter(r => ["failed","dlq","bounced","complained"].includes((r.status||"").toLowerCase()))
+        : rows.filter(r => (r.status || "").toLowerCase() === statusFilter);
+    // LOGIC FIX AD-13: admin_get_email_log uses DISTINCT ON (message_id) … ORDER
+    // BY message_id, so the rows arrive ordered by the random Resend message_id,
+    // not by time. Sort newest-first for display.
+    return [...base].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   }, [rows, statusFilter]);
 
   const submitFilter = (e: React.FormEvent) => {

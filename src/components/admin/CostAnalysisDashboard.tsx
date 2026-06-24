@@ -396,10 +396,13 @@ export function CostAnalysisDashboard() {
   const totalMonthlyCostCents = totalApiCostCents + totalRetryCostCents + totalStorageCostCents + lovableCostCents + supabaseCostCents;
   const totalWithDevCents = totalMonthlyCostCents + devCostCents;
 
-  // Revenue calculation - ONLY actual Stripe purchases
-  const CREDIT_PRICE_CENTS = 10.0; // $0.10 per credit (for refund calculation)
-  const refundValueCents = Math.round(Math.abs(refundData.refund_credits) * CREDIT_PRICE_CENTS);
-  const adjustedRevenueCents = actualRevenueCents - refundValueCents;
+  // Revenue calculation - ONLY actual Stripe purchases.
+  // LOGIC FIX AD-5: do NOT subtract `refund_credits` from revenue. Those are
+  // INTERNAL credit grants for failed generations (type 'refund', positive
+  // amount) — not cash refunds — so subtracting them understated revenue and
+  // Net Profit, contradicting AdminFinancialsPage's stated rule.
+  const CREDIT_PRICE_CENTS = 10.0; // $0.10 per credit
+  const adjustedRevenueCents = actualRevenueCents;
 
   const netProfitCents = adjustedRevenueCents - totalMonthlyCostCents;
   const profitMargin = adjustedRevenueCents > 0 ? (netProfitCents / adjustedRevenueCents) * 100 : 0;

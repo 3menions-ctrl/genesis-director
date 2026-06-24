@@ -548,11 +548,8 @@ function TypeTabs({
               <motion.span
                 layoutId="avatar-type-active"
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="absolute inset-0 -z-10 rounded-full bg-[hsl(var(--accent)/0.12)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
-                style={{
-                  background:
-                    "radial-gradient(closest-side, hsl(218 70% 38% / 0.5), transparent 78%)",
-                }}
+                className="absolute bottom-0.5 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-white"
+                style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
               />
             )}
             <Icon
@@ -599,7 +596,7 @@ function SortPicker({
             className={cn(
               "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors border border-transparent",
               active
-                ? "bg-[hsl(218_70%_38%/0.25)] text-[hsl(213_100%_88%)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
+                ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
                 : "bg-white/[0.03] text-muted-foreground/70 hover:text-foreground/90 hover:bg-white/[0.05]",
             )}
           >
@@ -633,7 +630,7 @@ function CategoryChips({
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors border border-transparent",
               active
-                ? "bg-[hsl(218_70%_38%/0.25)] text-[hsl(213_100%_88%)] shadow-[0_0_14px_-6px_hsl(216_80%_50%/0.35)]"
+                ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-5 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
                 : "bg-white/[0.03] text-muted-foreground/70 hover:bg-white/[0.05] hover:text-foreground/90",
             )}
           >
@@ -944,10 +941,7 @@ function GlassFrame({
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
                 style={{
-                  background:
-                    "radial-gradient(closest-side, hsl(218 70% 38% / 0.32), transparent 78%)",
-                  boxShadow:
-                    "inset 0 0 32px hsl(var(--accent) / 0.3), 0 0 14px -6px hsl(216 80% 50% / 0.35)",
+                  boxShadow: "inset 0 0 30px hsl(0 0% 100% / 0.14)",
                 }}
               />
             )}

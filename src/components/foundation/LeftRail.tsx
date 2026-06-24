@@ -261,35 +261,29 @@ function RailTile({
         active ? "text-foreground" : "text-muted-foreground/65 hover:text-foreground/90",
       )}
     >
-      {/* Borderless selection — a quiet dark-blue glow behind the icon (no
-          container, no ring). Matches the deep-navy page backdrop; just a soft,
-          contained bloom that glides between tiles. */}
+      {/* Selection — a clean vertical line at the rail's edge that glides
+          between tiles. No fill/bloom; the active icon carries a subtle glow. */}
       {active && (
         <motion.span
-          layoutId="rail-active-tile"
+          layoutId="rail-active-line"
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1.5 h-[50px] w-[50px] -translate-x-1/2 rounded-[18px]"
-          style={{
-            background: "radial-gradient(closest-side, hsl(218 70% 38% / 0.55), hsl(218 70% 38% / 0) 78%)",
-            boxShadow: "0 0 14px -6px hsl(216 80% 50% / 0.35)",
-          }}
+          className="pointer-events-none absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-white"
+          style={{ boxShadow: "0 0 10px -1px rgba(255,255,255,0.4)" }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
         />
       )}
-      {/* Icon — borderless, no card. */}
+      {/* Icon — borderless, no card. Active icon keeps a subtle soft glow. */}
       <span className="relative flex h-12 w-12 items-center justify-center transition-transform duration-200 group-hover/tile:scale-105">
         <Icon
           className={cn(
             "h-[26px] w-[26px] transition-colors duration-200",
-            active ? "text-[hsl(213_100%_88%)]" : "text-foreground/70 group-hover/tile:text-foreground",
+            active ? "text-white" : "text-foreground/70 group-hover/tile:text-foreground",
           )}
+          style={active ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.4))" } : undefined}
           strokeWidth={active ? 2 : 1.75}
         />
       </span>
-      <span
-        className="relative max-w-full px-0.5 text-[10px] font-medium leading-tight text-center tracking-tight"
-        style={active ? { color: "hsl(213 90% 84%)" } : undefined}
-      >
+      <span className="relative max-w-full px-0.5 text-[10px] font-medium leading-tight text-center tracking-tight">
         {item.short ?? item.label}
       </span>
     </Link>

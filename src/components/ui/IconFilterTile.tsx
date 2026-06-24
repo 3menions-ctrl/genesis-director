@@ -24,36 +24,32 @@ export function IconFilterTile({
       onClick={onClick}
       className="group/ft relative flex flex-col items-center justify-center gap-1.5 w-[68px] py-2.5 transition-all"
     >
-      {/* Borderless selection — a quiet dark-blue bloom behind the icon (no
-          ring, no box), matching the rail + page backdrop. */}
-      {active && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1.5 h-9 w-9 -translate-x-1/2 rounded-2xl"
-          style={{
-            background: "radial-gradient(closest-side, hsl(218 70% 38% / 0.55), hsl(218 70% 38% / 0) 78%)",
-            boxShadow: "0 0 14px -6px hsl(216 80% 50% / 0.35)",
-          }}
-        />
-      )}
       <span className="relative flex h-9 w-9 items-center justify-center transition-transform duration-200 group-hover/ft:scale-105">
         <Icon
           className={cn(
             "h-[18px] w-[18px] transition-colors",
-            active ? "text-[hsl(213_100%_88%)]" : "text-foreground/50 group-hover/ft:text-foreground/85",
+            active ? "text-white" : "text-foreground/50 group-hover/ft:text-foreground/85",
           )}
+          style={active ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.4))" } : undefined}
           strokeWidth={1.7}
         />
       </span>
       <span
         className={cn(
           "relative text-[9.5px] font-mono uppercase tracking-[0.14em] transition-colors leading-none text-center",
-          active ? "" : "text-foreground/50 group-hover/ft:text-foreground/75",
+          active ? "text-foreground" : "text-foreground/50 group-hover/ft:text-foreground/75",
         )}
-        style={active ? { color: "hsl(213 90% 84%)" } : undefined}
       >
         {label}
       </span>
+      {/* Selection — a clean underline beneath the tile (no bloom). */}
+      {active && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-1/2 h-[2px] w-7 -translate-x-1/2 rounded-full bg-white"
+          style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
+        />
+      )}
     </button>
   );
 }

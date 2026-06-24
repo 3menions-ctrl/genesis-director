@@ -326,13 +326,9 @@ function FilterPill({
       className={cn(
         "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[11px] font-mono uppercase tracking-[0.18em] whitespace-nowrap transition-all",
         active
-          ? "text-[hsl(213_100%_88%)]"
+          ? "relative bg-white/[0.05] text-foreground after:absolute after:bottom-0 after:left-1/2 after:h-[2px] after:w-5 after:-translate-x-1/2 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
           : "text-foreground/55 hover:text-foreground/85 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur",
       )}
-      style={active ? {
-        background: "radial-gradient(closest-side, hsl(218 70% 38% / 0.5), transparent 78%)",
-        boxShadow: "0 0 14px -6px hsl(216 80% 50% / 0.35)",
-      } : undefined}
     >
       {icon}
       {children}

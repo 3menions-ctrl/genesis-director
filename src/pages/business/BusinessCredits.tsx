@@ -119,12 +119,14 @@ export default function BusinessCredits() {
       }
 
       const [txnRes, projRes] = await Promise.all([
-        supabase
-          .from("credit_transactions")
-          .select("id, user_id, amount, created_at, transaction_type, description, balance_after, project_id")
-          .in("user_id", userIds)
-          .order("created_at", { ascending: false })
-          .limit(TXN_LIMIT),
+        // AUDIT FIX B-2: org-scoped ledger via SECURITY DEFINER RPC (tagged by
+        // the project's org), not credit_transactions.in(user_id) which RLS
+        // narrowed to the viewer and mixed in other orgs' rows.
+        (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Txn[] | null }>
+        )("org_credit_transactions", { p_org_id: orgId }),
         supabase
           .from("movie_projects")
           .select("id, title")
@@ -132,7 +134,7 @@ export default function BusinessCredits() {
           .limit(1000),
       ]);
 
-      setTxns((txnRes.data ?? []) as unknown as Txn[]);
+      setTxns(((txnRes.data ?? []) as unknown as Txn[]).slice(0, TXN_LIMIT));
       setProjectTitles(new Map(((projRes.data ?? []) as { id: string; title: string | null }[])
         .map((p) => [p.id, p.title || "Untitled"])));
     } catch (e) {

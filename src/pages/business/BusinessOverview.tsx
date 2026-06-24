@@ -104,19 +104,21 @@ export default function BusinessOverview() {
             args: Record<string, unknown>,
           ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
           )("org_member_directory", { p_org_id: orgId }),
-          supabase
-            .from("credit_transactions")
-            .select("user_id, amount, created_at")
-            .in("user_id", userIds)
-            .lt("amount", 0)
-            .gte("created_at", since),
+          // AUDIT FIX B-2: org-scoped spend via SECURITY DEFINER RPC (tagged by
+          // the project's org), not credit_transactions.in(user_id) which RLS
+          // narrowed to the viewer only and mixed in other orgs' spend.
+          (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<{ user_id: string; amount: number; created_at: string }> | null }>
+          )("org_credit_transactions", { p_org_id: orgId, p_since: since }),
         ]);
         const pmap = new Map((profRes.data ?? []).map((p) => [p.id, p]));
         setMembers(userIds.map((id) => {
           const p = pmap.get(id);
           return { user_id: id, name: p?.display_name || p?.full_name || p?.email || "Member", avatar_url: p?.avatar_url ?? null };
         }));
-        setSpends((txnRes.data ?? []) as { user_id: string; amount: number; created_at: string }[]);
+        setSpends(((txnRes.data ?? []) as { user_id: string; amount: number; created_at: string }[]).filter((t) => t.amount < 0));
       } else {
         setMembers([]);
         setSpends([]);

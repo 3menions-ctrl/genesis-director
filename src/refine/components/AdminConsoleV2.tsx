@@ -23,6 +23,9 @@ import {
   Search,
   AlertCircle,
   Inbox,
+  Download,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminCard, ACCENT_HSL, accent, CYAN, ROSE, AMBER } from "@/admin/ui/primitives";
@@ -150,6 +153,42 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState<Record<string, string>>({});
   const [reloadKey, setReloadKey] = useState(0);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+
+  // Click a column header to sort the loaded rows: asc → desc → none.
+  const toggleSort = (key: string) =>
+    setSort((s) => (s?.key === key ? (s.dir === "asc" ? { key, dir: "desc" } : null) : { key, dir: "asc" }));
+
+  // Type-aware client-side sort over the rows already loaded.
+  const displayRows = useMemo(() => {
+    if (!sort) return rows;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const av = a[sort.key as keyof T], bv = b[sort.key as keyof T];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const an = Number(av), bn = Number(bv);
+      if (!isNaN(an) && !isNaN(bn) && String(av).trim() !== "" && String(bv).trim() !== "") return (an - bn) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }, [rows, sort]);
+
+  // Export the currently-shown rows to CSV (raw values, not rendered cells).
+  const exportCsv = () => {
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const header = visibleColumns.map((c) => esc(c.label)).join(",");
+    const lines = displayRows.map((r) =>
+      visibleColumns.map((c) => {
+        const v = r[c.key as keyof T];
+        return esc(v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
+      }).join(","),
+    );
+    const url = URL.createObjectURL(new Blob([[header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "admin-export.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ── Data fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,6 +318,15 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
               />
               Refresh
             </button>
+            <button
+              onClick={exportCsv}
+              disabled={loading || displayRows.length === 0}
+              title="Export shown rows to CSV"
+              className="text-[11px] uppercase tracking-[0.22em] text-white/60 hover:text-white px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors inline-flex items-center gap-2 disabled:opacity-40"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export
+            </button>
             {primaryCta && (
               <button
                 onClick={primaryCta.onClick}
@@ -399,7 +447,19 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                         c.align === "right" ? "text-right" : "text-left",
                       )}
                     >
-                      {c.label}
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(c.key)}
+                        title="Sort"
+                        className={cn(
+                          "inline-flex items-center gap-1 uppercase tracking-[0.22em] transition-colors hover:text-white/80",
+                          c.align === "right" && "flex-row-reverse",
+                          sort?.key === c.key && "text-white/75",
+                        )}
+                      >
+                        {c.label}
+                        {sort?.key === c.key && (sort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
                     </th>
                   ))}
                   {actions && actions.length > 0 && (
@@ -410,7 +470,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, rowIndex) => (
+                {displayRows.map((row, rowIndex) => (
                   <tr
                     key={String(row.id)}
                     className={cn(

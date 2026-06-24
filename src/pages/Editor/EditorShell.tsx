@@ -532,8 +532,10 @@ export function EditorShell() {
         setLibraryOpen((o) => !o);
         return;
       }
-      // Shift+M — open the Media Library (browse + click-to-add videos).
-      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "M")) {
+      // Shift+Y — open the Media Library (browse + click-to-add videos).
+      // (Shift+M is already the Markers-panel toggle above; this used to also
+      // bind Shift+M and was dead-shadowed. Y is unbound across the editor.)
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "Y")) {
         e.preventDefault();
         setMediaOpen((o) => !o);
         return;
@@ -646,7 +648,7 @@ export function EditorShell() {
                     project={displayProject}
                     playheadSec={playheadSec}
                     selectedClipId={selectedClipId}
-                    onOpenFullStage={() => setView("stage")}
+                    onOpenFullStage={() => switchView("stage")}
                   />
                 </div>
               ) : (

@@ -37,6 +37,10 @@ export function GeneralSettingsContent() {
   const [slug, setSlug] = useState("");
   const [website, setWebsite] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
+  // Originals for the website/billing_email fields (they aren't on currentOrg),
+  // so the dirty check can compare against what was actually loaded.
+  const [loadedWebsite, setLoadedWebsite] = useState("");
+  const [loadedBillingEmail, setLoadedBillingEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -52,6 +56,8 @@ export function GeneralSettingsContent() {
       if (data) {
         setWebsite(data.website ?? "");
         setBillingEmail(data.billing_email ?? "");
+        setLoadedWebsite(data.website ?? "");
+        setLoadedBillingEmail(data.billing_email ?? "");
       }
     })();
   }, [currentOrg]);
@@ -60,7 +66,8 @@ export function GeneralSettingsContent() {
     !!currentOrg &&
     (name !== currentOrg.name ||
       slug !== currentOrg.slug ||
-      true /* website/email diff cheap to ignore */);
+      website !== loadedWebsite ||
+      billingEmail !== loadedBillingEmail);
 
   const save = async () => {
     if (!currentOrg) return;

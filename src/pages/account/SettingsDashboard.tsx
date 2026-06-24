@@ -1231,34 +1231,27 @@ function PrivacyModule({
   const [blocked, setBlocked] = useState<Array<{ id: string; display_name: string | null; username: string | null; avatar_url: string | null; created_at: string }>>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(true);
 
+  // Load the user's blocklist directly from user_blocks. (There is no
+  // list_my_blocks RPC — calling it just produced a guaranteed-failing request
+  // on every load, so query the table directly.)
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("list_my_blocks" as never).maybeSingle();
-      setBlocked(Array.isArray(data) ? (data as never[]) : []);
+      const { data } = await supabase
+        .from("user_blocks" as never)
+        .select("blocked_id, created_at, blocked:profiles!user_blocks_blocked_id_fkey(id, display_name, username, avatar_url)")
+        .eq("blocker_id", profile.id);
+      if (Array.isArray(data)) {
+        setBlocked(data.map((r: any) => ({
+          id: r.blocked_id,
+          display_name: r.blocked?.display_name ?? null,
+          username: r.blocked?.username ?? null,
+          avatar_url: r.blocked?.avatar_url ?? null,
+          created_at: r.created_at,
+        })));
+      }
       setLoadingBlocked(false);
     })();
-  }, []);
-
-  // Fallback: query the table directly if no list RPC exists yet.
-  useEffect(() => {
-    if (!loadingBlocked && blocked.length === 0) {
-      (async () => {
-        const { data } = await supabase
-          .from("user_blocks" as never)
-          .select("blocked_id, created_at, blocked:profiles!user_blocks_blocked_id_fkey(id, display_name, username, avatar_url)")
-          .eq("blocker_id", profile.id);
-        if (Array.isArray(data) && data.length > 0) {
-          setBlocked(data.map((r: any) => ({
-            id: r.blocked_id,
-            display_name: r.blocked?.display_name ?? null,
-            username: r.blocked?.username ?? null,
-            avatar_url: r.blocked?.avatar_url ?? null,
-            created_at: r.created_at,
-          })));
-        }
-      })();
-    }
-  }, [loadingBlocked, blocked.length, profile.id]);
+  }, [profile.id]);
 
   const unblock = async (target: string) => {
     setBlocked((prev) => prev.filter((b) => b.id !== target));

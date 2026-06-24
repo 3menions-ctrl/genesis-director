@@ -29,6 +29,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { isDemoId } from "@/lib/editor/demoProject";
 
 const DEBOUNCE_MS = 500;
+// Only real video_clips rows (UUID ids) can be synced. Synthetic legacy clips
+// (`score-…`, `title-…`, `synthetic-…`) have no DB row, so an .eq("id", …)
+// update would match 0 rows and silently drop the user's edits.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Module-level pending-write registry. The hook registers each clip's
@@ -157,6 +161,14 @@ export function useClipPropertiesSync(projectId: string | undefined) {
       const h = hashClipState(c.properties, c.effects, c.keyframes);
       const last = lastSavedClip.current.get(c.id);
       if (h === last) continue;
+
+      // Synthetic legacy clips have no video_clips row — skip the sync (and
+      // record the hash so we don't re-attempt every render) instead of firing
+      // a futile 0-row update that drops the edit.
+      if (!UUID_RE.test(c.id)) {
+        lastSavedClip.current.set(c.id, h);
+        continue;
+      }
 
       // Schedule the write; cancel any pending one for this clip
       const existing = clipTimers.current.get(c.id);

@@ -437,10 +437,12 @@ function ToolsPanel({
             disabled={!selectedClipId}
             disabledHint="Select a clip first"
             onClick={() => {
-              // Forward to the existing R-key path by dispatching a
-              // synthetic keydown. Cleanest way to reuse the existing
-              // composer flow without duplicating its state.
-              window.dispatchEvent(new KeyboardEvent("keydown", { key: "R" }));
+              // The R-key composer lives in TakesDrawer, which only mounts on
+              // the Inspector tab. Dispatching the synthetic key from here (the
+              // Tools tab) hit no listener. Switch to Inspector first, then fire
+              // R once TakesDrawer (and its listener) has mounted.
+              setTab("inspector");
+              setTimeout(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "R" })), 80);
             }}
           />
         </Group>

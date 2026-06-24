@@ -114,6 +114,7 @@ function CreateExperiment({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Experiment created (draft)");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

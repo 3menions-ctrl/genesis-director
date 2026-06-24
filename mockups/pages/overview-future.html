@@ -1,0 +1,239 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@200;300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>OVERVIEW — future directions</title>
+<style>
+  :root{
+    --bg:#04050a; --accent:214 92% 64%; --acc:hsl(214 92% 64%);
+    --cyan:hsl(188 95% 62%); --violet:hsl(258 90% 74%); --rose:hsl(348 92% 70%);
+    --amber:hsl(40 96% 64%); --emerald:hsl(158 86% 52%);
+    --ink:rgba(255,255,255,.92); --mut:rgba(255,255,255,.46); --faint:rgba(255,255,255,.30);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+  body{position:relative;overflow-x:hidden}
+  .mono{font-family:'Roboto Mono',monospace}
+  .fr{font-family:'Fraunces',serif}
+  .tab{font-variant-numeric:tabular-nums}
+  /* deep-space atmosphere */
+  .atmos{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bloom{position:absolute;border-radius:9999px;filter:blur(110px)}
+  .b1{top:-280px;left:-60px;width:720px;height:720px;background:radial-gradient(closest-side,hsl(214 92% 64%/.30),transparent 70%)}
+  .b2{top:-180px;right:-80px;width:640px;height:640px;background:radial-gradient(closest-side,hsl(188 95% 62%/.20),transparent 70%)}
+  .b3{top:420px;left:38%;width:760px;height:760px;background:radial-gradient(closest-side,hsl(258 90% 74%/.16),transparent 70%)}
+  .b4{bottom:-300px;right:10%;width:680px;height:680px;background:radial-gradient(closest-side,hsl(214 92% 64%/.14),transparent 70%)}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:3px 3px}
+  .stage{position:relative;z-index:2;width:100%;padding:38px 56px 72px;min-height:100vh}
+  .vlabel{display:flex;align-items:baseline;gap:14px;margin-bottom:30px;font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.26em;color:var(--faint)}
+  .vlabel .tag{color:var(--acc)} .vlabel b{color:#fff;font-weight:500;letter-spacing:.14em} .vlabel .d{color:var(--mut);text-transform:none;font-family:'Inter';letter-spacing:.02em;font-size:12px;font-weight:300}
+  .eyebrow{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.34em;color:var(--acc)}
+  .glass{position:relative;border-radius:30px;background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.02) 55%,rgba(255,255,255,.012));
+    box-shadow:0 50px 140px -50px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.02);
+    backdrop-filter:blur(34px);-webkit-backdrop-filter:blur(34px)}
+  .glow{box-shadow:0 50px 150px -50px hsl(214 92% 64%/.55), inset 0 1px 0 rgba(255,255,255,.16)}
+  .grad{background:linear-gradient(98deg,#fff 6%,hsl(214 92% 80%) 48%,hsl(188 95% 74%) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  svg.i{stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- DIR C : SPATIAL ---------- */
+  .capsule{display:flex;align-items:center;justify-content:space-between;gap:18px;
+    padding:12px 14px 12px 22px;border-radius:9999px;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    box-shadow:0 30px 80px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.16);
+    backdrop-filter:blur(30px);margin-bottom:54px}
+  .capsule .brand{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.06em;color:var(--ink)}
+  .capsule .brand .orb{width:26px;height:26px;border-radius:9999px;background:radial-gradient(circle at 32% 28%,#fff,var(--acc) 60%,hsl(214 92% 40%));box-shadow:0 0 22px hsl(214 92% 64%/.7)}
+  .seg{display:inline-flex;gap:4px;background:rgba(255,255,255,.05);border-radius:9999px;padding:5px}
+  .seg span{padding:7px 16px;border-radius:9999px;font-size:12px;color:var(--mut);cursor:pointer;font-weight:400}
+  .seg span.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+  .cap-r{display:flex;align-items:center;gap:10px}
+  .pillbtn{display:inline-flex;align-items:center;gap:9px;padding:10px 18px;border-radius:9999px;font-size:12.5px;color:var(--ink);
+    background:rgba(255,255,255,.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+  .pillbtn svg{width:14px;height:14px}
+  .av{width:34px;height:34px;border-radius:9999px;background:linear-gradient(140deg,var(--violet),var(--acc));box-shadow:0 0 18px hsl(258 90% 74%/.4)}
+
+  .hero{position:relative;text-align:center;padding:8px 0 22px;margin-bottom:14px}
+  .hero .halo{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:760px;height:340px;
+    background:radial-gradient(closest-side,hsl(214 92% 64%/.22),transparent 72%);filter:blur(20px);pointer-events:none}
+  .hero .eyebrow{position:relative}
+  .mega{position:relative;font-family:'Fraunces',serif;font-weight:600;font-size:118px;line-height:.92;letter-spacing:-.035em;margin-top:14px}
+  .hero .meta{position:relative;margin-top:16px;font-size:14.5px;font-weight:300;color:var(--mut);letter-spacing:.02em}
+  .hero .meta b{color:var(--cyan);font-weight:500}
+  .herowave{display:block;width:100%;height:150px;margin-top:8px}
+
+  .orbs{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;margin-top:30px}
+  .orb{position:relative;border-radius:28px;padding:28px 28px 26px;overflow:hidden;
+    background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.015) 60%);
+    box-shadow:0 44px 120px -55px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.13);
+    backdrop-filter:blur(30px)}
+  .orb .aura{position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:9999px;filter:blur(36px);opacity:.5}
+  .orb .lab{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--mut)}
+  .orb .n{position:relative;font-family:'Fraunces',serif;font-weight:600;font-size:46px;line-height:1;letter-spacing:-.02em;color:#fff;margin-top:16px;font-variant-numeric:tabular-nums}
+  .orb .n.acc{color:var(--acc);text-shadow:0 0 34px hsl(214 92% 64%/.65)}
+  .orb .sub{margin-top:12px;display:flex;align-items:center;justify-content:space-between}
+  .orb .dl{font-size:12px;color:var(--cyan)} .orb .dl.flat{color:var(--mut)}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:30px;width:96px}
+  .spark i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(var(--acc),hsl(188 95% 62%/.25));opacity:.9}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px}
+  .panel{padding:32px 34px}
+  .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .ph .t{font-family:'Fraunces',serif;font-weight:500;font-size:19px;color:#fff;letter-spacing:-.01em}
+  .ph .m{font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .dotpulse{width:7px;height:7px;border-radius:9999px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);display:inline-block;margin-right:7px}
+  .ev{display:flex;gap:16px;padding:15px 0;align-items:flex-start}
+  .ev+.ev{border-top:1px solid rgba(255,255,255,.06)}
+  .ev .tm{font-family:'Roboto Mono',monospace;font-size:10.5px;color:var(--faint);min-width:46px;padding-top:3px}
+  .ev .tx{font-size:14px;font-weight:300;color:rgba(255,255,255,.82);line-height:1.45} .ev .tx b{color:#fff;font-weight:500}
+  .sig{display:flex;align-items:center;gap:16px;padding:16px 0}
+  .sig+.sig{border-top:1px solid rgba(255,255,255,.06)}
+  .sig .ico{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:0 0 40px}
+  .sig .ico svg{width:18px;height:18px}
+  .sig .bd{flex:1}.sig .bd .h{font-size:14.5px;font-weight:400;color:#fff}.sig .bd .s{font-size:12.5px;font-weight:300;color:var(--mut);margin-top:3px}
+  .go{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--acc);padding:8px 15px;border-radius:9999px;background:hsl(214 92% 64%/.12);white-space:nowrap}
+
+  /* ---------- DIR D : EDITORIAL ---------- */
+  .ed .vlabel{margin-bottom:46px}
+  .edhead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:64px}
+  .edhead h1{font-family:'Fraunces',serif;font-weight:400;font-size:68px;line-height:.96;letter-spacing:-.03em;color:#fff}
+  .edhead h1 i{font-style:italic;font-weight:300;color:var(--mut)}
+  .edhead .sub{margin-top:14px;max-width:30rem;font-size:15px;font-weight:300;color:var(--mut);line-height:1.6}
+  .edhead .actions{display:flex;align-items:center;gap:24px}
+  .txtbtn{font-size:13px;color:var(--mut);letter-spacing:.02em;cursor:pointer}
+  .txtbtn.on{color:#fff}
+  .edhead .cta{font-size:13px;color:#04050a;background:#fff;padding:12px 22px;border-radius:9999px;font-weight:500}
+  .esplit{display:grid;grid-template-columns:1.55fr 1fr;gap:72px;align-items:start}
+  .ehero .eyebrow{letter-spacing:.34em}
+  .ehero .big{font-family:'Fraunces',serif;font-weight:400;font-size:104px;line-height:.9;letter-spacing:-.035em;color:#fff;margin:18px 0 8px;font-variant-numeric:tabular-nums}
+  .ehero .cap{font-size:14px;font-weight:300;color:var(--mut)} .ehero .cap b{color:var(--cyan);font-weight:500}
+  .edchart{margin-top:40px}
+  .axis{display:flex;justify-content:space-between;margin-top:14px;font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;color:var(--faint)}
+  .erail{display:flex;flex-direction:column}
+  .erail .st{padding:26px 0}
+  .erail .st+.st{border-top:1px solid rgba(255,255,255,.08)}
+  .erail .st .l{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--mut)}
+  .erail .st .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+  .erail .st .v{font-family:'Fraunces',serif;font-weight:400;font-size:38px;letter-spacing:-.02em;color:#fff;font-variant-numeric:tabular-nums}
+  .erail .st .dl{font-size:13px;color:var(--cyan)} .erail .st .dl.flat{color:var(--faint)}
+  .erail .st .mini{display:flex;align-items:flex-end;gap:3px;height:26px;margin-top:14px}
+  .erail .st .mini i{flex:1;border-radius:2px;background:rgba(255,255,255,.18)}
+  .edsection{margin-top:80px}
+  .edsection .sh{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:18px;margin-bottom:8px}
+  .edsection .sh .t{font-family:'Fraunces',serif;font-weight:400;font-size:26px;letter-spacing:-.01em;color:#fff}
+  .edsection .sh .m{font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .erow{display:grid;grid-template-columns:2.4fr 1fr 1fr 1.4fr;align-items:center;gap:24px;padding:22px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .erow .nm{font-size:16px;font-weight:400;color:#fff} .erow .nm .mut{color:var(--faint);font-size:12.5px;margin-left:10px;font-family:'Roboto Mono',monospace}
+  .erow .c{font-family:'Roboto Mono',monospace;font-size:13px;color:var(--mut)}
+  .erow .amt{text-align:right;font-family:'Fraunces',serif;font-size:24px;color:#fff;font-variant-numeric:tabular-nums}
+  .tag2{font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+</style></head>
+<body>
+<div class="atmos"><div class="bloom b1"></div><div class="bloom b2"></div><div class="bloom b3"></div><div class="bloom b4"></div></div>
+<div class="grain"></div>
+
+<!-- ================= DIRECTION C : SPATIAL ================= -->
+<section id="A" class="stage">
+  <div class="vlabel"><span class="tag">DIR C</span><b>Horizon</b><span class="d">spatial glass · one giant hero metric · widely-spaced floating orbs · weightless</span></div>
+
+  <div class="capsule">
+    <div class="brand"><span class="orb"></span> ADMIN <span style="color:var(--faint)">·</span> COMMAND CENTER</div>
+    <div class="seg"><span>24H</span><span class="on">30D</span><span>QUARTER</span><span>YEAR</span></div>
+    <div class="cap-r">
+      <span class="pillbtn"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Search anything</span>
+      <span class="av"></span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="halo"></div>
+    <div class="eyebrow">NET REVENUE · TRAILING 30 DAYS</div>
+    <div class="mega grad tab">$148.2k</div>
+    <div class="meta"><b>▲ 12.4%</b> &nbsp;vs prior 30d &nbsp;·&nbsp; 3,914 active subscriptions &nbsp;·&nbsp; 71.3% gross margin</div>
+    <svg class="herowave" viewBox="0 0 1400 150" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="hf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(214 92% 64%)" stop-opacity=".30"/><stop offset="1" stop-color="hsl(214 92% 64%)" stop-opacity="0"/></linearGradient>
+        <linearGradient id="hl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="hsl(214 92% 64%)" stop-opacity=".2"/><stop offset=".4" stop-color="hsl(214 92% 74%)"/><stop offset="1" stop-color="hsl(188 95% 70%)"/></linearGradient>
+      </defs>
+      <path d="M0,120 C160,112 240,96 380,100 C520,104 600,60 760,66 C920,72 1000,40 1140,30 C1260,22 1340,30 1400,18 L1400,150 L0,150 Z" fill="url(#hf)"/>
+      <path d="M0,120 C160,112 240,96 380,100 C520,104 600,60 760,66 C920,72 1000,40 1140,30 C1260,22 1340,30 1400,18" fill="none" stroke="url(#hl)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
+
+  <div class="orbs">
+    <div class="orb"><div class="aura" style="background:var(--acc)"></div><div class="lab">Live productions</div><div class="n acc">142</div><div class="sub"><span class="dl flat">7 failed · self-healing</span><div class="spark"><i style="height:60%"></i><i style="height:72%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:68%"></i><i style="height:80%"></i><i style="height:74%"></i></div></div></div>
+    <div class="orb"><div class="aura" style="background:var(--cyan)"></div><div class="lab">Credits burned · 30d</div><div class="n">2.41M</div><div class="sub"><span class="dl">▲ 9.0%</span><div class="spark"><i style="height:46%"></i><i style="height:50%"></i><i style="height:62%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:88%"></i></div></div></div>
+    <div class="orb"><div class="aura" style="background:var(--violet)"></div><div class="lab">Signups · 7d</div><div class="n">1,284</div><div class="sub"><span class="dl">▲ 18%</span><div class="spark"><i style="height:40%"></i><i style="height:52%"></i><i style="height:60%"></i><i style="height:54%"></i><i style="height:76%"></i><i style="height:70%"></i><i style="height:84%"></i></div></div></div>
+    <div class="orb"><div class="aura" style="background:var(--emerald)"></div><div class="lab">Net retention</div><div class="n">112%</div><div class="sub"><span class="dl">▲ 3pt</span><div class="spark"><i style="height:64%"></i><i style="height:60%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:72%"></i><i style="height:76%"></i><i style="height:82%"></i></div></div></div>
+  </div>
+
+  <div class="duo">
+    <div class="glass panel">
+      <div class="ph"><span class="t">Pulse</span><span class="m"><span class="dotpulse"></span>Live</span></div>
+      <div class="ev"><span class="tm">12:04</span><span class="tx"><b>Northwind Studios</b> upgraded to Studio · +$499/mo</span></div>
+      <div class="ev"><span class="tm">12:01</span><span class="tx"><b>j.rivera</b> purchased 5,000 credits · $79</span></div>
+      <div class="ev"><span class="tm">11:58</span><span class="tx">Production <b>#48213</b> completed · 8 shots · 41s</span></div>
+      <div class="ev"><span class="tm">11:55</span><span class="tx">Refund issued <b>$89</b> → m.cole · duplicate charge</span></div>
+      <div class="ev"><span class="tm">11:52</span><span class="tx">Flag <b>hd-export</b> rolled to 50% of Pro</span></div>
+    </div>
+    <div class="glass panel">
+      <div class="ph"><span class="t">Signals</span><span class="m">5 open · 1 urgent</span></div>
+      <div class="sig"><span class="ico" style="background:hsl(348 92% 70%/.12);color:var(--rose)"><svg class="i" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div class="bd"><div class="h">7 productions failed in the last hour</div><div class="s">Replicate timeouts · Studio tier</div></div><span class="go">Investigate</span></div>
+      <div class="sig"><span class="ico" style="background:hsl(40 96% 64%/.12);color:var(--amber)"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20m5-17H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="bd"><div class="h">3 refunds pending review · $1,240</div><div class="s">oldest 19h ago</div></div><span class="go">Review</span></div>
+      <div class="sig"><span class="ico" style="background:hsl(258 90% 74%/.12);color:var(--violet)"><svg class="i" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><div class="bd"><div class="h">12 assets flagged by safety</div><div class="s">3 need a human decision</div></div><span class="go">Moderate</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DIRECTION D : EDITORIAL ================= -->
+<section id="B" class="stage ed">
+  <div class="vlabel"><span class="tag">DIR D</span><b>Editorial</b><span class="d">borderless to the extreme · type & hairlines floating on light · vast negative space · museum-calm</span></div>
+
+  <div class="edhead">
+    <div>
+      <div class="eyebrow">ADMIN · COMMAND CENTER</div>
+      <h1 class="fr">Overview<i>.</i></h1>
+      <p class="sub">A calm, total view of the membrane — revenue, people, production and system, with nothing competing for your eye.</p>
+    </div>
+    <div class="actions">
+      <span class="txtbtn">24h</span><span class="txtbtn on">30d</span><span class="txtbtn">Quarter</span>
+      <span class="cta">Export</span>
+    </div>
+  </div>
+
+  <div class="esplit">
+    <div class="ehero">
+      <div class="eyebrow">NET REVENUE · 30 DAYS</div>
+      <div class="big fr tab">$148.2k</div>
+      <div class="cap"><b>▲ 12.4%</b> versus the prior period · $37.86 ARPA · 112% net retention</div>
+      <div class="edchart">
+        <svg viewBox="0 0 900 230" preserveAspectRatio="none" style="width:100%;height:230px;display:block">
+          <defs>
+            <linearGradient id="ef" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(214 92% 64%)" stop-opacity=".22"/><stop offset="1" stop-color="hsl(214 92% 64%)" stop-opacity="0"/></linearGradient>
+          </defs>
+          <g stroke="rgba(255,255,255,.07)"><line x1="0" y1="57" x2="900" y2="57"/><line x1="0" y1="114" x2="900" y2="114"/><line x1="0" y1="171" x2="900" y2="171"/></g>
+          <path d="M0,180 C100,170 150,150 240,154 C330,158 380,108 480,112 C580,116 630,74 720,62 C800,52 850,72 900,40 L900,230 L0,230 Z" fill="url(#ef)"/>
+          <path d="M0,180 C100,170 150,150 240,154 C330,158 380,108 480,112 C580,116 630,74 720,62 C800,52 850,72 900,40" fill="none" stroke="hsl(214 92% 72%)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+          <circle cx="900" cy="40" r="4.5" fill="#fff"/>
+        </svg>
+        <div class="axis"><span>JUN 01</span><span>JUN 08</span><span>JUN 15</span><span>JUN 22</span><span>TODAY</span></div>
+      </div>
+    </div>
+
+    <div class="erail">
+      <div class="st"><div class="l">Active subscriptions</div><div class="row"><span class="v fr tab">3,914</span><span class="dl">▲ 86</span></div><div class="mini"><i style="height:50%"></i><i style="height:58%"></i><i style="height:54%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:80%"></i><i style="height:88%"></i></div></div>
+      <div class="st"><div class="l">Live productions</div><div class="row"><span class="v fr tab">142</span><span class="dl flat">7 failed</span></div><div class="mini"><i style="height:60%"></i><i style="height:72%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:68%"></i><i style="height:80%"></i><i style="height:74%"></i></div></div>
+      <div class="st"><div class="l">Signups · 7d</div><div class="row"><span class="v fr tab">1,284</span><span class="dl">▲ 18%</span></div><div class="mini"><i style="height:40%"></i><i style="height:52%"></i><i style="height:60%"></i><i style="height:54%"></i><i style="height:76%"></i><i style="height:70%"></i><i style="height:84%"></i></div></div>
+      <div class="st"><div class="l">Gross margin</div><div class="row"><span class="v fr tab">71.3%</span><span class="dl">▲ 1.8pt</span></div></div>
+    </div>
+  </div>
+
+  <div class="edsection">
+    <div class="sh"><span class="t fr">Top organizations</span><span class="m">30-day spend · by credits burned</span></div>
+    <div class="erow"><span class="nm">Northwind Studios<span class="mut">48 seats</span></span><span class="c">Studio</span><span class="c">214,800 cr</span><span class="amt fr">$8,420</span></div>
+    <div class="erow"><span class="nm">Aperture Labs<span class="mut">32 seats</span></span><span class="c">Brand</span><span class="c">168,200 cr</span><span class="amt fr">$6,110</span></div>
+    <div class="erow"><span class="nm">Lumen Films<span class="mut">26 seats</span></span><span class="c">Agency+</span><span class="c">131,500 cr</span><span class="amt fr">$4,930</span></div>
+    <div class="erow"><span class="nm">Cobalt Media<span class="mut">18 seats</span></span><span class="c">Brand</span><span class="c">98,400 cr</span><span class="amt fr">$3,540</span></div>
+  </div>
+</section>
+</body></html>

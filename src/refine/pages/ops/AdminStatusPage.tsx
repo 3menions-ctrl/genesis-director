@@ -47,7 +47,7 @@ export default function AdminStatusPage() {
       });
       list.unshift({
         name: "Queue Watchdog",
-        status: (stuck.count ?? 0) > 5 ? "degraded" : (stuck.count ?? 0) > 20 ? "outage" : "operational",
+        status: (stuck.count ?? 0) > 20 ? "outage" : (stuck.count ?? 0) > 5 ? "degraded" : "operational",
         detail: `${stuck.count ?? 0} stuck clips (>10m)`,
       });
       list.unshift({ name: "Database", status: "operational", detail: "Supabase managed Postgres" });

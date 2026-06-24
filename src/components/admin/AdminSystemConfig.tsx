@@ -170,12 +170,25 @@ export function AdminSystemConfig() {
             if (row.status === 'failed' || row.status === 'error') buckets[bucket].failed += 1;
           });
           veoApi = classify(buckets.video.total, buckets.video.failed);
-          stitcher = classify(buckets.stitch.total, buckets.stitch.failed);
           storage = classify(buckets.storage.total, buckets.storage.failed);
         }
       } catch {
         databaseStatus = 'down';
       }
+
+      // Stitcher health comes from the stitch_jobs table — stitch work is never
+      // written to api_cost_logs (it lives in its own table), so the old
+      // api_cost_logs "stitch" bucket was always empty and the tile was
+      // permanently green. Classify from the real jobs in the last 60m.
+      try {
+        const { data: sj } = await supabase
+          .from('stitch_jobs')
+          .select('status')
+          .gte('created_at', sinceIso);
+        const total = (sj || []).length;
+        const failed = (sj || []).filter((j: any) => j.status === 'failed' || j.status === 'error').length;
+        stitcher = classify(total, failed);
+      } catch { /* keep operational if the table is unreachable */ }
 
       if (cancelled) return;
       setSystemStatus({ veoApi, stitcher, storage, database: databaseStatus });

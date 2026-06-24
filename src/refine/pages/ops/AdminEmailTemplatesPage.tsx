@@ -87,6 +87,7 @@ function CreateTemplate({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Template created");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

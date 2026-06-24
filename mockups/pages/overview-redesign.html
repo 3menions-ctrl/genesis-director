@@ -1,0 +1,274 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../skin.css">
+<title>OVERVIEW REDESIGN — mockups</title>
+<style>
+  /* Overview-specific components layered on top of skin.css (same tokens). */
+  .h1{font-family:'Fraunces',serif;font-weight:600;font-size:40px;line-height:1.02;letter-spacing:-.02em;color:#fff;margin:8px 0 0}
+  .legend{display:flex;flex-direction:column;gap:10px;font-size:12px;color:rgba(255,255,255,.6)}
+  .legend .li{display:flex;align-items:center;gap:8px}
+  .swatch{width:9px;height:9px;border-radius:3px}
+  .feed{display:flex;flex-direction:column}
+  .feed .ev{display:flex;gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.05);align-items:flex-start}
+  .feed .ev:first-child{border-top:0}
+  .feed .tm{font-family:'Roboto Mono',monospace;font-size:10px;color:rgba(255,255,255,.35);white-space:nowrap;padding-top:2px;min-width:42px}
+  .feed .tx{font-size:13px;color:rgba(255,255,255,.78);line-height:1.4}
+  .feed .tx b{color:#fff;font-weight:500}
+  .att{display:flex;flex-direction:column}
+  .att .it{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid rgba(255,255,255,.05)}
+  .att .it:first-child{border-top:0}
+  .att .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 34px}
+  .att .bd{flex:1;min-width:0}
+  .att .bd .h{font-size:13.5px;color:#fff;font-weight:500}
+  .att .bd .s{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+  .gauge{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .ring{width:104px;height:104px;border-radius:9999px;display:grid;place-items:center;position:relative}
+  .ring::after{content:"";position:absolute;inset:11px;border-radius:9999px;background:#0a0d14}
+  .ring .v{position:relative;z-index:1;font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:#fff}
+  .hbars{display:flex;flex-direction:column;gap:11px}
+  .hbar{display:grid;grid-template-columns:120px 1fr 56px;align-items:center;gap:12px;font-size:12.5px}
+  .hbar .track{height:8px;border-radius:9999px;background:rgba(255,255,255,.05);overflow:hidden}
+  .hbar .fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,var(--accent-hsl),var(--cyan))}
+  .hbar .nm{color:rgba(255,255,255,.82)} .hbar .vv{text-align:right;font-family:'Roboto Mono',monospace;color:#fff}
+  .statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:rgba(255,255,255,.05);border-radius:12px;overflow:hidden}
+  .statgrid .c{background:#0a0d14;padding:14px 16px}
+  .statgrid .c .l{font-family:'Roboto Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.4)}
+  .statgrid .c .n{font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:#fff;margin-top:6px}
+  .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;grid-auto-rows:minmax(96px,auto)}
+  .rowspan2{grid-row:span 2}
+  svg.i{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .ttl{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:#fff}
+</style></head>
+<body>
+<div class="atmos"><div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div></div>
+
+<!-- ============================ DESIGN 1 ============================ -->
+<section id="A" class="page">
+  <div class="vlabel"><span class="tag">DESIGN 1</span><b>Command Deck</b><span class="desc">one dominant revenue surface + a floating KPI rail, an attention queue and a live ops feed — airy, hero-led, big numbers</span></div>
+
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">ADMIN // COMMAND CENTER</div>
+      <h1 class="h1">Overview<span class="accent">.</span></h1>
+      <p class="sub">Everything moving through the membrane — revenue, productions, people and system health — in a single glance.</p>
+    </div>
+    <div class="row" style="align-items:center">
+      <div class="segwrap"><span class="seg">24h</span><span class="seg on">30d</span><span class="seg">QTD</span></div>
+      <button class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Export</button>
+      <button class="btn primary"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Broadcast</button>
+    </div>
+  </div>
+
+  <!-- HERO: dominant chart + plan-mix donut -->
+  <div class="grid" style="grid-template-columns:1.65fr 1fr;margin-bottom:16px">
+    <div class="glass glow pad-lg">
+      <div class="cardhead"><div class="t">Net revenue</div><div class="meta">LAST 30 DAYS · MRR $148.2K</div></div>
+      <div class="row" style="align-items:flex-end;gap:28px">
+        <div><div class="bignum">$148.2k</div><div class="delta up" style="margin-top:8px"><svg class="i" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg> 12.4% vs prev 30d</div></div>
+        <div class="legend" style="padding-bottom:4px">
+          <div class="li"><span class="swatch" style="background:var(--accent-hsl)"></span>Subscriptions · $96.1k</div>
+          <div class="li"><span class="swatch" style="background:var(--cyan)"></span>Credit packs · $44.0k</div>
+          <div class="li"><span class="swatch" style="background:var(--violet)"></span>Enterprise · $8.1k</div>
+        </div>
+      </div>
+      <svg viewBox="0 0 1000 208" preserveAspectRatio="none" style="width:100%;height:208px;display:block;margin-top:20px">
+        <defs>
+          <linearGradient id="ag1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(214 90% 62%)" stop-opacity=".34"/><stop offset="1" stop-color="hsl(214 90% 62%)" stop-opacity="0"/></linearGradient>
+          <linearGradient id="ln1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="hsl(214 90% 62%)"/><stop offset="1" stop-color="hsl(188 92% 58%)"/></linearGradient>
+        </defs>
+        <g stroke="rgba(255,255,255,.05)"><line x1="0" y1="52" x2="1000" y2="52"/><line x1="0" y1="104" x2="1000" y2="104"/><line x1="0" y1="156" x2="1000" y2="156"/></g>
+        <path d="M0,162 C90,150 140,128 220,134 C300,140 340,96 420,102 C500,108 540,70 620,60 C700,50 760,80 840,46 C910,18 960,30 1000,24 L1000,208 L0,208 Z" fill="url(#ag1)"/>
+        <path d="M0,162 C90,150 140,128 220,134 C300,140 340,96 420,102 C500,108 540,70 620,60 C700,50 760,80 840,46 C910,18 960,30 1000,24" fill="none" stroke="url(#ln1)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      </svg>
+    </div>
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Revenue by plan</div><div class="meta">30D</div></div>
+      <div class="row" style="align-items:center;gap:24px">
+        <div class="donut" style="background:conic-gradient(var(--accent-hsl) 0 46%,var(--cyan) 46% 72%,var(--violet) 72% 88%,var(--rose) 88% 100%)"></div>
+        <div class="legend">
+          <div class="li"><span class="swatch" style="background:var(--accent-hsl)"></span>Studio · 46%</div>
+          <div class="li"><span class="swatch" style="background:var(--cyan)"></span>Pro · 26%</div>
+          <div class="li"><span class="swatch" style="background:var(--violet)"></span>Creator · 16%</div>
+          <div class="li"><span class="swatch" style="background:var(--rose)"></span>Packs · 12%</div>
+        </div>
+      </div>
+      <div class="divline"></div>
+      <div class="between"><span class="label">ARPA</span><span class="num" style="font-size:18px">$37.86</span></div>
+      <div class="between" style="margin-top:10px"><span class="label">Net retention</span><span class="num accent" style="font-size:18px">112%</span></div>
+    </div>
+  </div>
+
+  <!-- KPI RAIL -->
+  <div class="grid g6">
+    <div class="glass kpi"><div class="top"><span class="label">Active subs</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/><path d="M3 21v-1a6 6 0 0 1 6-6h6a6 6 0 0 1 6 6v1"/></svg></span></div><span class="val">3,914</span><div class="foot"><span class="delta up">▲ 86</span><div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:88%"></i></div></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Credits 30d</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8m-3-5h6"/></svg></span></div><span class="val">2.41M</span><div class="foot"><span class="delta up">▲ 9.0%</span><div class="spark"><i style="height:50%"></i><i style="height:46%"></i><i style="height:62%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i></div></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Live productions</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M8 5v14"/></svg></span></div><span class="val acc">142</span><div class="foot"><span class="delta down">7 failed</span><div class="spark"><i style="height:60%"></i><i style="height:72%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:68%"></i><i style="height:78%"></i></div></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Signups 7d</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/><path d="M19 8v6m3-3h-6"/></svg></span></div><span class="val">1,284</span><div class="foot"><span class="delta up">▲ 18%</span><div class="spark"><i style="height:40%"></i><i style="height:52%"></i><i style="height:60%"></i><i style="height:54%"></i><i style="height:76%"></i><i style="height:84%"></i></div></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Gross margin</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span></div><span class="val">71.3%</span><div class="foot"><span class="delta up">▲ 1.8pt</span><div class="spark"><i style="height:64%"></i><i style="height:60%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:74%"></i><i style="height:78%"></i></div></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Provider spend</span><span class="chip accent"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10M9 16v4m6-4v4"/></svg></span></div><span class="val">$42.6k</span><div class="foot"><span class="delta down">▲ 4%</span><div class="spark"><i style="height:46%"></i><i style="height:58%"></i><i style="height:52%"></i><i style="height:64%"></i><i style="height:60%"></i><i style="height:70%"></i></div></div></div>
+  </div>
+
+  <!-- ATTENTION + LIVE FEED -->
+  <div class="grid" style="grid-template-columns:1.3fr 1fr;margin-top:16px">
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Needs attention</div><div class="meta">5 OPEN · 1 URGENT</div></div>
+      <div class="att">
+        <div class="it"><span class="ic" style="background:hsl(350 90% 70%/.12);color:var(--rose)"><svg class="i" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div class="bd"><div class="h">7 productions failed in the last hour</div><div class="s">Replicate timeouts on Studio tier · refund holds at risk</div></div><button class="btn accentbtn">Investigate</button></div>
+        <div class="it"><span class="ic" style="background:hsl(38 96% 62%/.12);color:var(--amber)"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20m5-17H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="bd"><div class="h">3 refund requests pending review</div><div class="s">$1,240 total · oldest 19h ago</div></div><button class="btn">Review</button></div>
+        <div class="it"><span class="ic" style="background:hsl(256 88% 72%/.12);color:var(--violet)"><svg class="i" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><div class="bd"><div class="h">12 assets flagged by safety</div><div class="s">9 auto-cleared · 3 need a human decision</div></div><button class="btn">Moderate</button></div>
+        <div class="it"><span class="ic" style="background:hsl(214 90% 62%/.12);color:var(--accent-hsl)"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><div class="bd"><div class="h">5 cards expiring within 7 days</div><div class="s">$3,910 MRR exposed · dunning not yet sent</div></div><button class="btn">Notify</button></div>
+        <div class="it"><span class="ic" style="background:hsl(160 84% 50%/.12);color:var(--emerald)"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span><div class="bd"><div class="h">ElevenLabs latency elevated</div><div class="s">p50 8.9s vs 1.1s baseline · 24m</div></div><button class="btn">Check</button></div>
+      </div>
+    </div>
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Live activity</div><div class="meta"><span class="dot" style="color:var(--cyan)"></span> STREAMING</div></div>
+      <div class="feed">
+        <div class="ev"><span class="tm">12:04</span><span class="tx"><b>Northwind Studios</b> upgraded to <b>Studio</b> · +$499/mo</span></div>
+        <div class="ev"><span class="tm">12:01</span><span class="tx"><b>j.rivera</b> purchased <b>5,000</b> credits · $79</span></div>
+        <div class="ev"><span class="tm">11:58</span><span class="tx">Production <b>#48213</b> completed · 8 shots · 41s</span></div>
+        <div class="ev"><span class="tm">11:55</span><span class="tx">Refund issued <b>$89</b> → m.cole · duplicate charge</span></div>
+        <div class="ev"><span class="tm">11:52</span><span class="tx">Flag <b>hd-export</b> rolled to <b>50%</b> of Pro</span></div>
+        <div class="ev"><span class="tm">11:49</span><span class="tx"><b>Aperture Labs</b> added <b>6 seats</b> · 32 total</span></div>
+        <div class="ev"><span class="tm">11:47</span><span class="tx">New org <b>Lumen Films</b> · Agency+ trial</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP ORGS + SYSTEM HEALTH -->
+  <div class="grid" style="grid-template-columns:1.65fr 1fr;margin-top:16px">
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">Top organizations · 30d spend</div><div class="meta">BY CREDITS BURNED</div></div>
+      <table class="tbl"><thead><tr><th>Organization</th><th>Plan</th><th>Seats</th><th>Credits</th><th style="text-align:right">Spend</th></tr></thead><tbody>
+        <tr><td class="strong">Northwind Studios</td><td><span class="pill accent"><span class="dot"></span>Studio</span></td><td>48</td><td class="id">214,800</td><td style="text-align:right" class="strong">$8,420</td></tr>
+        <tr><td class="strong">Aperture Labs</td><td><span class="pill pos"><span class="dot"></span>Brand</span></td><td>32</td><td class="id">168,200</td><td style="text-align:right" class="strong">$6,110</td></tr>
+        <tr><td class="strong">Lumen Films</td><td><span class="pill neutral"><span class="dot"></span>Agency+</span></td><td>26</td><td class="id">131,500</td><td style="text-align:right" class="strong">$4,930</td></tr>
+        <tr><td class="strong">Cobalt Media</td><td><span class="pill pos"><span class="dot"></span>Brand</span></td><td>18</td><td class="id">98,400</td><td style="text-align:right" class="strong">$3,540</td></tr>
+        <tr><td class="strong">Vertex Creative</td><td><span class="pill neutral"><span class="dot"></span>Studio</span></td><td>14</td><td class="id">74,100</td><td style="text-align:right" class="strong">$2,810</td></tr>
+      </tbody></table>
+    </div>
+    <div class="glass pad-lg">
+      <div class="cardhead"><div class="t">System health</div><div class="meta">REALTIME</div></div>
+      <div class="row" style="gap:20px;align-items:center;justify-content:space-around">
+        <div class="gauge"><div class="ring" style="background:conic-gradient(var(--emerald) 0 99.98%,rgba(255,255,255,.06) 0)"><span class="v">99.98%</span></div><span class="label">Uptime</span></div>
+        <div class="gauge"><div class="ring" style="background:conic-gradient(var(--accent-hsl) 0 38%,rgba(255,255,255,.06) 0)"><span class="v">38</span></div><span class="label">Queue depth</span></div>
+      </div>
+      <div class="divline"></div>
+      <div class="between"><span class="label">Error rate</span><span class="pill pos"><span class="dot"></span>0.4%</span></div>
+      <div class="between" style="margin-top:10px"><span class="label">Replicate p50</span><span class="num" style="font-size:15px">4.2s</span></div>
+      <div class="between" style="margin-top:10px"><span class="label">OpenAI</span><span class="pill warn"><span class="dot"></span>Degraded</span></div>
+      <div class="between" style="margin-top:10px"><span class="label">Polar · Stripe</span><span class="pill pos"><span class="dot"></span>Operational</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DESIGN 2 ============================ -->
+<section id="B" class="page">
+  <div class="vlabel"><span class="tag">DESIGN 2</span><b>Control Grid</b><span class="desc">edge-to-edge bento — every operational signal visible at once, dense floating tiles, no scrolling for the essentials</span></div>
+
+  <div class="between" style="margin-bottom:22px">
+    <div>
+      <div class="eyebrow">ADMIN // COMMAND CENTER</div>
+      <h1 class="h1" style="font-size:30px">Overview<span class="accent">.</span></h1>
+    </div>
+    <div class="row" style="align-items:center">
+      <div class="segwrap"><span class="seg">24h</span><span class="seg on">30d</span><span class="seg">QTD</span></div>
+      <button class="btn"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</button>
+      <button class="btn primary">Export</button>
+    </div>
+  </div>
+
+  <div class="bento">
+    <!-- KPI row -->
+    <div class="glass kpi"><div class="top"><span class="label">MRR</span><span class="delta up">▲12.4%</span></div><span class="val acc">$148.2k</span><div class="spark" style="margin-top:12px"><i style="height:40%"></i><i style="height:52%"></i><i style="height:48%"></i><i style="height:66%"></i><i style="height:72%"></i><i style="height:88%"></i></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Active subs</span><span class="delta up">▲86</span></div><span class="val">3,914</span><div class="spark" style="margin-top:12px"><i style="height:50%"></i><i style="height:58%"></i><i style="height:54%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:80%"></i></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Credits 30d</span><span class="delta up">▲9%</span></div><span class="val">2.41M</span><div class="spark" style="margin-top:12px"><i style="height:46%"></i><i style="height:50%"></i><i style="height:62%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:82%"></i></div></div>
+    <div class="glass kpi"><div class="top"><span class="label">Live productions</span><span class="delta down">7 failed</span></div><span class="val acc">142</span><div class="spark" style="margin-top:12px"><i style="height:60%"></i><i style="height:72%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:68%"></i><i style="height:78%"></i></div></div>
+
+    <!-- big chart (span2, rowspan2) -->
+    <div class="glass pad span2 rowspan2">
+      <div class="cardhead"><div class="t">Revenue · credits burned</div><div class="meta">30D · DUAL AXIS</div></div>
+      <svg viewBox="0 0 760 172" preserveAspectRatio="none" style="width:100%;height:172px;display:block">
+        <defs>
+          <linearGradient id="ag2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(214 90% 62%)" stop-opacity=".32"/><stop offset="1" stop-color="hsl(214 90% 62%)" stop-opacity="0"/></linearGradient>
+          <linearGradient id="ln2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="hsl(214 90% 62%)"/><stop offset="1" stop-color="hsl(188 92% 58%)"/></linearGradient>
+        </defs>
+        <g stroke="rgba(255,255,255,.05)"><line x1="0" y1="43" x2="760" y2="43"/><line x1="0" y1="86" x2="760" y2="86"/><line x1="0" y1="129" x2="760" y2="129"/></g>
+        <path d="M0,138 C70,128 110,108 170,114 C230,120 260,82 330,86 C400,90 430,58 500,50 C570,42 610,66 670,40 C710,22 740,28 760,22 L760,172 L0,172 Z" fill="url(#ag2)"/>
+        <path d="M0,138 C70,128 110,108 170,114 C230,120 260,82 330,86 C400,90 430,58 500,50 C570,42 610,66 670,40 C710,22 740,28 760,22" fill="none" stroke="url(#ln2)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+        <path d="M0,150 C70,146 120,140 180,142 C240,144 280,128 340,130 C400,132 440,118 500,112 C560,106 620,120 680,104 C720,94 745,98 760,96" fill="none" stroke="hsl(256 88% 72%)" stroke-width="1.6" stroke-dasharray="4 4" opacity=".7" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="grid g3" style="margin-top:16px">
+        <div><div class="label">Revenue</div><div class="num" style="font-size:20px;margin-top:4px">$148.2k</div></div>
+        <div><div class="label">Burned</div><div class="num" style="font-size:20px;margin-top:4px">2.41M</div></div>
+        <div><div class="label">Margin</div><div class="num accent" style="font-size:20px;margin-top:4px">71.3%</div></div>
+      </div>
+    </div>
+    <!-- plan donut -->
+    <div class="glass pad">
+      <div class="cardhead"><div class="t" style="font-size:14px">Plan mix</div></div>
+      <div class="row" style="align-items:center;gap:14px">
+        <div class="donut" style="width:96px;height:96px;background:conic-gradient(var(--accent-hsl) 0 46%,var(--cyan) 46% 72%,var(--violet) 72% 88%,var(--rose) 88% 100%)"></div>
+        <div class="legend" style="font-size:11.5px">
+          <div class="li"><span class="swatch" style="background:var(--accent-hsl)"></span>Studio 46%</div>
+          <div class="li"><span class="swatch" style="background:var(--cyan)"></span>Pro 26%</div>
+          <div class="li"><span class="swatch" style="background:var(--violet)"></span>Creator 16%</div>
+          <div class="li"><span class="swatch" style="background:var(--rose)"></span>Packs 12%</div>
+        </div>
+      </div>
+    </div>
+    <!-- system health stat grid -->
+    <div class="glass pad">
+      <div class="cardhead"><div class="t" style="font-size:14px">System</div><div class="meta"><span class="dot" style="color:var(--emerald)"></span>OK</div></div>
+      <div class="statgrid">
+        <div class="c"><div class="l">Uptime</div><div class="n">99.98%</div></div>
+        <div class="c"><div class="l">Queue</div><div class="n">38</div></div>
+        <div class="c"><div class="l">Error rate</div><div class="n">0.4%</div></div>
+        <div class="c"><div class="l">p50</div><div class="n">4.2s</div></div>
+      </div>
+    </div>
+
+    <!-- top orgs (span2) -->
+    <div class="glass pad span2">
+      <div class="cardhead"><div class="t" style="font-size:14px">Top orgs · 30d spend</div></div>
+      <div class="hbars">
+        <div class="hbar"><span class="nm">Northwind Studios</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="vv">$8.4k</span></div>
+        <div class="hbar"><span class="nm">Aperture Labs</span><div class="track"><div class="fill" style="width:73%"></div></div><span class="vv">$6.1k</span></div>
+        <div class="hbar"><span class="nm">Lumen Films</span><div class="track"><div class="fill" style="width:59%"></div></div><span class="vv">$4.9k</span></div>
+        <div class="hbar"><span class="nm">Cobalt Media</span><div class="track"><div class="fill" style="width:42%"></div></div><span class="vv">$3.5k</span></div>
+        <div class="hbar"><span class="nm">Vertex Creative</span><div class="track"><div class="fill" style="width:33%"></div></div><span class="vv">$2.8k</span></div>
+      </div>
+    </div>
+    <!-- live feed (span2) -->
+    <div class="glass pad span2">
+      <div class="cardhead"><div class="t" style="font-size:14px">Live activity</div><div class="meta"><span class="dot" style="color:var(--cyan)"></span>STREAM</div></div>
+      <div class="feed" style="font-size:12px">
+        <div class="ev" style="padding:8px 0"><span class="tm">12:04</span><span class="tx"><b>Northwind</b> → Studio · +$499</span></div>
+        <div class="ev" style="padding:8px 0"><span class="tm">12:01</span><span class="tx"><b>j.rivera</b> bought 5,000 credits</span></div>
+        <div class="ev" style="padding:8px 0"><span class="tm">11:58</span><span class="tx">Prod <b>#48213</b> done · 8 shots</span></div>
+        <div class="ev" style="padding:8px 0"><span class="tm">11:55</span><span class="tx">Refund <b>$89</b> → m.cole</span></div>
+        <div class="ev" style="padding:8px 0"><span class="tm">11:52</span><span class="tx">Flag <b>hd-export</b> → 50%</span></div>
+      </div>
+    </div>
+
+    <!-- credits/day bars (span2) -->
+    <div class="glass pad span2">
+      <div class="cardhead"><div class="t" style="font-size:14px">Credits burned · daily</div><div class="meta">14D</div></div>
+      <div class="bars" style="height:96px"><i style="height:46%"></i><i style="height:58%"></i><i style="height:52%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:80%"></i><i style="height:72%"></i><i style="height:88%"></i><i style="height:66%"></i><i style="height:92%"></i><i style="height:78%"></i><i style="height:84%"></i><i style="height:74%"></i><i style="height:96%"></i></div>
+    </div>
+    <!-- attention compact -->
+    <div class="glass pad">
+      <div class="cardhead"><div class="t" style="font-size:14px">Attention</div><div class="meta">5</div></div>
+      <div class="stack" style="gap:9px">
+        <div class="between"><span style="font-size:12.5px;color:rgba(255,255,255,.8)">Failed jobs</span><span class="pill danger"><span class="dot"></span>7</span></div>
+        <div class="between"><span style="font-size:12.5px;color:rgba(255,255,255,.8)">Refunds</span><span class="pill warn"><span class="dot"></span>3</span></div>
+        <div class="between"><span style="font-size:12.5px;color:rgba(255,255,255,.8)">Safety flags</span><span class="pill" style="color:var(--violet);background:hsl(256 88% 72%/.14)"><span class="dot"></span>12</span></div>
+        <div class="between"><span style="font-size:12.5px;color:rgba(255,255,255,.8)">Cards expiring</span><span class="pill accent"><span class="dot"></span>5</span></div>
+      </div>
+    </div>
+    <!-- signups -->
+    <div class="glass kpi"><div class="top"><span class="label">Signups 7d</span><span class="delta up">▲18%</span></div><span class="val">1,284</span><div class="spark" style="margin-top:12px"><i style="height:40%"></i><i style="height:52%"></i><i style="height:60%"></i><i style="height:54%"></i><i style="height:76%"></i><i style="height:84%"></i></div></div>
+  </div>
+</section>
+</body></html>

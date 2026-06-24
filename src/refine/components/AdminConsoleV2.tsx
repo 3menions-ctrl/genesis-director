@@ -209,6 +209,16 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  // Create dialogs across the admin fire a window `admin-console-refresh` event
+  // after inserting a row. Listen for it so the freshly-created record shows up
+  // without a manual refresh (previously the event was dispatched but had no
+  // listener anywhere, so the list silently went stale).
+  useEffect(() => {
+    const onRefresh = () => refresh();
+    window.addEventListener("admin-console-refresh", onRefresh);
+    return () => window.removeEventListener("admin-console-refresh", onRefresh);
+  }, [refresh]);
+
   const runAction = useCallback(
     async (a: AdminAction<T>, row: T) => {
       if (a.confirm && !window.confirm(a.confirm)) return;

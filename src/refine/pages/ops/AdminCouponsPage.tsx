@@ -113,6 +113,7 @@ function CreateCoupon({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Coupon created");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

@@ -23,6 +23,7 @@ const CrashForensics = lazy(() => import("../ops/AdminCrashForensicsPage"));
 const DbHealth       = lazy(() => import("../ops/AdminDbHealthPage"));
 const Storage        = lazy(() => import("../ops/AdminStoragePage"));
 const Backups        = lazy(() => import("../ops/AdminBackupsPage"));
+const Observability  = lazy(() => import("../ops/AdminObservabilityPage"));
 
 const wrap = (Comp: React.ComponentType) => (
   <Suspense fallback={
@@ -44,6 +45,7 @@ export default function ProductionHubPage() {
     { id: "providers",  label: "Providers",  render: () => wrap(Providers) },
     { id: "edge-logs",  label: "Edge logs",  render: () => wrap(EdgeLogs) },
     { id: "status",     label: "Status",     render: () => wrap(Status) },
+    { id: "observability", label: "Telemetry", render: () => wrap(Observability) },
     { id: "crash",      label: "Crash",      render: () => wrap(CrashForensics) },
     { id: "db-health",  label: "DB health",  render: () => wrap(DbHealth) },
     { id: "storage",    label: "Storage",    render: () => wrap(Storage) },

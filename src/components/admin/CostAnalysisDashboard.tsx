@@ -1107,11 +1107,11 @@ export function CostAnalysisDashboard() {
                 </div>
                 <div className="p-6 bg-muted/50 rounded-xl text-center">
                   <p className="text-4xl font-bold">${DEV_HOURLY_RATE_DOLLARS}</p>
-                  <p className="text-sm text-muted-foreground">Hourly Rate</p>
+                  <p className="text-sm text-muted-foreground">Daily Rate (est.)</p>
                 </div>
                 <div className="p-6 bg-primary/10 rounded-xl text-center border border-primary/20">
                   <p className="text-4xl font-bold">{formatCurrency(devCostCents)}</p>
-                  <p className="text-sm text-muted-foreground">Total Investment</p>
+                  <p className="text-sm text-muted-foreground">Est. Investment</p>
                 </div>
               </div>
 

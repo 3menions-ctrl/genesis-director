@@ -196,7 +196,7 @@ export function AdminPipelineMonitor() {
           type: 'clip' as const,
           projectId: clip.project_id,
           projectTitle: 'Loading…',
-          progress: clip.status === 'generating' ? 50 : 0,
+          progress: 0, // clips expose no real progress signal — rendered as an indeterminate bar, not a fabricated 50%
           status: clip.status,
           startedAt: clip.created_at,
           user: 'Loading…',
@@ -478,7 +478,15 @@ export function AdminPipelineMonitor() {
                         </div>
                         <Badge variant="secondary">{job.status}</Badge>
                       </div>
-                      <Progress value={job.progress} className="h-1.5 mb-2" />
+                      {job.type === 'clip' ? (
+                        // Clips report no real progress — show an honest
+                        // indeterminate bar instead of a fixed fake percentage.
+                        <div className="h-1.5 mb-2 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full w-2/3 rounded-full bg-primary/50 animate-pulse" />
+                        </div>
+                      ) : (
+                        <Progress value={job.progress} className="h-1.5 mb-2" />
+                      )}
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span className="font-mono">{job.projectId.slice(0, 8)}...</span>
                         <span>{format(new Date(job.startedAt), 'HH:mm:ss')}</span>

@@ -75,18 +75,38 @@ export default function AdminFinancialsPage() {
       // generations are internal credit grants, NOT cash refunds — they
       // must never be subtracted from revenue. Cash refunds would arrive
       // via Stripe webhooks as a separate transaction class.
+      const CREDIT_PRICE_CENTS = 10.0;
+
+      // Revenue total must cover ALL purchases, not just the latest 100.
+      // Previously this summed a .limit(100) slice while api-cost paginated
+      // everything, so profit/margin were structurally understated (and went
+      // negative) the moment the platform passed 100 sales. Paginate the full
+      // set for the totals.
+      let totalCredits = 0, count = 0, off = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data } = await supabase
+          .from("credit_transactions")
+          .select("amount")
+          .eq("transaction_type", "purchase")
+          .range(off, off + 999);
+        if (!data || !data.length) break;
+        for (const r of data as { amount: number | null }[]) { totalCredits += r.amount || 0; count++; }
+        if (data.length < 1000) break;
+        off += 1000;
+      }
+      setCreditsSold(totalCredits);
+      setPurchaseCount(count);
+      setRevenue(Math.round(totalCredits * CREDIT_PRICE_CENTS));
+
+      // Latest 100 rows only for the on-screen purchases table + buyer hydration.
       const { data: rows } = await supabase
         .from("credit_transactions")
         .select("id, user_id, amount, description, stripe_payment_id, created_at")
         .eq("transaction_type", "purchase")
         .order("created_at", { ascending: false })
         .limit(100);
-      const CREDIT_PRICE_CENTS = 10.0;
       const list = (rows || []) as PurchaseRow[];
-      const totalCredits = list.reduce((s, r) => s + (r.amount || 0), 0);
-      setCreditsSold(totalCredits);
-      setPurchaseCount(list.length);
-      setRevenue(Math.round(totalCredits * CREDIT_PRICE_CENTS));
       setPurchases(list);
 
       // Hydrate emails for buyer identification

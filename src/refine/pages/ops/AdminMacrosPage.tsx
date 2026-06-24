@@ -83,6 +83,7 @@ function CreateMacro({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Macro saved");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

@@ -98,7 +98,10 @@ export default function AdminUsersPage() {
 
   const totalCredits = users.reduce((s, u) => s + (u.credits_balance || 0), 0);
   const adminCount = users.filter(u => u.roles?.includes("admin")).length;
-  const proCount = users.filter(u => (u.account_tier || "").toLowerCase() !== "personal").length;
+  // Paid tiers are everything above 'free' (account_tier ∈ free|pro|growth|agency|enterprise).
+  // The old check compared tier to "personal" — an account_TYPE value no tier ever holds — so it
+  // counted every user as Pro.
+  const proCount = users.filter(u => (u.account_tier || "free").toLowerCase() !== "free").length;
 
   const toggleOne = (id: string) => {
     setSelected((prev) => {

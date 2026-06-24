@@ -105,6 +105,7 @@ function CreateChangelog({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Entry created");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

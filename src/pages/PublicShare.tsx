@@ -104,7 +104,7 @@ export default function PublicShare() {
       // Increment view count atomically via RPC (best-effort; failures are
       // silent). A client-side read-modify-write would race between concurrent
       // viewers AND be blocked by the owner-only UPDATE policy for visitors.
-      void supabase.rpc('increment_share_view_count' as never, { p_share_id: shareRow.id } as never);
+      void supabase.rpc('increment_share_view_count', { p_share_id: shareRow.id });
     })();
     return () => { cancelled = true; };
   }, [slug]);

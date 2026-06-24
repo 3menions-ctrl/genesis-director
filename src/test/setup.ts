@@ -1,4 +1,13 @@
+import { vi } from "vitest";
 import "@testing-library/jest-dom";
+
+// AUDIT FIX L-17: stub the Supabase env so tests that import the real
+// src/integrations/supabase/client.ts at module load don't throw on an invalid
+// URL. CI sets VITE_SUPABASE_URL=https://stub.supabase.co; mirror that here so
+// the suite is hermetic locally too (setupFiles run before each test file's
+// imports).
+vi.stubEnv("VITE_SUPABASE_URL", "https://stub.supabase.co");
+vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "stub-publishable-key");
 
 // Mock URL.createObjectURL / revokeObjectURL for jsdom
 if (typeof URL.createObjectURL === 'undefined') {

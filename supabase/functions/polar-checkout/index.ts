@@ -87,6 +87,17 @@ Deno.serve(async (req) => {
       const kind = String(body?.kind ?? "personal");
       const orgId = typeof body?.orgId === "string" ? body.orgId : "";
       if (!priceId) return json({ error: "Missing priceId" }, 400);
+      // Org-scoped subscription: the caller must actually belong to the org
+      // before we attach a paid subscription to it. Without this check any
+      // authenticated user could bind a subscription to an arbitrary
+      // organization_id (IDOR). fn_org_has_min_role is SECURITY DEFINER.
+      if (orgId) {
+        if (!UUID_RE.test(orgId)) return json({ error: "Invalid orgId" }, 400);
+        const { data: isMember } = await supabase.rpc("fn_org_has_min_role", {
+          _org_id: orgId, _user_id: user.id, _min: "viewer",
+        });
+        if (!isMember) return json({ error: "Not a member of this organization" }, 403);
+      }
       // Accept a raw Polar product UUID, else resolve POLAR_PRODUCT_<PRICEID>.
       productId = UUID_RE.test(priceId)
         ? priceId

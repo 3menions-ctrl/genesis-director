@@ -52,6 +52,7 @@ const GATE_PATTERNS = [
   /verifyStripeWebhook\s*\(/,             // shared Stripe webhook helper
   /handleStripeWebhookRequest\s*\(/,      // shared Stripe webhook entrypoint
   /verifyReplicateSignature\s*\(/,        // shared Replicate webhook helper
+  /verifyPolarWebhook\s*\(/,              // shared Polar webhook (Standard Webhooks HMAC)
   /requireCronSecret\s*\(/,               // cron trust boundary
   /requireServiceRole\s*\(/,              // internal-only trust boundary
   /extractApiKey\s*\(/,                   // public API gateway uses hashed api keys

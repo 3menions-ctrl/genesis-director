@@ -75,12 +75,12 @@ export function BusinessRail() {
           <button
             type="button"
             aria-label="Switch workspace"
-            className="group/org shrink-0 flex flex-col items-center justify-center gap-1.5 pt-3.5 pb-3 px-1"
+            className="group/org shrink-0 flex flex-col items-center justify-center gap-1 pt-3 pb-2.5 px-1"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] group-hover/org:bg-white/[0.12] transition-colors font-mono text-[12px] font-bold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] group-hover/org:bg-white/[0.1] transition-colors font-mono text-[10px] font-bold text-white/80">
               {initialsOf(currentOrg?.name)}
             </span>
-            <span className="max-w-full px-0.5 truncate text-[9.5px] font-medium leading-none tracking-tight text-white/55 group-hover/org:text-white/80 transition-colors">
+            <span className="max-w-full px-0.5 truncate text-[8.5px] font-medium leading-none tracking-tight text-white/45 group-hover/org:text-white/75 transition-colors">
               {currentOrg?.name ?? "Workspace"}
             </span>
           </button>
@@ -155,38 +155,32 @@ function BizRailTile({ item, active, reducedMotion }: { item: BusinessNavItem; a
       to={item.to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group/tile relative flex flex-col items-center justify-center gap-1.5 w-full py-2 rounded-2xl transition-colors",
-        active ? "text-foreground" : "text-muted-foreground/80 hover:text-foreground",
+        // Borderless: just the icon + label, no tile box. Active = a glowing
+        // accent line below.
+        "group/tile relative flex flex-col items-center justify-center gap-1.5 w-full py-2.5 transition-colors",
+        active ? "text-white" : "text-white/45 hover:text-white/85",
       )}
     >
-      {active && (
-        <motion.span
-          layoutId="business-rail-active-tile"
-          aria-hidden
-          className="pointer-events-none absolute inset-x-1 inset-y-0.5 rounded-2xl bg-white/[0.16]"
-          style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45), 0 0 34px -8px rgba(255,255,255,0.5)" }}
-          transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
-        />
-      )}
-      <span
-        className={cn(
-          "relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200",
-          active
-            ? "bg-white/[0.28] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
-            : "bg-white/[0.07] group-hover/tile:bg-white/[0.13] group-hover/tile:scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]",
-        )}
-      >
-        <Icon
-          className={cn(
-            "h-[25px] w-[25px] transition-all duration-200",
-            active ? "text-white scale-[1.06]" : "text-foreground/80 group-hover/tile:text-foreground",
-          )}
-          strokeWidth={active ? 2 : 1.8}
-        />
-      </span>
-      <span className="relative max-w-full px-0.5 text-[10px] font-medium leading-tight text-center tracking-tight">
+      <Icon
+        className="h-[18px] w-[18px] transition-transform duration-200 group-hover/tile:scale-110"
+        strokeWidth={active ? 2 : 1.7}
+        style={active ? { filter: "drop-shadow(0 0 9px hsl(215 90% 60% / 0.55))" } : undefined}
+      />
+      <span className="max-w-full px-0.5 text-[9.5px] font-medium leading-tight text-center tracking-tight">
         {SHORT_LABEL[item.label] ?? item.label}
       </span>
+      {active && (
+        <motion.span
+          layoutId="business-rail-active-line"
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 h-[2px] w-7 rounded-full"
+          style={{
+            background: "linear-gradient(90deg, hsl(215 90% 60%), hsl(188 92% 58%))",
+            boxShadow: "0 0 10px hsl(215 90% 60% / 0.6)",
+          }}
+          transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 34 }}
+        />
+      )}
     </Link>
   );
 }

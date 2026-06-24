@@ -317,8 +317,8 @@ export default function Lobby() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
                 >
-                  <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
-                    style={{ borderColor: heroReel.world_accent ? `hsl(${heroReel.world_accent} / .4)` : "hsl(var(--border))" }}>
+                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 backdrop-blur-sm"
+                    style={{ background: heroReel.world_accent ? `hsl(${heroReel.world_accent} / .12)` : "hsl(var(--foreground) / 0.05)" }}>
                     <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={accentStyle(heroReel.world_accent)}>
                       {heroReel.world_glyph} {heroReel.world_name ?? "Premiere"} · premiere of the night
                     </span>
@@ -336,7 +336,7 @@ export default function Lobby() {
                       <Play className="h-4 w-4 fill-current" /> Watch now
                     </button>
                     <button type="button" onClick={() => startWithSeed(heroReel.synopsis || heroReel.title)}
-                      className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-white/5">
+                      className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2.5 text-[13px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/10">
                       <Shuffle className="h-3.5 w-3.5" /> Remix this look
                     </button>
                   </div>
@@ -360,7 +360,7 @@ export default function Lobby() {
             </div>
 
             {/* Worlds quick-nav strip */}
-            <div className="border-y border-border/60 bg-[hsl(220_30%_4%/0.5)]">
+            <div className="bg-[hsl(220_30%_4%/0.5)]">
               <div className="scrollbar-hide mx-auto flex w-full max-w-[1440px] items-center gap-2 overflow-x-auto px-4 py-3 sm:px-8 lg:px-12">
                 <span className="mr-1 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">Worlds</span>
                 <WorldChip label="All" active={activeWorld === "all"} onClick={() => setActiveWorld("all")} />
@@ -369,7 +369,7 @@ export default function Lobby() {
                     active={activeWorld === w.slug} onClick={() => setActiveWorld(w.slug)} />
                 ))}
                 <button type="button" onClick={() => navigate("/search")}
-                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground">
+                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
                   <Search className="h-3 w-3" /> Search
                 </button>
               </div>
@@ -429,7 +429,7 @@ export default function Lobby() {
             <Panel title="This week's directors">
               {directors.map((d, i) => (
                 <button key={d.id} type="button" onClick={() => navigate(usingDemo ? "/lobby" : `/u/${d.id}`)}
-                  className="flex w-full items-center gap-3 border-b border-[#14161d] py-2.5 text-left last:border-0">
+                  className="flex w-full items-center gap-3 border-b border-white/[0.04] py-2.5 text-left last:border-0">
                   <span className="w-5 shrink-0 font-display text-[20px] font-semibold text-muted-foreground/50">{i + 1}</span>
                   <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[#2a2e3a] to-[#15171f]">
                     {d.avatar && <img src={d.avatar} alt="" className="h-full w-full object-cover" />}
@@ -448,7 +448,7 @@ export default function Lobby() {
               <h4 className="font-display text-[19px] font-semibold text-foreground">{technique.title}</h4>
               <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{technique.oneLiner}</p>
               <button type="button" onClick={() => startWithSeed(technique.seed)}
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground">
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3.5 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
                 <Aperture className="h-3 w-3" /> Try this technique →
               </button>
             </Panel>
@@ -476,8 +476,8 @@ function WorldChip({ label, glyph, accent, active, onClick }: { label: string; g
   return (
     <button type="button" onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[13px] transition-colors",
-        active ? "border-white/25 bg-white/10 text-foreground" : "border-border bg-white/[0.02] text-muted-foreground hover:text-foreground",
+        "inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[13px] transition-colors",
+        active ? "bg-white/10 text-foreground ring-1 ring-inset ring-white/20" : "bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
       )}>
       {glyph && <span style={accentStyle(accent ?? null)}>{glyph}</span>}
       {label}
@@ -495,7 +495,7 @@ function Rail({ title, sub, onSeeAll, seeAllLabel = "See all →", last, childre
           {title}{sub && <span className="ml-3 align-middle text-[12.5px] font-normal text-muted-foreground">{sub}</span>}
         </h3>
         {onSeeAll && (
-          <button type="button" onClick={onSeeAll} className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground">
+          <button type="button" onClick={onSeeAll} className="shrink-0 rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
             {seeAllLabel}
           </button>
         )}
@@ -517,40 +517,55 @@ function VideoCard({ reel, demo, onOpen, reduced }: { reel: FeedRow; demo: boole
         type="button"
         onClick={() => onOpen(reel)}
         title={demo ? "Sample film" : reel.title}
-        /* Transparent frame sized to the video's true ratio — never cropped,
-           never letterboxed. object-cover fills exactly because they match. */
-        className="relative block w-full overflow-hidden rounded-2xl bg-transparent ring-1 ring-inset ring-white/[0.07]"
+        /* Borderless, floating frame sized to the video's true ratio — never
+           cropped, never letterboxed. The title card lives INSIDE the frame and
+           only fades in on hover, so the grid reads as a clean wall of imagery. */
+        className={cn(
+          "relative block w-full overflow-hidden rounded-2xl bg-transparent",
+          "shadow-[0_20px_50px_-30px_rgba(0,0,0,0.85)] transition-shadow duration-500",
+          "hover:shadow-[0_36px_84px_-32px_rgba(0,0,0,0.95)]",
+        )}
         style={{ aspectRatio: ratio ? `${ratio}` : "16 / 9" }}
       >
         {reel.thumbnail_url
           ? <img src={reel.thumbnail_url} alt="" loading="lazy"
               onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
-              className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-500 group-hover:scale-[1.04]")} />
+              className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-700 group-hover:scale-[1.05]")} />
           : <span className="flex h-full w-full items-center justify-center text-muted-foreground/40"><Eye className="h-6 w-6" /></span>}
-        <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-        <span className="absolute bottom-2.5 left-2.5 grid h-8 w-8 place-items-center rounded-full bg-white/90 opacity-0 transition-opacity group-hover:opacity-100">
-          <Play className="ml-0.5 h-3.5 w-3.5 fill-[#0a0b10] text-[#0a0b10]" />
-        </span>
+
+        {/* Duration — always visible, top-right, so the resting wall still hints
+            at length without a caption. */}
         {fmtDur(reel.duration_sec) && (
-          <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white backdrop-blur-sm">{fmtDur(reel.duration_sec)}</span>
+          <span className="absolute right-2.5 top-2.5 rounded-md bg-black/50 px-1.5 py-0.5 font-mono text-[11px] text-white backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-0">{fmtDur(reel.duration_sec)}</span>
         )}
+
+        {/* Title card — hidden at rest, revealed on hover. Carries the world,
+            title and director that used to sit permanently below the frame. */}
+        <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1.5 p-3.5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+          <span className="flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.16em]" style={accentStyle(reel.world_accent)}>
+            {reel.world_glyph} {reel.world_name ?? "Film"}
+          </span>
+          <span className="mt-1 block font-display text-[15px] font-semibold leading-tight tracking-tight text-white line-clamp-2">{reel.title}</span>
+          <span className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-white/65">
+            <span className="truncate">{reel.creator_name ?? "Unknown director"}</span>
+            <span className="shrink-0 font-mono">{compact(reel.play_count)} ▶</span>
+          </span>
+        </span>
+
+        {/* Play affordance — centered, appears on hover. */}
+        <span className="absolute left-1/2 top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 scale-90 place-items-center rounded-full bg-white/90 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+          <Play className="ml-0.5 h-4 w-4 fill-[#0a0b10] text-[#0a0b10]" />
+        </span>
       </button>
-      <div className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em]" style={accentStyle(reel.world_accent)}>
-        {reel.world_glyph} {reel.world_name ?? "Film"}
-      </div>
-      <h4 className="mt-1.5 font-display text-[18px] font-semibold leading-tight tracking-tight text-foreground line-clamp-2">{reel.title}</h4>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="truncate text-[12px] text-muted-foreground">{reel.creator_name ?? "Unknown director"}</span>
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{compact(reel.play_count)} ▶</span>
-      </div>
     </article>
   );
 }
 
 function Panel({ title, badge, tint, children }: { title: React.ReactNode; badge?: React.ReactNode; tint?: string; children: React.ReactNode }) {
   return (
-    <div className="mb-[18px] rounded-[18px] border border-border p-5"
-      style={{ background: tint ?? "linear-gradient(180deg, hsl(0 0% 100% / .025), transparent)" }}>
+    <div className="mb-[18px] rounded-[18px] p-5 shadow-[0_20px_48px_-28px_rgba(0,0,0,0.7)]"
+      style={{ background: tint ?? "linear-gradient(180deg, hsl(0 0% 100% / .04), hsl(0 0% 100% / .012))" }}>
       <div className="mb-[15px] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         <span>{title}</span>{badge}
       </div>
@@ -561,7 +576,7 @@ function Panel({ title, badge, tint, children }: { title: React.ReactNode; badge
 
 function Stat({ label, value, valueClass, last }: { label: string; value: string; valueClass?: string; last?: boolean }) {
   return (
-    <div className={cn("flex items-center justify-between py-2.5", !last && "border-b border-[#14161d]")}>
+    <div className={cn("flex items-center justify-between py-2.5", !last && "border-b border-white/[0.04]")}>
       <span className="text-[13px] text-muted-foreground">{label}</span>
       <span className={cn("font-display text-[16px] font-semibold text-foreground", valueClass)}>{value}</span>
     </div>

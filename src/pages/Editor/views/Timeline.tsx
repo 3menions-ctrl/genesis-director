@@ -611,6 +611,8 @@ export function Timeline({
         snapEnabled={snapEnabled}
         hasInOut={inSec !== null || outSec !== null}
         playheadSec={playheadSec}
+        setPxPerSec={setPxPerSec}
+        scrollerRef={scrollerRef}
         onUploadClick={() => fileInputRef.current?.click()}
         onCreateClick={onCreateClick}
         onClearAll={onClearAll}
@@ -950,6 +952,8 @@ function TimelineHeader({
   snapEnabled,
   hasInOut,
   playheadSec,
+  setPxPerSec,
+  scrollerRef,
   onUploadClick,
   onCreateClick,
   onClearAll,
@@ -962,6 +966,8 @@ function TimelineHeader({
   snapEnabled: boolean;
   hasInOut: boolean;
   playheadSec: number;
+  setPxPerSec: (px: number) => void;
+  scrollerRef: React.RefObject<HTMLDivElement | null>;
   onUploadClick?: () => void;
   onCreateClick?: () => void;
   onClearAll?: () => void;

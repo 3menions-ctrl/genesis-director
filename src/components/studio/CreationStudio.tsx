@@ -20,6 +20,7 @@
  *   · Image / Photo / Scenes — the existing hubs
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon,

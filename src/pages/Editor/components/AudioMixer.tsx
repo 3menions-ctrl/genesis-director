@@ -12,7 +12,7 @@
  * we split audio playback in a later commit. Master mutes / fades
  * the entire bus regardless of clip settings.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Volume2,
   VolumeX,

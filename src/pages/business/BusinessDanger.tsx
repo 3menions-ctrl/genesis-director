@@ -148,8 +148,8 @@ export function DangerContent() {
           const Icon = r.icon;
           return (
             <StaggerItem key={r.label} className={cn(
-              "rounded-2xl p-5 ring-1 flex flex-col sm:flex-row sm:items-center gap-4",
-              r.danger ? "ring-rose-400/30 bg-rose-500/10" : "ring-white/[0.07] bg-white/[0.015]",
+              "rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4",
+              r.danger && "ring-1 ring-rose-400/30 bg-rose-500/10",
             )}>
               <div className={cn(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1",
@@ -180,7 +180,7 @@ export function DangerContent() {
       </StaggerList>
 
       <Dialog open={delOpen} onOpenChange={setDelOpen}>
-        <DialogContent className="bg-[hsl(220,16%,5%)] border border-white/[0.08] text-white">
+        <DialogContent className="bg-[hsl(220,16%,5%)] text-white">
           <DialogTitle className="font-display italic text-[18px]">Delete {currentOrg?.name}?</DialogTitle>
           <DialogDescription className="text-white/55 text-[13px]">
             Type the workspace name <span className="font-mono text-white/85">{currentOrg?.name}</span> to confirm.
@@ -199,7 +199,7 @@ export function DangerContent() {
       </Dialog>
 
       <Dialog open={xferOpen} onOpenChange={setXferOpen}>
-        <DialogContent className="bg-[hsl(220,16%,5%)] border border-white/[0.08] text-white">
+        <DialogContent className="bg-[hsl(220,16%,5%)] text-white">
           <DialogTitle className="font-display italic text-[18px]">Transfer ownership</DialogTitle>
           <DialogDescription className="text-white/55 text-[13px]">
             You'll be downgraded to admin. The new owner gains full control including billing.

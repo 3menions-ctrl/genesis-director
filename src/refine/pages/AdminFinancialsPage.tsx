@@ -5,12 +5,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  DollarSign, TrendingUp, BarChart3, ArrowDownRight, Activity, Coins, RefreshCw, ShoppingCart,
+  DollarSign, TrendingUp, BarChart3, ArrowDownRight, RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  StatOrb, FloatSection, FloatTable, StatusPill, DeckButton,
+  CYAN, ROSE, ACCENT_HSL, AMBER,
+} from "@/admin/ui/primitives";
 
 interface ProfitData {
   date: string; service: string; total_operations: number;
@@ -28,25 +29,6 @@ interface PurchaseRow {
 }
 
 // No longer use hardcoded cost map — use real_cost_cents from DB
-
-function StatPill({ icon: Icon, label, value, sub, accent }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string;
-  accent?: "primary" | "success" | "warning" | "destructive" | "info";
-}) {
-  const c = { primary: "text-primary", success: "text-success", warning: "text-warning", destructive: "text-destructive", info: "text-info" }[accent || "primary"];
-  return (
-    <div className="rounded-2xl border border-white/[0.06] bg-glass p-5 space-y-3">
-      <div className="flex items-center gap-2.5">
-        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-glass-hover", c)}><Icon className="w-4 h-4" /></div>
-        <span className="text-xs font-medium text-white/40 uppercase tracking-wider">{label}</span>
-      </div>
-      <div>
-        <p className="text-2xl font-bold tracking-tight text-white">{value}</p>
-        {sub && <p className="text-xs text-white/30 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
 
 const fmt = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
@@ -151,99 +133,70 @@ export default function AdminFinancialsPage() {
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatPill icon={DollarSign} label="Revenue" value={fmt(revenue)} sub={`${purchaseCount} purchase${purchaseCount === 1 ? "" : "s"} · ${creditsSold} credits sold`} accent="success" />
-        <StatPill icon={ArrowDownRight} label="API Cost" value={fmt(apiCost)} sub={`${totalOps.toLocaleString()} operations`} accent="destructive" />
-        <StatPill icon={TrendingUp} label="Net Profit" value={fmt(profit)} accent="primary" />
-        <StatPill icon={BarChart3} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" accent={margin >= 70 ? "success" : margin >= 50 ? "warning" : "destructive"} />
+    <div className="space-y-12 animate-fade-in">
+      {/* KPI rail — floating figures */}
+      <div className="grid grid-cols-2 gap-x-10 gap-y-12 lg:grid-cols-4">
+        <StatOrb index={0} icon={DollarSign} aura={CYAN} accentNumber label="Revenue" value={fmt(revenue)} sub={`${purchaseCount} purchase${purchaseCount === 1 ? "" : "s"} · ${creditsSold} credits sold`} />
+        <StatOrb index={1} icon={ArrowDownRight} aura={ROSE} label="API Cost" value={fmt(apiCost)} sub={`${totalOps.toLocaleString()} operations`} />
+        <StatOrb index={2} icon={TrendingUp} aura={ACCENT_HSL} label="Net Profit" value={fmt(profit)} />
+        <StatOrb index={3} icon={BarChart3} aura={margin >= 70 ? CYAN : margin >= 50 ? AMBER : ROSE} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" />
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-white/40" /> Recent Stripe Purchases
-          </h3>
-          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30">
-            {purchases.length} shown
-          </span>
-        </div>
-        {purchases.length === 0 ? (
-          <div className="text-center py-16 text-white/30">
-            <ShoppingCart className="w-8 h-8 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No purchases yet</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {["Date", "Buyer", "Credits", "USD", "Payment", "Description"].map((h, i) => (
-                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-white/30 uppercase tracking-wider", i >= 2 && i <= 3 ? "text-right" : "text-left")}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {purchases.map((p) => (
-                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="py-3 px-5 text-xs text-white/60">{new Date(p.created_at).toLocaleString()}</td>
-                    <td className="py-3 px-5 text-xs text-white/80">{emailById[p.user_id] || p.user_id.slice(0, 8)}</td>
-                    <td className="py-3 px-5 text-sm text-right text-success font-mono">+{p.amount}</td>
-                    <td className="py-3 px-5 text-sm text-right text-success font-mono">{fmt(p.amount * 10)}</td>
-                    <td className="py-3 px-5 text-[10px] text-white/40 font-mono">{p.stripe_payment_id?.slice(0, 18) || "—"}</td>
-                    <td className="py-3 px-5 text-xs text-white/40 max-w-xs truncate">{p.description || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Recent Stripe purchases */}
+      <FloatSection title="Recent Stripe purchases" meta={`${purchases.length} shown`}>
+        <FloatTable
+          empty="No purchases yet"
+          columns={[
+            { key: "date", label: "Date" },
+            { key: "buyer", label: "Buyer" },
+            { key: "credits", label: "Credits", align: "right" },
+            { key: "usd", label: "USD", align: "right" },
+            { key: "payment", label: "Payment" },
+            { key: "description", label: "Description" },
+          ]}
+          rows={purchases.map((p) => ({
+            _key: p.id,
+            date: <span className="text-white/60">{new Date(p.created_at).toLocaleString()}</span>,
+            buyer: <span className="text-white/80">{emailById[p.user_id] || p.user_id.slice(0, 8)}</span>,
+            credits: <span className="font-mono" style={{ color: CYAN }}>+{p.amount}</span>,
+            usd: <span className="font-mono" style={{ color: CYAN }}>{fmt(p.amount * 10)}</span>,
+            payment: <span className="font-mono text-[10px] text-white/40">{p.stripe_payment_id?.slice(0, 18) || "—"}</span>,
+            description: <span className="block max-w-xs truncate text-white/40">{p.description || "—"}</span>,
+          }))}
+        />
+      </FloatSection>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06]">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Activity className="w-4 h-4 text-white/40" /> Cost Breakdown by Service
-          </h3>
-        </div>
-        {profitData.length === 0 ? (
-          <div className="text-center py-16 text-white/30">
-            <Coins className="w-8 h-8 mx-auto mb-3 opacity-30" /><p className="text-sm">No cost data yet</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {["Date", "Service", "Ops", "Revenue", "Cost", "Margin"].map((h, i) => (
-                    <th key={h} className={cn("py-3 px-5 text-[11px] font-semibold text-white/30 uppercase tracking-wider", i >= 2 ? "text-right" : "text-left")}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {profitData.map((row, idx) => (
-                  <tr key={idx} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="py-3 px-5 text-sm text-white/70">{new Date(row.date).toLocaleDateString()}</td>
-                    <td className="py-3 px-5"><Badge variant="secondary" className="text-[10px] bg-glass-hover text-white/50">{row.service}</Badge></td>
-                    <td className="py-3 px-5 text-sm text-right text-white/40">{row.total_operations.toLocaleString()}</td>
-                    <td className="py-3 px-5 text-sm text-right text-success">{fmt(row.estimated_revenue_cents)}</td>
-                    <td className="py-3 px-5 text-sm text-right text-destructive">{fmt(row.total_real_cost_cents)}</td>
-                    <td className="py-3 px-5 text-right">
-                      <span className={cn("text-sm font-medium", row.profit_margin_percent >= 70 ? "text-success" : row.profit_margin_percent >= 50 ? "text-warning" : "text-destructive")}>
-                        {fmtPct(row.profit_margin_percent)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Cost breakdown by service */}
+      <FloatSection title="Cost breakdown by service">
+        <FloatTable
+          empty="No cost data yet"
+          columns={[
+            { key: "date", label: "Date" },
+            { key: "service", label: "Service" },
+            { key: "ops", label: "Ops", align: "right" },
+            { key: "revenue", label: "Revenue", align: "right" },
+            { key: "cost", label: "Cost", align: "right" },
+            { key: "margin", label: "Margin", align: "right" },
+          ]}
+          rows={profitData.map((row, idx) => ({
+            _key: idx,
+            date: <span className="text-white/70">{new Date(row.date).toLocaleDateString()}</span>,
+            service: <StatusPill tone="neutral">{row.service}</StatusPill>,
+            ops: <span className="text-white/40">{row.total_operations.toLocaleString()}</span>,
+            revenue: <span style={{ color: CYAN }}>{fmt(row.estimated_revenue_cents)}</span>,
+            cost: <span style={{ color: ROSE }}>{fmt(row.total_real_cost_cents)}</span>,
+            margin: (
+              <span className="font-medium" style={{ color: row.profit_margin_percent >= 70 ? CYAN : row.profit_margin_percent >= 50 ? AMBER : ROSE }}>
+                {fmtPct(row.profit_margin_percent)}
+              </span>
+            ),
+          }))}
+        />
+      </FloatSection>
 
-      <Button onClick={() => { fetchProfitData(); fetchRevenue(); fetchApiCost(); }} variant="ghost" size="sm" className="text-xs text-white/30 hover:text-white/60">
-        <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-      </Button>
+      <DeckButton onClick={() => { fetchProfitData(); fetchRevenue(); fetchApiCost(); }}>
+        <RefreshCw className="h-3.5 w-3.5" /> Refresh
+      </DeckButton>
     </div>
   );
 }

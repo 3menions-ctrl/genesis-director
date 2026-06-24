@@ -62,7 +62,7 @@ export function PermissionsContent() {
       ) : (
         <>
           <SectionHead label="Capability matrix" count={`${MATRIX.length} capabilities`} />
-          <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] overflow-hidden">
+          <div className="rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>

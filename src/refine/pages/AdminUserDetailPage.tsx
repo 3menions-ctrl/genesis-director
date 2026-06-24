@@ -22,7 +22,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
-import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../components/AdminPageShell";
+import { AdminPageShell } from "../components/AdminPageShell";
+import { FloatSection, FloatTable, FloatStat, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -321,12 +322,9 @@ export default function AdminUserDetailPage() {
       italic="Detail."
       description="Every power an operator needs over a single account — view, audit, mutate, revoke, delete."
       actions={
-        <button
-          onClick={() => navigate("/admin/users")}
-          className="text-[11px] uppercase tracking-[0.22em] text-white/55 hover:text-white px-3 py-1.5 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors inline-flex items-center gap-1.5"
-        >
+        <DeckButton onClick={() => navigate("/admin/users")}>
           <ArrowLeft className="w-3 h-3" /> All users
-        </button>
+        </DeckButton>
       }
     >
       {loading ? (
@@ -335,31 +333,26 @@ export default function AdminUserDetailPage() {
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading user…</span>
         </div>
       ) : !detail ? (
-        <AdminSurface>
-          <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
-            <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
-            <div className="text-[15px] mb-2 text-white">User not found.</div>
-            {loadError ? (
-              <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
-                {loadError}
-              </div>
-            ) : null}
-            <div className="text-[12px] text-white/45 mt-4 leading-relaxed">
-              Common causes: the new <span className="font-mono text-white/70">20260610094658_admin_user_powers</span> migration hasn&rsquo;t been pushed yet; your current session isn&rsquo;t in <span className="font-mono text-white/70">user_roles</span> with <span className="font-mono text-white/70">role=&lsquo;admin&rsquo;</span>; or the user ID in the URL is wrong.
+        <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
+          <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
+          <div className="text-[15px] mb-2 text-white">User not found.</div>
+          {loadError ? (
+            <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
+              {loadError}
             </div>
-            <button
-              onClick={() => void load()}
-              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors"
-            >
-              Retry
-            </button>
+          ) : null}
+          <div className="text-[12px] text-white/45 mt-4 leading-relaxed">
+            Common causes: the new <span className="font-mono text-white/70">20260610094658_admin_user_powers</span> migration hasn&rsquo;t been pushed yet; your current session isn&rsquo;t in <span className="font-mono text-white/70">user_roles</span> with <span className="font-mono text-white/70">role=&lsquo;admin&rsquo;</span>; or the user ID in the URL is wrong.
           </div>
-        </AdminSurface>
+          <div className="mt-5 flex justify-center">
+            <DeckButton onClick={() => void load()}>Retry</DeckButton>
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-x-14 gap-y-12">
           {/* Left column — profile + stats */}
-          <div className="space-y-6">
-            <AdminSurface>
+          <div className="space-y-12">
+            <div>
               <div className="flex items-start gap-4">
                 {detail.profile.avatar_url ? (
                   <img
@@ -373,25 +366,13 @@ export default function AdminUserDetailPage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
                     <h2 className="font-display text-[24px] text-white font-light leading-tight truncate">
                       {detail.profile.display_name || detail.profile.full_name || "Unnamed"}
                     </h2>
-                    {isTargetAdmin && (
-                      <span className="text-[9px] font-mono uppercase tracking-[0.32em] text-rose-300 px-1.5 py-0.5 rounded border border-rose-400/30 bg-rose-500/[0.05]">
-                        ADMIN
-                      </span>
-                    )}
-                    {isSuspended && (
-                      <span className="text-[9px] font-mono uppercase tracking-[0.32em] text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/30 bg-amber-500/[0.05]">
-                        SUSPENDED
-                      </span>
-                    )}
-                    {detail.auth.email_confirmed_at && (
-                      <span className="text-[9px] font-mono uppercase tracking-[0.32em] text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-400/30 bg-emerald-500/[0.05]">
-                        VERIFIED
-                      </span>
-                    )}
+                    {isTargetAdmin && <StatusPill tone="danger">Admin</StatusPill>}
+                    {isSuspended && <StatusPill tone="warn">Suspended</StatusPill>}
+                    {detail.auth.email_confirmed_at && <StatusPill tone="positive">Verified</StatusPill>}
                   </div>
                   <div className="font-mono text-[12px] text-white/65 truncate">
                     {detail.profile.email ?? detail.auth.email ?? "—"}
@@ -409,25 +390,19 @@ export default function AdminUserDetailPage() {
                   {detail.profile.suspension_reason}
                 </div>
               )}
-            </AdminSurface>
+            </div>
 
-            <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
-                <AdminSectionLabel label="Activity at a glance" />
+            <FloatSection title="Activity at a glance">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-8">
+                <FloatStat index={0} label="Credits balance" value={detail.profile.credits_balance.toLocaleString()} accentNumber />
+                <FloatStat index={1} label="Lifetime granted" value={detail.stats.lifetime_credit_grants.toLocaleString()} />
+                <FloatStat index={2} label="Projects" value={`${detail.stats.completed_projects}/${detail.stats.project_count}`} />
+                <FloatStat index={3} label="Support tickets" value={detail.stats.support_message_count} />
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4">
-                <StatCell label="Credits balance" value={detail.profile.credits_balance.toLocaleString()} tone="blue" />
-                <StatCell label="Lifetime granted" value={detail.stats.lifetime_credit_grants.toLocaleString()} tone="emerald" />
-                <StatCell label="Projects" value={`${detail.stats.completed_projects}/${detail.stats.project_count}`} tone="neutral" />
-                <StatCell label="Support tickets" value={detail.stats.support_message_count} tone={detail.stats.support_message_count > 0 ? "amber" : "neutral"} />
-              </div>
-            </AdminSurface>
+            </FloatSection>
 
-            <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
-                <AdminSectionLabel label="Identity" />
-              </div>
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[13px]">
+            <FloatSection title="Identity">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[13px]">
                 <Field label="Email">{detail.profile.email ?? "—"}</Field>
                 <Field label="Phone">{detail.auth.phone ?? "—"}</Field>
                 <Field label="Account type">{detail.profile.account_type ?? "personal"}</Field>
@@ -445,75 +420,54 @@ export default function AdminUserDetailPage() {
                 </Field>
                 <Field label="Security version">{detail.profile.security_version ?? "—"}</Field>
               </div>
-            </AdminSurface>
+            </FloatSection>
 
             {detail.organizations.length > 0 && (
-              <AdminSurface className="p-0 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/[0.06]">
-                  <AdminSectionLabel label="Workspace memberships" meta={`${detail.organizations.length} orgs`} />
-                </div>
-                <table className="w-full text-[13px]">
-                  <tbody>
-                    {detail.organizations.map((o) => (
-                      <tr key={o.organization_id} className="border-b border-white/[0.03]">
-                        <td className="px-6 py-3 text-white/90">{o.name}</td>
-                        <td className="px-6 py-3 text-white/55">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">{o.role}</span>
-                        </td>
-                        <td className="px-6 py-3 text-right text-white/45 font-mono text-[11px]">
-                          {new Date(o.joined_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </AdminSurface>
+              <FloatSection title="Workspace memberships" meta={`${detail.organizations.length} orgs`}>
+                <FloatTable
+                  columns={[
+                    { key: "name", label: "Workspace" },
+                    { key: "role", label: "Role" },
+                    { key: "joined", label: "Joined", align: "right" },
+                  ]}
+                  rows={detail.organizations.map((o) => ({
+                    _key: o.organization_id,
+                    name: <span className="text-white/90">{o.name}</span>,
+                    role: <StatusPill tone="accent">{o.role}</StatusPill>,
+                    joined: <span className="text-white/45 font-mono text-[11px]">{new Date(o.joined_at).toLocaleDateString()}</span>,
+                  }))}
+                />
+              </FloatSection>
             )}
 
-            <AdminSurface className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
-                <AdminSectionLabel label="Recent admin actions" meta={`${audit.length} entries`} />
-              </div>
-              {audit.length === 0 ? (
-                <div className="p-8 text-center text-white/45 text-[12px] font-mono uppercase tracking-[0.22em]">
-                  No admin actions recorded
-                </div>
-              ) : (
-                <table className="w-full text-[13px]">
-                  <tbody>
-                    {audit.map((a) => (
-                      <tr key={a.id} className="border-b border-white/[0.03]">
-                        <td className="px-6 py-3 text-white/55 font-mono text-[10px] uppercase tracking-[0.22em] whitespace-nowrap">
-                          {new Date(a.created_at).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-3">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">
-                            {a.action.replace(/_/g, " ")}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 text-white/65 text-[12px] truncate">
-                          {a.admin_email ?? "system"}
-                        </td>
-                        <td className="px-6 py-3 text-right text-white/40 font-mono text-[10px]">
-                          {(a.details as { reason?: string })?.reason ?? ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </AdminSurface>
+            <FloatSection title="Recent admin actions" meta={`${audit.length} entries`}>
+              <FloatTable
+                columns={[
+                  { key: "time", label: "When" },
+                  { key: "action", label: "Action" },
+                  { key: "admin", label: "Operator" },
+                  { key: "reason", label: "Reason", align: "right" },
+                ]}
+                rows={audit.map((a) => ({
+                  _key: a.id,
+                  time: <span className="text-white/55 font-mono text-[10px] uppercase tracking-[0.22em] whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</span>,
+                  action: <StatusPill tone="accent">{a.action.replace(/_/g, " ")}</StatusPill>,
+                  admin: <span className="text-white/65 text-[12px] truncate">{a.admin_email ?? "system"}</span>,
+                  reason: <span className="text-white/40 font-mono text-[10px]">{(a.details as { reason?: string })?.reason ?? ""}</span>,
+                }))}
+                empty="No admin actions recorded"
+              />
+            </FloatSection>
           </div>
 
           {/* Right column — actions */}
-          <div className="space-y-3">
-            <AdminSurface>
-              <AdminSectionLabel label="Operator actions" />
-              <p className="text-[11px] text-white/45 mt-1 mb-5 leading-relaxed">
+          <div className="space-y-12">
+            <FloatSection title="Operator actions">
+              <p className="text-[11px] text-white/45 -mt-2 mb-5 leading-relaxed">
                 Every action below is logged to admin_audit_log. Self-targeting is blocked at the RPC level.
               </p>
 
-              <div className="space-y-2">
+              <div className="flex flex-col items-start gap-2">
                 <ActionRow
                   icon={Coins}
                   label="Grant credits"
@@ -574,7 +528,7 @@ export default function AdminUserDetailPage() {
                     )
                   }
                 />
-                <div className="h-px bg-glass-active my-3" />
+                <div className="h-px w-full bg-white/[0.06] my-2" />
                 <ActionRow
                   icon={Trash2}
                   label="Delete account"
@@ -599,60 +553,23 @@ export default function AdminUserDetailPage() {
                   </p>
                 )}
               </div>
-            </AdminSurface>
+            </FloatSection>
 
-            <AdminSurface>
-              <AdminSectionLabel label="Role" />
-              <div className="mt-3 flex flex-wrap gap-1.5">
+            <FloatSection title="Role">
+              <div className="flex flex-wrap gap-1.5">
                 {detail.roles.length === 0 ? (
                   <span className="text-[12px] text-white/45">No assigned roles</span>
                 ) : (
                   detail.roles.map((r) => (
-                    <span
-                      key={r}
-                      className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80 px-2 py-0.5 rounded border border-primary/30 bg-primary/[0.05]"
-                    >
-                      {r}
-                    </span>
+                    <StatusPill key={r} tone="accent">{r}</StatusPill>
                   ))
                 )}
               </div>
-            </AdminSurface>
+            </FloatSection>
           </div>
         </div>
       )}
     </AdminPageShell>
-  );
-}
-
-function StatCell({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone: "blue" | "emerald" | "amber" | "rose" | "neutral";
-}) {
-  const toneClass =
-    tone === "blue"
-      ? "text-primary/80"
-      : tone === "emerald"
-        ? "text-emerald-300"
-        : tone === "amber"
-          ? "text-amber-300"
-          : tone === "rose"
-            ? "text-rose-300"
-            : "text-white";
-  return (
-    <div className="px-6 py-5 border-r border-b border-white/[0.04] last:border-r-0">
-      <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/35 mb-1.5">
-        {label}
-      </div>
-      <div className={`font-display text-2xl tabular-nums font-light ${toneClass}`}>
-        {value}
-      </div>
-    </div>
   );
 }
 
@@ -680,24 +597,10 @@ function ActionRow({
   tone?: "neutral" | "brand" | "amber" | "emerald" | "destructive";
   disabled?: boolean;
 }) {
-  const palette =
-    tone === "brand"
-      ? "border-brand/30 hover:border-brand/60 text-brand-light hover:text-white"
-      : tone === "amber"
-        ? "border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-white"
-        : tone === "emerald"
-          ? "border-emerald-400/30 hover:border-emerald-400/60 text-emerald-200 hover:text-white"
-          : tone === "destructive"
-            ? "border-rose-400/30 hover:border-rose-400/60 text-rose-200 hover:text-white"
-            : "border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white";
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-white/[0.015] hover:bg-glass-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left ${palette}`}
-    >
+    <DeckButton onClick={onClick} disabled={disabled} accent={tone === "brand"}>
       <Icon className="w-3.5 h-3.5" />
-      <span className="text-[12px] uppercase tracking-[0.18em] font-mono">{label}</span>
-    </button>
+      {label}
+    </DeckButton>
   );
 }

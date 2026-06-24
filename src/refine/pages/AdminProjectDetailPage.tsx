@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSafeNavigation } from "@/lib/navigation";
-import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../components/AdminPageShell";
+import { AdminPageShell } from "../components/AdminPageShell";
+import { FloatSection, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,8 @@ interface ClipRow {
 }
 
 type TabKey = "pipeline" | "costs" | "failures" | "metadata";
+
+type PillTone = "accent" | "positive" | "warn" | "danger" | "neutral";
 
 export default function AdminProjectDetailPage() {
   const { projectId = "" } = useParams<{ projectId: string }>();
@@ -202,12 +205,12 @@ export default function AdminProjectDetailPage() {
     }
   };
 
-  const statusTone = useMemo(() => {
+  const statusTone = useMemo<PillTone>(() => {
     const s = (detail?.project.status || "").toLowerCase();
-    if (s === "completed" || s === "done") return "emerald" as const;
-    if (s === "failed" || s === "error") return "rose" as const;
-    if (s === "draft") return "neutral" as const;
-    return "amber" as const;
+    if (s === "completed" || s === "done") return "positive";
+    if (s === "failed" || s === "error") return "danger";
+    if (s === "draft") return "neutral";
+    return "warn";
   }, [detail?.project.status]);
 
   return (
@@ -218,20 +221,15 @@ export default function AdminProjectDetailPage() {
       italic="Profile."
       description={detail?.project.synopsis ?? "Single-pane view of one project — pipeline, cost, failures, and intervention controls."}
       stats={detail ? [
-        { label: "Status",     value: detail.project.status.toUpperCase(), tone: statusTone, sub: detail.project.is_template ? "template" : "scene" },
+        { label: "Status",     value: detail.project.status.toUpperCase(), tone: statusTone === "positive" ? "emerald" : statusTone === "danger" ? "rose" : statusTone === "neutral" ? "neutral" : "amber", sub: detail.project.is_template ? "template" : "scene" },
         { label: "Clips",      value: `${detail.clip_stats.completed}/${detail.clip_stats.total}`, tone: "blue", sub: `${detail.clip_stats.failed} failed` },
         { label: "Spend",      value: `${detail.cost.total_credits_spent.toLocaleString()}`, tone: "amber", sub: "credits (approx)" },
         { label: "Updated",    value: new Date(detail.project.updated_at).toLocaleDateString(), tone: "neutral", sub: "last touched" },
       ] : undefined}
       actions={
-        <>
-          <button
-            onClick={() => navigate("/admin/projects")}
-            className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-3.5 py-1.5 rounded-full border border-white/[0.08] hover:border-white/20 transition-colors"
-          >
-            <ArrowLeft className="w-3 h-3" /> Back
-          </button>
-        </>
+        <DeckButton onClick={() => navigate("/admin/projects")}>
+          <ArrowLeft className="w-3 h-3" /> Back
+        </DeckButton>
       }
     >
       {loading ? (
@@ -240,60 +238,53 @@ export default function AdminProjectDetailPage() {
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading project…</span>
         </div>
       ) : !detail ? (
-        <AdminSurface>
-          <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
-            <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
-            <div className="text-[15px] mb-2 text-white">Project not found.</div>
-            {loadError && (
-              <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
-                {loadError}
-              </div>
-            )}
-            <button
-              onClick={() => void load()}
-              className="mt-5 text-[11px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white px-4 py-2 rounded-md border border-white/[0.08] hover:border-white/20 transition-colors"
-            >
-              Retry
-            </button>
+        <div className="text-center py-12 text-white/65 max-w-xl mx-auto">
+          <AlertCircle className="w-5 h-5 mx-auto mb-3 text-rose-300" />
+          <div className="text-[15px] mb-2 text-white">Project not found.</div>
+          {loadError && (
+            <div className="font-mono text-[11px] text-rose-200/80 bg-rose-500/[0.06] border border-rose-500/20 rounded-md px-3 py-2 mt-3 text-left">
+              {loadError}
+            </div>
+          )}
+          <div className="mt-5 flex justify-center">
+            <DeckButton onClick={() => void load()}>Retry</DeckButton>
           </div>
-        </AdminSurface>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-x-14 gap-y-12">
           {/* Left — hero + tabs */}
-          <div className="space-y-6">
-            {/* Hero card with thumbnail + meta */}
-            <AdminSurface>
-              <div className="flex items-start gap-5">
-                {detail.project.thumbnail_url ? (
-                  <img
-                    src={detail.project.thumbnail_url}
-                    alt=""
-                    className="w-32 h-20 rounded-xl object-cover border border-white/[0.08] shrink-0"
-                  />
-                ) : (
-                  <div className="w-32 h-20 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/35 shrink-0">
-                    <ImageOff className="w-5 h-5" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35 mb-1">
-                    {detail.project.id.slice(0, 8)}…
-                  </div>
-                  <h2 className="font-display text-[24px] text-white font-light truncate">
-                    {detail.project.title || "Untitled scene"}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
-                    <Pill tone="blue">{detail.project.status}</Pill>
-                    {detail.project.genre && <Pill>{detail.project.genre}</Pill>}
-                    {detail.project.mood && <Pill>{detail.project.mood}</Pill>}
-                    {detail.project.is_template && <Pill tone="amber">template</Pill>}
-                  </div>
+          <div className="space-y-12">
+            {/* Hero — thumbnail + meta */}
+            <div className="flex items-start gap-5">
+              {detail.project.thumbnail_url ? (
+                <img
+                  src={detail.project.thumbnail_url}
+                  alt=""
+                  className="w-32 h-20 rounded-xl object-cover border border-white/[0.08] shrink-0"
+                />
+              ) : (
+                <div className="w-32 h-20 rounded-xl border border-white/[0.08] bg-glass flex items-center justify-center text-white/35 shrink-0">
+                  <ImageOff className="w-5 h-5" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35 mb-1">
+                  {detail.project.id.slice(0, 8)}…
+                </div>
+                <h2 className="font-display text-[24px] text-white font-light truncate">
+                  {detail.project.title || "Untitled scene"}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
+                  <StatusPill tone="accent">{detail.project.status}</StatusPill>
+                  {detail.project.genre && <StatusPill>{detail.project.genre}</StatusPill>}
+                  {detail.project.mood && <StatusPill>{detail.project.mood}</StatusPill>}
+                  {detail.project.is_template && <StatusPill tone="warn">template</StatusPill>}
                 </div>
               </div>
-            </AdminSurface>
+            </div>
 
             {/* Tabs */}
-            <AdminSurface className="!p-0">
+            <div>
               <div className="flex border-b border-white/[0.05]">
                 {(["pipeline", "costs", "failures", "metadata"] as TabKey[]).map((k) => (
                   <button
@@ -306,15 +297,13 @@ export default function AdminProjectDetailPage() {
                   >
                     {k}
                     {tab === k && (
-                      <span
-                        className="absolute bottom-[-1px] left-3 right-3 h-px bg-primary"
-                      />
+                      <span className="absolute bottom-[-1px] left-3 right-3 h-px bg-primary" />
                     )}
                   </button>
                 ))}
               </div>
 
-              <div className="p-6">
+              <div className="pt-6">
                 {tab === "pipeline" && (
                   <PipelineTab clips={clips} />
                 )}
@@ -328,18 +317,17 @@ export default function AdminProjectDetailPage() {
                   <MetadataTab project={detail.project} />
                 )}
               </div>
-            </AdminSurface>
+            </div>
           </div>
 
           {/* Right — owner + actions */}
-          <div className="space-y-6">
-            {/* Owner card */}
-            <AdminSurface>
-              <AdminSectionLabel label="Owner" />
+          <div className="space-y-12">
+            {/* Owner */}
+            <FloatSection title="Owner">
               {detail.owner.id ? (
                 <Link
                   to={`/admin/users/${detail.owner.id}`}
-                  className="group flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-glass transition-colors"
+                  className="group flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-white/[0.02] transition-colors"
                 >
                   {detail.owner.avatar_url ? (
                     <img
@@ -371,33 +359,25 @@ export default function AdminProjectDetailPage() {
                   {detail.owner.credits_balance.toLocaleString()} credits available
                 </div>
               )}
-            </AdminSurface>
+            </FloatSection>
 
             {/* Actions */}
-            <AdminSurface>
-              <AdminSectionLabel label="Intervene" />
-              <div className="space-y-2">
-                <ActionRow
-                  icon={RefreshCcw}
-                  label="Retry failed clips"
-                  hint={`${detail.clip_stats.failed} failed`}
-                  disabled={acting || detail.clip_stats.failed === 0}
+            <FloatSection title="Intervene">
+              <div className="flex flex-col items-start gap-2">
+                <DeckButton
                   onClick={retryFailedClips}
-                />
-                <ActionRow
-                  icon={Trash2}
-                  tone="rose"
-                  label="Delete project"
-                  hint="Hard-deletes the row; not reversible"
-                  disabled={acting}
-                  onClick={deleteProject}
-                />
+                  disabled={acting || detail.clip_stats.failed === 0}
+                >
+                  <RefreshCcw className="w-3.5 h-3.5" /> Retry failed clips · {detail.clip_stats.failed}
+                </DeckButton>
+                <DeckButton onClick={deleteProject} disabled={acting}>
+                  <Trash2 className="w-3.5 h-3.5" /> Delete project
+                </DeckButton>
               </div>
-            </AdminSurface>
+            </FloatSection>
 
             {/* Recent admin events */}
-            <AdminSurface>
-              <AdminSectionLabel label="Recent events" meta={`${detail.recent_events.length}`} />
+            <FloatSection title="Recent events" meta={`${detail.recent_events.length}`}>
               {detail.recent_events.length === 0 ? (
                 <div className="text-[12px] text-white/35 py-2">No admin actions recorded.</div>
               ) : (
@@ -412,58 +392,11 @@ export default function AdminProjectDetailPage() {
                   ))}
                 </div>
               )}
-            </AdminSurface>
+            </FloatSection>
           </div>
         </div>
       )}
     </AdminPageShell>
-  );
-}
-
-function Pill({ children, tone }: { children: React.ReactNode; tone?: "blue" | "amber" | "emerald" | "rose" }) {
-  const toneClass: Record<string, string> = {
-    blue:    "border-primary/30 bg-primary/10 text-primary/80",
-    amber:   "border-amber-400/30 bg-amber-400/10 text-amber-200",
-    emerald: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
-    rose:    "border-rose-400/30 bg-rose-400/10 text-rose-200",
-  };
-  return (
-    <span className={cn(
-      "px-2 py-0.5 rounded-full border text-[10px] font-mono uppercase tracking-[0.18em]",
-      tone ? toneClass[tone] : "border-white/[0.08] text-white/55",
-    )}>
-      {children}
-    </span>
-  );
-}
-
-function ActionRow({
-  icon: Icon, label, hint, disabled, onClick, tone,
-}: {
-  icon: React.ElementType;
-  label: string;
-  hint?: string;
-  disabled?: boolean;
-  onClick: () => void;
-  tone?: "rose";
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors",
-        "border-white/[0.06] bg-white/[0.015] hover:border-primary/30 hover:bg-primary/[0.05]",
-        tone === "rose" && "hover:border-rose-400/30 hover:bg-rose-400/[0.05]",
-        disabled && "opacity-40 cursor-not-allowed hover:border-white/[0.06] hover:bg-white/[0.015]",
-      )}
-    >
-      <Icon className={cn("w-3.5 h-3.5 shrink-0", tone === "rose" ? "text-rose-300" : "text-white/55")} />
-      <div className="min-w-0 flex-1">
-        <div className="text-[12px] text-white">{label}</div>
-        {hint && <div className="text-[10px] text-white/40 font-mono">{hint}</div>}
-      </div>
-    </button>
   );
 }
 
@@ -474,18 +407,18 @@ function PipelineTab({ clips }: { clips: ClipRow[] }) {
   return (
     <div className="space-y-1.5">
       {clips.map((c) => {
-        const tone = c.status === "completed" ? "emerald"
-          : c.status === "failed" ? "rose"
-          : "amber";
+        const tone: PillTone = c.status === "completed" ? "positive"
+          : c.status === "failed" ? "danger"
+          : "warn";
         return (
           <div
             key={c.id}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015]"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.015]"
           >
             <span className="font-mono text-[10px] text-white/35 w-8 shrink-0">
               #{String(c.shot_index ?? 0).padStart(2, "0")}
             </span>
-            <Pill tone={tone}>{c.status}</Pill>
+            <StatusPill tone={tone}>{c.status}</StatusPill>
             <div className="text-[12px] text-white/65 truncate flex-1">
               {c.prompt ?? c.error_message ?? "(no prompt)"}
             </div>
@@ -525,7 +458,7 @@ function CostsTab({ cost }: { cost: ProjectDetail["cost"] }) {
       ) : (
         <div className="space-y-1.5 max-h-[320px] overflow-y-auto">
           {cost.transactions.map((t) => (
-            <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015]">
+            <div key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.015]">
               <span className={cn(
                 "font-mono text-[11px] w-16 shrink-0 tabular-nums",
                 t.amount < 0 ? "text-rose-300" : "text-emerald-300",
@@ -582,7 +515,7 @@ function FailuresTab({ clips, events }: { clips: ClipRow[]; events: ProjectDetai
         ) : (
           <div className="space-y-1.5">
             {events.map((e) => (
-              <div key={e.id} className="px-3 py-2 rounded-lg border border-white/[0.05] bg-white/[0.015] text-[11px] font-mono">
+              <div key={e.id} className="px-3 py-2 rounded-lg bg-white/[0.015] text-[11px] font-mono">
                 <div className="text-white/75">{e.action}</div>
                 <div className="text-white/35">{new Date(e.created_at).toLocaleString()}</div>
               </div>

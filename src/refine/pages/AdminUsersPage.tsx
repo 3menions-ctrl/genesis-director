@@ -8,15 +8,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus, ArrowRight, UserMinus, UserCheck, BarChart3 } from "lucide-react";
 import { UserAnalyticsSheet } from "../components/UserAnalyticsSheet";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
+import { FloatSection, FloatTable, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { Users as UsersIcon } from "lucide-react";
 import { BulkActionBar, BulkActionButton } from "../components/BulkActionBar";
 
@@ -206,9 +205,10 @@ export default function AdminUsersPage() {
       italic="Roster."
       description="Every authenticated principal across the platform — credits, tier, roles, and project footprint."
       actions={
-        <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9 text-white/40">
+        <DeckButton onClick={fetchUsers} disabled={usersLoading}>
           {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-        </Button>
+          Search
+        </DeckButton>
       }
       stats={[
         { label: "Operators", value: users.length.toLocaleString(), tone: "blue", sub: "indexed" },
@@ -218,51 +218,42 @@ export default function AdminUsersPage() {
       ]}
     >
       <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-          <Input
-            placeholder="Search users..."
-            value={userSearch}
-            onChange={(e) => setUserSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
-            className="pl-9 h-9 text-sm bg-glass border-white/[0.06] text-white placeholder:text-white/20"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <Input
+              placeholder="Search users..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
+              className="pl-9 h-9 text-sm bg-glass border-white/[0.06] text-white placeholder:text-white/20"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="w-10 py-3 pl-4">
-                  <input
-                    type="checkbox"
-                    checked={users.length > 0 && selected.size === users.length}
-                    onChange={toggleAll}
-                    aria-label="Select all"
-                    className="w-3.5 h-3.5 rounded border border-white/20 bg-transparent accent-[#0A84FF] cursor-pointer"
-                  />
-                </th>
-                <th className="text-left py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">User</th>
-                <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Credits</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Projects</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Tier</th>
-                <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Roles</th>
-                <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  className={cn(
-                    "border-b border-white/[0.04] transition-colors",
-                    selected.has(u.id) ? "bg-primary/[0.05]" : "hover:bg-glass",
-                  )}
-                >
-                  <td className="w-10 py-3 pl-4">
+        <FloatSection title="Roster" meta={`${users.length} indexed`}>
+          {users.length === 0 && !usersLoading ? (
+            <AdminEmptyState
+              code="IDN"
+              icon={UsersIcon}
+              title="No principals match this query"
+              hint="Adjust your search term or clear it to surface every authenticated operator across the membrane."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <FloatTable
+                columns={[
+                  { key: "select", label: "", className: "w-10" },
+                  { key: "user", label: "User" },
+                  { key: "credits", label: "Credits", align: "right" },
+                  { key: "projects", label: "Projects", align: "right" },
+                  { key: "tier", label: "Tier" },
+                  { key: "roles", label: "Roles" },
+                  { key: "actions", label: "Actions", align: "right" },
+                ]}
+                rows={users.map((u) => ({
+                  _key: u.id,
+                  select: (
                     <input
                       type="checkbox"
                       checked={selected.has(u.id)}
@@ -270,26 +261,20 @@ export default function AdminUsersPage() {
                       aria-label={`Select ${u.email}`}
                       className="w-3.5 h-3.5 rounded border border-white/20 bg-transparent accent-[#0A84FF] cursor-pointer"
                     />
-                  </td>
-                  <td className="py-3 px-4">
-                    <p className="text-sm font-medium text-white">{u.display_name || u.full_name || "Unknown"}</p>
-                    <p className="text-xs text-white/30">{u.email}</p>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="font-mono text-sm text-white/70">{u.credits_balance?.toLocaleString()}</span>
-                  </td>
-                  <td className="py-3 px-4 text-center text-sm text-white/40">{u.project_count}</td>
-                  <td className="py-3 px-4 text-center">
-                    <Badge variant="secondary" className="text-[10px] font-medium bg-glass-hover text-white/50 border-white/[0.06]">{u.account_tier}</Badge>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {u.roles?.includes("admin") && (
-                      <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px]">
-                        <Crown className="w-2.5 h-2.5 mr-1" />Admin
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right">
+                  ),
+                  user: (
+                    <div>
+                      <p className="text-sm font-medium text-white">{u.display_name || u.full_name || "Unknown"}</p>
+                      <p className="text-xs text-white/30">{u.email}</p>
+                    </div>
+                  ),
+                  credits: <span className="font-mono text-sm text-white/70">{u.credits_balance?.toLocaleString()}</span>,
+                  projects: <span className="text-sm text-white/40">{u.project_count}</span>,
+                  tier: <StatusPill>{u.account_tier}</StatusPill>,
+                  roles: u.roles?.includes("admin") ? (
+                    <StatusPill tone="accent"><Crown className="w-2.5 h-2.5" />Admin</StatusPill>
+                  ) : null,
+                  actions: (
                     <div className="flex items-center justify-end gap-1.5">
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/30 hover:text-white/60"
                         onClick={() => setCreditDialog({ open: true, user: u, amount: "", reason: "" })} title="Adjust Credits">
@@ -321,128 +306,117 @@ export default function AdminUsersPage() {
                       </Button>
                       {/* Manage — opens the full user detail page where suspend / delete /
                           force-verify / impersonation-link live with full guards. */}
-                      <Link
-                        to={`/admin/users/${u.id}`}
-                        title="Manage user"
-                        className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-white/[0.08] hover:border-white/30 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 hover:text-white transition-colors"
-                      >
-                        Manage <ArrowRight className="w-3 h-3" />
-                      </Link>
+                      <DeckButton accent>
+                        <Link to={`/admin/users/${u.id}`} title="Manage user" className="inline-flex items-center gap-1.5">
+                          Manage <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </DeckButton>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {users.length === 0 && !usersLoading && (
-            <AdminEmptyState
-              code="IDN"
-              icon={UsersIcon}
-              title="No principals match this query"
-              hint="Adjust your search term or clear it to surface every authenticated operator across the membrane."
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Bulk action bar — only when rows selected */}
-      <BulkActionBar
-        count={selected.size}
-        itemNoun="user"
-        onClear={clearSelection}
-      >
-        <BulkActionButton
-          icon={Coins}
-          label="Grant credits"
-          tone="blue"
-          onClick={() => setBulkGrantOpen(true)}
-          disabled={bulkBusy}
-        />
-        <BulkActionButton
-          icon={UserMinus}
-          label="Suspend"
-          tone="rose"
-          onClick={runBulkSuspend}
-          disabled={bulkBusy}
-        />
-        <BulkActionButton
-          icon={UserCheck}
-          label="Restore"
-          onClick={runBulkRestore}
-          disabled={bulkBusy}
-        />
-        <BulkActionButton
-          icon={Plus}
-          label="Export CSV"
-          onClick={exportSelectedCsv}
-          disabled={bulkBusy}
-        />
-      </BulkActionBar>
-
-      {/* Bulk grant dialog */}
-      <Dialog open={bulkGrantOpen} onOpenChange={setBulkGrantOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base">Bulk grant credits</DialogTitle>
-            <DialogDescription className="text-xs">
-              Granting to <strong>{selected.size}</strong> selected user{selected.size === 1 ? "" : "s"}. Cap is 10,000 per grant.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-3">
-            <Input
-              type="number"
-              placeholder="Amount per user"
-              value={bulkGrantAmount}
-              onChange={(e) => setBulkGrantAmount(e.target.value)}
-              className="h-9 text-sm"
-            />
-            <Input
-              placeholder="Reason (audited)"
-              value={bulkGrantReason}
-              onChange={(e) => setBulkGrantReason(e.target.value)}
-              className="h-9 text-sm"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setBulkGrantOpen(false)} disabled={bulkBusy}>Cancel</Button>
-            <Button size="sm" onClick={runBulkGrant} disabled={bulkBusy}>
-              {bulkBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Grant"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Credit Adjustment Dialog */}
-      <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: "", reason: "" })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base">Adjust Credits</DialogTitle>
-            <DialogDescription className="text-xs">
-              {creditDialog.user?.display_name || creditDialog.user?.email} — Balance: <strong>{creditDialog.user?.credits_balance?.toLocaleString()}</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-3">
-            <div className="flex items-center gap-2">
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
-                onClick={() => setCreditDialog(prev => ({ ...prev, amount: String(Math.abs(parseInt(prev.amount) || 0) * -1) }))}>
-                <Minus className="w-4 h-4" />
-              </Button>
-              <Input type="number" placeholder="Amount" value={creditDialog.amount}
-                onChange={(e) => setCreditDialog(prev => ({ ...prev, amount: e.target.value }))} className="flex-1 h-9 text-sm" />
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
-                onClick={() => setCreditDialog(prev => ({ ...prev, amount: String(Math.abs(parseInt(prev.amount) || 0)) }))}>
-                <Plus className="w-4 h-4" />
-              </Button>
+                  ),
+                }))}
+              />
             </div>
-            <Input placeholder="Reason for adjustment..." value={creditDialog.reason}
-              onChange={(e) => setCreditDialog(prev => ({ ...prev, reason: e.target.value }))} className="h-9 text-sm" />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setCreditDialog({ open: false, user: null, amount: "", reason: "" })}>Cancel</Button>
-            <Button size="sm" onClick={handleAdjustCredits}>Apply</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+        </FloatSection>
+
+        {/* Bulk action bar — only when rows selected */}
+        <BulkActionBar
+          count={selected.size}
+          itemNoun="user"
+          onClear={clearSelection}
+        >
+          <BulkActionButton
+            icon={Coins}
+            label="Grant credits"
+            tone="blue"
+            onClick={() => setBulkGrantOpen(true)}
+            disabled={bulkBusy}
+          />
+          <BulkActionButton
+            icon={UserMinus}
+            label="Suspend"
+            tone="rose"
+            onClick={runBulkSuspend}
+            disabled={bulkBusy}
+          />
+          <BulkActionButton
+            icon={UserCheck}
+            label="Restore"
+            onClick={runBulkRestore}
+            disabled={bulkBusy}
+          />
+          <BulkActionButton
+            icon={Plus}
+            label="Export CSV"
+            onClick={exportSelectedCsv}
+            disabled={bulkBusy}
+          />
+        </BulkActionBar>
+
+        {/* Bulk grant dialog */}
+        <Dialog open={bulkGrantOpen} onOpenChange={setBulkGrantOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Bulk grant credits</DialogTitle>
+              <DialogDescription className="text-xs">
+                Granting to <strong>{selected.size}</strong> selected user{selected.size === 1 ? "" : "s"}. Cap is 10,000 per grant.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-3">
+              <Input
+                type="number"
+                placeholder="Amount per user"
+                value={bulkGrantAmount}
+                onChange={(e) => setBulkGrantAmount(e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Input
+                placeholder="Reason (audited)"
+                value={bulkGrantReason}
+                onChange={(e) => setBulkGrantReason(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" size="sm" onClick={() => setBulkGrantOpen(false)} disabled={bulkBusy}>Cancel</Button>
+              <Button size="sm" onClick={runBulkGrant} disabled={bulkBusy}>
+                {bulkBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Grant"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Credit Adjustment Dialog */}
+        <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: "", reason: "" })}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Adjust Credits</DialogTitle>
+              <DialogDescription className="text-xs">
+                {creditDialog.user?.display_name || creditDialog.user?.email} — Balance: <strong>{creditDialog.user?.credits_balance?.toLocaleString()}</strong>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-3">
+              <div className="flex items-center gap-2">
+                <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
+                  onClick={() => setCreditDialog(prev => ({ ...prev, amount: String(Math.abs(parseInt(prev.amount) || 0) * -1) }))}>
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <Input type="number" placeholder="Amount" value={creditDialog.amount}
+                  onChange={(e) => setCreditDialog(prev => ({ ...prev, amount: e.target.value }))} className="flex-1 h-9 text-sm" />
+                <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
+                  onClick={() => setCreditDialog(prev => ({ ...prev, amount: String(Math.abs(parseInt(prev.amount) || 0)) }))}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              <Input placeholder="Reason for adjustment..." value={creditDialog.reason}
+                onChange={(e) => setCreditDialog(prev => ({ ...prev, reason: e.target.value }))} className="h-9 text-sm" />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" size="sm" onClick={() => setCreditDialog({ open: false, user: null, amount: "", reason: "" })}>Cancel</Button>
+              <Button size="sm" onClick={handleAdjustCredits}>Apply</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <UserAnalyticsSheet userId={analyticsUser?.id ?? null} label={analyticsUser?.label} open={!!analyticsUser} onClose={() => setAnalyticsUser(null)} />
     </AdminPageShell>

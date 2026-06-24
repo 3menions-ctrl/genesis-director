@@ -252,7 +252,7 @@ export function TeamContent() {
       ) : filteredMembers.length === 0 ? (
         <EmptyState icon={Search} title="No members match." description="No roster members match your search or role filter. Try clearing the filters." />
       ) : (
-      <div className="rounded-2xl ring-1 ring-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+      <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
         {memberPage.slice.map((m, i) => {
           const idx = (memberPage.page - 1) * memberPage.pageSize + i;
           const RoleIcon = roleMeta(m.role).icon;
@@ -310,7 +310,7 @@ export function TeamContent() {
       {invites.length === 0 ? (
         <EmptyState icon={Mail} title="No pending invites." description="Dispatched invites that haven't been accepted yet will appear here." />
       ) : (
-      <div className="rounded-2xl ring-1 ring-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+      <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
         {invitePage.slice.map((inv) => (
           <div key={inv.id} className="flex items-center gap-3.5 px-4 py-3">
             <Mail className="w-4 h-4 text-white/35 shrink-0" />
@@ -337,7 +337,7 @@ export function TeamContent() {
         {(Object.keys(ROLE_META) as OrgRole[]).map((r) => {
           const meta = ROLE_META[r]; const Icon = meta.icon;
           return (
-            <div key={r} className={cn("rounded-2xl p-4 ring-1", r === "owner" ? "ring-amber-400/25 bg-amber-400/[0.04]" : "ring-white/[0.07] bg-white/[0.015]")}>
+            <div key={r} className={cn("rounded-2xl p-4", r === "owner" && "ring-1 ring-amber-400/25 bg-amber-400/[0.04]")}>
               <div className="flex items-center gap-2 mb-2"><Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} /><span className="text-[12px] font-mono uppercase tracking-[0.18em] text-white/90">{meta.label}</span></div>
               <p className="text-[12.5px] text-white/55 font-light leading-snug">{meta.description}</p>
             </div>

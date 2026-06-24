@@ -165,7 +165,7 @@ export default function BusinessTemplates() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !saving && setOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl ring-1 ring-white/[0.07] bg-[#0a0a0f] p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-2xl bg-[#0a0a0f] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display italic font-light text-[20px] text-white tracking-[-0.01em]">New template</h2>
               <button type="button" onClick={() => !saving && setOpen(false)} className="p-1 text-white/45 hover:text-white transition" aria-label="Close"><X className="w-4 h-4" /></button>

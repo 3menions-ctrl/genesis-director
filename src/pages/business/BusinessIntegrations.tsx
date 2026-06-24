@@ -54,7 +54,7 @@ function relativeTime(iso: string | null): string {
 
 function CardShell({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5 transition-colors hover:ring-white/[0.12] hover:bg-white/[0.025]">
+    <div className="rounded-2xl p-5 transition-colors">
       <div className="flex items-start gap-4">
         <div className="w-10 h-10 rounded-xl ring-1 ring-white/[0.07] bg-gradient-to-br from-white/[0.06] to-white/[0.015] flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />

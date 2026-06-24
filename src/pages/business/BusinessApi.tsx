@@ -239,7 +239,7 @@ export default function BusinessApi() {
       )}
 
       {canManage && (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2.5 mb-4">
+        <div className="rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2.5 mb-4">
           <input
             type="text"
             placeholder="Key name (e.g. Production backend)"
@@ -265,7 +265,7 @@ export default function BusinessApi() {
           description="Generate a workspace-scoped API key to call generation endpoints from your backend. Keys inherit the org credit pool."
         />
       ) : (
-      <div className="rounded-2xl ring-1 ring-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+      <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
         {keys.map((k) => (
           <div key={k.id} className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
             <span className="w-9 h-9 rounded-full bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center shrink-0"><KeyRound className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} /></span>
@@ -470,7 +470,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
               ? { tone: "warn" as const, dot: "bg-amber-400", text: "text-amber-300/90", label: `${h.failure_count} recent failure${h.failure_count === 1 ? "" : "s"}` }
               : { tone: "bad" as const, dot: "bg-rose-400", text: "text-rose-300/90", label: `${h.failure_count} failures` };
           return (
-            <div key={h.id} className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-4 hover:ring-white/[0.12] transition-colors flex flex-col">
+            <div key={h.id} className="rounded-2xl p-4 transition-colors flex flex-col">
               <div className="flex items-start gap-2.5">
                 <span className="relative flex w-2.5 h-2.5 mt-1.5 shrink-0">
                   <span className={cn("absolute inline-flex w-full h-full rounded-full opacity-60", health.dot)} />
@@ -549,7 +549,7 @@ function CreateWebhookForm({
     setEvents((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
   return (
-    <div className="mb-4 rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5 space-y-4">
+    <div className="mb-4 rounded-2xl p-5 space-y-4">
       <div>
         <div className={cn(TYPE_META, "text-white/45 mb-2")}>Endpoint URL</div>
         <input

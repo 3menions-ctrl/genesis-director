@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Mail, RefreshCw, Search, CheckCircle2, XCircle, Clock, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageShell } from "../components/AdminPageShell";
+import {
+  StatOrb, FloatSection, FloatTable, StatusPill, DeckButton,
+  ACCENT_HSL, CYAN, AMBER, ROSE,
+} from "@/admin/ui/primitives";
 
 interface EmailLogRow {
   id: string;
@@ -15,28 +19,26 @@ interface EmailLogRow {
   created_at: string;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
-  sent:        { bg: "bg-emerald-500/15 border-emerald-400/40", text: "text-emerald-300", icon: CheckCircle2 },
-  pending:     { bg: "bg-amber-500/15 border-amber-400/40",     text: "text-amber-300",   icon: Clock },
-  failed:      { bg: "bg-red-500/15 border-red-400/40",          text: "text-red-300",     icon: XCircle },
-  dlq:         { bg: "bg-red-500/20 border-red-400/50",          text: "text-red-300",     icon: XCircle },
-  bounced:     { bg: "bg-red-500/15 border-red-400/40",          text: "text-red-300",     icon: XCircle },
-  complained:  { bg: "bg-red-500/15 border-red-400/40",          text: "text-red-300",     icon: XCircle },
-  suppressed:  { bg: "bg-yellow-500/15 border-yellow-400/40",    text: "text-yellow-200",  icon: Ban },
+type Tone = "accent" | "positive" | "warn" | "danger" | "neutral";
+const STATUS_STYLES: Record<string, { tone: Tone; icon: React.ElementType }> = {
+  sent:        { tone: "positive", icon: CheckCircle2 },
+  pending:     { tone: "warn",     icon: Clock },
+  failed:      { tone: "danger",   icon: XCircle },
+  dlq:         { tone: "danger",   icon: XCircle },
+  bounced:     { tone: "danger",   icon: XCircle },
+  complained:  { tone: "danger",   icon: XCircle },
+  suppressed:  { tone: "warn",     icon: Ban },
 };
 
 function StatusBadge({ status }: { status: string | null }) {
   const key = (status || "").toLowerCase();
-  const cfg = STATUS_STYLES[key] || { bg: "bg-white/5 border-white/10", text: "text-white/70", icon: Mail };
+  const cfg = STATUS_STYLES[key] || { tone: "neutral" as Tone, icon: Mail };
   const Icon = cfg.icon;
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] uppercase tracking-[0.2em] font-mono",
-      cfg.bg, cfg.text
-    )}>
+    <StatusPill tone={cfg.tone}>
       <Icon className="w-3 h-3" />
       {status || "unknown"}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -100,32 +102,21 @@ export default function AdminEmailsPage() {
       italic="Delivery."
       description="Auth and transactional email delivery history with the latest status per message."
       actions={
-        <button
-          onClick={() => fetchLogs(activeFilter)}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[hsla(215,100%,60%,0.15)] border border-[hsla(215,100%,60%,0.4)] text-[hsl(215,100%,80%)] hover:bg-[hsla(215,100%,60%,0.25)] transition-colors text-xs uppercase tracking-[0.2em] font-mono disabled:opacity-50"
-        >
+        <DeckButton accent onClick={() => fetchLogs(activeFilter)} disabled={loading}>
           <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
           Refresh
-        </button>
+        </DeckButton>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-12">
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: "Total",      value: stats.total,      tone: "text-white" },
-          { label: "Sent",       value: stats.sent,       tone: "text-emerald-300" },
-          { label: "Pending",    value: stats.pending,    tone: "text-amber-300" },
-          { label: "Failed",     value: stats.failed,     tone: "text-red-300" },
-          { label: "Suppressed", value: stats.suppressed, tone: "text-yellow-200" },
-        ].map(s => (
-          <div key={s.label} className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-white/[0.06] backdrop-blur-xl p-4">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">{s.label}</div>
-            <div className={cn("text-2xl font-semibold mt-1 font-mono", s.tone)}>{s.value}</div>
-          </div>
-        ))}
+      {/* Stats — floating figures */}
+      <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-5">
+        <StatOrb index={0} aura={ACCENT_HSL} label="Total"      value={stats.total} />
+        <StatOrb index={1} aura={CYAN}       label="Sent"       value={stats.sent} />
+        <StatOrb index={2} aura={AMBER}      label="Pending"    value={stats.pending} />
+        <StatOrb index={3} aura={ROSE}       label="Failed"     value={stats.failed} />
+        <StatOrb index={4} aura={AMBER}      label="Suppressed" value={stats.suppressed} />
       </div>
 
       {/* Filters */}
@@ -142,12 +133,12 @@ export default function AdminEmailsPage() {
                 value={emailFilter}
                 onChange={(e) => setEmailFilter(e.target.value)}
                 placeholder="user@example.com or substring"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-white/[0.08] text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
+                className="w-full pl-9 pr-3 py-2 rounded-full bg-white/[0.04] text-sm text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.07] transition-colors"
               />
             </div>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-[hsl(215,100%,60%)] text-white text-xs uppercase tracking-[0.2em] font-mono hover:bg-[hsl(215,100%,55%)] transition-colors"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[#06070a] transition-colors hover:bg-white/90"
             >
               Search
             </button>
@@ -158,7 +149,7 @@ export default function AdminEmailsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-[hsla(220,14%,4%,0.7)] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-[hsla(215,100%,60%,0.5)] transition-colors"
+            className="px-4 py-2 rounded-full bg-white/[0.04] text-sm text-white focus:outline-none focus:bg-white/[0.07] transition-colors"
           >
             <option value="all">All</option>
             <option value="sent">Sent</option>
@@ -171,7 +162,7 @@ export default function AdminEmailsPage() {
 
       {/* Auth hook activity hint */}
       {activeFilter && rows.length === 0 && !loading && !error && (
-        <div className="rounded-xl bg-amber-500/5 border border-amber-400/30 p-4 text-sm text-amber-200">
+        <div className="rounded-2xl bg-amber-500/5 p-4 text-sm text-amber-200">
           <div className="font-medium mb-1">No email log entries found for "{activeFilter}"</div>
           <div className="text-amber-200/70 text-xs leading-relaxed">
             If a user signed up but no row appears here, the auth-email-hook was likely never invoked by Supabase Auth.
@@ -181,7 +172,7 @@ export default function AdminEmailsPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-xl bg-[hsla(220,14%,4%,0.6)] border border-white/[0.06] backdrop-blur-xl overflow-hidden">
+      <FloatSection title="Delivery log" meta={loading ? "loading…" : `${filteredRows.length} shown`}>
         {loading ? (
           <div className="p-12 flex items-center justify-center text-white/40">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -192,39 +183,27 @@ export default function AdminEmailsPage() {
             <div className="font-medium mb-1">Failed to load email log</div>
             <div className="text-red-300/70 text-xs font-mono">{error}</div>
           </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="p-12 text-center text-white/40 text-sm">No emails match the current filters.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.25em] text-white/40 font-mono">
-                  <th className="text-left px-4 py-3 font-medium">Template</th>
-                  <th className="text-left px-4 py-3 font-medium">Recipient</th>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium">When</th>
-                  <th className="text-left px-4 py-3 font-medium">Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((r) => (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
-                    <td className="px-4 py-3 text-white/80 font-mono text-xs">{r.template_name || "—"}</td>
-                    <td className="px-4 py-3 text-white/70 text-xs">{r.recipient_email || "—"}</td>
-                    <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                    <td className="px-4 py-3 text-white/50 text-xs font-mono whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-red-300/80 text-xs max-w-md truncate" title={r.error_message || undefined}>
-                      {r.error_message || ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <FloatTable
+            empty="No emails match the current filters."
+            columns={[
+              { key: "template", label: "Template" },
+              { key: "recipient", label: "Recipient" },
+              { key: "status", label: "Status" },
+              { key: "when", label: "When" },
+              { key: "error", label: "Error" },
+            ]}
+            rows={filteredRows.map((r) => ({
+              _key: r.id,
+              template: <span className="font-mono text-xs text-white/80">{r.template_name || "—"}</span>,
+              recipient: <span className="text-xs text-white/70">{r.recipient_email || "—"}</span>,
+              status: <StatusBadge status={r.status} />,
+              when: <span className="font-mono text-xs whitespace-nowrap text-white/50">{new Date(r.created_at).toLocaleString()}</span>,
+              error: <span className="block max-w-md truncate text-xs text-red-300/80" title={r.error_message || undefined}>{r.error_message || ""}</span>,
+            }))}
+          />
         )}
-      </div>
+      </FloatSection>
       </div>
     </AdminPageShell>
   );

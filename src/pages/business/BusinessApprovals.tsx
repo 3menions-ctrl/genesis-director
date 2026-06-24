@@ -190,7 +190,7 @@ export function ApprovalsContent() {
           description="When a Producer submits a production for sign-off, reviewers see it here with approve and reject controls."
         />
       ) : (
-        <StaggerList className="rounded-2xl ring-1 ring-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+        <StaggerList className="rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
           {pending.map((row) => (
             <StaggerItem key={row.id} className="p-5 flex flex-col md:flex-row gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -242,7 +242,7 @@ export function ApprovalsContent() {
       {!loading && visibleClosed.length > 0 && (
         <>
           <SectionHead label={statusFilter === "all" ? "Recent decisions" : `${STATUS_FILTERS.find((f) => f.key === statusFilter)?.label} decisions`} count={Math.min(visibleClosed.length, 50)} />
-          <div className="rounded-2xl ring-1 ring-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+          <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
             {visibleClosed.slice(0, 50).map((row) => (
               <div key={row.id} className="flex items-center gap-3.5 px-4 py-3 hover:bg-white/[0.02] transition-colors">
                 <Clock className="w-3.5 h-3.5 text-white/35 shrink-0" />

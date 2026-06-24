@@ -238,7 +238,7 @@ export default function BusinessAudit() {
       ) : visible.length === 0 ? (
         <EmptyState icon={History} title={rows.length === 0 ? "No events yet." : "No matches."} description={rows.length === 0 ? "Audit events appear here as members create projects, spend credits and manage the team." : "Try a different search or filter."} />
       ) : (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] overflow-hidden">
+        <div className="rounded-2xl overflow-hidden">
           <ul className="divide-y divide-white/[0.05]">
             {slice.map((e) => (
               <li key={e.id}>

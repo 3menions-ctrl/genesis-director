@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminPageShell } from "../../components/AdminPageShell";
+import { DeckButton } from "@/admin/ui/primitives";
 import { cn } from "@/lib/utils";
 
 type Kind =
@@ -154,10 +155,10 @@ export default function AdminNotificationsPage() {
               key={k}
               onClick={() => setFilter(active ? "all" : k)}
               className={cn(
-                "relative group overflow-hidden text-left rounded-2xl border bg-background/60 backdrop-blur-xl p-5 transition-all",
-                active ? "border-white/30 scale-[1.01]" : "border-white/8 hover:border-white/15"
+                "relative group overflow-hidden text-left rounded-2xl p-5 transition-all",
+                active && "scale-[1.01]"
               )}
-              style={{ boxShadow: active ? `0 0 40px ${m.glow}, inset 0 0 0 1px ${m.tone}55` : `0 0 0 transparent` }}
+              style={{ boxShadow: active ? `0 0 40px ${m.glow}` : undefined }}
             >
               {/* Glow */}
               <div
@@ -168,8 +169,8 @@ export default function AdminNotificationsPage() {
               <div className="relative flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center border"
-                    style={{ borderColor: `${m.tone}55`, background: `${m.tone}15`, color: m.tone, boxShadow: c.unread > 0 ? `0 0 14px ${m.glow}` : "none" }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: `${m.tone}15`, color: m.tone, boxShadow: c.unread > 0 ? `0 0 14px ${m.glow}` : "none" }}
                   >
                     <Icon className="w-4 h-4" />
                   </div>
@@ -217,18 +218,14 @@ export default function AdminNotificationsPage() {
           )}
         </div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-mono">
-          <button
-            onClick={markAllRead}
-            disabled={totalUnread === 0}
-            className="flex items-center gap-1.5 px-3 py-1 rounded border border-white/10 hover:border-primary/50 hover:text-primary text-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
+          <DeckButton onClick={markAllRead} disabled={totalUnread === 0}>
             <CheckCheck className="w-3 h-3" /> Mark all read
-          </button>
+          </DeckButton>
         </div>
       </div>
 
       {/* Feed */}
-      <div className="relative rounded-2xl border border-white/8 bg-background/60 backdrop-blur-xl overflow-hidden">
+      <div className="relative overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-white/30">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -262,9 +259,8 @@ export default function AdminNotificationsPage() {
                       />
                     )}
                     <div
-                      className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border"
+                      className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
                       style={{
-                        borderColor: n.read ? "rgba(255,255,255,0.08)" : `${m.tone}55`,
                         background: n.read ? "rgba(255,255,255,0.02)" : `${m.tone}12`,
                         color: n.read ? "rgba(255,255,255,0.35)" : m.tone,
                         boxShadow: n.read ? "none" : `0 0 12px ${m.glow}`,

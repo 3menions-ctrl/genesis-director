@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+// AUDIT FIX (admin lockout): import the shared auth guard STATICALLY. The
+// previous `await import("../_shared/auth-guard.ts")` (dynamic) was not bundled
+// by the edge-function deployer, so the deployed function threw
+// "Module not found: _shared/auth-guard.ts" (HTTP 500) on EVERY call — breaking
+// delete-user, force-verify, password-reset, magic-link and impersonation.
+// Static imports are always bundled.
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,9 +53,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const { validateAuth, unauthorizedResponse } = await import(
-      "../_shared/auth-guard.ts"
-    );
     const auth = await validateAuth(req);
     if (!auth.authenticated || !auth.userId) {
       return unauthorizedResponse(corsHeaders, auth.error);

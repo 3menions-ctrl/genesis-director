@@ -4,8 +4,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Coins, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
@@ -44,9 +43,9 @@ export default function AdminCreditsPage() {
       italic="Transactions."
       description="Every credit movement across the platform — purchases, consumption, refunds, and adjustments."
       actions={
-        <Button onClick={fetch} variant="ghost" size="sm" className="text-xs text-white/30 hover:text-white/60">
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-        </Button>
+        <DeckButton onClick={fetch}>
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+        </DeckButton>
       }
       stats={[
         { label: "Movements", value: txns.length.toLocaleString(), tone: "blue", sub: "last 200" },
@@ -69,9 +68,7 @@ export default function AdminCreditsPage() {
               {txns.map((t) => (
                 <tr key={t.id} className="border-b border-white/[0.04] hover:bg-glass transition-colors">
                   <td className="py-3 px-4">
-                    <Badge variant="outline" className={cn("text-[10px] border-white/10",
-                      t.transaction_type === "purchase" ? "text-success" : t.transaction_type === "refund" ? "text-warning" : "text-white/50"
-                    )}>{t.transaction_type}</Badge>
+                    <StatusPill tone={t.transaction_type === "purchase" ? "positive" : t.transaction_type === "refund" ? "warn" : "neutral"}>{t.transaction_type}</StatusPill>
                   </td>
                   <td className="py-3 px-4">
                     <span className={cn("font-mono text-sm", t.amount >= 0 ? "text-success" : "text-destructive")}>

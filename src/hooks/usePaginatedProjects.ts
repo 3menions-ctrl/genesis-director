@@ -169,19 +169,26 @@ export function usePaginatedProjects(
       return;
     }
     
+    // LOGIC FIX L-4: the AbortController was created but its signal was never
+    // used, so a slower earlier fetch (from the user-id effect, the debounced
+    // filter effect, or refresh) could resolve AFTER a newer one and clobber the
+    // list with stale results. Capture the controller locally; starting a new
+    // fetch aborts the previous one, and we drop any response whose controller
+    // was aborted (latest-wins).
     abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Only show full loading on first load
     if (!hasLoadedOnceRef.current) {
       setIsLoading(true);
     }
-    
+
     try {
       const query = buildQuery(0);
       const { data, error: queryError, count } = await query;
-      
-      if (!isMountedRef.current) return;
+
+      if (!isMountedRef.current || controller.signal.aborted) return;
       
       if (queryError) {
         setError(queryError.message);

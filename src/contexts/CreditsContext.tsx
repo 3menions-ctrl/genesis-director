@@ -50,16 +50,30 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // LOGIC FIX L-3/L-11: balance/held are written from several overlapping
+  // sources (3 realtime handlers fire on a single spend, + visibility + the
+  // initial reconcile) with no ordering guard — an older RPC response could
+  // overwrite a newer one, and a response could resolve after unmount. Stamp a
+  // generation per fetch and only apply state if it's still the latest AND the
+  // provider is still mounted (latest-call-wins; no set-after-unmount).
+  const opGenRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const applyState = useCallback((gen: number, b: number, h: number) => {
+    if (gen === opGenRef.current && mountedRef.current) { setBalance(b); setHeld(h); }
+  }, []);
+
   const readState = useCallback(async (uid: string) => {
+    const gen = ++opGenRef.current;
     const { data, error: rpcErr } = await supabase.rpc('get_credit_state' as never, { p_user_id: uid } as never);
     if (rpcErr) throw rpcErr;
     const payload = (data as { success?: boolean; balance?: number; held?: number; available?: number }) || {};
     if (payload.success === false) throw new Error('get_credit_state failed');
     const b = Number(payload.balance ?? 0);
     const h = Number(payload.held ?? 0);
-    setBalance(b); setHeld(h);
+    applyState(gen, b, h);
     return { balance: b, held: h, available: Number(payload.available ?? Math.max(b - h, 0)) };
-  }, []);
+  }, [applyState]);
 
   // Hold balance/held in refs so the `refresh` callback identity doesn't
   // change on every ledger event. The old code had balance + held in
@@ -97,6 +111,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
   const reconcile = useCallback(async () => {
     if (!userId) return { balance: 0, held: 0, available: 0 };
+    const gen = ++opGenRef.current;
     try {
       const { data, error: rpcErr } = await supabase.rpc('reconcile_user_credits' as never);
       if (rpcErr) throw rpcErr;
@@ -104,7 +119,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       if (payload.success) {
         const b = Number(payload.balance ?? 0);
         const h = Number(payload.held ?? 0);
-        setBalance(b); setHeld(h);
+        applyState(gen, b, h);
         void refreshProfile();
         return { balance: b, held: h, available: Number(payload.available ?? Math.max(b - h, 0)) };
       } else {

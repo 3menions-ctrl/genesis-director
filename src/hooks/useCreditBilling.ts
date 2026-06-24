@@ -252,15 +252,16 @@ export function useCreditBilling() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('id', user.id)
-        .maybeSingle();
+      // LOGIC FIX L-2: use the authoritative held-aware balance
+      // (available = balance − active holds) from get_credit_state, NOT the
+      // profiles.credits_balance display cache — otherwise this over-promises
+      // affordability while pipelines hold credits (the cache ignores holds).
+      const { data, error } = await supabase.rpc('get_credit_state' as never, { p_user_id: user.id } as never);
 
       if (error) throw error;
 
-      const availableCredits = data?.credits_balance || 0;
+      const payload = (data as { available?: number; balance?: number; held?: number }) || {};
+      const availableCredits = Number(payload.available ?? payload.balance ?? 0);
       const shortfall = Math.max(0, requiredCredits - availableCredits);
 
       return {

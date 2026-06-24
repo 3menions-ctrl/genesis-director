@@ -28,6 +28,7 @@ const corsHeaders = {
 
 const DELIVERY_TIMEOUT_MS = 10_000;
 const PAUSE_AFTER_FAILURES = 10;
+const ROLE_RANK: Record<string, number> = { owner: 5, admin: 4, producer: 3, reviewer: 2, viewer: 1 };
 
 interface WebhookEndpoint {
   id: string;
@@ -128,13 +129,20 @@ serve(async (req) => {
   }
 
   try {
+    const { validateAuth, requireServiceRole, unauthorizedResponse, forbiddenResponse } =
+      await import("../_shared/auth-guard.ts");
     const body = await req.json().catch(() => ({}));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Mode 1 — direct dispatch (test fire from UI).
+    // Mode 1 — direct dispatch (test fire from UI). Requires an authenticated
+    // ADMIN member of the endpoint's organization. Without this gate any
+    // anon-key caller could fire validly-signed events at another org's URLs.
     if (body.endpointId) {
+      const auth = await validateAuth(req);
+      if (!auth.authenticated || !auth.userId) return unauthorizedResponse(corsHeaders, auth.error);
+
       const { data: endpoint, error } = await supabase
         .from("webhook_endpoints")
         .select("id, organization_id, url, events, secret, active, failure_count")
@@ -146,6 +154,19 @@ serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+
+      // The caller must be an admin (or owner) of the endpoint's workspace.
+      const { data: membership } = await supabase
+        .from("organization_members")
+        .select("role")
+        .eq("organization_id", endpoint.organization_id)
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      const rank = membership ? (ROLE_RANK[String(membership.role)] ?? 0) : 0;
+      if (rank < ROLE_RANK.admin) {
+        return forbiddenResponse(corsHeaders, "Admin access to this workspace is required.");
+      }
+
       const result = await deliverOne(
         supabase,
         endpoint,
@@ -163,7 +184,12 @@ serve(async (req) => {
     }
 
     // Mode 2 — broadcast to all active endpoints subscribed to this event.
+    // Server-to-server only: must carry the service-role key. An end-user JWT
+    // or the public anon key cannot fan out events into a workspace.
     if (body.organizationId && body.event) {
+      if (!requireServiceRole(req)) {
+        return forbiddenResponse(corsHeaders, "Broadcast dispatch requires the service role.");
+      }
       const { data: endpoints, error } = await supabase
         .from("webhook_endpoints")
         .select("id, organization_id, url, events, secret, active, failure_count")

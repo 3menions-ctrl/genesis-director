@@ -89,10 +89,12 @@ export function AdminFailedClipsQueue() {
 
       // Get user info
       const userIds = [...new Set((projectsData || []).map(p => p.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', userIds);
+      const { data: profilesData } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<Record<string, unknown>> | null }>
+      )("admin_profiles_by_ids", { p_ids: userIds });
 
       const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
 

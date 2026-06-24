@@ -124,12 +124,15 @@ export default function AdminUserDetailPage() {
         console.warn("[AdminUserDetail] RPC failed, falling back:", rpcErr.message);
       }
 
-      // Fallback — direct queries against `profiles` + roll-up counts.
-      const { data: profile, error: profileErr } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
+      // Fallback — full row via SECURITY DEFINER admin RPC (profiles.email is
+      // column-revoked from `authenticated`, so a direct `select('*')` fails;
+      // admin_get_profile is is_admin-gated and returns the full row).
+      const { data: profile, error: profileErr } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }> }
+      )("admin_get_profile", { p_user_id: userId }).maybeSingle();
       if (profileErr) {
         throw new Error(`profiles fetch: ${profileErr.message}`);
       }

@@ -33,10 +33,12 @@ export default function WorkspaceAnalytics() {
       const userIds = (members ?? []).map(m => m.user_id);
       if (userIds.length === 0) { setRows([]); return; }
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, full_name, email, avatar_url')
-        .in('id', userIds);
+      const { data: profiles } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
+      )('org_member_directory', { p_org_id: currentOrg.id });
       const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
 
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();

@@ -100,10 +100,12 @@ export function AdminContentModeration() {
       
       // Fetch user info for each video
       const userIds = [...new Set((videos || []).map(v => v.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, email, display_name')
-        .in('id', userIds);
+      const { data: profiles } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<Record<string, unknown>> | null }>
+      )("admin_profiles_by_ids", { p_ids: userIds });
       
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
       

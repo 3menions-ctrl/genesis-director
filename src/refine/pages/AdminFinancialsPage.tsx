@@ -112,10 +112,12 @@ export default function AdminFinancialsPage() {
       // Hydrate emails for buyer identification
       const userIds = Array.from(new Set(list.map(r => r.user_id))).filter(Boolean);
       if (userIds.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, email, display_name")
-          .in("id", userIds);
+        const { data: profs } = await (
+          supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<Record<string, unknown>> | null }>
+        )("admin_profiles_by_ids", { p_ids: userIds });
         const map: Record<string, string> = {};
         (profs || []).forEach((p: any) => {
           map[p.id] = p.display_name || p.email || p.id.slice(0, 8);

@@ -36,10 +36,17 @@ export default function WorkspaceDanger() {
       toast.error('Invite another admin first.');
       return;
     }
-    const { data: profs } = await supabase.from('profiles').select('id, display_name, full_name, email').in('id', ids);
-    setMembers((profs ?? []).map((p: any) => ({
-      user_id: p.id, label: p.display_name || p.full_name || p.email || p.id.slice(0, 8),
-    })));
+    const { data: profs } = await (
+      supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; email: string | null }> | null }>
+    )('org_member_directory', { p_org_id: currentOrg.id });
+    const dir = new Map((profs ?? []).map((p) => [p.id, p]));
+    setMembers(ids.map((id) => {
+      const p = dir.get(id);
+      return { user_id: id, label: p?.display_name || p?.full_name || p?.email || id.slice(0, 8) };
+    }));
     setChosen('');
     setXferOpen(true);
   };

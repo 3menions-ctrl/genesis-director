@@ -85,15 +85,21 @@ function PromoteDialog({ onClose }: { onClose: () => void }) {
   const submit = async () => {
     if (!email.trim()) { toast.error("Email required"); return; }
     setBusy(true);
-    const { data: prof, error: pErr } = await supabase
-      .from("profiles").select("id").eq("email", email.trim().toLowerCase()).maybeSingle();
-    if (pErr || !prof) {
+    // Resolve id by email via is_admin-gated RPC (profiles.email is no longer
+    // client-selectable — cross-tenant containment).
+    const { data: foundId, error: pErr } = await (
+      supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: string | null; error: { message: string } | null }>
+    )("admin_find_user_by_email", { p_email: email.trim().toLowerCase() });
+    if (pErr || !foundId) {
       setBusy(false);
       toast.error("No user with that email");
       return;
     }
     const { error } = await supabase.from("user_roles").insert({
-      user_id: prof.id, role,
+      user_id: foundId, role,
     });
     setBusy(false);
     if (error) return toast.error(error.message);

@@ -91,12 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), PROFILE_FETCH_TIMEOUT);
       });
 
-      // Create the fetch promise
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Fetch the owner's OWN row via a SECURITY DEFINER RPC. profiles.email is
+      // column-revoked from `authenticated` (cross-tenant containment), so a
+      // direct `select('*')` would now fail; get_my_profile() returns the
+      // caller's full row (incl. email) scoped to auth.uid().
+      const ownProfileRpc = supabase.rpc as unknown as (
+        fn: string,
+        args?: Record<string, unknown>,
+      ) => { maybeSingle: () => Promise<{ data: UserProfile | null; error: { message: string } | null }> };
+      const fetchPromise = ownProfileRpc('get_my_profile').maybeSingle();
 
       // Race between fetch and timeout
       const result = await Promise.race([fetchPromise, timeoutPromise]);
@@ -129,11 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!result.data) {
         console.debug('[AuthContext] Profile not found, retrying after delay (OAuth race condition)');
         await new Promise(r => setTimeout(r, 1500));
-        const retryResult = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
+        const retryResult = await ownProfileRpc('get_my_profile').maybeSingle();
         if (retryResult.data) {
           return { profile: retryResult.data as UserProfile, authoritative: true };
         }

@@ -118,11 +118,12 @@ export default function AdminProjectDetailPage() {
           .maybeSingle();
         if (projErr) throw new Error(`movie_projects: ${projErr.message}`);
         if (!proj) { setLoadError("project_not_found"); setDetail(null); return; }
-        const { data: owner } = await supabase
-          .from("profiles")
-          .select("id, email, display_name, avatar_url, credits_balance")
-          .eq("id", proj.user_id)
-          .maybeSingle();
+        const { data: owner } = await (
+          supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null }> }
+        )("admin_get_profile", { p_user_id: proj.user_id }).maybeSingle();
         const [tAll, tDone, tFail, tPend] = await Promise.all([
           supabase.from("video_clips").select("id", { count: "exact", head: true }).eq("project_id", projectId),
           supabase.from("video_clips").select("id", { count: "exact", head: true }).eq("project_id", projectId).eq("status", "completed"),

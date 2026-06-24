@@ -127,10 +127,12 @@ export default function AdminOrgDetailPage() {
         })(),
       ]);
       const memberIds = (memRes.data ?? []).map((m: { user_id: string }) => m.user_id);
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, email, display_name, avatar_url")
-        .in("id", memberIds.length > 0 ? memberIds : ["00000000-0000-0000-0000-000000000000"]);
+      const { data: profs } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<Record<string, unknown>> | null }>
+      )("admin_profiles_by_ids", { p_ids: memberIds.length > 0 ? memberIds : ["00000000-0000-0000-0000-000000000000"] });
       const profById = new Map((profs ?? []).map((p: { id: string }) => [p.id, p as unknown as Member]));
       const members: Member[] = (memRes.data ?? []).map((m: { user_id: string; role: string; joined_at: string }) => ({
         user_id: m.user_id,

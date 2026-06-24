@@ -97,7 +97,13 @@ export default function BusinessOverview() {
       const userIds = (memberRes.data ?? []).map((m) => m.user_id);
       if (userIds.length > 0) {
         const [profRes, txnRes] = await Promise.all([
-          supabase.from("profiles").select("id, display_name, full_name, email, avatar_url").in("id", userIds),
+          // Org-scoped member directory (SECURITY DEFINER) — email is no longer
+          // readable from the base profiles table.
+          (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
+          )("org_member_directory", { p_org_id: orgId }),
           supabase
             .from("credit_transactions")
             .select("user_id, amount, created_at")

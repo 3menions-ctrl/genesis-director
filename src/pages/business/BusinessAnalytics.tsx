@@ -58,7 +58,13 @@ export default function BusinessAnalytics() {
 
       const since90 = new Date(Date.now() - 90 * 86400_000).toISOString();
       const [profRes, txnRes, projRes] = await Promise.all([
-        supabase.from("profiles").select("id, display_name, full_name, email, avatar_url").in("id", userIds),
+        // Org-scoped member directory (SECURITY DEFINER) — email is no longer
+        // readable from the base profiles table.
+        (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
+        )("org_member_directory", { p_org_id: currentOrg.id }),
         supabase.from("credit_transactions").select("user_id, amount, created_at")
           .in("user_id", userIds).lt("amount", 0).gte("created_at", since90),
         supabase.from("movie_projects").select("user_id, id, created_at, quality_tier, engine")

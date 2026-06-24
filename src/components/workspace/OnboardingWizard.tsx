@@ -165,10 +165,12 @@ export function OnboardingWizard() {
         const ids = Array.from(new Set(rows.map(r => r.actor_id))).filter(Boolean);
         let nameMap: Record<string, string> = {};
         if (ids.length) {
-          const { data: profs } = await supabase
-            .from('profiles')
-            .select('id, display_name, email')
-            .in('id', ids);
+          const { data: profs } = await (
+            supabase.rpc as unknown as (
+              fn: string,
+              args: Record<string, unknown>,
+            ) => Promise<{ data: Array<{ id: string; display_name: string | null; email: string | null }> | null }>
+          )("org_member_directory", { p_org_id: currentOrg.id });
           (profs ?? []).forEach((p: any) => {
             nameMap[p.id] = p.display_name || p.email || 'Admin';
           });

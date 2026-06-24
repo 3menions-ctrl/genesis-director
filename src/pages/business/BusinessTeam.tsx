@@ -93,8 +93,14 @@ export function TeamContent() {
         supabase.from("organization_invites").select("*").eq("organization_id", currentOrg.id).is("accepted_at", null).order("created_at", { ascending: false }),
       ]);
       if (mRes.data) {
-        const userIds = mRes.data.map((m) => m.user_id);
-        const { data: profiles } = await supabase.from("profiles").select("id, display_name, full_name, email, avatar_url").in("id", userIds);
+        // Member identities (incl. email) come from the org-scoped SECURITY
+        // DEFINER RPC — the base profiles table no longer exposes email.
+        const { data: profiles } = await (
+          supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
+        )("org_member_directory", { p_org_id: currentOrg.id });
         const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
         setMembers(mRes.data.map((m: Member) => ({ ...m, profile: pmap.get(m.user_id) })));
       }

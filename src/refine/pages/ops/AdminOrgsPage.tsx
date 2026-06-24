@@ -103,6 +103,7 @@ export default function AdminOrgsPage() {
             ]}
             rows={tableRows}
             empty="No organizations match."
+            onRowClick={(r) => navigate(`/admin/orgs/${r._key}`)}
           />
         )}
       </FloatSection>

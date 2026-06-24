@@ -186,6 +186,10 @@ export function calculateAffordableClips(credits: number, clipDuration: number =
 
   while (remaining > 0) {
     const costForNextClip = calculateCreditsPerClip(clipDuration, clipCount);
+    // Guard against a zero/negative per-clip cost (e.g. the free 'wan' engine, or
+    // a duration not in the pricing table whose fallback returns 0) — without
+    // this the loop never decrements `remaining` and spins forever.
+    if (costForNextClip <= 0) break;
     if (remaining < costForNextClip) break;
     remaining -= costForNextClip;
     clipCount++;

@@ -243,7 +243,19 @@ export default function AdminUsersPage() {
             <div className="overflow-x-auto">
               <FloatTable
                 columns={[
-                  { key: "select", label: "", className: "w-10" },
+                  {
+                    key: "select",
+                    className: "w-10",
+                    label: (
+                      <input
+                        type="checkbox"
+                        checked={users.length > 0 && selected.size === users.length}
+                        onChange={toggleAll}
+                        aria-label="Select all users"
+                        className="w-3.5 h-3.5 rounded border border-white/20 bg-transparent accent-[#0A84FF] cursor-pointer"
+                      />
+                    ),
+                  },
                   { key: "user", label: "User" },
                   { key: "credits", label: "Credits", align: "right" },
                   { key: "projects", label: "Projects", align: "right" },
@@ -306,11 +318,13 @@ export default function AdminUsersPage() {
                       </Button>
                       {/* Manage — opens the full user detail page where suspend / delete /
                           force-verify / impersonation-link live with full guards. */}
-                      <DeckButton accent>
-                        <Link to={`/admin/users/${u.id}`} title="Manage user" className="inline-flex items-center gap-1.5">
-                          Manage <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </DeckButton>
+                      <Link
+                        to={`/admin/users/${u.id}`}
+                        title="Manage user"
+                        className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[hsl(214_90%_62%)] hover:bg-[hsl(214_90%_62%/0.16)] transition-colors"
+                      >
+                        Manage <ArrowRight className="w-3 h-3" />
+                      </Link>
                     </div>
                   ),
                 }))}

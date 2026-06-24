@@ -21,7 +21,6 @@ import {
 } from "@/components/business/BusinessCharts";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
-import { DeckButton } from "@/admin/ui/primitives";
 
 type Range = 7 | 30 | 90;
 const RANGES: Range[] = [7, 30, 90];

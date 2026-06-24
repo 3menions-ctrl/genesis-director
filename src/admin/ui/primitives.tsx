@@ -209,17 +209,22 @@ export function FloatSection({ title, meta, actions, children, className }: {
 
 export interface FloatColumn {
   key: string;
-  label: string;
+  /** ReactNode so a header can hold a control (e.g. a select-all checkbox). */
+  label: ReactNode;
   align?: "left" | "right";
   /** Optional fixed/auto width hint, e.g. "1px" to shrink, or a class. */
   className?: string;
 }
 
 /** Borderless data table — no surface, just a thin hairline below each row. */
-export function FloatTable({ columns, rows, empty = "Nothing here yet." }: {
+export function FloatTable<T extends Record<string, ReactNode> & { _key?: string | number }>({
+  columns, rows, empty = "Nothing here yet.", onRowClick,
+}: {
   columns: FloatColumn[];
-  rows: Array<Record<string, ReactNode> & { _key?: string | number }>;
+  rows: T[];
   empty?: ReactNode;
+  /** Makes each row clickable (whole-row deep-link). */
+  onRowClick?: (row: T) => void;
 }) {
   if (rows.length === 0) {
     return <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">{empty}</div>;
@@ -238,7 +243,9 @@ export function FloatTable({ columns, rows, empty = "Nothing here yet." }: {
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={r._key ?? i} className="transition-colors hover:bg-white/[0.015]">
+          <tr key={r._key ?? i}
+            onClick={onRowClick ? () => onRowClick(r) : undefined}
+            className={cn("transition-colors hover:bg-white/[0.015]", onRowClick && "cursor-pointer")}>
             {columns.map((c) => (
               <td key={c.key} style={{ borderBottom: `1px solid ${HAIR_SOFT}` }}
                 className={cn("py-3.5 text-[13px] text-white/80", c.align === "right" ? "text-right tabular-nums" : "text-left", c.className)}>

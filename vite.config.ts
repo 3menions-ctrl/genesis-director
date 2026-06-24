@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null, // Disable auto-injection - manual registration in main.tsx
+      devOptions: { enabled: false }, // never serve/register a service worker in dev
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "icon-192.png", "icon-512.png"],
       manifest: false, // Using manual manifest.json
       workbox: {

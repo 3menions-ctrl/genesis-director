@@ -1,7 +1,8 @@
 /** Sessions — recent sign-ins from auth.users via admin_list_sessions RPC. */
 import { useEffect, useMemo, useState } from "react";
 import { LogOut, Power, RefreshCw, Search } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -91,50 +92,55 @@ export default function AdminSessionsPage() {
         </>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Filter by email, name, tier…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
-          />
-        </div>
+      <FloatSection
+        title="Sessions"
+        meta={`${filtered.length} shown`}
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Filter by email, name, tier…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="bg-transparent border-white/10 text-white placeholder:text-white/30 h-8 w-56"
+            />
+          </div>
+        }
+      >
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">User</th>
-                <th className="text-left px-4 py-3">Tier</th>
-                <th className="text-left px-4 py-3">Last Sign-In</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Created</th>
-                <th className="text-right px-4 py-3">Action</th>
+              <tr className="border-b border-white/[0.07] text-[9.5px] uppercase tracking-[0.2em] text-white/38 font-mono">
+                <th className="text-left pb-3 pr-4">User</th>
+                <th className="text-left pb-3 pr-4">Tier</th>
+                <th className="text-left pb-3 pr-4">Last Sign-In</th>
+                <th className="text-left pb-3 pr-4">Status</th>
+                <th className="text-left pb-3 pr-4">Created</th>
+                <th className="text-right pb-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No sessions.</td></tr>}
+              {loading && <tr><td colSpan={6} className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</td></tr>}
+              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">No sessions.</td></tr>}
               {pg.slice.map((r) => (
-                <tr key={r.user_id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3">
+                <tr key={r.user_id} className="border-b border-white/[0.05] transition-colors hover:bg-white/[0.015]">
+                  <td className="py-3.5 pr-4">
                     <div className="text-white/90 text-[13px]">{r.display_name ?? "—"}</div>
                     <div className="text-white/40 font-mono text-[10px]">{r.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.account_tier ?? "—"}</td>
-                  <td className="px-4 py-3 text-white/70 font-mono text-[11px] whitespace-nowrap">
+                  <td className="py-3.5 pr-4 text-white/60 font-mono text-[11px]">{r.account_tier ?? "—"}</td>
+                  <td className="py-3.5 pr-4 text-white/70 font-mono text-[11px] whitespace-nowrap">
                     {r.last_sign_in_at ? new Date(r.last_sign_in_at).toLocaleString() : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="py-3.5 pr-4">
                     <Badge variant={r.is_active_24h ? "default" : "secondary"} className="font-mono text-[10px]">
                       {r.is_active_24h ? "active" : r.is_idle_24h ? "idle" : "—"}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px] whitespace-nowrap">
+                  <td className="py-3.5 pr-4 text-white/40 font-mono text-[10px] whitespace-nowrap">
                     {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="py-3.5 text-right">
                     <Button variant="ghost" size="sm" onClick={() => killOne(r.user_id)} className="h-7 text-[11px]">
                       <LogOut className="w-3 h-3 mr-1" /> Revoke
                     </Button>
@@ -144,8 +150,8 @@ export default function AdminSessionsPage() {
             </tbody>
           </table>
         </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+      </FloatSection>
     </AdminPageShell>
   );
 }

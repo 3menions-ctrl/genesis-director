@@ -1,7 +1,8 @@
 /** Database health — live row counts across key tables. */
 import { useEffect, useState } from "react";
 import { Database, RefreshCw } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatRow } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,19 +56,25 @@ export default function AdminDbHealthPage() {
       ]}
       actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TABLES.map(t => (
-          <AdminSurface key={t} className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Database className="w-4 h-4 text-primary/80" />
-              <span className="text-white/80 font-mono text-[12px]">{t}</span>
-            </div>
-            <div className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`}>
-              {counts[t] === null ? "ERR" : (counts[t] ?? "—").toLocaleString()}
-            </div>
-          </AdminSurface>
+      <FloatSection title="Tables" meta="live row counts">
+        {TABLES.map((t, i) => (
+          <FloatRow
+            key={t}
+            last={i === TABLES.length - 1}
+            left={
+              <div className="flex items-center gap-3">
+                <Database className="w-4 h-4 text-primary/80" />
+                <span className="text-white/80 font-mono text-[12px]">{t}</span>
+              </div>
+            }
+            right={
+              <span className={`font-mono tabular-nums text-2xl ${counts[t] === null ? "text-rose-300" : "text-white"}`}>
+                {counts[t] === null ? "ERR" : (counts[t] ?? "—").toLocaleString()}
+              </span>
+            }
+          />
         ))}
-      </div>
+      </FloatSection>
     </AdminPageShell>
   );
 }

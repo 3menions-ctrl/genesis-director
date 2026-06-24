@@ -1,12 +1,13 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Activity, Users, TrendingUp, DollarSign, Clock, Sparkles, Globe, Layers, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, AlertOctagon, Calendar, Download, CalendarIcon } from "lucide-react";
+import { Activity, Users, DollarSign, Sparkles, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, Download, CalendarIcon } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from "recharts";
-import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -279,12 +280,12 @@ export default function AdminAnalyticsPage() {
       ]}
     >
       {error && (
-        <AdminSurface className="border-rose-500/30 bg-rose-500/[0.04] mb-8">
+        <div className="mb-8 border-l-2 border-rose-500/40 pl-4">
           <div className="flex items-center gap-3 text-rose-300">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">Failed to load analytics: {error}</span>
           </div>
-        </AdminSurface>
+        </div>
       )}
 
       {/* Secondary KPI strip */}
@@ -310,8 +311,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Activity chart */}
-      <AdminSectionLabel label="Activity" meta={`${windowDays}-day window · click any day to inspect`} />
-      <AdminSurface className="mb-10">
+      <FloatSection title="Activity" meta={`${windowDays}-day window · click any day to inspect`} className="mb-10">
         {loading ? (
           <Skeleton className="h-[320px] w-full bg-glass-hover" />
         ) : (
@@ -358,14 +358,11 @@ export default function AdminAnalyticsPage() {
           ]}
           onSelect={(ds) => openDrill(ds, todayKey())}
         />
-      </AdminSurface>
+      </FloatSection>
 
       {/* Two-column row: tier mix + activation */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        <AdminSurface className="lg:col-span-1">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-4">
-            <Layers className="h-3 w-3" /> Tier mix
-          </div>
+        <FloatSection title="Tier mix" className="lg:col-span-1">
           {loading ? (
             <Skeleton className="h-48 w-full bg-glass-hover" />
           ) : (
@@ -403,12 +400,9 @@ export default function AdminAnalyticsPage() {
               </div>
             </>
           )}
-        </AdminSurface>
+        </FloatSection>
 
-        <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
-            <Clock className="h-3 w-3" /> Activation funnel
-          </div>
+        <FloatSection title="Activation funnel" className="lg:col-span-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <BigStat
               label="Time to value"
@@ -443,20 +437,18 @@ export default function AdminAnalyticsPage() {
               <MiniStat label="Gross revenue" value={data ? fmtUsd(data.kpis.grossRevenue) : "—"} accent />
             </div>
           </div>
-        </AdminSurface>
+        </FloatSection>
       </div>
 
       {/* Geo + sources */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RankedList
-          icon={Globe}
           title="Top countries"
           subtitle={`Signups · ${windowDays}d`}
           rows={data?.topCountries ?? []}
           loading={loading}
         />
         <RankedList
-          icon={TrendingUp}
           title="Top sources"
           subtitle={`utm_source · ${windowDays}d`}
           rows={data?.topSources ?? []}
@@ -465,44 +457,31 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* ── Funnel + cohort retention ─────────────────────────────────── */}
-      <AdminSectionLabel label="Funnel & retention" meta={`${windowDays}-day cohort`} />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
-        <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
-            <Filter className="h-3 w-3" /> Activation funnel
-          </div>
-          <FunnelView steps={data?.funnel ?? []} loading={loading} />
-        </AdminSurface>
-        <AdminSurface className="lg:col-span-3">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
-            <Calendar className="h-3 w-3" /> Weekly cohort retention
-          </div>
-          <CohortMatrix cohorts={data?.cohorts ?? []} loading={loading} />
-        </AdminSurface>
-      </div>
+      <FloatSection title="Funnel & retention" meta={`${windowDays}-day cohort`}>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
+          <FloatSection title="Activation funnel" className="lg:col-span-2">
+            <FunnelView steps={data?.funnel ?? []} loading={loading} />
+          </FloatSection>
+          <FloatSection title="Weekly cohort retention" className="lg:col-span-3">
+            <CohortMatrix cohorts={data?.cohorts ?? []} loading={loading} />
+          </FloatSection>
+        </div>
+      </FloatSection>
 
       {/* ── Heatmap + Failures ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
-        <AdminSurface className="lg:col-span-3">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
-            <Activity className="h-3 w-3" /> Generation heatmap
-            <span className="ml-auto text-white/25 normal-case tracking-normal">UTC · clips by hour</span>
-          </div>
+        <FloatSection title="Generation heatmap" meta="UTC · clips by hour" className="lg:col-span-3">
           <Heatmap data={data?.heatmap} loading={loading} />
-        </AdminSurface>
-        <AdminSurface className="lg:col-span-2">
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em] mb-5">
-            <AlertOctagon className="h-3 w-3" /> Failure categories
-          </div>
+        </FloatSection>
+        <FloatSection title="Failure categories" className="lg:col-span-2">
           <FailureBars rows={data?.failureBreakdown ?? []} loading={loading} />
-        </AdminSurface>
+        </FloatSection>
       </div>
 
       {/* ── Top users leaderboard ─────────────────────────────────────── */}
-      <AdminSectionLabel label="Power users" meta={`Top 10 · ${windowDays}-day spend`} />
-      <AdminSurface className="mt-6">
+      <FloatSection title="Power users" meta={`Top 10 · ${windowDays}-day spend`} className="mt-6">
         <Leaderboard rows={data?.topUsers ?? []} loading={loading} />
-      </AdminSurface>
+      </FloatSection>
 
       {data && (
         <p className="mt-10 text-[10px] text-white/25 font-mono uppercase tracking-[0.28em] text-right">
@@ -626,19 +605,13 @@ function ChartLegend({ items, onSelect }: {
   );
 }
 
-function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
-  icon: React.ElementType; title: string; subtitle: string;
+function RankedList({ title, subtitle, rows, loading }: {
+  title: string; subtitle: string;
   rows: { key: string; count: number }[]; loading: boolean;
 }) {
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
-    <AdminSurface>
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono uppercase tracking-[0.32em]">
-          <Icon className="h-3 w-3" /> {title}
-        </div>
-        <div className="text-[9px] text-white/25 font-mono uppercase tracking-[0.28em]">{subtitle}</div>
-      </div>
+    <FloatSection title={title} meta={subtitle}>
       {loading ? (
         <div className="space-y-2.5">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -661,7 +634,7 @@ function RankedList({ icon: Icon, title, subtitle, rows, loading }: {
           ))}
         </div>
       )}
-    </AdminSurface>
+    </FloatSection>
   );
 }
 

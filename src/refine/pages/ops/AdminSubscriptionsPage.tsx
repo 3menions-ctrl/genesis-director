@@ -1,7 +1,8 @@
 /** Subscriptions — local mirror of Stripe subscriptions table. */
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -83,54 +84,51 @@ export default function AdminSubscriptionsPage() {
         </Button>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Filter by status, Stripe ID, customer, product…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+      <FloatSection
+        title="Subscriptions"
+        meta="Live Stripe mirror"
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Filter by status, Stripe ID, customer, product…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="w-72 bg-transparent border-white/10 text-white placeholder:text-white/30"
+            />
+          </div>
+        }
+      >
+        <div className="overflow-x-auto">
+          <FloatTable
+            columns={[
+              { key: "status", label: "Status" },
+              { key: "product", label: "Product" },
+              { key: "customer", label: "Customer" },
+              { key: "seats", label: "Seats", align: "right" },
+              { key: "periodEnd", label: "Period End" },
+              { key: "env", label: "Env" },
+              { key: "stripe", label: "Stripe Sub" },
+            ]}
+            rows={loading ? [] : pg.slice.map((r) => ({
+              _key: r.id,
+              status: (
+                <Badge variant={r.status === "active" || r.status === "trialing" ? "default" : r.status === "past_due" ? "destructive" : "secondary"} className="font-mono text-[10px]">
+                  {r.status}{r.cancel_at_period_end ? " · cancel" : ""}
+                </Badge>
+              ),
+              product: <span className="text-white/80 font-mono text-[11px]">{r.product_id ?? "—"}</span>,
+              customer: <span className="text-white/40 font-mono text-[10px]">{r.stripe_customer_id ?? r.user_id?.slice(0,8) ?? "—"}</span>,
+              seats: <span className="text-white/80 font-mono tabular-nums text-[12px]">{r.seats ?? 1}</span>,
+              periodEnd: <span className="text-white/60 font-mono text-[11px] whitespace-nowrap">{r.current_period_end ? new Date(r.current_period_end).toLocaleDateString() : "—"}</span>,
+              env: <span className="text-white/40 font-mono text-[10px]">{r.environment ?? "—"}</span>,
+              stripe: <span className="text-white/40 font-mono text-[10px]">{r.stripe_subscription_id?.slice(0,18) ?? "—"}…</span>,
+            }))}
+            empty={loading ? "Loading…" : "No subscriptions."}
           />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Product</th>
-                <th className="text-left px-4 py-3">Customer</th>
-                <th className="text-right px-4 py-3">Seats</th>
-                <th className="text-left px-4 py-3">Period End</th>
-                <th className="text-left px-4 py-3">Env</th>
-                <th className="text-left px-4 py-3">Stripe Sub</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">No subscriptions.</td></tr>}
-              {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3">
-                    <Badge variant={r.status === "active" || r.status === "trialing" ? "default" : r.status === "past_due" ? "destructive" : "secondary"} className="font-mono text-[10px]">
-                      {r.status}{r.cancel_at_period_end ? " · cancel" : ""}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-white/80 font-mono text-[11px]">{r.product_id ?? "—"}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px]">{r.stripe_customer_id ?? r.user_id?.slice(0,8) ?? "—"}</td>
-                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{r.seats ?? 1}</td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap">
-                    {r.current_period_end ? new Date(r.current_period_end).toLocaleDateString() : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px]">{r.environment ?? "—"}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px]">{r.stripe_subscription_id?.slice(0,18) ?? "—"}…</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+      </FloatSection>
     </AdminPageShell>
   );
 }

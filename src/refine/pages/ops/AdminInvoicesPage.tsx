@@ -1,7 +1,8 @@
 /** Invoices — credit purchase ledger (Stripe-backed) with export. */
 import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -96,46 +97,45 @@ export default function AdminInvoicesPage() {
         </>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Filter by Stripe ID, user, type, description…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+      <FloatSection
+        title="Ledger"
+        meta="Stripe-backed transactions"
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Filter by Stripe ID, user, type, description…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="w-72 bg-transparent border-white/10 text-white placeholder:text-white/30"
+            />
+          </div>
+        }
+      >
+        <div className="overflow-x-auto">
+          <FloatTable
+            columns={[
+              { key: "date", label: "Date" },
+              { key: "type", label: "Type" },
+              { key: "credits", label: "Credits", align: "right" },
+              { key: "usd", label: "USD", align: "right" },
+              { key: "user", label: "User" },
+              { key: "stripe", label: "Stripe Payment" },
+            ]}
+            rows={loading ? [] : pg.slice.map((r) => ({
+              _key: r.id,
+              date: <span className="font-mono text-[11px] whitespace-nowrap text-white/70">{new Date(r.created_at).toLocaleString()}</span>,
+              type: <Badge variant="secondary" className="font-mono text-[10px]">{r.transaction_type}</Badge>,
+              credits: <span className={`font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>{r.amount > 0 ? "+" : ""}{r.amount}</span>,
+              usd: <span className={`font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>${(r.amount * CENTS_PER_CREDIT / 100).toFixed(2)}</span>,
+              user: <span className="font-mono text-[10px] text-white/40">{r.user_id.slice(0,8)}…</span>,
+              stripe: <span className="font-mono text-[10px] text-white/50">{r.stripe_payment_id?.slice(0,24) ?? "—"}…</span>,
+            }))}
+            empty={loading ? "Loading…" : "No invoices."}
           />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Date</th>
-                <th className="text-left px-4 py-3">Type</th>
-                <th className="text-right px-4 py-3">Credits</th>
-                <th className="text-right px-4 py-3">USD</th>
-                <th className="text-left px-4 py-3">User</th>
-                <th className="text-left px-4 py-3">Stripe Payment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No invoices.</td></tr>}
-              {pg.slice.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3 text-white/70 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3"><Badge variant="secondary" className="font-mono text-[10px]">{r.transaction_type}</Badge></td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>{r.amount > 0 ? "+" : ""}{r.amount}</td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[12px] ${r.amount > 0 ? "text-emerald-300" : "text-rose-300"}`}>${(r.amount * CENTS_PER_CREDIT / 100).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px]">{r.user_id.slice(0,8)}…</td>
-                  <td className="px-4 py-3 text-white/50 font-mono text-[10px]">{r.stripe_payment_id?.slice(0,24) ?? "—"}…</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+      </FloatSection>
     </AdminPageShell>
   );
 }

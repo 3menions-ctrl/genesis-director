@@ -1,7 +1,8 @@
 /** Storage — per-bucket object count + total bytes via admin_storage_overview RPC. */
 import { useEffect, useMemo, useState } from "react";
 import { Folder, Lock, RefreshCw, Unlock } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,40 +63,36 @@ export default function AdminStoragePage() {
         </Button>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Bucket</th>
-                <th className="text-left px-4 py-3">Access</th>
-                <th className="text-right px-4 py-3">Objects</th>
-                <th className="text-right px-4 py-3">Size</th>
-                <th className="text-right px-4 py-3">File Limit</th>
-                <th className="text-left px-4 py-3 pl-8">Last Upload</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No buckets.</td></tr>}
-              {rows.map((r) => (
-                <tr key={r.bucket_id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3 text-white/90 font-mono text-[12px]"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
-                      {r.is_public ? <><Unlock className="w-3 h-3 mr-1" />public</> : <><Lock className="w-3 h-3 mr-1" />private</>}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{Number(r.object_count).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-primary/80 font-mono tabular-nums text-[12px]">{bytes(Number(r.total_bytes))}</td>
-                  <td className="px-4 py-3 text-right text-white/40 font-mono text-[11px]">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</td>
-                  <td className="px-4 py-3 pl-8 text-white/40 font-mono text-[11px] whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </AdminSurface>
+      <FloatSection title="Buckets" meta="object inventory">
+        {loading ? (
+          <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading buckets…</div>
+        ) : (
+          <FloatTable
+            columns={[
+              { key: "bucket", label: "Bucket" },
+              { key: "access", label: "Access" },
+              { key: "objects", label: "Objects", align: "right" },
+              { key: "size", label: "Size", align: "right" },
+              { key: "limit", label: "File Limit", align: "right" },
+              { key: "upload", label: "Last Upload" },
+            ]}
+            rows={rows.map((r) => ({
+              _key: r.bucket_id,
+              bucket: <span className="font-mono text-[12px] text-white/90"><Folder className="w-3 h-3 inline mr-2 text-white/30" />{r.bucket_id}</span>,
+              access: (
+                <Badge variant={r.is_public ? "secondary" : "default"} className="font-mono text-[10px]">
+                  {r.is_public ? <><Unlock className="w-3 h-3 mr-1" />public</> : <><Lock className="w-3 h-3 mr-1" />private</>}
+                </Badge>
+              ),
+              objects: <span className="font-mono tabular-nums text-[12px] text-white/80">{Number(r.object_count).toLocaleString()}</span>,
+              size: <span className="font-mono tabular-nums text-[12px] text-primary/80">{bytes(Number(r.total_bytes))}</span>,
+              limit: <span className="font-mono text-[11px] text-white/40">{r.file_size_limit ? bytes(Number(r.file_size_limit)) : "—"}</span>,
+              upload: <span className="font-mono text-[11px] text-white/40 whitespace-nowrap">{r.latest_upload ? new Date(r.latest_upload).toLocaleString() : "—"}</span>,
+            }))}
+            empty="No buckets."
+          />
+        )}
+      </FloatSection>
     </AdminPageShell>
   );
 }

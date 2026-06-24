@@ -1,7 +1,8 @@
 /** Edge — aggregated invocation/cost telemetry from api_cost_logs. */
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
@@ -57,42 +58,40 @@ export default function AdminEdgeLogsPage() {
       ]}
       actions={<Button variant="outline" size="sm" onClick={() => setReload(k => k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">When</th>
-                <th className="text-left px-4 py-3">Service</th>
-                <th className="text-left px-4 py-3">Operation</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-right px-4 py-3">Duration</th>
-                <th className="text-right px-4 py-3">Credits</th>
-                <th className="text-right px-4 py-3">Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">No edge invocations in last 24h.</td></tr>}
-              {pg.slice.map(r => {
+      <FloatSection title="Invocations" meta="last 24h">
+        {loading ? (
+          <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>
+        ) : (
+          <>
+            <FloatTable
+              columns={[
+                { key: "when", label: "When" },
+                { key: "service", label: "Service" },
+                { key: "operation", label: "Operation" },
+                { key: "status", label: "Status" },
+                { key: "duration", label: "Duration", align: "right" },
+                { key: "credits", label: "Credits", align: "right" },
+                { key: "cost", label: "Cost", align: "right" },
+              ]}
+              rows={pg.slice.map(r => {
                 const ok = r.status === "success" || r.status === "completed";
-                return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.service}</span></td>
-                    <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.operation}</td>
-                    <td className="px-4 py-3"><Badge variant={ok ? "secondary" : "destructive"} className="font-mono text-[10px]">{r.status}</Badge></td>
-                    <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</td>
-                    <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{r.credits_charged}</td>
-                    <td className="px-4 py-3 text-right text-amber-300/80 font-mono text-[11px] tabular-nums">${(r.real_cost_cents/100).toFixed(3)}</td>
-                  </tr>
-                );
+                return {
+                  _key: r.id,
+                  when: <span className="text-white/60 font-mono text-[11px] whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</span>,
+                  service: <span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{r.service}</span>,
+                  operation: <span className="text-white/70 font-mono text-[11px]">{r.operation}</span>,
+                  status: <Badge variant={ok ? "secondary" : "destructive"} className="font-mono text-[10px]">{r.status}</Badge>,
+                  duration: <span className="text-white/60 font-mono text-[11px] tabular-nums">{r.duration_seconds ?? "—"}{r.duration_seconds != null ? "s" : ""}</span>,
+                  credits: <span className="text-white/60 font-mono text-[11px] tabular-nums">{r.credits_charged}</span>,
+                  cost: <span className="text-amber-300/80 font-mono text-[11px] tabular-nums">${(r.real_cost_cents/100).toFixed(3)}</span>,
+                };
               })}
-            </tbody>
-          </table>
-        </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+              empty="No edge invocations in last 24h."
+            />
+            <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+          </>
+        )}
+      </FloatSection>
     </AdminPageShell>
   );
 }

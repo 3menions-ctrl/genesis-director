@@ -3,8 +3,9 @@
  *  the two RPCs added in the render_failures migration so it stays
  *  fast even when the table grows. */
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, AlertTriangle, BarChart3, Clock } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { RefreshCw, Clock } from "lucide-react";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatRow } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -90,16 +91,10 @@ export default function AdminObservabilityPage() {
         </Button>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-14">
         {/* Histogram — bar per classification bucket, normalized to the
             widest one so the relative ordering reads at a glance. */}
-        <AdminSurface>
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-white/60" />
-            <h3 className="text-white text-[13px] font-medium uppercase tracking-[0.18em]">
-              Failures by classification (last {WINDOW_HOURS}h)
-            </h3>
-          </div>
+        <FloatSection title="Failures by classification" meta={`last ${WINDOW_HOURS}h`}>
           {histogram.length === 0 ? (
             <div className="text-white/40 text-sm">No failures recorded in this window.</div>
           ) : (
@@ -120,28 +115,24 @@ export default function AdminObservabilityPage() {
               ))}
             </div>
           )}
-        </AdminSurface>
+        </FloatSection>
 
         {/* Recent failures — a triage list. Each row carries enough
             context (classification + message head + project + version)
             to decide whether to drill further. */}
-        <AdminSurface>
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-white/60" />
-            <h3 className="text-white text-[13px] font-medium uppercase tracking-[0.18em]">
-              Most recent {RECENT_LIMIT}
-            </h3>
-          </div>
+        <FloatSection title={`Most recent ${RECENT_LIMIT}`}>
           {loading && recent.length === 0 ? (
             <div className="text-white/40 text-sm">Loading…</div>
           ) : recent.length === 0 ? (
             <div className="text-white/40 text-sm">Clean. Nothing failed recently.</div>
           ) : (
-            <div className="divide-y divide-white/5">
-              {recent.map((r) => (
-                <div key={r.id} className="py-3 first:pt-0 last:pb-0">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+            <div>
+              {recent.map((r, i) => (
+                <FloatRow
+                  key={r.id}
+                  last={i === recent.length - 1}
+                  left={
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-[0.2em] border border-rose-400/30 bg-rose-400/5 text-rose-300">
                           {r.classification}
@@ -164,16 +155,18 @@ export default function AdminObservabilityPage() {
                         {formatShape(r.input_shape)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-white/40 font-mono text-[10px] uppercase tracking-[0.18em] shrink-0">
+                  }
+                  right={
+                    <div className="flex items-center gap-1 text-white/40 font-mono text-[10px] uppercase tracking-[0.18em]">
                       <Clock className="w-3 h-3" />
                       {formatAgo(r.created_at)}
                     </div>
-                  </div>
-                </div>
+                  }
+                />
               ))}
             </div>
           )}
-        </AdminSurface>
+        </FloatSection>
       </div>
     </AdminPageShell>
   );

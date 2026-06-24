@@ -1,7 +1,8 @@
 /** Onboarding Analytics — funnel rollup from onboarding_intents + profiles. */
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Loader2, AlertTriangle, Inbox } from "lucide-react";
-import { AdminPageShell, AdminSurface, AdminSectionLabel } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -144,12 +145,11 @@ export default function AdminOnboardingAnalyticsPage() {
       ) : rows.length === 0 ? (
         <State kind="empty" title="No onboarding intents yet" hint="Intents appear here as users move through onboarding." />
       ) : (
-        <div className="space-y-8">
-          <AdminSurface>
-            <AdminSectionLabel
-              label="Funnel"
-              meta={`${started} intent${started === 1 ? "" : "s"}${accountFilter ? ` · ${accountFilter}` : " tracked"}`}
-            />
+        <div className="space-y-14">
+          <FloatSection
+            title="Funnel"
+            meta={`${started} intent${started === 1 ? "" : "s"}${accountFilter ? ` · ${accountFilter}` : " tracked"}`}
+          >
             <div className="space-y-4">
               {funnelStages.map((stage, i) => {
                 const pct = stage.base > 0 ? stage.n / stage.base * 100 : 0;
@@ -166,37 +166,37 @@ export default function AdminOnboardingAnalyticsPage() {
                 );
               })}
             </div>
-          </AdminSurface>
+          </FloatSection>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <AdminSurface>
-              <AdminSectionLabel label="By Account Type" />
-              <table className="w-full text-sm">
-                <tbody>
-                  {byAccountType.length === 0 && <tr><td className="text-white/40 py-4">No data.</td></tr>}
-                  {byAccountType.map(([k, v]) => (
-                    <tr key={k} className="border-b border-white/[0.04]">
-                      <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
-                      <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </AdminSurface>
-            <AdminSurface>
-              <AdminSectionLabel label="Top Use Cases" />
-              <table className="w-full text-sm">
-                <tbody>
-                  {byUseCase.length === 0 && <tr><td className="text-white/40 py-4">No data.</td></tr>}
-                  {byUseCase.map(([k, v]) => (
-                    <tr key={k} className="border-b border-white/[0.04]">
-                      <td className="py-2 text-white/80 font-mono text-[12px]">{k}</td>
-                      <td className="py-2 text-right text-primary/80 font-mono tabular-nums text-[12px]">{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </AdminSurface>
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 md:grid-cols-2">
+            <FloatSection title="By Account Type">
+              <FloatTable
+                columns={[
+                  { key: "k", label: "Account type" },
+                  { key: "v", label: "Intents", align: "right" },
+                ]}
+                rows={byAccountType.map(([k, v]) => ({
+                  _key: k,
+                  k: <span className="font-mono text-[12px] text-white/80">{k}</span>,
+                  v: <span className="font-mono text-[12px] text-primary/80">{v}</span>,
+                }))}
+                empty="No data."
+              />
+            </FloatSection>
+            <FloatSection title="Top Use Cases">
+              <FloatTable
+                columns={[
+                  { key: "k", label: "Use case" },
+                  { key: "v", label: "Intents", align: "right" },
+                ]}
+                rows={byUseCase.map(([k, v]) => ({
+                  _key: k,
+                  k: <span className="font-mono text-[12px] text-white/80">{k}</span>,
+                  v: <span className="font-mono text-[12px] text-primary/80">{v}</span>,
+                }))}
+                empty="No data."
+              />
+            </FloatSection>
           </div>
         </div>
       )}

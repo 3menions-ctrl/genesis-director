@@ -1,7 +1,8 @@
 /** Provider — aggregated cost & reliability per upstream provider. */
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -75,36 +76,32 @@ export default function AdminProvidersPage() {
       ]}
       actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Provider</th>
-                <th className="text-right px-4 py-3">Invocations</th>
-                <th className="text-right px-4 py-3">Success</th>
-                <th className="text-right px-4 py-3">Avg Duration</th>
-                <th className="text-right px-4 py-3">Credits</th>
-                <th className="text-right px-4 py-3">Cost (7d)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && groups.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No provider activity in last 7 days.</td></tr>}
-              {groups.map(g => (
-                <tr key={g.service} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{g.service}</span></td>
-                  <td className="px-4 py-3 text-right text-white/70 font-mono text-[11px] tabular-nums">{g.invocations}</td>
-                  <td className={`px-4 py-3 text-right font-mono text-[11px] tabular-nums ${g.success_rate >= 95 ? "text-emerald-300" : g.success_rate >= 80 ? "text-amber-300" : "text-rose-300"}`}>{g.success_rate}%</td>
-                  <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{g.avg_duration}s</td>
-                  <td className="px-4 py-3 text-right text-white/60 font-mono text-[11px] tabular-nums">{g.credits}</td>
-                  <td className="px-4 py-3 text-right text-amber-300/80 font-mono text-[11px] tabular-nums">${(g.cost_cents/100).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </AdminSurface>
+      <FloatSection title="Providers" meta="7-day spend & reliability">
+        {loading ? (
+          <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>
+        ) : (
+          <FloatTable
+            columns={[
+              { key: "service", label: "Provider" },
+              { key: "invocations", label: "Invocations", align: "right" },
+              { key: "success", label: "Success", align: "right" },
+              { key: "avg_duration", label: "Avg Duration", align: "right" },
+              { key: "credits", label: "Credits", align: "right" },
+              { key: "cost", label: "Cost (7d)", align: "right" },
+            ]}
+            rows={groups.map(g => ({
+              _key: g.service,
+              service: <span className="px-2 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary/80 font-mono text-[11px]">{g.service}</span>,
+              invocations: <span className="text-white/70 font-mono text-[11px] tabular-nums">{g.invocations}</span>,
+              success: <span className={`font-mono text-[11px] tabular-nums ${g.success_rate >= 95 ? "text-emerald-300" : g.success_rate >= 80 ? "text-amber-300" : "text-rose-300"}`}>{g.success_rate}%</span>,
+              avg_duration: <span className="text-white/60 font-mono text-[11px] tabular-nums">{g.avg_duration}s</span>,
+              credits: <span className="text-white/60 font-mono text-[11px] tabular-nums">{g.credits}</span>,
+              cost: <span className="text-amber-300/80 font-mono text-[11px] tabular-nums">${(g.cost_cents/100).toFixed(2)}</span>,
+            }))}
+            empty="No provider activity in last 7 days."
+          />
+        )}
+      </FloatSection>
     </AdminPageShell>
   );
 }

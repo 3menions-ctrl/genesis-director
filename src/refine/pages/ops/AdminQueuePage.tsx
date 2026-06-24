@@ -1,7 +1,8 @@
 /** Queue — pending / generating video clips with optional re-poll. */
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Lock, RefreshCw } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
@@ -72,47 +73,47 @@ export default function AdminQueuePage() {
         </Button>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Created</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Engine</th>
-                <th className="text-left px-4 py-3">Shot</th>
-                <th className="text-left px-4 py-3">Project</th>
-                <th className="text-left px-4 py-3">Retries</th>
-                <th className="text-left px-4 py-3">Replicate ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Queue is empty.</td></tr>}
-              {pg.slice.map((r) => {
-                const ageMin = (Date.now() - new Date(r.updated_at).getTime()) / 60000;
-                const isStuck = ageMin > 10;
-                return (
-                  <tr key={r.id} className="border-b border-white/[0.04] hover:bg-glass">
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</td>
-                    <td className="px-4 py-3">
+      <FloatSection title="Active clips" meta="pending + generating">
+        {loading ? (
+          <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <FloatTable
+                columns={[
+                  { key: "created", label: "Created" },
+                  { key: "status", label: "Status" },
+                  { key: "engine", label: "Engine" },
+                  { key: "shot", label: "Shot" },
+                  { key: "project", label: "Project" },
+                  { key: "retries", label: "Retries" },
+                  { key: "replicate", label: "Replicate ID" },
+                ]}
+                rows={pg.slice.map((r) => {
+                  const ageMin = (Date.now() - new Date(r.updated_at).getTime()) / 60000;
+                  const isStuck = ageMin > 10;
+                  return {
+                    _key: r.id,
+                    created: <span className="text-white/60 font-mono text-[11px] whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50" />{new Date(r.created_at).toLocaleString()}</span>,
+                    status: (
                       <Badge variant={isStuck ? "destructive" : r.status === "generating" ? "default" : "secondary"} className="font-mono text-[10px]">
                         {r.status}{isStuck ? " · stuck" : ""}
                       </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.engine ?? "—"}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">#{r.shot_index}</td>
-                    <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.project_id.slice(0,8)}…</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-[11px]">{r.retry_count ?? 0}</td>
-                    <td className="px-4 py-3 text-white/40 font-mono text-[11px]">{r.replicate_prediction_id ? <><Lock className="w-3 h-3 inline mr-1 opacity-50" />{r.replicate_prediction_id.slice(0,12)}…</> : "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+                    ),
+                    engine: <span className="text-white/60 font-mono text-[11px]">{r.engine ?? "—"}</span>,
+                    shot: <span className="text-white/60 font-mono text-[11px]">#{r.shot_index}</span>,
+                    project: <span className="text-white/40 font-mono text-[11px]">{r.project_id.slice(0,8)}…</span>,
+                    retries: <span className="text-white/60 font-mono text-[11px]">{r.retry_count ?? 0}</span>,
+                    replicate: <span className="text-white/40 font-mono text-[11px]">{r.replicate_prediction_id ? <><Lock className="w-3 h-3 inline mr-1 opacity-50" />{r.replicate_prediction_id.slice(0,12)}…</> : "—"}</span>,
+                  };
+                })}
+                empty="Queue is empty."
+              />
+            </div>
+            <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+          </>
+        )}
+      </FloatSection>
     </AdminPageShell>
   );
 }

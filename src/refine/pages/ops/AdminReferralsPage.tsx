@@ -1,7 +1,8 @@
 /** Referrals — per-code redemption stats via admin_list_referrals RPC. */
 import { useEffect, useMemo, useState } from "react";
 import { GitBranch, RefreshCw, Search } from "lucide-react";
-import { AdminPageShell, AdminSurface } from "../../components/AdminPageShell";
+import { AdminPageShell } from "../../components/AdminPageShell";
+import { FloatSection, FloatTable } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -69,46 +70,45 @@ export default function AdminReferralsPage() {
         </Button>
       }
     >
-      <AdminSurface className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
-          <Search className="w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Filter by code or referrer email…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="bg-transparent border-white/10 text-white placeholder:text-white/30"
+      <FloatSection
+        title="Referral codes"
+        meta={`${filtered.length} of ${rows.length}`}
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Filter by code or referrer email…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="h-8 w-64 bg-transparent border-white/10 text-white placeholder:text-white/30"
+            />
+          </div>
+        }
+      >
+        <div className="overflow-x-auto">
+          <FloatTable
+            columns={[
+              { key: "code", label: "Code" },
+              { key: "referrer", label: "Referrer" },
+              { key: "total", label: "Total", align: "right" },
+              { key: "credited", label: "Credited", align: "right" },
+              { key: "pending", label: "Pending", align: "right" },
+              { key: "created", label: "Created" },
+            ]}
+            rows={pg.slice.map((r) => ({
+              _key: r.code_id,
+              code: <><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></>,
+              referrer: <span className="text-white/70 font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0, 8) + "…"}</span>,
+              total: <span className="text-white/80 font-mono tabular-nums text-[12px]">{r.total_redemptions}</span>,
+              credited: <Badge variant="default" className="font-mono text-[10px]">{r.credited_redemptions}</Badge>,
+              pending: Number(r.pending_redemptions) > 0 ? <Badge variant="secondary" className="font-mono text-[10px]">{r.pending_redemptions}</Badge> : <span className="text-white/30 font-mono text-[11px]">0</span>,
+              created: <span className="text-white/40 font-mono text-[10px] whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</span>,
+            }))}
+            empty={loading ? "Loading…" : "No referral codes."}
           />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                <th className="text-left px-4 py-3">Code</th>
-                <th className="text-left px-4 py-3">Referrer</th>
-                <th className="text-right px-4 py-3">Total</th>
-                <th className="text-right px-4 py-3">Credited</th>
-                <th className="text-right px-4 py-3">Pending</th>
-                <th className="text-left px-4 py-3">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">Loading…</td></tr>}
-              {!loading && pg.slice.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-white/40">No referral codes.</td></tr>}
-              {pg.slice.map((r) => (
-                <tr key={r.code_id} className="border-b border-white/[0.04] hover:bg-glass">
-                  <td className="px-4 py-3"><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></td>
-                  <td className="px-4 py-3 text-white/70 font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0,8) + "…"}</td>
-                  <td className="px-4 py-3 text-right text-white/80 font-mono tabular-nums text-[12px]">{r.total_redemptions}</td>
-                  <td className="px-4 py-3 text-right"><Badge variant="default" className="font-mono text-[10px]">{r.credited_redemptions}</Badge></td>
-                  <td className="px-4 py-3 text-right">{Number(r.pending_redemptions) > 0 ? <Badge variant="secondary" className="font-mono text-[10px]">{r.pending_redemptions}</Badge> : <span className="text-white/30 font-mono text-[11px]">0</span>}</td>
-                  <td className="px-4 py-3 text-white/40 font-mono text-[10px] whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="p-4 border-t border-white/[0.06]" />
-      </AdminSurface>
+        <ListPagination page={pg.page} totalPages={pg.totalPages} total={pg.total} pageSize={pg.pageSize} onPageChange={pg.setPage} className="pt-4" />
+      </FloatSection>
     </AdminPageShell>
   );
 }

@@ -680,7 +680,7 @@ function conceptToMarkdown(c: AdConcept, index: number): string {
     `**Format:** ${c.aspectRatio} · ${c.durationSeconds}s · ${c.clipCount} shots · engine: ${c.recommendedEngine}`,
     ``,
     `## Hooks`,
-    ...c.hooks.map((h, i) => `${i + 1}. ${h}`),
+    ...(Array.isArray(c.hooks) ? c.hooks : []).map((h, i) => `${i + 1}. ${h}`),
     ``,
     `## Script`,
     c.script,

@@ -820,7 +820,11 @@ function ScriptInner({ project }: Props) {
           {!editingBlock && (
             <div className="text-center pt-6 pb-4">
               <p className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em]")}>
-                ◆ Click any block to edit it
+                {/* Per-block inline edit renders only for `doc` scenes, which the
+                    parser-canonical path doesn't emit yet (see renderScenes,
+                    "until wave 5"). Don't advertise click-to-edit here — it would
+                    be a dead affordance. Whole-script save below stays available. */}
+                ◆ Screenplay preview · save the current draft below
               </p>
               <button
                 type="button"

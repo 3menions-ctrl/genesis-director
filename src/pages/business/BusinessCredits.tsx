@@ -168,7 +168,7 @@ export default function BusinessCredits() {
     if (error) { toast.error(error.message); return; }
     setEnabled(turnOn);
     setOpen(false);
-    toast.success(turnOn ? "Auto-recharge armed" : "Auto-recharge disabled");
+    toast.success(turnOn ? "Auto-recharge preference saved" : "Auto-recharge disabled");
   };
 
   const alertsArmed = !!(alertDaily || alertWeekly);
@@ -274,7 +274,7 @@ export default function BusinessCredits() {
     <BusinessPage
       eyebrow={<><span className="text-[hsl(215,100%,72%)]">Optimize</span><span className="text-white/20">·</span><span>Pool &amp; top-ups</span></>}
       title="Credits."
-      subtitle="Pooled credit balance shared by every workspace member. Refills monthly with your plan — track burn, watch the runway, and arm auto-recharge so productions never stall mid-pipeline."
+      subtitle="Pooled credit balance shared by every workspace member. Track burn, watch the runway, and set spend thresholds. Top up through billing when the pool runs low."
       actions={
         <Link to="/workspace/billing" className="inline-flex items-center gap-2 rounded-full px-5 h-11 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors">
           <Coins className="w-4 h-4" strokeWidth={1.8} /> Top up
@@ -389,7 +389,8 @@ export default function BusinessCredits() {
       />
       <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
         <p className="text-[12.5px] text-white/55 max-w-xl font-light leading-relaxed">
-          When the pool drops below the threshold, automatically purchase a top-up so productions never stall mid-pipeline.
+          Set a balance threshold and top-up size. Automatic purchasing isn&apos;t live yet —
+          saving your preference here readies it for when billing automation is enabled.
         </p>
         {enabled && (
           <p className="text-[12.5px] text-white/70 mt-2 font-mono">
@@ -424,7 +425,8 @@ export default function BusinessCredits() {
       />
       <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
         <p className="text-[12.5px] text-white/55 max-w-xl font-light leading-relaxed">
-          Email the workspace owner when daily or weekly spend exceeds a threshold. Leave a field blank to disable that alert.
+          Set daily or weekly spend thresholds for the workspace. Alert delivery isn&apos;t live yet —
+          your thresholds are saved and will be used once it is. Leave a field blank to disable that alert.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 max-w-xl">
           <div>
@@ -452,7 +454,8 @@ export default function BusinessCredits() {
           <DialogHeader>
             <DialogTitle className="font-display italic font-light text-[20px]">Configure auto-recharge</DialogTitle>
             <DialogDescription className="text-white/50 text-[12.5px]">
-              We'll charge the workspace's billing source for the credit pack when the pool drops below the threshold.
+              Saves your threshold and top-up size. Once automatic billing is enabled, the workspace&apos;s
+              billing source will be charged for the credit pack when the pool drops below the threshold.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,24 @@ serve(async (req) => {
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
+    // Admin gate: only an admin (or an internal service-role caller) may probe
+    // which secrets are configured. A plain authenticated user must NOT be able
+    // to enumerate present/missing secret names.
+    if (!auth.isServiceRole) {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      const { data: roles } = await admin
+        .from("user_roles").select("role").eq("user_id", auth.userId!);
+      if (!roles?.some((r) => r.role === "admin")) {
+        return new Response(JSON.stringify({ error: "Admin access required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { keys } = await req.json();

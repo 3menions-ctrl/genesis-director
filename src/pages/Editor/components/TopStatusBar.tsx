@@ -199,7 +199,7 @@ export function TopStatusBar({
                   type="button"
                   onClick={onOpenMedia}
                   className="group/mlib inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-accent transition-colors"
-                  aria-label="Media library (Shift+M)"
+                  aria-label="Media library (Shift+Y)"
                 >
                   <Film className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span className="relative">
@@ -209,7 +209,7 @@ export function TopStatusBar({
                       className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-accent/60 transition-transform duration-500 group-hover/mlib:scale-x-100"
                     />
                   </span>
-                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧M</span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧Y</span>
                 </button>
               )}
               {onOpenDirector && (

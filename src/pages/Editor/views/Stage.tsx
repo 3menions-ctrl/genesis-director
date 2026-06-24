@@ -342,10 +342,25 @@ export function Stage({ project, selectedClipId }: Props) {
             )}
           </button>
 
-          {/* Scrub bar — visually subtle, accent fill for played-through portion */}
-          <div className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+          {/* Scrub bar — visually subtle, accent fill for played-through portion.
+              Click anywhere on the bar to seek. A larger transparent hit-area
+              wraps the thin visual track so the 1.5px bar is easy to grab. */}
+          <div
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(totalDur)}
+            aria-valuenow={Math.round(playheadSec)}
+            tabIndex={0}
+            onPointerDown={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+              setPlayhead(pct * totalDur);
+            }}
+            className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden cursor-pointer"
+          >
             <div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent via-accent to-accent/60"
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent via-accent to-accent/60 pointer-events-none"
               style={{ width: `${Math.min(100, Math.max(0, playheadPct))}%` }}
             />
             {/* Clip boundary ticks */}

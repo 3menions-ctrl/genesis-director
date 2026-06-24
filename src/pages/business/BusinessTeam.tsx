@@ -109,13 +109,25 @@ export function TeamContent() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !currentOrg || !user) return;
+    const email = inviteEmail.trim().toLowerCase();
     setInviting(true);
-    const { error } = await supabase.from("organization_invites").insert({
-      organization_id: currentOrg.id, email: inviteEmail.trim().toLowerCase(), role: inviteRole, invited_by: user.id,
-    });
+    // Return the generated token so we can hand the admin a shareable accept
+    // link. There is no invite email template wired yet, so DON'T claim the
+    // invite was "dispatched" — copy the link for the admin to send instead.
+    const { data, error } = await supabase.from("organization_invites").insert({
+      organization_id: currentOrg.id, email, role: inviteRole, invited_by: user.id,
+    }).select("token").single();
     setInviting(false);
-    if (error) toast.error(error.message);
-    else { toast.success(`Invite dispatched to ${inviteEmail}`); setInviteEmail(""); void load(); }
+    if (error) { toast.error(error.message); return; }
+    setInviteEmail("");
+    void load();
+    const link = `${window.location.origin}/invite/${data.token}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success(`Invite link copied — share it with ${email}`);
+    } catch {
+      toast.success(`Invite created for ${email}. Link: ${link}`);
+    }
   };
 
   const updateRole = async (memberId: string, role: OrgRole) => {

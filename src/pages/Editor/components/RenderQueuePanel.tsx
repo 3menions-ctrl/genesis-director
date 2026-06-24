@@ -51,7 +51,7 @@ export function RenderQueuePanel({ open, onClose }: Props) {
   const retry = async (job: RenderJob) => {
     updateRenderJob(job.id, { status: "rendering", error: undefined });
     try {
-      const { error } = await supabase.functions.invoke("final-assembly", {
+      const { data, error } = await supabase.functions.invoke("final-assembly", {
         body: {
           projectId: job.projectId,
           aspectRatio: job.aspect,
@@ -59,11 +59,25 @@ export function RenderQueuePanel({ open, onClose }: Props) {
         },
       });
       if (error) throw error;
-      updateRenderJob(job.id, {
-        status: "done",
-        completedAt: new Date().toISOString(),
-      });
-      toast.success("Retry queued");
+      // final-assembly is synchronous and returns the produced video URL.
+      // Only mark the job "done" (and surface the download) when a real URL
+      // comes back — previously it flipped to "done" with no outputUrl, so the
+      // download link could never render and the status was misleading.
+      const result = data as { finalVideoUrl?: string; manifestUrl?: string } | null;
+      const url = result?.finalVideoUrl ?? result?.manifestUrl;
+      if (url) {
+        updateRenderJob(job.id, {
+          status: "done",
+          outputUrl: url,
+          completedAt: new Date().toISOString(),
+        });
+        toast.success("Render complete");
+      } else {
+        // Assembly accepted the job but isn't finished — keep it rendering
+        // rather than falsely reporting completion.
+        updateRenderJob(job.id, { status: "rendering", error: undefined });
+        toast.success("Retry queued");
+      }
     } catch (e) {
       updateRenderJob(job.id, {
         status: "error",

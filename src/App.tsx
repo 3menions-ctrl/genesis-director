@@ -64,6 +64,15 @@ function LegacyParamRedirect({ to }: { to: string }) {
   return <Navigate to={`${to}/${id}`} replace />;
 }
 
+// Redirect that PRESERVES the incoming query string. A bare <Navigate to="/x">
+// drops `?template=…`/`?environment=…`/`?mode=…`/`?welcome=…`, which silently
+// broke the template-apply, environment-apply, image-to-video and welcome flows
+// when /create folded into /studio. Studio reads these params via useSearchParams.
+function QueryPreservingRedirect({ to }: { to: string }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
+
 const Cinema = lazy(() => import("./pages/Cinema"));
 const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
@@ -629,10 +638,10 @@ const App = () => {
                 
                 {/* Studio is the single workshop. /create, /director, and
                     any /studio/* legacy nested URL fold into it. */}
-                <Route path="/create" element={<Navigate to="/studio" replace />} />
-                <Route path="/create/legacy" element={<Navigate to="/studio" replace />} />
-                <Route path="/director" element={<Navigate to="/studio" replace />} />
-                <Route path="/studio/*" element={<Navigate to="/studio" replace />} />
+                <Route path="/create" element={<QueryPreservingRedirect to="/studio" />} />
+                <Route path="/create/legacy" element={<QueryPreservingRedirect to="/studio" />} />
+                <Route path="/director" element={<QueryPreservingRedirect to="/studio" />} />
+                <Route path="/studio/*" element={<QueryPreservingRedirect to="/studio" />} />
                 <Route path="/me/year" element={
                   <RouteContainer fallbackMessage="Loading your year...">
                     <ProtectedRoute>

@@ -611,6 +611,8 @@ export function Timeline({
         snapEnabled={snapEnabled}
         hasInOut={inSec !== null || outSec !== null}
         playheadSec={playheadSec}
+        setPxPerSec={setPxPerSec}
+        scrollerRef={scrollerRef}
         onUploadClick={() => fileInputRef.current?.click()}
         onCreateClick={onCreateClick}
         onClearAll={onClearAll}
@@ -950,6 +952,8 @@ function TimelineHeader({
   snapEnabled,
   hasInOut,
   playheadSec,
+  setPxPerSec,
+  scrollerRef,
   onUploadClick,
   onCreateClick,
   onClearAll,
@@ -962,6 +966,8 @@ function TimelineHeader({
   snapEnabled: boolean;
   hasInOut: boolean;
   playheadSec: number;
+  setPxPerSec: (px: number) => void;
+  scrollerRef: React.RefObject<HTMLDivElement | null>;
   onUploadClick?: () => void;
   onCreateClick?: () => void;
   onClearAll?: () => void;
@@ -1409,33 +1415,23 @@ function ClipBlock({
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const deltaSec = dx / pxPerSec;
-      if (rollMode) {
-        // Roll edit — incremental delta applied at each move so the
-        // store's history coalesces under a single label and the
-        // cursor maps 1:1 to the boundary motion.
+      // Roll edit is only implemented for the RIGHT handle (it moves this
+      // clip's right boundary against the next clip). Left-handle roll was
+      // never wired — it used to update the trim chip and then snap back on
+      // release. Fall through to a plain trim for the left handle so the drag
+      // does something real and consistent instead of a phantom roll.
+      if (rollMode && side === "right") {
+        // Incremental delta applied at each move so the store's history
+        // coalesces under a single label and the cursor maps 1:1 to the
+        // boundary motion.
         const step = deltaSec - lastDelta;
         if (Math.abs(step) >= 0.01) {
-          // On the LEFT handle, we move the PREVIOUS clip's right
-          // edge — equivalent to "extending the previous clip into
-          // this clip's start" by -step (since dragging left grows
-          // the previous clip).
-          if (side === "right") {
-            rollEditMut(clip.id, step);
-          } else {
-            // Find the previous V1 clip and roll its right edge.
-            // We don't have direct access here, so we approximate by
-            // calling rollEdit on… we just bail. The right handle of
-            // the previous clip is the conventional boundary.
-            // Users will discover that the boundary is the right
-            // handle. Keep left handle as plain trim.
-          }
+          rollEditMut(clip.id, step);
           lastDelta = deltaSec;
         }
-        // Trim chip still reads draftDuration; for roll the value
-        // mirrors the new duration of THIS clip.
-        const newMe = side === "right" ? startDur + deltaSec : startDur - deltaSec;
-        draftDurationRef.current = Math.max(0.5, newMe);
-        setTrimDelta(deltaSec * (side === "right" ? 1 : -1));
+        // Trim chip mirrors the new duration of THIS clip.
+        draftDurationRef.current = Math.max(0.5, startDur + deltaSec);
+        setTrimDelta(deltaSec);
         return;
       }
       const next = side === "right"

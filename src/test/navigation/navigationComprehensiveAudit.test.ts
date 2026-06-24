@@ -59,12 +59,14 @@ function extractProtectedRoutes(): string[] {
   return routes;
 }
 
-/** Routes that redirect via Navigate */
+/** Routes that redirect via Navigate or the query-preserving wrapper */
 function extractRedirects(): { from: string; to: string }[] {
   const redirects: { from: string; to: string }[] = [];
   const lines = APP_TSX.split('\n');
   for (const line of lines) {
-    const match = line.match(/path="([^"]+)".*Navigate to="([^"]+)"/);
+    // QueryPreservingRedirect is a thin <Navigate> wrapper that carries the
+    // incoming query string (used for /create, /director, /studio/*).
+    const match = line.match(/path="([^"]+)".*(?:Navigate|QueryPreservingRedirect) to="([^"]+)"/);
     if (match) {
       redirects.push({ from: match[1], to: match[2] });
     }
@@ -232,12 +234,13 @@ describe('4. RouteContainer Isolation', () => {
         if (route !== '*' && !route.startsWith('/')) continue;
         const block = lines.slice(i, i + 4).join('\n');
         // Redirect-equivalent elements that never mount a page and so don't
-        // need RouteContainer isolation: <Navigate>, and the legacy param
-        // adapters that resolve to a <Navigate> (LegacyParamRedirect /
+        // need RouteContainer isolation: <Navigate>, and the adapters that
+        // resolve to a <Navigate> (LegacyParamRedirect / QueryPreservingRedirect /
         // RedirectBusinessToModule).
         const isRedirect =
           block.includes('Navigate to=') ||
           block.includes('LegacyParamRedirect') ||
+          block.includes('QueryPreservingRedirect') ||
           block.includes('RedirectBusinessToModule');
         // Containers can be applied inline or via a wrapper helper that
         // injects RouteContainer (e.g. wrapBusiness(...) → <RouteContainer>).

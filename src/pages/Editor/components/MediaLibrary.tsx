@@ -12,7 +12,7 @@
  * existing ingestRemoteUrl path. No re-upload — the clip just
  * references the existing URL.
  *
- * Surface: Shift+M opens.
+ * Surface: Shift+Y opens.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

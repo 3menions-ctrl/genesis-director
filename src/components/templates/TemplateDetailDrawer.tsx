@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Play,
-  Heart,
   Sparkles,
   Film,
   Clock,
@@ -373,13 +372,9 @@ export function TemplateDetailDrawer({
                   Use this template
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-                <button
-                  className="inline-flex items-center justify-center h-12 w-12 rounded-xl ring-1 ring-inset ring-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] text-foreground/70 hover:text-foreground transition-colors"
-                  aria-label="Save to library"
-                  title="Save to library"
-                >
-                  <Heart className="w-4 h-4" />
-                </button>
+                {/* "Save to library" removed: there is no favorites/saved-template
+                    backend, so the button was a dead affordance. Re-add with a real
+                    handler when a favorites store exists. */}
               </div>
             </footer>
               </div>

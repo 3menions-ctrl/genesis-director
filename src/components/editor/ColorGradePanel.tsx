@@ -301,7 +301,10 @@ export function ColorGradePanel({ grade: rawGrade, onChange, previewImage }: Col
                     active={grade.lutId === lut.id}
                     onClick={() => update({
                       lutId: grade.lutId === lut.id ? null : lut.id,
-                      lutMix: grade.lutId === lut.id ? 1 : 1,
+                      // Preserve the user's chosen mix when switching/clearing a
+                      // LUT. The previous `? 1 : 1` no-op forced mix back to 100%
+                      // on every click, discarding any custom strength.
+                      lutMix: grade.lutMix,
                     })}
                   />
                 ))}

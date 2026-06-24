@@ -1040,6 +1040,10 @@ function ProductionContentInner() {
         setProgress(100);
         updateStageStatus(5, 'complete');
         toast.success('Stitched!');
+      } else {
+        // seamless-stitcher can return HTTP 200 with { ok: false } (no throw).
+        // Surface that as an error instead of silently re-enabling the button.
+        throw new Error(typeof data?.error === 'string' ? data.error : 'Stitcher returned no video');
       }
     } catch (err: any) {
       toast.error('Stitching failed. Please try again.');
@@ -1144,9 +1148,12 @@ function ProductionContentInner() {
         throw new Error(data?.error || 'Cancellation failed');
       }
       
-      // Log what was cancelled
-      const details = data.details || {};
-      addLog(`Cancelled: ${details.predictionsCanelled || 0} predictions, ${details.clipsCancelled || 0} clips`, 'success');
+      // Log what was cancelled. cancel-project returns the counts under
+      // `summary` as { predictionsCancelled, clipsDeleted } — the old code read
+      // `data.details.predictionsCanelled`/`clipsCancelled` (wrong key + typos),
+      // so it always logged "0 predictions, 0 clips".
+      const summary = data.summary || {};
+      addLog(`Cancelled: ${summary.predictionsCancelled || 0} predictions, ${summary.clipsDeleted || 0} clips`, 'success');
       
       setProjectStatus('cancelled');
       toast.success('Project cancelled successfully. All background processes stopped.');

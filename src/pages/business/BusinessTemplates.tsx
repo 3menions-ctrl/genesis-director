@@ -89,7 +89,7 @@ export default function BusinessTemplates() {
     <BusinessPage
       eyebrow={<><span className="text-[hsl(215,100%,72%)]">Operate</span><span className="text-white/20">·</span><span>Reusable layouts</span></>}
       title="Templates."
-      subtitle="Reusable scene scripts, style presets and brand-locked layouts the team can launch from in seconds."
+      subtitle="A shared library of named scene scripts, style presets and brand-locked layouts your team can reference."
       actions={canCreate ? (
         <button
           type="button"
@@ -117,7 +117,7 @@ export default function BusinessTemplates() {
         <div className="rounded-2xl ring-1 ring-white/[0.07] bg-gradient-to-br from-[hsl(215_40%_10%)]/40 to-[#0a0a0f] px-6 py-16 text-center">
           <span className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10"><LayoutTemplate className="w-6 h-6 text-[hsl(215,100%,72%)]" strokeWidth={1.4} /></span>
           <h3 className="mt-5 font-display italic font-light text-[22px] text-white tracking-[-0.01em]">No templates yet.</h3>
-          <p className="mt-2 text-[13px] text-white/55">Save a finished production setup as a template to let the team launch new variations in seconds.</p>
+          <p className="mt-2 text-[13px] text-white/55">Save a named template so the team has a shared reference for production setups.</p>
           {canCreate && (
             <button
               type="button"

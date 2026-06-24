@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Loader2, CheckCircle2, Play } from 'lucide-react';
+import { Loader2, CheckCircle2, Play, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -152,11 +152,50 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
 
       {/* Results summary */}
       {results.length > 0 && !isRunning && (
-        <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg bg-glass border border-white/[0.06]">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <p className="text-xs text-white/60">
-            {successCount} successful, {failCount} failed
-          </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg bg-glass border border-white/[0.06]">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <p className="text-xs text-white/60">
+              {successCount} successful, {failCount} failed
+            </p>
+          </div>
+
+          {/* Edited results — previously the editedUrls were computed (and
+              charged for) but never surfaced. Show each edit with a download
+              link, and flag failures inline. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {results.map((r) => {
+              const photo = photos.find((p) => p.id === r.photoId);
+              if (r.editedUrl) {
+                return (
+                  <a
+                    key={r.photoId}
+                    href={r.editedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={photo ? `edited-${photo.name}` : undefined}
+                    className="group relative block aspect-square overflow-hidden rounded-lg border border-white/[0.06] bg-black/20"
+                    title={`Download ${photo?.name ?? 'edited photo'}`}
+                  >
+                    <img src={r.editedUrl} alt={photo?.name ?? 'Edited photo'} className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Download className="w-5 h-5 text-white" />
+                    </span>
+                  </a>
+                );
+              }
+              return (
+                <div
+                  key={r.photoId}
+                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] p-2 text-center"
+                  title={r.error}
+                >
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <span className="text-[10px] text-white/45 line-clamp-2">{photo?.name ?? 'Failed'}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

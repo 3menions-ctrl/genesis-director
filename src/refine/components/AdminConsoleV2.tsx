@@ -28,7 +28,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AdminCard, ACCENT_HSL, accent, CYAN, ROSE, AMBER } from "@/admin/ui/primitives";
+import { StatOrb, ACCENT_HSL, accent, CYAN, ROSE, AMBER } from "@/admin/ui/primitives";
 
 // ── Public types ─────────────────────────────────────────────────────────
 
@@ -124,13 +124,6 @@ export interface AdminRow {
 
 // ── Implementation ───────────────────────────────────────────────────────
 
-const toneColor: Record<SignalTone, string> = {
-  blue: ACCENT_HSL,
-  amber: AMBER,
-  emerald: CYAN,
-  rose: ROSE,
-  neutral: "#ffffff",
-};
 
 export function AdminConsoleV2<T extends AdminRow = AdminRow>(
   props: AdminConsoleV2Props<T>,
@@ -284,8 +277,8 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
 
   return (
     <div className="space-y-8">
-      {/* Intro band + signals */}
-      <AdminCard className="p-8 lg:p-10">
+      {/* Intro band + signals — borderless, floats on the page */}
+      <div>
         <div
           aria-hidden
           className="absolute -top-24 right-0 w-[420px] h-[420px] rounded-full pointer-events-none"
@@ -344,32 +337,26 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
         </div>
 
         {signals && signals.length > 0 && (
-          <div className="relative mt-8 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="relative mt-8 grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-4">
             {signals.map((s, i) => {
               const value = s.value(rows as AdminRow[]);
               const trend = s.trend?.(rows as AdminRow[]);
+              const toneAura: Record<SignalTone, string> = { blue: ACCENT_HSL, amber: AMBER, emerald: CYAN, rose: ROSE, neutral: ACCENT_HSL };
               return (
-                <div key={i}>
-                  <div className="text-[9px] text-white/45 font-mono uppercase tracking-[0.32em] mb-2">
-                    {s.label}
-                  </div>
-                  <div
-                    className="text-2xl font-display font-semibold tracking-[-0.02em] tabular-nums"
-                    style={{ color: toneColor[s.tone || "neutral"] }}
-                  >
-                    {loading ? <span className="text-white/20">…</span> : value}
-                  </div>
-                  {trend && (
-                    <div className="text-[10px] text-white/45 mt-1 font-mono uppercase tracking-[0.2em]">
-                      {trend}
-                    </div>
-                  )}
-                </div>
+                <StatOrb
+                  key={i}
+                  index={i}
+                  aura={toneAura[s.tone || "neutral"]}
+                  label={String(s.label)}
+                  value={(loading ? "…" : value) as string | number}
+                  sub={trend ? String(trend) : undefined}
+                  accentNumber={s.tone === "blue"}
+                />
               );
             })}
           </div>
         )}
-      </AdminCard>
+      </div>
 
       {/* Search + filter row */}
       {(searchKey || (filters && filters.length > 0)) && (
@@ -405,8 +392,8 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
         </div>
       )}
 
-      {/* Table */}
-      <AdminCard className="overflow-hidden">
+      {/* Table — borderless, floats on the page (hairlines only) */}
+      <div className="overflow-hidden">
         {error ? (
           <div className="p-12 text-center text-white/60">
             <AlertCircle className="w-6 h-6 mx-auto mb-3" style={{ color: ROSE }} />
@@ -441,7 +428,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="bg-white/[0.04]">
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
                   {visibleColumns.map((c) => (
                     <th
                       key={c.key}
@@ -474,13 +461,11 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
                 </tr>
               </thead>
               <tbody>
-                {displayRows.map((row, rowIndex) => (
+                {displayRows.map((row) => (
                   <tr
                     key={String(row.id)}
-                    className={cn(
-                      "transition-colors hover:bg-white/[0.05]",
-                      rowIndex % 2 === 1 && "bg-white/[0.015]",
-                    )}
+                    className="transition-colors hover:bg-white/[0.02]"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
                   >
                     {visibleColumns.map((c) => {
                       const raw = row[c.key];
@@ -541,7 +526,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
             </div>
           </div>
         )}
-      </AdminCard>
+      </div>
 
       {children}
     </div>

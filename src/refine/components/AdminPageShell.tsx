@@ -5,7 +5,7 @@
  */
 import { ReactNode, createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
-import { ACCENT_HSL, accent, CYAN, AMBER, ROSE } from "@/admin/ui/primitives";
+import { ACCENT_HSL, accent, CYAN, AMBER, ROSE, StatOrb } from "@/admin/ui/primitives";
 
 /**
  * AdminEmbeddedContext — set to true by AdminHubShell when it renders a
@@ -76,17 +76,21 @@ export function AdminPageShell({
         )}
       </header>
 
-      {/* Floating stats — figures over a single hairline, no box. */}
+      {/* Floating stat orbs — borderless figures over coloured auras. */}
       {stats && stats.length > 0 && (
-        <div className="grid grid-cols-2 gap-x-10 gap-y-7 pt-7 md:grid-cols-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-4">
           {stats.map((s, i) => {
-            const toneMap: Record<string, string> = { blue: ACCENT_HSL, amber: AMBER, emerald: CYAN, rose: ROSE, neutral: "#fff" };
+            const toneAura: Record<string, string> = { blue: ACCENT_HSL, amber: AMBER, emerald: CYAN, rose: ROSE, neutral: ACCENT_HSL };
             return (
-              <div key={i}>
-                <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.32em] text-white/45">{s.label}</div>
-                <div className="font-display text-3xl font-semibold tracking-[-0.02em] tabular-nums" style={{ color: toneMap[s.tone || "neutral"] }}>{s.value}</div>
-                {s.sub && <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">{s.sub}</div>}
-              </div>
+              <StatOrb
+                key={i}
+                index={i}
+                aura={toneAura[s.tone || "neutral"]}
+                label={String(s.label)}
+                value={s.value as string | number}
+                sub={s.sub ? String(s.sub) : undefined}
+                accentNumber={s.tone === "blue"}
+              />
             );
           })}
         </div>

@@ -76,8 +76,12 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[96vw] max-w-5xl max-h-[90vh] overflow-hidden rounded-[24px] border-0 bg-[#0a0b10]/95 p-0 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/[0.06] px-6 py-4">
+      {/* flex column capped to the viewport: header + filter stay fixed, the
+          grid is the only scroll region. Overrides the shared dialog's default
+          `grid` display so the modal can never outgrow the screen, and keeps
+          the standard translate-based centering. */}
+      <DialogContent className="flex max-h-[85vh] w-[96vw] max-w-5xl flex-col overflow-hidden rounded-[24px] border-0 bg-[#0a0b10]/95 p-0 backdrop-blur-2xl">
+        <DialogHeader className="shrink-0 border-b border-white/[0.06] px-6 py-4 pr-14">
           <DialogTitle className="flex items-center gap-2.5 text-[18px] font-semibold text-white">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-inset ring-white/10">
               <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.7} />
@@ -90,15 +94,16 @@ export function TimelineTemplatesDrawer({ open, onClose }: Props) {
         </DialogHeader>
 
         {/* Category filter strip */}
-        <div className="flex flex-wrap gap-1.5 px-6 py-3">
+        <div className="flex shrink-0 flex-wrap gap-1.5 px-6 py-3">
           <Chip active={filter === "all"} onClick={() => setFilter("all")} label="All" />
           {CATEGORY_ORDER.map((c) => (
             <Chip key={c} active={filter === c} onClick={() => setFilter(c)} label={CATEGORY_LABELS[c]} />
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="grid max-h-[62vh] grid-cols-2 gap-3 overflow-y-auto px-6 pb-6 sm:grid-cols-3 lg:grid-cols-4">
+        {/* Grid — the only scroll region; flex-1 + min-h-0 lets it fill the
+            remaining height and scroll instead of pushing the modal off-screen. */}
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto px-6 pb-6 sm:grid-cols-3 lg:grid-cols-4">
           {templates.map((t) => (
             <button
               key={t.id}

@@ -174,7 +174,7 @@ const { adminRoutes, pathToRoute } = (() => {
  * the remaining core paths are the canonical, hand-wired Admin shell pages.
  */
 const CORE_PATH_TO_COMPONENT: Record<string, string> = {
-  "/admin": "AdminCommandCenter", // Horizon overview (previous AdminDashboardPage now at /admin/classic)
+  "/admin": "AdminDashboardPage",
   "/admin/users": "AdminUsersPage",
   "/admin/messages": "AdminMessagesPage",
   "/admin/finance": "AdminFinancePage",

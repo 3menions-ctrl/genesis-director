@@ -17,7 +17,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const RefineAdminLayout = lazy(() => import("../refine/AdminLayout").then((m) => ({ default: m.RefineAdminLayout })));
-const AdminCommandCenter = lazy(() => import("../refine/pages/AdminCommandCenter"));
 const AdminDashboardPage = lazy(() => import("../refine/pages/AdminDashboardPage"));
 const AdminUsersPage = lazy(() => import("../refine/pages/AdminUsersPage"));
 const AdminProjectsPage = lazy(() => import("../refine/pages/AdminProjectsPage"));
@@ -98,9 +97,7 @@ export default function AdminApp() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AdminCommandCenter />} />
-        {/* Previous dashboard kept reachable during the redesign rollout. */}
-        <Route path="classic" element={<AdminDashboardPage />} />
+        <Route index element={<AdminDashboardPage />} />
         {/* Section hubs — sidebar groups 02–06 */}
         <Route path="people" element={<PeopleHubPage />} />
         <Route path="production-hub" element={<ProductionHubPage />} />

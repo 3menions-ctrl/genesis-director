@@ -11,16 +11,13 @@
 import { type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Building2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useLeftRail } from "@/hooks/useLeftRail";
 import { ModuleBaseContext } from "@/components/foundation/moduleBase";
 import { BusinessBackdrop, toneForBusinessPath } from "./BusinessBackdrop";
 import { BusinessRail } from "./BusinessRail";
 
 export function BusinessShell({ children }: { children: ReactNode }) {
   const { currentOrg, loading } = useWorkspace();
-  const { open } = useLeftRail();
   const { pathname } = useLocation();
   const tone = toneForBusinessPath(pathname);
 
@@ -29,8 +26,9 @@ export function BusinessShell({ children }: { children: ReactNode }) {
       <BusinessBackdrop tone={tone} />
       <BusinessRail />
 
-      {/* Content shifts right by the rail width when it's open (md+). */}
-      <div className={cn("relative transition-[padding-left] duration-300 ease-out", open && "md:pl-[320px]")}>
+      {/* Always-on icon rail — reserve its width (matches the <aside> in
+          BusinessRail.tsx: 72px phone / 96px md+). */}
+      <div className="relative pl-[72px] md:pl-[96px]">
         <main className="relative z-10 min-h-[100dvh]">
           {loading ? (
             <div className="flex min-h-[60vh] items-center justify-center text-white/55">

@@ -110,12 +110,20 @@ Deno.serve(async (req) => {
         sub_pro_monthly: 600,
         sub_studio_monthly: 2000,
       };
+      // AUDIT FIX M-3: a subscription plan with no positive credit mapping would
+      // bake credits=0 into the order metadata; the customer would be billed and
+      // subscribed, but order.paid would early-return ("no creditable amount")
+      // and grant nothing. Refuse the checkout instead of silently under-granting.
+      const subCredits = SUB_CREDITS[priceId] ?? 0;
+      if (subCredits <= 0) {
+        return json({ error: `Subscription plan ${priceId} has no credit allowance configured` }, 503);
+      }
       metadata = {
         userId: user.id,
         user_id: user.id,
         kind,
         price_id: priceId,
-        credits: String(SUB_CREDITS[priceId] ?? 0),
+        credits: String(subCredits),
         ...(orgId ? { org_id: orgId } : {}),
       };
       fallbackReturn = `${origin}/account?subscription=success&checkout_id={CHECKOUT_ID}`;

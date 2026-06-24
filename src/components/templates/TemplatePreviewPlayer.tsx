@@ -151,7 +151,7 @@ export const TemplatePreviewPlayer = memo(function TemplatePreviewPlayer({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl bg-[hsl(220,14%,4%)] border-[hsla(215,100%,60%,0.18)] text-white p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl text-white p-0 overflow-hidden">
         {/* Header strip with hero thumb */}
         <div className="relative h-44 w-full overflow-hidden">
           {template.thumbnail_url ? (

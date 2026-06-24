@@ -403,7 +403,7 @@ function CastSpotlight({ reduced }: { reduced: boolean }) {
         <div aria-hidden className="pointer-events-none absolute -inset-8 rounded-full opacity-70" style={{ background: `radial-gradient(circle, hsl(${ACCENT} / 0.22), transparent 65%)`, filter: "blur(60px)" }} />
         <AnimatePresence mode="wait">
           <motion.figure key={a.src} initial={reduced ? false : { opacity: 0, scale: 0.96, filter: "blur(6px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} exit={reduced ? undefined : { opacity: 0, scale: 1.02 }} transition={{ duration: 0.5, ease: EASE }}
-            className="relative overflow-hidden rounded-[26px] border border-white/[0.09] bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-white/[0.01] p-3 backdrop-blur-2xl shadow-[0_50px_120px_-30px_rgba(4,6,12,0.9)]">
+            className="relative overflow-hidden rounded-3xl border border-white/[0.09] bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-white/[0.01] p-3 backdrop-blur-2xl shadow-[0_50px_120px_-30px_rgba(4,6,12,0.9)]">
             <div className="relative aspect-square w-[clamp(320px,44vw,540px)] overflow-hidden rounded-[18px] ring-1 ring-inset ring-white/[0.06]" style={{ background: "radial-gradient(82% 72% at 50% 30%, #131c30 0%, #0b1222 55%, #070a14 100%)" }}>
               {/* full 1024×1024 original — both hands intact, fills the square edge-to-edge */}
               <img src={a.full} alt={a.name} className="absolute inset-0 h-full w-full object-cover" />

@@ -54,7 +54,7 @@ export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl bg-[hsl(220,14%,3.5%)] border-white/[0.08] text-white">
+      <DialogContent className="max-w-xl text-white">
         <DialogTitle className="text-white text-[22px] font-display font-light flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-accent" /> Buy credits
         </DialogTitle>

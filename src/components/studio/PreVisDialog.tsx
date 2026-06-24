@@ -66,7 +66,7 @@ export function PreVisDialog({ open, onOpenChange, prompt, onChoose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-[hsl(220,14%,3.5%)] border-white/[0.08]">
+      <DialogContent className="max-w-3xl">
         <DialogTitle className="text-white font-display text-[22px] flex items-center gap-2">
           <Wand2 className="w-4 h-4 text-brand-light" />
           Pre-vis · Pick your interpretation

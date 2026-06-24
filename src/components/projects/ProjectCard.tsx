@@ -287,7 +287,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
           "bg-white/[0.015]",
           "hover:bg-glass-hover hover:scale-[1.005]",
-          isActive && "ring-1 ring-[hsla(215,100%,60%,0.35)]"
+          isActive && "bg-white/[0.04] ring-1 ring-white/15"
         )}
         onClick={onPlay}
       >
@@ -390,7 +390,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         "relative overflow-hidden rounded-2xl transition-all duration-700",
         "bg-white/[0.018]",
         "aspect-video",
-        isActive && "ring-1 ring-[hsla(215,100%,60%,0.45)]"
+        isActive && "ring-1 ring-white/20"
       )}>
         
         {/* Video/Thumbnail layer — Ken Burns slow zoom on hover */}

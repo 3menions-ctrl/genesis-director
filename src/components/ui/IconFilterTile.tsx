@@ -6,6 +6,7 @@
  */
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
+import { CenterLine } from "@/components/ui/CenterLine";
 
 export function IconFilterTile({
   active,
@@ -42,14 +43,8 @@ export function IconFilterTile({
       >
         {label}
       </span>
-      {/* Selection — a clean underline beneath the tile (no bloom). */}
-      {active && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 left-1/2 h-[2px] w-7 -translate-x-1/2 rounded-full bg-white"
-          style={{ boxShadow: "0 0 8px -1px rgba(255,255,255,0.45)" }}
-        />
-      )}
+      {/* Selection — the single, app-wide centre-line indicator. */}
+      {active && <CenterLine />}
     </button>
   );
 }

@@ -179,7 +179,7 @@ const SettingsContent = memo(function SettingsContent() {
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="sticky top-24 relative rounded-[28px] p-2.5 overflow-hidden"
+              className="sticky top-24 relative rounded-3xl p-2.5 overflow-hidden"
               style={{
                 background:
                   'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',

@@ -896,7 +896,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="group/stage relative rounded-[32px] overflow-hidden"
+          className="group/stage relative rounded-3xl overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, hsla(0,0%,100%,0.04) 0%, hsla(0,0%,100%,0.01) 50%, hsla(0,0%,100%,0.02) 100%)',
             backdropFilter: 'blur(56px) saturate(180%)',

@@ -54,7 +54,7 @@
          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-500/20 via-transparent to-violet-500/20 blur-xl opacity-50" />
          
          {/* Main container */}
-         <div className="relative flex items-center gap-1 p-1.5 bg-black/60 backdrop-blur-2xl rounded-full shadow-2xl shadow-black/50">
+         <div className="relative flex items-center gap-1 p-1.5 bg-black/60 backdrop-blur-2xl rounded-full shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)]">
            {CATEGORIES.map((cat) => {
              const Icon = cat.icon;
              const isActive = activeCategory === cat.id;

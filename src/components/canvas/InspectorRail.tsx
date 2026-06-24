@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { DialogueEditor } from './DialogueEditor';
 import { CURATED_MODELS, capChips, capsFor, lookupCurated, inferCaps } from '@/lib/canvas/modelCapabilities';
+import { CenterLine } from '@/components/ui/CenterLine';
 
 export function InspectorRail({
   node,
@@ -217,11 +218,12 @@ function ModelInspector({ data, update }: { data: any; update: (p: any) => void 
             const active = data.model?.owner === m.owner && data.model?.name === m.name;
             return (
               <button key={`${m.owner}/${m.name}`} onClick={() => choose(m)}
-                className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
-                  active ? 'border-primary/60 bg-primary/[0.06]' : 'border-white/[0.05] hover:border-white/15 hover:bg-glass'
+                className={`relative w-full text-left px-3 py-2 rounded-lg border transition-all ${
+                  active ? 'border-white/10 bg-white/[0.05] text-white' : 'border-white/[0.05] hover:border-white/15 hover:bg-glass'
                 }`}>
+                {active && <CenterLine />}
                 <div className="flex items-center gap-2">
-                  <Wand2 className="h-3 w-3 text-primary" />
+                  <Wand2 className={`h-3 w-3 ${active ? 'text-white' : 'text-primary'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm">{m.label}</div>
                     <div className="font-mono text-[10px] text-white/40 truncate">{m.owner}/{m.name}</div>

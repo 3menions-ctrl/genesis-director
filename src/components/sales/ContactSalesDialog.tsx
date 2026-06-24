@@ -85,7 +85,7 @@ export function ContactSalesDialog({ open, onOpenChange, tier = 'enterprise', so
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] bg-[hsl(220,14%,4%)] border-white/[0.07] text-white">
+      <DialogContent className="sm:max-w-[560px] text-white">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl tracking-tight">
             {tier === 'enterprise' ? 'Talk to our Enterprise team' : 'Talk to Sales'}

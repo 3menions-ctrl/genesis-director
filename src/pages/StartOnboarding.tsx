@@ -17,6 +17,7 @@ import { BetaHero } from '@/components/ui/BetaHero';
 import { OAuthProviders } from '@/components/auth/OAuthProviders';
 import { AuthOtpInput } from '@/components/auth/AuthOtpInput';
 import { cn } from '@/lib/utils';
+import { CenterLine } from '@/components/ui/CenterLine';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
 import heroBusiness from '@/assets/onboarding/hero-business.jpg';
@@ -1143,26 +1144,21 @@ function ChipGrid({
               className={cn(
                 'group relative min-h-[110px] p-4 rounded-2xl border text-left flex flex-col gap-2 overflow-hidden font-sans',
                 active
-                  ? 'border-primary/55 bg-primary/[0.10] shadow-[0_0_32px_-8px_hsla(212,100%,55%,0.55)]'
+                  ? 'border-white/15 bg-white/[0.05]'
                   : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
               {Icon && (
                 <div className={cn(
                   'w-9 h-9 rounded-xl flex items-center justify-center border transition-colors',
-                  active ? 'border-primary/55 bg-primary/[0.18]' : 'border-white/[0.08] bg-glass-hover',
+                  active ? 'border-white/15 bg-white/[0.08]' : 'border-white/[0.08] bg-glass-hover',
                 )}>
-                  <Icon className="w-4 h-4 text-primary/60" />
+                  <Icon className={cn('w-4 h-4', active ? 'text-white' : 'text-primary/60')} />
                 </div>
               )}
               <p className="text-sm font-semibold text-white">{label}</p>
               {desc && <p className="text-[11.5px] text-white/55 leading-snug">{desc}</p>}
-              {active && (
-                <span className="absolute top-3 right-3 w-5 h-5 rounded-full inline-flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)', boxShadow: '0 0 12px hsla(212,100%,60%,0.6)' }}>
-                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                </span>
-              )}
+              {active && <CenterLine className="bottom-0" />}
             </motion.button>
           );
         })}
@@ -1281,7 +1277,7 @@ function SegmentScale({
               className={cn(
                 'relative h-[78px] px-3 rounded-2xl border flex flex-col items-center justify-center transition-all',
                 active
-                  ? 'border-primary/55 bg-primary/[0.10] shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                  ? 'border-white/15 bg-white/[0.05]'
                   : 'border-white/[0.08] bg-glass hover:border-white/15',
               )}
             >
@@ -1291,7 +1287,7 @@ function SegmentScale({
                 {options.map((_, j) => (
                   <span key={j} className={cn(
                     'flex-1 h-0.5 rounded-full transition-colors',
-                    j <= i && active ? 'bg-primary/90' : 'bg-glass-active',
+                    j <= i && active ? 'bg-white' : 'bg-glass-active',
                   )} />
                 ))}
               </div>

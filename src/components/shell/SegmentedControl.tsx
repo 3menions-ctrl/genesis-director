@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { CenterLine } from '@/components/ui/CenterLine';
 import type { LucideIcon } from 'lucide-react';
 
 export interface SegmentItem<T extends string> {
@@ -47,24 +48,19 @@ export function SegmentedControl<T extends string>({
               isActive ? 'text-white' : 'text-white/40 hover:text-white/70'
             )}
           >
-            {Icon && <Icon className={cn('w-4 h-4', isActive ? 'text-primary' : 'opacity-60')} />}
+            {Icon && <Icon className={cn('w-4 h-4', isActive ? 'text-white' : 'opacity-60')} />}
             <span>{item.label}</span>
             {typeof item.count === 'number' && item.count > 0 && (
               <span
                 className={cn(
                   'text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-medium',
-                  isActive ? 'bg-primary/15 text-primary' : 'bg-glass-hover text-white/40'
+                  isActive ? 'bg-white/10 text-white' : 'bg-glass-hover text-white/40'
                 )}
               >
                 {item.count}
               </span>
             )}
-            <span
-              className={cn(
-                'pointer-events-none absolute inset-x-2 -bottom-px h-0.5 rounded-full transition-all duration-300',
-                isActive ? 'bg-primary opacity-100' : 'bg-primary opacity-0'
-              )}
-            />
+            {isActive && <CenterLine />}
           </button>
         );
       })}

@@ -986,7 +986,7 @@ export function CreationStudio({ onStartCreation, onReady, initialPrompt }: { on
   ];
 
   return (
-    <div className="flex h-[calc(100vh-120px)] min-h-[640px] overflow-hidden rounded-[28px] bg-gradient-to-b from-[hsl(220_28%_7%/0.55)] to-[hsl(220_30%_4%/0.62)] backdrop-blur-2xl shadow-[0_50px_140px_-40px_rgba(0,0,0,0.95),inset_0_1px_0_hsl(0_0%_100%/0.05)]">
+    <div className="flex h-[calc(100vh-120px)] min-h-[640px] overflow-hidden rounded-3xl bg-gradient-to-b from-[hsl(220_28%_7%/0.55)] to-[hsl(220_30%_4%/0.62)] backdrop-blur-2xl shadow-[0_50px_140px_-40px_rgba(0,0,0,0.95),inset_0_1px_0_hsl(0_0%_100%/0.05)]">
       {/* left rail — borderless; separated by a soft gradient wash, not a line */}
       <nav className="flex w-[76px] shrink-0 flex-col items-center gap-1 overflow-y-auto bg-gradient-to-r from-[hsl(220_30%_9%/0.4)] to-transparent py-4 sm:w-[92px]">
         {groups.map((g, gi) => (

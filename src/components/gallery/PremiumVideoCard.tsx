@@ -234,7 +234,7 @@ const shouldReduceMotion = () => {
           />}
          
          {/* Main card container with glassmorphism */}
-         <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950/80 backdrop-blur-sm shadow-2xl shadow-black/40">
+         <div className="relative w-full h-full rounded-2xl overflow-hidden bg-black/70 backdrop-blur-sm shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)]">
            {/* Corner accent decorations */}
            <div className="absolute top-0 left-0 w-16 h-16 pointer-events-none z-20">
              <div className={cn("absolute top-0 left-0 w-8 h-[2px] rounded-full bg-gradient-to-r", accent.gradient, "opacity-60")} />

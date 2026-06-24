@@ -64,7 +64,7 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
       {/* Selected luminous edge */}
       {isSelected && (
         <div
-          className="absolute -inset-px rounded-[25px] pointer-events-none"
+          className="absolute -inset-px rounded-2xl pointer-events-none"
           style={{
             background: 'linear-gradient(135deg, hsla(215,100%,60%,0.55), hsla(215,100%,70%,0.15), hsla(215,100%,60%,0.05))',
             mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',

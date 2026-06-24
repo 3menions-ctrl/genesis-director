@@ -600,7 +600,7 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[96vw] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-[24px] border-0 bg-[#0a0b10]/95 p-6 backdrop-blur-2xl shadow-[0_60px_160px_-40px_rgba(0,0,0,0.95)] sm:p-8">
+      <DialogContent className="w-[96vw] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl p-6 sm:p-8">
         {/* ambient cinematics — premium, borderless */}
         <div aria-hidden className="pointer-events-none absolute -top-24 right-0 h-56 w-56 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.3), transparent 70%)' }} />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />

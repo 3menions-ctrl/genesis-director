@@ -29,7 +29,7 @@ export default function AdminEmailTemplatesPage() {
       description="Subject lines, HTML bodies, and variable bindings for every transactional send."
     >
       <AdminConsoleV2<TemplateRow>
-        intro="Tune the words your product sends. Templates are looked up by slug — code calls them by name, not by id."
+        intro="Reference / draft copies of transactional emails. Note: the live send pipeline currently uses code-defined templates (send-transactional-email · auth-email-hook), so edits here are for drafting and don't change sent mail yet."
         query={{ table: "email_templates", orderBy: { column: "updated_at", ascending: false } }}
         searchKey="name"
         signals={[
@@ -53,7 +53,7 @@ export default function AdminEmailTemplatesPage() {
             const { error } = await supabase.from("email_templates").update({ enabled: !r.enabled }).eq("id", r.id);
             if (error) throw error;
           }},
-          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this template? Code calling its slug will start failing.",
+          { label: "Delete", icon: Trash2, variant: "destructive", confirm: "Delete this draft template? (The live send pipeline uses code-defined templates, so this won't affect sent mail.)",
             onRun: async (r) => {
               const { error } = await supabase.from("email_templates").delete().eq("id", r.id);
               if (error) throw error;

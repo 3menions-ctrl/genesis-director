@@ -42,7 +42,7 @@ export default function AdminContentSafetyPage() {
           { label: "Active", value: (r) => r.filter((x) => (x as RuleRow).active).length, tone: "blue" },
           { label: "Blocking", value: (r) => r.filter((x) => (x as RuleRow).severity === "block").length, tone: "rose" },
           { label: "Warnings", value: (r) => r.filter((x) => (x as RuleRow).severity === "warn").length, tone: "amber" },
-          { label: "Total hits", value: (r) => r.reduce((s, x) => s + ((x as RuleRow).hits ?? 0), 0).toLocaleString(), tone: "neutral" },
+          { label: "Total rules", value: (r) => r.length.toLocaleString(), tone: "neutral" },
         ]}
         columns={[
           { key: "pattern", label: "Pattern",

@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UserPlus, ShoppingBag, MessageSquare, Building2,
-  Loader2, CheckCheck, Activity, Mail, Bell,
+  Loader2, CheckCheck, Activity,
   AlertTriangle, Undo2, ShieldAlert, Flame, Clock3, Clapperboard, UserMinus, ZapOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -217,12 +217,6 @@ export default function AdminNotificationsPage() {
           )}
         </div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-mono">
-          <div className="flex items-center gap-1.5 text-white/40 px-2 py-1 rounded border border-white/5">
-            <Mail className="w-3 h-3" /> Email · on
-          </div>
-          <div className="flex items-center gap-1.5 text-white/40 px-2 py-1 rounded border border-white/5">
-            <Bell className="w-3 h-3" /> In-app · on
-          </div>
           <button
             onClick={markAllRead}
             disabled={totalUnread === 0}

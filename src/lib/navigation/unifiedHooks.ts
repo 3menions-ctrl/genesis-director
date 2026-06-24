@@ -318,10 +318,18 @@ export function useSafeNavigation() {
     navigate(to, { replace: true });
   }, [navigate, componentId]);
 
+  // LOGIC FIX L-8: isLocked must be REACTIVE — SafeLink uses it to gate clicks
+  // and drive disabled styling. The old render-time snapshot never updated, so
+  // links could stay clickable while locked, or stay greyed/pointer-events-none
+  // after a navigation completed. Subscribe to the coordinator like
+  // useNavigationState does.
+  const [isLocked, setIsLocked] = useState(() => navigationCoordinator.isLocked());
+  useEffect(() => navigationCoordinator.subscribe(() => setIsLocked(navigationCoordinator.isLocked())), []);
+
   return {
     navigate: safeNavigate,
     emergencyNavigate,
-    isLocked: navigationCoordinator.isLocked(),
+    isLocked,
   };
 }
 

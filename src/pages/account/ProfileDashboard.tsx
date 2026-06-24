@@ -1297,7 +1297,7 @@ export default function ProfileDashboard() {
               hasTagline={!!tagline && tagline.trim().length > 0}
               hasLocation={!!location && location.trim().length > 0}
               hasLinks={Object.values(externalLinks).filter(Boolean).length > 0}
-              hasInterests={(viewed?.country !== null) && ((viewed as any)?.interests?.length ?? 0) >= 2}
+              hasInterests={((viewed as any)?.interests?.length ?? 0) >= 2}
               hasPinned={data.pinnedReels.length > 0}
               hasFeaturedReel={!!featuredReel}
               hasVerified={!!viewed?.verified_at}

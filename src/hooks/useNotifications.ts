@@ -244,36 +244,62 @@ export function useNotifications() {
     };
   }, [user?.id]);
 
-  // Mark as read mutation. We do NOT invalidate here — the realtime
-  // channel (user-scoped above) will pick up the UPDATE and fire the
-  // single invalidation. Calling invalidate from both onSuccess AND the
-  // realtime listener caused a double-refetch on every read action.
+  // LOGIC FIX L-7: previously mark-read relied ENTIRELY on the realtime UPDATE
+  // to refresh the badge/list — if that event wasn't delivered (socket backoff,
+  // mid-resubscribe, publication mismatch) the unread count never refreshed,
+  // with no self-healing. Mirror delete/clear: optimistic cache update for an
+  // instant UI, rollback on error, and reconcile on settle.
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId);
-
       if (error) throw error;
+    },
+    onMutate: async (notificationId: string) => {
+      const listKey = ['notifications', user?.id];
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueriesData<Notification[]>({ queryKey: listKey });
+      queryClient.setQueriesData<Notification[]>({ queryKey: listKey }, (old) =>
+        Array.isArray(old) ? old.map((n) => (n.id === notificationId ? { ...n, read: true } : n)) : old);
+      return { previous };
+    },
+    onError: (_e, _id, ctx) => {
+      ctx?.previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread', user?.id] });
     },
   });
 
-  // Mark all as read
+  // Mark all as read — same optimistic + self-healing pattern.
   const markAllAsRead = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
-      
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false);
-      
       if (error) throw error;
     },
-    // No invalidation here — the realtime channel above observes the
-    // delete and fires the single invalidate. Avoids double-refetch.
+    onMutate: async () => {
+      const listKey = ['notifications', user?.id];
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueriesData<Notification[]>({ queryKey: listKey });
+      queryClient.setQueriesData<Notification[]>({ queryKey: listKey }, (old) =>
+        Array.isArray(old) ? old.map((n) => ({ ...n, read: true })) : old);
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread', user?.id] });
+    },
   });
 
   // Delete one. The realtime DELETE event can't be relied on (see note on the

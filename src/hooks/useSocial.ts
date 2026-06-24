@@ -263,7 +263,12 @@ export function useDirectMessages(otherUserId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, otherUserId, queryClient]);
+    // LOGIC FIX L-6: depend on user?.id (stable), not the whole `user` object —
+    // AuthContext replaces `user` on every TOKEN_REFRESHED (heavy-page nav / tab
+    // focus), which tore down + recreated this DM channel each time while a
+    // thread was open (subscription churn + briefly missed inserts).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, otherUserId, queryClient]);
 
   // Send message mutation. Routes through send_direct_message RPC so the
   // recipient's privacy preference (dmPermission: everyone | followers |

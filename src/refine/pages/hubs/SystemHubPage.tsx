@@ -8,6 +8,7 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Overview      = lazy(() => import("./decks/SystemOverview"));
 const Config        = lazy(() => import("../AdminConfigPage"));
 const DbDiagnostics = lazy(() => import("../ops/AdminDbDiagnosticsPage"));
 const Audit         = lazy(() => import("../ops/AdminAuditLogPage"));
@@ -30,7 +31,8 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function SystemHubPage() {
   const tabs: HubTab[] = [
-    { id: "config",      label: "Config",      suggested: true, render: () => wrap(Config) },
+    { id: "overview",    label: "Overview",    suggested: true, render: () => wrap(Overview) },
+    { id: "config",      label: "Config",      render: () => wrap(Config) },
     { id: "diagnostics", label: "Diagnostics", render: () => wrap(DbDiagnostics) },
     { id: "audit",       label: "Audit",       render: () => wrap(Audit) },
     { id: "api-keys",   label: "API Keys",   render: () => wrap(ApiKeys) },
@@ -48,7 +50,7 @@ export default function SystemHubPage() {
       italic="Hub."
       description="Engine room. Config, security, integrations, raw audit trail — the bedrock."
       tabs={tabs}
-      defaultTab="config"
+      defaultTab="overview"
     />
   );
 }

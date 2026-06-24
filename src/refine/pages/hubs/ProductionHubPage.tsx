@@ -12,6 +12,7 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Overview       = lazy(() => import("./decks/ProductionOverview"));
 const Projects       = lazy(() => import("../AdminProjectsPage"));
 const Production     = lazy(() => import("../AdminProductionPage"));
 const Queue          = lazy(() => import("../ops/AdminQueuePage"));
@@ -36,7 +37,8 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function ProductionHubPage() {
   const tabs: HubTab[] = [
-    { id: "projects",   label: "Projects",   suggested: true, render: () => wrap(Projects) },
+    { id: "overview",   label: "Overview",   suggested: true, render: () => wrap(Overview) },
+    { id: "projects",   label: "Projects",   render: () => wrap(Projects) },
     { id: "production", label: "Production", render: () => wrap(Production) },
     { id: "queue",      label: "Queue",      render: () => wrap(Queue) },
     { id: "providers",  label: "Providers",  render: () => wrap(Providers) },
@@ -56,7 +58,7 @@ export default function ProductionHubPage() {
       italic="Hub."
       description="Everything that moves video through the pipeline — content, queues, providers, telemetry, recovery."
       tabs={tabs}
-      defaultTab="projects"
+      defaultTab="overview"
     />
   );
 }

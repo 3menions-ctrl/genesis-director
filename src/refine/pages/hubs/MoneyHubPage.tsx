@@ -8,6 +8,7 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Overview      = lazy(() => import("./decks/MoneyOverview"));
 const Finance       = lazy(() => import("../AdminFinancePage"));
 const Pnl           = lazy(() => import("../ops/AdminPnlPage"));
 const StorageBilling = lazy(() => import("../ops/AdminStorageBillingPage"));
@@ -31,7 +32,8 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function MoneyHubPage() {
   const tabs: HubTab[] = [
-    { id: "finance",       label: "Treasury",      suggested: true, render: () => wrap(Finance) },
+    { id: "overview",      label: "Overview",      suggested: true, render: () => wrap(Overview) },
+    { id: "finance",       label: "Treasury",      render: () => wrap(Finance) },
     { id: "pnl",           label: "P&L",           render: () => wrap(Pnl) },
     { id: "storage",       label: "Storage",       render: () => wrap(StorageBilling) },
     { id: "credits",       label: "Ledger",        render: () => wrap(Credits) },
@@ -50,7 +52,7 @@ export default function MoneyHubPage() {
       italic="Hub."
       description="Treasury, ledger, billing — every dollar in and out of the membrane in one place."
       tabs={tabs}
-      defaultTab="finance"
+      defaultTab="overview"
     />
   );
 }

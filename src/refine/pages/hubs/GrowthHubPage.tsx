@@ -13,6 +13,7 @@ import { lazy, Suspense } from "react";
 import { AdminHubShell, HubTab } from "../../components/AdminHubShell";
 import { Spinner } from "@/components/ui/Spinner";
 
+const Overview              = lazy(() => import("./decks/GrowthOverview"));
 const Events                = lazy(() => import("../ops/AdminEventsPage"));
 const Traffic               = lazy(() => import("../ops/AdminTrafficPage"));
 const Insights              = lazy(() => import("../ops/AdminInsightsPage"));
@@ -46,7 +47,8 @@ const wrap = (Comp: React.ComponentType) => (
 
 export default function GrowthHubPage() {
   const tabs: HubTab[] = [
-    { id: "events",          label: "Events",          suggested: true, render: () => wrap(Events) },
+    { id: "overview",        label: "Overview",        suggested: true, render: () => wrap(Overview) },
+    { id: "events",          label: "Events",          render: () => wrap(Events) },
     { id: "traffic",         label: "Traffic",         render: () => wrap(Traffic) },
     { id: "insights",        label: "Insights",        render: () => wrap(Insights) },
     { id: "analytics",       label: "Analytics",       render: () => wrap(Analytics) },
@@ -75,7 +77,7 @@ export default function GrowthHubPage() {
       italic="Hub."
       description="Analytics, experiments, content curation, communication — every lever that shapes the user experience."
       tabs={tabs}
-      defaultTab="analytics"
+      defaultTab="overview"
     />
   );
 }

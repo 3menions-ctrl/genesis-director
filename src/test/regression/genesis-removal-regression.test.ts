@@ -480,11 +480,13 @@ describe('10. Database Query Safety', () => {
 
 describe('11. All Remaining Pages Export Correctly', () => {
   // Projects/Create/Creators/Gallery pages were removed/renamed during the
-  // studio overhaul; their current equivalents are Studio, Cast, FilmsGallery.
+  // studio overhaul; their current equivalents are Studio, FilmsGallery.
+  // Landing (abandoned alternate home; live home is Cinema) and Cast (unrouted)
+  // were removed in the dead-code cleanup.
   const CORE_PAGES = [
-    'Landing', 'Studio', 'Auth', 'Profile', 'Settings',
+    'Studio', 'Auth', 'Profile', 'Settings',
     'Library', 'Production', 'Templates',
-    'Avatars', 'Cast', 'FilmsGallery', 'Pricing', 'VideoEditor',
+    'Avatars', 'FilmsGallery', 'Pricing', 'VideoEditor',
   ];
 
   CORE_PAGES.forEach(page => {

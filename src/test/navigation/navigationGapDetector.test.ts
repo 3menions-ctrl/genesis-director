@@ -363,18 +363,8 @@ describe('REAL GAP DETECTOR: Navigation Loading Overlay Gaps', () => {
     expect(content.length).toBeGreaterThan(0);
   });
 
-  it('Landing page navigation goes through proper channel', () => {
-    const landing = readFile('src/pages/Landing.tsx');
-    // Landing uses onNavigate prop which should coordinate
-    const hasNavigate = landing.includes('navigate(');
-    const usesCoordinated = landing.includes('useNavigationWithLoading') || 
-                             landing.includes('useSafeNavigation');
-    
-    if (hasNavigate && !usesCoordinated) {
-      console.log('  ⚠️  Landing.tsx uses raw navigate() - may skip loading overlay');
-    }
-    expect(typeof hasNavigate).toBe('boolean');
-  });
+  // (Removed) Landing page navigation check — Landing.tsx was an abandoned
+  // alternate home page (the live home route renders Cinema). Page deleted.
 });
 
 // ============= FINAL COMPREHENSIVE SUMMARY =============

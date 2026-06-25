@@ -224,7 +224,7 @@ describe('AppLoader — Navigation Transitions', () => {
 describe('No Rogue Loading Patterns', () => {
   // Pages that should NOT have raw spinners outside CinemaLoader
   const criticalPages = [
-    'src/pages/Landing.tsx',
+    // Landing.tsx removed — abandoned alternate home page (live home is Cinema).
     'src/pages/Studio.tsx',
     'src/pages/Production.tsx',
   ];

@@ -130,6 +130,8 @@ const NextOnDeck = memo(function NextOnDeck({ index }: { index: number }) {
   const sy = useSpring(my, { stiffness: 120, damping: 18 });
   const sheenX = useTransform(sx, (v) => `${v * 100}%`);
   const sheenY = useTransform(sy, (v) => `${v * 100}%`);
+  const sheenBackground = useTransform([sheenX, sheenY], ([x, y]) =>
+    `radial-gradient(360px circle at ${x} ${y}, hsla(0,0%,100%,0.22), transparent 55%)`);
 
   const onMove = useCallback((e: React.MouseEvent) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -189,8 +191,7 @@ const NextOnDeck = memo(function NextOnDeck({ index }: { index: number }) {
           <motion.div
             className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"
             style={{
-              background: useTransform([sheenX, sheenY], ([x, y]) =>
-                `radial-gradient(360px circle at ${x} ${y}, hsla(0,0%,100%,0.22), transparent 55%)`),
+              background: sheenBackground,
             }}
           />
 

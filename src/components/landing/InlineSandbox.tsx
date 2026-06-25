@@ -65,7 +65,7 @@ export function InlineSandbox() {
     }
   };
 
-  const usePromptSample = (s: string) => {
+  const applyPromptSample = (s: string) => {
     setPrompt(s);
     setResult(null);
     setAnimateIn([]);
@@ -127,7 +127,7 @@ export function InlineSandbox() {
               {SAMPLE_PROMPTS.map((s, i) => (
                 <button
                   key={i}
-                  onClick={() => usePromptSample(s)}
+                  onClick={() => applyPromptSample(s)}
                   className="text-[11px] font-mono uppercase tracking-[0.22em] px-3 py-1.5 rounded-full border border-white/[0.08] bg-glass hover:bg-glass-active hover:border-white/20 text-white/55 hover:text-white transition-all"
                 >
                   Sample {i + 1}

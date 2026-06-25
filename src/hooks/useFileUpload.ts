@@ -88,6 +88,22 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
       return null;
     }
 
+    // Server-side storage ceiling is enforced by an RLS gate on storage.objects;
+    // pre-check here so the user gets a clear message instead of a raw policy
+    // rejection. Fail-open on a transient RPC error — the RLS gate is the real
+    // backstop.
+    try {
+      const { data: quota } = await supabase.rpc('storage_quota_status' as never);
+      if (quota && (quota as { over?: boolean }).over) {
+        const msg = 'Storage limit reached. Free up space or upgrade your plan to upload more.';
+        setError(msg);
+        toast.error(msg);
+        return null;
+      }
+    } catch {
+      // ignore — RLS gate still enforces
+    }
+
     setIsUploading(true);
     setProgress(0);
     setError(null);

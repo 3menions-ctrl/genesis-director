@@ -1,8 +1,8 @@
 /**
- * Create — the web app's new CreationStudio (rail + canvas + composition bar),
- * tailored to THIS app: borderless, premium, floating tools on the Aurora
- * canvas (no rings/boxes — separation via spacing + soft glow), the app's blue
- * accent, and compact enough to fit on one screen.
+ * Create — the web app's CreationStudio (rail + canvas + composition bar),
+ * tailored to this app: borderless & floating, the app's blue accent, the Aurora
+ * canvas, and every control is a TRANSPARENT ICON WITH A TEXT LABEL (no text-only
+ * buttons, no filled pills). Compact enough to fit one screen.
  *
  * Generate is the default module; other rail modules swap the canvas. Create
  * routes to the real Studio engine. Spend-only.
@@ -11,8 +11,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon, Globe2,
-  Palette, PenLine, LayoutGrid, Sparkles, ArrowRight, ChevronDown, Lock,
-  RectangleHorizontal, RectangleVertical, Square, UserRound,
+  Palette, PenLine, LayoutGrid, Sparkles, Lock, Cpu, Clock, Clapperboard,
+  RectangleHorizontal, RectangleVertical, Square, UserRound, Sliders, Drama,
   type LucideIcon,
 } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -37,9 +37,9 @@ const MODULES: Module[] = [
 const GROUPS: Module['group'][] = ['create', 'assets', 'finish'];
 
 const SUBMODES = [
-  { id: 'cinematic', label: 'Cinematic' },
-  { id: 'animate', label: 'Animate' },
-  { id: 'avatar', label: 'Avatar' },
+  { id: 'cinematic', label: 'Cinematic', Icon: Clapperboard },
+  { id: 'animate', label: 'Animate', Icon: Wand2 },
+  { id: 'avatar', label: 'Avatar', Icon: UserRound },
 ];
 const ENGINES = [
   { id: 'wan', name: 'Wan 2.5' },
@@ -68,6 +68,7 @@ const SUBTITLE: Record<string, string> = {
   image: 'Text to image — describe the frame.',
   photo: 'Edit and restyle an existing image.',
 };
+const next = <T,>(arr: readonly T[], cur: T | null) => arr[(arr.indexOf(cur as T) + 1) % arr.length];
 
 export default function Create() {
   const navigate = useNavigate();
@@ -105,24 +106,14 @@ export default function Create() {
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
       <div className="relative z-10 flex h-full" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
-        {/* ── RAIL (borderless, floating) ── */}
+        {/* ── RAIL (transparent icons + labels) ── */}
         <nav className="flex w-[68px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto py-2" style={{ scrollbarWidth: 'none' }}>
           {GROUPS.map((g, gi) => (
             <div key={g} className="flex w-full flex-col items-center gap-0.5">
               {gi > 0 && <span className="my-1 h-px w-6 bg-white/10" />}
-              {MODULES.filter((m) => m.group === g).map((m) => {
-                const on = m.id === active;
-                return (
-                  <button key={m.id} onClick={() => { void hapticTap(); setActive(m.id); }} title={m.label}
-                    className={cn('flex w-full flex-col items-center gap-1 py-2 transition-colors', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
-                    <span className="relative grid place-items-center">
-                      {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/30 blur-md" />}
-                      <m.icon className="relative h-[19px] w-[19px]" strokeWidth={1.7} />
-                    </span>
-                    <span className="text-[9px] font-medium leading-none">{m.label}</span>
-                  </button>
-                );
-              })}
+              {MODULES.filter((m) => m.group === g).map((m) => (
+                <Tool key={m.id} icon={m.icon} label={m.label} on={m.id === active} onClick={() => { void hapticTap(); setActive(m.id); }} full />
+              ))}
             </div>
           ))}
         </nav>
@@ -131,23 +122,17 @@ export default function Create() {
         <div className="relative flex flex-1 flex-col overflow-hidden pr-4">
           <div className="flex-1 overflow-y-auto pb-3 pt-2">
             {isCreateModule ? (
-              <div className="flex flex-col gap-4">
-                {/* mode toggle */}
+              <div className="flex flex-col gap-5">
+                {/* mode — transparent icon + label */}
                 {active === 'generate' && (
-                  <div className="surface-1 inline-flex w-max gap-1 rounded-full p-1">
-                    {SUBMODES.map((s) => {
-                      const on = s.id === submode;
-                      return (
-                        <button key={s.id} onClick={() => { void hapticTap(); setSubmode(s.id); }}
-                          className={cn('rounded-full px-3.5 py-1.5 text-[12.5px] font-light transition-all', on ? 'bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.25)]' : 'text-white/55')}>
-                          {s.label}
-                        </button>
-                      );
-                    })}
+                  <div className="flex gap-6">
+                    {SUBMODES.map((s) => (
+                      <Tool key={s.id} icon={s.Icon} label={s.label} on={s.id === submode} onClick={() => { void hapticTap(); setSubmode(s.id); }} />
+                    ))}
                   </div>
                 )}
 
-                {/* prompt — floating lit-glass, no ring */}
+                {/* prompt — floating lit-glass (input) */}
                 {!(active === 'generate' && submode === 'avatar') && (
                   <div className="surface-2 rounded-[22px] p-1 transition-shadow focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_24px_70px_-30px_rgba(60,90,255,.55)]">
                     <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3}
@@ -163,39 +148,36 @@ export default function Create() {
                   </button>
                 )}
 
-                {/* engine — compact floating chips */}
+                {/* engine — transparent icon + label, one per engine */}
                 <Section label="Render engine">
-                  <div className="-mr-4 flex gap-2 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
+                  <div className="-mr-4 flex gap-5 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
                     {ENGINES.map((e) => (
-                      <Chip key={e.id} on={e.id === engineId} disabled={e.locked} onClick={() => { void hapticTap(); setEngineId(e.id); }}>
-                        {e.name}{e.locked && <Lock className="h-3 w-3 opacity-70" />}
-                      </Chip>
+                      <Tool key={e.id} icon={e.locked ? Lock : Cpu} label={e.name} on={e.id === engineId} disabled={e.locked} onClick={() => { void hapticTap(); setEngineId(e.id); }} />
                     ))}
                   </div>
                 </Section>
 
-                {/* format — compact floating pills */}
+                {/* format — transparent icon + label */}
                 <Section label="Format">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-5">
                     {ASPECTS.map((a, i) => (
-                      <Chip key={a.id} on={i === aspect} onClick={() => { void hapticTap(); setAspect(i); }}><a.Icon className="h-[14px] w-[14px]" strokeWidth={1.6} />{a.id}</Chip>
+                      <Tool key={a.id} icon={a.Icon} label={a.id} on={i === aspect} onClick={() => { void hapticTap(); setAspect(i); }} />
                     ))}
-                    <span className="mx-1 h-5 w-px bg-white/10" />
+                    <span className="h-7 w-px bg-white/10" />
                     {DURATIONS.map((d) => (
-                      <Chip key={d} on={d === duration} onClick={() => { void hapticTap(); setDuration(d); }}>{d}</Chip>
+                      <Tool key={d} icon={Clock} label={d} on={d === duration} onClick={() => { void hapticTap(); setDuration(d); }} />
                     ))}
                   </div>
                 </Section>
 
-                <div>
-                  <button onClick={() => { void hapticTap(); setAdvanced((v) => !v); }} className="inline-flex items-center gap-1.5 text-[12px] font-light text-white/55">
-                    Style &amp; sound <ChevronDown className={cn('h-[14px] w-[14px] transition-transform', advanced && 'rotate-180')} strokeWidth={1.5} />
-                  </button>
+                {/* style & sound — transparent icon + label tools */}
+                <div className="flex gap-6">
+                  <Tool icon={Sliders} label="Style" on={advanced} onClick={() => { void hapticTap(); setAdvanced((v) => !v); }} />
                   {advanced && (
-                    <div className="mt-3 flex flex-col gap-3">
-                      <ChipField label="Genre" options={GENRES} value={genre} onPick={setGenre} />
-                      <ChipField label="Mood" options={MOODS} value={mood} onPick={setMood} />
-                    </div>
+                    <>
+                      <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
+                      <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
+                    </>
                   )}
                 </div>
               </div>
@@ -203,14 +185,17 @@ export default function Create() {
               <div className="flex flex-col gap-1">
                 <h2 className="text-[24px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>{MODULES.find((m) => m.id === active)?.label}</h2>
                 <p className="text-[13px] leading-relaxed text-white/45">{SUBTITLE[active]}</p>
-                <div className="mt-5">
+                <div className="mt-6">
                   {active === 'look' && (
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {LOOKS.map((l) => <Chip key={l} block on={l === look} onClick={() => { void hapticTap(); setLook(l === look ? null : l); }}>{l}</Chip>)}
+                    <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+                      {LOOKS.map((l) => <Tool key={l} icon={Palette} label={l} on={l === look} onClick={() => { void hapticTap(); setLook(l === look ? null : l); }} />)}
                     </div>
                   )}
                   {active === 'music' && (
-                    <div className="flex flex-col gap-3"><ChipField label="Genre" options={GENRES} value={genre} onPick={setGenre} /><ChipField label="Mood" options={MOODS} value={mood} onPick={setMood} /></div>
+                    <div className="flex gap-6">
+                      <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
+                      <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
+                    </div>
                   )}
                   {active === 'story' && (
                     <div className="surface-2 rounded-[22px] p-1">
@@ -229,14 +214,16 @@ export default function Create() {
           </div>
 
           {/* ── Composition bar (floating) ── */}
-          <div className="surface-2 mb-1 flex items-center gap-3 rounded-full py-1.5 pl-4 pr-1.5">
+          <div className="mb-1 flex items-center gap-3">
             <div className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-white/45">
               {isCreateModule ? `${active === 'generate' ? submode : active} · ${engine.name} · ${ASPECTS[aspect].id}` : MODULES.find((m) => m.id === active)?.label}
               <span className="ml-2 text-[#8fb4ff]">◇{cost}</span>
             </div>
-            <button onClick={create} disabled={!canCreate}
-              className="inline-flex flex-none items-center gap-1.5 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_14px_32px_-12px_rgba(80,90,255,.7)] transition-opacity disabled:opacity-40">
-              <Sparkles className="h-[15px] w-[15px]" /> Create <ArrowRight className="h-[15px] w-[15px]" />
+            {/* Create — transparent icon + label in an outlined boundary */}
+            <button onClick={create} disabled={!canCreate} aria-label="Create" title="Create"
+              className="flex flex-none flex-col items-center gap-1 rounded-[16px] border border-[#8fb4ff]/45 bg-transparent px-4 py-1.5 text-[#8fb4ff] transition-opacity disabled:opacity-40">
+              <Sparkles className="h-[22px] w-[22px]" strokeWidth={1.7} />
+              <span className="text-[10px] font-semibold">Create</span>
             </button>
           </div>
         </div>
@@ -248,32 +235,21 @@ export default function Create() {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">{label}</div>
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">{label}</div>
       {children}
     </div>
   );
 }
 
-function Chip({ on, disabled, onClick, children, block }: { on?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode; block?: boolean }) {
+function Tool({ icon: Icon, label, on, onClick, disabled, full }: { icon: LucideIcon; label: string; on?: boolean; onClick: () => void; disabled?: boolean; full?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled}
-      className={cn('inline-flex h-9 flex-none items-center justify-center gap-1.5 rounded-full px-3.5 text-[12px] font-light transition-all',
-        block && 'w-full',
-        on ? 'bg-[#2f6bff]/25 text-[#cdddff] shadow-[0_8px_22px_-10px_rgba(80,110,255,.8)]' : 'surface-1 text-white/60',
-        disabled && 'opacity-35')}
-      style={on ? { textShadow: '0 0 12px rgba(120,160,255,.5)' } : undefined}>
-      {children}
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label}
+      className={cn('flex flex-none flex-col items-center gap-1 py-1 transition-colors', full && 'w-full', on ? 'text-[#8fb4ff]' : 'text-white/50', disabled && 'opacity-35')}>
+      <span className="relative grid h-7 place-items-center">
+        {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/25 blur-md" />}
+        <Icon className="relative h-[21px] w-[21px]" strokeWidth={1.7} />
+      </span>
+      <span className="max-w-[64px] truncate text-[10px] font-medium leading-none">{label}</span>
     </button>
-  );
-}
-
-function ChipField({ label, options, value, onPick }: { label: string; options: string[]; value: string | null; onPick: (v: string | null) => void }) {
-  return (
-    <div>
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">{label}</div>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => <Chip key={o} on={o === value} onClick={() => { void hapticTap(); onPick(o === value ? null : o); }}>{o}</Chip>)}
-      </div>
-    </div>
   );
 }

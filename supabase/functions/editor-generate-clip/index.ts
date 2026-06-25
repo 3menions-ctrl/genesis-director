@@ -292,22 +292,51 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits_balance")
-        .eq("id", auth.userId)
-        .single();
+      // Org-aware affordability pre-check. deduct_credits (below) routes org
+      // projects to the ORG pool (organizations.credits_balance) and personal
+      // projects to the member's personal balance — so this gate must consult
+      // the SAME pool, or an org member with a funded pool but no personal
+      // credits would be wrongly blocked here (and vice-versa). The authoritative
+      // check is still deduct_credits; this is the UX-facing 402 gate.
+      // (get_org_credit_state is membership-gated on auth.uid(), which is null
+      // under this service-role client, so read the org pool directly.)
+      let orgId: string | null = null;
+      if (projectId) {
+        const { data: proj } = await supabase
+          .from("movie_projects")
+          .select("organization_id")
+          .eq("id", projectId)
+          .maybeSingle();
+        orgId = (proj as { organization_id?: string | null } | null)?.organization_id ?? null;
+      }
+
+      let availableCredits = 0;
+      if (orgId) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("credits_balance")
+          .eq("id", orgId)
+          .maybeSingle();
+        availableCredits = Number((org as { credits_balance?: number } | null)?.credits_balance ?? 0);
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("credits_balance")
+          .eq("id", auth.userId)
+          .single();
+        availableCredits = Number((profile as { credits_balance?: number } | null)?.credits_balance ?? 0);
+      }
 
       // Engine-aware pricing.
       //   wan      → 0 credits (free tier)
       //   kling    → 50/75 (Kling V3 standard)
       //   seedance → 65/95 (default, Seedance 1 Pro real cost ~$0.45/sec)
       const creditsRequired = creditsForEditorClip(engine, duration, qOpts);
-      if (creditsRequired > 0 && (!profile || profile.credits_balance < creditsRequired)) {
+      if (creditsRequired > 0 && availableCredits < creditsRequired) {
         return new Response(JSON.stringify({
           error: "Insufficient credits",
-          required: creditsRequired, 
-          available: profile?.credits_balance || 0 
+          required: creditsRequired,
+          available: availableCredits,
         }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -336,7 +365,7 @@ serve(async (req) => {
           return new Response(JSON.stringify({
             error: deductErr ? "Failed to deduct credits" : "Insufficient credits",
             required: creditsRequired,
-            available: profile?.credits_balance || 0,
+            available: availableCredits,
           }), {
             status: deductErr ? 500 : 402,
             headers: { ...corsHeaders, "Content-Type": "application/json" },

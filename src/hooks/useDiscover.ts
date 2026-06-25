@@ -35,23 +35,24 @@ export function useWorlds() {
   return worlds;
 }
 
-export function useTrending(worldSlug: string | null) {
+/** Reels list for Discover. 'plays' = popular (Videos), 'new' = freshest (Reels). */
+export function useReelsList(sort: 'plays' | 'new') {
   const [reels, setReels] = useState<ReelHit[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancel = false; setLoading(true);
     (async () => {
       try {
-        let q = supabase.from('published_reels' as never)
-          .select('id, title, thumbnail_url, world_slug, play_count, like_count, creator_id')
-          .eq('is_taken_down', false);
-        if (worldSlug) q = q.eq('world_slug', worldSlug);
-        const { data } = await q.order('play_count', { ascending: false }).limit(30);
+        const { data } = await supabase.from('published_reels' as never)
+          .select('id, title, thumbnail_url, world_slug, play_count, like_count, creator_id, created_at')
+          .eq('is_taken_down', false)
+          .order(sort === 'plays' ? 'play_count' : 'created_at', { ascending: false })
+          .limit(30);
         if (!cancel) { setReels(((data ?? []) as unknown as ReelHit[]).map((r) => ({ ...r, title: r.title ?? 'Untitled' }))); setLoading(false); }
       } catch { if (!cancel) { setReels([]); setLoading(false); } }
     })();
     return () => { cancel = true; };
-  }, [worldSlug]);
+  }, [sort]);
   return { reels, loading };
 }
 

@@ -102,26 +102,24 @@ export default function You() {
         </div>
 
         {/* Level / XP / streak — borderless, lit by its own bloom */}
-        <div className="relative mt-6 overflow-hidden rounded-[26px] bg-gradient-to-br from-[#2f6bff]/22 to-[#7a3bff]/14 p-5 shadow-[0_24px_60px_-26px_rgba(60,80,255,.7)]">
-          <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-[#7a3bff]/30 blur-3xl" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <div className="text-[18px] font-normal italic" style={{ fontFamily: 'Fraunces, serif' }}>
-                {title} · Level {level}
+        <div className="lit-edge relative mt-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2f6bff]/24 to-[#7a3bff]/12 p-5">
+          <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#7a3bff]/30 blur-3xl" />
+          <div className="relative flex items-center gap-4">
+            <LevelRing level={level} pct={pct} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[19px] font-normal italic leading-tight" style={{ fontFamily: 'Fraunces, serif' }}>
+                {title}
               </div>
-              <div className="mt-1 font-mono text-[11px] text-[#9ab4ff]">
+              <div className="mt-1 font-mono text-[11px] tabular-nums text-[#9ab4ff]">
                 {intoLevel} / {XP_PER_LEVEL} XP to Level {level + 1}
               </div>
             </div>
-            <div className="flex items-center gap-1 font-display text-[16px] font-bold">
-              <Flame className={cn('h-7 w-7', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/30')} />
-              {streak}
+            <div className="flex flex-col items-center">
+              <Flame className={cn('h-7 w-7', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />
+              <span className="font-display text-[13px] font-bold tabular-nums">{streak}</span>
             </div>
           </div>
-          <div className="relative mt-3.5 h-2 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff]" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="relative mt-2.5 font-mono text-[11px] text-white/55">
+          <div className="relative mt-4 font-mono text-[11px] text-white/55">
             {streak > 0 ? `${streak}-day streak — keep it alive, make a film today` : 'Make a film today to start a streak 🔥'}
           </div>
         </div>
@@ -144,10 +142,8 @@ export default function You() {
               key={b.id}
               title={b.label}
               className={cn(
-                'grid h-[48px] w-[48px] place-items-center rounded-[16px] text-[22px]',
-                b.earned
-                  ? 'bg-gradient-to-b from-white/[0.10] to-white/[0.03] shadow-[0_8px_20px_-10px_rgba(0,0,0,.7)]'
-                  : 'bg-white/[0.03] opacity-35',
+                'grid h-[50px] w-[50px] place-items-center rounded-[17px] text-[22px]',
+                b.earned ? 'surface-1' : 'bg-white/[0.025] opacity-35',
               )}
             >
               {b.earned ? b.emoji : <Lock className="h-4 w-4 text-white/40" />}
@@ -164,7 +160,7 @@ export default function You() {
             ))}
           </div>
         ) : films.length === 0 ? (
-          <div className="rounded-[24px] bg-gradient-to-b from-white/[0.06] to-white/[0.015] px-5 py-9 text-center shadow-[0_20px_50px_-28px_rgba(0,0,0,.8)]">
+          <div className="surface-1 rounded-[24px] px-5 py-9 text-center">
             <div className="text-[17px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>No films yet</div>
             <p className="mt-1.5 text-[13px] text-white/45">Tap + to create your first one.</p>
             <button
@@ -183,7 +179,7 @@ export default function You() {
               <button
                 key={f.id}
                 onClick={() => navigate(`/r/${f.id}`)}
-                className="relative aspect-video overflow-hidden rounded-[16px] bg-black/40 shadow-[0_10px_26px_-14px_rgba(0,0,0,.8)]"
+                className="lit-edge relative aspect-video overflow-hidden rounded-[16px] bg-black/30"
               >
                 {f.thumbnail_url ? (
                   // Native aspect ratio honored — contained, never cropped.
@@ -215,12 +211,46 @@ function Stat({
   accent?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-[20px] bg-gradient-to-b from-white/[0.07] to-white/[0.02] py-4 text-center shadow-[0_12px_30px_-18px_rgba(0,0,0,.8)]">
-      <div className={cn('flex items-center justify-center gap-1 font-display text-[21px] font-semibold', accent && 'text-[#7aa2ff]')}>
+    <div className="surface-1 flex-1 rounded-[20px] py-4 text-center">
+      <div className={cn('flex items-center justify-center gap-1 font-display text-[22px] font-semibold tabular-nums', accent && 'text-[#7aa2ff]')}>
         {value}
       </div>
-      <div className="mt-1 flex items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wide text-white/40">
+      <div className="mt-1 flex items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/40">
         {icon} {label}
+      </div>
+    </div>
+  );
+}
+
+/** Circular XP progress ring with the current level in the center. */
+function LevelRing({ level, pct }: { level: number; pct: number }) {
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative h-[64px] w-[64px] shrink-0">
+      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="5" />
+        <circle
+          cx="32"
+          cy="32"
+          r={r}
+          fill="none"
+          stroke="url(#xpgrad)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - Math.max(0, Math.min(100, pct)) / 100)}
+          style={{ transition: 'stroke-dashoffset .6s ease' }}
+        />
+        <defs>
+          <linearGradient id="xpgrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#3f78ff" />
+            <stop offset="100%" stopColor="#a061ff" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <span className="font-display text-[22px] font-bold leading-none tabular-nums">{level}</span>
       </div>
     </div>
   );

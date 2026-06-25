@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReelsFeed, type FeedItem } from '@/hooks/useReelsFeed';
 import { FeedVideo } from '@/components/feed/FeedVideo';
+import { GrainOverlay } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -210,9 +211,10 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
     >
       <FeedVideo src={item.video_url} poster={item.thumbnail_url ?? undefined} active={active} muted={muted} />
 
-      {/* legibility scrims */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/55 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/80 to-transparent" />
+      {/* cinematic grain + legibility scrims */}
+      <GrainOverlay opacity={0.05} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/60 via-black/15 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
       {/* right action rail */}
       <div
@@ -270,7 +272,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       <button
         onClick={remix}
         disabled={busy}
-        className="absolute left-4 right-4 z-20 flex h-[50px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] font-display text-[15px] font-bold shadow-[0_14px_30px_-8px_rgba(80,80,255,.6)] disabled:opacity-60"
+        className="absolute left-4 right-4 z-20 flex h-[52px] items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] font-display text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_34px_-8px_rgba(80,80,255,.65)] backdrop-blur-sm disabled:opacity-60"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 38px)' }}
       >
         <Repeat2 className="h-[18px] w-[18px]" />

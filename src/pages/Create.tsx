@@ -59,14 +59,20 @@ export default function Create() {
           paddingBottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 96px)',
         }}
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-[#7aa2ff]/90">Create</div>
-        <h1 className="mt-3 text-[36px] font-light leading-[1.04] tracking-tight" style={{ fontFamily: 'Fraunces, serif' }}>
-          What do you want to <span className="italic" style={{ fontWeight: 500 }}>see?</span>
+        <div className="font-mono text-[11px] uppercase tracking-[0.34em] text-[#7aa2ff]/90">Create</div>
+        <h1 className="mt-3 text-[37px] font-light leading-[1.03] tracking-[-0.01em]" style={{ fontFamily: 'Fraunces, serif' }}>
+          What do you want to{' '}
+          <span
+            className="bg-gradient-to-r from-[#8fb4ff] via-[#b79bff] to-[#7adfff] bg-clip-text italic text-transparent"
+            style={{ fontWeight: 500 }}
+          >
+            see?
+          </span>
         </h1>
 
-        {/* Prompt — borderless floating surface; focus lifts it with a soft
+        {/* Prompt — borderless lit-glass surface; focus lifts it with a soft
             blue bloom rather than a hard ring. */}
-        <div className="mt-6 rounded-[28px] bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 shadow-[0_24px_70px_-30px_rgba(0,0,0,.9)] transition-shadow duration-300 focus-within:shadow-[0_26px_80px_-30px_rgba(60,90,255,.6)]">
+        <div className="mt-6 rounded-[28px] surface-2 p-5 transition-shadow duration-300 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.14),0_28px_84px_-30px_rgba(60,90,255,.6)]">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -91,10 +97,10 @@ export default function Create() {
                   setStyleId(on ? null : s.id);
                 }}
                 className={cn(
-                  'flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-all',
+                  'flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-all duration-200',
                   on
-                    ? 'bg-gradient-to-br from-[#2f6bff]/45 to-[#7a3bff]/40 text-white shadow-[0_10px_28px_-10px_rgba(80,90,255,.7)]'
-                    : 'bg-white/[0.05] text-white/75',
+                    ? 'bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_12px_30px_-8px_rgba(80,90,255,.75)]'
+                    : 'surface-1 text-white/75',
                 )}
               >
                 <span className="text-[15px]">{s.emoji}</span>
@@ -114,10 +120,10 @@ export default function Create() {
         onClick={generate}
         disabled={!canGenerate}
         className={cn(
-          'absolute left-5 right-5 z-10 flex h-[60px] items-center justify-between rounded-[20px] pl-6 pr-2.5 shadow-[0_22px_44px_-12px_rgba(80,80,255,.65)] transition-opacity',
+          'absolute left-5 right-5 z-10 flex h-[62px] items-center justify-between rounded-[22px] pl-6 pr-2.5 transition-all duration-300',
           canGenerate
-            ? 'bg-gradient-to-r from-[#2f6bff] to-[#7a3bff]'
-            : 'bg-white/[0.07] opacity-60',
+            ? 'bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_24px_48px_-12px_rgba(80,80,255,.7)]'
+            : 'surface-1 opacity-60',
         )}
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 16px)' }}
       >

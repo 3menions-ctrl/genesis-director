@@ -83,6 +83,11 @@ export default function Presets() {
             className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300"
             style={{ filter: activeFilter }}
           />
+          {/* cinematic vignette for depth + legibility */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,.28) 0%, transparent 20%, transparent 68%, rgba(0,0,0,.45) 100%)' }}
+          />
         </div>
 
         {/* Live badge */}
@@ -131,10 +136,10 @@ export default function Presets() {
                   setSelected(l.id);
                 }}
                 className={cn(
-                  'relative h-[150px] w-[108px] flex-none overflow-hidden rounded-[20px] transition-all duration-200',
+                  'relative h-[152px] w-[110px] flex-none overflow-hidden rounded-[22px] transition-all duration-200',
                   on
-                    ? 'scale-[1.04] shadow-[0_16px_36px_-8px_rgba(47,107,255,.85)]'
-                    : 'shadow-[0_10px_24px_-14px_rgba(0,0,0,.8)]',
+                    ? 'scale-[1.05] shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_18px_42px_-8px_rgba(47,107,255,.9)]'
+                    : 'shadow-[inset_0_1px_0_rgba(255,255,255,.1),0_12px_26px_-14px_rgba(0,0,0,.8)]',
                 )}
               >
                 <span className="absolute inset-0" style={{ background: l.grad }} />
@@ -161,7 +166,7 @@ export default function Presets() {
       {/* Apply */}
       <button
         onClick={apply}
-        className="absolute left-5 right-5 z-10 flex h-[58px] items-center justify-center gap-2 rounded-full bg-white font-display text-[16px] font-bold text-black shadow-[0_18px_44px_-14px_rgba(255,255,255,.4)]"
+        className="absolute left-5 right-5 z-10 flex h-[58px] items-center justify-center gap-2 rounded-full bg-gradient-to-b from-white to-[#e9ecf5] font-display text-[16px] font-bold text-black shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_48px_-14px_rgba(255,255,255,.4)]"
         style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}
       >
         {look.premium ? <Lock className="h-[18px] w-[18px]" /> : <Check className="h-[18px] w-[18px]" strokeWidth={2.5} />}

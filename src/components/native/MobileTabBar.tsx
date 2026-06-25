@@ -69,7 +69,7 @@ export function MobileTabBar() {
       <button
         onClick={() => go('/create')}
         aria-label="Create"
-        className="-mt-1 grid h-[38px] w-[50px] place-items-center rounded-[13px] bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] text-white shadow-[0_8px_22px_-6px_rgba(64,90,255,.7)]"
+        className="-mt-1.5 grid h-[40px] w-[52px] place-items-center rounded-[15px] bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.45),0_10px_26px_-6px_rgba(64,90,255,.85)]"
       >
         <Plus className="h-6 w-6" strokeWidth={2.4} />
       </button>
@@ -97,12 +97,17 @@ function TabButton({
       onClick={onClick}
       className={cn(
         'flex flex-col items-center gap-1 font-display text-[10px] font-semibold tracking-wide transition-colors',
-        active ? 'text-white' : 'text-white/45',
+        active ? 'text-white' : 'text-white/40',
       )}
     >
-      <Icon className="h-[24px] w-[24px]" strokeWidth={1.9} />
+      <span className="relative grid place-items-center">
+        {active && (
+          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/35 blur-md" />
+        )}
+        <Icon className="relative h-[24px] w-[24px]" strokeWidth={1.9} />
+      </span>
       {label}
-      <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#2f6bff] shadow-[0_0_10px_#2f6bff]' : 'bg-transparent')} />
+      <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#3f78ff] shadow-[0_0_10px_#3f78ff]' : 'bg-transparent')} />
     </button>
   );
 }

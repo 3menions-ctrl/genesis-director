@@ -2820,3 +2820,38 @@ img, a, button {
 .capacitor-native.keyboard-open #root {
   padding-bottom: 0;
 }
+
+/* ============================================================
+   Aurora mobile — premium material + motion primitives.
+   Borderless "lit glass": a soft top highlight + deep ambient
+   shadow stand in for card edges. Used across the native
+   Feed / Create / Presets / You screens.
+   ============================================================ */
+.surface-1 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.022));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 60px -30px rgba(0, 0, 0, 0.9);
+}
+.surface-2 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 26px 70px -28px rgba(0, 0, 0, 0.92);
+}
+/* Lit top edge only — compose over a custom background. */
+.lit-edge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 18px 50px -26px rgba(0, 0, 0, 0.85);
+}
+
+@keyframes aurora-drift {
+  0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+  50% { transform: translateX(-46%) translateY(2.5%) scale(1.06); }
+}
+@keyframes aurora-drift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, -3%) scale(1.08); }
+}
+/* Honour reduced-motion: hold the blooms still. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[aurora-drift_22s_ease-in-out_infinite\],
+  .animate-\[aurora-drift2_26s_ease-in-out_infinite\] {
+    animation: none !important;
+  }
+}

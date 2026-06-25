@@ -182,7 +182,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
               {/* Navigation buttons */}
               <div className="flex items-center justify-center gap-4">
                 <button 
-                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                  className="w-10 h-10 rounded-full bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md ring-1 ring-inset ring-transparent hover:ring-white/[0.18] flex items-center justify-center text-white/70 hover:text-white transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePrev();
@@ -196,7 +196,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                 </span>
                 
                 <button 
-                  className="w-10 h-10 rounded-full bg-glass-hover hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                  className="w-10 h-10 rounded-full bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md ring-1 ring-inset ring-transparent hover:ring-white/[0.18] flex items-center justify-center text-white/70 hover:text-white transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNext();
@@ -231,7 +231,7 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: showControls ? 1 : 0.3, scale: 1 }}
         onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 z-30 transition-all"
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md ring-1 ring-inset ring-transparent hover:ring-white/[0.18] flex items-center justify-center text-white/70 hover:text-white z-30 transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
       >
         <X className="w-5 h-5" />
       </motion.button>

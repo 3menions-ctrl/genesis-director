@@ -79,6 +79,9 @@ const Cinema = lazy(() => import("./pages/Cinema"));
 const Feed = lazy(() => import("./pages/Feed"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
+// Mobile-first presets "editor" (one-tap looks) + gamified profile.
+const Presets = lazy(() => import("./pages/Presets"));
+const You = lazy(() => import("./pages/You"));
 const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
 const Studio = lazy(() => import("./pages/Studio"));
@@ -311,6 +314,18 @@ const App = () => {
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <Create />
+                  </RouteContainer>
+                } />
+                {/* Mobile presets "editor" — one-tap looks. */}
+                <Route path="/presets" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Presets />
+                  </RouteContainer>
+                } />
+                {/* Mobile gamified profile. */}
+                <Route path="/you" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <You />
                   </RouteContainer>
                 } />
                 {/* Legacy /cinema path redirects to the one home page. */}

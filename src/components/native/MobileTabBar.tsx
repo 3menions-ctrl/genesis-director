@@ -9,8 +9,9 @@
  * Height is mirrored by the `--tabbar-h` CSS var (see index.css) so full-bleed
  * screens like the feed reserve space for it.
  */
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Clapperboard, Compass, Plus, Film, User } from 'lucide-react';
+import { Clapperboard, Compass, Plus, SlidersHorizontal, User } from 'lucide-react';
 import { IS_MOBILE_SHELL } from '@/lib/native';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -18,8 +19,8 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { to: '/feed', label: 'Feed', icon: Clapperboard },
   { to: '/search', label: 'Discover', icon: Compass },
-  { to: '/library', label: 'Library', icon: Film },
-  { to: '/profile', label: 'You', icon: User },
+  { to: '/presets', label: 'Presets', icon: SlidersHorizontal },
+  { to: '/you', label: 'You', icon: User },
 ] as const;
 
 // Routes where the tab bar should not appear.
@@ -28,6 +29,15 @@ const HIDDEN_PREFIXES = ['/auth', '/onboarding', '/business-start', '/welcome'];
 export function MobileTabBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  // Mobile nav prune: the gamified /you screen is the canonical profile in the
+  // mobile shell — send the desktop /profile there. (Admin/marketing/full-editor
+  // simply aren't reachable from the tab bar.)
+  useEffect(() => {
+    if (IS_MOBILE_SHELL && pathname === '/profile') {
+      navigate('/you', { replace: true });
+    }
+  }, [pathname, navigate]);
 
   if (!IS_MOBILE_SHELL) return null;
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;

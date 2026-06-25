@@ -55,11 +55,10 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex items-start justify-around bg-[#080808]/95 px-2 pt-2.5 backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-start justify-around bg-gradient-to-t from-[#060608] via-[#060608]/92 to-transparent px-2 pt-3.5 backdrop-blur-xl"
       style={{
-        height: 'calc(var(--tabbar-h, 64px) + var(--safe-bottom, 0px))',
+        height: 'calc(var(--tabbar-h, 64px) + var(--safe-bottom, 0px) + 8px)',
         paddingBottom: 'var(--safe-bottom, 0px)',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {left.map((t) => (

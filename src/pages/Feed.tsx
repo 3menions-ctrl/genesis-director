@@ -299,10 +299,10 @@ function RailButton({
     <button onClick={onClick} className="flex flex-col items-center gap-1.5" {...rest}>
       <span
         className={cn(
-          'grid h-12 w-12 place-items-center rounded-full backdrop-blur-md',
+          'grid h-12 w-12 place-items-center rounded-full backdrop-blur-md transition-transform',
           highlight
-            ? 'bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_10px_24px_-6px_rgba(80,90,255,.8)]'
-            : 'border border-white/15 bg-white/10',
+            ? 'bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_12px_28px_-6px_rgba(80,90,255,.85)]'
+            : 'bg-white/[0.12] shadow-[0_8px_22px_-10px_rgba(0,0,0,.8)]',
           active && 'scale-105',
         )}
       >

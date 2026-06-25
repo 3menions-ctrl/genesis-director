@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { Check, Lock, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { FILMS } from '@/data/filmsLibrary';
+import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -56,9 +57,10 @@ export default function Presets() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#0a0a0a] text-white">
+    <div className="fixed inset-0 flex flex-col text-white">
+      <AuroraBackdrop />
       {/* Preview */}
-      <div className="relative" style={{ height: '46%', marginTop: 'var(--safe-top, 0px)' }}>
+      <div className="relative z-10" style={{ height: '46%', marginTop: 'var(--safe-top, 0px)' }}>
         <div className="absolute inset-0 overflow-hidden bg-[#0a0a0a]">
           {/* blurred backdrop fill */}
           <video
@@ -84,12 +86,12 @@ export default function Presets() {
         </div>
 
         {/* Live badge */}
-        <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 font-display text-[12px] font-semibold backdrop-blur">
+        <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/35 px-3.5 py-2 font-display text-[12px] font-semibold backdrop-blur-md">
           <SlidersHorizontal className="h-3.5 w-3.5" /> Live preview
         </div>
 
         {/* Before/After */}
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-white/12 bg-black/45 p-1 backdrop-blur">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1 rounded-full bg-black/40 p-1 backdrop-blur-md">
           <button
             onMouseDown={() => setShowBefore(true)}
             onMouseUp={() => setShowBefore(false)}
@@ -107,10 +109,10 @@ export default function Presets() {
       </div>
 
       {/* Deck */}
-      <div className="flex flex-1 flex-col px-1 pt-4">
-        <div className="px-4 text-[12px] font-semibold uppercase tracking-wide text-white/55">
+      <div className="relative z-10 flex flex-1 flex-col px-1 pt-5">
+        <div className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
           Editing is just presets
-          <span className="mt-1 block text-[15px] font-normal italic text-white" style={{ fontFamily: 'Fraunces, serif' }}>
+          <span className="mt-1.5 block text-[17px] font-light italic text-white" style={{ fontFamily: 'Fraunces, serif' }}>
             Tap a look. It applies instantly.
           </span>
         </div>
@@ -129,8 +131,10 @@ export default function Presets() {
                   setSelected(l.id);
                 }}
                 className={cn(
-                  'relative h-[150px] w-[108px] flex-none overflow-hidden rounded-[18px] border',
-                  on ? 'border-2 border-[#2f6bff] shadow-[0_0_0_4px_rgba(47,107,255,.18)]' : 'border border-white/10',
+                  'relative h-[150px] w-[108px] flex-none overflow-hidden rounded-[20px] transition-all duration-200',
+                  on
+                    ? 'scale-[1.04] shadow-[0_16px_36px_-8px_rgba(47,107,255,.85)]'
+                    : 'shadow-[0_10px_24px_-14px_rgba(0,0,0,.8)]',
                 )}
               >
                 <span className="absolute inset-0" style={{ background: l.grad }} />
@@ -157,7 +161,7 @@ export default function Presets() {
       {/* Apply */}
       <button
         onClick={apply}
-        className="absolute left-5 right-5 flex h-[56px] items-center justify-center gap-2 rounded-[18px] bg-white font-display text-[16px] font-bold text-black"
+        className="absolute left-5 right-5 z-10 flex h-[58px] items-center justify-center gap-2 rounded-full bg-white font-display text-[16px] font-bold text-black shadow-[0_18px_44px_-14px_rgba(255,255,255,.4)]"
         style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}
       >
         {look.premium ? <Lock className="h-[18px] w-[18px]" /> : <Check className="h-[18px] w-[18px]" strokeWidth={2.5} />}

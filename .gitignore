@@ -47,3 +47,7 @@ dist-desktop/
 
 # Intermediate macOS iconset (regenerable; the committed icon.icns is what builds use)
 build/icon.iconset/
+
+# Playwright test artifacts
+test-results/
+playwright-report/

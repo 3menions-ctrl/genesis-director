@@ -82,6 +82,7 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
   const [loading, setLoading] = useState(true);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // Load + subscribe
   useEffect(() => {
@@ -189,12 +190,14 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Scroll to bottom when comments arrive while panel is open
+  // Scroll to newest comment when one arrives while the panel is open.
+  // We scroll a bottom-anchor into view rather than calling scrollTo on
+  // listRef: the actual scroll container is the SurfaceBody parent
+  // (overflow-y-auto), so scrollTo on the non-scrolling listRef div was a
+  // no-op. scrollIntoView walks up to the nearest scrollable ancestor.
   useEffect(() => {
     if (!open) return;
-    const el = listRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [comments.length, open]);
 
   const post = useCallback(async () => {
@@ -303,6 +306,7 @@ export function CommentsPanel({ projectId, open, onClose, playheadSec }: Props) 
                 })}
               </ul>
             )}
+            <div ref={bottomRef} aria-hidden />
         </div>
       </SurfaceBody>
 

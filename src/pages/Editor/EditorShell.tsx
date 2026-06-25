@@ -257,6 +257,23 @@ export function EditorShell() {
   const currentViewRef = useRef(currentView);
   currentViewRef.current = currentView;
 
+  // The keydown effect below binds ONCE ([] deps). Without refs, its closure
+  // captures the mount-time values of selection/project/modal-open flags —
+  // all null / [] / false — and never sees an update. That made three things
+  // permanently dead: multi-select Delete (read selectedClipIds=[]), the
+  // multicam Shift+1..9 take-switch (guard selectedClipId && project = null),
+  // and the Esc modal-guard (always saw every modal closed, so Esc wiped the
+  // timeline selection even with a modal open). Mirror the switchViewRef
+  // pattern: keep a live ref, write it every render, read .current in onKey.
+  const selectedClipIdsRef = useRef(selectedClipIds);
+  selectedClipIdsRef.current = selectedClipIds;
+  const selectedClipIdRef = useRef(selectedClipId);
+  selectedClipIdRef.current = selectedClipId;
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const modalsOpenRef = useRef({ exportOpen, commentsOpen, helpOpen, paletteOpen, queueOpen });
+  modalsOpenRef.current = { exportOpen, commentsOpen, helpOpen, paletteOpen, queueOpen };
+
   // Global keys — input-aware. The view-switcher numbers now flip
   // between focus modes since every panel is already visible.
   useEffect(() => {
@@ -367,8 +384,11 @@ export function EditorShell() {
         return;
       }
       if (!focusedEditable && (e.key === "Escape")) {
-        // Esc clears multi-selection when no modal is open
-        if (!exportOpen && !commentsOpen && !helpOpen && !paletteOpen && !queueOpen) {
+        // Esc clears multi-selection when no modal is open. Read live modal
+        // state via the ref — the bound-once closure would otherwise always
+        // see the mount-time (all-closed) snapshot.
+        const m = modalsOpenRef.current;
+        if (!m.exportOpen && !m.commentsOpen && !m.helpOpen && !m.paletteOpen && !m.queueOpen) {
           clearSelection();
         }
       }
@@ -381,10 +401,11 @@ export function EditorShell() {
         // focused AND only for single selection. Multi-select delete
         // lives here at the shell level so it works regardless of
         // which panel has focus.
-        if (selectedClipIds.length > 1) {
+        const count = selectedClipIdsRef.current.length;
+        if (count > 1) {
           e.preventDefault();
           const ok = deleteSelected();
-          if (ok) toast.message(`Deleted ${selectedClipIds.length} clips`);
+          if (ok) toast.message(`Deleted ${count} clips`);
           return;
         }
       }
@@ -446,16 +467,18 @@ export function EditorShell() {
       // selected clip. Shift is required because plain 1/4 are
       // focus-mode keys. Useful for quickly comparing takes during
       // playback without opening the Inspector.
+      const liveSelectedClipId = selectedClipIdRef.current;
+      const liveProject = projectRef.current;
       if (
         e.shiftKey &&
         /^Digit[1-9]$/.test(e.code) &&
-        selectedClipId &&
-        project
+        liveSelectedClipId &&
+        liveProject
       ) {
         const angleIdx = parseInt(e.code.slice(-1), 10) - 1;
-        const clip = project.scenes
+        const clip = liveProject.scenes
           .flatMap((s) => s.clips)
-          .find((c) => c.id === selectedClipId);
+          .find((c) => c.id === liveSelectedClipId);
         const target = clip?.takes[angleIdx];
         if (clip && target && target.videoUrl) {
           e.preventDefault();

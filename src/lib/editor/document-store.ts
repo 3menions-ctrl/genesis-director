@@ -51,7 +51,7 @@ interface DocumentStoreState {
   lastError: string | null;
 }
 
-let state: DocumentStoreState = {
+const state: DocumentStoreState = {
   doc: null,
   lastFlushAt: null,
   dirtyAt: null,
@@ -60,8 +60,18 @@ let state: DocumentStoreState = {
 
 const listeners = new Set<() => void>();
 
+// Snapshot handed to useSyncExternalStore subscribers. Mutators below edit
+// `state` (and `state.doc`) IN PLACE, so the snapshot's identity must be
+// refreshed on every notify() — otherwise getDocumentState() keeps returning
+// the same object reference, React's Object.is bail-out skips the re-render,
+// and surfaces like CastEditor never reflect add/remove/edit. We recreate a
+// shallow copy only inside notify() (never on every getSnapshot call) so
+// repeated getDocumentState() reads between mutations stay referentially
+// stable and don't trip the "getSnapshot should be cached" warning / loop.
+let snapshot: DocumentStoreState = { ...state };
+
 export function getDocumentState(): DocumentStoreState {
-  return state;
+  return snapshot;
 }
 
 export function subscribeDocument(listener: () => void): () => void {
@@ -81,7 +91,11 @@ export function subscribeDocument(listener: () => void): () => void {
 // what React needs to detect the change. Reference is stable between notifies,
 // so no infinite re-render.)
 function notify(): void {
-  state = { ...state };
+  // Refresh the snapshot identity (mutators above edit `state`/`state.doc` in
+  // place). getDocumentState() returns `snapshot`, so this is the single ref
+  // swap React needs — covers both RU-1 (ScriptDocument reactivity) and the
+  // editor fix #5 (Cast add/remove). Stable between notifies → no render loop.
+  snapshot = { ...state };
   for (const l of listeners) l();
 }
 

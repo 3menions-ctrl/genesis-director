@@ -308,13 +308,25 @@ function CharacterRow({ character }: { character: Character }) {
       : User;
 
   return (
-    <button
-      type="button"
+    // role=button (not a real <button>) because the Remove control below is
+    // itself a <button>, and a button cannot be nested inside a button —
+    // React logs validateDOMNesting and browsers hoist the inner button,
+    // making both clicks unreliable.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => setEditing(true)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setEditing(true);
+        }
+      }}
       className={cn(
         "group/char w-full text-left rounded-xl ring-1 ring-inset ring-white/[0.06] bg-white/[0.012]",
-        "p-3 flex items-center gap-3 transition-colors",
+        "p-3 flex items-center gap-3 transition-colors cursor-pointer",
         "hover:ring-accent/40 hover:bg-white/[0.04]",
+        "focus:outline-none focus-visible:ring-accent/60",
       )}
     >
       <div className="shrink-0 h-10 w-10 rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/[0.06] flex items-center justify-center overflow-hidden">
@@ -368,6 +380,6 @@ function CharacterRow({ character }: { character: Character }) {
       >
         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
       </button>
-    </button>
+    </div>
   );
 }

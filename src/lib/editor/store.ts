@@ -251,12 +251,22 @@ export function redo(): boolean {
         { project: state.project } satisfies HistoryEntry,
       ]
     : state.history.past;
+  // Filter selection to clips that still exist in the restored project —
+  // mirrors undo(). Without this, redoing an op that removed clips leaves
+  // selectedClipId/selectedClipIds dangling at clips no longer present,
+  // which drives the Inspector off a non-existent clip.
+  const stillExists = new Set(
+    next.project.scenes.flatMap((s) => s.clips.map((c) => c.id)),
+  );
+  const nextSelected = state.selectedClipIds.filter((id) => stillExists.has(id));
   set({
     project: next.project,
     history: {
       past,
       future: state.history.future.slice(1),
     },
+    selectedClipIds: nextSelected,
+    selectedClipId: nextSelected[nextSelected.length - 1] ?? null,
   });
   return true;
 }

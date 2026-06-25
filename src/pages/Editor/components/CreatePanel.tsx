@@ -541,7 +541,11 @@ export function CreatePanel({ project, open, onClose }: Props) {
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={!prompt.trim() || submitting || isOnEmptyProject}
+            // NOTE: do NOT disable on isOnEmptyProject — submit() has a
+            // dedicated branch that mints a draft project on the fly for the
+            // empty NLE surface and navigates to it. Disabling here made the
+            // primary CTA dead while the Cmd/Ctrl+Enter path still worked.
+            disabled={!prompt.trim() || submitting}
             className={cn(
               "inline-flex items-center gap-2 h-10 px-5 rounded-full",
               "bg-[hsl(var(--accent)/0.16)] text-accent ring-1 ring-inset ring-accent/40",

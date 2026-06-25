@@ -13,6 +13,7 @@ import {
   Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon, Globe2,
   Palette, PenLine, LayoutGrid, Sparkles, Lock, Cpu, Clock, Clapperboard, Film,
   RectangleHorizontal, RectangleVertical, Square, UserRound, Sliders, Drama,
+  Dices, Rocket, Leaf, Heart,
   type LucideIcon,
 } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -69,6 +70,16 @@ const SUBTITLE: Record<string, string> = {
   photo: 'Edit and restyle an existing image.',
 };
 const next = <T,>(arr: readonly T[], cur: T | null) => arr[(arr.indexOf(cur as T) + 1) % arr.length];
+
+// One-tap inspiration — themed example prompts to beat the blank page.
+const THEMES = [
+  { id: 'surprise', label: 'Surprise', Icon: Dices, prompt: '' },
+  { id: 'scifi', label: 'Sci-fi', Icon: Rocket, prompt: 'A lone astronaut watching twin suns set over a glass desert' },
+  { id: 'nature', label: 'Nature', Icon: Leaf, prompt: 'Morning mist over an ancient redwood forest, sun rays piercing the canopy' },
+  { id: 'noir', label: 'Noir', Icon: Drama, prompt: 'A detective lights a cigarette under a flickering neon sign on rain-slicked streets' },
+  { id: 'fantasy', label: 'Fantasy', Icon: Sparkles, prompt: 'A dragon circles a floating castle at golden hour, banners snapping in the wind' },
+  { id: 'romance', label: 'Romance', Icon: Heart, prompt: 'Two figures share an umbrella on a Paris bridge as the rain turns to gold' },
+];
 
 export default function Create() {
   const navigate = useNavigate();
@@ -148,16 +159,20 @@ export default function Create() {
                   </button>
                 )}
 
-                {/* engine — transparent icon + label, one per engine */}
-                <Section label="Render engine">
+                {/* inspiration — one-tap themed ideas (beat the blank page) */}
+                {!(active === 'generate' && submode === 'avatar') && (
                   <div className="-mr-4 flex gap-5 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
-                    {ENGINES.map((e) => (
-                      <Tool key={e.id} icon={e.locked ? Lock : Cpu} label={e.name} on={e.id === engineId} disabled={e.locked} onClick={() => { void hapticTap(); setEngineId(e.id); }} />
+                    {THEMES.map((t) => (
+                      <Tool key={t.id} icon={t.Icon} label={t.label} onClick={() => {
+                        void hapticTap();
+                        const pick = t.id === 'surprise' ? THEMES.filter((x) => x.prompt)[Math.floor((Date.now() / 7) % (THEMES.length - 1))] : t;
+                        setPrompt(pick.prompt);
+                      }} />
                     ))}
                   </div>
-                </Section>
+                )}
 
-                {/* format — transparent icon + label */}
+                {/* format — the common, quick choice, stays visible */}
                 <Section label="Format">
                   <div className="flex flex-wrap items-center gap-5">
                     {ASPECTS.map((a, i) => (
@@ -170,14 +185,26 @@ export default function Create() {
                   </div>
                 </Section>
 
-                {/* style & sound — transparent icon + label tools */}
-                <div className="flex gap-6">
-                  <Tool icon={Sliders} label="Style" on={advanced} onClick={() => { void hapticTap(); setAdvanced((v) => !v); }} />
+                {/* settings — engine + style tucked away; comprehensive on demand */}
+                <div>
+                  <Tool icon={Sliders} label="Settings" on={advanced} onClick={() => { void hapticTap(); setAdvanced((v) => !v); }} />
                   {advanced && (
-                    <>
-                      <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
-                      <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
-                    </>
+                    <div className="mt-5 flex flex-col gap-5">
+                      <Section label="Render engine">
+                        <div className="-mr-4 flex gap-5 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
+                          {ENGINES.map((e) => (
+                            <Tool key={e.id} icon={e.locked ? Lock : Cpu} label={e.name} on={e.id === engineId} disabled={e.locked} onClick={() => { void hapticTap(); setEngineId(e.id); }} />
+                          ))}
+                        </div>
+                      </Section>
+                      <Section label="Style &amp; mood">
+                        <div className="flex gap-6">
+                          <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
+                          <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
+                          <Tool icon={Palette} label={look ?? 'Look'} on={!!look} onClick={() => { void hapticTap(); setLook(next(LOOKS, look)); }} />
+                        </div>
+                      </Section>
+                    </div>
                   )}
                 </div>
               </div>

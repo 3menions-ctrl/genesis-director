@@ -293,13 +293,14 @@ serve(async (req) => {
       );
 
       // Org-aware affordability pre-check. deduct_credits (below) routes org
-      // projects to the ORG pool (organizations.credits_balance) and personal
-      // projects to the member's personal balance — so this gate must consult
-      // the SAME pool, or an org member with a funded pool but no personal
-      // credits would be wrongly blocked here (and vice-versa). The authoritative
-      // check is still deduct_credits; this is the UX-facing 402 gate.
-      // (get_org_credit_state is membership-gated on auth.uid(), which is null
-      // under this service-role client, so read the org pool directly.)
+      // projects to the ORG pool and personal projects to the member's personal
+      // balance — so this gate must consult the SAME pool, or an org member with
+      // a funded pool but no personal credits would be wrongly blocked here (and
+      // vice-versa). Read the AUTHORITATIVE ledger state (balance − active holds)
+      // via the credit-state RPCs rather than the profiles/organizations
+      // display-cache columns, which can drift from the ledger. Both RPCs accept
+      // service-role callers (auth.uid() is null here). The final authority is
+      // still deduct_credits; this is the UX-facing 402 gate.
       let orgId: string | null = null;
       if (projectId) {
         const { data: proj } = await supabase
@@ -312,19 +313,11 @@ serve(async (req) => {
 
       let availableCredits = 0;
       if (orgId) {
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("credits_balance")
-          .eq("id", orgId)
-          .maybeSingle();
-        availableCredits = Number((org as { credits_balance?: number } | null)?.credits_balance ?? 0);
+        const { data: state } = await supabase.rpc("get_org_credit_state", { p_org_id: orgId });
+        availableCredits = Number((state as { available?: number } | null)?.available ?? 0);
       } else {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", auth.userId)
-          .single();
-        availableCredits = Number((profile as { credits_balance?: number } | null)?.credits_balance ?? 0);
+        const { data: state } = await supabase.rpc("get_credit_state", { p_user_id: auth.userId });
+        availableCredits = Number((state as { available?: number } | null)?.available ?? 0);
       }
 
       // Engine-aware pricing.

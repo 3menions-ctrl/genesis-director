@@ -66,6 +66,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // M3: enforce admin-configured ip/email blocks at request time.
+    const { checkAbuse, abuseBlockedResponse } = await import("../_shared/abuse-guard.ts");
+    const verdict = await checkAbuse(supabase, req, null);
+    if (verdict.blocked) return abuseBlockedResponse(corsHeaders, verdict);
+
     // Check the user's free-tier status.
     const { data: statusData } = await supabase.rpc("free_tier_status", {
       p_user: auth.userId,

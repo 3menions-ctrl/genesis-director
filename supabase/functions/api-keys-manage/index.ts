@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { checkAbuse, abuseBlockedResponse } from '../_shared/abuse-guard.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,6 +73,24 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create') {
+      // M3: enforce admin-configured ip/email blocks at request time.
+      const verdict = await checkAbuse(admin, req, (claims.claims.email as string) ?? null);
+      if (verdict.blocked) return abuseBlockedResponse(corsHeaders, verdict);
+
+      // H3: API access is a subscription-gated entitlement. Block minting new
+      // keys without an active subscription (active/trialing, or past_due/
+      // canceled still within the paid period — see has_active_subscription).
+      const { data: entitled } = await admin.rpc('has_active_subscription', { p_user_id: userId });
+      if (entitled !== true) {
+        return new Response(JSON.stringify({
+          error: 'subscription_required',
+          message: 'An active subscription is required to create API keys.',
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const name = String(body.name || '').trim().slice(0, 60) || 'Untitled key';
       const { count } = await admin
         .from('api_keys')

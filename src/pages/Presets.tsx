@@ -87,8 +87,12 @@ export default function Presets() {
         <ChevronLeft className="h-7 w-7" strokeWidth={2} />
       </button>
 
-      {/* ── Right tool rail (transparent) ── */}
-      <div className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-7">
+      {/* ── Right tool rail (transparent) — anchored above the tab bar so the
+            Save button never overlaps the bottom menu ── */}
+      <div
+        className="absolute right-3 z-20 flex flex-col items-center gap-6"
+        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 18px)' }}
+      >
         <button onClick={() => { void hapticTap(); setLooksOpen(true); }} aria-label="Looks" title="Looks"
           className={cn('flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors', selected !== 'original' ? 'text-[#8fb4ff]' : 'text-white')}>
           <LayoutGrid className="h-[25px] w-[25px]" strokeWidth={1.8} />

@@ -4,6 +4,7 @@ import { LogOut, Power, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +53,12 @@ export default function AdminSessionsPage() {
   const pg = usePagination(filtered, 25);
 
   async function killAll() {
-    if (!confirm("Force-revoke every active session across the platform? Users will be signed out.")) return;
+    if (!(await confirmAsync({
+      title: "Revoke every active session?",
+      description: "Force-revoke every active session across the platform. Users will be signed out.",
+      confirmLabel: "Revoke All",
+      destructive: true,
+    }))) return;
     setBulkBusy(true);
     const { error } = await supabase.rpc("admin_force_logout_all");
     setBulkBusy(false);
@@ -61,7 +67,11 @@ export default function AdminSessionsPage() {
   }
 
   async function killOne(userId: string) {
-    if (!confirm("Force-revoke this user's sessions?")) return;
+    if (!(await confirmAsync({
+      title: "Force-revoke this user's sessions?",
+      confirmLabel: "Revoke",
+      destructive: true,
+    }))) return;
     const { error } = await supabase.rpc("admin_force_logout_user", { p_target_user_id: userId });
     if (error) toast.error(error.message);
     else { toast.success("User signed out"); load(); }

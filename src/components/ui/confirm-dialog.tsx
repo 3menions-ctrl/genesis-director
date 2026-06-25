@@ -1,27 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ConfirmView, type ConfirmOptions } from '@/components/ui/confirm-view';
 
-type ConfirmOptions = {
-  title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  destructive?: boolean;
-};
+export type { ConfirmOptions };
 
 /**
  * Promise-based branded confirm dialog. Replaces native window.confirm()
- * with a shadcn AlertDialog so the experience matches the rest of the
- * app and respects the locked design system.
+ * with the shared premium ConfirmView so the experience matches every other
+ * confirm in the app and respects the locked design system.
  *
  * Two bugs fixed from the prior implementation:
  *   1. The Dialog component was declared inside the hook, so React saw a
@@ -67,53 +52,9 @@ export function useConfirmDialog() {
   }, []);
 
   const Dialog = useCallback(
-    () => (
-      <ConfirmDialogImpl
-        open={open}
-        options={options}
-        onClose={close}
-      />
-    ),
+    () => <ConfirmView open={open} options={options} onClose={close} />,
     [open, options, close],
   );
 
   return { confirm, Dialog };
-}
-
-interface ImplProps {
-  open: boolean;
-  options: ConfirmOptions;
-  onClose: (value: boolean) => void;
-}
-
-// Declared at module scope so React identifies it by stable component type.
-// Re-mounting only happens when `open` flips, not on every parent render.
-function ConfirmDialogImpl({ open, options, onClose }: ImplProps) {
-  return (
-    <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(false); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{options.title ?? 'Are you sure?'}</AlertDialogTitle>
-          {options.description ? (
-            <AlertDialogDescription>{options.description}</AlertDialogDescription>
-          ) : null}
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => onClose(false)}>
-            {options.cancelLabel ?? 'Cancel'}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => onClose(true)}
-            className={
-              options.destructive
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                : ''
-            }
-          >
-            {options.confirmLabel ?? 'Confirm'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
 }

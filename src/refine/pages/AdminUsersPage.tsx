@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
@@ -143,7 +144,12 @@ export default function AdminUsersPage() {
   };
 
   const runBulkSuspend = async () => {
-    if (!window.confirm(`Suspend ${selected.size} user(s)? Admins and your own account are skipped automatically.`)) return;
+    if (!(await confirmAsync({
+      title: `Suspend ${selected.size} user(s)?`,
+      description: "Admins and your own account are skipped automatically.",
+      confirmLabel: "Suspend",
+      destructive: true,
+    }))) return;
     setBulkBusy(true);
     try {
       const { data, error } = await supabase.rpc("admin_bulk_suspend" as never, {
@@ -301,7 +307,11 @@ export default function AdminUsersPage() {
                         className="h-7 w-7 p-0 text-warning hover:text-warning hover:bg-warning/10"
                         title="Force Logout"
                         onClick={async () => {
-                          if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
+                          if (!(await confirmAsync({
+                            title: `Force logout ${u.display_name || u.email}?`,
+                            confirmLabel: "Force Logout",
+                            destructive: true,
+                          }))) return;
                           try {
                             const { error } = await supabase.functions.invoke('admin-force-logout', {
                               body: { scope: 'user', target_user_id: u.id },

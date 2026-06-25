@@ -1467,7 +1467,8 @@ const transitionsData = useMemo(() =>
           progress={realTimeProgress}
           pipeline={livePipeline}
           prompt={scriptShots?.[0]?.description || projectTitle}
-          onCancel={() => navigate('/projects')}
+          onCancel={handleCancelPipeline}
+          isCancelling={isCancelling}
         />
       )}
 

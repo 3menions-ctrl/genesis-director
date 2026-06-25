@@ -81,6 +81,7 @@ import { useUserPreferences } from "@/contexts/UserPreferencesContext";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { Input } from "@/components/ui/input";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -1494,7 +1495,12 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
     if (!error) onSaved?.();
   };
   const removeTier = async (id: string) => {
-    if (!confirm("Delete this tier? Active patrons keep their pledges; the tier just disappears from new visitors.")) return;
+    if (!(await confirmAsync({
+      title: "Delete this tier?",
+      description: "Active patrons keep their pledges; the tier just disappears from new visitors.",
+      confirmLabel: "Delete",
+      destructive: true,
+    }))) return;
     setTiers((p) => p.filter((t) => t.id !== id));
     await supabase.from("patron_tiers" as never).delete().eq("id", id);
     onSaved?.();
@@ -1969,7 +1975,12 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
 
   const unenrollTotp = async () => {
     if (!verifiedFactor) return;
-    if (!confirm("Disable 2FA? You'll go back to password-only sign-in.")) return;
+    if (!(await confirmAsync({
+      title: "Disable 2FA?",
+      description: "You'll go back to password-only sign-in.",
+      confirmLabel: "Disable 2FA",
+      destructive: true,
+    }))) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
     if (error) { toast.error(error.message); return; }
     toast.success("2FA disabled.");
@@ -1981,7 +1992,11 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
       toast.error("Add another sign-in method before unlinking your last social account.");
       return;
     }
-    if (!confirm(`Unlink your ${identity.provider} sign-in?`)) return;
+    if (!(await confirmAsync({
+      title: `Unlink your ${identity.provider} sign-in?`,
+      confirmLabel: "Unlink",
+      destructive: true,
+    }))) return;
     const { data: userRes } = await supabase.auth.getUser();
     const fullIdentity = userRes?.user?.identities?.find((i: any) => i.identity_id === identity.identity_id);
     if (!fullIdentity) { toast.error("Could not find identity."); return; }
@@ -2289,7 +2304,12 @@ function DataModule({ profile }: { profile: ProfileRow }) {
   };
 
   const deactivate = async () => {
-    if (!confirm("Deactivate your account? Your profile will be hidden but your data stays. You can sign back in to reactivate.")) return;
+    if (!(await confirmAsync({
+      title: "Deactivate your account?",
+      description: "Your profile will be hidden but your data stays. You can sign back in to reactivate.",
+      confirmLabel: "Deactivate",
+      destructive: true,
+    }))) return;
     setDeactivating(true);
     const { error } = await supabase.from("profiles" as never).update({ deactivated_at: new Date().toISOString() } as never).eq("id", profile.id);
     setDeactivating(false);

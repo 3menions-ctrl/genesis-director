@@ -276,7 +276,7 @@ function RailTile({
       <span className="relative flex h-12 w-12 items-center justify-center transition-transform duration-200 group-hover/tile:scale-105">
         <Icon
           className={cn(
-            "h-[26px] w-[26px] transition-colors duration-200",
+            "h-[24px] w-[24px] transition-colors duration-200",
             active ? "text-white" : "text-foreground/70 group-hover/tile:text-foreground",
           )}
           style={active ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.4))" } : undefined}

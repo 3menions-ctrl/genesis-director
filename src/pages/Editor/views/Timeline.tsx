@@ -55,6 +55,7 @@ import {
   Plus as PlusIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type {
   ClipTransition,
@@ -448,9 +449,12 @@ export function Timeline({
   // Confirmation guard so an errant click doesn't nuke a long edit.
   const onClearAll = async () => {
     if (clips.length === 0) return;
-    const ok = window.confirm(
-      `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"} from the timeline?\n\nUse Cmd-Z to undo.`,
-    );
+    const ok = await confirmAsync({
+      title: `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"} from the timeline?`,
+      description: "Use Cmd-Z to undo.",
+      confirmLabel: "Remove All",
+      destructive: true,
+    });
     if (!ok) return;
     clearAllClips();
     try {
@@ -662,12 +666,16 @@ export function Timeline({
                         track={t}
                         addGap={i < tracks.length - 1}
                         onRename={(label) => renameTrack(t.id, label)}
-                        onRemove={() => {
+                        onRemove={async () => {
                           if (t.id.startsWith("sys:")) {
                             toast.message("System tracks can't be removed");
                             return;
                           }
-                          if (!confirm(`Delete "${t.label}"?`)) return;
+                          if (!(await confirmAsync({
+                            title: `Delete "${t.label}"?`,
+                            confirmLabel: "Delete",
+                            destructive: true,
+                          }))) return;
                           removeTrack(t.id);
                         }}
                         // A2 (Music) track gets dedicated score actions.

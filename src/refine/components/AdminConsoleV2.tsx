@@ -16,6 +16,7 @@
 import { ReactNode, useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import {
   ArrowUpRight,
   Loader2,
@@ -256,7 +257,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
 
   const runAction = useCallback(
     async (a: AdminAction<T>, row: T) => {
-      if (a.confirm && !window.confirm(a.confirm)) return;
+      if (a.confirm && !(await confirmAsync({ title: a.confirm, confirmLabel: a.label, destructive: true }))) return;
       try {
         await a.onRun(row);
         if (a.silent) return; // dialog-opener; no success toast / refresh

@@ -1,8 +1,8 @@
 /**
  * Global confirm dialog — module-level promise API.
  *
- * Replaces 30+ `window.confirm(...)` sites with a branded AlertDialog that
- * matches the rest of the design system. Calling `confirmAsync(...)` from
+ * Replaces 30+ `window.confirm(...)` sites with the shared premium ConfirmView
+ * that matches the rest of the design system. Calling `confirmAsync(...)` from
  * anywhere returns a Promise<boolean>; the dialog is mounted once at the
  * App root via `<GlobalConfirmHost />`.
  *
@@ -16,24 +16,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ConfirmView, type ConfirmOptions } from '@/components/ui/confirm-view';
 
-export interface ConfirmOptions {
-  title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  destructive?: boolean;
-}
+export type { ConfirmOptions };
 
 type Pending = {
   options: ConfirmOptions;
@@ -85,32 +70,10 @@ export function GlobalConfirmHost() {
   };
 
   return (
-    <AlertDialog open={!!active} onOpenChange={(o) => { if (!o) close(false); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {active?.options.title ?? 'Are you sure?'}
-          </AlertDialogTitle>
-          {active?.options.description ? (
-            <AlertDialogDescription>{active.options.description}</AlertDialogDescription>
-          ) : null}
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => close(false)}>
-            {active?.options.cancelLabel ?? 'Cancel'}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => close(true)}
-            className={
-              active?.options.destructive
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                : ''
-            }
-          >
-            {active?.options.confirmLabel ?? 'Confirm'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmView
+      open={!!active}
+      options={active?.options ?? {}}
+      onClose={close}
+    />
   );
 }

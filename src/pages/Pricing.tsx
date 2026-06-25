@@ -299,7 +299,11 @@ const MATRIX_ROWS: { label: string; values: Record<Segment, string | boolean> }[
 const FAQS: { q: string; a: string }[] = [
   {
     q: 'How do credits work?',
-    a: '1 credit = $0.10. Most finished clips cost ~10 credits depending on duration, resolution and engine. Personal credits never expire.',
+    a: '1 credit = $0.10 at list price. A finished clip costs roughly 10 credits, varying with duration, resolution and the engine you pick. Buying in larger packs lowers your effective rate to as little as $0.075 per credit. Personal credit packs never expire.',
+  },
+  {
+    q: 'Is there a free trial?',
+    a: 'Yes — your first 5-second video is on us. Create an account and render a clip to judge the quality before you buy a single credit.',
   },
   {
     q: 'Can I switch between subscription and pay-as-you-go?',
@@ -310,8 +314,24 @@ const FAQS: { q: string; a: string }[] = [
     a: 'Subscription credits roll over for one billing cycle. One-time credit packs (Personal & Business) never expire.',
   },
   {
+    q: 'Can I cancel my subscription anytime?',
+    a: 'Yes. You can cancel or change to a different tier at any time — there is no lock-in. Credits already granted stay in your balance, and unused subscription credits roll over for one billing cycle.',
+  },
+  {
+    q: 'What resolution can I export?',
+    a: 'Entry packs (Mini, Starter and Indie) export at 1080p HD. From the Growth, Pro and Studio tiers upward you unlock 4K Ultra HD, and the top business and subscription Studio tiers add 4K HDR and ProRes.',
+  },
+  {
+    q: 'What happens if a render fails?',
+    a: 'Failed renders are automatically refunded — you are only charged credits for clips that finish successfully.',
+  },
+  {
     q: 'Do you offer team seats?',
-    a: 'Business plans include 5–unlimited seats with brand kits and shared assets.',
+    a: 'Yes. Business plans scale from 5 seats (Studio) to 15 (Brand) to unlimited (Agency+), with brand kits and shared assets. Agency+ also adds SAML SSO for enterprise security.',
+  },
+  {
+    q: 'Do you offer API access?',
+    a: 'Yes. API access is included on the Personal Agency, Business Brand and Subscription Studio tiers, with webhooks on the Brand and Studio plans for programmatic generation.',
   },
   {
     q: 'Is my payment secure?',

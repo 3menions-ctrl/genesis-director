@@ -18,7 +18,7 @@
  */
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, AlertTriangle, Sparkles } from "lucide-react";
+import { Check, AlertTriangle, Sparkles, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PIPELINE_PHASES,
@@ -51,7 +51,10 @@ interface Props {
   /** Optional live preview of the developing film. */
   previewSrc?: string | null;
   variant?: "aurora" | "gold";
+  /** Stop/abort the in-progress generation. When omitted, no button shows. */
   onCancel?: () => void;
+  /** True while the cancel request is in flight — disables the button + shows a spinner. */
+  isCancelling?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,6 +137,7 @@ export function PipelineCreation({
   previewSrc,
   variant = "aurora",
   onCancel,
+  isCancelling = false,
 }: Props) {
   const p = Math.max(0, Math.min(100, pipeline?.overall ?? progress));
   const bg = variant === "gold" ? "/create/bridge-gold.png" : "/create/bridge-aurora.png";
@@ -266,9 +270,19 @@ export function PipelineCreation({
                 animate={{ width: `${p}%` }} transition={{ duration: 1, ease: "easeOut" }} />
             </div>
             {onCancel && (
-              <button type="button" onClick={onCancel}
-                className="mt-5 font-mono text-[10.5px] uppercase tracking-[.2em] text-white/40 transition-colors hover:text-white/70">
-                Cancel creation
+              <button type="button" onClick={onCancel} disabled={isCancelling}
+                aria-label="Cancel generation"
+                className={cn(
+                  "mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2",
+                  "font-mono text-[11px] uppercase tracking-[.2em]",
+                  "bg-white/[0.04] text-white/80 ring-1 ring-inset ring-white/15 backdrop-blur",
+                  "transition-colors hover:bg-rose-500/10 hover:text-rose-200 hover:ring-rose-400/40",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}>
+                {isCancelling
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <X className="h-3.5 w-3.5" />}
+                {isCancelling ? "Cancelling…" : "Cancel generation"}
               </button>
             )}
           </motion.div>

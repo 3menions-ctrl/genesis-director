@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -212,7 +213,12 @@ export function AdminFailedClipsQueue() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedClips.size} clips? This cannot be undone.`)) {
+    if (!(await confirmAsync({
+      title: `Delete ${selectedClips.size} clips?`,
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    }))) {
       return;
     }
 

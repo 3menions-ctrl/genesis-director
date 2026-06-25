@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Plus, Copy, BarChart3, Settings2, Trash2, Play, Pause, Eye, MousePointerClick, Film, ArrowLeft, Layers, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -278,7 +279,7 @@ export function ScenesHub() {
                           <ExternalLink className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg hover:bg-red-500/10 ${textMuted} hover:text-red-400 transition-all`} onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}>
+                      <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg hover:bg-red-500/10 ${textMuted} hover:text-red-400 transition-all`} onClick={async () => { if (!(await confirmAsync({ title: 'Delete this widget?', confirmLabel: 'Delete', destructive: true }))) return; deleteMutation.mutate(widget.id); }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

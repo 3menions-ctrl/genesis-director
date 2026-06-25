@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Hls from 'hls.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -232,7 +233,12 @@ export function AdminProjectsBrowser() {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project? This cannot be undone.')) return;
+    if (!(await confirmAsync({
+      title: 'Delete this project?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    }))) return;
 
     try {
       const { data, error } = await supabase.rpc('admin_moderate_content', {

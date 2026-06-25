@@ -26,6 +26,7 @@ import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, FloatTable, FloatStat, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/Spinner";
+import { confirmAsync } from "@/components/ui/global-confirm";
 
 interface UserDetail {
   profile: {
@@ -212,7 +213,7 @@ export default function AdminUserDetailPage() {
     reason?: string,
     confirmCopy?: string,
   ) => {
-    if (confirmCopy && !window.confirm(confirmCopy)) return;
+    if (confirmCopy && !(await confirmAsync({ title: confirmCopy, confirmLabel: "Confirm", destructive: true }))) return;
     setActing(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-user-action", {
@@ -282,7 +283,12 @@ export default function AdminUserDetailPage() {
   };
 
   const restore = async () => {
-    if (!window.confirm("Restore this account? They will regain access on next sign-in.")) return;
+    if (!(await confirmAsync({
+      title: "Restore this account?",
+      description: "They will regain access on next sign-in.",
+      confirmLabel: "Restore",
+      destructive: true,
+    }))) return;
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_unsuspend_account", { p_target_user: userId });
@@ -297,7 +303,11 @@ export default function AdminUserDetailPage() {
   };
 
   const revokeSessions = async () => {
-    if (!window.confirm("Force sign-out of every active session for this user?")) return;
+    if (!(await confirmAsync({
+      title: "Force sign-out of every active session for this user?",
+      confirmLabel: "Force Sign-Out",
+      destructive: true,
+    }))) return;
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_revoke_user_sessions" as never, {

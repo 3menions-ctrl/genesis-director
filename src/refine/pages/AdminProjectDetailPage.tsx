@@ -24,6 +24,7 @@ import { useSafeNavigation } from "@/lib/navigation";
 import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { Spinner } from "@/components/ui/Spinner";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -187,7 +188,12 @@ export default function AdminProjectDetailPage() {
 
   const deleteProject = async () => {
     if (!projectId) return;
-    if (!window.confirm("Delete this project permanently? This cannot be undone.")) return;
+    if (!(await confirmAsync({
+      title: "Delete this project permanently?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    }))) return;
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_moderate_content", {

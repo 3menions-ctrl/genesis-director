@@ -304,18 +304,33 @@ if ("serviceWorker" in navigator) {
       });
     });
   } else {
+    // In dev, a service worker registered during a prior prod/preview visit
+    // to this origin keeps serving its precached (stale) bundle — so dev edits
+    // never reach the browser and a normal Cmd+Shift+R can't bypass it. Detect
+    // that case, unregister + purge caches, then force ONE reload so the page
+    // re-fetches fresh code from the Vite dev server. Guarded against loops.
+    const wasControlled = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.getRegistrations()
       .then((regs) => {
         if (regs.length) {
           console.warn('[Dev] Unregistering', regs.length, 'stale service worker(s)');
         }
-        return Promise.all(regs.map((r) => r.unregister()));
+        return Promise.all(regs.map((r) => r.unregister())).then(() => regs.length);
       })
-      .then(() => {
-        if ("caches" in window) {
-          return caches.keys().then((keys) =>
-            Promise.all(keys.map((k) => caches.delete(k)))
-          );
+      .then((regCount) => {
+        const purge = "caches" in window
+          ? caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+          : Promise.resolve();
+        return purge.then(() => regCount);
+      })
+      .then((regCount) => {
+        // Only reload if a SW actually controlled this page (i.e. we were
+        // served stale) and we haven't already reloaded this session.
+        const RELOAD_KEY = "__dev_sw_purged__";
+        if ((wasControlled || regCount > 0) && !sessionStorage.getItem(RELOAD_KEY)) {
+          sessionStorage.setItem(RELOAD_KEY, "1");
+          console.warn('[Dev] Reloading to drop stale service-worker cache');
+          location.reload();
         }
       })
       .catch(() => {

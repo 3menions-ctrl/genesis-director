@@ -56,18 +56,6 @@ export default function Feed() {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white">
-      {/* For You header */}
-      <div
-        className="pointer-events-none absolute left-0 right-0 z-30 flex justify-center gap-6"
-        style={{ top: 'calc(var(--safe-top, 0px) + 14px)' }}
-      >
-        <span className="font-display text-[15px] font-semibold text-white/45">Following</span>
-        <span className="relative font-display text-[15px] font-semibold text-white">
-          For You
-          <span className="absolute -bottom-2 left-1/2 h-[2.5px] w-5 -translate-x-1/2 rounded bg-white" />
-        </span>
-      </div>
-
       {/* Mute toggle */}
       <button
         onClick={() => setMuted((m) => !m)}
@@ -238,11 +226,11 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
           <Heart className={cn('h-6 w-6', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
         </RailButton>
 
-        <RailButton label="Remix" highlight onClick={remix} aria-label="Remix">
+        <RailButton highlight onClick={remix} aria-label="Remix">
           <Repeat2 className="h-6 w-6" />
         </RailButton>
 
-        <RailButton label="Share" onClick={share} aria-label="Share">
+        <RailButton onClick={share} aria-label="Share">
           <Share2 className="h-6 w-6" />
         </RailButton>
       </div>
@@ -250,7 +238,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       {/* caption */}
       <div
         className="absolute left-4 z-20 max-w-[72%]"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 96px)' }}
+        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 44px)' }}
       >
         <div className="flex items-center gap-2 font-display text-[16px] font-bold">
           @{(item.creator_name ?? 'smallbridges').replace(/\s+/g, '').toLowerCase()}
@@ -268,16 +256,6 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
         )}
       </div>
 
-      {/* Remix CTA */}
-      <button
-        onClick={remix}
-        disabled={busy}
-        className="absolute left-4 right-4 z-20 flex h-[46px] items-center justify-center gap-2 rounded-[15px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] font-display text-[14.5px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_34px_-8px_rgba(80,80,255,.65)] backdrop-blur-sm disabled:opacity-60"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 38px)' }}
-      >
-        <Repeat2 className="h-[18px] w-[18px]" />
-        {busy ? 'Starting remix…' : 'Remix this into your own film'}
-      </button>
     </section>
   );
 };
@@ -291,7 +269,7 @@ function RailButton({
   ...rest
 }: {
   children: React.ReactNode;
-  label: string;
+  label?: string;
   onClick: () => void;
   highlight?: boolean;
   active?: boolean;
@@ -310,7 +288,7 @@ function RailButton({
       >
         {children}
       </span>
-      <span className="font-display text-[11px] font-semibold">{label}</span>
+      {label ? <span className="font-display text-[11px] font-semibold tabular-nums">{label}</span> : null}
     </button>
   );
 }

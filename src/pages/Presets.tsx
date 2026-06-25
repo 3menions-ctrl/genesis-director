@@ -9,7 +9,7 @@
  * created or picked; here it falls back to a sample film.
  */
 import { useMemo, useState } from 'react';
-import { Check, Lock, SlidersHorizontal } from 'lucide-react';
+import { Check, Lock, SlidersHorizontal, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { FILMS } from '@/data/filmsLibrary';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -90,40 +90,33 @@ export default function Presets() {
           />
         </div>
 
-        {/* Live badge */}
-        <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/35 px-3.5 py-2 font-display text-[12px] font-semibold backdrop-blur-md">
-          <SlidersHorizontal className="h-3.5 w-3.5" /> Live preview
+        {/* Live badge — icon only */}
+        <div className="absolute left-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-black/35 backdrop-blur-md" title="Live preview">
+          <SlidersHorizontal className="h-4 w-4" />
         </div>
 
-        {/* Before/After */}
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1 rounded-full bg-black/40 p-1 backdrop-blur-md">
-          <button
-            onMouseDown={() => setShowBefore(true)}
-            onMouseUp={() => setShowBefore(false)}
-            onMouseLeave={() => setShowBefore(false)}
-            onTouchStart={() => setShowBefore(true)}
-            onTouchEnd={() => setShowBefore(false)}
-            className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', showBefore ? 'bg-white text-black' : 'text-white/70')}
-          >
-            Hold: Before
-          </button>
-          <span className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', !showBefore ? 'bg-white text-black' : 'text-white/70')}>
-            After
-          </span>
-        </div>
+        {/* Before/After — hold the eye to compare */}
+        <button
+          onMouseDown={() => setShowBefore(true)}
+          onMouseUp={() => setShowBefore(false)}
+          onMouseLeave={() => setShowBefore(false)}
+          onTouchStart={() => setShowBefore(true)}
+          onTouchEnd={() => setShowBefore(false)}
+          aria-label="Hold to see before"
+          title="Hold to see before"
+          className={cn(
+            'absolute bottom-4 left-1/2 grid h-10 w-10 -translate-x-1/2 place-items-center rounded-full backdrop-blur-md transition-colors',
+            showBefore ? 'bg-white text-black' : 'bg-black/40 text-white',
+          )}
+        >
+          <Eye className="h-[18px] w-[18px]" />
+        </button>
       </div>
 
       {/* Deck */}
-      <div className="relative z-10 flex flex-1 flex-col px-1 pt-5">
-        <div className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
-          Editing is just presets
-          <span className="mt-1.5 block text-[17px] font-light italic text-white" style={{ fontFamily: 'Fraunces, serif' }}>
-            Tap a look. It applies instantly.
-          </span>
-        </div>
-
+      <div className="relative z-10 flex flex-1 flex-col px-1 pt-6">
         <div
-          className="mt-3.5 flex gap-3 overflow-x-auto px-4"
+          className="flex gap-3 overflow-x-auto px-4"
           style={{ scrollbarWidth: 'none', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 84px)' }}
         >
           {LOOKS.map((l) => {
@@ -143,34 +136,32 @@ export default function Presets() {
                 )}
               >
                 <span className="absolute inset-0" style={{ background: l.grad }} />
-                <span className="absolute right-2.5 top-2.5 text-[22px]">{l.emoji}</span>
+                <span className="absolute inset-0 grid place-items-center text-[40px] drop-shadow-[0_4px_12px_rgba(0,0,0,.5)]">{l.emoji}</span>
                 {l.premium && (
                   <span className="absolute left-2.5 top-2.5">
                     <Lock className="h-[15px] w-[15px] text-white/85" />
                   </span>
                 )}
                 {on && (
-                  <span className="absolute right-2 bottom-9 grid h-5 w-5 place-items-center rounded-full bg-[#2f6bff]">
-                    <Check className="h-3 w-3" strokeWidth={3} />
+                  <span className="absolute bottom-2.5 right-2.5 grid h-6 w-6 place-items-center rounded-full bg-[#2f6bff] shadow-[0_4px_12px_-2px_rgba(47,107,255,.9)]">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
                 )}
-                <span className="absolute inset-x-2.5 bottom-2.5 text-left font-display text-[13px] font-bold drop-shadow">
-                  {l.name}
-                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Apply */}
+      {/* Apply — icon only */}
       <button
         onClick={apply}
-        className="absolute left-5 right-5 z-10 flex h-[50px] items-center justify-center gap-2 rounded-full bg-gradient-to-b from-white to-[#e9ecf5] font-display text-[15px] font-bold text-black shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_48px_-14px_rgba(255,255,255,.4)]"
+        aria-label={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
+        title={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
+        className="absolute left-1/2 z-10 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-gradient-to-b from-white to-[#e9ecf5] text-black shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_48px_-14px_rgba(255,255,255,.45)]"
         style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}
       >
-        {look.premium ? <Lock className="h-[18px] w-[18px]" /> : <Check className="h-[18px] w-[18px]" strokeWidth={2.5} />}
-        {look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
+        {look.premium ? <Lock className="h-[22px] w-[22px]" /> : <Check className="h-[24px] w-[24px]" strokeWidth={2.5} />}
       </button>
     </div>
   );

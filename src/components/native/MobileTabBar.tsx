@@ -95,18 +95,16 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={cn(
-        'flex flex-col items-center gap-1 font-display text-[10px] font-semibold tracking-wide transition-colors',
-        active ? 'text-white' : 'text-white/40',
-      )}
+      aria-label={label}
+      title={label}
+      className={cn('flex flex-col items-center gap-1.5 transition-colors', active ? 'text-white' : 'text-white/40')}
     >
       <span className="relative grid place-items-center">
         {active && (
           <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/35 blur-md" />
         )}
-        <Icon className="relative h-[24px] w-[24px]" strokeWidth={1.9} />
+        <Icon className="relative h-[25px] w-[25px]" strokeWidth={1.9} />
       </span>
-      {label}
       <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#3f78ff] shadow-[0_0_10px_#3f78ff]' : 'bg-transparent')} />
     </button>
   );

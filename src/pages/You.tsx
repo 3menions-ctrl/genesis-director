@@ -77,9 +77,11 @@ export default function You() {
         </p>
         <button
           onClick={() => navigate('/auth')}
-          className="relative z-10 mt-1 flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-7 font-display text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_40px_-12px_rgba(80,90,255,.7)]"
+          aria-label="Sign in"
+          title="Sign in"
+          className="relative z-10 mt-1 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_40px_-12px_rgba(80,90,255,.7)]"
         >
-          <LogIn className="h-[18px] w-[18px]" /> Sign in
+          <LogIn className="h-[22px] w-[22px]" />
         </button>
       </div>
     );
@@ -144,9 +146,8 @@ export default function You() {
           ))}
         </div>
 
-        {/* Achievements — floating medallions, no tiles */}
-        <div className="mt-10 text-center">
-          <div className="mb-5 font-mono text-[10px] uppercase tracking-[0.28em] text-white/35">Achievements</div>
+        {/* Achievements — floating medallions, no tiles, no label */}
+        <div className="mt-9 text-center">
           <div className="flex justify-center gap-6">
             {badges.map((b) => (
               <div key={b.id} title={b.label} className="relative grid place-items-center">
@@ -163,11 +164,8 @@ export default function You() {
           </div>
         </div>
 
-        {/* Films — borderless thumbnails floating in a grid */}
-        <div className="mb-5 mt-11 flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/35">Films</span>
-          <span className="font-mono text-[10px] tabular-nums text-white/30">{films.length}</span>
-        </div>
+        {/* Films — borderless thumbnails floating in a grid, no label */}
+        <div className="mt-10">
         {loading ? (
           <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -175,13 +173,14 @@ export default function You() {
             ))}
           </div>
         ) : films.length === 0 ? (
-          <div className="py-10 text-center">
-            <div className="text-[17px] font-light italic text-white/80" style={{ fontFamily: 'Fraunces, serif' }}>No films yet</div>
+          <div className="flex justify-center py-10">
             <button
               onClick={() => { void hapticTap(); navigate('/create'); }}
-              className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-6 font-display text-[14px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_14px_34px_-12px_rgba(80,90,255,.7)]"
+              aria-label="Create your first film"
+              title="Create your first film"
+              className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_14px_34px_-12px_rgba(80,90,255,.7)]"
             >
-              <Sparkles className="h-4 w-4" /> Create your first
+              <Sparkles className="h-[22px] w-[22px]" />
             </button>
           </div>
         ) : (
@@ -205,6 +204,7 @@ export default function You() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

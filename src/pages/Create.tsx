@@ -103,33 +103,22 @@ export default function Create() {
           paddingBottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 88px)',
         }}
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.34em] text-[#7aa2ff]">Create</div>
-        <h1 className="mt-3 text-[36px] font-light leading-[1.03] tracking-[-0.01em]" style={{ fontFamily: 'Fraunces, serif' }}>
-          What do you want to{' '}
-          <span
-            className="bg-gradient-to-r from-[#8fb4ff] via-[#b79bff] to-[#7adfff] bg-clip-text italic text-transparent"
-            style={{ fontWeight: 500 }}
-          >
-            make?
-          </span>
-        </h1>
-
-        {/* Mode hub — the comprehensive set of creation services */}
-        <div className="-mx-5 mt-6 flex gap-2.5 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+        {/* Mode hub — icon-only creation services */}
+        <div className="-mx-6 flex justify-center gap-3 overflow-x-auto px-6 pb-1" style={{ scrollbarWidth: 'none' }} aria-label="Creation mode">
           {MODES.map((m) => {
             const on = m.id === modeId;
             return (
               <button
                 key={m.id}
                 onClick={() => { void hapticTap(); setModeId(m.id); }}
+                aria-label={m.label}
+                title={m.label}
                 className={cn(
-                  'flex w-[92px] flex-none flex-col items-start gap-2 rounded-[18px] p-3 text-left transition-all duration-200',
-                  on ? 'surface-2' : 'surface-1 opacity-80',
+                  'grid h-[54px] w-[54px] flex-none place-items-center rounded-[18px] transition-all duration-200',
+                  on ? 'surface-2 scale-105' : 'surface-1 opacity-55',
                 )}
               >
-                <m.Icon className={cn('h-[20px] w-[20px]', on ? 'text-[#7aa2ff]' : 'text-white/70')} strokeWidth={1.8} />
-                <span className="text-[13px] font-semibold leading-none">{m.label}</span>
-                <span className="font-mono text-[9px] uppercase tracking-wide text-white/40">{m.sub}</span>
+                <m.Icon className={cn('h-[22px] w-[22px]', on ? 'text-[#8fb4ff]' : 'text-white/80')} strokeWidth={1.8} />
               </button>
             );
           })}
@@ -137,7 +126,7 @@ export default function Create() {
 
         {/* Prompt — borderless lit-glass surface (modes that take a prompt) */}
         {mode.usesPrompt && (
-          <div className="mt-5 rounded-[26px] surface-2 p-5 transition-shadow duration-300 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_28px_84px_-30px_rgba(60,90,255,.55)]">
+          <div className="mt-6 rounded-[26px] surface-2 p-5 transition-shadow duration-300 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_28px_84px_-30px_rgba(60,90,255,.55)]">
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -149,56 +138,43 @@ export default function Create() {
           </div>
         )}
 
-        {/* Style — only for visual modes */}
+        {/* Style — icon (emoji) only, for visual modes */}
         {mode.usesStyle && (
-          <>
-            <div className="mb-3 mt-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Style</div>
-            <div className="flex flex-wrap gap-2">
-              {STYLES.map((s) => {
-                const on = s.id === styleId;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => { void hapticTap(); setStyleId(on ? null : s.id); }}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-all duration-200',
-                      on
-                        ? 'bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_12px_30px_-8px_rgba(80,90,255,.75)]'
-                        : 'surface-1 text-white/75',
-                    )}
-                  >
-                    <span className="text-[14px]">{s.emoji}</span>
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* Avatar/music modes get a short note instead of style */}
-        {!mode.usesStyle && (
-          <p className="mt-6 text-[14px] italic leading-relaxed text-white/40" style={{ fontFamily: 'Fraunces, serif' }}>
-            {mode.id === 'avatar'
-              ? 'Pick a face and a voice in the avatar studio — your script becomes a performance.'
-              : 'Describe the mood; the composer scores it. Lands in your library, ready to drop on a film.'}
-          </p>
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            {STYLES.map((s) => {
+              const on = s.id === styleId;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => { void hapticTap(); setStyleId(on ? null : s.id); }}
+                  aria-label={s.label}
+                  title={s.label}
+                  className={cn(
+                    'grid h-11 w-11 place-items-center rounded-full text-[19px] transition-all duration-200',
+                    on
+                      ? 'bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_12px_30px_-8px_rgba(80,90,255,.75)] scale-105'
+                      : 'surface-1 opacity-70',
+                  )}
+                >
+                  {s.emoji}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* Generate — compact CTA */}
+      {/* Generate — icon-only CTA */}
       <button
         onClick={generate}
         disabled={!canGenerate}
-        className="absolute left-5 right-5 z-10 flex h-[52px] items-center justify-between rounded-[16px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] pl-5 pr-2.5 font-display text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_22px_44px_-12px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-55"
+        aria-label={mode.cta}
+        title={mode.cta}
+        className="absolute left-5 right-5 z-10 flex h-[54px] items-center justify-center gap-3 rounded-[18px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_22px_44px_-12px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-55"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 16px)' }}
       >
-        <span className="flex items-center gap-2 text-[15px] font-bold">
-          <mode.Icon className="h-[18px] w-[18px]" strokeWidth={2} /> {mode.cta}
-        </span>
-        <span className="flex items-center gap-1.5 rounded-[11px] bg-black/25 px-3 py-1.5 font-mono text-[12px] font-semibold">
-          {mode.id === 'music' ? 'from 4 ◇' : mode.id === 'image' ? 'from 1 ◇' : 'from 2 ◇'} <ArrowRight className="h-3.5 w-3.5" />
-        </span>
+        <mode.Icon className="h-[22px] w-[22px]" strokeWidth={2} />
+        <ArrowRight className="h-[20px] w-[20px]" strokeWidth={2.4} />
       </button>
     </div>
   );

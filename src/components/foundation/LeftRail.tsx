@@ -229,7 +229,7 @@ export function LeftRail() {
             className="group/out relative w-full flex flex-col items-center justify-center gap-1.5 py-2 rounded-2xl text-muted-foreground/55 hover:text-rose-200 transition-colors"
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04] group-hover/out:bg-[hsl(350_80%_55%/0.14)] transition-colors">
-              <LogOut className="h-[22px] w-[22px]" strokeWidth={1.7} />
+              <LogOut className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </span>
             <span className="text-[9.5px] font-medium leading-none tracking-tight">Sign out</span>
           </button>
@@ -276,7 +276,7 @@ function RailTile({
       <span className="relative flex h-12 w-12 items-center justify-center transition-transform duration-200 group-hover/tile:scale-105">
         <Icon
           className={cn(
-            "h-[26px] w-[26px] transition-colors duration-200",
+            "h-[20px] w-[20px] transition-colors duration-200",
             active ? "text-white" : "text-foreground/70 group-hover/tile:text-foreground",
           )}
           style={active ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.4))" } : undefined}

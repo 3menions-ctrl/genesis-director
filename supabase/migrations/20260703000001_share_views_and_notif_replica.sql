@@ -1,3 +1,9 @@
+-- NOTE: renamed from version 20260703000000 → 20260703000001 to resolve a
+-- three-file version collision (all three shared 20260703000000, so the CLI
+-- could only record one). All effects here are already live on prod and this
+-- migration is idempotent (CREATE OR REPLACE + idempotent ALTER); re-applying
+-- is a no-op. See MIGRATION_BACKLOG_AUDIT.md.
+--
 -- Atomic share view-count increment + notifications realtime DELETE fix.
 --
 -- 1) PublicShare incremented view_count with a client-side read-modify-write

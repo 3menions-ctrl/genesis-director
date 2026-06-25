@@ -45,10 +45,10 @@ export default function Messages() {
             <span className="text-[12px] text-white/30">Open a creator's profile to start a chat.</span>
           </div>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2.5">
             {items.map((c) => (
               <li key={c.userId}>
-                <button onClick={() => { void hapticTap(); setOpen(c); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors active:bg-white/[0.04]">
+                <button onClick={() => { void hapticTap(); setOpen(c); }} className="msg-glass flex w-full items-center gap-3 rounded-[20px] px-3.5 py-3 text-left transition-transform active:scale-[0.99]">
                   <div className="relative shrink-0">
                     {c.avatar ? <img src={c.avatar} alt="" className="h-[52px] w-[52px] rounded-full object-cover" /> : <span className="grid h-[52px] w-[52px] place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] text-[17px] font-bold">{(c.name?.[0] ?? '?').toUpperCase()}</span>}
                     {c.unread > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#2f6bff] px-1 text-[11px] font-bold shadow-[0_0_0_3px_#0a0a0f]">{c.unread}</span>}

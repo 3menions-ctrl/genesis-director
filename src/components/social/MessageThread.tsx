@@ -72,8 +72,8 @@ export function MessageThread({ recipientId, name, avatar, onClose }: { recipien
               const mine = m.sender_id === user?.id;
               return (
                 <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-                  <div className={cn('max-w-[78%] rounded-[20px] px-4 py-2.5 text-[14.5px] leading-snug',
-                    mine ? 'rounded-br-md bg-gradient-to-br from-[#2f6bff] to-[#6b3bff] text-white' : 'surface-1 rounded-bl-md text-white/90')}>
+                  <div className={cn('max-w-[78%] rounded-[22px] px-4 py-2.5 text-[14.5px] leading-snug',
+                    mine ? 'msg-glass-accent rounded-br-md text-white' : 'msg-glass rounded-bl-md text-white/90')}>
                     {m.content}
                   </div>
                 </div>
@@ -92,9 +92,9 @@ export function MessageThread({ recipientId, name, avatar, onClose }: { recipien
 
       <div className="relative z-10 flex items-center gap-2 px-4 pt-2" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + 12px)' }}>
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }} autoFocus
-          placeholder={`Message ${name}…`} className="surface-1 h-12 flex-1 rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/35" />
+          placeholder={`Message ${name}…`} className="msg-glass h-12 flex-1 rounded-full px-4 text-[15px] text-white outline-none placeholder:text-white/35" />
         <button onClick={send} disabled={!text.trim() || sendMessage.isPending} aria-label="Send"
-          className="surface-1 grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-40">
+          className="msg-glass grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-40">
           {sendMessage.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-[20px] w-[20px]" />}
         </button>
       </div>

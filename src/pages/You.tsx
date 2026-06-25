@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check, MessageCircle,
+  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -324,10 +324,37 @@ function PeopleSheet({ kind, userId, onClose, onOpen }: { kind: 'followers' | 'f
 }
 
 function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: string; bio: string; tagline: string }; onClose: () => void; onSaved: () => void }) {
+  const { user, profile, refreshProfile } = useAuth();
   const [name, setName] = useState(initial.display_name);
   const [tagline, setTagline] = useState(initial.tagline);
   const [bio, setBio] = useState(initial.bio);
+  const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url ?? null);
+  const [cover, setCover] = useState<string | null>(profile?.cover_url ?? null);
+  const [busy, setBusy] = useState<'avatar' | 'cover' | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const pick = async (file: File | undefined, kind: 'avatar' | 'cover') => {
+    if (!file || !user) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image'); return; }
+    if (file.size > 6 * 1024 * 1024) { toast.error('Image must be under 6MB'); return; }
+    setBusy(kind);
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${user.id}/${kind}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      const col = kind === 'avatar' ? 'avatar_url' : 'cover_url';
+      const { error: updErr } = await supabase.from('profiles').update({ [col]: publicUrl } as never).eq('id', user.id);
+      if (updErr) throw updErr;
+      if (kind === 'avatar') setAvatar(publicUrl); else setCover(publicUrl);
+      await refreshProfile();
+      toast.success(kind === 'avatar' ? 'Photo updated' : 'Cover updated');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Upload failed');
+    } finally { setBusy(null); }
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -339,9 +366,26 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
       toast.error(e instanceof Error ? e.message : 'Could not save');
     } finally { setSaving(false); }
   };
+
   return (
     <SheetShell title="Edit profile" onClose={onClose}>
       <div className="space-y-4 pb-2">
+        {/* Cover + avatar pickers */}
+        <div className="relative mb-8">
+          <label className="msg-glass relative block h-28 cursor-pointer overflow-hidden rounded-[18px]">
+            {cover ? <img src={cover} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-gradient-to-br from-[#2f6bff]/25 to-[#7a3bff]/15" />}
+            <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white backdrop-blur-md">{busy === 'cover' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</span>
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0], 'cover')} />
+          </label>
+          <label className="absolute -bottom-6 left-4 block h-20 w-20 cursor-pointer">
+            <span className="block h-20 w-20 overflow-hidden rounded-full ring-4 ring-[#0d0d14]">
+              {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] font-display text-2xl font-bold">{name.trim().charAt(0).toUpperCase()}</span>}
+            </span>
+            <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-[#2f6bff] text-white shadow-[0_0_0_3px_#0d0d14]">{busy === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}</span>
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0], 'avatar')} />
+          </label>
+        </div>
+
         <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none" /></Field>
         <Field label="Tagline"><input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="One line about you" className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <Field label="Bio"><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A little more about you…" className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
@@ -351,7 +395,6 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
             {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-7 w-7" strokeWidth={2.2} />}
           </button>
         </div>
-        <p className="text-center text-[11px] text-white/30">Avatar &amp; cover editing coming soon.</p>
       </div>
     </SheetShell>
   );

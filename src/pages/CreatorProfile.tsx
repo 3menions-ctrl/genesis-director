@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
 import { X, MessageCircle, UserPlus, UserCheck, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
@@ -48,8 +49,21 @@ export default function CreatorProfile() {
   const reels = useCreatorReels(id);
   const [messaging, setMessaging] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [cover, setCover] = useState<string | null>(null);
 
   useEffect(() => { if (id && user?.id === id) navigate('/you', { replace: true }); }, [id, user?.id, navigate]);
+
+  // Best-effort cover photo (their uploaded cover) for the full-bleed background.
+  useEffect(() => {
+    if (!id) return; let c = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('profiles' as never).select('cover_url').eq('id', id).maybeSingle();
+        if (!c) setCover((data as { cover_url?: string | null } | null)?.cover_url ?? null);
+      } catch { /* RLS / not available → avatar fallback */ }
+    })();
+    return () => { c = true; };
+  }, [id]);
 
   const exit = () => { if (leaving) return; setLeaving(true); navigate(-1); };
   const doFollow = () => {
@@ -68,7 +82,7 @@ export default function CreatorProfile() {
           <button onClick={exit} className="rounded-full bg-white/[0.07] px-5 py-2 text-[13px] font-medium">Go back</button>
         </div>
       ) : (
-        <SwipeProfile profile={profile} reels={reels}
+        <SwipeProfile profile={profile} reels={reels} coverSrc={cover ?? profile.avatar_url}
           onFollow={() => { doFollow(); exit(); }} onMoveOn={exit}
           onMessage={() => { void hapticTap(); user ? setMessaging(true) : navigate('/auth'); }}
           onTapFollow={doFollow}
@@ -86,9 +100,10 @@ export default function CreatorProfile() {
   );
 }
 
-function SwipeProfile({ profile, reels, onFollow, onMoveOn, onMessage, onTapFollow, onOpenReel }: {
+function SwipeProfile({ profile, reels, coverSrc, onFollow, onMoveOn, onMessage, onTapFollow, onOpenReel }: {
   profile: { display_name: string | null; avatar_url: string | null; followers_count: number; following_count: number; videos_count: number; is_following: boolean };
   reels: Reel[];
+  coverSrc: string | null;
   onFollow: () => void; onMoveOn: () => void; onMessage: () => void; onTapFollow: () => void; onOpenReel: (id: string) => void;
 }) {
   const x = useMotionValue(0);
@@ -110,9 +125,9 @@ function SwipeProfile({ profile, reels, onFollow, onMoveOn, onMessage, onTapFoll
     <motion.div style={{ x, rotate, bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))' }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.55} onDragEnd={onEnd}
       className="absolute inset-x-0 top-0 cursor-grab touch-pan-y overflow-hidden active:cursor-grabbing">
       <div className="absolute inset-0">
-        {/* Full-bleed cover */}
-        {profile.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {/* Full-bleed cover — their uploaded cover photo, else avatar */}
+        {coverSrc ? (
+          <img src={coverSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]">
             <span className="font-display text-[120px] font-bold text-white/15">{name[0]?.toUpperCase()}</span>

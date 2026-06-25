@@ -25,7 +25,7 @@ import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
-const TITLES = ['Newcomer', 'Creator', 'Director', 'Auteur', 'Visionary', 'Legend'];
+const TITLES = ['Newcomer', 'Creator', 'Filmmaker', 'Auteur', 'Visionary', 'Legend'];
 const XP_PER_LEVEL = 500;
 const RARITY: Record<string, string> = { common: '#9aa3b2', rare: '#5b9bff', epic: '#a855f7', legendary: '#ffd76b' };
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));

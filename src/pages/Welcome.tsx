@@ -50,7 +50,7 @@ export default function Welcome() {
   const [make, setMake] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
-  const name = profile?.display_name || user?.email?.split('@')[0] || 'director';
+  const name = profile?.display_name || user?.email?.split('@')[0] || 'creator';
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, v: string) => {
     void hapticTap();
     const n = new Set(set); n.has(v) ? n.delete(v) : n.add(v); setter(n);

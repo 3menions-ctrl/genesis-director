@@ -63,7 +63,7 @@ async function grantCredits(order: any) {
   const userId = String(md.user_id || md.userId || "");
   const credits = parseInt(String(md.credits ?? "0"), 10);
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.paid: no/invalid user_id", { userId }); return; }
-  if (!Number.isFinite(credits) || credits <= 0 || credits > 100000) { log("order.paid: no creditable amount", { credits: md.credits }); return; }
+  if (!Number.isFinite(credits) || credits <= 0 || credits > 1000000) { log("order.paid: no creditable amount", { credits: md.credits }); return; }
   const packageId = String(md.package_id ?? "pack");
   const ref = `polar_${order.id}`; // idempotency key for add_credits
 
@@ -73,7 +73,10 @@ async function grantCredits(order: any) {
     p_description: `Purchased ${credits} credits (${packageId} via Polar)`,
     p_stripe_payment_id: ref,
   });
-  if (error) { log("add_credits error", { error: error.message }); return; }
+  // A transient failure here means the customer paid but got no credits. THROW so
+  // the handler returns 500 and Polar retries (matching the Stripe handler), rather
+  // than swallowing it and returning 200 (which Polar reads as success → no retry).
+  if (error) { log("add_credits error", { error: error.message }); throw new Error(`add_credits failed: ${error.message}`); }
   log("credits granted", { userId, credits, packageId, ref });
 
   // Bell notification — a renewal (subscription order) reads as "added", a
@@ -87,6 +90,40 @@ async function grantCredits(order: any) {
     data: { credits, package_id: packageId, order_id: String(order.id), link: "/account?tab=credits" },
     dedupeKey: `notif_order_${order.id}`,
     severity: "success",
+  });
+}
+
+/**
+ * Reverse credits on a refunded order. The refund event carries the same
+ * metadata we attached at checkout, so the credit count and user are known.
+ * Idempotent on the order id (reverse_credit_purchase dedupes on the reference),
+ * so a duplicate refund event is a no-op.
+ */
+async function reverseCredits(order: any) {
+  const md = order?.metadata ?? {};
+  const userId = String(md.user_id || md.userId || "");
+  const credits = parseInt(String(md.credits ?? "0"), 10);
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.refunded: no/invalid user_id", { userId }); return; }
+  if (!Number.isFinite(credits) || credits <= 0) { log("order.refunded: nothing to reverse", { credits: md.credits }); return; }
+  const ref = `polar_${order.id}`;
+
+  const { error } = await sb().rpc("reverse_credit_purchase", {
+    p_user_id: userId,
+    p_amount: credits,
+    p_description: `Refund/chargeback reversal (Polar order ${order.id})`,
+    p_reference: ref,
+  });
+  if (error) { log("reverse_credit_purchase error", { error: error.message }); throw new Error(`reverse_credit_purchase failed: ${error.message}`); }
+  log("credits reversed", { userId, credits, ref });
+
+  await notifyUser({
+    userId,
+    type: "credits_purchased",
+    title: "Refund processed",
+    body: `${credits.toLocaleString()} credits were reversed for your refunded purchase.`,
+    data: { credits: -credits, order_id: String(order.id), link: "/account?tab=credits" },
+    dedupeKey: `notif_refund_${order.id}`,
+    severity: "info",
   });
 }
 
@@ -139,6 +176,9 @@ Deno.serve(async (req) => {
       case "order.paid":
         await grantCredits(data);
         break;
+      case "order.refunded":
+        await reverseCredits(data);
+        break;
       case "subscription.created":
       case "subscription.active":
       case "subscription.updated":
@@ -158,7 +198,11 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log("handler error", { msg });
-    // 200 so Polar doesn't infinitely retry a poison event; we logged it.
-    return new Response(JSON.stringify({ received: true, error: "handler_error" }), { status: 200 });
+    // 500 so Polar retries (per its finite backoff schedule). A transient DB
+    // error during fulfillment must NOT be reported as success — that would
+    // strand a paid customer with no credits and no retry. Polar surfaces
+    // persistently-failing events in the dashboard rather than retrying forever.
+    // Body uses a sanitized code (no internal detail leak); full msg is logged.
+    return new Response(JSON.stringify({ received: false, error: "handler_error" }), { status: 500 });
   }
 });

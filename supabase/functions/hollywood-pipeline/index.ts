@@ -6757,6 +6757,7 @@ serve(async (req) => {
     // User JWTs CANNOT skip credit deduction — prevents free generation exploit
     const shouldSkipCredits = (isServiceRoleCall && request.skipCreditDeduction) || isResuming;
     
+    let pipelineHoldId: string | null = null;
     if (!shouldSkipCredits) {
       // Check authoritative available credits upfront (balance minus active holds).
       console.log(`[Hollywood] Checking authoritative credit state for user ${request.userId}`);
@@ -6804,6 +6805,7 @@ serve(async (req) => {
           { status: insufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      pipelineHoldId = holdResult.holdId ?? null;
       console.log(`[Hollywood] ✓ Held ${totalCredits} credits (holdId=${holdResult.holdId}, reused=${holdResult.reused})`);
     } else {
       console.log(`[Hollywood] Skipping credit deduction (skipCreditDeduction=${request.skipCreditDeduction}, isResuming=${isResuming})`);
@@ -6854,6 +6856,13 @@ serve(async (req) => {
 
       if (projectError) throw projectError;
       projectId = project.id;
+      // The hold was reserved BEFORE this project existed (projectId was null),
+      // so link it now — otherwise consume/release silently no-op and the user
+      // is never charged on success / the hold orphans on failure.
+      if (pipelineHoldId) {
+        const { linkPipelineHold } = await import('../_shared/pipeline-credits.ts');
+        await linkPipelineHold({ supabase, holdId: pipelineHoldId, projectId });
+      }
     } else {
       // Update existing project status
       await supabase

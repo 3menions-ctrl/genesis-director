@@ -351,6 +351,7 @@ serve(async (req) => {
   let plannedCredits = 0;
   let plannedClipCount = Math.max(1, Math.min(12, request.clipCount ?? 6));
   let chargedCredits = false;
+  let pipelineHoldId: string | null = null;
 
   // SECURITY: end-user JWT → JWT id wins (mismatch = 403). Service-role → body.userId.
   try {
@@ -473,6 +474,7 @@ serve(async (req) => {
         );
       }
       chargedCredits = true;
+      pipelineHoldId = holdResult.holdId ?? null;
       console.log(`[Seedance] ✓ Held ${totalCredits} credits (holdId=${holdResult.holdId}, reused=${holdResult.reused})`);
     }
 
@@ -506,6 +508,13 @@ serve(async (req) => {
       projectId = proj.id;
       activeProjectId = projectId;
       console.log(`[Seedance] ✓ Created project ${projectId}`);
+      // The hold was reserved BEFORE this project existed (projectId was null),
+      // so link it now — otherwise consume/release silently no-op and the user
+      // is never charged on success / the hold orphans on failure.
+      if (pipelineHoldId) {
+        const { linkPipelineHold } = await import("../_shared/pipeline-credits.ts");
+        await linkPipelineHold({ supabase, holdId: pipelineHoldId, projectId });
+      }
     } else {
       activeProjectId = projectId;
       await supabase

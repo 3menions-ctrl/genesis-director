@@ -87,7 +87,7 @@ const USELESS_EXACT: RegExp[] = [
 ];
 
 function rawMessageOf(error: unknown): string {
-  if (error == null) return '';
+  if (error === null || error === undefined) return '';
   if (typeof error === 'string') return error;
   if (error instanceof Error) return error.message ?? '';
   if (typeof error === 'object') {
@@ -124,6 +124,5 @@ export function safeErrorMessage(error: unknown, fallback: string = DEFAULT_FALL
  * Use alongside `safeErrorMessage` at every catch site.
  */
 export function logTechnicalError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
   console.error(`[${context}]`, error);
 }

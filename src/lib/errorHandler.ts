@@ -45,7 +45,6 @@ export function parseError(error: unknown): {
   originalError: unknown;
 } {
   let code = 'unknown';
-  let message = 'Something went wrong. Please try again.';
   let isRetryable = true;
 
   if (error instanceof Error) {
@@ -66,29 +65,21 @@ export function parseError(error: unknown): {
     }
     
     // Check for Supabase errors
-    if ('code' in error && typeof (error as any).code === 'string') {
-      code = (error as any).code;
-    }
-    
-    // Use error message if we don't have a better one
-    if (!ERROR_MESSAGES[code]) {
-      message = error.message;
+    if ('code' in error && typeof (error as { code?: unknown }).code === 'string') {
+      code = (error as { code: string }).code;
     }
   }
-  
+
   // Handle response-like errors
   if (error && typeof error === 'object') {
-    if ('status' in error && typeof (error as any).status === 'number') {
-      const status = (error as any).status;
+    if ('status' in error && typeof (error as { status?: unknown }).status === 'number') {
+      const status = (error as { status: number }).status;
       if (status === 429) code = '429';
       if (status === 402) code = '402';
       if (status === 401 || status === 403) {
         code = 'AuthApiError';
         isRetryable = false;
       }
-    }
-    if ('message' in error && typeof (error as any).message === 'string') {
-      message = (error as any).message;
     }
   }
   

@@ -1,19 +1,16 @@
 /**
- * Create — the web app's CreationStudio (rail + canvas + composition bar),
- * tailored to this app: borderless & floating, the app's blue accent, the Aurora
- * canvas, and every control is a TRANSPARENT ICON WITH A TEXT LABEL (no text-only
- * buttons, no filled pills). Compact enough to fit one screen.
+ * Create — a guided, step-by-step flow. The Create tab opens at "What do you
+ * want to make?"; each step is a bottom sheet with one question + a few visual
+ * choices that auto-advance, leading the user to the writing screen and the
+ * action. Config-driven: a new creation type is one entry in FLOWS.
  *
- * Generate is the default module; other rail modules swap the canvas. Create
- * routes to the real Studio engine. Spend-only.
+ * Spend-only. The final action routes to the real Studio engine.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon, Globe2,
-  Palette, PenLine, LayoutGrid, Sparkles, Cpu, Clock, Clapperboard, Film,
-  RectangleHorizontal, RectangleVertical, Square, UserRound, Drama,
-  Dices, Rocket, Leaf, Heart,
+  ChevronLeft, Sparkles, ArrowRight,
+  RectangleHorizontal, RectangleVertical, Square,
   type LucideIcon,
 } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -22,229 +19,199 @@ import { cn } from '@/lib/utils';
 
 const enc = encodeURIComponent;
 
-interface Module { id: string; label: string; icon: LucideIcon; group: 'create' | 'assets' | 'finish'; }
-const MODULES: Module[] = [
-  { id: 'generate', label: 'Video', icon: Film, group: 'create' },
-  { id: 'image', label: 'Image', icon: ImageIcon, group: 'create' },
-  { id: 'photo', label: 'Photo', icon: Scissors, group: 'create' },
-  { id: 'cast', label: 'Cast', icon: Users, group: 'assets' },
-  { id: 'voice', label: 'Voice', icon: Mic, group: 'assets' },
-  { id: 'music', label: 'Music', icon: MusicIcon, group: 'assets' },
-  { id: 'worlds', label: 'Worlds', icon: Globe2, group: 'assets' },
-  { id: 'look', label: 'Look', icon: Palette, group: 'finish' },
-  { id: 'story', label: 'Story', icon: PenLine, group: 'finish' },
-  { id: 'templates', label: 'Templates', icon: LayoutGrid, group: 'finish' },
-];
-const GROUPS: Module['group'][] = ['create', 'assets', 'finish'];
+interface Opt { v: string; label: string; emoji?: string; icon?: LucideIcon }
+interface Step { id: string; q: string; opts: Opt[]; skip?: boolean }
+interface Flow {
+  emoji: string; label: string; writeQ: string; placeholder: string; action: string;
+  steps: Step[];
+  route: (sel: Record<string, string>, prompt: string) => string;
+}
 
-const SUBMODES = [
-  { id: 'cinematic', label: 'Cinematic', Icon: Clapperboard },
-  { id: 'animate', label: 'Animate', Icon: Wand2 },
-  { id: 'avatar', label: 'Avatar', Icon: UserRound },
+const ASPECT_OPTS: Opt[] = [
+  { v: '16:9', label: '16:9', icon: RectangleHorizontal },
+  { v: '9:16', label: '9:16', icon: RectangleVertical },
+  { v: '1:1', label: '1:1', icon: Square },
 ];
-const ENGINES = [
-  { id: 'wan', name: 'Wan 2.5' },
-  { id: 'kling', name: 'Kling V3' },
-  { id: 'seedance', name: 'Seedance' },
-  { id: 'veo', name: 'Veo 3', locked: true },
-  { id: 'sora', name: 'Sora 2', locked: true },
+const LOOK_OPTS: Opt[] = [
+  { v: 'cinematic', label: 'Cinematic', emoji: '🎬' },
+  { v: 'anime', label: 'Anime', emoji: '🌸' },
+  { v: 'noir', label: 'Noir', emoji: '🖤' },
+  { v: 'vhs', label: 'VHS', emoji: '📼' },
+  { v: 'vapor', label: 'Vapor', emoji: '🌈' },
 ];
-const ASPECTS = [
-  { id: '16:9', Icon: RectangleHorizontal },
-  { id: '9:16', Icon: RectangleVertical },
-  { id: '1:1', Icon: Square },
-] as const;
-const DURATIONS = ['5s', '10s'] as const;
-const GENRES = ['Cinematic', 'Documentary', 'Commercial', 'Narrative', 'Motivational'];
-const MOODS = ['Epic', 'Suspense', 'Emotional', 'Action', 'Mystery', 'Uplifting'];
-const LOOKS = ['Kodak 2383', 'Teal & Orange', 'Bleach Bypass', 'Vintage 70s', 'Noir', 'Golden Hour', 'Cyberpunk', 'Pastel'];
-const SUBTITLE: Record<string, string> = {
-  cast: 'Pick a presenter — locks identity for Avatar mode.',
-  voice: 'Choose a narration or character voice.',
-  music: 'Score your film — pick a genre and mood.',
-  worlds: 'Pick an environment that folds into the scene.',
-  look: 'A film grade applied to the whole render.',
-  story: 'A logline that seeds the prompt.',
-  templates: '4th-wall breakouts & crossover effects.',
-  image: 'Text to image — describe the frame.',
-  photo: 'Edit and restyle an existing image.',
+const withLook = (p: string, look?: string) => (look ? `${p.trim()}, ${look} style` : p.trim());
+
+const TYPES: Opt[] = [
+  { v: 'video', label: 'Video', emoji: '🎬' },
+  { v: 'image', label: 'Image', emoji: '🖼️' },
+  { v: 'avatar', label: 'Avatar', emoji: '🗣️' },
+  { v: 'music', label: 'Music', emoji: '🎵' },
+  { v: 'photo', label: 'Edit photo', emoji: '✂️' },
+];
+
+const FLOWS: Record<string, Flow> = {
+  video: {
+    emoji: '🎬', label: 'Video', writeQ: 'Describe your scene', action: 'Generate',
+    placeholder: 'A lone astronaut watching twin suns set over a glass desert…',
+    steps: [
+      { id: 'source', q: 'Start from', opts: [{ v: 'text', label: 'Text', emoji: '✍️' }, { v: 'photo', label: 'A photo', emoji: '🖼️' }, { v: 'template', label: 'Template', emoji: '🎞️' }] },
+      { id: 'look', q: 'Pick a look', skip: true, opts: LOOK_OPTS },
+      { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
+    ],
+    route: (s, p) => `/studio?tab=create&prompt=${enc(withLook(p, s.look))}`,
+  },
+  image: {
+    emoji: '🖼️', label: 'Image', writeQ: 'Describe the image', action: 'Generate',
+    placeholder: 'A portrait of a desert wanderer at golden hour, 85mm…',
+    steps: [
+      { id: 'look', q: 'Pick a style', skip: true, opts: [{ v: 'cinematic', label: 'Cinematic', emoji: '🎬' }, { v: 'anime', label: 'Anime', emoji: '🌸' }, { v: '3d', label: '3D', emoji: '🧊' }, { v: 'photo', label: 'Photo', emoji: '📷' }] },
+      { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
+    ],
+    route: (s, p) => `/studio?tab=image&prompt=${enc(withLook(p, s.look))}`,
+  },
+  avatar: {
+    emoji: '🗣️', label: 'Avatar', writeQ: 'What do they say?', action: 'Generate',
+    placeholder: 'Hey everyone — welcome back to the channel…',
+    steps: [
+      { id: 'presenter', q: 'Pick a presenter', opts: [{ v: 'nova', label: 'Nova', emoji: '👩🏽' }, { v: 'kai', label: 'Kai', emoji: '🧑🏼' }, { v: 'mara', label: 'Mara', emoji: '👩🏼‍🦰' }, { v: 'own', label: 'Create own', emoji: '➕' }] },
+      { id: 'voice', q: 'Pick a voice', opts: [{ v: 'warm', label: 'Warm', emoji: '🎙️' }, { v: 'bright', label: 'Bright', emoji: '✨' }, { v: 'deep', label: 'Deep', emoji: '🔊' }, { v: 'calm', label: 'Calm', emoji: '🌙' }] },
+      { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
+    ],
+    route: () => `/avatars`,
+  },
+  music: {
+    emoji: '🎵', label: 'Music', writeQ: 'Describe the track', action: 'Compose',
+    placeholder: 'A tense orchestral build with low strings and a distant choir…',
+    steps: [
+      { id: 'genre', q: 'Genre', opts: [{ v: 'cinematic', label: 'Cinematic', emoji: '🎬' }, { v: 'electronic', label: 'Electronic', emoji: '🎛️' }, { v: 'orchestral', label: 'Orchestral', emoji: '🎻' }, { v: 'lofi', label: 'Lo-fi', emoji: '📻' }, { v: 'ambient', label: 'Ambient', emoji: '🌫️' }] },
+      { id: 'mood', q: 'Mood', opts: [{ v: 'epic', label: 'Epic', emoji: '⚡' }, { v: 'calm', label: 'Calm', emoji: '🍃' }, { v: 'tense', label: 'Tense', emoji: '🌀' }, { v: 'uplifting', label: 'Uplifting', emoji: '☀️' }, { v: 'dreamy', label: 'Dreamy', emoji: '💭' }] },
+    ],
+    route: (_s, p) => (p.trim() ? `/music?prompt=${enc(p.trim())}` : '/music'),
+  },
+  photo: {
+    emoji: '✂️', label: 'Edit photo', writeQ: 'Describe the edit', action: 'Apply',
+    placeholder: 'Relight to golden hour, remove the background, add film grain…',
+    steps: [
+      { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', emoji: '⬆️' }, { v: 'library', label: 'Library', emoji: '🗂️' }, { v: 'camera', label: 'Camera', emoji: '📸' }] },
+      { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', emoji: '💡' }, { v: 'restyle', label: 'Restyle', emoji: '🎨' }, { v: 'remove', label: 'Remove', emoji: '🧽' }, { v: 'upscale', label: 'Upscale', emoji: '🔍' }] },
+    ],
+    route: (_s, p) => `/studio?tab=photo&prompt=${enc(p.trim())}`,
+  },
 };
-const next = <T,>(arr: readonly T[], cur: T | null) => arr[(arr.indexOf(cur as T) + 1) % arr.length];
-
-// One-tap inspiration — themed example prompts to beat the blank page.
-const THEMES = [
-  { id: 'surprise', label: 'Surprise', Icon: Dices, prompt: '' },
-  { id: 'scifi', label: 'Sci-fi', Icon: Rocket, prompt: 'A lone astronaut watching twin suns set over a glass desert' },
-  { id: 'nature', label: 'Nature', Icon: Leaf, prompt: 'Morning mist over an ancient redwood forest, sun rays piercing the canopy' },
-  { id: 'noir', label: 'Noir', Icon: Drama, prompt: 'A detective lights a cigarette under a flickering neon sign on rain-slicked streets' },
-  { id: 'fantasy', label: 'Fantasy', Icon: Sparkles, prompt: 'A dragon circles a floating castle at golden hour, banners snapping in the wind' },
-  { id: 'romance', label: 'Romance', Icon: Heart, prompt: 'Two figures share an umbrella on a Paris bridge as the rain turns to gold' },
-];
 
 export default function Create() {
   const navigate = useNavigate();
-  const [active, setActive] = useState('generate');
-  const [submode, setSubmode] = useState('cinematic');
-  const [engineId, setEngineId] = useState('wan');
-  const [aspect, setAspect] = useState(0);
-  const [duration, setDuration] = useState<string>('5s');
-  const [genre, setGenre] = useState<string | null>(null);
-  const [mood, setMood] = useState<string | null>(null);
-  const [look, setLook] = useState<string | null>(null);
-  const [story, setStory] = useState('');
+  const [flow, setFlow] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [sel, setSel] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState('');
 
-  const engine = ENGINES.find((e) => e.id === engineId) ?? ENGINES[0];
-  const canCreate = active === 'music' || submode === 'avatar' || prompt.trim().length > 0;
-  const cost = active === 'image' ? 1 : active === 'music' ? 4 : 2;
+  const def = flow ? FLOWS[flow] : null;
+  const steps = def?.steps ?? [];
+  const atWriting = !!def && step >= steps.length;
+  const total = steps.length + 1; // choice steps + writing
 
-  const create = () => {
-    if (!canCreate) return;
-    void hapticTap();
-    if (active === 'music') return navigate('/music');
-    if (submode === 'avatar') return navigate('/avatars');
-    const extras = [genre, mood, look].filter(Boolean).join(' ').toLowerCase();
-    const seed = story.trim() && !prompt.trim() ? story.trim() : prompt.trim();
-    const full = extras ? `${seed}, ${extras}` : seed;
-    const tab = active === 'image' ? 'image' : active === 'photo' ? 'photo' : 'create';
-    navigate(`/studio?tab=${tab}&prompt=${enc(full)}`);
-  };
-
-  const isCreateModule = active === 'generate' || active === 'image' || active === 'photo';
+  const start = (type: string) => { void hapticTap(); setFlow(type); setStep(0); setSel({}); setPrompt(''); };
+  const pick = (id: string, v: string) => { void hapticTap(); setSel((s) => ({ ...s, [id]: v })); setStep((n) => n + 1); };
+  const back = () => { void hapticTap(); if (!flow) return; if (step === 0) setFlow(null); else setStep((n) => n - 1); };
+  const submit = () => { if (!def) return; void hapticTap(); navigate(def.route(sel, prompt)); };
+  const canSubmit = flow === 'avatar' || prompt.trim().length > 0;
 
   return (
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
-      <div className="relative z-10 flex h-full" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
-        {/* ── LEFT RAIL — module navigation ── */}
-        <nav className="flex w-[68px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto py-2" style={{ scrollbarWidth: 'none' }}>
-          {GROUPS.map((g, gi) => (
-            <div key={g} className="flex w-full flex-col items-center gap-0.5">
-              {gi > 0 && <span className="my-1 h-px w-6 bg-white/10" />}
-              {MODULES.filter((m) => m.group === g).map((m) => (
-                <Tool key={m.id} icon={m.icon} label={m.label} on={m.id === active} onClick={() => { void hapticTap(); setActive(m.id); }} full />
+
+      {/* faint context above the sheet */}
+      {def && (
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center" style={{ paddingTop: 'calc(var(--safe-top,0px) + 56px)' }}>
+          <div className="text-[44px]">{def.emoji}</div>
+          <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-white/35">{def.label}</div>
+        </div>
+      )}
+
+      {/* ── Bottom sheet — the current step ── */}
+      <div
+        className="absolute inset-x-0 bottom-0 z-20 rounded-t-[30px] bg-[#0c0c12]/95 px-5 pt-3 shadow-[0_-30px_80px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl"
+        style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 20px)' }}
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+
+        {/* top row: back + progress */}
+        <div className="mb-4 flex h-6 items-center justify-between">
+          {flow ? (
+            <button onClick={back} aria-label="Back" className="text-white/70"><ChevronLeft className="h-6 w-6" /></button>
+          ) : <span className="w-6" />}
+          {flow && (
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: total }).map((_, i) => (
+                <span key={i} className={cn('h-1.5 rounded-full transition-all', i === step ? 'w-5 bg-[#8fb4ff]' : i < step ? 'w-1.5 bg-[#8fb4ff]/60' : 'w-1.5 bg-white/15')} />
               ))}
             </div>
-          ))}
-        </nav>
-
-        {/* ── CANVAS (center) ── */}
-        <div className="relative flex flex-1 flex-col overflow-hidden px-3">
-          <div className="flex-1 overflow-y-auto pb-3 pt-2">
-            {isCreateModule ? (
-              <div className="flex flex-col gap-5">
-                {/* mode — transparent icon + label */}
-                {active === 'generate' && (
-                  <div className="flex gap-6">
-                    {SUBMODES.map((s) => (
-                      <Tool key={s.id} icon={s.Icon} label={s.label} on={s.id === submode} onClick={() => { void hapticTap(); setSubmode(s.id); }} />
-                    ))}
-                  </div>
-                )}
-
-                {/* prompt — floating lit-glass (input) */}
-                {!(active === 'generate' && submode === 'avatar') && (
-                  <div className="surface-2 rounded-[22px] p-1 transition-shadow focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_24px_70px_-30px_rgba(60,90,255,.55)]">
-                    <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3}
-                      placeholder={active === 'image' ? 'A portrait at golden hour, 85mm…' : active === 'photo' ? 'Describe the edit — relight, restyle…' : submode === 'animate' ? 'Describe how the image should move…' : 'A lone astronaut watching twin suns set…'}
-                      className="w-full resize-none bg-transparent px-4 py-3 text-[16px] font-light leading-relaxed text-white outline-none placeholder:text-white/25" style={{ outline: 'none' }} />
-                  </div>
-                )}
-
-                {active === 'generate' && submode === 'avatar' && (
-                  <button onClick={() => navigate('/avatars')} className="surface-1 flex items-center gap-3 rounded-[20px] p-3.5 text-left">
-                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-[#9c8bff] to-[#6b3bff]"><UserRound className="h-5 w-5" /></span>
-                    <div className="text-[13px]"><div className="font-medium">Pick a presenter</div><div className="text-white/45">Cast → choose an identity</div></div>
-                  </button>
-                )}
-
-                {/* inspiration — one-tap themed ideas (beat the blank page) */}
-                {!(active === 'generate' && submode === 'avatar') && (
-                  <div className="-mr-4 flex gap-5 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
-                    {THEMES.map((t) => (
-                      <Tool key={t.id} icon={t.Icon} label={t.label} onClick={() => {
-                        void hapticTap();
-                        const pick = t.id === 'surprise' ? THEMES.filter((x) => x.prompt)[Math.floor((Date.now() / 7) % (THEMES.length - 1))] : t;
-                        setPrompt(pick.prompt);
-                      }} />
-                    ))}
-                  </div>
-                )}
-
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <h2 className="text-[24px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>{MODULES.find((m) => m.id === active)?.label}</h2>
-                <p className="text-[13px] leading-relaxed text-white/45">{SUBTITLE[active]}</p>
-                <div className="mt-6">
-                  {active === 'look' && (
-                    <div className="grid grid-cols-4 gap-x-3 gap-y-5">
-                      {LOOKS.map((l) => <Tool key={l} icon={Palette} label={l} on={l === look} onClick={() => { void hapticTap(); setLook(l === look ? null : l); }} />)}
-                    </div>
-                  )}
-                  {active === 'music' && (
-                    <div className="flex gap-6">
-                      <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
-                      <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
-                    </div>
-                  )}
-                  {active === 'story' && (
-                    <div className="surface-2 rounded-[22px] p-1">
-                      <textarea value={story} onChange={(e) => setStory(e.target.value)} rows={7} placeholder="A washed-up pilot takes one last job across the dunes…"
-                        className="w-full resize-none bg-transparent px-4 py-3 text-[15px] font-light leading-relaxed text-white outline-none placeholder:text-white/25" style={{ outline: 'none' }} />
-                    </div>
-                  )}
-                  {['cast', 'voice', 'worlds', 'templates'].includes(active) && (
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {Array.from({ length: 9 }).map((_, i) => <div key={i} className="surface-1 aspect-square rounded-2xl" />)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Composition bar (floating) ── */}
-          <div className="mb-1 flex items-center gap-3">
-            <div className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-white/45">
-              {isCreateModule ? `${active === 'generate' ? submode : active} · ${engine.name} · ${ASPECTS[aspect].id}` : MODULES.find((m) => m.id === active)?.label}
-              <span className="ml-2 text-[#8fb4ff]">◇{cost}</span>
-            </div>
-            {/* Create — transparent icon + label in an outlined boundary */}
-            <button onClick={create} disabled={!canCreate} aria-label="Create" title="Create"
-              className="flex flex-none flex-col items-center gap-1 rounded-[16px] border border-[#8fb4ff]/45 bg-transparent px-4 py-1.5 text-[#8fb4ff] transition-opacity disabled:opacity-40">
-              <Sparkles className="h-[22px] w-[22px]" strokeWidth={1.7} />
-              <span className="text-[10px] font-semibold">Create</span>
-            </button>
-          </div>
+          )}
+          <span className="w-6" />
         </div>
 
-        {/* ── RIGHT RAIL — page settings (config for the generation) ── */}
-        {isCreateModule && (
-          <nav className="flex w-[68px] shrink-0 flex-col items-center justify-center gap-5 py-2">
-            {(() => { const A = ASPECTS[aspect]; return <Tool icon={A.Icon} label={A.id} full onClick={() => { void hapticTap(); setAspect((aspect + 1) % ASPECTS.length); }} />; })()}
-            <Tool icon={Clock} label={duration} full onClick={() => { void hapticTap(); setDuration(next(DURATIONS, duration)); }} />
-            <Tool icon={Cpu} label={engine.name} full onClick={() => { void hapticTap(); const u = ENGINES.filter((e) => !e.locked); const i = u.findIndex((e) => e.id === engineId); setEngineId(u[(i + 1) % u.length].id); }} />
-            <span className="h-px w-7 bg-white/10" />
-            <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} full onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
-            <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} full onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
-            <Tool icon={Palette} label={look ?? 'Look'} on={!!look} full onClick={() => { void hapticTap(); setLook(next(LOOKS, look)); }} />
-          </nav>
-        )}
+        <div key={`${flow}-${step}`} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {!flow ? (
+            <Choice q="What do you want to make?" opts={TYPES} cols={3} onPick={(v) => start(v)} />
+          ) : !atWriting ? (
+            <Choice q={steps[step].q} opts={steps[step].opts} cols={steps[step].opts.length > 4 ? 3 : steps[step].opts.length} onPick={(v) => pick(steps[step].id, v)}
+              onSkip={steps[step].skip ? () => pick(steps[step].id, '') : undefined} />
+          ) : (
+            <Write def={def!} sel={sel} prompt={prompt} setPrompt={setPrompt} canSubmit={canSubmit} onSubmit={submit} onJump={(i) => setStep(i)} />
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function Tool({ icon: Icon, label, on, onClick, disabled, full }: { icon: LucideIcon; label: string; on?: boolean; onClick: () => void; disabled?: boolean; full?: boolean }) {
+function Choice({ q, opts, cols, onPick, onSkip }: { q: string; opts: Opt[]; cols: number; onPick: (v: string) => void; onSkip?: () => void }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label}
-      className={cn('flex flex-none flex-col items-center gap-1 py-1 transition-colors', full && 'w-full', on ? 'text-[#8fb4ff]' : 'text-white/50', disabled && 'opacity-35')}>
-      <span className="relative grid h-7 place-items-center">
-        {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/25 blur-md" />}
-        <Icon className="relative h-[21px] w-[21px]" strokeWidth={1.7} />
-      </span>
-      <span className="max-w-[64px] truncate text-[10px] font-medium leading-none">{label}</span>
-    </button>
+    <div>
+      <h2 className="mb-5 text-center text-[22px] font-light" style={{ fontFamily: 'Fraunces, serif' }}>{q}</h2>
+      <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(cols, 4)}, minmax(0,1fr))` }}>
+        {opts.map((o) => (
+          <button key={o.v} onClick={() => onPick(o.v)}
+            className="surface-1 flex flex-col items-center gap-2 rounded-[18px] py-4 transition-transform active:scale-95">
+            {o.emoji ? <span className="text-[26px] leading-none">{o.emoji}</span> : o.icon ? <o.icon className="h-6 w-6 text-white/85" strokeWidth={1.6} /> : null}
+            <span className="text-[12.5px] font-medium">{o.label}</span>
+          </button>
+        ))}
+      </div>
+      {onSkip && (
+        <button onClick={onSkip} className="mx-auto mt-4 block text-[12px] font-light text-white/45">Skip</button>
+      )}
+    </div>
+  );
+}
+
+function Write({ def, sel, prompt, setPrompt, canSubmit, onSubmit, onJump }: {
+  def: Flow; sel: Record<string, string>; prompt: string; setPrompt: (v: string) => void; canSubmit: boolean; onSubmit: () => void; onJump: (i: number) => void;
+}) {
+  return (
+    <div>
+      {/* chosen settings as chips (tap to revise) */}
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
+        <span className="rounded-full bg-[#8fb4ff]/15 px-3 py-1 text-[11px] font-medium text-[#cdddff]">{def.emoji} {def.label}</span>
+        {def.steps.map((s, i) => sel[s.id] ? (
+          <button key={s.id} onClick={() => onJump(i)} className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-light text-white/70">
+            {def.steps[i].opts.find((o) => o.v === sel[s.id])?.label ?? sel[s.id]}
+          </button>
+        ) : null)}
+      </div>
+
+      <h2 className="mb-3 text-center text-[22px] font-light" style={{ fontFamily: 'Fraunces, serif' }}>{def.writeQ}</h2>
+
+      <div className="surface-2 rounded-[22px] p-1 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_24px_70px_-30px_rgba(60,90,255,.55)]">
+        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} autoFocus placeholder={def.placeholder}
+          className="w-full resize-none bg-transparent px-4 py-3 text-[16px] font-light leading-relaxed text-white outline-none placeholder:text-white/25" style={{ outline: 'none' }} />
+      </div>
+
+      <button onClick={onSubmit} disabled={!canSubmit}
+        className="mt-4 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-[18px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_22px_44px_-12px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
+        <Sparkles className="h-[18px] w-[18px]" /> {def.action} <ArrowRight className="h-[17px] w-[17px]" />
+      </button>
+    </div>
   );
 }

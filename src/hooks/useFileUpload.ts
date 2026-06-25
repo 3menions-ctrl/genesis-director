@@ -93,7 +93,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
     // rejection. Fail-open on a transient RPC error — the RLS gate is the real
     // backstop.
     try {
-      const { data: quota } = await supabase.rpc('storage_quota_status');
+      const { data: quota } = await supabase.rpc('storage_quota_status' as never);
       if (quota && (quota as { over?: boolean }).over) {
         const msg = 'Storage limit reached. Free up space or upgrade your plan to upload more.';
         setError(msg);

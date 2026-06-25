@@ -83,6 +83,8 @@ const Discover = lazy(() => import("./pages/Discover"));
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 // Mobile DM inbox.
 const Messages = lazy(() => import("./pages/Messages"));
+// Mobile full-page settings.
+const MobileSettings = lazy(() => import("./pages/MobileSettings"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -332,6 +334,12 @@ const App = () => {
                 <Route path="/messages" element={
                   <RouteContainer fallbackMessage="Loading messages…">
                     <Messages />
+                  </RouteContainer>
+                } />
+                {/* Mobile full-page settings. */}
+                <Route path="/me/settings" element={
+                  <RouteContainer fallbackMessage="Loading settings…">
+                    <MobileSettings />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera,
+  ChevronRight, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,11 +31,11 @@ const RARITY: Record<string, string> = { common: '#9aa3b2', rare: '#5b9bff', epi
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 
 type Tab = 'films' | 'liked' | 'drafts';
-type Sheet = null | 'followers' | 'following' | 'edit' | 'settings';
+type Sheet = null | 'followers' | 'following' | 'edit';
 
 export default function You() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile, signOut } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { available } = useCredits();
   const { films, totalLikes } = useMyFilms();
   const counts = useFollowCounts(user?.id);
@@ -91,7 +91,7 @@ export default function You() {
       <div className="fixed right-4 z-20 flex gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)' }}>
         <IconBtn label="Messages" onClick={() => { void hapticTap(); navigate('/messages'); }}><MessageCircle className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
-        <IconBtn label="Settings" onClick={() => { void hapticTap(); setSheet('settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
+        <IconBtn label="Settings" onClick={() => { void hapticTap(); navigate('/me/settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
       </div>
 
       <div className="relative z-10 px-5" style={{ paddingTop: 'calc(var(--safe-top,0px) + 60px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 44px)' }}>
@@ -211,9 +211,6 @@ export default function You() {
           onClose={() => setSheet(null)}
           onSaved={async () => { setSheet(null); await refreshProfile(); }}
         />
-      )}
-      {sheet === 'settings' && (
-        <SettingsSheet onClose={() => setSheet(null)} onNav={(to) => { setSheet(null); navigate(to); }} onSignOut={async () => { setSheet(null); await signOut(); navigate('/feed'); }} />
       )}
     </div>
   );
@@ -397,28 +394,6 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
         </div>
       </div>
     </SheetShell>
-  );
-}
-
-function SettingsSheet({ onClose, onNav, onSignOut }: { onClose: () => void; onNav: (to: string) => void; onSignOut: () => void }) {
-  return (
-    <SheetShell title="Settings" onClose={onClose}>
-      <div className="space-y-1.5 pb-2">
-        <Row icon={Settings} label="Account &amp; preferences" onClick={() => onNav('/settings')} />
-        <Row icon={CreditCard} label="Billing &amp; credits" onClick={() => onNav('/account?tab=credits')} />
-        <Row icon={LogOut} label="Sign out" danger onClick={onSignOut} />
-      </div>
-    </SheetShell>
-  );
-}
-
-function Row({ icon: Icon, label, onClick, danger }: { icon: typeof Settings; label: string; onClick: () => void; danger?: boolean }) {
-  return (
-    <button onClick={onClick} className={cn('flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 text-left active:bg-white/5', danger ? 'text-[#ff6b6b]' : 'text-white/90')}>
-      <Icon className="h-[19px] w-[19px]" strokeWidth={1.7} />
-      <span className="flex-1 text-[14.5px]">{label}</span>
-      {!danger && <ChevronRight className="h-4 w-4 text-white/30" />}
-    </button>
   );
 }
 

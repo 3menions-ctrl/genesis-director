@@ -62,7 +62,6 @@ export default function You() {
   const handle = `@${name.replace(/\s+/g, '').toLowerCase()}`;
   const initial = name.trim().charAt(0).toUpperCase();
   const tagline = (profile as { tagline?: string | null })?.tagline || (profile as { bio?: string | null })?.bio || null;
-  const coverUrl = (profile as { cover_url?: string | null })?.cover_url || null;
 
   if (!user) {
     return (
@@ -88,19 +87,15 @@ export default function You() {
     <div className="fixed inset-0 overflow-y-auto text-white">
       <AuroraBackdrop />
 
-      {/* Cover banner */}
-      <div className="relative h-28 w-full overflow-hidden" style={{ marginTop: 'var(--safe-top,0px)' }}>
-        {coverUrl ? <img src={coverUrl} alt="" className="h-full w-full object-cover opacity-70" /> : <div className="h-full w-full bg-gradient-to-br from-[#2f6bff]/30 via-[#5a3bff]/20 to-transparent" />}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
-        <div className="absolute right-4 top-3 flex gap-2">
-          <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
-          <IconBtn label="Settings" onClick={() => { void hapticTap(); setSheet('settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
-        </div>
+      {/* Floating actions over the shared Aurora backdrop (no cover banner) */}
+      <div className="fixed right-4 z-20 flex gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)' }}>
+        <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
+        <IconBtn label="Settings" onClick={() => { void hapticTap(); setSheet('settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
       </div>
 
-      <div className="relative z-10 px-5" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 44px)' }}>
+      <div className="relative z-10 px-5" style={{ paddingTop: 'calc(var(--safe-top,0px) + 60px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 44px)' }}>
         {/* Avatar + identity */}
-        <div className="-mt-10 flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover ring-4 ring-[#0a0a0f]" />
           ) : (

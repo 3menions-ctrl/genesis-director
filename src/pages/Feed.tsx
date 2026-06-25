@@ -13,12 +13,13 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Repeat2, Share2, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReelsFeed, type FeedItem } from '@/hooks/useReelsFeed';
 import { FeedVideo } from '@/components/feed/FeedVideo';
+import { FeedComments } from '@/components/feed/FeedComments';
 import { GrainOverlay } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export default function Feed() {
   const { items, loading } = useReelsFeed();
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [comments, setComments] = useState<{ item: FeedItem; bump: () => void } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -85,10 +87,19 @@ export default function Feed() {
               item={item}
               active={i === active}
               muted={muted}
+              onComments={setComments}
             />
           ))
         )}
       </div>
+
+      <FeedComments
+        open={!!comments}
+        reelId={comments?.item.id ?? null}
+        isStatic={comments?.item.isStatic ?? false}
+        onClose={() => setComments(null)}
+        onPosted={() => comments?.bump()}
+      />
     </div>
   );
 }
@@ -100,13 +111,15 @@ interface FeedCardProps {
   item: FeedItem;
   active: boolean;
   muted: boolean;
+  onComments: (v: { item: FeedItem; bump: () => void }) => void;
 }
 
-const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
+const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(item.like_count);
+  const [commentCount, setCommentCount] = useState(item.comment_count);
   const [busy, setBusy] = useState(false);
 
   const like = useCallback(async () => {
@@ -224,6 +237,10 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
 
         <RailButton label={compact(likeCount)} onClick={like} active={liked} aria-label="Like">
           <Heart className={cn('h-7 w-7', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
+        </RailButton>
+
+        <RailButton label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); onComments({ item, bump: () => setCommentCount((c) => c + 1) }); }} aria-label="Comments">
+          <MessageCircle className="h-7 w-7" />
         </RailButton>
 
         <RailButton label="Remix" highlight onClick={remix} aria-label="Remix">

@@ -21,6 +21,7 @@ export interface FeedItem {
   play_count: number;
   like_count: number;
   remix_count: number;
+  comment_count: number;
   creator_id: string | null;
   creator_name: string | null;
   creator_avatar: string | null;
@@ -38,6 +39,7 @@ interface ReelRow {
   play_count: number | null;
   like_count: number | null;
   remix_count: number | null;
+  comment_count: number | null;
   creator_id: string;
 }
 
@@ -53,6 +55,7 @@ function staticFeed(): FeedItem[] {
     play_count: 0,
     like_count: 0,
     remix_count: 0,
+    comment_count: 0,
     creator_id: null,
     creator_name: 'Small Bridges',
     creator_avatar: null,
@@ -72,7 +75,7 @@ export function useReelsFeed(limit = 30) {
         const { data, error } = await supabase
           .from('published_reels' as never)
           .select(
-            'id, title, synopsis, video_url, thumbnail_url, tags, play_count, like_count, remix_count, creator_id',
+            'id, title, synopsis, video_url, thumbnail_url, tags, play_count, like_count, remix_count, comment_count, creator_id',
           )
           .eq('is_taken_down', false)
           .order('play_count', { ascending: false })
@@ -118,6 +121,7 @@ export function useReelsFeed(limit = 30) {
             play_count: r.play_count ?? 0,
             like_count: r.like_count ?? 0,
             remix_count: r.remix_count ?? 0,
+            comment_count: r.comment_count ?? 0,
             creator_id: r.creator_id,
             creator_name: p?.display_name ?? null,
             creator_avatar: p?.avatar_url ?? null,

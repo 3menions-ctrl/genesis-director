@@ -29,7 +29,7 @@ const MASTHEAD = 'The Cutting Room';
 /**
  * Article → visual theme map (slug → theme). Real, royalty-free stock photos
  * (Pexels License — free for commercial use, no attribution) are self-hosted
- * under /public/blog as `{theme}-hero.jpg` + `{theme}-1..3.jpg`.
+ * under /public/blog as `{theme}-hero.jpg` (the single post hero image).
  */
 const ARTICLE_THEME: Record<string, string> = {
   // cinema
@@ -65,7 +65,6 @@ const ARTICLE_THEME: Record<string, string> = {
 
 const THEME_IMG = (theme: string) => ({
   hero: `/blog/${theme}-hero.jpg`,
-  gallery: [`/blog/${theme}-1.jpg`, `/blog/${theme}-2.jpg`, `/blog/${theme}-3.jpg`],
 });
 
 /** Images for a slug — defaults to the `cinema` theme for any unmapped slug. */
@@ -267,28 +266,6 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
               </Button>
             </div>
           </motion.article>
-
-          {/* ── In focus — subject gallery (real royalty-free stock) ────── */}
-          <section className="mt-16">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45 whitespace-nowrap">
-                In focus
-              </span>
-              <span className="h-px flex-1 bg-white/12" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {imagesFor(article.slug).gallery.map((src, i) => (
-                <div key={src} className="overflow-hidden rounded-xl border border-white/10">
-                  <img
-                    src={src}
-                    alt={`${article.title} — visual reference ${i + 1}`}
-                    loading="lazy"
-                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 hover:scale-105"
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
 
           {related.length > 0 && (
             <div className="mt-16 pt-8">

@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { PageHero } from '@/components/page/PageHero';
 import { confirmAsync } from '@/components/ui/global-confirm';
 
 const CAPABILITIES = [
@@ -130,13 +129,16 @@ export default function Developers() {
   return (
     <>
       <div className="mx-auto w-full max-w-[1180px] px-6 py-12 space-y-16">
-        {/* Hero */}
-        <PageHero
-          accentKey="developers"
-          eyebrow="Build with us"
-          title="Developers"
-          subtitle="Put the Small Bridges video pipeline inside your own product. Generate API keys, listen for webhooks, and create cinematic clips, avatars, and edits programmatically — pay-as-you-go from your existing credits at $0.10 per credit, no expiry."
-        />
+        {/* Hero — borderless title (no PageHero green container) */}
+        <div className="max-w-4xl">
+          <div className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/45 mb-5">Build with us</div>
+          <h1 className="font-display text-white font-bold tracking-[-0.02em] leading-[1.02] text-[clamp(2.2rem,5.5vw,4rem)]">
+            Developers
+          </h1>
+          <p className="mt-5 text-white/60 text-[15px] sm:text-[17px] leading-relaxed max-w-2xl">
+            Put the Small Bridges video pipeline inside your own product. Generate API keys, listen for webhooks, and create cinematic clips, avatars, and edits programmatically — pay-as-you-go from your existing credits at $0.10 per credit, no expiry.
+          </p>
+        </div>
 
         {/* Capabilities — what you can build */}
         <section>

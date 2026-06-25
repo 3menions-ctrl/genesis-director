@@ -1,7 +1,6 @@
 /**
- * Regression: the studio's first-run experience is the LOGO ANIMATION once —
- * not the old card tour. (Per product: no tour, no video; just the landing
- * animation, one time.)
+ * Regression: the studio has NO entrance animation. Per product, entering the
+ * studio must not play the "THE CROSSING" logo intro (or any prior tour/video).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -14,11 +13,9 @@ describe('studio entrance intro', () => {
     const studio = read('src/pages/Studio.tsx');
     expect(studio).not.toMatch(/FirstTakeTour/);
   });
-  it('studio renders the one-time logo intro', () => {
+  it('studio plays no entrance animation', () => {
     const studio = read('src/pages/Studio.tsx');
-    expect(studio).toMatch(/StudioEntranceIntro/);
-    const intro = read('src/components/intro/StudioEntranceIntro.tsx');
-    expect(intro).toMatch(/IntroOverlay/);
-    expect(intro).toMatch(/studio_intro_seen/); // plays once
+    expect(studio).not.toMatch(/StudioEntranceIntro/);
+    expect(existsSync(resolve(process.cwd(), 'src/components/intro/StudioEntranceIntro.tsx'))).toBe(false);
   });
 });

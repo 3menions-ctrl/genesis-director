@@ -28,6 +28,12 @@ export interface MergeResult {
   duration?: number;
   error?: string;
   serverStitchedUrl?: string;
+  /** 1-based indices of clips that failed to download and were left out. */
+  failedClips?: number[];
+  /** How many clips actually made it into the output. */
+  downloadedClips?: number;
+  /** Total clips requested. */
+  totalClips?: number;
 }
 
 /**
@@ -113,6 +119,7 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
     onProgress?.({ stage: 'initializing', progress: 0, message: 'Preparing download...' });
 
     const files: { name: string; blob: Blob }[] = [];
+    const failed: number[] = []; // 1-based clip numbers that didn't download
     const baseName = projectName || 'video';
 
     for (let i = 0; i < clipUrls.length; i++) {
@@ -126,16 +133,42 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
 
       try {
         const response = await fetch(clipUrls[i], { mode: 'cors' });
-        if (!response.ok) continue;
+        if (!response.ok) { failed.push(i + 1); continue; }
         const blob = await response.blob();
+        // A 0-byte body means the fetch "succeeded" but there's nothing to
+        // save — treat it as a failure so it surfaces instead of silently
+        // bundling an empty/corrupt clip.
+        if (blob.size === 0) { failed.push(i + 1); continue; }
         files.push({ name: `${baseName}-clip-${i + 1}.mp4`, blob });
       } catch (err) {
+        failed.push(i + 1);
         console.warn(`[VideoMerger] Clip ${i + 1} download failed:`, err);
       }
     }
 
     if (files.length === 0) {
-      return { success: false, error: 'Failed to download any clips' };
+      return {
+        success: false,
+        error: 'Failed to download any clips',
+        failedClips: failed,
+        downloadedClips: 0,
+        totalClips: clipUrls.length,
+      };
+    }
+
+    // Surface partial downloads to the caller so the UI can warn the user
+    // rather than silently shipping a ZIP that's missing clips.
+    const partialInfo = {
+      failedClips: failed.length ? failed : undefined,
+      downloadedClips: files.length,
+      totalClips: clipUrls.length,
+    };
+    if (failed.length) {
+      onProgress?.({
+        stage: 'encoding',
+        progress: 85,
+        message: `${failed.length} clip${failed.length > 1 ? 's' : ''} couldn't be downloaded — packaging the rest...`,
+      });
     }
 
     // Single clip — return directly as MP4
@@ -145,6 +178,7 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
         success: true,
         blob: files[0].blob,
         filename: outputFilename || `${baseName}.mp4`,
+        ...partialInfo,
       };
     }
 
@@ -157,6 +191,7 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
       success: true,
       blob: zipBlob,
       filename: outputFilename?.replace('.mp4', '.zip') || `${baseName}-clips.zip`,
+      ...partialInfo,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'An unexpected error occurred';

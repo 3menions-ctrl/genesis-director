@@ -51,6 +51,7 @@ export function MergeDownloadDialog({
   const [mergeProgress, setMergeProgress] = useState<MergeProgress | null>(null);
   const [isMerging, setIsMerging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [canMerge, setCanMerge] = useState(true);
 
   // Check if merging is supported on this device
@@ -64,6 +65,7 @@ export function MergeDownloadDialog({
       setMergeProgress(null);
       setIsMerging(false);
       setError(null);
+      setWarning(null);
     }
   }, [open]);
 
@@ -98,11 +100,24 @@ export function MergeDownloadDialog({
 
       if (result.success && result.blob) {
         downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
-        
-        // Close dialog after short delay to show success state
-        setTimeout(() => {
-          onOpenChange(false);
-        }, 1500);
+
+        if (result.failedClips?.length) {
+          // Partial success — saved what we could, but tell the user exactly
+          // which clips are missing and keep the dialog open so they can grab
+          // them individually instead of silently shipping an incomplete set.
+          const list = result.failedClips.join(', ');
+          const many = result.failedClips.length > 1;
+          setWarning(
+            `Saved ${result.downloadedClips}/${result.totalClips} clips. ` +
+            `Clip${many ? 's' : ''} ${list} couldn't be downloaded and ${many ? 'were' : 'was'} left out — ` +
+            `try the individual downloads below.`,
+          );
+        } else {
+          // Close dialog after short delay to show success state
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 1500);
+        }
       } else {
         setError(result.error || 'Failed to download video');
       }
@@ -241,8 +256,16 @@ export function MergeDownloadDialog({
             </div>
           )}
 
+          {/* Partial-download Warning */}
+          {warning && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-200">{warning}</p>
+            </div>
+          )}
+
           {/* Success State */}
-          {mergeProgress?.stage === 'complete' && (
+          {mergeProgress?.stage === 'complete' && !warning && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
               <p className="text-sm text-green-300">Video merged successfully! Download starting...</p>
@@ -269,11 +292,14 @@ export function MergeDownloadDialog({
             </div>
           )}
 
-          {/* Individual clip downloads - shown as secondary option */}
-          {!isMerging && !error && mergeProgress?.stage !== 'complete' && clipUrls.length > 1 && (
-            <details className="text-xs">
+          {/* Individual clip downloads - secondary option, and the recovery
+              path when some clips failed to download (warning set). Stays
+              visible in the warning state even if an individual download
+              itself errors, so the user is never stranded. */}
+          {!isMerging && (warning || (!error && mergeProgress?.stage !== 'complete')) && clipUrls.length > 1 && (
+            <details className="text-xs" open={!!warning}>
               <summary className="cursor-pointer text-zinc-500 hover:text-zinc-400">
-                Or download clips individually
+                {warning ? 'Download missing clips individually' : 'Or download clips individually'}
               </summary>
               <div className="space-y-2 mt-3 max-h-32 overflow-y-auto">
                 {clipUrls.map((_, index) => (

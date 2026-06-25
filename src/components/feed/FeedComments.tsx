@@ -113,7 +113,7 @@ export function FeedComments({ open, reelId, isStatic, onClose, onPosted }: Prop
     <div className={cn('fixed inset-0 z-[60]', open ? 'pointer-events-auto' : 'pointer-events-none')}>
       <div onClick={onClose} className={cn('absolute inset-0 bg-black/45 transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')} />
       <div
-        className={cn('absolute inset-x-0 bottom-0 flex max-h-[78%] flex-col rounded-t-[28px] bg-[#0c0c12]/96 backdrop-blur-2xl transition-transform duration-300', open ? 'translate-y-0' : 'translate-y-full')}
+        className={cn('absolute inset-x-0 bottom-0 flex max-h-[78%] flex-col rounded-t-[28px] bg-[#0d0d14]/85 backdrop-blur-2xl shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)] transition-transform duration-300', open ? 'translate-y-0' : 'translate-y-full')}
         style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 12px)' }}
       >
         <div className="mx-auto mb-2 mt-3 h-1 w-10 rounded-full bg-white/15" />

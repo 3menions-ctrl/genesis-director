@@ -203,7 +203,7 @@ function MessageSheet({ recipientId, name, onClose }: { recipientId: string; nam
   return (
     <div className="fixed inset-0 z-[60]">
       <div onClick={onClose} className="absolute inset-0 bg-black/55" />
-      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#0c0c12]/96 px-5 pt-3 backdrop-blur-2xl" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
+      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#0d0d14]/85 px-5 pt-3 backdrop-blur-2xl shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
         <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/15" />
         <div className="mb-3 flex items-center justify-between">
           <span className="font-display text-[15px] font-semibold">Message {name}</span>

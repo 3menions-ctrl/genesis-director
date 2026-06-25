@@ -136,7 +136,7 @@ export default function Create() {
 
       {/* ── Bottom sheet — the current step ── */}
       <div
-        className="absolute inset-x-0 bottom-0 z-20 rounded-t-[30px] bg-[#0c0c12]/95 px-5 pt-3 shadow-[0_-30px_80px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl"
+        className="absolute inset-x-0 bottom-0 z-20 rounded-t-[30px] bg-[#0d0d14]/85 px-5 pt-3 shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-2xl"
         style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 20px)' }}
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />

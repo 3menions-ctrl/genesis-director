@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock,
+  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -285,7 +285,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
   return (
     <div className="fixed inset-0 z-[60]">
       <div onClick={onClose} className="absolute inset-0 bg-black/50" />
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[80%] flex-col rounded-t-[28px] bg-[#0c0c12]/96 backdrop-blur-2xl" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 12px)' }}>
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[80%] flex-col rounded-t-[28px] bg-[#0d0d14]/85 backdrop-blur-2xl shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 12px)' }}>
         <div className="mx-auto mb-2 mt-3 h-1 w-10 rounded-full bg-white/15" />
         <div className="flex items-center justify-between px-5 pb-3">
           <span className="font-display text-[15px] font-semibold">{title}</span>
@@ -345,7 +345,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
         <Field label="Tagline"><input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="One line about you" className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <Field label="Bio"><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A little more about you…" className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <button onClick={save} disabled={saving} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] font-display text-[15px] font-bold disabled:opacity-50">
-          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Save'}
+          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-[18px] w-[18px]" />Save</>}
         </button>
         <p className="text-center text-[11px] text-white/30">Avatar &amp; cover editing coming soon.</p>
       </div>

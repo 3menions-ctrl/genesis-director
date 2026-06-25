@@ -1,8 +1,9 @@
 /**
  * Create — a guided, step-by-step flow. The Create tab opens at "What do you
- * want to make?"; each step is a bottom sheet with one question + a few visual
- * choices that auto-advance, leading the user to the writing screen and the
- * action. Config-driven: a new creation type is one entry in FLOWS.
+ * want to make?"; each step is a bottom sheet with one question + a few choices
+ * (premium borderless icon-with-text in translucent containers) that
+ * auto-advance, leading to the writing screen + action. Config-driven: a new
+ * creation type is one entry in FLOWS.
  *
  * Spend-only. The final action routes to the real Studio engine.
  */
@@ -11,6 +12,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Sparkles, ArrowRight,
   RectangleHorizontal, RectangleVertical, Square,
+  Clapperboard, Image as ImageIcon, UserRound, Music, Scissors,
+  PenLine, LayoutGrid, Film, Moon, Tv, Sunset, Box, Camera, UserPlus,
+  Mic, AudioLines, Volume2, Waves, Radio, Zap, Leaf, Wind, Sun,
+  Upload, Images, Lightbulb, Palette, Eraser, Maximize2,
   type LucideIcon,
 } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -19,10 +24,10 @@ import { cn } from '@/lib/utils';
 
 const enc = encodeURIComponent;
 
-interface Opt { v: string; label: string; emoji?: string; icon?: LucideIcon }
+interface Opt { v: string; label: string; icon: LucideIcon }
 interface Step { id: string; q: string; opts: Opt[]; skip?: boolean }
 interface Flow {
-  emoji: string; label: string; writeQ: string; placeholder: string; action: string;
+  Icon: LucideIcon; label: string; writeQ: string; placeholder: string; action: string;
   steps: Step[];
   route: (sel: Record<string, string>, prompt: string) => string;
 }
@@ -33,67 +38,67 @@ const ASPECT_OPTS: Opt[] = [
   { v: '1:1', label: '1:1', icon: Square },
 ];
 const LOOK_OPTS: Opt[] = [
-  { v: 'cinematic', label: 'Cinematic', emoji: '🎬' },
-  { v: 'anime', label: 'Anime', emoji: '🌸' },
-  { v: 'noir', label: 'Noir', emoji: '🖤' },
-  { v: 'vhs', label: 'VHS', emoji: '📼' },
-  { v: 'vapor', label: 'Vapor', emoji: '🌈' },
+  { v: 'cinematic', label: 'Cinematic', icon: Film },
+  { v: 'anime', label: 'Anime', icon: Sparkles },
+  { v: 'noir', label: 'Noir', icon: Moon },
+  { v: 'vhs', label: 'VHS', icon: Tv },
+  { v: 'vapor', label: 'Vapor', icon: Sunset },
 ];
 const withLook = (p: string, look?: string) => (look ? `${p.trim()}, ${look} style` : p.trim());
 
 const TYPES: Opt[] = [
-  { v: 'video', label: 'Video', emoji: '🎬' },
-  { v: 'image', label: 'Image', emoji: '🖼️' },
-  { v: 'avatar', label: 'Avatar', emoji: '🗣️' },
-  { v: 'music', label: 'Music', emoji: '🎵' },
-  { v: 'photo', label: 'Edit photo', emoji: '✂️' },
+  { v: 'video', label: 'Video', icon: Clapperboard },
+  { v: 'image', label: 'Image', icon: ImageIcon },
+  { v: 'avatar', label: 'Avatar', icon: UserRound },
+  { v: 'music', label: 'Music', icon: Music },
+  { v: 'photo', label: 'Edit photo', icon: Scissors },
 ];
 
 const FLOWS: Record<string, Flow> = {
   video: {
-    emoji: '🎬', label: 'Video', writeQ: 'Describe your scene', action: 'Generate',
+    Icon: Clapperboard, label: 'Video', writeQ: 'Describe your scene', action: 'Generate',
     placeholder: 'A lone astronaut watching twin suns set over a glass desert…',
     steps: [
-      { id: 'source', q: 'Start from', opts: [{ v: 'text', label: 'Text', emoji: '✍️' }, { v: 'photo', label: 'A photo', emoji: '🖼️' }, { v: 'template', label: 'Template', emoji: '🎞️' }] },
+      { id: 'source', q: 'Start from', opts: [{ v: 'text', label: 'Text', icon: PenLine }, { v: 'photo', label: 'A photo', icon: ImageIcon }, { v: 'template', label: 'Template', icon: LayoutGrid }] },
       { id: 'look', q: 'Pick a look', skip: true, opts: LOOK_OPTS },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
     route: (s, p) => `/studio?tab=create&prompt=${enc(withLook(p, s.look))}`,
   },
   image: {
-    emoji: '🖼️', label: 'Image', writeQ: 'Describe the image', action: 'Generate',
+    Icon: ImageIcon, label: 'Image', writeQ: 'Describe the image', action: 'Generate',
     placeholder: 'A portrait of a desert wanderer at golden hour, 85mm…',
     steps: [
-      { id: 'look', q: 'Pick a style', skip: true, opts: [{ v: 'cinematic', label: 'Cinematic', emoji: '🎬' }, { v: 'anime', label: 'Anime', emoji: '🌸' }, { v: '3d', label: '3D', emoji: '🧊' }, { v: 'photo', label: 'Photo', emoji: '📷' }] },
+      { id: 'look', q: 'Pick a style', skip: true, opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'anime', label: 'Anime', icon: Sparkles }, { v: '3d', label: '3D', icon: Box }, { v: 'photo', label: 'Photo', icon: Camera }] },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
     route: (s, p) => `/studio?tab=image&prompt=${enc(withLook(p, s.look))}`,
   },
   avatar: {
-    emoji: '🗣️', label: 'Avatar', writeQ: 'What do they say?', action: 'Generate',
+    Icon: UserRound, label: 'Avatar', writeQ: 'What do they say?', action: 'Generate',
     placeholder: 'Hey everyone — welcome back to the channel…',
     steps: [
-      { id: 'presenter', q: 'Pick a presenter', opts: [{ v: 'nova', label: 'Nova', emoji: '👩🏽' }, { v: 'kai', label: 'Kai', emoji: '🧑🏼' }, { v: 'mara', label: 'Mara', emoji: '👩🏼‍🦰' }, { v: 'own', label: 'Create own', emoji: '➕' }] },
-      { id: 'voice', q: 'Pick a voice', opts: [{ v: 'warm', label: 'Warm', emoji: '🎙️' }, { v: 'bright', label: 'Bright', emoji: '✨' }, { v: 'deep', label: 'Deep', emoji: '🔊' }, { v: 'calm', label: 'Calm', emoji: '🌙' }] },
+      { id: 'presenter', q: 'Pick a presenter', opts: [{ v: 'nova', label: 'Nova', icon: UserRound }, { v: 'kai', label: 'Kai', icon: UserRound }, { v: 'mara', label: 'Mara', icon: UserRound }, { v: 'own', label: 'Create own', icon: UserPlus }] },
+      { id: 'voice', q: 'Pick a voice', opts: [{ v: 'warm', label: 'Warm', icon: Mic }, { v: 'bright', label: 'Bright', icon: AudioLines }, { v: 'deep', label: 'Deep', icon: Volume2 }, { v: 'calm', label: 'Calm', icon: Waves }] },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
     route: () => `/avatars`,
   },
   music: {
-    emoji: '🎵', label: 'Music', writeQ: 'Describe the track', action: 'Compose',
+    Icon: Music, label: 'Music', writeQ: 'Describe the track', action: 'Compose',
     placeholder: 'A tense orchestral build with low strings and a distant choir…',
     steps: [
-      { id: 'genre', q: 'Genre', opts: [{ v: 'cinematic', label: 'Cinematic', emoji: '🎬' }, { v: 'electronic', label: 'Electronic', emoji: '🎛️' }, { v: 'orchestral', label: 'Orchestral', emoji: '🎻' }, { v: 'lofi', label: 'Lo-fi', emoji: '📻' }, { v: 'ambient', label: 'Ambient', emoji: '🌫️' }] },
-      { id: 'mood', q: 'Mood', opts: [{ v: 'epic', label: 'Epic', emoji: '⚡' }, { v: 'calm', label: 'Calm', emoji: '🍃' }, { v: 'tense', label: 'Tense', emoji: '🌀' }, { v: 'uplifting', label: 'Uplifting', emoji: '☀️' }, { v: 'dreamy', label: 'Dreamy', emoji: '💭' }] },
+      { id: 'genre', q: 'Genre', opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'electronic', label: 'Electronic', icon: AudioLines }, { v: 'orchestral', label: 'Orchestral', icon: Music }, { v: 'lofi', label: 'Lo-fi', icon: Radio }, { v: 'ambient', label: 'Ambient', icon: Waves }] },
+      { id: 'mood', q: 'Mood', opts: [{ v: 'epic', label: 'Epic', icon: Zap }, { v: 'calm', label: 'Calm', icon: Leaf }, { v: 'tense', label: 'Tense', icon: Wind }, { v: 'uplifting', label: 'Uplifting', icon: Sun }, { v: 'dreamy', label: 'Dreamy', icon: Moon }] },
     ],
     route: (_s, p) => (p.trim() ? `/music?prompt=${enc(p.trim())}` : '/music'),
   },
   photo: {
-    emoji: '✂️', label: 'Edit photo', writeQ: 'Describe the edit', action: 'Apply',
+    Icon: Scissors, label: 'Edit photo', writeQ: 'Describe the edit', action: 'Apply',
     placeholder: 'Relight to golden hour, remove the background, add film grain…',
     steps: [
-      { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', emoji: '⬆️' }, { v: 'library', label: 'Library', emoji: '🗂️' }, { v: 'camera', label: 'Camera', emoji: '📸' }] },
-      { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', emoji: '💡' }, { v: 'restyle', label: 'Restyle', emoji: '🎨' }, { v: 'remove', label: 'Remove', emoji: '🧽' }, { v: 'upscale', label: 'Upscale', emoji: '🔍' }] },
+      { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', icon: Upload }, { v: 'library', label: 'Library', icon: Images }, { v: 'camera', label: 'Camera', icon: Camera }] },
+      { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', icon: Lightbulb }, { v: 'restyle', label: 'Restyle', icon: Palette }, { v: 'remove', label: 'Remove', icon: Eraser }, { v: 'upscale', label: 'Upscale', icon: Maximize2 }] },
     ],
     route: (_s, p) => `/studio?tab=photo&prompt=${enc(p.trim())}`,
   },
@@ -109,7 +114,7 @@ export default function Create() {
   const def = flow ? FLOWS[flow] : null;
   const steps = def?.steps ?? [];
   const atWriting = !!def && step >= steps.length;
-  const total = steps.length + 1; // choice steps + writing
+  const total = steps.length + 1;
 
   const start = (type: string) => { void hapticTap(); setFlow(type); setStep(0); setSel({}); setPrompt(''); };
   const pick = (id: string, v: string) => { void hapticTap(); setSel((s) => ({ ...s, [id]: v })); setStep((n) => n + 1); };
@@ -123,9 +128,9 @@ export default function Create() {
 
       {/* faint context above the sheet */}
       {def && (
-        <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center" style={{ paddingTop: 'calc(var(--safe-top,0px) + 56px)' }}>
-          <div className="text-[44px]">{def.emoji}</div>
-          <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-white/35">{def.label}</div>
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center text-white/80" style={{ paddingTop: 'calc(var(--safe-top,0px) + 60px)' }}>
+          <def.Icon className="h-10 w-10" strokeWidth={1.4} />
+          <div className="mt-2.5 font-mono text-[11px] uppercase tracking-[0.3em] text-white/35">{def.label}</div>
         </div>
       )}
 
@@ -136,7 +141,6 @@ export default function Create() {
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
 
-        {/* top row: back + progress */}
         <div className="mb-4 flex h-6 items-center justify-between">
           {flow ? (
             <button onClick={back} aria-label="Back" className="text-white/70"><ChevronLeft className="h-6 w-6" /></button>
@@ -173,9 +177,9 @@ function Choice({ q, opts, cols, onPick, onSkip }: { q: string; opts: Opt[]; col
       <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(cols, 4)}, minmax(0,1fr))` }}>
         {opts.map((o) => (
           <button key={o.v} onClick={() => onPick(o.v)}
-            className="surface-1 flex flex-col items-center gap-2 rounded-[18px] py-4 transition-transform active:scale-95">
-            {o.emoji ? <span className="text-[26px] leading-none">{o.emoji}</span> : o.icon ? <o.icon className="h-6 w-6 text-white/85" strokeWidth={1.6} /> : null}
-            <span className="text-[12.5px] font-medium">{o.label}</span>
+            className="surface-1 flex flex-col items-center gap-2.5 rounded-[18px] py-5 text-white/85 transition-transform active:scale-95">
+            <o.icon className="h-[26px] w-[26px]" strokeWidth={1.5} />
+            <span className="text-[12.5px] font-medium text-white">{o.label}</span>
           </button>
         ))}
       </div>
@@ -191,9 +195,8 @@ function Write({ def, sel, prompt, setPrompt, canSubmit, onSubmit, onJump }: {
 }) {
   return (
     <div>
-      {/* chosen settings as chips (tap to revise) */}
       <div className="mb-4 flex flex-wrap justify-center gap-2">
-        <span className="rounded-full bg-[#8fb4ff]/15 px-3 py-1 text-[11px] font-medium text-[#cdddff]">{def.emoji} {def.label}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8fb4ff]/15 px-3 py-1 text-[11px] font-medium text-[#cdddff]"><def.Icon className="h-3.5 w-3.5" /> {def.label}</span>
         {def.steps.map((s, i) => sel[s.id] ? (
           <button key={s.id} onClick={() => onJump(i)} className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-light text-white/70">
             {def.steps[i].opts.find((o) => o.v === sel[s.id])?.label ?? sel[s.id]}

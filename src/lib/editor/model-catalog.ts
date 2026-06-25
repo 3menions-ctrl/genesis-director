@@ -52,6 +52,14 @@ export interface EngineCapabilityRow {
   /** True when the engine accepts the previous shot's last frame as
    *  the first frame of the new shot (continuity chain). */
   supportsContinuityChain: boolean;
+  /** True when the engine accepts a distinct END frame / keyframe pair
+   *  (start AND end), enabling bounded interpolation A→B instead of
+   *  forward-only generation. Kling + Runway today. */
+  supportsEndFrame: boolean;
+  /** Provider colour science — drives the per-engine LUT correction the
+   *  assembler applies before cross-fading, so a film routed across
+   *  engines doesn't flicker at engine boundaries. */
+  colorScience: "bytedance" | "kuaishou" | "google" | "openai" | "alibaba" | "runway" | "neutral";
   /** Aspect ratios the engine natively supports. */
   supportedAspectRatios: AspectRatio[];
   /** Available quality tiers for this engine. */
@@ -94,6 +102,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro"],
     costPerSecondByTier: { pro: 13 /* 65cr / 5s = 13/sec */ },
     typicalRenderSecondsBySec: { sec5: 75, sec10: 120 },
+    supportsEndFrame: false,
+    colorScience: "bytedance",
     modelInputShape: "seedance-i2v",
   },
 
@@ -111,6 +121,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["studio"],
     costPerSecondByTier: { studio: 22 },
     typicalRenderSecondsBySec: { sec5: 100, sec10: 180 },
+    supportsEndFrame: true,
+    colorScience: "kuaishou",
     modelInputShape: "kling-i2v",
   },
 
@@ -128,6 +140,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro"],
     costPerSecondByTier: { pro: 14 },
     typicalRenderSecondsBySec: { sec5: 80, sec10: 140 },
+    supportsEndFrame: true,
+    colorScience: "kuaishou",
     modelInputShape: "kling-t2v",
   },
 
@@ -145,6 +159,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro", "studio"],
     costPerSecondByTier: { pro: 30, studio: 50 },
     typicalRenderSecondsBySec: { sec5: 60, sec10: 100 },
+    supportsEndFrame: false,
+    colorScience: "google",
     modelInputShape: "veo-t2v",
   },
 
@@ -162,6 +178,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro"],
     costPerSecondByTier: { pro: 20 },
     typicalRenderSecondsBySec: { sec5: 90, sec10: 160 },
+    supportsEndFrame: false,
+    colorScience: "google",
     modelInputShape: "veo-i2v",
   },
 
@@ -179,6 +197,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro", "studio"],
     costPerSecondByTier: { pro: 28, studio: 48 },
     typicalRenderSecondsBySec: { sec5: 70, sec10: 110 },
+    supportsEndFrame: false,
+    colorScience: "openai",
     modelInputShape: "sora-t2v",
   },
 
@@ -196,6 +216,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["draft", "pro"],
     costPerSecondByTier: { draft: 8, pro: 16 },
     typicalRenderSecondsBySec: { sec5: 60, sec10: 120 },
+    supportsEndFrame: false,
+    colorScience: "alibaba",
     modelInputShape: "wan-t2v",
   },
 
@@ -213,6 +235,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["draft", "pro", "studio"],
     costPerSecondByTier: { draft: 0, pro: 0, studio: 0 },
     typicalRenderSecondsBySec: { sec5: 120, sec10: 220 },
+    supportsEndFrame: true,
+    colorScience: "neutral",
     modelInputShape: "comfy-graph",
   },
 
@@ -230,6 +254,8 @@ export const MODEL_CATALOG: Record<ModelEngine, EngineCapabilityRow> = {
     availableTiers: ["pro", "studio"],
     costPerSecondByTier: { pro: 24, studio: 40 },
     typicalRenderSecondsBySec: { sec5: 85, sec10: 150 },
+    supportsEndFrame: true,
+    colorScience: "runway",
     modelInputShape: "runway-gen-t2v",
   },
 };

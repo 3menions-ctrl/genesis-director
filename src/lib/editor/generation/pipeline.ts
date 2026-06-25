@@ -74,6 +74,12 @@ export function buildEngineInput(
       ? chainCtx.previousShot.lastFrameUrl
       : null;
 
+  // End-frame anchor — only when the engine can interpolate to a
+  // distinct end frame (Kling / Runway). This is what turns forward
+  // generation into bounded interpolation start→end.
+  const endImageUrl =
+    row.supportsEndFrame && chainCtx.endAnchorUrl ? chainCtx.endAnchorUrl : null;
+
   // VFX recipe — when the shot's modelInput already carries a
   // recipe_slug (Crossover ingestion path), pass it through verbatim
   // so the VFX edge function can route to the right Python branch.
@@ -91,6 +97,7 @@ export function buildEngineInput(
     durationSec,
     aspectRatio: doc.meta.aspectRatio,
     startImageUrl,
+    endImageUrl,
     identityRefs: chainCtx.identityRefs,
     inheritedFromShotId: chainCtx.previousShot?.shotId ?? null,
     vfxRecipeSlug,
@@ -206,6 +213,9 @@ export function buildSubmitPayload(
         duration: input.durationSec,
         aspect_ratio: input.aspectRatio,
         ...(input.startImageUrl ? { start_image: input.startImageUrl } : {}),
+        // Bounded interpolation: when the next anchor is locked, hand
+        // Kling the END frame too so it interpolates start→end.
+        ...(input.endImageUrl ? { end_image: input.endImageUrl } : {}),
         cfg_scale: 0.7,
         mode: tier === "studio" ? "master" : "pro",
       };
@@ -258,6 +268,8 @@ export function buildSubmitPayload(
         duration: input.durationSec,
         ratio: input.aspectRatio,
         ...(input.startImageUrl ? { promptImage: input.startImageUrl } : {}),
+        // Runway keyframes: the end anchor becomes the final keyframe.
+        ...(input.endImageUrl ? { lastFrameImage: input.endImageUrl } : {}),
       };
   }
 }

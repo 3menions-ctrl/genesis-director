@@ -4,6 +4,7 @@ import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 import { persistQualityIntent } from "../_shared/quality-post.ts";
+import { inferBoundaryType, auditClip } from "../_shared/continuity-contract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -4115,7 +4116,62 @@ async function runProduction(
           console.warn(`[Hollywood] Comprehensive validation failed for clip ${i + 1}:`, validationErr);
         }
       }
-      
+
+      // =====================================================
+      // CONTINUITY ENGINE: boundary type + true seam (SSIM) measurement
+      // Infers how this clip JOINS the previous one (CONTINUOUS / MATCH_CUT
+      // / HARD_CUT / TIME_JUMP / LOCATION_CHANGE / INTRO) and, where the
+      // contract gates the seam (CONTINUOUS), measures the real frame match
+      // between the previous clip's last frame and this clip's first frame.
+      // =====================================================
+      let continuityBoundary: { type: string; sharedCast: string[] } | null = null;
+      let seamScore: number | null = null;
+      try {
+        const shotFactsAt = (idx: number) => {
+          const s: any = (state.script?.shots?.[idx]) || clips[idx] || {};
+          const loc = s.locationDescription || s.location || state.sceneConsistency?.location || 'SCENE';
+          const time = s.timeOfDay || masterSceneAnchor?.lighting?.timeOfDay || '';
+          const cast: string[] = Array.isArray(s.characters)
+            ? s.characters.map((c: any) => (typeof c === 'string' ? c : c?.name)).filter(Boolean)
+            : Array.isArray(s.characterNames) ? s.characterNames : [];
+          return {
+            shotId: `clip_${idx}`,
+            sceneId: String(loc),
+            slug: `${loc} - ${time}`,
+            timeOfDay: String(time),
+            framing: String(s.sceneType || s.framing || 'unknown'),
+            cast,
+          };
+        };
+        continuityBoundary = inferBoundaryType(i > 0 ? shotFactsAt(i - 1) : null, shotFactsAt(i));
+
+        // Seam SSIM only where the contract actually gates the seam.
+        if (continuityBoundary.type === 'CONTINUOUS' && i > 0 && previousLastFrameUrl && result.videoUrl) {
+          const ff = await callEdgeFunction('extract-video-frame', {
+            videoUrl: result.videoUrl,
+            projectId: state.projectId,
+            shotIndex: i,
+            sceneImageUrl: sceneImageFallback,
+            referenceImageUrl,
+            position: 'first',
+          });
+          if (ff?.success && ff?.frameUrl && !String(ff.frameUrl).endsWith('.mp4')) {
+            const seam = await callEdgeFunction('validate-seam-continuity', {
+              frameAUrl: previousLastFrameUrl,
+              frameBUrl: ff.frameUrl,
+              projectId: state.projectId,
+              clipIndex: i,
+            });
+            if (seam?.success && typeof seam.score === 'number') {
+              seamScore = seam.score;
+              console.log(`[Hollywood] Seam SSIM clip ${i + 1}: ${seamScore}/100 (CONTINUOUS)`);
+            }
+          }
+        }
+      } catch (contErr) {
+        console.warn(`[Hollywood] Continuity boundary/seam measurement failed for clip ${i + 1}:`, contErr);
+      }
+
       while (retryCount < qualityMaxRetries) {
         try {
           debugResult = await callEdgeFunction('visual-debugger', {
@@ -4161,11 +4217,58 @@ async function runProduction(
               console.warn(`[Hollywood] Failed to persist quality_score:`, scoreErr);
             }
             
+            // ── Continuity gate: contract-relative accept / retry ───────────
+            // Map the measured validators onto this clip's BOUNDARY CONTRACT.
+            // A contract PASS rescues clips the flat threshold would needlessly
+            // redo (e.g. a TIME_JUMP that re-lights); a contract HARD-FAIL
+            // enforces a retry the flat threshold would have shipped (e.g. a
+            // CONTINUOUS whose seam broke). Falls back to the flat check when
+            // the boundary couldn't be measured.
+            const norm01to100 = (v: any) =>
+              typeof v === 'number' && isFinite(v) ? (v <= 1 ? Math.round(v * 100) : Math.round(v)) : null;
+            let audit: any = null;
+            if (continuityBoundary) {
+              const cv = comprehensiveValidation?.results || {};
+              audit = auditClip({
+                scores: {
+                  identity: norm01to100(cv.faceEmbedding?.similarity ?? cv.faceEmbedding?.score),
+                  wardrobe: norm01to100(cv.clothingHair?.score),
+                  boundary: seamScore,
+                  temporal: norm01to100(cv.temporal?.score),
+                  color: norm01to100(cv.colorHistogram?.score),
+                  vlm: norm01to100(verdict.score),
+                },
+                boundaryType: continuityBoundary.type as any,
+                sharedCastCount: continuityBoundary.sharedCast.length,
+                attempt: retryCount,
+                maxAttempts: qualityMaxRetries,
+                currentEngine: request.videoEngine || (state as any).videoEngine || 'kling-2-master',
+                availableEngines: ['seedance-1-pro', 'kling-2-master', 'kling-1-6-pro', 'runway-gen-4', 'veo-3-pro', 'sora-2'],
+              });
+              console.log(`[Hollywood] Continuity gate clip ${i + 1}: ${continuityBoundary.type} → ${audit.score.verdict} (composite ${audit.score.composite}, admit=${audit.admit})${audit.correction ? ` next=${audit.correction.step}` : ''}`);
+              try {
+                await supabase.from('video_clips')
+                  .update({
+                    continuity_score: audit.score.composite,
+                    continuity_verdict: audit.score.verdict,
+                    boundary_type: continuityBoundary.type,
+                  })
+                  .eq('project_id', state.projectId).eq('shot_index', i);
+              } catch (_e) { /* columns optional — non-fatal */ }
+            }
+
+            const flatPass = (verdict.passed && (comprehensiveValidation?.overallPassed !== false)) || effectiveScore >= 75;
+            const contractAccept = audit
+              ? (audit.admit
+                  ? true
+                  : (audit.score.verdict === 'hard-fail' && retryCount < qualityMaxRetries - 1 ? false : flatPass))
+              : flatPass;
+
             // IMPROVED: Stricter threshold (75 instead of 70) for higher quality
-            if ((verdict.passed && (comprehensiveValidation?.overallPassed !== false)) || effectiveScore >= 75) {
-              console.log(`[Hollywood] Clip ${i + 1} passed quality check (visual: ${verdict.score}, comprehensive: ${comprehensiveScore}, effective: ${effectiveScore})`);
+            if (contractAccept) {
+              console.log(`[Hollywood] Clip ${i + 1} passed quality check (visual: ${verdict.score}, comprehensive: ${comprehensiveScore}, effective: ${effectiveScore}${audit ? `, continuity: ${audit.score.composite}/${audit.score.verdict}` : ''})`);
               break;
-            } else if ((verdict.correctivePrompt || comprehensiveValidation?.correctivePrompts?.length > 0) && retryCount < qualityMaxRetries - 1) {
+            } else if ((verdict.correctivePrompt || comprehensiveValidation?.correctivePrompts?.length > 0 || (audit && !audit.admit)) && retryCount < qualityMaxRetries - 1) {
               console.log(`[Hollywood] Clip ${i + 1} failed quality (visual: ${verdict.issues?.map((x: any) => x.description).join('; ') || 'N/A'})`);
               if (comprehensiveValidation?.failedValidators?.length > 0) {
                 console.log(`[Hollywood] Comprehensive validation failures: ${comprehensiveValidation.failedValidators.join(', ')}`);
@@ -4174,7 +4277,25 @@ async function runProduction(
               
               // Build corrected prompt from both sources
               let correctedPrompt = verdict.correctivePrompt || clip.prompt;
-              
+
+              // Continuity directive from the gate — targets the worst failing
+              // dimension so the retry fixes the actual continuity break.
+              if (audit && !audit.admit) {
+                const worst = audit.score.failures?.[0]?.dimension;
+                const dir =
+                  worst === 'boundary'
+                    ? "open this shot on the exact framing, subject position and composition of the previous shot's final frame — no jump cut"
+                    : (worst === 'identity' || worst === 'wardrobe')
+                    ? "the character's face, hair and wardrobe must exactly match the reference — no morphing"
+                    : worst === 'color'
+                    ? "match the exact colour grade, white balance and exposure of the previous shot"
+                    : worst === 'temporal'
+                    ? "smooth, stable motion with no flicker, warping or stutter"
+                    : "maintain exact visual continuity with the previous shot";
+                correctedPrompt = `[CONTINUITY: ${dir}]${audit.correction ? ` [${audit.correction.reason}]` : ''} ${correctedPrompt}`;
+                console.log(`[Hollywood] Continuity directive (${worst ?? 'general'}) injected for clip ${i + 1} retry`);
+              }
+
               // Inject comprehensive validation corrective prompts (prioritized)
               if (comprehensiveValidation?.correctivePrompts?.length > 0) {
                 const prioritizedPrompts = comprehensiveValidation.correctivePrompts.slice(0, 3);

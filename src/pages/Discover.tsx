@@ -6,8 +6,9 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Play, Loader2, Compass } from 'lucide-react';
+import { Search, X, Loader2, Compass } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
+import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { useWorlds, useTrending, useSearchEverything, type ReelHit } from '@/hooks/useDiscover';
 import { FILMS } from '@/data/filmsLibrary';
 import { hapticTap } from '@/lib/native/shell';
@@ -91,17 +92,13 @@ export default function Discover() {
 }
 
 function ReelGrid({ reels, onOpen }: { reels: ReelHit[]; onOpen: (id: string) => void }) {
+  // Each tile takes its media's own aspect ratio (no crop), flowed as masonry.
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <MasonryGrid cols={2}>
       {reels.map((r) => (
-        <button key={r.id} onClick={() => onOpen(r.id)} className="lit-edge relative aspect-video overflow-hidden rounded-[16px] bg-black/30 text-left">
-          {r.thumbnail_url ? <img src={r.thumbnail_url} alt={r.title} className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-          <span className="absolute inset-x-0 bottom-0 truncate px-2.5 py-2 font-display text-[12.5px] font-semibold drop-shadow">{r.title}</span>
-          {r.play_count > 0 && <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 font-mono text-[10px] font-semibold"><Play className="h-2.5 w-2.5 fill-white" />{compact(r.play_count)}</span>}
-        </button>
+        <MediaTile key={r.id} src={r.thumbnail_url} title={r.title} play={r.play_count} onClick={() => onOpen(r.id)} />
       ))}
-    </div>
+    </MasonryGrid>
   );
 }
 

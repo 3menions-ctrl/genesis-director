@@ -144,9 +144,10 @@ export default function Presets() {
                 const on = l.id === selected;
                 return (
                   <button key={l.id} onClick={() => { void hapticTap(); setSelected(l.id); }} aria-label={l.name} title={l.name}
-                    className={cn('relative aspect-video overflow-hidden rounded-[18px] transition-all', on ? 'ring-2 ring-[#3f78ff]' : 'ring-1 ring-white/10')}>
+                    className={cn('relative overflow-hidden rounded-[18px] align-top transition-all', on ? 'ring-2 ring-[#3f78ff]' : 'ring-1 ring-white/10')}>
+                    {/* Preview takes the clip's own aspect ratio — never cropped. */}
                     <video src={SAMPLE_SRC} muted loop autoPlay playsInline
-                      className="absolute inset-0 h-full w-full object-cover" style={{ filter: l.filter }} />
+                      className="block w-full" style={{ filter: l.filter }} />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-2.5 py-2">
                       <span className="font-display text-[12.5px] font-semibold drop-shadow">{l.name}</span>

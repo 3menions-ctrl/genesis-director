@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Play,
+  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ import { useGamification } from '@/hooks/useGamification';
 import { useMyFilms } from '@/hooks/useMyFilms';
 import { useFollowCounts, useFollowList, useLikedReels, useDrafts, usePinnedReels, useActivityHeatmap, type GridItem, type Person } from '@/hooks/useProfileData';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
+import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -139,12 +140,7 @@ export default function You() {
           <Section title="Highlights" icon={Sparkles}>
             <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
               {pinned.map((p) => (
-                <button key={p.id} onClick={() => navigate(`/r/${p.id}`)} className="lit-edge relative aspect-video w-[160px] flex-none overflow-hidden rounded-[16px] bg-black/30">
-                  {p.thumbnail_url ? <img src={p.thumbnail_url} alt={p.title} className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
-                  <span className="absolute bottom-1.5 left-2 right-2 truncate text-left font-display text-[12px] font-semibold drop-shadow">{p.title}</span>
-                  <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/45"><Play className="h-3 w-3 fill-white" /></span>
-                </button>
+                <MediaTile key={p.id} src={p.thumbnail_url} title={p.title} play={p.play_count} width={180} onClick={() => navigate(`/r/${p.id}`)} />
               ))}
             </div>
           </Section>
@@ -191,19 +187,13 @@ export default function You() {
           ) : cur.items.length === 0 ? (
             <EmptyTab tab={tab} onCreate={() => navigate('/create')} />
           ) : (
-            <div className="grid grid-cols-3 gap-2.5">
+            <MasonryGrid cols={3}>
               {cur.items.map((it) => (
-                <button key={it.id} onClick={() => navigate(tab === 'drafts' ? `/editor/${it.id}` : `/r/${it.id}`)} className="lit-edge relative aspect-[3/4] overflow-hidden rounded-[14px] bg-black/30">
-                  {it.thumbnail_url ? <img src={it.thumbnail_url} alt={it.title} className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 to-transparent" />
-                  {tab === 'drafts' && it.status ? (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-wide text-white/90">{it.status}</span>
-                  ) : it.play_count != null ? (
-                    <span className="absolute bottom-1.5 left-1.5 font-mono text-[10px] font-semibold text-white/90">▶ {compact(it.play_count)}</span>
-                  ) : null}
-                </button>
+                <MediaTile key={it.id} src={it.thumbnail_url} title={it.title} play={tab === 'drafts' ? null : it.play_count}
+                  badge={tab === 'drafts' ? it.status : null}
+                  onClick={() => navigate(tab === 'drafts' ? `/editor/${it.id}` : `/r/${it.id}`)} />
               ))}
-            </div>
+            </MasonryGrid>
           )}
         </div>
       </div>

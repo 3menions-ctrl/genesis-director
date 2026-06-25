@@ -11,8 +11,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon, Globe2,
-  Palette, PenLine, LayoutGrid, Sparkles, Lock, Cpu, Clock, Clapperboard, Film,
-  RectangleHorizontal, RectangleVertical, Square, UserRound, Sliders, Drama,
+  Palette, PenLine, LayoutGrid, Sparkles, Cpu, Clock, Clapperboard, Film,
+  RectangleHorizontal, RectangleVertical, Square, UserRound, Drama,
   Dices, Rocket, Leaf, Heart,
   type LucideIcon,
 } from 'lucide-react';
@@ -88,7 +88,6 @@ export default function Create() {
   const [engineId, setEngineId] = useState('wan');
   const [aspect, setAspect] = useState(0);
   const [duration, setDuration] = useState<string>('5s');
-  const [advanced, setAdvanced] = useState(false);
   const [genre, setGenre] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
   const [look, setLook] = useState<string | null>(null);
@@ -116,8 +115,8 @@ export default function Create() {
   return (
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
-      <div className="relative z-10 flex h-full flex-row-reverse" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
-        {/* ── RAIL (transparent icons + labels) — page controls on the right ── */}
+      <div className="relative z-10 flex h-full" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
+        {/* ── LEFT RAIL — module navigation ── */}
         <nav className="flex w-[68px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto py-2" style={{ scrollbarWidth: 'none' }}>
           {GROUPS.map((g, gi) => (
             <div key={g} className="flex w-full flex-col items-center gap-0.5">
@@ -129,8 +128,8 @@ export default function Create() {
           ))}
         </nav>
 
-        {/* ── CANVAS ── */}
-        <div className="relative flex flex-1 flex-col overflow-hidden pl-4 pr-3">
+        {/* ── CANVAS (center) ── */}
+        <div className="relative flex flex-1 flex-col overflow-hidden px-3">
           <div className="flex-1 overflow-y-auto pb-3 pt-2">
             {isCreateModule ? (
               <div className="flex flex-col gap-5">
@@ -172,41 +171,6 @@ export default function Create() {
                   </div>
                 )}
 
-                {/* format — the common, quick choice, stays visible */}
-                <Section label="Format">
-                  <div className="flex flex-wrap items-center gap-5">
-                    {ASPECTS.map((a, i) => (
-                      <Tool key={a.id} icon={a.Icon} label={a.id} on={i === aspect} onClick={() => { void hapticTap(); setAspect(i); }} />
-                    ))}
-                    <span className="h-7 w-px bg-white/10" />
-                    {DURATIONS.map((d) => (
-                      <Tool key={d} icon={Clock} label={d} on={d === duration} onClick={() => { void hapticTap(); setDuration(d); }} />
-                    ))}
-                  </div>
-                </Section>
-
-                {/* settings — engine + style tucked away; comprehensive on demand */}
-                <div>
-                  <Tool icon={Sliders} label="Settings" on={advanced} onClick={() => { void hapticTap(); setAdvanced((v) => !v); }} />
-                  {advanced && (
-                    <div className="mt-5 flex flex-col gap-5">
-                      <Section label="Render engine">
-                        <div className="-mr-4 flex gap-5 overflow-x-auto pr-4" style={{ scrollbarWidth: 'none' }}>
-                          {ENGINES.map((e) => (
-                            <Tool key={e.id} icon={e.locked ? Lock : Cpu} label={e.name} on={e.id === engineId} disabled={e.locked} onClick={() => { void hapticTap(); setEngineId(e.id); }} />
-                          ))}
-                        </div>
-                      </Section>
-                      <Section label="Style &amp; mood">
-                        <div className="flex gap-6">
-                          <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
-                          <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
-                          <Tool icon={Palette} label={look ?? 'Look'} on={!!look} onClick={() => { void hapticTap(); setLook(next(LOOKS, look)); }} />
-                        </div>
-                      </Section>
-                    </div>
-                  )}
-                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
@@ -254,16 +218,20 @@ export default function Create() {
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">{label}</div>
-      {children}
+        {/* ── RIGHT RAIL — page settings (config for the generation) ── */}
+        {isCreateModule && (
+          <nav className="flex w-[68px] shrink-0 flex-col items-center justify-center gap-5 py-2">
+            {(() => { const A = ASPECTS[aspect]; return <Tool icon={A.Icon} label={A.id} full onClick={() => { void hapticTap(); setAspect((aspect + 1) % ASPECTS.length); }} />; })()}
+            <Tool icon={Clock} label={duration} full onClick={() => { void hapticTap(); setDuration(next(DURATIONS, duration)); }} />
+            <Tool icon={Cpu} label={engine.name} full onClick={() => { void hapticTap(); const u = ENGINES.filter((e) => !e.locked); const i = u.findIndex((e) => e.id === engineId); setEngineId(u[(i + 1) % u.length].id); }} />
+            <span className="h-px w-7 bg-white/10" />
+            <Tool icon={Drama} label={genre ?? 'Genre'} on={!!genre} full onClick={() => { void hapticTap(); setGenre(next(GENRES, genre)); }} />
+            <Tool icon={Sparkles} label={mood ?? 'Mood'} on={!!mood} full onClick={() => { void hapticTap(); setMood(next(MOODS, mood)); }} />
+            <Tool icon={Palette} label={look ?? 'Look'} on={!!look} full onClick={() => { void hapticTap(); setLook(next(LOOKS, look)); }} />
+          </nav>
+        )}
+      </div>
     </div>
   );
 }

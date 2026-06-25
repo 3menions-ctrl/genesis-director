@@ -72,6 +72,24 @@ export function EditorPalette({
     setTimeout(() => inputRef.current?.focus(), 60);
   }, [open]);
 
+  // Robust Escape-to-close. The search input above is auto-focused ~60ms after
+  // open, and the only other close path is the input's own onKeyDown Escape
+  // (Surface uses blockEscClose and the palette renders no X button). So an
+  // Escape pressed in that brief pre-focus window would land on <body> and the
+  // palette would stay stuck open. A document-level listener (active only while
+  // open) guarantees Escape always closes, regardless of where focus is.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   // Build the unfiltered command list once per project
   const all: Cmd[] = useMemo(() => {
     const list: Cmd[] = [

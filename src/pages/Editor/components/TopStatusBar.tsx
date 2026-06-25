@@ -235,7 +235,7 @@ export function TopStatusBar({
                   type="button"
                   onClick={onOpenVersions}
                   className="group/ver inline-flex items-center gap-2 text-[13px] text-foreground/80 hover:text-foreground transition-colors"
-                  aria-label="Versions (Cmd+Shift+V)"
+                  aria-label="Versions (Shift+H)"
                 >
                   <GitBranch className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span className="relative">
@@ -245,7 +245,7 @@ export function TopStatusBar({
                       className="absolute -bottom-1 left-0 right-0 h-px origin-left scale-x-0 bg-foreground/70 transition-transform duration-500 group-hover/ver:scale-x-100"
                     />
                   </span>
-                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⌘⇧V</span>
+                  <span className={cn(TYPE_META, "text-muted-foreground/40 font-mono")}>⇧H</span>
                 </button>
               )}
               <button

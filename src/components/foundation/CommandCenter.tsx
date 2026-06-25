@@ -360,8 +360,13 @@ export const CommandCenter = memo(function CommandCenter() {
         setOpen((prev) => !prev);
         return;
       }
-      // Slash opens it too (Linear-style) — only when not typing.
-      if (!open && e.key === "/" && !isTyping) {
+      // Slash opens it too (Linear-style) — only when not typing, and only as a
+      // bare "/" with no modifier. The editor binds ⌘/ (Cmd/Ctrl+Slash) to its
+      // Director chat; without this modifier guard, ⌘/ in the editor opened BOTH
+      // Director and this global menu (two dialogs). Excluding meta/ctrl here
+      // gives each "/" binding one unambiguous owner: bare "/" → CommandCenter,
+      // ⌘/ → editor Director.
+      if (!open && e.key === "/" && !e.metaKey && !e.ctrlKey && !isTyping) {
         e.preventDefault();
         setOpen(true);
       }

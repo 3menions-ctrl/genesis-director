@@ -216,14 +216,14 @@ test.beforeEach(async ({ context }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe("Editor — every modal panel opens via keyboard and closes", () => {
   // NOTE on coverage:
-  //  - Versions (Cmd+Shift+V) is intentionally omitted here: Ctrl/Cmd+Shift+V
-  //    is a browser-reserved combo that headless Chromium swallows before the
-  //    page sees it. The Versions panel IS covered by the TopStatusBar-button
-  //    test below ("Versions (Cmd+Shift+V)").
-  //  - Help uses "?" (not "Shift+/"): the literal "/" also triggers a
-  //    GLOBAL (non-editor) command menu, so "?" keeps this assertion to the
-  //    editor's own Help overlay. Director (Cmd+/) opens the editor's Director
-  //    chat AND that same global menu — hence the ">= 1 dialog" assertion.
+  //  - Versions is bound to Shift+H (revision History). It used to be ⌘⇧V, a
+  //    browser-reserved combo (paste-as-plain-text) that headless Chromium
+  //    swallowed before the page saw it; Shift+H is not reserved, so Versions
+  //    is now exercised by keyboard here AND via its TopStatusBar button below.
+  //  - Help uses "?" (not "Shift+/"): the literal "/" also triggers a GLOBAL
+  //    (non-editor) command menu, so "?" keeps this assertion to the editor's
+  //    own Help overlay. Director (⌘/) now opens ONLY the editor's Director
+  //    chat — the global "/" menu excludes meta/ctrl, so ⌘/ no longer pops it.
   const PANELS: Array<{ name: string; key: string }> = [
     { name: "Command palette", key: "ControlOrMeta+p" },
     { name: "Export", key: "e" },
@@ -239,6 +239,7 @@ test.describe("Editor — every modal panel opens via keyboard and closes", () =
     { name: "Budget", key: "ControlOrMeta+b" },
     { name: "Crossover VFX", key: "Shift+V" },
     { name: "Cast", key: "ControlOrMeta+j" },
+    { name: "Versions", key: "Shift+H" },
     { name: "Help overlay", key: "?" },
   ];
 
@@ -254,7 +255,8 @@ test.describe("Editor — every modal panel opens via keyboard and closes", () =
       await expect(dialog(page)).toHaveCount(0);
       await page.keyboard.press(panel.key);
       try {
-        // >= 1: Director/Help (the "/" family) also pop a global menu.
+        // Each shortcut now owns exactly one panel (the ⌘/ vs global-"/"
+        // collision is fixed); >= 1 stays as a robust lower bound.
         await expect.poll(async () => dialog(page).count(), { timeout: 5_000 }).toBeGreaterThanOrEqual(1);
         opened[panel.name] = true;
       } catch {
@@ -282,7 +284,7 @@ test.describe("Editor — TopStatusBar buttons open their panels", () => {
     "Studio library (Shift+L)",
     "Media library (Shift+Y)",
     "Director chat (Cmd+/)",
-    "Versions (Cmd+Shift+V)",
+    "Versions (Shift+H)",
     "Toggle comments (C)",
     "Open export panel (E)",
   ];

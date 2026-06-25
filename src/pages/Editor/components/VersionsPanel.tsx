@@ -188,7 +188,7 @@ export function VersionsPanel({ open, onClose }: Props) {
           <Diff className="h-3 w-3" strokeWidth={1.5} />
           {history.past.length} past · {history.future.length} ahead
         </span>
-        <SurfaceKbdHint keys="⌘⇧V" label="versions" />
+        <SurfaceKbdHint keys="⇧H" label="versions" />
       </SurfaceFooter>
     </Surface>
   );

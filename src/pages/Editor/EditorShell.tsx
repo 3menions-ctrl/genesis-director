@@ -543,8 +543,12 @@ export function EditorShell() {
         setDirectorOpen((o) => !o);
         return;
       }
-      // Cmd+Shift+V — open Versions panel.
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "V" || e.key === "v")) {
+      // Shift+H — open the Versions panel (revision History). Moved off the
+      // former ⌘⇧V: that combo is browser-reserved (paste-as-plain-text) and is
+      // swallowed before the page sees it, so Versions had no reliable key.
+      // Shift+H is unbound across the editor and joins the Shift+<letter>
+      // panel family (E/Q/M/F/X/C/L/Y/V). Note Shift+V stays Crossover VFX.
+      if (!(e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "H" || e.key === "h")) {
         e.preventDefault();
         setVersionsOpen((o) => !o);
         return;

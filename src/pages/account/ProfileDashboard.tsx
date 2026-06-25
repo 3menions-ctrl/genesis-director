@@ -5791,6 +5791,18 @@ function HighlightReelPicker({
   const [pending, setPending] = useState<string[]>(() => pinned.map((p) => p.id));
   useEffect(() => { setPending(pinned.map((p) => p.id)); }, [pinned]);
 
+  const merged = useMemo(() => {
+    const byId = new Map<string, { id: string; title: string; thumbnail_url: string | null; play_count?: number }>();
+    pinned.forEach((p) => byId.set(p.id, { id: p.id, title: p.title, thumbnail_url: p.thumbnail_url }));
+    candidates.forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
+    return Array.from(byId.values());
+  }, [pinned, candidates]);
+  const dirty = useMemo(() => {
+    const a = pending.slice().sort().join(",");
+    const b = pinned.map((p) => p.id).slice().sort().join(",");
+    return a !== b;
+  }, [pending, pinned]);
+
   // Non-owner view, or owner not in settings mode: render the strip.
   if (!isOwner || !settingsMode) {
     if (pinned.length === 0) return null;
@@ -5844,12 +5856,6 @@ function HighlightReelPicker({
   }
 
   // Owner + settings mode: multi-select picker. Up to MAX_HIGHLIGHTS.
-  const merged = useMemo(() => {
-    const byId = new Map<string, { id: string; title: string; thumbnail_url: string | null; play_count?: number }>();
-    pinned.forEach((p) => byId.set(p.id, { id: p.id, title: p.title, thumbnail_url: p.thumbnail_url }));
-    candidates.forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
-    return Array.from(byId.values());
-  }, [pinned, candidates]);
   const toggle = (id: string) => {
     setPending((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
@@ -5860,11 +5866,6 @@ function HighlightReelPicker({
       return [...prev, id];
     });
   };
-  const dirty = useMemo(() => {
-    const a = pending.slice().sort().join(",");
-    const b = pinned.map((p) => p.id).slice().sort().join(",");
-    return a !== b;
-  }, [pending, pinned]);
   const save = async () => {
     if (!dirty) return;
     await onChange(pending);

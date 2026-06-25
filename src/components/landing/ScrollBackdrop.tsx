@@ -67,35 +67,6 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
   const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.06, 1.0, 1.08]);
 
-  // Per-frame opacity + per-chapter text opacity / y motion
-  const win = 1 / N;
-  const imageOpacities = CHAPTERS.map((_, i) => {
-    const start = Math.max(0, i * win - win * 0.4);
-    const peakA = i * win + win * 0.1;
-    const peakB = (i + 1) * win - win * 0.1;
-    const end = Math.min(1, (i + 1) * win + win * 0.4);
-    return useTransform(
-      scrollYProgress,
-      [start, peakA, peakB, end],
-      i === 0 ? [1, 1, 1, 0] : i === N - 1 ? [0, 1, 1, 1] : [0, 1, 1, 0],
-    );
-  });
-
-  // Text appears slightly later than the image and exits slightly earlier — feels intentional
-  const textOpacities = CHAPTERS.map((_, i) => {
-    const a = i * win + win * 0.05;
-    const b = i * win + win * 0.25;
-    const c = (i + 1) * win - win * 0.25;
-    const d = (i + 1) * win - win * 0.05;
-    return useTransform(scrollYProgress, [a, b, c, d], [0, 1, 1, 0]);
-  });
-
-  const textYs = CHAPTERS.map((_, i) => {
-    const a = i * win;
-    const d = (i + 1) * win;
-    return useTransform(scrollYProgress, [a, d], [40, -40]);
-  });
-
   return (
     <div ref={ref} className="relative w-full" style={{ height: '220vh' }}>
       {/* Pinned cinematic stage */}
@@ -103,21 +74,13 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
         {/* Image stack */}
         <motion.div style={{ y, scale }} className="absolute inset-0">
           {CHAPTERS.map((c, i) => (
-            <motion.div
+            <ChapterImageLayer
               key={i}
-              style={{ opacity: imageOpacities[i] }}
-              className="absolute inset-0"
-            >
-              <img
-                src={c.src}
-                alt=""
-                aria-hidden
-                loading="lazy"
-                width={1920}
-                height={1080}
-                className="absolute inset-0 w-full h-full object-cover kenburns-slow"
-              />
-            </motion.div>
+              chapter={c}
+              index={i}
+              total={N}
+              scrollYProgress={scrollYProgress}
+            />
           ))}
         </motion.div>
 
@@ -191,8 +154,9 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
             <ChapterCopy
               key={i}
               chapter={c}
-              opacity={textOpacities[i]}
-              y={textYs[i]}
+              index={i}
+              total={N}
+              scrollYProgress={scrollYProgress}
             />
           ))}
         </div>
@@ -214,15 +178,68 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
   );
 });
 
-function ChapterCopy({
+function ChapterImageLayer({
   chapter,
-  opacity,
-  y,
+  index,
+  total,
+  scrollYProgress,
 }: {
   chapter: Chapter;
-  opacity: MotionValue<number>;
-  y: MotionValue<number>;
+  index: number;
+  total: number;
+  scrollYProgress: MotionValue<number>;
 }) {
+  const i = index;
+  const win = 1 / total;
+  const start = Math.max(0, i * win - win * 0.4);
+  const peakA = i * win + win * 0.1;
+  const peakB = (i + 1) * win - win * 0.1;
+  const end = Math.min(1, (i + 1) * win + win * 0.4);
+  const opacity = useTransform(
+    scrollYProgress,
+    [start, peakA, peakB, end],
+    i === 0 ? [1, 1, 1, 0] : i === total - 1 ? [0, 1, 1, 1] : [0, 1, 1, 0],
+  );
+
+  return (
+    <motion.div style={{ opacity }} className="absolute inset-0">
+      <img
+        src={chapter.src}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        width={1920}
+        height={1080}
+        className="absolute inset-0 w-full h-full object-cover kenburns-slow"
+      />
+    </motion.div>
+  );
+}
+
+function ChapterCopy({
+  chapter,
+  index,
+  total,
+  scrollYProgress,
+}: {
+  chapter: Chapter;
+  index: number;
+  total: number;
+  scrollYProgress: MotionValue<number>;
+}) {
+  const i = index;
+  const win = 1 / total;
+  // Text appears slightly later than the image and exits slightly earlier — feels intentional
+  const a = i * win + win * 0.05;
+  const b = i * win + win * 0.25;
+  const c = (i + 1) * win - win * 0.25;
+  const d = (i + 1) * win - win * 0.05;
+  const opacity = useTransform(scrollYProgress, [a, b, c, d], [0, 1, 1, 0]);
+
+  const ya = i * win;
+  const yd = (i + 1) * win;
+  const y = useTransform(scrollYProgress, [ya, yd], [40, -40]);
+
   return (
     <motion.div
       style={{ opacity, y }}

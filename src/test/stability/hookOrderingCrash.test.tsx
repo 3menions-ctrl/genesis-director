@@ -252,7 +252,10 @@ describe('Hook Ordering Stability', () => {
 
     it('should handle context access safely without crashing', () => {
       // Pattern used in useAuth, useStudio etc. with safe fallbacks
-      const mockUseAuth = () => {
+      // Named with the `use*` prefix so it is (correctly) treated as a custom
+      // hook — the hooks below are always called in the same order, which is the
+      // safe pattern this test asserts.
+      const useMockAuth = () => {
         // These hooks are ALWAYS called
         const [user, setUser] = useState<{ id: string } | null>(null);
         const [loading, setLoading] = useState(true);
@@ -276,7 +279,7 @@ describe('Hook Ordering Stability', () => {
       };
 
       function TestComponent() {
-        const { user, loading, isAuthenticated } = mockUseAuth();
+        const { user, loading, isAuthenticated } = useMockAuth();
         const [localState, setLocalState] = useState('init');
 
         // More hooks after the context hook

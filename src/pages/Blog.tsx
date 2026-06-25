@@ -514,20 +514,24 @@ function BlogIndex() {
   );
 }
 
+function ArticleNotFound() {
+  // Unknown slug — show a graceful not-found within the SPA (no hard 404).
+  usePageMeta({ title: 'Article not found — Small Bridges', description: 'This article could not be found.' });
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
+      <h1 className="text-2xl font-bold text-white mb-3">Article not found</h1>
+      <p className="text-white/55 mb-6">It may have moved or been retired.</p>
+      <Link to="/blog" className="h-10 px-5 inline-flex items-center rounded-full bg-white text-black text-sm font-medium">Back to Blog</Link>
+    </div>
+  );
+}
+
 export default function Blog() {
   const { slug } = useParams();
   const article = slug ? BLOG_ARTICLES.find((a) => a.slug === slug) : null;
 
   if (slug && !article) {
-    // Unknown slug — show a graceful not-found within the SPA (no hard 404).
-    usePageMeta({ title: 'Article not found — Small Bridges', description: 'This article could not be found.' });
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-2xl font-bold text-white mb-3">Article not found</h1>
-        <p className="text-white/55 mb-6">It may have moved or been retired.</p>
-        <Link to="/blog" className="h-10 px-5 inline-flex items-center rounded-full bg-white text-black text-sm font-medium">Back to Blog</Link>
-      </div>
-    );
+    return <ArticleNotFound />;
   }
 
   return article ? <ArticleDetail article={article} /> : <BlogIndex />;

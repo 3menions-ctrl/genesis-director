@@ -46,6 +46,7 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
 import { MobileTabBar } from "@/components/native/MobileTabBar";
+import { MobileOnboardingGate } from "@/components/native/MobileOnboardingGate";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
@@ -85,6 +86,8 @@ const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const Messages = lazy(() => import("./pages/Messages"));
 // Mobile full-page settings.
 const MobileSettings = lazy(() => import("./pages/MobileSettings"));
+// First-run onboarding (native).
+const Welcome = lazy(() => import("./pages/Welcome"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -340,6 +343,12 @@ const App = () => {
                 <Route path="/me/settings" element={
                   <RouteContainer fallbackMessage="Loading settings…">
                     <MobileSettings />
+                  </RouteContainer>
+                } />
+                {/* First-run onboarding (native). */}
+                <Route path="/welcome" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Welcome />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}
@@ -978,6 +987,8 @@ const App = () => {
                 <CommandCenter />
                 {/* Bottom tab bar — native shell only; null on web. */}
                 <MobileTabBar />
+                {/* First-run redirect to /welcome for un-onboarded users (native only). */}
+                <MobileOnboardingGate />
               </PageToneProvider>
               </StudioProvider>
               </WorkspaceProvider>

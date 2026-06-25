@@ -128,13 +128,14 @@ export default function Welcome() {
           </Step>
         )}
 
-        {/* CTA */}
-        <motion.button initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}
-          onClick={next} disabled={saving}
-          className="mt-6 flex h-[56px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[16px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_22px_50px_-14px_rgba(80,80,255,.8)] transition-transform active:scale-[0.98] disabled:opacity-50">
-          {step === 0 ? 'Get started' : step === 1 ? 'Continue' : 'Start creating'}
-          {step === 2 ? <Check className="h-[18px] w-[18px]" /> : <ArrowRight className="h-[18px] w-[18px]" />}
-        </motion.button>
+        {/* CTA — icon in a translucent container, with a label beneath */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }} className="mt-6 flex flex-col items-center gap-2.5">
+          <button onClick={next} disabled={saving} aria-label={step === 0 ? 'Get started' : step === 1 ? 'Continue' : 'Start creating'}
+            className="msg-glass-accent grid h-[62px] w-[62px] place-items-center rounded-full text-white transition-transform active:scale-95 disabled:opacity-50">
+            {step === 2 ? <Check className="h-7 w-7" strokeWidth={2.4} /> : <ArrowRight className="h-7 w-7" strokeWidth={2.2} />}
+          </button>
+          <span className="font-display text-[12.5px] font-semibold tracking-wide text-white/75">{step === 0 ? 'Get started' : step === 1 ? 'Continue' : 'Start creating'}</span>
+        </motion.div>
       </div>
     </div>
   );

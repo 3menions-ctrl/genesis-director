@@ -229,7 +229,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
               {initial}
             </span>
           )}
-          <span className="absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full border-2 border-[#0b0a09] bg-[#d9b070] text-[13px] font-bold leading-none text-[#1b1610]">
+          <span className="absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full border-2 border-[#0a0a0a] bg-[#2f6bff] text-[13px] font-bold leading-none">
             +
           </span>
         </button>
@@ -254,7 +254,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       >
         <div className="flex items-center gap-2 font-display text-[16px] font-bold">
           @{(item.creator_name ?? 'smallbridges').replace(/\s+/g, '').toLowerCase()}
-          <span className="text-[#d9b070]">✦</span>
+          <span className="text-[#7aa2ff]">✦</span>
         </div>
         {(item.title || item.synopsis) && (
           <div className="mt-1.5 text-[14px] leading-snug text-white/90 line-clamp-2">
@@ -262,7 +262,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
           </div>
         )}
         {item.tags.length > 0 && (
-          <div className="mt-1.5 text-[13px] font-semibold text-[#d9b070] line-clamp-1">
+          <div className="mt-1.5 text-[13px] font-semibold text-[#7aa2ff] line-clamp-1">
             {item.tags.slice(0, 3).map((t) => `#${t}`).join(' ')}
           </div>
         )}
@@ -272,7 +272,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       <button
         onClick={remix}
         disabled={busy}
-        className="btn-gold absolute left-4 right-4 z-20 flex h-[46px] items-center justify-center gap-2 rounded-[15px] font-display text-[14.5px] font-bold disabled:opacity-60"
+        className="absolute left-4 right-4 z-20 flex h-[46px] items-center justify-center gap-2 rounded-[15px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] font-display text-[14.5px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_34px_-8px_rgba(80,80,255,.65)] backdrop-blur-sm disabled:opacity-60"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 38px)' }}
       >
         <Repeat2 className="h-[18px] w-[18px]" />
@@ -303,7 +303,7 @@ function RailButton({
         className={cn(
           'grid h-12 w-12 place-items-center rounded-full backdrop-blur-md transition-transform',
           highlight
-            ? 'bg-gradient-to-br from-[#d9a860] to-[#a8702e] shadow-[0_12px_28px_-6px_rgba(180,120,50,.85)]'
+            ? 'bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_12px_28px_-6px_rgba(80,90,255,.85)]'
             : 'bg-white/[0.12] shadow-[0_8px_22px_-10px_rgba(0,0,0,.8)]',
           active && 'scale-105',
         )}

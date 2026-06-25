@@ -55,7 +55,7 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex items-start justify-around bg-gradient-to-t from-[#0a0908] via-[#0a0908]/92 to-transparent px-2 pt-3.5 backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-start justify-around bg-gradient-to-t from-[#060608] via-[#060608]/92 to-transparent px-2 pt-3.5 backdrop-blur-xl"
       style={{
         height: 'calc(var(--tabbar-h, 64px) + var(--safe-bottom, 0px) + 8px)',
         paddingBottom: 'var(--safe-bottom, 0px)',
@@ -69,7 +69,7 @@ export function MobileTabBar() {
       <button
         onClick={() => go('/create')}
         aria-label="Create"
-        className="btn-gold -mt-1.5 grid h-[40px] w-[52px] place-items-center rounded-[15px]"
+        className="-mt-1.5 grid h-[40px] w-[52px] place-items-center rounded-[15px] bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.45),0_10px_26px_-6px_rgba(64,90,255,.85)]"
       >
         <Plus className="h-6 w-6" strokeWidth={2.4} />
       </button>
@@ -97,17 +97,17 @@ function TabButton({
       onClick={onClick}
       className={cn(
         'flex flex-col items-center gap-1 font-display text-[10px] font-semibold tracking-wide transition-colors',
-        active ? 'text-[#f3ece0]' : 'text-[#f3ece0]/40',
+        active ? 'text-white' : 'text-white/40',
       )}
     >
       <span className="relative grid place-items-center">
         {active && (
-          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#d9b070]/35 blur-md" />
+          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/35 blur-md" />
         )}
         <Icon className="relative h-[24px] w-[24px]" strokeWidth={1.9} />
       </span>
       {label}
-      <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#d9b070] shadow-[0_0_10px_#d9b070]' : 'bg-transparent')} />
+      <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#3f78ff] shadow-[0_0_10px_#3f78ff]' : 'bg-transparent')} />
     </button>
   );
 }

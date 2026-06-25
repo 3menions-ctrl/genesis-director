@@ -94,7 +94,7 @@ export default function Create() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col text-[#f3ece0]">
+    <div className="fixed inset-0 flex flex-col text-white">
       <AuroraBackdrop />
       <div
         className="relative z-10 flex-1 overflow-y-auto px-5"
@@ -103,11 +103,11 @@ export default function Create() {
           paddingBottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 88px)',
         }}
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.34em] text-champagne">Create</div>
+        <div className="font-mono text-[11px] uppercase tracking-[0.34em] text-[#7aa2ff]">Create</div>
         <h1 className="mt-3 text-[36px] font-light leading-[1.03] tracking-[-0.01em]" style={{ fontFamily: 'Fraunces, serif' }}>
           What do you want to{' '}
           <span
-            className="bg-gradient-to-r from-[#f0dcae] via-[#d9b070] to-[#eadbbd] bg-clip-text italic text-transparent"
+            className="bg-gradient-to-r from-[#8fb4ff] via-[#b79bff] to-[#7adfff] bg-clip-text italic text-transparent"
             style={{ fontWeight: 500 }}
           >
             make?
@@ -127,9 +127,9 @@ export default function Create() {
                   on ? 'surface-2' : 'surface-1 opacity-80',
                 )}
               >
-                <m.Icon className={cn('h-[20px] w-[20px]', on ? 'text-champagne' : 'text-[#f3ece0]/70')} strokeWidth={1.8} />
+                <m.Icon className={cn('h-[20px] w-[20px]', on ? 'text-[#7aa2ff]' : 'text-white/70')} strokeWidth={1.8} />
                 <span className="text-[13px] font-semibold leading-none">{m.label}</span>
-                <span className="font-mono text-[9px] uppercase tracking-wide text-[#f3ece0]/40">{m.sub}</span>
+                <span className="font-mono text-[9px] uppercase tracking-wide text-white/40">{m.sub}</span>
               </button>
             );
           })}
@@ -137,13 +137,13 @@ export default function Create() {
 
         {/* Prompt — borderless lit-glass surface (modes that take a prompt) */}
         {mode.usesPrompt && (
-          <div className="mt-5 rounded-[26px] surface-2 p-5 transition-shadow duration-300 focus-within:shadow-[inset_0_1px_0_rgba(245,238,225,.14),0_28px_84px_-30px_rgba(180,130,60,.4)]">
+          <div className="mt-5 rounded-[26px] surface-2 p-5 transition-shadow duration-300 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_28px_84px_-30px_rgba(60,90,255,.55)]">
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               placeholder={mode.placeholder}
-              className="w-full resize-none bg-transparent text-[18px] leading-relaxed text-[#f3ece0] outline-none placeholder:text-[#f3ece0]/30"
+              className="w-full resize-none bg-transparent text-[18px] leading-relaxed text-white outline-none placeholder:text-white/30"
               style={{ outline: 'none', boxShadow: 'none' }}
             />
           </div>
@@ -152,7 +152,7 @@ export default function Create() {
         {/* Style — only for visual modes */}
         {mode.usesStyle && (
           <>
-            <div className="mb-3 mt-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">Style</div>
+            <div className="mb-3 mt-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Style</div>
             <div className="flex flex-wrap gap-2">
               {STYLES.map((s) => {
                 const on = s.id === styleId;
@@ -162,7 +162,9 @@ export default function Create() {
                     onClick={() => { void hapticTap(); setStyleId(on ? null : s.id); }}
                     className={cn(
                       'flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-all duration-200',
-                      on ? 'btn-gold' : 'surface-1 text-[#f3ece0]/75',
+                      on
+                        ? 'bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_12px_30px_-8px_rgba(80,90,255,.75)]'
+                        : 'surface-1 text-white/75',
                     )}
                   >
                     <span className="text-[14px]">{s.emoji}</span>
@@ -176,7 +178,7 @@ export default function Create() {
 
         {/* Avatar/music modes get a short note instead of style */}
         {!mode.usesStyle && (
-          <p className="mt-6 text-[14px] italic leading-relaxed text-[#f3ece0]/40" style={{ fontFamily: 'Fraunces, serif' }}>
+          <p className="mt-6 text-[14px] italic leading-relaxed text-white/40" style={{ fontFamily: 'Fraunces, serif' }}>
             {mode.id === 'avatar'
               ? 'Pick a face and a voice in the avatar studio — your script becomes a performance.'
               : 'Describe the mood; the composer scores it. Lands in your library, ready to drop on a film.'}
@@ -184,17 +186,17 @@ export default function Create() {
         )}
       </div>
 
-      {/* Generate — compact warm CTA */}
+      {/* Generate — compact CTA */}
       <button
         onClick={generate}
         disabled={!canGenerate}
-        className="btn-gold absolute left-5 right-5 z-10 flex h-[52px] items-center justify-between rounded-[16px] pl-5 pr-2.5 font-display transition-opacity"
+        className="absolute left-5 right-5 z-10 flex h-[52px] items-center justify-between rounded-[16px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] pl-5 pr-2.5 font-display text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_22px_44px_-12px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-55"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 16px)' }}
       >
         <span className="flex items-center gap-2 text-[15px] font-bold">
           <mode.Icon className="h-[18px] w-[18px]" strokeWidth={2} /> {mode.cta}
         </span>
-        <span className="flex items-center gap-1.5 rounded-[11px] bg-black/12 px-3 py-1.5 font-mono text-[12px] font-semibold">
+        <span className="flex items-center gap-1.5 rounded-[11px] bg-black/25 px-3 py-1.5 font-mono text-[12px] font-semibold">
           {mode.id === 'music' ? 'from 4 ◇' : mode.id === 'image' ? 'from 1 ◇' : 'from 2 ◇'} <ArrowRight className="h-3.5 w-3.5" />
         </span>
       </button>

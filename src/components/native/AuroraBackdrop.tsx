@@ -28,30 +28,30 @@ export function GrainOverlay({ opacity = 0.06 }: { opacity?: number }) {
 export function AuroraBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* base — warm obsidian */}
+      {/* base */}
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at top, hsl(36 16% 6%) 0%, hsl(34 20% 2.5%) 62%)' }}
+        style={{ background: 'radial-gradient(ellipse at top, hsl(222 16% 7%) 0%, hsl(224 18% 2.5%) 62%)' }}
       />
-      {/* top champagne bloom (drifts) — soft, low-saturation */}
+      {/* top blue→cyan bloom (drifts) */}
       <div
         className="absolute -top-1/4 left-1/2 h-[78vmax] w-[78vmax] -translate-x-1/2 rounded-full blur-3xl will-change-transform animate-[aurora-drift_22s_ease-in-out_infinite]"
-        style={{ background: 'radial-gradient(circle, hsl(38 58% 56% / 0.16) 0%, hsl(30 60% 48% / 0.07) 40%, transparent 64%)' }}
+        style={{ background: 'radial-gradient(circle, hsl(212 100% 55% / 0.28) 0%, hsl(190 100% 55% / 0.10) 38%, transparent 62%)' }}
       />
-      {/* lower ember bloom (counter-drifts) */}
+      {/* lower violet bloom (counter-drifts) */}
       <div
         className="absolute -bottom-1/3 -right-1/4 h-[66vmax] w-[66vmax] rounded-full blur-3xl will-change-transform animate-[aurora-drift2_26s_ease-in-out_infinite]"
-        style={{ background: 'radial-gradient(circle, hsl(26 64% 42% / 0.16) 0%, transparent 66%)' }}
+        style={{ background: 'radial-gradient(circle, hsl(268 92% 60% / 0.24) 0%, transparent 66%)' }}
       />
-      {/* faint warm kicker, far left, for depth */}
+      {/* faint warm kicker, far left, for color depth */}
       <div
         className="absolute top-1/3 -left-1/4 h-[40vmax] w-[40vmax] rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(circle, hsl(18 60% 40% / 0.08) 0%, transparent 64%)' }}
+        style={{ background: 'radial-gradient(circle, hsl(330 90% 62% / 0.10) 0%, transparent 64%)' }}
       />
       {/* vignette to settle the edges */}
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 50%, hsl(34 24% 1%) 100%)' }}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 50%, hsl(224 20% 1%) 100%)' }}
       />
       {/* film grain */}
       <div

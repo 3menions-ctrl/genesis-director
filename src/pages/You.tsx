@@ -1,14 +1,17 @@
 /**
- * You — the mobile profile, gamified.
+ * You — the mobile profile. Borderless, editorial, floating.
  *
- * Levels / XP / streak are DERIVED from real activity (films published, plays,
- * likes) — not faked. Credits are shown spend-only (Apple 3.1.1): a balance,
- * never a buy button. Films grid is the user's own published reels, each shown
- * at its native aspect ratio (object-contain), per the media rule.
+ * No card containers: the avatar, name, level, stats, achievements and films
+ * sit directly on the Aurora backdrop, separated by space and hairlines, so
+ * everything reads as floating rather than boxed.
+ *
+ * Levels / XP / streak are DERIVED from real activity (films · plays · likes).
+ * Credits are spend-only (Apple 3.1.1): a balance, never a buy button. Films
+ * are shown at their native aspect ratio.
  */
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flame, Heart, Film, Sparkles, Trophy, Lock, Zap, Star, LogIn } from 'lucide-react';
+import { Flame, Lock, LogIn, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useMyFilms } from '@/hooks/useMyFilms';
@@ -54,21 +57,27 @@ export default function You() {
     { id: 'prolific', emoji: '🏆', label: '10 films', earned: films.length >= 10 },
   ];
 
+  const stats = [
+    { value: String(films.length), label: 'Films' },
+    { value: compact(totalLikes), label: 'Likes' },
+    { value: `◇ ${compact(available)}`, label: 'Credits', accent: true },
+  ];
+
   if (!user) {
     return (
       <div
-        className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center text-[#f3ece0]"
+        className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center text-white"
         style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))' }}
       >
         <AuroraBackdrop />
-        <Sparkles className="relative z-10 h-9 w-9 text-champagne" />
+        <Sparkles className="relative z-10 h-9 w-9 text-[#7aa2ff]" />
         <div className="relative z-10 text-[24px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>Sign in to see your studio</div>
-        <p className="relative z-10 max-w-[260px] text-[14px] text-[#f3ece0]/55">
+        <p className="relative z-10 max-w-[260px] text-[14px] text-white/55">
           Track your films, levels, streaks and credits — and remix anything from the feed.
         </p>
         <button
           onClick={() => navigate('/auth')}
-          className="btn-gold relative z-10 mt-1 flex h-11 items-center gap-2 rounded-full px-7 font-display text-[15px] font-bold"
+          className="relative z-10 mt-1 flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-7 font-display text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_40px_-12px_rgba(80,90,255,.7)]"
         >
           <LogIn className="h-[18px] w-[18px]" /> Sign in
         </button>
@@ -77,180 +86,125 @@ export default function You() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto text-[#f3ece0]">
+    <div className="fixed inset-0 overflow-y-auto text-white">
       <AuroraBackdrop />
       <div
-        className="relative z-10 px-5"
+        className="relative z-10 px-6"
         style={{
-          paddingTop: 'calc(var(--safe-top,0px) + 26px)',
-          paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 24px)',
+          paddingTop: 'calc(var(--safe-top,0px) + 36px)',
+          paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)',
         }}
       >
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="h-[74px] w-[74px] rounded-full object-cover shadow-[0_10px_30px_-8px_rgba(0,0,0,.7)] ring-1 ring-[#f3ece0]/10" />
-          ) : (
-            <span className="grid h-[74px] w-[74px] place-items-center rounded-full bg-gradient-to-br from-[#e8c9a0] to-[#c8924a] font-display text-2xl font-bold text-[#1b1610] shadow-[0_12px_34px_-8px_rgba(180,130,60,.5)]">
-              {initial}
+        {/* Hero — floating, centered */}
+        <div className="flex flex-col items-center text-center">
+          <div className="relative">
+            {/* soft glow halo so the avatar floats */}
+            <div className="pointer-events-none absolute -inset-3 rounded-full bg-[#5a6bff]/25 blur-2xl" />
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="relative h-[92px] w-[92px] rounded-full object-cover ring-1 ring-white/10" />
+            ) : (
+              <span className="relative grid h-[92px] w-[92px] place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] font-display text-3xl font-semibold">
+                {initial}
+              </span>
+            )}
+          </div>
+          <h1 className="mt-4 text-[28px] font-light leading-tight" style={{ fontFamily: 'Fraunces, serif' }}>{name}</h1>
+          <div className="mt-0.5 font-mono text-[13px] text-white/40">{handle}</div>
+        </div>
+
+        {/* Level — a floating line + hairline progress, no container */}
+        <div className="mt-8">
+          <div className="flex items-end justify-between">
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#9ab4ff]">
+              {title} · Level {level}
             </span>
-          )}
-          <div className="min-w-0">
-            <div className="truncate text-[24px] font-light" style={{ fontFamily: 'Fraunces, serif' }}>{name}</div>
-            <div className="font-mono text-[13px] text-[#f3ece0]/40">{handle}</div>
+            <span className="flex items-center gap-1.5 font-display text-[13px] font-semibold">
+              <Flame className={cn('h-[18px] w-[18px]', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />
+              <span className="tabular-nums">{streak}</span>
+              <span className="text-white/40">day{streak === 1 ? '' : 's'}</span>
+            </span>
+          </div>
+          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#3f78ff] to-[#a061ff]" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-2 font-mono text-[11px] tabular-nums text-white/40">
+            {intoLevel} / {XP_PER_LEVEL} XP to Level {level + 1}
           </div>
         </div>
 
-        {/* Level / XP / streak — borderless, lit by its own bloom */}
-        <div className="lit-edge relative mt-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#caa05a]/20 to-[#8a5a2b]/10 p-5">
-          <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#c8924a]/28 blur-3xl" />
-          <div className="relative flex items-center gap-4">
-            <LevelRing level={level} pct={pct} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[19px] font-normal italic leading-tight" style={{ fontFamily: 'Fraunces, serif' }}>
-                {title}
-              </div>
-              <div className="mt-1 font-mono text-[11px] tabular-nums text-champagne">
-                {intoLevel} / {XP_PER_LEVEL} XP to Level {level + 1}
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <Flame className={cn('h-7 w-7', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />
-              <span className="font-display text-[13px] font-bold tabular-nums">{streak}</span>
-            </div>
-          </div>
-          <div className="relative mt-4 font-mono text-[11px] text-[#f3ece0]/55">
-            {streak > 0 ? `${streak}-day streak — keep it alive, make a film today` : 'Make a film today to start a streak 🔥'}
-          </div>
-        </div>
-
-        {/* Stats — borderless floating tiles */}
-        <div className="mt-4 flex gap-3">
-          <Stat icon={<Film className="h-4 w-4" />} value={String(films.length)} label="Films" />
-          <Stat icon={<Heart className="h-4 w-4" />} value={compact(totalLikes)} label="Likes" />
-          {/* Credits — spend-only: balance shown, never a buy button. */}
-          <Stat icon={<Zap className="h-4 w-4 text-champagne" />} value={`◇ ${compact(available)}`} label="Credits" accent />
-        </div>
-
-        {/* Badges */}
-        <div className="mb-3.5 mt-7 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">
-          <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Badges</span>
-        </div>
-        <div className="flex gap-3">
-          {badges.map((b) => (
-            <div
-              key={b.id}
-              title={b.label}
-              className={cn(
-                'grid h-[50px] w-[50px] place-items-center rounded-[17px] text-[22px]',
-                b.earned ? 'surface-1' : 'bg-white/[0.025] opacity-35',
-              )}
-            >
-              {b.earned ? b.emoji : <Lock className="h-4 w-4 text-white/40" />}
+        {/* Stats — floating numbers, separated by hairlines (no boxes) */}
+        <div className="mt-9 flex items-stretch">
+          {stats.map((s, i) => (
+            <div key={s.label} className={cn('flex flex-1 flex-col items-center', i > 0 && 'border-l border-white/[0.08]')}>
+              <span className={cn('font-light tabular-nums text-[26px]', s.accent ? 'text-[#8fb4ff]' : 'text-white')} style={{ fontFamily: 'Fraunces, serif' }}>
+                {s.value}
+              </span>
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">{s.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Films grid */}
-        <div className="mb-3.5 mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">Your films</div>
+        {/* Achievements — floating medallions, no tiles */}
+        <div className="mt-10 text-center">
+          <div className="mb-5 font-mono text-[10px] uppercase tracking-[0.28em] text-white/35">Achievements</div>
+          <div className="flex justify-center gap-6">
+            {badges.map((b) => (
+              <div key={b.id} title={b.label} className="relative grid place-items-center">
+                {b.earned ? (
+                  <>
+                    <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#5a6bff]/25 blur-lg" />
+                    <span className="relative text-[26px] drop-shadow-[0_4px_10px_rgba(0,0,0,.5)]">{b.emoji}</span>
+                  </>
+                ) : (
+                  <Lock className="h-[18px] w-[18px] text-white/20" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Films — borderless thumbnails floating in a grid */}
+        <div className="mb-5 mt-11 flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/35">Films</span>
+          <span className="font-mono text-[10px] tabular-nums text-white/30">{films.length}</span>
+        </div>
         {loading ? (
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-video animate-pulse rounded-[16px] bg-white/[0.04]" />
             ))}
           </div>
         ) : films.length === 0 ? (
-          <div className="surface-1 rounded-[24px] px-5 py-9 text-center">
-            <div className="text-[17px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>No films yet</div>
-            <p className="mt-1.5 text-[13px] text-[#f3ece0]/45">Tap + to create your first one.</p>
+          <div className="py-10 text-center">
+            <div className="text-[17px] font-light italic text-white/80" style={{ fontFamily: 'Fraunces, serif' }}>No films yet</div>
             <button
-              onClick={() => {
-                void hapticTap();
-                navigate('/create');
-              }}
-              className="btn-gold mt-5 inline-flex h-10 items-center gap-2 rounded-full px-6 font-display text-[14px] font-bold"
+              onClick={() => { void hapticTap(); navigate('/create'); }}
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-6 font-display text-[14px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_14px_34px_-12px_rgba(80,90,255,.7)]"
             >
-              <Star className="h-4 w-4" /> Create
+              <Sparkles className="h-4 w-4" /> Create your first
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-3">
             {films.map((f) => (
               <button
                 key={f.id}
                 onClick={() => navigate(`/r/${f.id}`)}
-                className="lit-edge relative aspect-video overflow-hidden rounded-[16px] bg-black/30"
+                className="relative aspect-video overflow-hidden rounded-[16px] bg-black/30 shadow-[0_10px_26px_-14px_rgba(0,0,0,.8)]"
               >
                 {f.thumbnail_url ? (
-                  // Native aspect ratio honored — contained, never cropped.
                   <img src={f.thumbnail_url} alt={f.title} className="absolute inset-0 h-full w-full object-contain" />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#1a1130] to-[#0a0a0a]" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />
                 )}
-                <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 font-mono text-[10px] font-semibold text-white drop-shadow">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 to-transparent" />
+                <span className="absolute bottom-2 left-2 flex items-center gap-1 font-mono text-[10px] font-semibold text-white/90">
                   ▶ {compact(f.play_count)}
                 </span>
               </button>
             ))}
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function Stat({
-  icon,
-  value,
-  label,
-  accent,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="surface-1 flex-1 rounded-[20px] py-4 text-center">
-      <div className={cn('flex items-center justify-center gap-1 font-display text-[22px] font-semibold tabular-nums', accent && 'text-champagne')}>
-        {value}
-      </div>
-      <div className="mt-1 flex items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/40">
-        {icon} {label}
-      </div>
-    </div>
-  );
-}
-
-/** Circular XP progress ring with the current level in the center. */
-function LevelRing({ level, pct }: { level: number; pct: number }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  return (
-    <div className="relative h-[64px] w-[64px] shrink-0">
-      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="5" />
-        <circle
-          cx="32"
-          cy="32"
-          r={r}
-          fill="none"
-          stroke="url(#xpgrad)"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - Math.max(0, Math.min(100, pct)) / 100)}
-          style={{ transition: 'stroke-dashoffset .6s ease' }}
-        />
-        <defs>
-          <linearGradient id="xpgrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ecd29c" />
-            <stop offset="100%" stopColor="#c8924a" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        <span className="font-display text-[22px] font-bold leading-none tabular-nums">{level}</span>
       </div>
     </div>
   );

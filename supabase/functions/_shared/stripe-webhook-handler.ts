@@ -82,7 +82,10 @@ async function handleCreditPurchase(session: any) {
     return;
   }
   const credits = parseInt(md.credits || "0", 10);
-  if (!Number.isFinite(credits) || credits <= 0 || credits > 100000) {
+  // Cap matches add_credits' guard (raised to 1,000,000 in
+  // 20260704001300_raise_credit_grant_cap.sql) so the largest paid plans
+  // (e.g. business_scale_yearly = 240,000 credits) are not silently dropped.
+  if (!Number.isFinite(credits) || credits <= 0 || credits > 1000000) {
     log("skip credit purchase: bad credits", { credits: md.credits });
     return;
   }

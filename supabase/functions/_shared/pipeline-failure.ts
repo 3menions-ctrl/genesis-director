@@ -75,10 +75,30 @@ export async function markProjectFailedAndRefund(
   const source = ctx.source || 'pipeline';
   const status = ctx.status || 'failed';
 
+  // 0) Determine whether this project used the HOLD flow. If a credit_hold_id is
+  //    attached, the credits were only RESERVED (never debited from the ledger) —
+  //    releasing the hold in step 4 returns them in full. Issuing refund_credits
+  //    on top would INSERT a positive ledger row for credits that were never
+  //    charged, double-crediting the user on every hold-based failure. So when a
+  //    hold exists we release only and skip the monetary refund. The proportional
+  //    refund path remains for the LEGACY upfront-deduct flow (no hold attached).
+  let usedHoldFlow = false;
+  try {
+    const { data: holdRow } = await supabase
+      .from('movie_projects')
+      .select('credit_hold_id')
+      .eq('id', ctx.projectId)
+      .maybeSingle();
+    usedHoldFlow = !!holdRow?.credit_hold_id;
+  } catch (e) {
+    console.warn('[pipeline-failure] could not read credit_hold_id (assuming legacy flow):', e);
+  }
+
   // 1) Compute refund amount: (planned − delivered) × per-clip credits
   let refundAmount = 0;
   if (
     !ctx.skipRefund &&
+    !usedHoldFlow &&
     ctx.userId &&
     typeof ctx.totalCredits === 'number' &&
     ctx.totalCredits > 0 &&

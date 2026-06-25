@@ -107,6 +107,44 @@ export async function holdCreditsForPipeline(args: HoldArgs): Promise<HoldResult
 }
 
 /**
+ * Link a hold to a project AFTER the project row exists.
+ *
+ * Pipelines that hold credits for a brand-new generation reserve BEFORE the
+ * project is created (projectId is null at hold time), so holdCreditsForPipeline
+ * cannot persist `movie_projects.credit_hold_id` and the hold row carries a null
+ * `project_id`. Without this link, consume/release silently no-op (they look the
+ * hold up via the project), so the user is never charged on success and the hold
+ * is never released on failure (orphaned until TTL) — and the org-pool routing in
+ * consume/deduct (which derives the org from the hold's project) is bypassed.
+ *
+ * Call this immediately after the project row is created. Idempotent and
+ * non-fatal: a no-op when already linked or when either id is missing.
+ */
+export async function linkPipelineHold(args: {
+  supabase: any;
+  holdId: string | null | undefined;
+  projectId: string | null | undefined;
+}): Promise<void> {
+  const { supabase, holdId, projectId } = args;
+  if (!holdId || !projectId) return;
+  try {
+    await supabase
+      .from('movie_projects')
+      .update({ credit_hold_id: holdId, updated_at: new Date().toISOString() })
+      .eq('id', projectId);
+    // Backfill the hold's project_id so consume/release (and org-pool routing)
+    // can find it. Only set it when still null to avoid clobbering.
+    await supabase
+      .from('credit_holds')
+      .update({ project_id: projectId })
+      .eq('id', holdId)
+      .is('project_id', null);
+  } catch (e) {
+    console.warn('[pipeline-credits] linkPipelineHold failed (non-fatal):', e);
+  }
+}
+
+/**
  * Consume the credit hold attached to a project. Safe to call multiple times.
  * Looks up the holdId from `movie_projects.credit_hold_id` if not provided.
  */

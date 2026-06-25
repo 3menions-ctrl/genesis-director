@@ -114,9 +114,17 @@ export function useMediaLibrary(opts: Options = {}) {
 
   const toggleFavorite = useCallback(async (asset: MediaAsset) => {
     const next = !asset.is_favorite;
+    const prev = assets;
     setAssets((a) => a.map((x) => x.id === asset.id ? { ...x, is_favorite: next } : x));
-    await supabase.from('user_media_assets').update({ is_favorite: next }).eq('id', asset.id);
-  }, []);
+    // Roll back the optimistic flip if the write fails — otherwise the star
+    // stays toggled while the DB is unchanged until the next full refresh
+    // (mirrors `remove` above).
+    const { error: updErr } = await supabase.from('user_media_assets').update({ is_favorite: next }).eq('id', asset.id);
+    if (updErr) {
+      setAssets(prev);
+      throw updErr;
+    }
+  }, [assets]);
 
   return { assets, loading, error, refresh, remove, toggleFavorite };
 }

@@ -175,7 +175,14 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
       });
     }, 1500);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      // Reset so recovery re-runs for the NEXT project. <Production> is reused
+      // across /production/:projectId param changes (no key), so without this
+      // the ref stayed true and stuck/stalled clips in every project after the
+      // first were never recovered or resumed.
+      hasRunRef.current = false;
+    };
   }, [projectId, userId, checkAndRecoverClips]);
 
   return {

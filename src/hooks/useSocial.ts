@@ -223,10 +223,22 @@ export function useDirectMessages(otherUserId?: string) {
     queryKey: ['direct-messages', user?.id, otherUserId],
     queryFn: async () => {
       if (!user || !otherUserId) return [];
-      
-      const { data, error } = await (supabase as any)
-        .rpc('get_decrypted_messages', { p_other_user_id: otherUserId });
-      
+
+      // Read the conversation directly. The prior `get_decrypted_messages`
+      // RPC does not exist in the database (verified) so this query always
+      // threw → the thread always rendered empty. `direct_messages.content`
+      // is plaintext, and RLS (sender_id = auth.uid() OR recipient_id =
+      // auth.uid()) already restricts rows to this user; the .or() narrows
+      // to just this pair, ordered chronologically.
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(
+          `and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),` +
+          `and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`,
+        )
+        .order('created_at', { ascending: true });
+
       if (error) throw error;
       return (data ?? []) as DirectMessage[];
     },

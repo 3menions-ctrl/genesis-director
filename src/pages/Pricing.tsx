@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { IS_NATIVE } from '@/lib/native';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
@@ -480,6 +481,14 @@ export default function Pricing() {
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const reduced = useReducedMotion() ?? false;
+
+  // iOS native shell is spend-only (Apple 3.1.1) — there is no pricing/checkout
+  // surface in the app. Bounce native users to the studio instead of showing
+  // plan tiers and buy CTAs.
+  useEffect(() => {
+    if (IS_NATIVE) navigate('/studio', { replace: true });
+  }, [navigate]);
+  if (IS_NATIVE) return null;
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [segment, setSegment] = useState<Segment>('personal');
 

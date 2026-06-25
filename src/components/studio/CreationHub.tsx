@@ -34,6 +34,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useUserPrefs } from '@/contexts/UserPreferencesContext';
 
@@ -1388,7 +1389,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 {hasKnownInsufficientCredits && (
                   <p className="mt-3 text-[12px] text-amber-300/85 font-light tracking-[-0.005em]">
                     Need {estimatedCredits - displayedCredits} more credits ·{' '}
+                    {PURCHASING_ENABLED && (
                     <button onClick={() => setShowBuyCredits(true)} className="underline underline-offset-2 hover:text-amber-200 transition-colors">Top up</button>
+                    )}
                   </p>
                 )}
               </div>

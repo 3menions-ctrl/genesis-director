@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Coins, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
 import { cn } from '@/lib/utils';
 
 interface CreditLowInlineProps {
@@ -69,19 +70,23 @@ export function CreditLowInline({ balance, required, className, context }: Credi
             </div>
           )}
         </div>
-        <Button
-          size="sm"
-          variant={insufficient ? 'default' : 'outline'}
-          onClick={() => setOpen(true)}
-          className={cn(
-            'h-8 shrink-0 rounded-lg px-3 font-mono text-[10px] uppercase tracking-[0.16em]',
-            insufficient
-              ? 'bg-amber-500 text-black hover:bg-amber-400'
-              : 'border-white/15 bg-transparent text-white/85 hover:bg-glass-hover',
-          )}
-        >
-          Top up <ArrowRight className="ml-1 h-3 w-3" />
-        </Button>
+        {/* Top-up CTA hidden in the iOS spend-only shell (Apple 3.1.1); the
+            deficit message above still informs the user. */}
+        {PURCHASING_ENABLED && (
+          <Button
+            size="sm"
+            variant={insufficient ? 'default' : 'outline'}
+            onClick={() => setOpen(true)}
+            className={cn(
+              'h-8 shrink-0 rounded-lg px-3 font-mono text-[10px] uppercase tracking-[0.16em]',
+              insufficient
+                ? 'bg-amber-500 text-black hover:bg-amber-400'
+                : 'border-white/15 bg-transparent text-white/85 hover:bg-glass-hover',
+            )}
+          >
+            Top up <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
+        )}
       </motion.div>
       <BuyCreditsModal open={open} onOpenChange={setOpen} />
     </>

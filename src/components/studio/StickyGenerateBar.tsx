@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
 import { 
   getCreditWarningLevel,
   TIPS_MESSAGES,
@@ -339,7 +340,7 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
                   )}
                    
                   {/* Buy Credits button */}
-                  {(creditLevel === 'critical' || creditLevel === 'empty') && onBuyCredits && (
+                  {PURCHASING_ENABLED && (creditLevel === 'critical' || creditLevel === 'empty') && onBuyCredits && (
                     <Button
                       variant="outline"
                       onClick={onBuyCredits}

@@ -24,6 +24,7 @@ import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CREDIT_PACKAGES, approxClips, startCreditCheckout, type CreditPackage } from '@/lib/payments/creditPackages';
+import { IS_SPEND_ONLY } from '@/lib/native/purchases';
 
 interface BuyCreditsModalProps {
   open: boolean;
@@ -51,6 +52,26 @@ export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
       toast.error(e instanceof Error ? e.message : 'Could not start checkout');
     }
   };
+
+  // iOS native shell: spend-only. Apple guideline 3.1.1 means we cannot sell
+  // (or link out to buy) credits in-app, so the modal becomes a neutral notice
+  // with no packages, no checkout, and no external purchase link.
+  if (IS_SPEND_ONLY) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-sm text-white">
+          <DialogTitle className="text-white text-[22px] font-display font-light flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" /> Credits
+          </DialogTitle>
+          <DialogDescription className="text-white/55 text-[13px]">
+            Your credit balance is shown across the app and is spent as you create.
+            Credit top-ups are managed from your account on the Small&nbsp;Bridges
+            website.
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

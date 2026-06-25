@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check, Percent } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { IS_SPEND_ONLY } from '@/lib/native/purchases';
 
 function WelcomeOfferModalInner() {
   const { user, profile, refreshProfile } = useAuth();
@@ -28,6 +29,7 @@ function WelcomeOfferModalInner() {
   // so this only triggers once per account lifetime
   useEffect(() => {
     if (
+      !IS_SPEND_ONLY && // never surface the paid welcome offer in the iOS shell
       user &&
       profile &&
       profile.onboarding_completed &&

@@ -7,6 +7,7 @@
  * here is display-only and must be kept in sync with Stripe).
  */
 import { getPaymentsProvider } from "./index";
+import { IS_SPEND_ONLY } from "@/lib/native/purchases";
 
 export interface CreditPackage {
   id: "mini" | "starter" | "growth" | "agency" | "studio" | "brand" | "agency+";
@@ -42,6 +43,13 @@ export function approxClips(credits: number): number {
  * success the function does not return (navigation occurs).
  */
 export async function startCreditCheckout(packageId: CreditPackage["id"]): Promise<void> {
+  // Hard backstop for the iOS native shell: Apple guideline 3.1.1 forbids
+  // selling digital credits through anything but In-App Purchase, so no
+  // web checkout may ever start from inside the native app. The UI is also
+  // hidden (see PURCHASING_ENABLED), but this guarantees it at the source.
+  if (IS_SPEND_ONLY) {
+    throw new Error("Purchasing isn't available in the app. Manage credits on the web.");
+  }
   const provider = await getPaymentsProvider();
   const returnUrl =
     typeof window !== "undefined"

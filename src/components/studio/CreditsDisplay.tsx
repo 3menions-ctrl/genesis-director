@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
 import { calculateCreditsRequired, calculateAffordableClips, CREDIT_SYSTEM } from '@/lib/creditSystem';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
 
 interface CreditsDisplayProps {
   credits: UserCredits;
@@ -163,24 +164,26 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
       )}
 
 
-      {/* Buy button */}
-      <Button
-        onClick={() => setShowBuyModal(true)}
-        className="w-full gap-1.5 h-10 text-xs font-light tracking-wide rounded-full border-0 transition-all duration-300 hover:scale-[1.02]"
-        style={{
-          background: 'linear-gradient(180deg, hsla(215,100%,60%,0.95) 0%, hsla(215,100%,55%,0.95) 100%)',
-          color: 'white',
-          boxShadow: '0 8px 24px -8px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
-        }}
-      >
-        <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
-        {!canAfford && requiredCredits > 0 ? 'Get More Credits' : 'Get More'}
-      </Button>
+      {/* Buy button — hidden in the iOS spend-only shell (Apple 3.1.1). */}
+      {PURCHASING_ENABLED && (
+        <Button
+          onClick={() => setShowBuyModal(true)}
+          className="w-full gap-1.5 h-10 text-xs font-light tracking-wide rounded-full border-0 transition-all duration-300 hover:scale-[1.02]"
+          style={{
+            background: 'linear-gradient(180deg, hsla(215,100%,60%,0.95) 0%, hsla(215,100%,55%,0.95) 100%)',
+            color: 'white',
+            boxShadow: '0 8px 24px -8px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+          }}
+        >
+          <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+          {!canAfford && requiredCredits > 0 ? 'Get More Credits' : 'Get More'}
+        </Button>
+      )}
 
       {/* Buy Credits Modal */}
-      <BuyCreditsModal 
-        open={showBuyModal} 
-        onOpenChange={setShowBuyModal} 
+      <BuyCreditsModal
+        open={showBuyModal}
+        onOpenChange={setShowBuyModal}
       />
     </div>
   );

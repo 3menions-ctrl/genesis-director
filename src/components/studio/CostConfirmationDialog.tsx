@@ -28,8 +28,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
-import { 
-  getCreditBreakdown 
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
+import {
+  getCreditBreakdown
 } from '@/lib/creditSystem';
 
 interface CostBreakdown {
@@ -281,13 +282,15 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             Cancel
           </Button>
           {!hasEnoughCredits ? (
-            <Button 
+            PURCHASING_ENABLED && (
+            <Button
               onClick={() => setShowBuyCredits(true)}
               className="gap-2"
             >
               <CreditCard className="w-4 h-4" />
               Buy Credits
             </Button>
+            )
           ) : (
             <Button 
               onClick={handleConfirm} 

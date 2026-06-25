@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { PURCHASING_ENABLED } from '@/lib/native/purchases';
 import { PersonalSubscriptionCard } from '@/components/settings/PersonalSubscriptionCard';
 import { 
   Coins, Plus, TrendingUp, TrendingDown, History,
@@ -208,6 +209,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Billing & credits</div>
           <h2 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Credits and transaction history.</h2>
         </div>
+        {PURCHASING_ENABLED && (
         <Button
           onClick={() => setShowBuyModal(true)}
           className="bg-white text-black hover:bg-white/90"
@@ -215,6 +217,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           <Plus className="w-4 h-4 mr-2" />
           Buy Credits
         </Button>
+        )}
       </div>
 
       {/* Subscription / Plan */}

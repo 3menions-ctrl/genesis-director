@@ -296,7 +296,13 @@ window.addEventListener("unhandledrejection", (event) => {
 // would either fail or, worse, leave a stale SW from a prior prod visit
 // active — which then serves dead cached chunks and strands the UI on the
 // Suspense spinner. So in dev we actively unregister + purge caches.
-if ("serviceWorker" in navigator) {
+// In the Capacitor native shell the app is served from capacitor://localhost
+// with assets already bundled in the .ipa — a service worker adds nothing but
+// a second, conflicting cache layer (stale chunks, scheme mismatches). Skip SW
+// entirely on native; the native runtime owns offline.
+import { IS_NATIVE } from "./lib/native";
+
+if ("serviceWorker" in navigator && !IS_NATIVE) {
   if (import.meta.env.PROD) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {

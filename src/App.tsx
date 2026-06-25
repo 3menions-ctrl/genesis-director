@@ -44,6 +44,7 @@ import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
+import { NativeShell } from "@/components/native/NativeShell";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
@@ -265,6 +266,9 @@ const App = () => {
             <BootCheckpointMarker />
             {/* Route change tracker for forensics */}
             <RouteChangeTracker />
+            {/* Capacitor native shell bridge: status bar, splash, deep links,
+                hardware back, push. Inert on web. */}
+            <NativeShell />
           <NavigationLoadingProvider>
             <NavigationGuardProvider>
             <NavigationBridge>

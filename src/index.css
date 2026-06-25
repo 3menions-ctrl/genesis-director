@@ -2760,3 +2760,54 @@ img, a, button {
   background: rgba(255, 255, 255, 0.12) !important;
   color: #fff !important;
 }
+
+/* ============================================================
+   Capacitor native shell (iOS) — applied only when running
+   inside the native app (the <html> gets `.capacitor-native`
+   / `.platform-ios` from src/lib/native/shell.ts). None of
+   this affects the web build.
+   ============================================================ */
+
+/* Expose the live safe-area insets as variables for any component to use. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+.capacitor-native {
+  /* Kill the iOS gray tap flash and long-press text callout for an app feel. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+.capacitor-native body {
+  /* No rubber-band white gap above/below content; match the app's near-black. */
+  background-color: #0a0a0a;
+  /* Disable the whole-page bounce; inner scrollers still scroll natively. */
+  overscroll-behavior-y: none;
+}
+
+/* The status bar overlays the webview (overlay:true), so reserve its height at
+   the top of the app so fixed headers / first content aren't tucked under the
+   clock + notch. Components can still opt into more via the .pt-safe helpers. */
+.capacitor-native #root {
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  box-sizing: border-box;
+  min-height: 100dvh;
+}
+
+/* Inputs shouldn't auto-zoom on focus (iOS zooms <16px fonts). */
+.capacitor-native input,
+.capacitor-native textarea,
+.capacitor-native select {
+  font-size: max(16px, 1rem);
+}
+
+/* While the soft keyboard is open, let content reclaim the bottom inset. */
+.capacitor-native.keyboard-open #root {
+  padding-bottom: 0;
+}

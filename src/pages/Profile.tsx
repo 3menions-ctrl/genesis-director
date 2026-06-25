@@ -54,6 +54,7 @@ import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { BuyCreditsModal } from "@/components/credits/BuyCreditsModal";
+import { PURCHASING_ENABLED } from "@/lib/native/purchases";
 import { TwoFactorCard } from "@/components/security/TwoFactorCard";
 import { SessionsCard } from "@/components/security/SessionsCard";
 import { UploadReelDialog } from "@/components/publish/UploadReelDialog";
@@ -970,7 +971,9 @@ export default function Profile() {
                     <BigStat label="Plan" textValue={accountType === "admin" ? "Admin" : accountType[0].toUpperCase() + accountType.slice(1)} />
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {PURCHASING_ENABLED && (
                     <button onClick={() => setBuyOpen(true)} className="pill bg-amber-300/90 hover:bg-amber-300 text-black"><Plus className="w-3.5 h-3.5" /> Buy credits</button>
+                    )}
                     <Link to="/credits"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">History</Link>
                     <Link to="/pricing"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">View plans</Link>
                   </div>
